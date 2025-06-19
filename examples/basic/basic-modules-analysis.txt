@@ -1,0 +1,242 @@
+📊 Module Export Analysis Report (All Modules)
+Generated: 2025-06-19T12:05:38.988Z
+
+📈 SUMMARY STATISTICS:
+  Total modules analyzed: 669
+  Displayed modules (with optimization potential): 18
+  Completely unused modules (hidden): 19
+  No-info modules (hidden): 3
+  Single-used leaf nodes (hidden): 628
+  ConsumeShared modules: 3
+  Modules with used exports: 644
+  Modules with unused exports: 36
+  Total exports: 1795
+  Used exports: 650
+  Unused exports: 1145
+  Overall usage efficiency: 36.2%
+
+🚫 COMPLETELY UNUSED MODULES (19 hidden):
+  Total unused exports from hidden modules: 809
+  Examples of completely unused modules:
+    1. @module-federation/index.cjs.js: 15 unused exports
+    2. react-dom/react-dom.development.js: 12 unused exports
+    3. react-dom/client.js: 2 unused exports
+    4. react/react.development.js: 1 unused exports
+    5. scheduler/scheduler.development.js: 19 unused exports
+    6. scheduler/index.js: 19 unused exports
+    7. @module-federation/index.cjs.cjs: 24 unused exports
+    8. @module-federation/polyfills.cjs.cjs: 2 unused exports
+    9. @module-federation/index.cjs.cjs: 15 unused exports
+    10. @module-federation/utils.cjs.cjs: 1 unused exports
+    ... and 9 more completely unused modules
+
+📄 NO-INFO MODULES (3 hidden):
+  Modules with no export information (entry points, runtime modules):
+    1. @module-federation/remoteEntry.js","externalType":"script","shareScope":"default"}]};const __module_federation_container_name__ = "basic_example";const __module_federation_share_strategy__ = "version-first";if((__webpack_require__.initializeSharingData||__webpack_require__.initializeExposesData)&&__webpack_require__.federation){var __webpack_require___remotesLoadingData,__webpack_require___remotesLoadingData1,__webpack_require___initializeSharingData,__webpack_require___consumesLoadingData,__webpack_require___consumesLoadingData1,__webpack_require___initializeExposesData,__webpack_require___consumesLoadingData2;const override=(obj,key,value)=>{if(!obj)return;if(obj[key])obj[key]=value};const merge=(obj,key,fn)=>{const value=fn();if(Array.isArray(value)){var _obj,_key;var _;(_=(_obj=obj)[_key=key])!==null&&_!==void 0?_:_obj[_key]=[];obj[key].push(...value)}else if(typeof value==="object"&&value!==null){var _obj1,_key1;var _1;(_1=(_obj1=obj)[_key1=key])!==null&&_1!==void 0?_1:_obj1[_key1]={};Object.assign(obj[key],value)}};const early=(obj,key,initial)=>{var _obj,_key;var _;(_=(_obj=obj)[_key=key])!==null&&_!==void 0?_:_obj[_key]=initial()};var __webpack_require___remotesLoadingData_chunkMapping;const remotesLoadingChunkMapping=(__webpack_require___remotesLoadingData_chunkMapping=(__webpack_require___remotesLoadingData=__webpack_require__.remotesLoadingData)===null||__webpack_require___remotesLoadingData===void 0?void 0:__webpack_require___remotesLoadingData.chunkMapping)!==null&&__webpack_require___remotesLoadingData_chunkMapping!==void 0?__webpack_require___remotesLoadingData_chunkMapping:{};var __webpack_require___remotesLoadingData_moduleIdToRemoteDataMapping;const remotesLoadingModuleIdToRemoteDataMapping=(__webpack_require___remotesLoadingData_moduleIdToRemoteDataMapping=(__webpack_require___remotesLoadingData1=__webpack_require__.remotesLoadingData)===null||__webpack_require___remotesLoadingData1===void 0?void 0:__webpack_require___remotesLoadingData1.moduleIdToRemoteDataMapping)!==null&&__webpack_require___remotesLoadingData_moduleIdToRemoteDataMapping!==void 0?__webpack_require___remotesLoadingData_moduleIdToRemoteDataMapping:{};var __webpack_require___initializeSharingData_scopeToSharingDataMapping;const initializeSharingScopeToInitDataMapping=(__webpack_require___initializeSharingData_scopeToSharingDataMapping=(__webpack_require___initializeSharingData=__webpack_require__.initializeSharingData)===null||__webpack_require___initializeSharingData===void 0?void 0:__webpack_require___initializeSharingData.scopeToSharingDataMapping)!==null&&__webpack_require___initializeSharingData_scopeToSharingDataMapping!==void 0?__webpack_require___initializeSharingData_scopeToSharingDataMapping:{};var __webpack_require___consumesLoadingData_chunkMapping;const consumesLoadingChunkMapping=(__webpack_require___consumesLoadingData_chunkMapping=(__webpack_require___consumesLoadingData=__webpack_require__.consumesLoadingData)===null||__webpack_require___consumesLoadingData===void 0?void 0:__webpack_require___consumesLoadingData.chunkMapping)!==null&&__webpack_require___consumesLoadingData_chunkMapping!==void 0?__webpack_require___consumesLoadingData_chunkMapping:{};var __webpack_require___consumesLoadingData_moduleIdToConsumeDataMapping;const consumesLoadingModuleToConsumeDataMapping=(__webpack_require___consumesLoadingData_moduleIdToConsumeDataMapping=(__webpack_require___consumesLoadingData1=__webpack_require__.consumesLoadingData)===null||__webpack_require___consumesLoadingData1===void 0?void 0:__webpack_require___consumesLoadingData1.moduleIdToConsumeDataMapping)!==null&&__webpack_require___consumesLoadingData_moduleIdToConsumeDataMapping!==void 0?__webpack_require___consumesLoadingData_moduleIdToConsumeDataMapping:{};const consumesLoadinginstalledModules={};const initializeSharingInitPromises=[];const initializeSharingInitTokens={};const containerShareScope=(__webpack_require___initializeExposesData=__webpack_require__.initializeExposesData)===null||__webpack_require___initializeExposesData===void 0?void 0:__webpack_require___initializeExposesData.shareScope;for(const key in __module_federation_bundler_runtime__){__webpack_require__.federation[key]=__module_federation_bundler_runtime__[key]}early(__webpack_require__.federation,"consumesLoadingModuleToHandlerMapping",()=>{const consumesLoadingModuleToHandlerMapping={};for(let[moduleId,data]of Object.entries(consumesLoadingModuleToConsumeDataMapping)){consumesLoadingModuleToHandlerMapping[moduleId]={getter:data.fallback,shareInfo:{shareConfig:{fixedDependencies:false,requiredVersion:data.requiredVersion,strictVersion:data.strictVersion,singleton:data.singleton,eager:data.eager},scope:[data.shareScope]},shareKey:data.shareKey}}return consumesLoadingModuleToHandlerMapping});early(__webpack_require__.federation,"initOptions",()=>({}));early(__webpack_require__.federation.initOptions,"name",()=>__module_federation_container_name__);early(__webpack_require__.federation.initOptions,"shareStrategy",()=>__module_federation_share_strategy__);early(__webpack_require__.federation.initOptions,"shared",()=>{const shared={};for(let[scope,stages]of Object.entries(initializeSharingScopeToInitDataMapping)){for(let stage of stages){if(typeof stage==="object"&&stage!==null){const{name,version,factory,eager,singleton,requiredVersion,strictVersion}=stage;const shareConfig={};const isValidValue=function(val){return typeof val!=="undefined"};if(isValidValue(singleton)){shareConfig.singleton=singleton}if(isValidValue(requiredVersion)){shareConfig.requiredVersion=requiredVersion}if(isValidValue(eager)){shareConfig.eager=eager}if(isValidValue(strictVersion)){shareConfig.strictVersion=strictVersion}const options={version,scope:[scope],shareConfig,get:factory};if(shared[name]){shared[name].push(options)}else{shared[name]=[options]}}}}return shared});merge(__webpack_require__.federation.initOptions,"remotes",()=>Object.values(__module_federation_remote_infos__).flat().filter(remote=>remote.externalType==="script"));merge(__webpack_require__.federation.initOptions,"plugins",()=>__module_federation_runtime_plugins__);early(__webpack_require__.federation,"bundlerRuntimeOptions",()=>({}));early(__webpack_require__.federation.bundlerRuntimeOptions,"remotes",()=>({}));early(__webpack_require__.federation.bundlerRuntimeOptions.remotes,"chunkMapping",()=>remotesLoadingChunkMapping);early(__webpack_require__.federation.bundlerRuntimeOptions.remotes,"idToExternalAndNameMapping",()=>{const remotesLoadingIdToExternalAndNameMappingMapping={};for(let[moduleId,data]of Object.entries(remotesLoadingModuleIdToRemoteDataMapping)){remotesLoadingIdToExternalAndNameMappingMapping[moduleId]=[data.shareScope,data.name,data.externalModuleId,data.remoteName]}return remotesLoadingIdToExternalAndNameMappingMapping});early(__webpack_require__.federation.bundlerRuntimeOptions.remotes,"webpackRequire",()=>__webpack_require__);merge(__webpack_require__.federation.bundlerRuntimeOptions.remotes,"idToRemoteMap",()=>{const idToRemoteMap={};for(let[id,remoteData]of Object.entries(remotesLoadingModuleIdToRemoteDataMapping)){const info=__module_federation_remote_infos__[remoteData.remoteName];if(info)idToRemoteMap[id]=info}return idToRemoteMap});override(__webpack_require__,"S",__webpack_require__.federation.bundlerRuntime.S);if(__webpack_require__.federation.attachShareScopeMap){__webpack_require__.federation.attachShareScopeMap(__webpack_require__)}override(__webpack_require__.f,"remotes",(chunkId,promises)=>__webpack_require__.federation.bundlerRuntime.remotes({chunkId,promises,chunkMapping:remotesLoadingChunkMapping,idToExternalAndNameMapping:__webpack_require__.federation.bundlerRuntimeOptions.remotes.idToExternalAndNameMapping,idToRemoteMap:__webpack_require__.federation.bundlerRuntimeOptions.remotes.idToRemoteMap,webpackRequire:__webpack_require__}));override(__webpack_require__.f,"consumes",(chunkId,promises)=>__webpack_require__.federation.bundlerRuntime.consumes({chunkId,promises,chunkMapping:consumesLoadingChunkMapping,moduleToHandlerMapping:__webpack_require__.federation.consumesLoadingModuleToHandlerMapping,installedModules:consumesLoadinginstalledModules,webpackRequire:__webpack_require__}));override(__webpack_require__,"I",(name,initScope)=>__webpack_require__.federation.bundlerRuntime.I({shareScopeName:name,initScope,initPromises:initializeSharingInitPromises,initTokens:initializeSharingInitTokens,webpackRequire:__webpack_require__}));override(__webpack_require__,"initContainer",(shareScope,initScope,remoteEntryInitOptions)=>__webpack_require__.federation.bundlerRuntime.initContainerEntry({shareScope,initScope,remoteEntryInitOptions,shareScopeKey:containerShareScope,webpackRequire:__webpack_require__}));override(__webpack_require__,"getContainer",(module1,getScope)=>{var moduleMap=__webpack_require__.initializeExposesData.moduleMap;__webpack_require__.R=getScope;getScope=Object.prototype.hasOwnProperty.call(moduleMap,module1)?moduleMap[module1]():Promise.resolve().then(()=>{throw new Error('Module "'+module1+'" does not exist in container.')});__webpack_require__.R=undefined;return getScope});__webpack_require__.federation.instance=__webpack_require__.federation.runtime.init(__webpack_require__.federation.initOptions);if((__webpack_require___consumesLoadingData2=__webpack_require__.consumesLoadingData)===null||__webpack_require___consumesLoadingData2===void 0?void 0:__webpack_require___consumesLoadingData2.initialConsumes){__webpack_require__.federation.bundlerRuntime.installInitialConsumes({webpackRequire:__webpack_require__,installedModules:consumesLoadinginstalledModules,initialConsumes:__webpack_require__.consumesLoadingData.initialConsumes,moduleToHandlerMapping:__webpack_require__.federation.consumesLoadingModuleToHandlerMapping})}}
+    2. index.js
+    3. index.js|399b3a06253902604c38c04bc302e26e
+
+🌿 SINGLE-USED LEAF NODES (628 hidden):
+  Fully optimized modules (1 export, 1 used - no optimization needed):
+    1. lodash-es/_apply.js
+    2. lodash-es/_arrayAggregator.js
+    3. lodash-es/_arrayEach.js
+    4. lodash-es/_arrayEachRight.js
+    5. lodash-es/_arrayEvery.js
+    6. lodash-es/_arrayFilter.js
+    7. lodash-es/_arrayIncludes.js
+    8. lodash-es/_arrayIncludesWith.js
+    9. lodash-es/_arrayLikeKeys.js
+    10. lodash-es/_arrayMap.js
+    ... and 618 more single-used leaf nodes
+
+🔗 MODULE FEDERATION CONSUMESHARED ANALYSIS (3 modules):
+    1. lodash-es: 4 total, 4 used, 0 unused
+       ✅ Used: [map, VERSION, default, filter]
+       🌐 Uses namespace
+    2. react-dom: 1 total, 0 used, 1 unused
+       ❌ Unused: [*]
+       🌐 Uses namespace
+    3. react: 2 total, 2 used, 0 unused
+       ✅ Used: [version, default]
+       🌐 Uses namespace
+
+🔍 TOP OPTIMIZATION OPPORTUNITIES:
+  Top displayed modules with unused exports:
+    1. lodash-es/array.js: 65 unused (98.5% waste)
+    2. lodash-es/lang.js: 56 unused (98.2% waste)
+    3. lodash-es/object.js: 47 unused (97.9% waste)
+    4. lodash-es/util.js: 32 unused (97.0% waste)
+    5. lodash-es/string.js: 31 unused (96.9% waste)
+    6. lodash-es/collection.js: 28 unused (96.6% waste)
+    7. lodash-es/function.js: 23 unused (95.8% waste)
+    8. lodash-es/math.js: 15 unused (93.7% waste)
+    9. lodash-es/seq.js: 14 unused (93.3% waste)
+    10. shared/api.js: 3 unused (75.0% waste)
+
+📦 DETAILED MODULE ANALYSIS (Modules with Optimization Potential):
+
+Module: lodash-es/lodash.js)
+  Path: consume shared module (default) lodash-es@^4.17.21 (strict) (fallback: /Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/lodash.js)
+  Type: consume-shared-module
+  Exports: 4 total, 4 used, 0 unused (100.0% efficiency)
+  ✅ Used: map, VERSION, default, filter
+
+Module: react/index.js)
+  Path: consume shared module (default) react@^18.2.0 (strict) (fallback: /Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/react@18.3.1/node_modules/react/index.js)
+  Type: consume-shared-module
+  Exports: 2 total, 2 used, 0 unused (100.0% efficiency)
+  ✅ Used: version, default
+
+Module: index.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/examples/basic/index.js
+  Type: javascript/esm
+  Exports: 0 total, 0 used, 0 unused (0% efficiency)
+
+Module: index.js|399b3a06253902604c38c04bc302e26e
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/examples/basic/index.js|399b3a06253902604c38c04bc302e26e
+  Type: javascript/esm
+  Exports: 0 total, 0 used, 0 unused (0% efficiency)
+
+Module: shared/api.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/examples/basic/shared/api.js
+  Type: javascript/esm
+  Exports: 4 total, 1 used, 3 unused (25.0% efficiency)
+  ✅ Used: createApiClient
+
+Module: shared/components.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/examples/basic/shared/components.js
+  Type: javascript/esm
+  Exports: 4 total, 2 used, 2 unused (50.0% efficiency)
+  ✅ Used: Button, Modal
+
+Module: shared/utils.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/examples/basic/shared/utils.js
+  Type: javascript/esm
+  Exports: 4 total, 2 used, 2 unused (50.0% efficiency)
+  ✅ Used: capitalize, formatDate
+
+Module: lodash-es/array.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/array.js
+  Type: javascript/esm
+  Exports: 66 total, 1 used, 65 unused (1.5% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/collection.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/collection.js
+  Type: javascript/esm
+  Exports: 29 total, 1 used, 28 unused (3.4% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/date.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/date.js
+  Type: javascript/esm
+  Exports: 2 total, 1 used, 1 unused (50.0% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/function.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/function.js
+  Type: javascript/esm
+  Exports: 24 total, 1 used, 23 unused (4.2% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/lang.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/lang.js
+  Type: javascript/esm
+  Exports: 57 total, 1 used, 56 unused (1.8% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/math.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/math.js
+  Type: javascript/esm
+  Exports: 16 total, 1 used, 15 unused (6.3% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/number.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/number.js
+  Type: javascript/esm
+  Exports: 4 total, 1 used, 3 unused (25.0% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/object.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/object.js
+  Type: javascript/esm
+  Exports: 48 total, 1 used, 47 unused (2.1% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/seq.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/seq.js
+  Type: javascript/esm
+  Exports: 15 total, 1 used, 14 unused (6.7% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/string.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/string.js
+  Type: javascript/esm
+  Exports: 32 total, 1 used, 31 unused (3.1% efficiency)
+  ✅ Used: default
+
+Module: lodash-es/util.js
+  Path: javascript/esm|/Users/bytedance/RustroverProjects/rspack/node_modules/.pnpm/lodash-es@4.17.21/node_modules/lodash-es/util.js
+  Type: javascript/esm
+  Exports: 33 total, 1 used, 32 unused (3.0% efficiency)
+  ✅ Used: default
+
+
+🚀 OPTIMIZATION RECOMMENDATIONS:
+
+1. Consider tree-shaking or replacing these modules:
+   Note: Modules with active ConsumeShared usage are excluded from optimization recommendations.
+   • @module-federation/index.cjs.js: Only 0.0% of exports used
+   • react-dom/react-dom.development.js: Only 0.0% of exports used
+   • scheduler/scheduler.development.js: Only 0.0% of exports used
+   • scheduler/index.js: Only 0.0% of exports used
+   • @module-federation/index.cjs.cjs: Only 0.0% of exports used
+   • @module-federation/index.cjs.cjs: Only 0.0% of exports used
+   • @module-federation/index.cjs.cjs: Only 0.0% of exports used
+   • lodash-es/array.js: Only 1.5% of exports used
+   • lodash-es/collection.js: Only 3.4% of exports used
+   • lodash-es/function.js: Only 4.2% of exports used
+   • lodash-es/lang.js: Only 1.8% of exports used
+   • lodash-es/lodash.js: Only 0.0% of exports used
+   • lodash-es/lodash.js|1dc6293198ffe0137b6f768b7279c7d5: Only 0.0% of exports used
+   • lodash-es/math.js: Only 6.3% of exports used
+   • lodash-es/object.js: Only 2.1% of exports used
+   • lodash-es/seq.js: Only 6.7% of exports used
+   • lodash-es/string.js: Only 3.1% of exports used
+   • lodash-es/util.js: Only 3.0% of exports used
+
+2. Modules with many unused exports (>20):
+   • @module-federation/index.cjs.cjs: 24 unused exports
+   • @module-federation/index.cjs.cjs: 49 unused exports
+   • lodash-es/array.js: 65 unused exports
+   • lodash-es/collection.js: 28 unused exports
+   • lodash-es/function.js: 23 unused exports
+   • lodash-es/lang.js: 56 unused exports
+   • lodash-es/lodash.js: 322 unused exports
+   • lodash-es/lodash.js|1dc6293198ffe0137b6f768b7279c7d5: 322 unused exports
+   • lodash-es/object.js: 47 unused exports
+   • lodash-es/string.js: 31 unused exports
+   • lodash-es/util.js: 32 unused exports
+
+3. Modules with no used exports (consider removing):
+   Note: Modules with active ConsumeShared usage are excluded from this list.
+   • @module-federation/index.cjs.js: 15 total exports, none used
+   • react-dom/react-dom.development.js: 12 total exports, none used
+   • react-dom/client.js: 2 total exports, none used
+   • react/react.development.js: 1 total exports, none used
+   • scheduler/scheduler.development.js: 19 total exports, none used
+   • scheduler/index.js: 19 total exports, none used
+   • @module-federation/index.cjs.cjs: 24 total exports, none used
+   • @module-federation/polyfills.cjs.cjs: 2 total exports, none used
+   • @module-federation/index.cjs.cjs: 15 total exports, none used
+   • @module-federation/utils.cjs.cjs: 1 total exports, none used
+   • @module-federation/index.cjs.cjs: 49 total exports, none used
+   • @module-federation/polyfills.cjs.cjs: 1 total exports, none used
+   • @module-federation/constant.cjs.cjs: 1 total exports, none used
+   • @module-federation/index.cjs.cjs: 1 total exports, none used
+   • lodash-es/lodash.js: 322 total exports, none used
+   • lodash-es/lodash.js|1dc6293198ffe0137b6f768b7279c7d5: 322 total exports, none used
+   • lodash-es/lodash.js: 1 total exports, none used
+   • react-dom/index.js: 1 total exports, none used
+   • react/index.js: 1 total exports, none used
