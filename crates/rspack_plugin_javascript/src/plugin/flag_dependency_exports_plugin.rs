@@ -424,11 +424,11 @@ fn collect_module_exports_specs(
     }
   }
 
-  // mg_cache.unfreeze();
   let block = &**mg.module_by_identifier(module_id)?;
   let mut dep_ids = FxIndexSet::default();
   walk_block(block, &mut dep_ids, mg);
 
+  mg_cache.freeze();
   let res = dep_ids
     .into_iter()
     .filter_map(|id| {
@@ -437,6 +437,6 @@ fn collect_module_exports_specs(
       Some((id, exports_spec))
     })
     .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
-  // mg_cache.unfreeze();
+  mg_cache.unfreeze();
   Some(res)
 }
