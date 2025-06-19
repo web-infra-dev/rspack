@@ -856,9 +856,7 @@ impl ESMExportImportedSpecifierDependency {
         if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
           if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
             // Use the trait method to get share_key
-            let trait_result = parent_module.get_consume_shared_key();
-
-            trait_result
+            parent_module.get_consume_shared_key()
           } else {
             None
           }
@@ -872,8 +870,7 @@ impl ESMExportImportedSpecifierDependency {
     // Use macro comments for ConsumeShared modules, standard format otherwise
     let export_content = if let Some(ref share_key) = consume_shared_info {
       format!(
-        "/* @common:if [condition=\"treeShake.{}.{}\"] */ /* {comment} */ {return_value} /* @common:endif */",
-        share_key, key
+        "/* @common:if [condition=\"treeShake.{share_key}.{key}\"] */ /* {comment} */ {return_value} /* @common:endif */"
       )
     } else {
       format!("/* {comment} */ {return_value}")
@@ -915,9 +912,7 @@ impl ESMExportImportedSpecifierDependency {
         if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
           if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
             // Use the trait method to get share_key
-            let trait_result = parent_module.get_consume_shared_key();
-
-            trait_result
+            parent_module.get_consume_shared_key()
           } else {
             None
           }

@@ -174,9 +174,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
           if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
             // Use the trait method to get share_key
-            let trait_result = parent_module.get_consume_shared_key();
-
-            trait_result
+            parent_module.get_consume_shared_key()
           } else {
             None
           }
@@ -239,8 +237,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         // Use macro comments for ConsumeShared modules, standard format otherwise
         let export_content = if let Some(ref share_key) = consume_shared_info {
           format!(
-            "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-            share_key, export_name, export_assignment
+            "/* @common:if [condition=\"treeShake.{share_key}.{export_name}\"] */ {export_assignment} /* @common:endif */"
           )
         } else {
           export_assignment
@@ -270,7 +267,9 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       if let Some(value_range) = &dep.value_range {
         if let Some(UsedName::Normal(used)) = used {
           if !used.is_empty() {
-            let export_name = used.last().unwrap();
+            let export_name = used
+              .last()
+              .expect("used should not be empty for normal export");
 
             // Use macro comments for ConsumeShared modules, standard format otherwise
             let define_property_start = if let Some(ref share_key) = consume_shared_info {

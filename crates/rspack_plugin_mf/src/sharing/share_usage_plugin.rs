@@ -236,7 +236,7 @@ impl ShareUsagePlugin {
         // This represents individual named imports like { VERSION, map, filter, uniq }
         if let Some(module_dep) = dependency.as_module_dependency() {
           // Try to extract import name from the dependency's request or identifier
-          let request = module_dep.request();
+          let _request = module_dep.request();
 
           // For import specifiers, the request often contains the imported name
           // However, this is implementation-specific and may need adjustment based on actual dependency structure
@@ -246,7 +246,7 @@ impl ShareUsagePlugin {
           // may vary based on rspack's internal dependency structure
 
           // As a fallback, try to extract from any string representation that might contain import info
-          let dep_str = format!("{:?}", dependency);
+          let dep_str = format!("{dependency:?}");
           if dep_str.contains("import") && !dep_str.contains("*") {
             // This is a named import, but we need the actual import name
             // For now, we'll use a conservative approach and mark that we found an import
@@ -274,8 +274,8 @@ impl ShareUsagePlugin {
       DependencyType::EsmExportImportedSpecifier => {
         // This might be a re-export case
         // Extract exported name if available
-        if let Some(module_dep) = dependency.as_module_dependency() {
-          let dep_str = format!("{:?}", dependency);
+        if let Some(_module_dep) = dependency.as_module_dependency() {
+          let dep_str = format!("{dependency:?}");
           if let Some(exported_name) = self.parse_export_name_from_debug(&dep_str) {
             if !all_imported_exports.contains(&exported_name) {
               all_imported_exports.push(exported_name);
@@ -291,7 +291,7 @@ impl ShareUsagePlugin {
   }
 
   /// Parse import name from debug string representation (heuristic approach)
-  fn parse_import_name_from_debug(&self, debug_str: &str) -> Option<String> {
+  fn parse_import_name_from_debug(&self, _debug_str: &str) -> Option<String> {
     // This is a heuristic method to extract import names from dependency debug output
     // In a real implementation, you'd use the proper dependency API methods
 
@@ -304,7 +304,7 @@ impl ShareUsagePlugin {
   }
 
   /// Parse export name from debug string representation (heuristic approach)
-  fn parse_export_name_from_debug(&self, debug_str: &str) -> Option<String> {
+  fn parse_export_name_from_debug(&self, _debug_str: &str) -> Option<String> {
     // Similar heuristic approach for export names
     None
   }
@@ -314,7 +314,7 @@ impl ShareUsagePlugin {
   fn analyze_used_vs_imported_exports(
     &self,
     module_graph: &ModuleGraph,
-    fallback_id: &ModuleIdentifier,
+    _fallback_id: &ModuleIdentifier,
     consume_shared_id: &ModuleIdentifier,
   ) -> (Vec<String>, Vec<String>) {
     use rspack_core::{ExportInfoGetter, ExportsInfoGetter, PrefetchExportsInfoMode, UsageState};
@@ -343,10 +343,7 @@ impl ShareUsagePlugin {
           let consume_shared_usage =
             ExportInfoGetter::get_used(consume_shared_export_info_data, None);
 
-          println!(
-            "🔍 DEBUG: Export '{}' usage state: {:?}",
-            export_name, consume_shared_usage
-          );
+          println!("🔍 DEBUG: Export '{export_name}' usage state: {consume_shared_usage:?}");
 
           // Export is actually used if the ConsumeShared proxy module shows usage
           if matches!(

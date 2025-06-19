@@ -241,20 +241,18 @@ pub fn get_detailed_export_usage(
 
     // Get usage information from export_info_data
     let can_mangle = export_info_data.can_mangle_use();
-    let used_name = export_info_data
-      .used_name()
-      .map(|name| format!("{:?}", name));
+    let used_name = export_info_data.used_name().map(|name| format!("{name:?}"));
     let is_provided = export_info_data.provided().is_some();
 
     // Get inlining information
-    let can_inline = Some(match export_info_data.inlinable() {
-      rspack_core::Inlinable::Inlined(_) => true,
-      _ => false,
-    });
+    let can_inline = Some(matches!(
+      export_info_data.inlinable(),
+      rspack_core::Inlinable::Inlined(_)
+    ));
 
     export_usage_details.push(ExportUsageDetail {
       export_name: export_name.clone(),
-      usage_state: format!("{:?}", usage_state),
+      usage_state: format!("{usage_state:?}"),
       can_mangle,
       can_inline,
       is_provided: Some(is_provided),
@@ -301,7 +299,7 @@ pub fn get_runtime_usage_info(
       let export_info_data = prefetched.get_read_only_export_info(&export_atom);
       let usage_state = ExportInfoGetter::get_used(export_info_data, Some(runtime));
 
-      export_usage_states.insert(export_name.clone(), format!("{:?}", usage_state));
+      export_usage_states.insert(export_name.clone(), format!("{usage_state:?}"));
 
       match usage_state {
         UsageState::Used | UsageState::OnlyPropertiesUsed => {
@@ -346,10 +344,10 @@ pub fn extract_consume_shared_info(
     if let Some(start) = module_str.find(") ") {
       if let Some(end) = module_str[start + 2..].find("@") {
         Some(module_str[start + 2..start + 2 + end].to_string())
-      } else if let Some(end) = module_str[start + 2..].find(" (") {
-        Some(module_str[start + 2..start + 2 + end].to_string())
       } else {
-        None
+        module_str[start + 2..]
+          .find(" (")
+          .map(|end| module_str[start + 2..start + 2 + end].to_string())
       }
     } else {
       None
@@ -360,15 +358,11 @@ pub fn extract_consume_shared_info(
 
   // Extract fallback module path
   let fallback_module = if module_str.contains("(fallback: ") {
-    if let Some(start) = module_str.find("(fallback: ") {
-      if let Some(end) = module_str[start + 11..].find(")") {
-        Some(module_str[start + 11..start + 11 + end].to_string())
-      } else {
-        None
-      }
-    } else {
-      None
-    }
+    module_str.find("(fallback: ").and_then(|start| {
+      module_str[start + 11..]
+        .find(")")
+        .map(|end| module_str[start + 11..start + 11 + end].to_string())
+    })
   } else {
     None
   };
@@ -502,10 +496,9 @@ pub fn analyze_consume_shared_module(
   let dependencies = analyze_module_dependencies(module_graph, module_id).unwrap_or_default();
 
   // Check for side effects
-  let has_side_effects = match module.factory_meta() {
-    Some(meta) => Some(!meta.side_effect_free.unwrap_or_default()),
-    None => None,
-  };
+  let has_side_effects = module
+    .factory_meta()
+    .map(|meta| !meta.side_effect_free.unwrap_or_default());
 
   // Calculate potentially unused exports based on the merged analysis
   let potentially_unused_exports = calculate_unused_exports(
@@ -797,12 +790,12 @@ pub fn get_detailed_export_usage_from_prefetched(
       });
 
       // Get used name (considering mangling)
-      let used_name = export_info_data.used_name().map(|n| format!("{:?}", n));
+      let used_name = export_info_data.used_name().map(|n| format!("{n:?}"));
 
       export_usage.push(ExportUsageDetail {
         export_name: export_name.clone(),
         usage_state: usage_state.to_string(),
-        can_mangle: can_mangle,
+        can_mangle,
         can_inline,
         is_provided,
         used_name,

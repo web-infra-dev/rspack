@@ -172,7 +172,7 @@ impl SharedExportUsagePlugin {
     Ok(ModuleExportReport {
       timestamp: std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .expect("System time is before Unix epoch")
         .as_secs()
         .to_string(),
       modules,
@@ -234,7 +234,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
   // Generate the export usage report
   let report = self.generate_report(compilation)?;
   let json = serde_json::to_string_pretty(&report)
-    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize report: {}", e)))?;
+    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize report: {e}")))?;
 
   // Create the asset
   compilation.emit_asset(
@@ -243,10 +243,10 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
   );
 
   // Also generate a simplified report for easier consumption
-  let simple_filename = format!("simple-{}", self.options.filename.replace(".json", ".json"));
+  let simple_filename = format!("simple-{}", self.options.filename);
   let simple_report = self.generate_simple_report(compilation)?;
   let simple_json = serde_json::to_string_pretty(&simple_report)
-    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize simple report: {}", e)))?;
+    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize simple report: {e}")))?;
 
   compilation.emit_asset(
     simple_filename,

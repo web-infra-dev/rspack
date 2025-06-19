@@ -414,7 +414,7 @@ impl EnhancedShareUsagePlugin {
       modules_with_unused_imports,
       timestamp: std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .expect("System time should be after UNIX_EPOCH")
         .as_secs()
         .to_string(),
     };
@@ -431,7 +431,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
   let report = self.generate_report(compilation)?;
 
   let content = serde_json::to_string_pretty(&report)
-    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize report: {}", e)))?;
+    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize report: {e}")))?;
 
   compilation.emit_asset(
     self.options.filename.clone(),

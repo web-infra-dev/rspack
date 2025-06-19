@@ -454,9 +454,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       if let Some(parent_module) = mg.module_by_identifier(parent_module_id) {
         if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
           // Use the trait method to get share_key
-          let trait_result = parent_module.get_consume_shared_key();
-
-          trait_result
+          parent_module.get_consume_shared_key()
         } else {
           None
         }
@@ -559,14 +557,12 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
             // For each export name, wrap the assignment with conditional macros
             if let Some(export_name) = dep.names.first() {
               format!(
-                "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-                share_key, export_name, assignment
+                "/* @common:if [condition=\"treeShake.{share_key}.{export_name}\"] */ {assignment} /* @common:endif */"
               )
             } else {
               // For star exports, use a generic condition
               format!(
-                "/* @common:if [condition=\"treeShake.{}.default\"] */ {} /* @common:endif */",
-                share_key, assignment
+                "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {assignment} /* @common:endif */"
               )
             }
           } else {

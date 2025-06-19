@@ -161,9 +161,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
           if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
             // Direct ConsumeShared parent - use its share key
-            let trait_result = parent_module.get_consume_shared_key();
-
-            trait_result
+            parent_module.get_consume_shared_key()
           } else {
             // Check if current module is a fallback for a ConsumeShared module
             // Look for incoming connections from ConsumeShared modules
