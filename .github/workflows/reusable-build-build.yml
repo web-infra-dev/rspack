@@ -180,7 +180,7 @@ jobs:
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm --filter @rspack/binding build:${{ inputs.profile }}
 
       - name: Diff artifact
-        run: git diff --quiet || (git diff --name-status && exit 1)
+        run: EXCLUDE=":(exclude).cargo/config.toml" git diff --quiet -- . "$EXCLUDE" || (git diff --name-status -- . '$EXCLUDE' && exit 1)
 
       - name: Upload artifact
         uses: ./.github/actions/artifact/upload
