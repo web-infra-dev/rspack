@@ -1,4 +1,4 @@
-use indexmap::IndexMap;
+use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   get_target,
@@ -10,7 +10,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::queue::Queue;
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -24,24 +25,58 @@ impl<'a> FlagDependencyExportsState<'a> {
   }
 
   pub fn apply(&mut self, modules: IdentifierSet) {
-    let mut q = Queue::new();
+    fn add_ordered_module(
+      module_id: &ModuleIdentifier,
+      mg: &ModuleGraph,
+      ordered_modules: &mut FxIndexSet<ModuleIdentifier>,
+      candidates: &IdentifierSet,
+      visited: &mut FxHashSet<ModuleIdentifier>,
+    ) {
+      if visited.contains(module_id) {
+        return;
+      }
+      visited.insert(*module_id);
+      mg.get_incoming_connections(module_id).for_each(|i| {
+        if let Some(origin) = i.original_module_identifier {
+          if !visited.contains(&origin) {
+            add_ordered_module(&origin, mg, ordered_modules, candidates, visited);
+          }
+        }
+      });
+      if candidates.contains(module_id) {
+        ordered_modules.insert(*module_id);
+      }
+    }
 
-    for module_id in modules {
-      let mgm = self
-        .mg
-        .module_graph_module_by_identifier(&module_id)
-        .expect("mgm should exist");
-      let exports_info = mgm.exports;
+    let mut ordered_modules = FxIndexSet::default();
+    let mut visited = FxHashSet::default();
+    for module_id in modules.iter() {
+      add_ordered_module(
+        module_id,
+        self.mg,
+        &mut ordered_modules,
+        &modules,
+        &mut visited,
+      );
+    }
+
+    let mut batch = FxIndexSet::default();
+
+    for module_id in ordered_modules {
+      // for module_id in modules {
+      let exports_info = self.mg.get_exports_info(&module_id);
+
       // Reset exports provide info back to initial
       exports_info.reset_provide_info(self.mg);
 
-      let module = self
+      if self
         .mg
         .module_by_identifier(&module_id)
-        .expect("should have module");
-      let is_module_without_exports =
-        module.build_meta().exports_type == BuildMetaExportsType::Unset;
-      if is_module_without_exports {
+        .expect("should have module")
+        .build_meta()
+        .exports_type
+        == BuildMetaExportsType::Unset
+      {
         let other_exports_info = exports_info.as_data(self.mg).other_exports_info();
         if !matches!(
           other_exports_info.as_data(self.mg).provided(),
@@ -53,100 +88,38 @@ impl<'a> FlagDependencyExportsState<'a> {
         }
       }
 
-      if module.build_info().hash.is_none() {
-        exports_info.set_has_provide_info(self.mg);
-        q.enqueue(module_id);
-        continue;
-      }
-
       exports_info.set_has_provide_info(self.mg);
-      q.enqueue(module_id);
+      batch.insert(module_id);
     }
 
-    let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
-      IndexMap::default();
     let mut dependencies: IdentifierMap<IdentifierSet> = IdentifierMap::default();
-    while let Some(module_id) = q.dequeue() {
-      exports_specs_from_dependencies.clear();
+    while !batch.is_empty() {
+      let modules = std::mem::take(&mut batch);
+      let module_exports_specs = modules
+        .into_par_iter()
+        .map(|module_id| {
+          let exports_specs =
+            collect_module_exports_specs(&module_id, self.mg, self.mg_cache).unwrap_or_default();
+          (module_id, exports_specs)
+        })
+        .collect::<Vec<_>>();
 
-      self.mg_cache.freeze();
-      self.process_dependencies_block(
-        &module_id,
-        &mut exports_specs_from_dependencies,
-        self.mg_cache,
-      );
-      self.mg_cache.unfreeze();
-
-      let exports_info = self.mg.get_exports_info(&module_id);
-      let mut changed = false;
-      for (dep_id, exports_spec) in exports_specs_from_dependencies.iter() {
-        let (is_changed, changed_dependencies) =
-          self.process_exports_spec(&module_id, *dep_id, exports_spec, exports_info);
-        changed |= is_changed;
-        for (module_id, dep_id) in changed_dependencies {
-          dependencies.entry(module_id).or_default().insert(dep_id);
+      for (module_id, exports_specs) in module_exports_specs {
+        let exports_info = self.mg.get_exports_info(&module_id);
+        let mut changed = false;
+        for (dep_id, exports_spec) in exports_specs.into_iter() {
+          let (is_changed, changed_dependencies) =
+            self.process_exports_spec(&module_id, dep_id, &exports_spec, exports_info);
+          changed |= is_changed;
+          for (module_id, dep_id) in changed_dependencies {
+            dependencies.entry(module_id).or_default().insert(dep_id);
+          }
+        }
+        if changed && let Some(set) = dependencies.get(&module_id) {
+          batch.extend(set.iter().copied());
         }
       }
-      if changed && let Some(set) = dependencies.get(&module_id) {
-        for mi in set.iter() {
-          q.enqueue(*mi);
-        }
-      }
     }
-  }
-
-  pub fn process_dependencies_block(
-    &self,
-    module_identifier: &ModuleIdentifier,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Option<()> {
-    let block = &**self.mg.module_by_identifier(module_identifier)?;
-    self.process_dependencies_block_inner(
-      block,
-      exports_specs_from_dependencies,
-      module_graph_cache,
-    )
-  }
-
-  fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
-    &self,
-    block: &B,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Option<()> {
-    for dep_id in block.get_dependencies().iter() {
-      let dep = self
-        .mg
-        .dependency_by_id(dep_id)
-        .expect("should have dependency");
-      self.process_dependency(
-        *dep_id,
-        dep.get_exports(self.mg, module_graph_cache),
-        exports_specs_from_dependencies,
-      );
-    }
-    for block_id in block.get_blocks() {
-      let block = self.mg.block_by_id(block_id)?;
-      self.process_dependencies_block_inner(
-        block,
-        exports_specs_from_dependencies,
-        module_graph_cache,
-      );
-    }
-    None
-  }
-
-  pub fn process_dependency(
-    &self,
-    dep_id: DependencyId,
-    exports_specs: Option<ExportsSpec>,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
-  ) -> Option<()> {
-    // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
-    let exports_specs = exports_specs?;
-    exports_specs_from_dependencies.insert(dep_id, exports_specs);
-    Some(())
   }
 
   pub fn process_exports_spec(
@@ -176,16 +149,14 @@ impl<'a> FlagDependencyExportsState<'a> {
     }
     match exports {
       ExportsOfExportsSpec::UnknownExports => {
-        if exports_info.set_unknown_exports_provided(
+        changed |= exports_info.set_unknown_exports_provided(
           self.mg,
           global_can_mangle.unwrap_or_default(),
           export_desc.exclude_exports.as_ref(),
           global_from.map(|_| dep_id),
           global_from.map(|_| dep_id),
           *global_priority,
-        ) {
-          changed = true;
-        };
+        );
       }
       ExportsOfExportsSpec::NoExports => {}
       ExportsOfExportsSpec::Names(ele) => {
@@ -429,4 +400,43 @@ impl Plugin for FlagDependencyExportsPlugin {
       .tap(finish_modules::new(self));
     Ok(())
   }
+}
+
+/**
+ * Collect all exports specs from a module and its dependencies
+ * by calling `dependency.get_exports` for each dependency.
+ */
+fn collect_module_exports_specs(
+  module_id: &ModuleIdentifier,
+  mg: &ModuleGraph,
+  mg_cache: &ModuleGraphCacheArtifact,
+) -> Option<FxIndexMap<DependencyId, ExportsSpec>> {
+  fn walk_block<B: DependenciesBlock + ?Sized>(
+    block: &B,
+    dep_ids: &mut FxIndexSet<DependencyId>,
+    mg: &ModuleGraph,
+  ) {
+    dep_ids.extend(block.get_dependencies().iter().copied());
+    for block_id in block.get_blocks() {
+      if let Some(block) = mg.block_by_id(block_id) {
+        walk_block(block, dep_ids, mg);
+      }
+    }
+  }
+
+  // mg_cache.unfreeze();
+  let block = &**mg.module_by_identifier(module_id)?;
+  let mut dep_ids = FxIndexSet::default();
+  walk_block(block, &mut dep_ids, mg);
+
+  let res = dep_ids
+    .into_iter()
+    .filter_map(|id| {
+      let dep = mg.dependency_by_id(&id)?;
+      let exports_spec = dep.get_exports(mg, mg_cache)?;
+      Some((id, exports_spec))
+    })
+    .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
+  // mg_cache.unfreeze();
+  Some(res)
 }
