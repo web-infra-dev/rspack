@@ -383,7 +383,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
 
     Ok(InitFragmentContents {
       start: format!(
-        "{}({}, {});\n",
+        "/* EXPORT */ {}({}, {}) /* /EXPORT */;\n",
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
         self.exports_argument,
         exports

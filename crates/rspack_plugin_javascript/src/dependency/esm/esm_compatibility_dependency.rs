@@ -64,7 +64,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
-          "{}({});\n",
+          "/* EXPORT */ {}({}) /* /EXPORT */;\n",
           RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
           module.get_exports_argument()
         ),
