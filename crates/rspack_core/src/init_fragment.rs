@@ -755,11 +755,11 @@ fn extract_share_key_from_condition(condition: &str) -> String {
 fn process_consume_shared_object_literal(value: &str, share_key: &str) -> String {
   
   // Try to load usage data from share-usage.json to determine which properties to wrap
-  let unused_exports = load_unused_exports_for_module(share_key);
+  let _unused_exports = load_unused_exports_for_module(share_key);
   
   
   // Handle different object literal patterns
-  let (obj_start, obj_end, before_obj, after_obj, obj_content) = if let Some(start) = value.find("({") {
+  let (_obj_start, _obj_end, before_obj, after_obj, obj_content) = if let Some(start) = value.find("({") {
     if let Some(end) = value.find("})") {
       (start, end + 2, &value[..start], &value[end + 2..], &value[start + 2..end])
     } else {

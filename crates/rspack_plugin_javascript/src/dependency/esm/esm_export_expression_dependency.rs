@@ -3,7 +3,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   property_access,
-  rspack_sources::{ReplacementEnforce, Source},
+  rspack_sources::ReplacementEnforce,
   AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
@@ -410,64 +410,3 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
   }
 }
 
-fn process_object_literal_with_usage(content: &str, share_key: &str) -> String {
-  // Handle both patterns: {prop1, prop2} and ({prop1, prop2})
-  let obj_start = if let Some(pos) = content.find("({") {
-    pos + 1
-  } else if let Some(pos) = content.find("{") {
-    pos
-  } else {
-    return content.to_string();
-  };
-
-  let obj_end = if content.contains("})") {
-    if let Some(pos) = content.find("})") {
-      pos + 1
-    } else {
-      return content.to_string();
-    }
-  } else if let Some(pos) = content.find("}") {
-    pos + 1
-  } else {
-    return content.to_string();
-  };
-
-  let before_obj = &content[..obj_start];
-  let after_obj = &content[obj_end..];
-  let obj_content = &content[obj_start + 1..obj_end - 1];
-
-  let properties: Vec<&str> = obj_content
-    .split(',')
-    .map(|s| s.trim())
-    .filter(|s| !s.is_empty())
-    .collect();
-
-  let wrapped_properties: Vec<String> = properties
-    .into_iter()
-    .map(|prop| {
-      let prop_name = prop.trim();
-      let should_wrap = match prop_name {
-        "fetchWithTimeout" => true, // unused per JSON
-        "ApiClient" => true,        // unused per JSON
-        "createApiClient" => false, // used per JSON
-        _ => false,
-      };
-
-      if should_wrap {
-        format!(
-          "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-          share_key, prop_name, prop_name
-        )
-      } else {
-        prop_name.to_string()
-      }
-    })
-    .collect();
-
-  format!(
-    "{}{{\n  {}\n}}{}",
-    before_obj,
-    wrapped_properties.join(",\n  "),
-    after_obj
-  )
-}
