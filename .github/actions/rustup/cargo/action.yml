@@ -17,7 +17,7 @@ runs:
       if: ${{ runner.environment == 'github-hosted' }}
       uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2
       with:
-        prefix-key: 'RCache-G-1'
+        prefix-key: "RCache-G-1"
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
 
@@ -25,6 +25,6 @@ runs:
       uses: stormslowly/rust-cache@255bbdfaeb95c60664d3da26dff15afd19c269dd # v0.0.1
       if: ${{ runner.environment == 'self-hosted' }}
       with:
-        prefix-key: 'RCache-L-1'
+        prefix-key: "RCache-L-2"
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
