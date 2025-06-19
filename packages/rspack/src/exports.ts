@@ -109,6 +109,7 @@ export { ProvidePlugin } from "./builtin-plugin";
 export { DefinePlugin } from "./builtin-plugin";
 export { ProgressPlugin } from "./builtin-plugin";
 export { RstestPlugin } from "./builtin-plugin";
+export { RslibPlugin } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
