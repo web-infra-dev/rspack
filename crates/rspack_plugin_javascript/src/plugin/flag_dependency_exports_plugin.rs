@@ -428,7 +428,9 @@ fn collect_module_exports_specs(
   let mut dep_ids = FxIndexSet::default();
   walk_block(block, &mut dep_ids, mg);
 
-  mg_cache.freeze();
+  // There is no need to use the cache here
+  // because the `get_exports` of each dependency will only be called once
+  // mg_cache.freeze();
   let res = dep_ids
     .into_iter()
     .filter_map(|id| {
@@ -437,6 +439,6 @@ fn collect_module_exports_specs(
       Some((id, exports_spec))
     })
     .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
-  mg_cache.unfreeze();
+  // mg_cache.unfreeze();
   Some(res)
 }
