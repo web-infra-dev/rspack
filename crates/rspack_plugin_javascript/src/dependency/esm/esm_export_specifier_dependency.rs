@@ -163,8 +163,9 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       return;
     }
     let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
     let module = module_graph
-      .module_by_identifier(&module.identifier())
+      .module_by_identifier(&module_identifier)
       .expect("should have module graph module");
 
     // remove the enum decl if all the enum members are inlined

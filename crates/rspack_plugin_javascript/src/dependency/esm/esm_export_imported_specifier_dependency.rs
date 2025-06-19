@@ -681,18 +681,21 @@ impl ESMExportImportedSpecifierDependency {
               ValueKey::UsedName(UsedName::Normal(ids)),
             );
             let is_async = ModuleGraph::is_async(compilation, &module_identifier);
-            fragments.push(Box::new(ConditionalInitFragment::new(
-              stmt,
-              if is_async {
-                InitFragmentStage::StageAsyncESMImports
-              } else {
-                InitFragmentStage::StageESMImports
-              },
-              self.source_order,
-              key,
-              None,
-              runtime_condition,
-            )));
+            fragments.push(
+              ConditionalInitFragment::new(
+                stmt,
+                if is_async {
+                  InitFragmentStage::StageAsyncESMImports
+                } else {
+                  InitFragmentStage::StageESMImports
+                },
+                self.source_order,
+                key,
+                None,
+                runtime_condition,
+              )
+              .boxed(),
+            );
           } else {
             let exports_info = mg.get_exports_info(imported_module);
             let used_name = if ids.is_empty() {
@@ -803,7 +806,7 @@ impl ESMExportImportedSpecifierDependency {
     let module_graph = compilation.get_module_graph();
     let module = module_graph
       .module_by_identifier(&module.identifier())
-      .expect("should have module graph module");
+      .expect("should have mgm");
     ESMExportInitFragment::new(module.get_exports_argument(), export_map)
   }
 
