@@ -383,10 +383,6 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
                 let condition = &s.1[condition_start..condition_start + condition_end + 2];
                 let share_key = extract_share_key_from_condition(condition);
                 
-                tracing::debug!(
-                  "[RSPACK_EXPORT_DEBUG:ESM_INIT_FRAGMENT_CONSUME_SHARED] Prop: {}, Value: {}, ShareKey: {}, Condition: {}",
-                  prop, s.1, share_key, condition
-                );
                 
                 // For ConsumeShared modules, ALL exports should be wrapped
                 

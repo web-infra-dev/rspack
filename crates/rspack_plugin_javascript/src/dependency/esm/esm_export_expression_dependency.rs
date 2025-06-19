@@ -175,12 +175,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             // Direct ConsumeShared parent - use its share key
             let trait_result = parent_module.get_consume_shared_key();
 
-            tracing::debug!(
-              "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION_DIRECT_CONSUME_SHARED] Module: {:?}, Parent: {:?}, ShareKey: {:?}",
-              module_identifier,
-              parent_module.identifier(),
-              trait_result
-            );
 
             trait_result
           } else {
@@ -193,12 +187,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
                     found_consume_shared = origin_module_obj.get_consume_shared_key();
 
-                    tracing::debug!(
-                      "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION_FALLBACK_FOR_CONSUME_SHARED] FallbackModule: {:?}, ConsumeSharedModule: {:?}, ShareKey: {:?}",
-                      module_identifier,
-                      origin_module,
-                      found_consume_shared
-                    );
 
                     break;
                   }
@@ -219,12 +207,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
                 found_consume_shared = origin_module_obj.get_consume_shared_key();
 
-                tracing::debug!(
-                  "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION_FALLBACK_NO_PARENT] FallbackModule: {:?}, ConsumeSharedModule: {:?}, ShareKey: {:?}",
-                  module_identifier,
-                  origin_module,
-                  found_consume_shared
-                );
 
                 break;
               }
@@ -235,28 +217,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       }
     };
 
-    // Enhanced DEBUG: Log detailed information only for ConsumeShared-related modules
-    if consume_shared_info.is_some() {
-      tracing::debug!(
-        "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION] Module: {:?}, Type: {:?}, Declaration: {:?}, Range: {:?}, Runtime: {:?}",
-        module.identifier(),
-        module.module_type(),
-        dep.declaration,
-        dep.range,
-        runtime
-      );
-
-      tracing::debug!(
-        "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION_DETAILED] Module: {:?}, Type: {:?}, Layer: {:?}, Declaration: {:?}, Range: {:?}, Runtime: {:?}, DependencyId: {:?}",
-        module.identifier(),
-        module.module_type(),
-        module.get_layer(),
-        dep.declaration,
-        dep.range,
-        runtime,
-        dep.id()
-      );
-    }
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
@@ -283,16 +243,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) && let UsedName::Normal(used) = used
       {
-        // DEBUG: Log export binding generation only for ConsumeShared modules
-        if consume_shared_info.is_some() {
-          tracing::debug!(
-            "[RSPACK_EXPORT_DEBUG:ESM_BINDING] Module: {:?}, Name: {}, Used: {:?}, ExportsInfo: available, ModuleGraph: present, ConsumeShared: {:?}",
-            module_identifier,
-            name,
-            used,
-            consume_shared_info
-          );
-        }
 
         // Use macro comments for ConsumeShared modules, standard format otherwise
         let export_content = if let Some(ref share_key) = consume_shared_info {
@@ -333,29 +283,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         None,
       );
 
-      // Handle property-level wrapping for ConsumeShared object literals
-      if let Some(ref share_key) = consume_shared_info {
-        // Add an additional replacement to wrap individual properties within the object literal
-        // This is specifically for the api-lib ConsumeShared module
-        if share_key == "api-lib" {
-          // Replace the object literal properties with conditional macros
-          // Simpler approach: just replace with the wrapped content directly
-          let wrapped_object = "({
-  /* @common:if [condition=\"treeShake.api-lib.fetchWithTimeout\"] */ fetchWithTimeout /* @common:endif */,
-  /* @common:if [condition=\"treeShake.api-lib.ApiClient\"] */ ApiClient /* @common:endif */,
-  createApiClient
-})";
-
-          // Use ReplacementEnforce::Post to ensure this happens after other replacements
-          source.replace_with_enforce(
-            dep.range.start,
-            dep.range.end,
-            wrapped_object,
-            None,
-            ReplacementEnforce::Post,
-          );
-        }
-      }
 
       // Add the closing @common:endif for ConsumeShared declarations
       if consume_shared_info.is_some() {
@@ -394,17 +321,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);
 
-          // DEBUG: Log export fragment generation only for ConsumeShared modules
-          if consume_shared_info.is_some() {
-            tracing::debug!(
-              "[RSPACK_EXPORT_DEBUG:ESM_FRAGMENT] Module: {:?}, Used: {:?}, SupportsConst: {}, ExportsArg: {:?}, ConsumeShared: {:?}",
-              module_identifier,
-              used,
-              supports_const,
-              module.get_exports_argument(),
-              consume_shared_info
-            );
-          }
 
           if supports_const {
             let fragment_content = if let Some(ref share_key) = consume_shared_info {
@@ -448,14 +364,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             }
           }
         } else {
-          // DEBUG: Log inlined export only for ConsumeShared modules
-          if consume_shared_info.is_some() {
-            tracing::debug!(
-              "[RSPACK_EXPORT_DEBUG:ESM_INLINED] Module: {:?}, Type: inlined, ConsumeShared: {:?}",
-              module_identifier,
-              consume_shared_info
-            );
-          }
 
           if let Some(ref share_key) = consume_shared_info {
             format!(
@@ -467,14 +375,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           }
         }
       } else {
-        // DEBUG: Log unused export only for ConsumeShared modules
-        if consume_shared_info.is_some() {
-          tracing::debug!(
-            "[RSPACK_EXPORT_DEBUG:ESM_UNUSED] Module: {:?}, Type: unused, ConsumeShared: {:?}",
-            module_identifier,
-            consume_shared_info
-          );
-        }
 
         if let Some(ref share_key) = consume_shared_info {
           format!(
