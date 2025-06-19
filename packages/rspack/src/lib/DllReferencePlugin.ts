@@ -9,10 +9,11 @@
  */
 
 import type { JsBuildMeta } from "@rspack/binding";
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { CompilationParams } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { DllReferenceAgencyPlugin } from "../builtin-plugin";
+import { numberOrInfinity } from "../config/utils";
 import { makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { validate } from "../util/validate";
@@ -142,7 +143,7 @@ const getDllReferencePluginOptionsSchema = memoize(() => {
 	const dllReferencePluginOptionsContentItem = z.object({
 		buildMeta: z.custom<JsBuildMeta>().optional(),
 		exports: z.array(z.string()).or(z.literal(true)).optional(),
-		id: z.string().or(z.number()).optional()
+		id: z.string().or(numberOrInfinity).optional()
 	});
 
 	const dllReferencePluginOptionsContent = z.record(
