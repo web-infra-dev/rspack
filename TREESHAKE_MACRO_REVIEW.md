@@ -144,19 +144,20 @@ matches!(dep_type.as_str(), "esm import specifier") && import_var != "__webpack_
 
 ### 🔴 High Priority Issues
 
-1. **Runtime Template Logic Bug** (`runtime_template.rs:406`)
-   - The `import_var != "__webpack_require__"` condition is likely incorrect
-   - May prevent pure annotations from being applied correctly
-   - **Fix**: Review the intended logic for pure annotation conditions
+1. **~~Runtime Template Logic Bug~~ CORRECTED** (`runtime_template.rs:406`)
+   - ✅ **UPDATE**: After fact-checking, this logic is actually CORRECT
+   - The `import_var != "__webpack_require__"` condition properly prevents adding pure annotations to the global webpack require function
+   - The `import_var` contains unique variable names from `compilation.get_import_var(id)`, not the literal string
+   - **Status**: No fix needed - working as intended
 
-2. **Hardcoded Export Data** (`init_fragment.rs:824-832`)
-   - Hardcoded share keys and export names
+2. **Hardcoded Export Data** (`init_fragment.rs:824-832`) ✅ **CONFIRMED**
+   - Hardcoded share keys and export names in `load_unused_exports_for_module()`
    - Will not work for dynamic/user-defined shared modules
    - **Fix**: Implement dynamic loading from share-usage.json or similar
 
-3. **String Parsing Fragility** (`init_fragment.rs`)
-   - Complex string manipulation for macro extraction and processing
-   - No error handling for malformed conditions
+3. **String Parsing Fragility** (`init_fragment.rs`) ✅ **CONFIRMED**
+   - Complex string manipulation for macro extraction and processing in lines 379-420
+   - Multiple `.find()` calls with limited error handling for malformed conditions
    - **Fix**: Implement proper parsing with error handling
 
 ### 🟡 Medium Priority Issues
