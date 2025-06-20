@@ -97,4 +97,4 @@ runs:
         cargo install --git https://github.com/CPunisher/runner.git --branch 06-20-feat/valgrind-flags
 
         # Run the benchmarks
-        env CODSPEED=debug VALGRIND_FLAGS='--fair-sched=yes' codspeed run $RUNNER_ARGS -- '${{ inputs.run }}'
+        env CODSPEED=debug VALGRIND_FLAGS='--fair-sched=no' codspeed run $RUNNER_ARGS -- '${{ inputs.run }}'
