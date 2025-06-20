@@ -5520,13 +5520,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_tasks"
-version = "0.2.0"
-dependencies = [
- "tokio",
-]
-
-[[package]]
 name = "rspack_swc_plugin_ts_collector"
 version = "0.2.0"
 dependencies = [
@@ -5535,6 +5528,13 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde_json",
  "swc_core",
+]
+
+[[package]]
+name = "rspack_tasks"
+version = "0.2.0"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]

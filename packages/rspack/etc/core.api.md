@@ -5670,7 +5670,7 @@ type PluginImportConfig = {
 };
 
 // @public (undocumented)
-type PluginImportOptions = PluginImportConfig[] | undefined;
+type PluginImportOptions = PluginImportConfig[];
 
 // @public (undocumented)
 export type Plugins = Plugin_2[];
