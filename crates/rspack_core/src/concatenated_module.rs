@@ -8,6 +8,7 @@ use std::{
 
 use dashmap::DashMap;
 use indexmap::IndexMap;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex::Regex;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -1627,7 +1628,7 @@ impl ConcatenatedModule {
   fn create_concatenation_list(
     &self,
     root_module: ModuleIdentifier,
-    mut module_set: IdentifierIndexSet,
+    module_set: IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
@@ -1636,18 +1637,25 @@ impl ConcatenatedModule {
     let mut exists_entries = IdentifierMap::default();
     exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-    let imports = self.get_concatenated_imports(&root_module, &root_module, runtime, mg, mg_cache);
+    let imports_map = module_set
+      .par_iter()
+      .map(|module| {
+        let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+        (*module, imports)
+      })
+      .collect::<IdentifierMap<_>>();
+
+    let imports = imports_map.get(&root_module).expect("should have imports");
     for i in imports {
       self.enter_module(
-        root_module,
-        &mut module_set,
+        &module_set,
         runtime,
         mg,
-        mg_cache,
         i.connection,
-        i.runtime_condition,
+        i.runtime_condition.clone(),
         &mut exists_entries,
         &mut list,
+        &imports_map,
       );
     }
     list.push(ConcatenationEntry::Concatenated(
@@ -1661,15 +1669,14 @@ impl ConcatenatedModule {
   #[allow(clippy::too_many_arguments)]
   fn enter_module(
     &self,
-    root_module: ModuleIdentifier,
-    module_set: &mut IdentifierIndexSet,
+    module_set: &IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
     con: &ModuleGraphConnection,
     runtime_condition: RuntimeCondition,
     exists_entry: &mut IdentifierMap<RuntimeCondition>,
     list: &mut Vec<ConcatenationEntry>,
+    imports_map: &IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
   ) {
     let module = con.module_identifier();
     let exist_entry = match exists_entry.get(module) {
@@ -1685,18 +1692,17 @@ impl ConcatenatedModule {
           module, self.root_module_ctxt.id,
         );
       }
-      let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+      let imports = imports_map.get(module).expect("should have imports");
       for import in imports {
         self.enter_module(
-          root_module,
           module_set,
           runtime,
           mg,
-          mg_cache,
           import.connection,
-          import.runtime_condition,
+          import.runtime_condition.clone(),
           exists_entry,
           list,
+          imports_map,
         );
       }
       list.push(ConcatenationEntry::Concatenated(
