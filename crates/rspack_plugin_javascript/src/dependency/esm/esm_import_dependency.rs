@@ -458,9 +458,9 @@ fn find_type_exports_from_outgoings(
   let module = mg
     .module_by_identifier(module_identifier)
     .expect("should have module");
-  // bailout this export chain if there is a module that not transpiled from typescript
-  // we only support that the export chain is all transpiled typescript, if not the check
-  // will be very slow especially when big javascript npm package exists.
+  // bailout the check of this export chain if there is a module that not transpiled from
+  // typescript, we only support that the export chain is all transpiled typescript, if not
+  // the check will be very slow especially when big javascript npm package exists.
   if !module.build_info().is_transpiled_typescript {
     return false;
   }
