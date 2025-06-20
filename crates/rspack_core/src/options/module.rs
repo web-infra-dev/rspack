@@ -266,6 +266,7 @@ pub struct JavascriptParserOptions {
   pub dynamic_import_prefetch: Option<JavascriptParserOrder>,
   pub dynamic_import_fetch_priority: Option<DynamicImportFetchPriority>,
   pub url: Option<JavascriptParserUrl>,
+  pub unknown_context_critical: Option<bool>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
   pub wrapped_context_reg_exp: Option<RspackRegex>,
