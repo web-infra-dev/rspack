@@ -230,7 +230,7 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    mut add_diagnostic: impl FnMut(Diagnostic),
+    add_diagnostic: &mut impl FnMut(Diagnostic),
   ) -> Option<ConsumeVersion> {
     let mut required_version_warning = |details: &str| {
       add_diagnostic(Diagnostic::warn(self.name().into(), format!("No required version specified and unable to automatically determine one. {details} file: shared module {request}")))
@@ -310,7 +310,7 @@ impl ConsumeSharedPlugin {
           .as_any()
           .downcast_ref::<ConsumeSharedModule>()
         {
-          consume_shared.find_fallback_module_id(&module_graph)
+          consume_shared.find_fallback_module_id(&module_graph)?
         } else {
           None
         }
@@ -546,8 +546,8 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    mut add_diagnostic: impl FnMut(Diagnostic),
-  ) -> ConsumeSharedModule {
+    add_diagnostic: &mut impl FnMut(Diagnostic),
+  ) -> Result<ConsumeSharedModule> {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
     let import_resolved = match &config.import {
       None => None,
@@ -580,6 +580,7 @@ impl ConsumeSharedPlugin {
     let required_version = self
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
+
     ConsumeSharedModule::new(
       if direct_fallback {
         self.get_context()
@@ -601,6 +602,13 @@ impl ConsumeSharedPlugin {
         eager: config.eager,
       },
     )
+    .map_err(|e| {
+      add_diagnostic(Diagnostic::error(
+        "ConsumeSharedModuleCreationError".into(),
+        format!("Failed to create ConsumeShared module for {request}: {e}"),
+      ));
+      e
+    })
   }
 }
 
@@ -667,17 +675,20 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   let request = dep.request();
   let consumes = self.get_matched_consumes();
   if let Some(matched) = consumes.unresolved.get(request) {
-    let module = self
-      .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
-        data.diagnostics.push(d)
-      })
-      .await;
-    return Ok(Some(module.boxed()));
+    let mut add_diagnostic = |d| data.diagnostics.push(d);
+    match self
+      .create_consume_shared_module(&data.context, request, matched.clone(), &mut add_diagnostic)
+      .await
+    {
+      Ok(module) => return Ok(Some(module.boxed())),
+      Err(_) => return Ok(None), // Error already handled via diagnostic
+    }
   }
   for (prefix, options) in &consumes.prefixed {
     if request.starts_with(prefix) {
       let remainder = &request[prefix.len()..];
-      let module = self
+      let mut add_diagnostic = |d| data.diagnostics.push(d);
+      match self
         .create_consume_shared_module(
           &data.context,
           request,
@@ -692,10 +703,13 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             singleton: options.singleton,
             eager: options.eager,
           }),
-          |d| data.diagnostics.push(d),
+          &mut add_diagnostic,
         )
-        .await;
-      return Ok(Some(module.boxed()));
+        .await
+      {
+        Ok(module) => return Ok(Some(module.boxed())),
+        Err(_) => return Ok(None), // Error already handled via diagnostic
+      }
     }
   }
   Ok(None)
@@ -716,12 +730,19 @@ async fn create_module(
   let resource = &create_data.resource_resolve_data.resource;
   let consumes = self.get_matched_consumes();
   if let Some(options) = consumes.resolved.get(resource) {
-    let module = self
-      .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
-        data.diagnostics.push(d)
-      })
-      .await;
-    return Ok(Some(module.boxed()));
+    let mut add_diagnostic = |d| data.diagnostics.push(d);
+    match self
+      .create_consume_shared_module(
+        &data.context,
+        resource,
+        options.clone(),
+        &mut add_diagnostic,
+      )
+      .await
+    {
+      Ok(module) => return Ok(Some(module.boxed())),
+      Err(_) => return Ok(None), // Error already handled via diagnostic
+    }
   }
   Ok(None)
 }
