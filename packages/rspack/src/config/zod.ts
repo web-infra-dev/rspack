@@ -1341,6 +1341,7 @@ const experiments = z.strictObject({
 	parallelLoader: z.boolean().optional(),
 	useInputFileSystem: useInputFileSystem.optional(),
 	inlineConst: z.boolean().optional(),
+	nativeWatcher: z.boolean().optional(),
 	typeReexportsPresence: typeReexportsPresence.optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
