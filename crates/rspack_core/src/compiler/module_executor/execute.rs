@@ -156,7 +156,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         let errors: Vec<_> = diagnostics
           .iter()
           .filter(|d| matches!(d.severity(), RspackSeverity::Error))
-          .map(|d| d.to_string())
+          .map(|d| d.message())
           .collect();
         if !errors.is_empty() {
           has_error = true;
@@ -178,7 +178,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           let errors: Vec<_> = diagnostics
             .iter()
             .filter(|d| matches!(d.severity(), RspackSeverity::Error))
-            .map(|d| d.to_string())
+            .map(|d| d.message())
             .collect();
           if !errors.is_empty() {
             has_error = true;
