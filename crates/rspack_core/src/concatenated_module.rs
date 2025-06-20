@@ -1443,33 +1443,49 @@ impl Module for ConcatenatedModule {
       generation_runtime.map(Cow::Borrowed)
     };
     let runtime = runtime.as_deref();
-    for info in self.create_concatenation_list(
+    let concatenation_entries = self.create_concatenation_list(
       self.root_module_ctxt.id,
       self.modules.iter().map(|item| item.id).collect(),
       runtime,
       &compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
-    ) {
-      match info {
-        ConcatenationEntry::Concatenated(e) => {
-          compilation
-            .get_module_graph()
-            .module_by_identifier(&e.module)
-            .expect("should have module")
-            .get_runtime_hash(compilation, generation_runtime)
-            .await?
-            .encoded()
-            .dyn_hash(&mut hasher);
-        }
-        ConcatenationEntry::External(e) => {
-          ChunkGraph::get_module_id(
-            &compilation.module_ids_artifact,
-            e.module(&compilation.get_module_graph()),
-          )
-          .dyn_hash(&mut hasher);
-        }
-      };
+    );
+
+    let hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+      concatenation_entries.into_iter().for_each(|job| {
+        let s = unsafe { token.used((job, compilation, generation_runtime)) };
+
+        s.spawn(|(job, compilation, generation_runtime)| async move {
+          match job {
+            ConcatenationEntry::Concatenated(e) => {
+              let digest = compilation
+                .get_module_graph()
+                .module_by_identifier(&e.module)
+                .expect("should have module")
+                .get_runtime_hash(compilation, generation_runtime)
+                .await?;
+              Ok(Some(digest.encoded().to_string()))
+            }
+            ConcatenationEntry::External(e) => Ok(
+              ChunkGraph::get_module_id(
+                &compilation.module_ids_artifact,
+                e.module(&compilation.get_module_graph()),
+              )
+              .map(|id| id.to_string()),
+            ),
+          }
+        })
+      })
+    })
+    .await
+    .into_iter()
+    .map(|res| res.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    for hash in hashes {
+      (hash?).dyn_hash(&mut hasher);
     }
+
     module_update_hash(self, &mut hasher, compilation, generation_runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
