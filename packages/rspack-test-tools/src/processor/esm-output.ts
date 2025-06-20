@@ -7,7 +7,7 @@ import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IConfigProcessorOptions<T extends ECompilerType>
-	extends IMultiTaskProcessorOptions<T> {}
+	extends IMultiTaskProcessorOptions<T> { }
 
 export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
 	constructor(
@@ -43,7 +43,7 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 					options.output.path!,
 					(typeof options.output?.cssFilename === "string" &&
 						options.output?.cssFilename) ||
-						`bundle${index}.css`
+					`bundle${index}.css`
 				);
 				if (fs.existsSync(cssOutputPath)) {
 					bundlePath.push(`./bundle${index}.css`);
@@ -74,6 +74,8 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 			},
 			optimization: {
 				minimize: false,
+				moduleIds: 'named',
+				chunkIds: 'named',
 				runtimeChunk: "single",
 				concatenateModules: false,
 				splitChunks: false
