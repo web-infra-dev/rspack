@@ -29,6 +29,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_tasks::CompilerContext;
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
@@ -294,6 +295,7 @@ pub struct Compilation {
   ///
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
+  pub compiler_context: Arc<CompilerContext>,
 }
 
 impl Compilation {
@@ -336,6 +338,7 @@ impl Compilation {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
+    compiler_context: Arc<CompilerContext>,
   ) -> Self {
     Self {
       id: CompilationId::new(),
@@ -409,6 +412,7 @@ impl Compilation {
       intermediate_filesystem,
       output_filesystem,
       is_rebuild,
+      compiler_context,
     }
   }
 

@@ -17,6 +17,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
+use rspack_tasks::{within_compiler_context_sync, CompilerContext, CURRENT_COMPILER_CONTEXT};
 
 use crate::{
   fs_node::{NodeFileSystem, ThreadsafeNodeFS},
@@ -138,6 +139,7 @@ pub struct JsCompiler {
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  compiler_context: Arc<CompilerContext>,
 }
 
 #[napi]
@@ -158,92 +160,98 @@ impl JsCompiler {
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_version!());
     tracing::info!(name:"raw_options", options=?&options);
+    let compiler_context = Arc::new(CompilerContext::new());
+    CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
+      let mut plugins = Vec::with_capacity(builtin_plugins.len());
+      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
+      plugins.push(js_hooks_plugin.clone().boxed());
 
-    let mut plugins = Vec::with_capacity(builtin_plugins.len());
-    let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
-    plugins.push(js_hooks_plugin.clone().boxed());
+      let tsfn = env
+        .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
+        .build_threadsafe_function::<External<Vec<ModuleIdentifier>>>()
+        .weak::<true>()
+        .callee_handled::<false>()
+        .max_queue_size::<1>()
+        .build()?;
+      let js_cleanup_plugin = JsCleanupPlugin::new(tsfn);
+      plugins.push(js_cleanup_plugin.boxed());
 
-    let tsfn = env
-      .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
-      .build_threadsafe_function::<External<Vec<ModuleIdentifier>>>()
-      .weak::<true>()
-      .callee_handled::<false>()
-      .max_queue_size::<1>()
-      .build()?;
-    let js_cleanup_plugin = JsCleanupPlugin::new(tsfn);
-    plugins.push(js_cleanup_plugin.boxed());
+      for bp in builtin_plugins {
+        bp.append_to(env, &mut this, &mut plugins)?;
+      }
 
-    for bp in builtin_plugins {
-      bp.append_to(env, &mut this, &mut plugins)?;
-    }
+      let use_input_fs = options.experiments.use_input_file_system.take();
+      let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
-    let use_input_fs = options.experiments.use_input_file_system.take();
-    let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
+      tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
-    tracing::debug!(name:"normalized_options", options=?&compiler_options);
+      let input_file_system: Option<Arc<dyn ReadableFileSystem>> =
+        input_filesystem.and_then(|fs| {
+          use_input_fs.and_then(|use_input_file_system| {
+            let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
 
-    let input_file_system: Option<Arc<dyn ReadableFileSystem>> = input_filesystem.and_then(|fs| {
-      use_input_fs.and_then(|use_input_file_system| {
-        let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
-
-        match use_input_file_system {
-          WithFalse::False => None,
-          WithFalse::True(allowlist) => {
-            if allowlist.is_empty() {
-              return None;
+            match use_input_file_system {
+              WithFalse::False => None,
+              WithFalse::True(allowlist) => {
+                if allowlist.is_empty() {
+                  return None;
+                }
+                let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
+                  allowlist,
+                  node_fs,
+                  NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
+                ));
+                Some(binding)
+              }
             }
-            let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
-              allowlist,
-              node_fs,
-              NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
-            ));
-            Some(binding)
-          }
-        }
-      })
-    });
+          })
+        });
 
-    if let Some(fs) = &input_file_system {
-      resolver_factory_reference.input_filesystem = fs.clone();
-    }
+      if let Some(fs) = &input_file_system {
+        resolver_factory_reference.input_filesystem = fs.clone();
+      }
 
-    let resolver_factory =
-      (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
-    let loader_resolver_factory = (*resolver_factory_reference)
-      .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
+      let resolver_factory =
+        (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
+      let loader_resolver_factory = (*resolver_factory_reference)
+        .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
 
-    let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
-      if let Some(fs) = intermediate_filesystem {
+      let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
+        if let Some(fs) = intermediate_filesystem {
+          Some(Arc::new(
+            NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
+              format!("Failed to create intermediate filesystem: {e}")
+            })?,
+          ))
+        } else {
+          None
+        };
+
+      let rspack = rspack_core::Compiler::new(
+        compiler_path,
+        compiler_options,
+        plugins,
+        buildtime_plugins::buildtime_plugins(),
         Some(Arc::new(
-          NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
-            format!("Failed to create intermediate filesystem: {e}")
+          NodeFileSystem::new(output_filesystem).to_napi_result_with_message(|e| {
+            format!("Failed to create writable filesystem: {e}")
           })?,
-        ))
-      } else {
-        None
-      };
+        )),
+        intermediate_filesystem,
+        input_file_system,
+        Some(resolver_factory),
+        Some(loader_resolver_factory),
+        Some(compiler_context.clone()),
+      );
 
-    let rspack = rspack_core::Compiler::new(
-      compiler_path,
-      compiler_options,
-      plugins,
-      buildtime_plugins::buildtime_plugins(),
-      Some(Arc::new(
-        NodeFileSystem::new(output_filesystem)
-          .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
-      )),
-      intermediate_filesystem,
-      input_file_system,
-      Some(resolver_factory),
-      Some(loader_resolver_factory),
-    );
-
-    Ok(Self {
-      compiler: Compiler::from(rspack),
-      state: CompilerState::init(),
-      js_hooks_plugin,
-      include_dependencies_map: Default::default(),
-      entry_dependencies_map: Default::default(),
+      Ok(Self {
+        compiler: Compiler::from(rspack),
+        state: CompilerState::init(),
+        js_hooks_plugin,
+        include_dependencies_map: Default::default(),
+        entry_dependencies_map: Default::default(),
+        compiler_context,
+      })
     })
   }
 
@@ -364,8 +372,7 @@ impl JsCompiler {
     });
 
     self.cleanup_last_compilation(&compiler.compilation);
-
-    f(compiler, guard)
+    within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard))
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {

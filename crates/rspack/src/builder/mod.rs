@@ -8,6 +8,7 @@ mod target;
 
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
+use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 pub use target::Targets;
 
 macro_rules! d {
@@ -453,7 +454,7 @@ impl CompilerBuilder {
     let input_filesystem = self.input_filesystem.take();
     let intermediate_filesystem = self.intermediate_filesystem.take();
     let output_filesystem = self.output_filesystem.take();
-
+    let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();
     Ok(Compiler::new(
       String::new(),
       compiler_options,
@@ -464,6 +465,7 @@ impl CompilerBuilder {
       input_filesystem,
       None,
       None,
+      compiler_context,
     ))
   }
 }
@@ -3807,6 +3809,7 @@ impl ExperimentsBuilder {
 #[cfg(test)]
 mod test {
   use enum_tag::EnumTag;
+  use rspack_tasks::within_compiler_context_for_testing_sync;
 
   use super::*;
 
@@ -3817,37 +3820,39 @@ mod test {
 
   #[test]
   fn builtin_plugin_order() {
-    let mut context: BuilderContext = Default::default();
-    let compiler_options = CompilerOptions::builder()
-      .mode(Mode::Production)
-      .target(vec!["web".to_string()])
-      .build(&mut context)
-      .unwrap();
-    context.plugins.sort_by_key(|p| p.tag());
+    within_compiler_context_for_testing_sync(|| {
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Production)
+        .target(vec!["web".to_string()])
+        .build(&mut context)
+        .unwrap();
+      context.plugins.sort_by_key(|p| p.tag());
 
-    type BuiltinPluginOptionsTag = <BuiltinPluginOptions as EnumTag>::Tag;
+      type BuiltinPluginOptionsTag = <BuiltinPluginOptions as EnumTag>::Tag;
 
-    macro_rules! plugin_index {
-      ($ident:ident) => {
-        context
-          .plugins
-          .iter()
-          .position(|p| p.tag() == BuiltinPluginOptionsTag::$ident)
-          .expect("plugin should exist")
-      };
-    }
+      macro_rules! plugin_index {
+        ($ident:ident) => {
+          context
+            .plugins
+            .iter()
+            .position(|p| p.tag() == BuiltinPluginOptionsTag::$ident)
+            .expect("plugin should exist")
+        };
+      }
 
-    let merge_duplicate_chunks_index = plugin_index!(MergeDuplicateChunksPlugin);
-    let side_effects_flag_plugin_index = plugin_index!(SideEffectsFlagPlugin);
-    let remove_empty_chunks_plugin_index = plugin_index!(RemoveEmptyChunksPlugin);
-    let real_content_hash_plugin_index = plugin_index!(RealContentHashPlugin);
+      let merge_duplicate_chunks_index = plugin_index!(MergeDuplicateChunksPlugin);
+      let side_effects_flag_plugin_index = plugin_index!(SideEffectsFlagPlugin);
+      let remove_empty_chunks_plugin_index = plugin_index!(RemoveEmptyChunksPlugin);
+      let real_content_hash_plugin_index = plugin_index!(RealContentHashPlugin);
 
-    assert!(merge_duplicate_chunks_index < side_effects_flag_plugin_index);
-    assert!(remove_empty_chunks_plugin_index > merge_duplicate_chunks_index);
-    assert!(real_content_hash_plugin_index > remove_empty_chunks_plugin_index);
+      assert!(merge_duplicate_chunks_index < side_effects_flag_plugin_index);
+      assert!(remove_empty_chunks_plugin_index > merge_duplicate_chunks_index);
+      assert!(real_content_hash_plugin_index > remove_empty_chunks_plugin_index);
 
-    let plugins = context.take_plugins(&compiler_options);
-    assert!(!plugins.is_empty());
+      let plugins = context.take_plugins(&compiler_options);
+      assert!(!plugins.is_empty());
+    })
   }
 
   #[test]

@@ -4085,6 +4085,7 @@ dependencies = [
  "rspack_plugin_wasm",
  "rspack_plugin_worker",
  "rspack_regex",
+ "rspack_tasks",
  "rustc-hash 2.1.1",
  "serde_json",
  "tokio",
@@ -4125,6 +4126,7 @@ dependencies = [
  "rspack_core",
  "rspack_fs",
  "rspack_regex",
+ "rspack_tasks",
  "serde_json",
  "tokio",
 ]
@@ -4241,6 +4243,7 @@ dependencies = [
  "rspack_resolver",
  "rspack_sources",
  "rspack_storage",
+ "rspack_tasks",
  "rspack_util",
  "rustc-hash 2.1.1",
  "scopeguard",
@@ -4304,6 +4307,7 @@ dependencies = [
 name = "rspack_futures"
 version = "0.2.0"
 dependencies = [
+ "rspack_tasks",
  "tokio",
 ]
 
@@ -4615,6 +4619,7 @@ dependencies = [
  "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
+ "rspack_tasks",
  "rspack_tracing",
  "rspack_util",
  "rustc-hash 2.1.1",
@@ -5511,6 +5516,13 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "swc_core",
+]
+
+[[package]]
+name = "rspack_tasks"
+version = "0.2.0"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]

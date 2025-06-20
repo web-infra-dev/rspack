@@ -102,6 +102,7 @@ rspack_plugin_wasm                     = { workspace = true }
 rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 rspack_regex                           = { workspace = true }
+rspack_tasks                           = { workspace = true }
 rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true }
 serde_json                             = { workspace = true }

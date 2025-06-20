@@ -151,7 +151,7 @@ impl<'scope, T, O> Spawner<'scope, '_, T, O> {
     let fut: Pin<Box<dyn Future<Output = O> + Send + 'static>> =
       unsafe { std::mem::transmute(fut) };
 
-    let j = tokio::spawn(fut);
+    let j = rspack_tasks::spawn_in_compiler_context(fut);
     self.list.borrow_mut().push(j);
   }
 }

@@ -20,6 +20,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, RspackSeverity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
+use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
@@ -573,10 +574,10 @@ impl JsCompilation {
     let compilation = self
       .as_mut()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
-
+    let compiler_context = compilation.compiler_context.clone();
     callbackify(
       f,
-      async {
+      within_compiler_context(compiler_context, async {
         let compiler_id = compilation.compiler_id();
 
         let modules = compilation
@@ -593,7 +594,7 @@ impl JsCompilation {
           .to_napi_result()?;
 
         Ok(modules)
-      },
+      }),
       Some(|| drop(reference)),
     )
   }
@@ -614,10 +615,10 @@ impl JsCompilation {
     let compilation = self
       .as_ref()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
-
+    let compiler_context = compilation.compiler_context.clone();
     callbackify(
       callback,
-      async {
+      within_compiler_context(compiler_context, async {
         let module_executor = compilation
           .module_executor
           .as_ref()
@@ -659,13 +660,12 @@ impl JsCompilation {
           error: res.error,
         };
         Ok(js_result)
-      },
+      }),
       Some(|| {
         drop(reference);
       }),
     )
   }
-
   #[napi(getter)]
   pub fn entries(&mut self) -> Result<JsEntries> {
     let compilation = self.as_mut()?;
@@ -714,93 +714,96 @@ impl JsCompilation {
       .as_mut()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
-    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow_mut();
-      references.get(&compilation.compiler_id()).cloned()
-    }) else {
-      return Err(napi::Error::new(
-        napi::Status::GenericFailure.into(),
-        "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
-      ));
-    };
-    let Some(js_compiler) = compiler_reference.get_mut() else {
-      return Err(napi::Error::new(
-        napi::Status::GenericFailure.into(),
-        "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
-      ));
-    };
-    let entry_dependencies_map = &mut js_compiler.entry_dependencies_map;
+    within_compiler_context_sync(compilation.compiler_context.clone(), || {
+      let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
+        let references = ref_cell.borrow_mut();
+        references.get(&compilation.compiler_id()).cloned()
+      }) else {
+        return Err(napi::Error::new(
+          napi::Status::GenericFailure.into(),
+          "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
+        ));
+      };
+      let Some(js_compiler) = compiler_reference.get_mut() else {
+        return Err(napi::Error::new(
+          napi::Status::GenericFailure.into(),
+          "Unable to addEntry now. The Compiler has been garbage collected by JavaScript.",
+        ));
+      };
+      let entry_dependencies_map = &mut js_compiler.entry_dependencies_map;
 
-    let args = js_args
-      .into_iter()
-      .map(|(js_context, js_dependency, js_options)| {
-        let layer = match &js_options {
-          Some(options) => options.layer.clone(),
-          None => None,
-        };
-        let options = match js_options {
-          Some(js_opts) => js_opts.into(),
-          None => EntryOptions::default(),
-        };
-        let dependency = if let Some(map) = entry_dependencies_map.get(&js_dependency.request)
-          && let Some(dependency) = map.get(&options)
-        {
-          js_dependency.dependency_id = Some(*dependency.id());
-          dependency.clone()
-        } else {
-          let dependency = js_dependency.resolve(js_context.into(), layer)?;
-          if let Some(map) = entry_dependencies_map.get_mut(&js_dependency.request) {
-            map.insert(options.clone(), dependency.clone());
+      let args = js_args
+        .into_iter()
+        .map(|(js_context, js_dependency, js_options)| {
+          let layer = match &js_options {
+            Some(options) => options.layer.clone(),
+            None => None,
+          };
+          let options = match js_options {
+            Some(js_opts) => js_opts.into(),
+            None => EntryOptions::default(),
+          };
+          let dependency = if let Some(map) = entry_dependencies_map.get(&js_dependency.request)
+            && let Some(dependency) = map.get(&options)
+          {
+            js_dependency.dependency_id = Some(*dependency.id());
+            dependency.clone()
           } else {
-            let mut map = FxHashMap::default();
-            map.insert(options.clone(), dependency.clone());
-            entry_dependencies_map.insert(js_dependency.request.to_string(), map);
-          }
-          dependency
-        };
-        Ok((dependency, options))
-      })
-      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+            let dependency = js_dependency.resolve(js_context.into(), layer)?;
+            if let Some(map) = entry_dependencies_map.get_mut(&js_dependency.request) {
+              map.insert(options.clone(), dependency.clone());
+            } else {
+              let mut map = FxHashMap::default();
+              map.insert(options.clone(), dependency.clone());
+              entry_dependencies_map.insert(js_dependency.request.to_string(), map);
+            }
+            dependency
+          };
+          Ok((dependency, options))
+        })
+        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
-    callbackify(
-      f,
-      async move {
-        let dependency_ids = args
-          .iter()
-          .map(|(dependency, _)| *dependency.id())
-          .collect::<Vec<_>>();
+      callbackify(
+        f,
+        within_compiler_context(compilation.compiler_context.clone(), async move {
+          let dependency_ids = args
+            .iter()
+            .map(|(dependency, _)| *dependency.id())
+            .collect::<Vec<_>>();
 
-        compilation.add_entry_batch(args).await.to_napi_result()?;
+          compilation.add_entry_batch(args).await.to_napi_result()?;
 
-        let module_graph = compilation.get_module_graph();
-        let results = dependency_ids
-          .into_iter()
-          .map(|dependency_id| {
-            if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
-                if let Some(diagnostic) = factorize_info.diagnostics().first() {
-                  return Either::A(diagnostic.to_string());
+          let module_graph = compilation.get_module_graph();
+          let results = dependency_ids
+            .into_iter()
+            .map(|dependency_id| {
+              if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
+                if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
+                  if let Some(diagnostic) = factorize_info.diagnostics().first() {
+                    return Either::A(diagnostic.to_string());
+                  }
                 }
               }
-            }
 
-            match module_graph.get_module_by_dependency_id(&dependency_id) {
-              Some(module) => {
-                let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
-                Either::B(js_module)
+              match module_graph.get_module_by_dependency_id(&dependency_id) {
+                Some(module) => {
+                  let js_module =
+                    ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
+                  Either::B(js_module)
+                }
+                None => Either::A("build failed with unknown error".to_string()),
               }
-              None => Either::A("build failed with unknown error".to_string()),
-            }
-          })
-          .collect::<Vec<Either<String, ModuleObject>>>();
+            })
+            .collect::<Vec<Either<String, ModuleObject>>>();
 
-        Ok(JsAddEntryItemCallbackArgs(results))
-      },
-      Some(|| {
-        drop(reference);
-      }),
-    )
+          Ok(JsAddEntryItemCallbackArgs(results))
+        }),
+        Some(|| {
+          drop(reference);
+        }),
+      )
+    })
   }
 
   #[napi(
@@ -831,78 +834,81 @@ impl JsCompilation {
         "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
-    let include_dependencies_map = &mut js_compiler.include_dependencies_map;
+    within_compiler_context_sync(js_compiler.compiler_context.clone(), || {
+      let include_dependencies_map = &mut js_compiler.include_dependencies_map;
 
-    let args = js_args
-      .into_iter()
-      .map(|(js_context, js_dependency, js_options)| {
-        let layer = match &js_options {
-          Some(options) => options.layer.clone(),
-          None => None,
-        };
-        let options = match js_options {
-          Some(js_opts) => js_opts.into(),
-          None => EntryOptions::default(),
-        };
-        let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
-          && let Some(dependency) = map.get(&options)
-        {
-          js_dependency.dependency_id = Some(*dependency.id());
-          dependency.clone()
-        } else {
-          let dependency = js_dependency.resolve(js_context.into(), layer)?;
-          if let Some(map) = include_dependencies_map.get_mut(&js_dependency.request) {
-            map.insert(options.clone(), dependency.clone());
+      let args = js_args
+        .into_iter()
+        .map(|(js_context, js_dependency, js_options)| {
+          let layer = match &js_options {
+            Some(options) => options.layer.clone(),
+            None => None,
+          };
+          let options = match js_options {
+            Some(js_opts) => js_opts.into(),
+            None => EntryOptions::default(),
+          };
+          let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
+            && let Some(dependency) = map.get(&options)
+          {
+            js_dependency.dependency_id = Some(*dependency.id());
+            dependency.clone()
           } else {
-            let mut map = FxHashMap::default();
-            map.insert(options.clone(), dependency.clone());
-            include_dependencies_map.insert(js_dependency.request.to_string(), map);
-          }
-          dependency
-        };
-        Ok((dependency, options))
-      })
-      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+            let dependency = js_dependency.resolve(js_context.into(), layer)?;
+            if let Some(map) = include_dependencies_map.get_mut(&js_dependency.request) {
+              map.insert(options.clone(), dependency.clone());
+            } else {
+              let mut map = FxHashMap::default();
+              map.insert(options.clone(), dependency.clone());
+              include_dependencies_map.insert(js_dependency.request.to_string(), map);
+            }
+            dependency
+          };
+          Ok((dependency, options))
+        })
+        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
-    callbackify(
-      f,
-      async move {
-        let dependency_ids = args
-          .iter()
-          .map(|(dependency, _)| *dependency.id())
-          .collect::<Vec<_>>();
+      callbackify(
+        f,
+        within_compiler_context(js_compiler.compiler_context.clone(), async move {
+          let dependency_ids = args
+            .iter()
+            .map(|(dependency, _)| *dependency.id())
+            .collect::<Vec<_>>();
 
-        compilation.add_include(args).await.to_napi_result()?;
+          compilation.add_include(args).await.to_napi_result()?;
 
-        let module_graph = compilation.get_module_graph();
-        let results = dependency_ids
-          .into_iter()
-          .map(|dependency_id| {
-            if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
-                if let Some(diagnostic) = factorize_info.diagnostics().first() {
-                  return Either::A(diagnostic.to_string());
+          let module_graph = compilation.get_module_graph();
+          let results = dependency_ids
+            .into_iter()
+            .map(|dependency_id| {
+              if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
+                if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
+                  if let Some(diagnostic) = factorize_info.diagnostics().first() {
+                    return Either::A(diagnostic.to_string());
+                  }
                 }
               }
-            }
 
-            match module_graph.get_module_by_dependency_id(&dependency_id) {
-              Some(module) => {
-                let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
-                Either::B(js_module)
+              match module_graph.get_module_by_dependency_id(&dependency_id) {
+                Some(module) => {
+                  let js_module =
+                    ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
+                  Either::B(js_module)
+                }
+                None => Either::A("build failed with unknown error".to_string()),
               }
-              None => Either::A("build failed with unknown error".to_string()),
-            }
-          })
-          .collect::<Vec<Either<String, ModuleObject>>>();
+            })
+            .collect::<Vec<Either<String, ModuleObject>>>();
 
-        Ok(JsAddEntryItemCallbackArgs(results))
-      },
-      Some(|| {
-        drop(reference);
-      }),
-    )
+          Ok(JsAddEntryItemCallbackArgs(results))
+        }),
+        Some(|| {
+          drop(reference);
+        }),
+      )
+    })
   }
 
   #[napi(getter, ts_return_type = "CodeGenerationResults")]

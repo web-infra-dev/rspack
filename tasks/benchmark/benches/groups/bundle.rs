@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use criterion::{criterion_group, Criterion};
+use rspack_tasks::within_compiler_context_for_testing;
 use tokio::runtime;
 
 use crate::groups::bundle::util::{derive_projects, CompilerBuilderGenerator};
@@ -31,8 +32,11 @@ fn bundle_benchmark(c: &mut Criterion) {
   for (id, get_compiler) in derive_projects(projects) {
     group.bench_function(format!("bundle@{id}"), |b| {
       b.to_async(&rt).iter(|| async {
-        let mut compiler = get_compiler();
-        compiler.build().unwrap().run().await.unwrap();
+        within_compiler_context_for_testing(async {
+          let mut compiler = get_compiler();
+          compiler.build().unwrap().run().await.unwrap();
+        })
+        .await
       });
     });
   }
