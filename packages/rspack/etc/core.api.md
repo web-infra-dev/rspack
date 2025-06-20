@@ -74,6 +74,7 @@ import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
+import { RawRslibPluginOptions } from '@rspack/binding';
 import { RawRstestPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
@@ -6247,6 +6248,17 @@ type RsdoctorPluginOptions = {
 };
 
 // @public (undocumented)
+export const RslibPlugin: {
+    new (rslib: RawRslibPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [rslib: RawRslibPluginOptions];
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 type Rspack = typeof rspack_2 & typeof rspackExports & {
     rspack: Rspack;
     webpack: Rspack;
@@ -6357,6 +6369,7 @@ declare namespace rspackExports {
         DefinePlugin,
         ProgressPlugin,
         RstestPlugin,
+        RslibPlugin,
         EntryPlugin,
         DynamicEntryPlugin,
         ExternalsPlugin,
