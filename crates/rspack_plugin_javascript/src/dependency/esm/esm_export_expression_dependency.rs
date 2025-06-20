@@ -163,6 +163,25 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
 
+    // Check for ConsumeShared context for macro generation
+    let consume_shared_info =
+      mg.get_incoming_connections(&module_identifier)
+        .find_map(|connection| {
+          connection
+            .original_module_identifier
+            .as_ref()
+            .and_then(|origin_id| {
+              mg.module_by_identifier(origin_id)
+                .and_then(|origin_module| {
+                  if origin_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+                    origin_module.get_consume_shared_key()
+                  } else {
+                    None
+                  }
+                })
+            })
+        });
+
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
         DeclarationId::Id(id) => id,
@@ -197,28 +216,51 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               .collect_vec()
               .join("")
               .into(),
-            Atom::from(format!("/* export default binding */ {name}")),
+            Atom::from(
+              if let Some(ref share_key) = consume_shared_info {
+                format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* export default binding */ {name} /* @common:endif */")
+              } else {
+                format!("/* export default binding */ {name}")
+              }
+            ),
           )],
         )));
       } else {
         // do nothing for unused or inlined
       }
 
-      source.replace(
-        dep.range_stmt.start,
-        dep.range.start,
-        format!("/* ESM default export */ {}", dep.prefix).as_str(),
-        None,
-      );
+      let prefix_content = if let Some(ref share_key) = consume_shared_info {
+        format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ {}", dep.prefix)
+      } else {
+        format!("/* ESM default export */ {}", dep.prefix)
+      };
+
+      source.replace(dep.range_stmt.start, dep.range.start, &prefix_content, None);
+
+      if consume_shared_info.is_some() {
+        source.replace(
+          dep.range_stmt.end,
+          dep.range_stmt.end,
+          " /* @common:endif */",
+          None,
+        );
+      }
     } else {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
       let content = if let Some(ref mut scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
-        format!(
-          "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
-          if supports_const { "const" } else { "var" }
-        )
+        if let Some(ref share_key) = consume_shared_info {
+          format!(
+            "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ {} {DEFAULT_EXPORT} = ",
+            if supports_const { "const" } else { "var" }
+          )
+        } else {
+          format!(
+            "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
+            if supports_const { "const" } else { "var" }
+          )
+        }
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &module_identifier,
@@ -239,10 +281,24 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   .collect_vec()
                   .join("")
                   .into(),
-                DEFAULT_EXPORT.into(),
+                if let Some(ref share_key) = consume_shared_info {
+                  format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {DEFAULT_EXPORT} /* @common:endif */").into()
+                } else {
+                  DEFAULT_EXPORT.into()
+                },
               )],
             )));
-            format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
+            if let Some(ref share_key) = consume_shared_info {
+              format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ const {DEFAULT_EXPORT} = ")
+            } else {
+              format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
+            }
+          } else if let Some(ref share_key) = consume_shared_info {
+            format!(
+              r#"/* @common:if [condition="treeShake.{share_key}.default"] */ /* ESM default export */ {}{} = "#,
+              module.get_exports_argument(),
+              property_access(used, 0)
+            )
           } else {
             format!(
               r#"/* ESM default export */ {}{} = "#,
@@ -250,9 +306,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               property_access(used, 0)
             )
           }
+        } else if let Some(ref share_key) = consume_shared_info {
+          format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
         } else {
           format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
         }
+      } else if let Some(ref share_key) = consume_shared_info {
+        format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* unused ESM default export */ var {DEFAULT_EXPORT} = ")
       } else {
         format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
       };
@@ -263,10 +323,16 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         &format!("{}({}", content, dep.prefix),
         None,
       );
+      let end_content = if consume_shared_info.is_some() {
+        ") /* @common:endif */;"
+      } else {
+        ");"
+      };
+
       source.replace_with_enforce(
         dep.range.end,
         dep.range_stmt.end,
-        ");",
+        end_content,
         None,
         ReplacementEnforce::Post,
       );

@@ -4,29 +4,53 @@ use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilerEmit, CompilerOptions,
-  DependenciesBlock, DependencyType, ExtendedReferencedExport, ModuleGraph,
+  ExportInfoGetter, ExportsInfoGetter, ExtendedReferencedExport, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin, PluginContext,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, UsageState,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use serde::{Deserialize, Serialize};
+use tracing::{debug, trace, warn};
 
-use super::export_usage_types::SimpleModuleExports;
+/// Simple module export data for easy consumption
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SimpleModuleExports {
+  /// Used exports
+  pub used_exports: Vec<String>,
+  /// Unused exports
+  pub unused_exports: Vec<String>,
+  /// Possibly unused exports
+  pub possibly_unused_exports: Vec<String>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShareUsageReport {
   pub consume_shared_modules: HashMap<String, SimpleModuleExports>,
+  pub metadata: AnalysisMetadata,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnalysisMetadata {
+  pub total_modules: usize,
+  pub modules_with_unused_exports: usize,
+  pub analysis_timestamp: String,
+  pub plugin_version: String,
 }
 
 #[derive(Debug)]
 pub struct ShareUsagePluginOptions {
   pub filename: String,
+  pub enable_detailed_analysis: bool,
+  pub include_runtime_info: bool,
 }
 
 impl Default for ShareUsagePluginOptions {
   fn default() -> Self {
     Self {
       filename: "share-usage.json".to_string(),
+      enable_detailed_analysis: true,
+      include_runtime_info: false,
     }
   }
 }
@@ -42,62 +66,40 @@ impl ShareUsagePlugin {
     Self::new_inner(options)
   }
 
+  /// Analyze consume shared usage with proper error handling and bulk operations
   fn analyze_consume_shared_usage(
     &self,
     compilation: &Compilation,
-  ) -> HashMap<String, SimpleModuleExports> {
+  ) -> Result<HashMap<String, SimpleModuleExports>> {
     let mut usage_map = HashMap::new();
     let module_graph = compilation.get_module_graph();
 
-    // Find all ConsumeShared modules and their fallbacks
-    for module_id in module_graph.modules().keys() {
-      if let Some(module) = module_graph.module_by_identifier(module_id) {
-        if module.module_type() == &ModuleType::ConsumeShared {
-          if let Some(share_key) = module.get_consume_shared_key() {
-            // Find the fallback module directly
-            if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
-              // Get the basic usage analysis first
-              let (used_exports, provided_exports) =
-                self.analyze_fallback_module_usage(&module_graph, &fallback_id, module_id);
+    // Collect runtimes for comprehensive analysis
+    let runtimes: Vec<RuntimeSpec> = compilation
+      .chunk_by_ukey
+      .values()
+      .map(|chunk| chunk.runtime())
+      .cloned()
+      .collect();
 
-              // Try to enhance with unused import detection
-              let (truly_used_exports, all_imported_exports) =
-                self.analyze_used_vs_imported_exports(&module_graph, &fallback_id, module_id);
+    debug!(
+      "Starting ConsumeShared usage analysis for {} modules",
+      module_graph.modules().len()
+    );
 
-              // Combine the results intelligently
-              let mut final_used_exports = used_exports.clone();
-              let mut final_unused_exports = Vec::new();
+    // Find all ConsumeShared modules
+    for (module_id, module) in module_graph.modules() {
+      if module.module_type() == &ModuleType::ConsumeShared {
+        if let Some(share_key) = module.get_consume_shared_key() {
+          trace!("Analyzing ConsumeShared module: {}", share_key);
 
-              // If we detected more granular import information, use it
-              if !all_imported_exports.is_empty() {
-                // Use the enhanced analysis: truly used vs imported but unused
-                final_used_exports = truly_used_exports;
-
-                // Unused exports are imports that are not actually used
-                for imported_export in &all_imported_exports {
-                  if !final_used_exports.contains(imported_export) && imported_export != "*" {
-                    final_unused_exports.push(imported_export.clone());
-                  }
-                }
-              } else {
-                // Fall back to the basic analysis if enhanced detection failed
-                for export in &provided_exports {
-                  if !final_used_exports.contains(export) && export != "*" {
-                    final_unused_exports.push(export.clone());
-                  }
-                }
-              }
-
-              usage_map.insert(
-                share_key,
-                SimpleModuleExports {
-                  used_exports: final_used_exports,
-                  unused_exports: final_unused_exports,
-                  possibly_unused_exports: Vec::new(),
-                },
-              );
-            } else {
-              // If no fallback found, still record the share_key with empty data
+          match self.analyze_single_consume_shared_module(&module_graph, &module_id, &runtimes) {
+            Ok(analysis) => {
+              usage_map.insert(share_key, analysis);
+            }
+            Err(e) => {
+              warn!("Failed to analyze ConsumeShared module '{share_key}': {e}");
+              // Continue with empty data rather than failing completely
               usage_map.insert(
                 share_key,
                 SimpleModuleExports {
@@ -112,401 +114,295 @@ impl ShareUsagePlugin {
       }
     }
 
-    usage_map
+    debug!(
+      "Completed analysis for {} ConsumeShared modules",
+      usage_map.len()
+    );
+    Ok(usage_map)
   }
 
-  fn analyze_fallback_module_usage(
+  /// Analyze a single ConsumeShared module with comprehensive error handling
+  fn analyze_single_consume_shared_module(
+    &self,
+    module_graph: &ModuleGraph,
+    consume_shared_id: &ModuleIdentifier,
+    runtimes: &[RuntimeSpec],
+  ) -> Result<SimpleModuleExports> {
+    // Find the fallback module
+    let fallback_id = self
+      .find_fallback_module_id(module_graph, consume_shared_id)
+      .ok_or_else(|| rspack_error::Error::msg("Fallback module not found"))?;
+
+    // Analyze fallback module exports using proper bulk operations
+    let provided_exports = self.get_provided_exports_bulk(module_graph, &fallback_id)?;
+
+    // Analyze usage through incoming connections with proper dependency analysis
+    let (used_exports, imported_exports) =
+      self.analyze_dependency_usage(module_graph, consume_shared_id, &fallback_id, runtimes)?;
+
+    // Calculate unused exports efficiently
+    let unused_exports =
+      self.calculate_unused_exports(&provided_exports, &used_exports, &imported_exports);
+
+    // Identify potentially unused exports using heuristics
+    let possibly_unused_exports = self.identify_possibly_unused_exports(
+      module_graph,
+      &fallback_id,
+      &provided_exports,
+      &used_exports,
+    )?;
+
+    Ok(SimpleModuleExports {
+      used_exports,
+      unused_exports,
+      possibly_unused_exports,
+    })
+  }
+
+  /// Get provided exports using efficient bulk operations
+  fn get_provided_exports_bulk(
+    &self,
+    module_graph: &ModuleGraph,
+    module_id: &ModuleIdentifier,
+  ) -> Result<Vec<String>> {
+    let exports_info = module_graph.get_exports_info(module_id);
+    let prefetched = ExportsInfoGetter::prefetch(
+      &exports_info,
+      module_graph,
+      PrefetchExportsInfoMode::AllExports,
+    );
+
+    let provided_exports = prefetched.get_provided_exports();
+    let exports = match provided_exports {
+      ProvidedExports::ProvidedNames(names) => names.iter().map(|n| n.to_string()).collect(),
+      ProvidedExports::ProvidedAll => vec!["*".to_string()],
+      ProvidedExports::Unknown => Vec::new(),
+    };
+
+    trace!(
+      "Found {} provided exports for module {module_id}",
+      exports.len()
+    );
+    Ok(exports)
+  }
+
+  /// Analyze dependency usage with comprehensive error handling
+  fn analyze_dependency_usage(
+    &self,
+    module_graph: &ModuleGraph,
+    consume_shared_id: &ModuleIdentifier,
+    fallback_id: &ModuleIdentifier,
+    runtimes: &[RuntimeSpec],
+  ) -> Result<(Vec<String>, Vec<String>)> {
+    let mut used_exports = Vec::new();
+    let mut imported_exports = Vec::new();
+
+    // Analyze fallback module usage patterns
+    let fallback_used = self.analyze_fallback_usage(module_graph, fallback_id, runtimes.first())?;
+    used_exports.extend(fallback_used);
+
+    // Analyze incoming dependencies for imported exports
+    for connection in module_graph.get_incoming_connections(consume_shared_id) {
+      if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
+        match self.extract_referenced_exports(dependency.as_ref(), module_graph) {
+          Ok(refs) => imported_exports.extend(refs),
+          Err(e) => {
+            trace!("Failed to extract referenced exports: {e}");
+            continue;
+          }
+        }
+      }
+    }
+
+    // Deduplicate
+    used_exports.sort();
+    used_exports.dedup();
+    imported_exports.sort();
+    imported_exports.dedup();
+
+    Ok((used_exports, imported_exports))
+  }
+
+  /// Analyze fallback module usage with proper error handling
+  fn analyze_fallback_usage(
     &self,
     module_graph: &ModuleGraph,
     fallback_id: &ModuleIdentifier,
-    consume_shared_id: &ModuleIdentifier,
-  ) -> (Vec<String>, Vec<String>) {
-    use rspack_core::{
-      ExportInfoGetter, ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState,
-    };
-
-    let mut used_exports = Vec::new();
-    let mut provided_exports = Vec::new();
-    let mut all_imported_exports = Vec::new();
-
-    // Get export information from the fallback module (this is the real module with exports)
-    let fallback_exports_info = module_graph.get_exports_info(fallback_id);
-    let fallback_prefetched = ExportsInfoGetter::prefetch(
-      &fallback_exports_info,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<Vec<String>> {
+    let exports_info = module_graph.get_exports_info(fallback_id);
+    let prefetched = ExportsInfoGetter::prefetch(
+      &exports_info,
       module_graph,
       PrefetchExportsInfoMode::AllExports,
     );
 
-    // Get what exports the fallback module provides
-    let fallback_provided = fallback_prefetched.get_provided_exports();
-    match fallback_provided {
-      ProvidedExports::ProvidedNames(names) => {
-        provided_exports = names.iter().map(|n| n.to_string()).collect();
+    let provided_exports = prefetched.get_provided_exports();
+    let mut used_exports = Vec::new();
 
-        // Check usage state for each export in the fallback module
-        for export_name in names {
-          let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
-          let fallback_export_info_data =
-            fallback_prefetched.get_read_only_export_info(&export_atom);
-          let fallback_usage = ExportInfoGetter::get_used(fallback_export_info_data, None);
+    if let ProvidedExports::ProvidedNames(names) = provided_exports {
+      for export_name in names {
+        let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
+        let export_info_data = prefetched.get_read_only_export_info(&export_atom);
+        let usage_state = ExportInfoGetter::get_used(export_info_data, runtime);
 
-          // Export is used if the fallback module shows usage
-          if matches!(
-            fallback_usage,
-            UsageState::Used | UsageState::OnlyPropertiesUsed
-          ) && export_name != "*"
-          {
-            used_exports.push(export_name.to_string());
-          }
+        if matches!(
+          usage_state,
+          UsageState::Used | UsageState::OnlyPropertiesUsed
+        ) {
+          used_exports.push(export_name.to_string());
         }
       }
-      ProvidedExports::ProvidedAll => {
-        provided_exports = vec!["*".to_string()];
-      }
-      ProvidedExports::Unknown => {
-        // Fallback has unknown exports
-      }
     }
 
-    // Analyze incoming connections to capture BOTH imported and used exports
-    for connection in module_graph.get_incoming_connections(consume_shared_id) {
-      if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
-        // Get referenced exports (these are actually used exports)
-        let referenced_exports = dependency.get_referenced_exports(
-          module_graph,
-          &ModuleGraphCacheArtifact::default(),
-          None,
-        );
-
-        for export_ref in referenced_exports {
-          match export_ref {
-            ExtendedReferencedExport::Array(names) => {
-              for name in names {
-                let export_name = name.to_string();
-                if !used_exports.contains(&export_name) {
-                  used_exports.push(export_name);
-                }
-              }
-            }
-            ExtendedReferencedExport::Export(export_info) => {
-              if !export_info.name.is_empty() {
-                for name in export_info.name {
-                  let export_name = name.to_string();
-                  if !used_exports.contains(&export_name) {
-                    used_exports.push(export_name);
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Try to extract ALL imported names from import dependencies
-        // This captures the complete import statement, not just used exports
-        self.extract_all_imported_exports(dependency.as_ref(), &mut all_imported_exports);
-      }
-    }
-
-    // Merge imported exports with used exports to get complete picture
-    // The used_exports should include both actually used exports AND all imported exports
-    // This ensures we capture imports like 'uniq' that are imported but never used
-    for imported_export in &all_imported_exports {
-      if provided_exports.contains(imported_export) && !used_exports.contains(imported_export) {
-        used_exports.push(imported_export.clone());
-      }
-    }
-
-    (used_exports, provided_exports)
+    Ok(used_exports)
   }
 
-  /// Extract all imported export names from import dependencies
-  /// This method analyzes the dependency structure to find ALL exports mentioned in import statements,
-  /// not just the ones that are actually used in the code
-  fn extract_all_imported_exports(
+  /// Extract referenced exports with proper error handling
+  fn extract_referenced_exports(
     &self,
     dependency: &dyn rspack_core::Dependency,
-    all_imported_exports: &mut Vec<String>,
-  ) {
-    use rspack_core::DependencyType;
+    module_graph: &ModuleGraph,
+  ) -> Result<Vec<String>> {
+    let mut referenced_exports = Vec::new();
 
-    // Check if this is an ESM import dependency that would contain import specifier information
-    match dependency.dependency_type() {
-      DependencyType::EsmImportSpecifier => {
-        // For ESM import specifiers, we need to extract the import name
-        // This represents individual named imports like { VERSION, map, filter, uniq }
-        if let Some(module_dep) = dependency.as_module_dependency() {
-          // Try to extract import name from the dependency's request or identifier
-          let _request = module_dep.request();
+    let exports =
+      dependency.get_referenced_exports(module_graph, &ModuleGraphCacheArtifact::default(), None);
 
-          // For import specifiers, the request often contains the imported name
-          // However, this is implementation-specific and may need adjustment based on actual dependency structure
-
-          // Look for import specifier dependencies which represent individual imports
-          // Note: This is a heuristic approach since the exact API for extracting import names
-          // may vary based on rspack's internal dependency structure
-
-          // As a fallback, try to extract from any string representation that might contain import info
-          let dep_str = format!("{dependency:?}");
-          if dep_str.contains("import") && !dep_str.contains("*") {
-            // This is a named import, but we need the actual import name
-            // For now, we'll use a conservative approach and mark that we found an import
-            // but can't extract the exact name
-
-            // Try to parse common import patterns from debug output
-            if let Some(imported_name) = self.parse_import_name_from_debug(&dep_str) {
-              if !all_imported_exports.contains(&imported_name) {
-                all_imported_exports.push(imported_name);
-              }
+    for export_ref in exports {
+      match export_ref {
+        ExtendedReferencedExport::Array(names) => {
+          for name in names {
+            referenced_exports.push(name.to_string());
+          }
+        }
+        ExtendedReferencedExport::Export(export_info) => {
+          if export_info.name.is_empty() {
+            referenced_exports.push("*".to_string());
+          } else {
+            for name in export_info.name {
+              referenced_exports.push(name.to_string());
             }
           }
         }
-      }
-      DependencyType::EsmImport => {
-        // This might be a default import or side-effect import
-        if let Some(module_dep) = dependency.as_module_dependency() {
-          let request = module_dep.request();
-          // For default imports, add "default" to imported exports
-          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
-            all_imported_exports.push("default".to_string());
-          }
-        }
-      }
-      DependencyType::EsmExportImportedSpecifier => {
-        // This might be a re-export case
-        // Extract exported name if available
-        if let Some(_module_dep) = dependency.as_module_dependency() {
-          let dep_str = format!("{dependency:?}");
-          if let Some(exported_name) = self.parse_export_name_from_debug(&dep_str) {
-            if !all_imported_exports.contains(&exported_name) {
-              all_imported_exports.push(exported_name);
-            }
-          }
-        }
-      }
-      _ => {
-        // For other dependency types, we might not be able to extract specific import names
-        // This is acceptable as we're trying to supplement the referenced_exports analysis
       }
     }
+
+    Ok(referenced_exports)
   }
 
-  /// Parse import name from debug string representation (heuristic approach)
-  fn parse_import_name_from_debug(&self, _debug_str: &str) -> Option<String> {
-    // This is a heuristic method to extract import names from dependency debug output
-    // In a real implementation, you'd use the proper dependency API methods
+  /// Calculate unused exports efficiently
+  fn calculate_unused_exports(
+    &self,
+    provided_exports: &[String],
+    used_exports: &[String],
+    imported_exports: &[String],
+  ) -> Vec<String> {
+    let mut unused = Vec::new();
 
-    // Look for common patterns in debug output that might contain import names
-    // This is a fallback approach when proper API methods aren't available
+    for export in provided_exports {
+      if !used_exports.contains(export) && !export.starts_with('*') {
+        unused.push(export.clone());
+      }
+    }
 
-    // For now, return None as this would require specific knowledge of rspack's
-    // dependency debug format
-    None
+    // Also include imported but unused exports
+    for export in imported_exports {
+      if !used_exports.contains(export) && !unused.contains(export) && !export.starts_with('*') {
+        unused.push(export.clone());
+      }
+    }
+
+    unused.sort();
+    unused.dedup();
+    unused
   }
 
-  /// Parse export name from debug string representation (heuristic approach)
-  fn parse_export_name_from_debug(&self, _debug_str: &str) -> Option<String> {
-    // Similar heuristic approach for export names
-    None
-  }
-
-  /// Analyze to distinguish between actually used exports vs all imported exports
-  /// Returns (actually_used_exports, all_imported_exports)
-  fn analyze_used_vs_imported_exports(
+  /// Identify potentially unused exports using heuristics
+  fn identify_possibly_unused_exports(
     &self,
     module_graph: &ModuleGraph,
-    _fallback_id: &ModuleIdentifier,
-    consume_shared_id: &ModuleIdentifier,
-  ) -> (Vec<String>, Vec<String>) {
-    use rspack_core::{ExportInfoGetter, ExportsInfoGetter, PrefetchExportsInfoMode, UsageState};
+    fallback_id: &ModuleIdentifier,
+    provided_exports: &[String],
+    used_exports: &[String],
+  ) -> Result<Vec<String>> {
+    let mut possibly_unused = Vec::new();
 
-    let mut actually_used_exports = Vec::new();
-    let mut all_imported_exports = Vec::new();
+    if !self.options.enable_detailed_analysis {
+      return Ok(possibly_unused);
+    }
 
-    // Step 1: Get actually used exports by checking usage state in the CONSUME SHARED module (not fallback)
-    // The fallback module doesn't show usage because it's a backup - usage tracking happens on the proxy
-    let consume_shared_exports_info = module_graph.get_exports_info(consume_shared_id);
-    let consume_shared_prefetched = ExportsInfoGetter::prefetch(
-      &consume_shared_exports_info,
+    let exports_info = module_graph.get_exports_info(fallback_id);
+    let prefetched = ExportsInfoGetter::prefetch(
+      &exports_info,
       module_graph,
       PrefetchExportsInfoMode::AllExports,
     );
 
-    // Get provided exports from the consume shared module (these were copied from fallback)
-    let consume_shared_provided = consume_shared_prefetched.get_provided_exports();
-
-    match consume_shared_provided {
-      rspack_core::ProvidedExports::ProvidedNames(names) => {
-        for export_name in names {
-          let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
-          let consume_shared_export_info_data =
-            consume_shared_prefetched.get_read_only_export_info(&export_atom);
-          let consume_shared_usage =
-            ExportInfoGetter::get_used(consume_shared_export_info_data, None);
-
-          println!("🔍 DEBUG: Export '{export_name}' usage state: {consume_shared_usage:?}");
-
-          // Export is actually used if the ConsumeShared proxy module shows usage
-          if matches!(
-            consume_shared_usage,
-            UsageState::Used | UsageState::OnlyPropertiesUsed
-          ) && export_name != "*"
-          {
-            actually_used_exports.push(export_name.to_string());
-          }
-        }
+    for export_name in provided_exports {
+      if used_exports.contains(export_name) || export_name.starts_with('*') {
+        continue;
       }
-      rspack_core::ProvidedExports::ProvidedAll => {
-        // When ConsumeShared shows ProvidedAll, we need to check individual exports manually
-        // This happens when export metadata copying hasn't set specific exports yet
-        println!(
-          "🔍 DEBUG: ConsumeShared shows ProvidedAll - checking fallback for specific exports"
-        );
 
-        // Fall back to checking the basic analysis results which work correctly
-        // Since the basic analysis correctly found ["map", "VERSION", "filter", "default"],
-        // we should use that instead of the enhanced analysis in this case
-        return (Vec::new(), all_imported_exports); // Return empty used, let basic analysis handle it
-      }
-      rspack_core::ProvidedExports::Unknown => {
-        println!("🔍 DEBUG: ConsumeShared shows Unknown exports");
+      let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
+      let export_info_data = prefetched.get_read_only_export_info(&export_atom);
+      let usage_state = ExportInfoGetter::get_used(export_info_data, None);
+
+      if matches!(usage_state, UsageState::NoInfo | UsageState::Unknown) {
+        possibly_unused.push(export_name.clone());
       }
     }
 
-    // Step 2: Get all imported exports by analyzing incoming connections
-    // This will include both used and unused imports from the import statement
-    for connection in module_graph.get_incoming_connections(consume_shared_id) {
-      if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
-        // Use get_referenced_exports - but this time we interpret it differently
-        // This gives us what was imported (though rspack may optimize away unused ones)
-        let referenced_exports = dependency.get_referenced_exports(
-          module_graph,
-          &rspack_core::ModuleGraphCacheArtifact::default(),
-          None,
-        );
-
-        for export_ref in referenced_exports {
-          match export_ref {
-            rspack_core::ExtendedReferencedExport::Array(names) => {
-              for name in names {
-                let export_name = name.to_string();
-                if !all_imported_exports.contains(&export_name) {
-                  all_imported_exports.push(export_name);
-                }
-              }
-            }
-            rspack_core::ExtendedReferencedExport::Export(export_info) => {
-              if !export_info.name.is_empty() {
-                for name in export_info.name {
-                  let export_name = name.to_string();
-                  if !all_imported_exports.contains(&export_name) {
-                    all_imported_exports.push(export_name);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Step 3: Check the ConsumeShared module for any additional imported exports
-    // Since rspack might optimize away unused imports from get_referenced_exports(),
-    // we check the ConsumeShared module's export info for any imports that were provided
-    // but aren't in our used list
-
-    let consume_shared_exports_info = module_graph.get_exports_info(consume_shared_id);
-    let consume_shared_prefetched = ExportsInfoGetter::prefetch(
-      &consume_shared_exports_info,
-      module_graph,
-      PrefetchExportsInfoMode::AllExports,
-    );
-
-    let consume_shared_provided = consume_shared_prefetched.get_provided_exports();
-    if let rspack_core::ProvidedExports::ProvidedNames(consume_shared_names) =
-      consume_shared_provided
-    {
-      for export_name in consume_shared_names {
-        if export_name != "*" && export_name.as_str() != "default" {
-          let export_name_str = export_name.to_string();
-
-          // Check if this export was provided to the ConsumeShared module but not used
-          // This indicates it was likely imported but not used
-          let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
-          let export_info_data = consume_shared_prefetched.get_read_only_export_info(&export_atom);
-          let usage_state = ExportInfoGetter::get_used(export_info_data, None);
-
-          // If the export is provided but not used, and it's not already in our lists,
-          // it's likely an unused import
-          if !actually_used_exports.contains(&export_name_str)
-            && !all_imported_exports.contains(&export_name_str)
-          {
-            // Check if this export has provision info, which suggests it was imported
-            if let Some(provided) = export_info_data.provided() {
-              if matches!(provided, rspack_core::ExportProvided::Provided) {
-                // This export is provided (imported) but not used
-                all_imported_exports.push(export_name_str);
-              }
-            } else if matches!(usage_state, UsageState::NoInfo | UsageState::Unused) {
-              // Even if provision info is not available, if it has an unused state, it might be an unused import
-              // This is especially relevant for our lodash "uniq" case
-              all_imported_exports.push(export_name_str);
-            }
-          }
-        }
-      }
-    }
-
-    (actually_used_exports, all_imported_exports)
+    Ok(possibly_unused)
   }
 
+  /// Find fallback module ID using ConsumeSharedModule API
   fn find_fallback_module_id(
     &self,
     module_graph: &ModuleGraph,
     consume_shared_id: &ModuleIdentifier,
   ) -> Option<ModuleIdentifier> {
-    if let Some(module) = module_graph.module_by_identifier(consume_shared_id) {
-      // Check direct dependencies
-      for dep_id in module.get_dependencies() {
-        if let Some(dep) = module_graph.dependency_by_id(dep_id) {
-          if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
-            if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-              return Some(*fallback_id);
-            }
-          }
-        }
-      }
+    let module = module_graph.module_by_identifier(consume_shared_id)?;
 
-      // Check async dependencies (for lazy loading)
-      for block_id in module.get_blocks() {
-        if let Some(block) = module_graph.block_by_id(block_id) {
-          for dep_id in block.get_dependencies() {
-            if let Some(dep) = module_graph.dependency_by_id(dep_id) {
-              if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
-                if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-                  return Some(*fallback_id);
-                }
-              }
-            }
-          }
+    if let Some(consume_shared) = module
+      .as_any()
+      .downcast_ref::<crate::sharing::consume_shared_module::ConsumeSharedModule>(
+    ) {
+      // Use the enhanced API with proper error handling
+      match consume_shared.find_fallback_module_id(module_graph) {
+        Ok(fallback_id) => fallback_id,
+        Err(_) => {
+          // Log warning but don't fail - graceful degradation
+          tracing::warn!("Failed to find fallback module for ConsumeShared: {consume_shared_id}");
+          // Fallback to string parsing
+          self.parse_fallback_from_identifier(module_graph, consume_shared_id)
         }
       }
+    } else {
+      // Fallback to string parsing for non-ConsumeShared modules
+      self.parse_fallback_from_identifier(module_graph, consume_shared_id)
     }
+  }
 
-    // Extract fallback path from ConsumeShared identifier
+  /// Parse fallback module from ConsumeShared identifier string
+  fn parse_fallback_from_identifier(
+    &self,
+    module_graph: &ModuleGraph,
+    consume_shared_id: &ModuleIdentifier,
+  ) -> Option<ModuleIdentifier> {
     let consume_shared_str = consume_shared_id.to_string();
-    if consume_shared_str.contains("consume shared module") {
-      if let Some(fallback_start) = consume_shared_str.find("(fallback: ") {
-        let fallback_path_start = fallback_start + "(fallback: ".len();
-        if let Some(fallback_end) = consume_shared_str[fallback_path_start..].find(')') {
-          let fallback_path =
-            &consume_shared_str[fallback_path_start..fallback_path_start + fallback_end];
 
-          // Try to find module by exact path match
-          for (module_id, _) in module_graph.modules() {
-            let module_id_str = module_id.to_string();
-            if module_id_str == fallback_path || module_id_str.ends_with(fallback_path) {
-              return Some((*module_id).into());
-            }
+    if let Some(fallback_start) = consume_shared_str.find("(fallback: ") {
+      let fallback_path_start = fallback_start + "(fallback: ".len();
+      if let Some(fallback_end) = consume_shared_str[fallback_path_start..].find(')') {
+        let fallback_path =
+          &consume_shared_str[fallback_path_start..fallback_path_start + fallback_end];
+
+        // Find matching module
+        for (module_id, _) in module_graph.modules() {
+          let module_id_str = module_id.to_string();
+          if module_id_str == fallback_path || module_id_str.ends_with(fallback_path) {
+            return Some(module_id);
           }
         }
       }
@@ -514,23 +410,59 @@ impl ShareUsagePlugin {
 
     None
   }
+
+  /// Generate comprehensive report with metadata
+  fn generate_report(&self, compilation: &Compilation) -> Result<ShareUsageReport> {
+    let consume_shared_modules = self.analyze_consume_shared_usage(compilation)?;
+
+    let modules_with_unused_exports = consume_shared_modules
+      .values()
+      .filter(|module| !module.unused_exports.is_empty())
+      .count();
+
+    let metadata = AnalysisMetadata {
+      total_modules: consume_shared_modules.len(),
+      modules_with_unused_exports,
+      analysis_timestamp: std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| rspack_error::Error::msg(format!("Time error: {e}")))?
+        .as_secs()
+        .to_string(),
+      plugin_version: "1.0.0".to_string(),
+    };
+
+    Ok(ShareUsageReport {
+      consume_shared_modules,
+      metadata,
+    })
+  }
 }
 
 #[plugin_hook(CompilerEmit for ShareUsagePlugin)]
 async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
-  let usage_data = self.analyze_consume_shared_usage(compilation);
+  debug!("Starting ShareUsagePlugin emit phase");
 
-  let report = ShareUsageReport {
-    consume_shared_modules: usage_data,
-  };
+  let report = self.generate_report(compilation).map_err(|e| {
+    let diagnostic = Diagnostic::error(
+      "ShareUsagePlugin".to_string(),
+      format!("ShareUsagePlugin analysis failed: {e}"),
+    );
+    compilation.push_diagnostic(diagnostic);
+    e
+  })?;
 
-  let content = serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string());
+  let content = serde_json::to_string_pretty(&report)
+    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize report: {e}")))?;
 
   compilation.emit_asset(
     self.options.filename.clone(),
     CompilationAsset::new(Some(RawSource::from(content).boxed()), AssetInfo::default()),
   );
 
+  debug!(
+    "ShareUsagePlugin report generated: {}",
+    self.options.filename
+  );
   Ok(())
 }
 

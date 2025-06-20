@@ -1741,7 +1741,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     // Check cache first for performance
     if let Some(parent_module_id) = module_graph.get_parent_module(&self.id) {
       if let Some(cached_state) = connection_state_cache.get(parent_module_id) {
-        return cached_state.clone();
+        return *cached_state;
       }
 
       // Enhanced side effect analysis
@@ -1761,7 +1761,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         ConnectionState::Active(false)
       };
 
-      connection_state_cache.insert(*parent_module_id, state.clone());
+      connection_state_cache.insert(*parent_module_id, state);
       return state;
     }
 

@@ -382,10 +382,9 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(RemoveDuplicateModulesPlugin::default().boxed());
       }
       BuiltinPluginName::ShareRuntimePlugin => plugins.push(
-        ShareRuntimePlugin::with_export_usage_tracking(
+        ShareRuntimePlugin::new(
           downcast_into::<bool>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?,
-          true, // Enable export usage tracking
         )
         .boxed(),
       ),
