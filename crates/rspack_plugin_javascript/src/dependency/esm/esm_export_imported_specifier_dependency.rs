@@ -186,7 +186,8 @@ impl ESMExportImportedSpecifierDependency {
     if is_name_unused {
       return ExportMode::Unused(ExportModeUnused { name: "*".into() });
     }
-    let imported_exports_type = get_exports_type(module_graph, id, parent_module);
+    let imported_exports_type =
+      get_exports_type(module_graph, module_graph_cache, id, parent_module);
     let ids = self.get_ids(module_graph);
 
     // Special handling for reexporting the default export
@@ -1317,6 +1318,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         self,
         ids,
         module_graph,
+        module_graph_cache,
         self
           .name
           .as_ref()

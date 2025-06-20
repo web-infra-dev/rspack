@@ -8,9 +8,9 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
-  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  UsedName,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
+  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -122,7 +122,12 @@ pub fn export_from_import(
     return missing_module(request);
   };
 
-  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(
+    &compilation.get_module_graph(),
+    &compilation.module_graph_cache_artifact,
+    id,
+    &module.identifier(),
+  );
 
   let mut exclude_default_export_name = None;
   if default_interop {
@@ -264,6 +269,7 @@ pub fn export_from_import(
 
 pub fn get_exports_type(
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   id: &DependencyId,
   parent_module: &ModuleIdentifier,
 ) -> ExportsType {
@@ -271,11 +277,12 @@ pub fn get_exports_type(
     .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_esm_module();
-  get_exports_type_with_strict(module_graph, id, strict)
+  get_exports_type_with_strict(module_graph, module_graph_cache, id, strict)
 }
 
 pub fn get_exports_type_with_strict(
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   id: &DependencyId,
   strict: bool,
 ) -> ExportsType {
@@ -285,7 +292,7 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type(module_graph, strict)
+    .get_exports_type(module_graph, module_graph_cache, strict)
 }
 
 // information content of the comment
@@ -398,7 +405,12 @@ pub fn import_statement(
     RuntimeGlobals::REQUIRE
   );
 
-  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(
+    &compilation.get_module_graph(),
+    &compilation.module_graph_cache_artifact,
+    id,
+    &module.identifier(),
+  );
   if matches!(exports_type, ExportsType::Dynamic) {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
     return (
@@ -437,6 +449,7 @@ pub fn module_namespace_promise(
   let promise = block_promise(block, runtime_requirements, compilation, message);
   let exports_type = get_exports_type(
     &compilation.get_module_graph(),
+    &compilation.module_graph_cache_artifact,
     dep_id,
     &module.identifier(),
   );

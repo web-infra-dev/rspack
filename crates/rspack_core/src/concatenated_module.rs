@@ -963,6 +963,7 @@ impl Module for ConcatenatedModule {
       {
         let final_name = Self::get_final_name(
           &compilation.get_module_graph(),
+          &compilation.module_graph_cache_artifact,
           referenced_info_id,
           export_name,
           &mut module_to_info_map,
@@ -1026,6 +1027,7 @@ impl Module for ConcatenatedModule {
       exports_map.insert(used_name.clone(), {
         let final_name = Self::get_final_name(
           &compilation.get_module_graph(),
+          &compilation.module_graph_cache_artifact,
           &root_module_id,
           [name.clone()].to_vec(),
           &mut module_to_info_map,
@@ -1217,6 +1219,7 @@ impl Module for ConcatenatedModule {
           {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
+              &compilation.module_graph_cache_artifact,
               module_info_id,
               vec![export_info.name().cloned().unwrap_or("".into())],
               &mut module_to_info_map,
@@ -1955,6 +1958,7 @@ impl ConcatenatedModule {
   #[allow(clippy::too_many_arguments)]
   fn get_final_name(
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     info: &ModuleIdentifier,
     export_name: Vec<Atom>,
     module_to_info_map: &mut IdentifierIndexMap<ModuleInfo>,
@@ -1968,6 +1972,7 @@ impl ConcatenatedModule {
   ) -> String {
     let binding = Self::get_final_binding(
       module_graph,
+      module_graph_cache,
       info,
       export_name.clone(),
       module_to_info_map,
@@ -2042,6 +2047,7 @@ impl ConcatenatedModule {
   #[allow(clippy::too_many_arguments)]
   fn get_final_binding(
     mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,
     module_to_info_map: &mut IdentifierIndexMap<ModuleInfo>,
@@ -2059,7 +2065,7 @@ impl ConcatenatedModule {
     let module = mg
       .module_by_identifier(&info.id())
       .expect("should have module");
-    let exports_type = module.get_exports_type(mg, strict_esm_module);
+    let exports_type = module.get_exports_type(mg, mg_cache, strict_esm_module);
 
     if export_name.is_empty() {
       match exports_type {
@@ -2335,6 +2341,7 @@ impl ConcatenatedModule {
                 .build_meta();
               return Self::get_final_binding(
                 mg,
+                mg_cache,
                 &ref_info.id(),
                 if let Some(reexport_export) = reexport.export {
                   [reexport_export.clone(), export_name[1..].to_vec()].concat()

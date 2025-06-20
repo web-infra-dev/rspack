@@ -32,8 +32,8 @@ use crate::{
   BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset,
   CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
   ContextModule, DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
+  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -279,8 +279,15 @@ pub trait Module:
     self.build_info().module_argument
   }
 
-  fn get_exports_type(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
-    get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
+  fn get_exports_type(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    strict: bool,
+  ) -> ExportsType {
+    module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
+      get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
+    })
   }
 
   fn get_strict_esm_module(&self) -> bool {
