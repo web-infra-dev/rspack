@@ -87,6 +87,8 @@ impl SwcLoader {
     let filename = FileName::Real(resource_path.into_std_path_buf());
 
     let source = content.into_string_lossy();
+    let is_typescript =
+      matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let mut collected_ts_info = None;
 
     let TransformOutput {
@@ -99,6 +101,15 @@ impl SwcLoader {
       swc_options,
       Some(loader_context.context.module_source_map_kind),
       |program| {
+        if !is_typescript {
+          return;
+        }
+        if loader_context.loader_index != 0 {
+          loader_context.emit_diagnostic(
+            miette::miette! { severity = miette::Severity::Warning, "To ensure the accuracy of the collected TypeScript information, `rspackExperiments.collectTypeScriptInfo` can only be used when `builtin:swc-loader` is employed as the last loader." }.into(),
+          );
+          return;
+        }
         let Some(collect_typescript_info) = &self
           .options_with_additional
           .rspack_experiments
@@ -106,12 +117,6 @@ impl SwcLoader {
         else {
           return;
         };
-        if loader_context.loader_index != 0 {
-          loader_context.emit_diagnostic(
-            miette::miette! { severity = miette::Severity::Warning, "To ensure the accuracy of the collected TypeScript information, `rspackExperiments.collectTypeScriptInfo` can only be used when `builtin:swc-loader` is employed as the last loader." }.into(),
-          );
-          return;
-        }
         let mut collected = CollectedTypeScriptInfo::default();
         if collect_typescript_info.type_exports.unwrap_or_default() {
           program.visit_with(&mut TypeExportsCollector::new(&mut collected.type_exports));
