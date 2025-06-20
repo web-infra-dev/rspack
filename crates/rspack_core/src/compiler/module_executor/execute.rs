@@ -153,11 +153,19 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       if !has_error && make_failed_module.contains(&m) {
         let diagnostics = module.diagnostics();
-        if diagnostics
+        let errors: Vec<_> = diagnostics
           .iter()
-          .any(|d| matches!(d.severity(), RspackSeverity::Error))
-        {
+          .filter(|d| matches!(d.severity(), RspackSeverity::Error))
+          .map(|d| d.to_string())
+          .collect();
+        if !errors.is_empty() {
           has_error = true;
+          if let Some(existing_error) = &mut execute_result.error {
+            existing_error.push('\n');
+            existing_error.push_str(&errors.join("\n"));
+          } else {
+            execute_result.error = Some(errors.join("\n"));
+          }
         }
       }
 
@@ -167,11 +175,19 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           let diagnostics = FactorizeInfo::get_from(dep)
             .expect("should have factorize info")
             .diagnostics();
-          if diagnostics
+          let errors: Vec<_> = diagnostics
             .iter()
-            .any(|d| matches!(d.severity(), RspackSeverity::Error))
-          {
+            .filter(|d| matches!(d.severity(), RspackSeverity::Error))
+            .map(|d| d.to_string())
+            .collect();
+          if !errors.is_empty() {
             has_error = true;
+            if let Some(existing_error) = &mut execute_result.error {
+              existing_error.push('\n');
+              existing_error.push_str(&errors.join("\n"));
+            } else {
+              execute_result.error = Some(errors.join("\n"));
+            }
           }
         }
         if let Some(c) = mg.connection_by_dependency_id(dep_id) {
@@ -342,7 +358,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       Err(e) => {
         execute_result.cacheable = false;
-        execute_result.error = Some(e.to_string());
+        if let Some(existing_error) = &mut execute_result.error {
+          existing_error.push('\n');
+          existing_error.push_str(&e.to_string());
+        } else {
+          execute_result.error = Some(e.to_string());
+        }
       }
     };
 
