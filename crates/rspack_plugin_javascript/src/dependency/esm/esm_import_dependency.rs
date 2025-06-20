@@ -229,6 +229,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
   ids: &[Atom],
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   additional_msg: String,
   should_error: bool,
 ) -> Option<Diagnostic> {
@@ -242,8 +243,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type =
-    imported_module.get_exports_type(module_graph, parent_module.build_meta().strict_esm_module);
+  let exports_type = imported_module.get_exports_type(
+    module_graph,
+    module_graph_cache,
+    parent_module.build_meta().strict_esm_module,
+  );
   let create_error = |message: String| {
     let (severity, title) = if should_error {
       (Severity::Error, "ESModulesLinkingError")

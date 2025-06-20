@@ -79,10 +79,15 @@ impl Dependency for ImportEagerDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &rspack_core::ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
-    create_import_dependency_referenced_exports(&self.id, &self.referenced_exports, module_graph)
+    create_import_dependency_referenced_exports(
+      &self.id,
+      &self.referenced_exports,
+      module_graph,
+      module_graph_cache,
+    )
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
