@@ -115,7 +115,7 @@ pub(super) mod get_exports_type {
 
     pub fn get(&self, key: &GetExportsTypeCacheKey) -> Option<ExportsType> {
       let inner = self.cache.read().expect("should get lock");
-      inner.get(key)
+      inner.get(key).copied()
     }
 
     pub fn set(&self, key: GetExportsTypeCacheKey, value: ExportsType) {
