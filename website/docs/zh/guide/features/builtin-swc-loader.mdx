@@ -10,6 +10,33 @@ Rspack 提供了一个内置的 `builtin:swc-loader`，它是 [swc-loader](https
 
 如果需要在项目中使用 `builtin:swc-loader`，可以参考下面的示例进行配置。
 
+### 根据文件后缀自动开启转译功能
+
+通过设置 `autoParser: true`，`builtin:swc-loader` 会根据文件后缀自动配置 `jsc.parser.syntax`：
+
+- 对于 `.ts` 和 `.tsx` 文件（不区分大小写），会自动开启 TypeScript 转译功能
+- 对于 `.jsx` 和 `.tsx` 文件（不区分大小写），会自动开启 JSX 转译功能
+
+示例配置如下：
+
+```js title="rspack.config.mjs" {9}
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[t|j]sx?$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          autoParser: true,
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
 ### TypeScript 转译
 
 比如对 `.ts` 文件进行转译：
