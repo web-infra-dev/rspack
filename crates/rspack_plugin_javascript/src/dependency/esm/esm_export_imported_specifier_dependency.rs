@@ -36,57 +36,25 @@ use super::{
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 
-/// Analysis result for export patterns
-#[derive(Debug)]
-enum ExportPatternAnalysis {
-  Valid,
-  CircularReexport { cycle_info: String },
-  AmbiguousWildcard { conflicts: Vec<String> },
-}
-
 /// ESM export imported specifier dependency for handling reexports
-///
-/// This dependency handles three main export patterns:
-/// - case1: `import { a } from 'a'; export { a }` (two-step reexport)
-/// - case2: `export { a } from 'a';` (direct reexport)  
-/// - case3: `export * from 'a'` (star reexport)
-///
-/// Enhanced with:
-/// - Advanced error diagnostics with context and recovery suggestions
-/// - Sophisticated template generation with runtime condition support
-/// - Performance optimizations through multi-level caching
-/// - Comprehensive export resolution with validation
-/// - Enhanced connection state management for tree shaking
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMExportImportedSpecifierDependency {
-  /// Unique dependency identifier
   pub id: DependencyId,
-  /// Export identifiers being imported from the target module
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
-  /// Local name for the reexport (None for star exports)
   #[cacheable(with=AsOption<AsPreset>)]
   pub name: Option<Atom>,
-  /// Module request specifier
   #[cacheable(with=AsPreset)]
   pub request: Atom,
-  /// Source order for deterministic output
   source_order: i32,
-  /// Other star export dependencies for conflict resolution
   pub other_star_exports: Option<Vec<DependencyId>>,
-  /// Source range for error reporting
   range: DependencyRange,
-  /// Import attributes (e.g., assert conditions)
   attributes: Option<ImportAttributes>,
-  /// Cached resource identifier for module graph optimization
   resource_identifier: String,
-  /// Export presence mode for validation behavior
   export_presence_mode: ExportPresenceMode,
-  /// Source map for precise error location
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  /// Factorization information for module loading
   factorize_info: FactorizeInfo,
 }
 
@@ -185,7 +153,7 @@ impl ESMExportImportedSpecifierDependency {
       Some(identifier) => identifier,
       None => {
         // Enhanced missing module handling
-        self.handle_missing_module(module_graph);
+        // Missing module - let existing error handling take care of it
         return ExportMode::Missing;
       }
     };
@@ -194,7 +162,7 @@ impl ESMExportImportedSpecifierDependency {
     let _imported_module = match module_graph.module_by_identifier(imported_module_identifier) {
       Some(module) => module,
       None => {
-        self.handle_inaccessible_module(module_graph, imported_module_identifier);
+        // Inaccessible module - let existing error handling take care of it
         return ExportMode::Missing;
       }
     };
@@ -593,7 +561,7 @@ impl ESMExportImportedSpecifierDependency {
     let import_var = compilation.get_import_var(&self.id);
 
     // Enhanced fragment generation with runtime condition support
-    let _runtime_condition = self.get_runtime_condition(mg, mg_cache, *runtime);
+    // Runtime condition handled by existing connection logic
     let _is_async = ModuleGraph::is_async(compilation, &module_identifier);
 
     match mode {
@@ -1087,312 +1055,6 @@ impl ESMExportImportedSpecifierDependency {
       })
   }
 
-  /// Validates export context and provides enhanced error recovery information
-  fn validate_export_context(
-    &self,
-    module_graph: &ModuleGraph,
-    ids: &[Atom],
-  ) -> Result<(), String> {
-    // Validate module existence and accessibility
-    let imported_module_identifier = module_graph
-      .module_identifier_by_dependency_id(&self.id)
-      .ok_or_else(|| {
-        format!(
-          "Target module '{}' is not available. This could indicate:\n  - Module resolution failed\n  - Circular dependency\n  - Module loading error",
-          self.request
-        )
-      })?;
-
-    let imported_module = module_graph
-      .module_by_identifier(imported_module_identifier)
-      .ok_or_else(|| {
-        format!(
-          "Module '{}' exists in graph but cannot be accessed. This suggests internal inconsistency.",
-          self.request
-        )
-      })?;
-
-    // Validate export capabilities
-    if !ids.is_empty() && imported_module.diagnostics().is_empty() {
-      let exports_type = imported_module.get_exports_type(
-        module_graph,
-        module_graph
-          .get_parent_module(&self.id)
-          .and_then(|id| module_graph.module_by_identifier(id))
-          .map(|m| m.build_meta().strict_esm_module)
-          .unwrap_or(false),
-      );
-
-      if matches!(exports_type, ExportsType::DefaultOnly) && ids.len() == 1 && ids[0] != "default" {
-        return Err(format!(
-          "Cannot import '{}' from default-only module '{}'. Available exports: [default]",
-          ids[0], self.request
-        ));
-      }
-    }
-
-    // Validate star export context
-    if ids.is_empty() && self.name.is_none() {
-      if let Some(parent_module) = module_graph
-        .get_parent_module(&self.id)
-        .and_then(|id| module_graph.module_by_identifier(id))
-      {
-        let active_exports = &parent_module.build_info().esm_named_exports;
-        if active_exports.is_empty() {
-          return Err(format!(
-            "Star export from '{}' may create empty namespace. Consider explicit exports.",
-            self.request
-          ));
-        }
-      }
-    }
-
-    Ok(())
-  }
-
-  /// Additional validation diagnostics for enhanced error reporting
-  fn get_validation_diagnostics(
-    &self,
-    module_graph: &ModuleGraph,
-    ids: &[Atom],
-    should_error: bool,
-  ) -> Option<Vec<Diagnostic>> {
-    let mut diagnostics = Vec::new();
-
-    // Check for potentially problematic export patterns
-    match self.analyze_export_pattern(module_graph, ids) {
-      ExportPatternAnalysis::CircularReexport { cycle_info } => {
-        let diagnostic = self.create_diagnostic(
-          if should_error {
-            Severity::Error
-          } else {
-            Severity::Warning
-          },
-          "CircularReexportDetected",
-          format!("Circular reexport detected: {cycle_info}"),
-          Some("Consider restructuring modules to avoid circular dependencies".to_string()),
-          module_graph,
-        );
-        diagnostics.push(diagnostic);
-      }
-      ExportPatternAnalysis::AmbiguousWildcard { conflicts } => {
-        let diagnostic = self.create_diagnostic(
-          if should_error {
-            Severity::Error
-          } else {
-            Severity::Warning
-          },
-          "AmbiguousWildcardExport",
-          format!(
-            "Ambiguous wildcard export with conflicts: {}",
-            conflicts.join(", ")
-          ),
-          Some("Use explicit named exports to resolve ambiguity".to_string()),
-          module_graph,
-        );
-        diagnostics.push(diagnostic);
-      }
-      ExportPatternAnalysis::Valid => {}
-    }
-
-    if diagnostics.is_empty() {
-      None
-    } else {
-      Some(diagnostics)
-    }
-  }
-
-  /// Critical diagnostics that should always be reported
-  fn get_critical_diagnostics(
-    &self,
-    module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Option<Vec<Diagnostic>> {
-    let mut diagnostics = Vec::new();
-
-    // Check for module resolution failures
-    if module_graph
-      .module_identifier_by_dependency_id(&self.id)
-      .is_none()
-    {
-      let diagnostic = self.create_diagnostic(
-        Severity::Error,
-        "ModuleResolutionFailure",
-        format!("Failed to resolve module: '{}'", self.request),
-        Some("Check that the module path is correct and the module exists".to_string()),
-        module_graph,
-      );
-      diagnostics.push(diagnostic);
-    }
-
-    if diagnostics.is_empty() {
-      None
-    } else {
-      Some(diagnostics)
-    }
-  }
-
-  /// Analyzes export patterns for potential issues
-  fn analyze_export_pattern(
-    &self,
-    module_graph: &ModuleGraph,
-    ids: &[Atom],
-  ) -> ExportPatternAnalysis {
-    // Check for circular reexports
-    if let Some(cycle_info) = self.detect_circular_reexport(module_graph) {
-      return ExportPatternAnalysis::CircularReexport { cycle_info };
-    }
-
-    // Check for ambiguous wildcard exports
-    if ids.is_empty() && self.name.is_none() {
-      if let Some(conflicts) = self.detect_wildcard_conflicts(module_graph) {
-        return ExportPatternAnalysis::AmbiguousWildcard { conflicts };
-      }
-    }
-
-    ExportPatternAnalysis::Valid
-  }
-
-  /// Detects circular reexport patterns
-  fn detect_circular_reexport(&self, module_graph: &ModuleGraph) -> Option<String> {
-    let parent_module_id = module_graph.get_parent_module(&self.id)?;
-    let target_module_id = module_graph.module_identifier_by_dependency_id(&self.id)?;
-
-    // Simple cycle detection - check if target module reexports from parent
-    let target_module = module_graph.module_by_identifier(target_module_id)?;
-
-    // Check target module's dependencies for reexports back to parent
-    for dep_id in target_module.get_dependencies() {
-      if let Some(_dep) = module_graph.dependency_by_id(dep_id) {
-        if let Some(dep_target) = module_graph.module_identifier_by_dependency_id(dep_id) {
-          if dep_target == parent_module_id {
-            return Some(format!(
-              "{} -> {} -> {}",
-              parent_module_id.to_string(),
-              target_module_id.to_string(),
-              parent_module_id.to_string()
-            ));
-          }
-        }
-      }
-    }
-
-    None
-  }
-
-  /// Detects conflicts in wildcard export scenarios
-  fn detect_wildcard_conflicts(&self, module_graph: &ModuleGraph) -> Option<Vec<String>> {
-    let parent_module_id = module_graph.get_parent_module(&self.id)?;
-    let parent_module = module_graph.module_by_identifier(parent_module_id)?;
-
-    // Get all star exports from this module
-    let all_star_exports = &parent_module.build_info().all_star_exports;
-    if all_star_exports.len() <= 1 {
-      return None;
-    }
-
-    let mut export_sources = Vec::new();
-    for star_dep_id in all_star_exports {
-      if let Some(star_module_id) = module_graph.module_identifier_by_dependency_id(star_dep_id) {
-        if let Some(star_module) = module_graph.module_by_identifier(star_module_id) {
-          export_sources.push(star_module.identifier().to_string());
-        }
-      }
-    }
-
-    if export_sources.len() > 1 {
-      Some(export_sources)
-    } else {
-      None
-    }
-  }
-
-  /// Creates a diagnostic with consistent formatting
-  fn create_diagnostic(
-    &self,
-    severity: Severity,
-    code: &str,
-    message: String,
-    suggestion: Option<String>,
-    module_graph: &ModuleGraph,
-  ) -> Diagnostic {
-    let parent_module_identifier = module_graph
-      .get_parent_module(&self.id)
-      .expect("should have parent module for dependency");
-
-    let enhanced_message = if let Some(suggestion) = suggestion {
-      format!("{message}\n\nSuggestion: {suggestion}")
-    } else {
-      message
-    };
-
-    let mut diagnostic = if let Some(span) = self.range()
-      && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
-      && let Some(source) = parent_module.source()
-    {
-      Diagnostic::from(
-        TraceableError::from_file(
-          source.source().into_owned(),
-          span.start as usize,
-          span.end as usize,
-          code.to_string(),
-          enhanced_message,
-        )
-        .with_severity(severity)
-        .boxed(),
-      )
-      .with_hide_stack(Some(true))
-    } else {
-      Diagnostic::from(
-        MietteDiagnostic::new(enhanced_message)
-          .with_code(code)
-          .with_severity(severity)
-          .boxed(),
-      )
-      .with_hide_stack(Some(true))
-    };
-
-    diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
-    diagnostic
-  }
-
-  /// Determines runtime condition for this dependency with enhanced logic
-  fn get_runtime_condition(
-    &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    runtime: Option<&RuntimeSpec>,
-  ) -> RuntimeCondition {
-    if self.weak() {
-      return RuntimeCondition::Boolean(false);
-    }
-
-    if let Some(connection) = module_graph.connection_by_dependency_id(&self.id) {
-      // Enhanced runtime condition with connection state
-      filter_runtime(runtime, |r| {
-        connection.is_target_active(module_graph, r, module_graph_cache)
-      })
-    } else {
-      RuntimeCondition::Boolean(true)
-    }
-  }
-
-  /// Handles missing module scenarios with enhanced context
-  fn handle_missing_module(&self, _module_graph: &ModuleGraph) {
-    // Could add logging or additional diagnostics here
-    // For now, we let the existing diagnostic system handle it
-  }
-
-  /// Handles inaccessible module scenarios
-  fn handle_inaccessible_module(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_identifier: &rspack_core::ModuleIdentifier,
-  ) {
-    // Could add specific diagnostics for module graph inconsistencies
-    // This represents an internal error condition
-  }
-
   fn get_conflicting_star_exports_errors(
     &self,
     ids: &[Atom],
@@ -1445,14 +1107,6 @@ impl ESMExportImportedSpecifierDependency {
       diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
       diagnostic
     };
-
-    // Early validation with enhanced error context
-    if let Err(context) = self.validate_export_context(module_graph, ids) {
-      return Some(vec![create_error(
-        "Invalid export context detected".to_string(),
-        Some(context),
-      )]);
-    }
 
     if ids.is_empty()
       && self.name.is_none()
@@ -1823,23 +1477,11 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         diagnostics.extend(errors);
       }
 
-      // Additional validation diagnostics
-      if let Some(validation_errors) =
-        self.get_validation_diagnostics(module_graph, ids, should_error)
-      {
-        diagnostics.extend(validation_errors);
-      }
-
       return if diagnostics.is_empty() {
         None
       } else {
         Some(diagnostics)
       };
-    }
-
-    // Even without export presence mode, check for critical issues
-    if let Some(critical_errors) = self.get_critical_diagnostics(module_graph, module_graph_cache) {
-      return Some(critical_errors);
     }
 
     None

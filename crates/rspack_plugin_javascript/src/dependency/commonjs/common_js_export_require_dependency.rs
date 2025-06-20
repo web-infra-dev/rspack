@@ -58,8 +58,6 @@ impl CommonJsExportRequireDependency {
 }
 
 impl CommonJsExportRequireDependency {
-  /// Analyzes star reexports for tree shaking optimization.
-  /// Returns None if full reexport is required, Some(set) for selective reexport.
   fn get_star_reexports(
     &self,
     mg: &ModuleGraph,
@@ -190,16 +188,10 @@ impl CommonJsExportRequireDependency {
     Some(exports)
   }
 
-  /// Gets dependency IDs from module metadata or falls back to stored IDs.
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
       .map(|meta| meta.ids.as_slice())
       .unwrap_or_else(|| self.ids.as_slice())
-  }
-
-  /// Validates dependency state for consistency.
-  fn validate_state(&self, mg: &ModuleGraph) -> bool {
-    !self.request.trim().is_empty() && mg.get_parent_module(&self.id).is_some()
   }
 }
 
@@ -222,9 +214,6 @@ impl Dependency for CommonJsExportRequireDependency {
     mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
   ) -> Option<ExportsSpec> {
-    if !self.validate_state(mg) {
-      return None;
-    }
     let ids = self.get_ids(mg);
 
     if self.names.len() == 1 {
@@ -301,9 +290,6 @@ impl Dependency for CommonJsExportRequireDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    if !self.validate_state(mg) {
-      return vec![];
-    }
     let ids = self.get_ids(mg);
     let get_full_result = || {
       if ids.is_empty() {
@@ -463,9 +449,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       return;
     };
 
-    if !dep.validate_state(mg) {
-      return;
-    }
+    // Check for ConsumeShared context
     let consume_shared_info = mg
       .get_parent_module(&dep.id)
       .and_then(|parent_id| mg.module_by_identifier(parent_id))

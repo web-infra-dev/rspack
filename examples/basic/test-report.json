@@ -1,19 +1,44 @@
 {
-  "timestamp": "2025-06-20T02:40:52.032Z",
+  "timestamp": "2025-06-20T03:52:05.934Z",
   "status": "PASSED",
+  "environment": {
+    "nodeVersion": "v20.19.2",
+    "platform": "darwin",
+    "cwd": "/Users/bytedance/RustroverProjects/rspack/examples/basic"
+  },
   "build": {
     "distExists": true,
-    "expectedFiles": true
+    "expectedFiles": true,
+    "distPath": "/Users/bytedance/RustroverProjects/rspack/examples/basic/dist"
   },
   "shareUsage": {
     "fileExists": true,
     "structureValid": true,
     "moduleCount": 6,
-    "modulesWithUnusedExports": 0
+    "modulesWithUnusedExports": 0,
+    "pluginVersion": "1.0.0"
   },
   "macroComments": {
     "filesChecked": 3,
-    "commentsValidated": 9,
-    "allPresent": true
+    "totalFound": 15,
+    "expectedCount": 15,
+    "allPresent": true,
+    "fileDetails": {
+      "shared_utils_js.js": {
+        "size": 1648,
+        "macroComments": 5,
+        "expectedComments": 5
+      },
+      "shared_components_js.js": {
+        "size": 1965,
+        "macroComments": 5,
+        "expectedComments": 5
+      },
+      "shared_api_js.js": {
+        "size": 2238,
+        "macroComments": 5,
+        "expectedComments": 5
+      }
+    }
   }
 }

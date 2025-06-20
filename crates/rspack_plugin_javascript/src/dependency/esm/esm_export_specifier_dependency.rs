@@ -240,21 +240,6 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         );
 
         init_fragments.push(Box::new(export_fragment));
-
-        // Add debug comment fragment if in development mode
-        if compilation.options.mode.is_development() {
-          let debug_fragment = NormalInitFragment::new(
-            format!(
-              "/* DEBUG: ESM export '{}' -> '{}' */\n",
-              dep.name, dep.value
-            ),
-            InitFragmentStage::StageConstants,
-            -1000, // High priority for debug info
-            InitFragmentKey::unique(),
-            None,
-          );
-          init_fragments.push(debug_fragment.boxed());
-        }
       }
       Some(UsedName::Inlined(_)) => {
         // Export is inlined, add comment for clarity

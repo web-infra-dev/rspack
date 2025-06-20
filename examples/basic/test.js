@@ -27,7 +27,9 @@ describe("ConsumeShared Macro Build and Validation", () => {
 			expectedComments: [
 				'/* @common:if [condition="treeShake.utility-lib.capitalize"] */ capitalize: () => (/* ESM export specifier */ capitalize) /* @common:endif */',
 				'/* @common:if [condition="treeShake.utility-lib.debounce"] */ debounce: () => (/* ESM export specifier */ debounce) /* @common:endif */',
-				'/* @common:if [condition="treeShake.utility-lib.formatDate"] */ formatDate: () => (/* ESM export specifier */ formatDate) /* @common:endif */'
+				'/* @common:if [condition="treeShake.utility-lib.formatDate"] */ formatDate: () => (/* ESM export specifier */ formatDate) /* @common:endif */',
+				'/* @common:if [condition="treeShake.utility-lib.default"] */ "default": () => (__WEBPACK_DEFAULT_EXPORT__) /* @common:endif */',
+				'/* @common:if [condition="treeShake.utility-lib.default"] */ /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({'
 			]
 		},
 		{
@@ -35,7 +37,9 @@ describe("ConsumeShared Macro Build and Validation", () => {
 			expectedComments: [
 				'/* @common:if [condition="treeShake.component-lib.Button"] */ Button: () => (/* ESM export specifier */ Button) /* @common:endif */',
 				'/* @common:if [condition="treeShake.component-lib.Modal"] */ Modal: () => (/* ESM export specifier */ Modal) /* @common:endif */',
-				'/* @common:if [condition="treeShake.component-lib.createCard"] */ createCard: () => (/* ESM export specifier */ createCard) /* @common:endif */'
+				'/* @common:if [condition="treeShake.component-lib.createCard"] */ createCard: () => (/* ESM export specifier */ createCard) /* @common:endif */',
+				'/* @common:if [condition="treeShake.component-lib.default"] */ "default": () => (__WEBPACK_DEFAULT_EXPORT__) /* @common:endif */',
+				'/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({'
 			]
 		},
 		{
@@ -43,7 +47,9 @@ describe("ConsumeShared Macro Build and Validation", () => {
 			expectedComments: [
 				'/* @common:if [condition="treeShake.api-lib.ApiClient"] */ ApiClient: () => (/* ESM export specifier */ ApiClient) /* @common:endif */',
 				'/* @common:if [condition="treeShake.api-lib.createApiClient"] */ createApiClient: () => (/* ESM export specifier */ createApiClient) /* @common:endif */',
-				'/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ fetchWithTimeout: () => (/* ESM export specifier */ fetchWithTimeout) /* @common:endif */'
+				'/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ fetchWithTimeout: () => (/* ESM export specifier */ fetchWithTimeout) /* @common:endif */',
+				'/* @common:if [condition="treeShake.api-lib.default"] */ "default": () => (__WEBPACK_DEFAULT_EXPORT__) /* @common:endif */',
+				'/* @common:if [condition="treeShake.api-lib.default"] */ /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({'
 			]
 		}
 	];
@@ -255,7 +261,7 @@ describe("ConsumeShared Macro Build and Validation", () => {
 				);
 
 				console.log(
-					`✅ ${snapshot.file}: validated ${expectedComment.length} macro comments (${macroMatches.length} total found)`
+					`✅ ${snapshot.file}: validated ${snapshot.expectedComments.length} macro comments (${macroMatches.length} total found)`
 				);
 			});
 		}
@@ -312,8 +318,8 @@ describe("ConsumeShared Macro Build and Validation", () => {
 		}
 
 		assert.ok(
-			totalMacroComments >= 9,
-			`Should find at least 9 macro comments across all files, found ${totalMacroComments}`
+			totalMacroComments >= 15,
+			`Should find at least 15 macro comments across all files, found ${totalMacroComments}`
 		);
 		console.log(
 			`✅ Validated ${totalMacroComments} properly formatted macro comments`
