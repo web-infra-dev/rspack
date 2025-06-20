@@ -1,5 +1,6 @@
 module.exports = {
 	findBundle: function (i, options) {
-		return ["14.bundle0.js", "bundle0.js"];
+		// CHANGE: bundle id is different
+		return ["286.bundle0.js", "bundle0.js"];
 	}
 };

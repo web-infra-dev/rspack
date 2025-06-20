@@ -16,7 +16,7 @@ const {
 describe("Compiler", () => {
 	jest.setTimeout(20000);
 
-	function compile(entry, options, callback, done = () => {}) {
+	function compile(entry, options, callback, done = () => { }) {
 		const noOutputPath = !options.output || !options.output.path;
 		const webpack = require("@rspack/core");
 		options = webpack.config.getNormalizedWebpackOptions(options);
@@ -204,9 +204,9 @@ describe("Compiler", () => {
 	it("should compile a file with multiple chunks", done => {
 		compile("./chunks", {}, (stats, files) => {
 			expect(stats.chunks).toHaveLength(2);
-			expect(Object.keys(files).sort().reverse()).toEqual(["/main.js", "/798.js"]);
+			expect(Object.keys(files).sort().reverse()).toEqual(["/main.js", "/555.js"]); // CHANGE
 			const bundle = files["/main.js"];
-			const chunk = files["/798.js"];
+			const chunk = files["/555.js"]; // CHANGE
 			expect(bundle).toMatch("function __webpack_require__(");
 			expect(bundle).toMatch("__webpack_require__(/*! ./b */");
 			expect(chunk).not.toMatch("__webpack_require__(/* ./b */");
