@@ -1,7 +1,3 @@
-ERROR in ./index.js
-  × Module build failed:
-  ╰─▶   × Final loader(<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-import-syntax-error/loader.js??ruleSet[1].rules[0].use[0]) didn't return a Buffer or String
-
 ERROR in × Module parse failed:
   ╰─▶   × JavaScript parse error: Unexpected eof
          ╭────
