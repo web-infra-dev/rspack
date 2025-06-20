@@ -115,6 +115,7 @@ export declare class ConcatenatedModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
+  _resolver(): JsResolver
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
@@ -126,6 +127,7 @@ export declare class ContextModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
+  _resolver(): JsResolver
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
@@ -189,6 +191,7 @@ export declare class ExternalModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
+  _resolver(): JsResolver
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
@@ -411,6 +414,7 @@ export declare class Module {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
+  _resolver(): JsResolver
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void

@@ -29,6 +29,7 @@ import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { NormalModule } from "../NormalModule";
+import { Resolver } from "../Resolver";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
@@ -531,9 +532,7 @@ export async function runLoaders(
 		};
 	};
 
-	const getResolver = memoize(() => {
-		return compiler._lastCompilation!.resolverFactory.get("normal");
-	});
+	const getResolver = memoize(() => new Resolver(context._module._resolver()));
 
 	loaderContext.resolve = function resolve(context, request, callback) {
 		getResolver().resolve({}, context, request, getResolveContext(), callback);

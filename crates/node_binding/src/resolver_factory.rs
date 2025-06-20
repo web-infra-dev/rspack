@@ -13,8 +13,6 @@ use crate::{
 
 #[napi]
 pub struct JsResolverFactory {
-  pub(crate) resolver_factory: Option<Arc<ResolverFactory>>,
-  pub(crate) loader_resolver_factory: Option<Arc<ResolverFactory>>,
   pub(crate) input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
@@ -23,40 +21,20 @@ impl JsResolverFactory {
   #[napi(constructor)]
   pub fn new(pnp: bool) -> napi::Result<Self> {
     let input_filesystem = Arc::new(NativeFileSystem::new(pnp));
-    Ok(Self {
-      resolver_factory: None,
-      loader_resolver_factory: None,
-      input_filesystem,
-    })
+
+    Ok(Self { input_filesystem })
   }
 
   pub fn get_resolver_factory(&mut self, resolve_options: Resolve) -> Arc<ResolverFactory> {
-    match &self.resolver_factory {
-      Some(resolver_factory) => resolver_factory.clone(),
-
-      None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(
-          resolve_options,
-          self.input_filesystem.clone(),
-        ));
-        self.resolver_factory = Some(resolver_factory.clone());
-        resolver_factory
-      }
-    }
+    Arc::new(ResolverFactory::new(
+      resolve_options,
+      self.input_filesystem.clone(),
+    ))
   }
 
+  #[deprecated(note = "Use get_resolver_factory instead")]
   pub fn get_loader_resolver_factory(&mut self, resolve_options: Resolve) -> Arc<ResolverFactory> {
-    match &self.loader_resolver_factory {
-      Some(resolver_factory) => resolver_factory.clone(),
-      None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(
-          resolve_options,
-          self.input_filesystem.clone(),
-        ));
-        self.loader_resolver_factory = Some(resolver_factory.clone());
-        resolver_factory
-      }
-    }
+    self.get_resolver_factory(resolve_options)
   }
 
   #[napi(ts_args_type = "type: string, options?: RawResolveOptionsWithDependencyType")]
@@ -66,14 +44,9 @@ impl JsResolverFactory {
     raw: Option<RawResolveOptionsWithDependencyType>,
   ) -> napi::Result<JsResolver> {
     match r#type.as_str() {
-      "normal" => {
+      "normal" | "loader" => {
         let options = normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
         let resolver_factory = self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
-        Ok(JsResolver::new(resolver_factory, options))
-      }
-      "loader" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
-        let resolver_factory = self.get_loader_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
         Ok(JsResolver::new(resolver_factory, options))
       }
       "context" => {

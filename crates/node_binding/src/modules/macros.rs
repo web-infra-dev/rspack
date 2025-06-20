@@ -278,6 +278,11 @@ macro_rules! impl_module_methods {
         self.module.dependencies()
       }
 
+      #[napi(js_name = "_resolver")]
+      pub fn resolver(&mut self) -> napi::Result<$crate::JsResolver> {
+        self.module.resolver()
+      }
+
       #[napi]
       pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
         self.module.size(ty)
