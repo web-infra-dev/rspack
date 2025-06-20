@@ -162,52 +162,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
     let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
-    let module_graph = compilation.get_module_graph();
-
-    // Check if this dependency is related to a ConsumeShared module
-    // For ConsumeShared modules, the fallback module (current) exports should be wrapped with macros
-    let consume_shared_info = {
-      // First check if parent module is ConsumeShared
-      if let Some(parent_module_id) = module_graph.get_parent_module(&dep.id) {
-        if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
-          if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
-            // Direct ConsumeShared parent - use its share key
-            parent_module.get_consume_shared_key()
-          } else {
-            // Check if current module is a fallback for a ConsumeShared module
-            // Look for incoming connections from ConsumeShared modules
-            let mut found_consume_shared = None;
-            for connection in module_graph.get_incoming_connections(&module_identifier) {
-              if let Some(origin_module) = connection.original_module_identifier.as_ref() {
-                if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
-                  if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
-                    found_consume_shared = origin_module_obj.get_consume_shared_key();
-                    break;
-                  }
-                }
-              }
-            }
-            found_consume_shared
-          }
-        } else {
-          None
-        }
-      } else {
-        // No parent - check if this is a fallback module by examining incoming connections
-        let mut found_consume_shared = None;
-        for connection in module_graph.get_incoming_connections(&module_identifier) {
-          if let Some(origin_module) = connection.original_module_identifier.as_ref() {
-            if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
-              if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
-                found_consume_shared = origin_module_obj.get_consume_shared_key();
-                break;
-              }
-            }
-          }
-        }
-        found_consume_shared
-      }
-    };
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
@@ -234,13 +188,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) && let UsedName::Normal(used) = used
       {
-        // Use macro comments for ConsumeShared modules, standard format otherwise
-        let export_content = if let Some(ref share_key) = consume_shared_info {
-          format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* export default binding */ {name} /* @common:endif */")
-        } else {
-          format!("/* export default binding */ {name}")
-        };
-
         init_fragments.push(Box::new(ESMExportInitFragment::new(
           module.get_exports_argument(),
           vec![(
@@ -250,55 +197,28 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               .collect_vec()
               .join("")
               .into(),
-            Atom::from(export_content),
+            Atom::from(format!("/* export default binding */ {name}")),
           )],
         )));
       } else {
         // do nothing for unused or inlined
       }
 
-      let prefix_content = if let Some(ref share_key) = consume_shared_info {
-        format!(
-          "/* @common:if [condition=\"treeShake.{}.default\"] */ /* ESM default export */ {}",
-          share_key, dep.prefix
-        )
-      } else {
-        format!("/* ESM default export */ {}", dep.prefix)
-      };
-
       source.replace(
         dep.range_stmt.start,
         dep.range.start,
-        prefix_content.as_str(),
+        format!("/* ESM default export */ {}", dep.prefix).as_str(),
         None,
       );
-
-      // Add the closing @common:endif for ConsumeShared declarations
-      if consume_shared_info.is_some() {
-        source.replace(
-          dep.range_stmt.end,
-          dep.range_stmt.end,
-          " /* @common:endif */",
-          None,
-        );
-      }
     } else {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
       let content = if let Some(ref mut scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
-        if let Some(ref share_key) = consume_shared_info {
-          format!(
-            "/* @common:if [condition=\"treeShake.{}.default\"] */ /* ESM default export */ {} {DEFAULT_EXPORT} = ",
-            share_key,
-            if supports_const { "const" } else { "var" }
-          )
-        } else {
-          format!(
-            "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
-            if supports_const { "const" } else { "var" }
-          )
-        }
+        format!(
+          "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
+          if supports_const { "const" } else { "var" }
+        )
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &module_identifier,
@@ -309,14 +229,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       ) {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-
           if supports_const {
-            let fragment_content = if let Some(ref share_key) = consume_shared_info {
-              format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {DEFAULT_EXPORT} /* @common:endif */")
-            } else {
-              DEFAULT_EXPORT.to_string()
-            };
-
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(
@@ -326,21 +239,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   .collect_vec()
                   .join("")
                   .into(),
-                fragment_content.into(),
+                DEFAULT_EXPORT.into(),
               )],
             )));
-
-            if let Some(ref share_key) = consume_shared_info {
-              format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ const {DEFAULT_EXPORT} = ")
-            } else {
-              format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
-            }
-          } else if let Some(ref share_key) = consume_shared_info {
-            format!(
-              r#"/* @common:if [condition="treeShake.{share_key}.default"] */ /* ESM default export */ {}{} = "#,
-              module.get_exports_argument(),
-              property_access(used, 0)
-            )
+            format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
           } else {
             format!(
               r#"/* ESM default export */ {}{} = "#,
@@ -348,17 +250,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               property_access(used, 0)
             )
           }
-        } else if let Some(ref share_key) = consume_shared_info {
-          format!(
-            "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* inlined ESM default export */ var {DEFAULT_EXPORT} = "
-          )
         } else {
           format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
         }
-      } else if let Some(ref share_key) = consume_shared_info {
-        format!(
-          "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* unused ESM default export */ var {DEFAULT_EXPORT} = "
-        )
       } else {
         format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
       };
@@ -369,17 +263,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         &format!("{}({}", content, dep.prefix),
         None,
       );
-
-      let end_content = if consume_shared_info.is_some() {
-        ") /* @common:endif */;"
-      } else {
-        ");"
-      };
-
       source.replace_with_enforce(
         dep.range.end,
         dep.range_stmt.end,
-        end_content,
+        ");",
         None,
         ReplacementEnforce::Post,
       );
