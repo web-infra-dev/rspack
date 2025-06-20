@@ -25,7 +25,7 @@ import type {
 	UmdConfig
 } from "@swc/types";
 import type { Assumptions } from "@swc/types/assumptions";
-import { z } from "zod/v4";
+import * as z from "zod/v4";
 import { numberOrInfinity } from "../../config/utils";
 import { memoize } from "../../util/memoize";
 import {
