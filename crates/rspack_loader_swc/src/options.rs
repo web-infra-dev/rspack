@@ -14,11 +14,24 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
+  pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
+}
+
+#[derive(Default, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RawCollectTypeScriptInfoOptions {
+  pub type_exports: Option<bool>,
 }
 
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
+  pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
+}
+
+#[derive(Default, Debug)]
+pub(crate) struct CollectTypeScriptInfoOptions {
+  pub(crate) type_exports: Option<bool>,
 }
 
 impl From<RawRspackExperiments> for RspackExperiments {
@@ -27,6 +40,15 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
+      collect_typescript_info: value.collect_type_script_info.map(|v| v.into()),
+    }
+  }
+}
+
+impl From<RawCollectTypeScriptInfoOptions> for CollectTypeScriptInfoOptions {
+  fn from(value: RawCollectTypeScriptInfoOptions) -> Self {
+    Self {
+      type_exports: value.type_exports,
     }
   }
 }

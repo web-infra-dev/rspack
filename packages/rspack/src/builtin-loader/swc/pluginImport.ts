@@ -32,7 +32,7 @@ type PluginImportConfig = {
 	ignoreStyleComponent?: string[];
 };
 
-type PluginImportOptions = PluginImportConfig[] | undefined;
+type PluginImportOptions = PluginImportConfig[];
 
 export const ZodSwcPluginImportConfig = z
 	.strictObject({
@@ -47,8 +47,7 @@ export const ZodSwcPluginImportConfig = z
 		ignoreEsComponent: z.string().array().optional(),
 		ignoreStyleComponent: z.string().array().optional()
 	})
-	.array()
-	.optional() satisfies z.ZodType<PluginImportOptions>;
+	.array() satisfies z.ZodType<PluginImportOptions>;
 
 function isObject(val: any): boolean {
 	return Object.prototype.toString.call(val) === "[object Object]";

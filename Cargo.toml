@@ -196,6 +196,7 @@ rspack_plugin_worker                   = { version = "0.2.0", path = "crates/rsp
 rspack_regex                           = { version = "0.2.0", path = "crates/rspack_regex" }
 rspack_storage                         = { version = "0.2.0", path = "crates/rspack_storage" }
 rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc_plugin_import" }
+rspack_swc_plugin_ts_collector         = { version = "0.2.0", path = "crates/swc_plugin_ts_collector" }
 rspack_tasks                           = { version = "0.2.0", path = "crates/rspack_tasks" }
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
@@ -238,8 +239,8 @@ strip     = true
 [profile.codspeed]
 debug    = "full"
 inherits = "release"
-strip    = "none"
 lto      = "off"
+strip    = "none"
 
 [profile.release.package]
 

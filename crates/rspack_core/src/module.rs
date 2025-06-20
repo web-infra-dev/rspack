@@ -69,6 +69,9 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  pub is_transpiled_typescript: bool,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub type_exports: HashSet<Atom>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -95,6 +98,8 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      is_transpiled_typescript: false,
+      type_exports: Default::default(),
       extras: Default::default(),
     }
   }

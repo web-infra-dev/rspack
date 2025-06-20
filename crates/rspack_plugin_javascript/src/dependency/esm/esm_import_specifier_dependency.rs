@@ -206,7 +206,8 @@ impl Dependency for ESMImportSpecifierDependency {
         self.get_ids(module_graph),
         module_graph,
         module_graph_cache,
-        format!("(imported as '{}')", self.name),
+        &self.name,
+        false,
         should_error,
       )
     {
