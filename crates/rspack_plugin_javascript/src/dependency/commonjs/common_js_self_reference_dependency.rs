@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   property_access, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -143,19 +143,31 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       .expect("should have mgm");
 
     let used = if dep.names.is_empty() {
-      ExportsInfoGetter::get_used_name(
-        &module_graph.get_prefetched_exports_info(
+      let used_name = if dep.names.is_empty() {
+        let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+          &module_graph.get_exports_info(&module.identifier()),
+          &module_graph,
+          *runtime,
+          false,
+        );
+        ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithoutNames(&exports_info),
+          *runtime,
+          &dep.names,
+        )
+      } else {
+        let exports_info = module_graph.get_prefetched_exports_info(
           &module.identifier(),
-          if dep.names.is_empty() {
-            PrefetchExportsInfoMode::AllExports
-          } else {
-            PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
-          },
-        ),
-        *runtime,
-        &dep.names,
-      )
-      .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+          PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+        );
+        ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          *runtime,
+          &dep.names,
+        )
+      };
+
+      used_name.unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
     } else {
       UsedName::Normal(dep.names.clone())
     };

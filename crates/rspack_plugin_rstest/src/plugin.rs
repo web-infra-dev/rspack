@@ -25,6 +25,9 @@ use crate::{
 #[derive(Debug)]
 pub struct RstestPluginOptions {
   pub module_path_name: bool,
+  pub hoist_mock_module: bool,
+  pub import_meta_path_name: bool,
+  pub manual_mock_root: String,
 }
 
 #[derive(Debug)]
@@ -99,7 +102,12 @@ async fn nmf_parser(
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
-    parser.add_parser_plugin(Box::<RstestParserPlugin>::default() as BoxJavascriptParserPlugin);
+    parser.add_parser_pre_plugin(Box::new(RstestParserPlugin::new(
+      self.options.module_path_name,
+      self.options.hoist_mock_module,
+      self.options.import_meta_path_name,
+      self.options.manual_mock_root.clone(),
+    )) as BoxJavascriptParserPlugin);
   }
 
   Ok(())
@@ -139,7 +147,7 @@ struct MockFlagPos {
 }
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut files = vec![];
 
   for chunk in compilation.chunk_by_ukey.values() {
@@ -150,10 +158,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let regex =
     regex::Regex::new(r"\/\* RSTEST:MOCK_(.*?):(.*?) \*\/").expect("should initialize `Regex`");
-  let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
-    std::collections::HashMap::new();
 
   for file in files {
+    let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
+      std::collections::HashMap::new();
     let _res = compilation.update_asset(file.as_str(), |old, info| {
       let content = old.source().to_string();
       let captures: Vec<_> = regex.captures_iter(&content).collect();
@@ -206,24 +214,26 @@ impl Plugin for RstestPlugin {
   }
 
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    if self.options.module_path_name {
-      ctx
-        .context
-        .compiler_hooks
-        .compilation
-        .tap(compilation::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
 
+    if self.options.module_path_name {
       ctx
         .context
         .normal_module_factory_hooks
         .parser
         .tap(nmf_parser::new(self));
+    }
 
+    if self.options.hoist_mock_module {
       ctx
         .context
         .compilation_hooks
         .process_assets
-        .tap(process_assets::new(self));
+        .tap(mock_hoist_process_assets::new(self));
     }
 
     Ok(())

@@ -106,7 +106,8 @@ export const applyRspackOptionsDefaults = (
 		targetProperties,
 		mode: options.mode,
 		uniqueName: options.output.uniqueName,
-		inlineConst: options.experiments.inlineConst!
+		inlineConst: options.experiments.inlineConst!,
+		typeReexportsPresence: options.experiments.typeReexportsPresence
 	});
 
 	applyOutputDefaults(options.output, {
@@ -261,6 +262,9 @@ const applyExperimentsDefaults = (
 
 	// IGNORE(experiments.inlineConst): Rspack specific configuration for inline constants
 	D(experiments, "inlineConst", false);
+
+	// IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
+	D(experiments, "typeReexportsPresence", "no-tolerant");
 };
 
 const applybundlerInfoDefaults = (
@@ -285,7 +289,8 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
-	inlineConst: boolean
+	inlineConst: boolean,
+	typeReexportsPresence: JavascriptParserOptions["typeReexportsPresence"]
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
@@ -302,6 +307,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
 	D(parserOptions, "inlineConst", inlineConst);
+	D(parserOptions, "typeReexportsPresence", typeReexportsPresence);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -318,7 +324,8 @@ const applyModuleDefaults = (
 		targetProperties,
 		mode,
 		uniqueName,
-		inlineConst
+		inlineConst,
+		typeReexportsPresence
 	}: {
 		asyncWebAssembly: boolean;
 		css?: boolean;
@@ -326,6 +333,7 @@ const applyModuleDefaults = (
 		mode?: Mode;
 		uniqueName?: string;
 		inlineConst: boolean;
+		typeReexportsPresence: JavascriptParserOptions["typeReexportsPresence"];
 	}
 ) => {
 	assertNotNill(module.parser);
@@ -341,7 +349,11 @@ const applyModuleDefaults = (
 
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
-	applyJavascriptParserOptionsDefaults(module.parser.javascript, inlineConst);
+	applyJavascriptParserOptionsDefaults(
+		module.parser.javascript,
+		inlineConst,
+		typeReexportsPresence
+	);
 
 	F(module.parser, JSON_MODULE_TYPE, () => ({}));
 	assertNotNill(module.parser[JSON_MODULE_TYPE]);

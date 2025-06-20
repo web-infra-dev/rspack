@@ -8,10 +8,10 @@ use rspack_core::{
   to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
+  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -349,11 +349,33 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         *runtime,
         &compilation.module_graph_cache_artifact,
       )
-      && !module_graph
-        .get_exports_info(con.module_identifier())
-        .get_used_name(&module_graph, *runtime, ids)
-        .map(|used| used.is_inlined())
-        .unwrap_or_default()
+      && {
+        let used_name = if ids.is_empty() {
+          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+            &module_graph.get_exports_info(con.module_identifier()),
+            &module_graph,
+            *runtime,
+            false,
+          );
+          ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithoutNames(&exports_info),
+            *runtime,
+            ids,
+          )
+        } else {
+          let exports_info = module_graph.get_prefetched_exports_info(
+            con.module_identifier(),
+            PrefetchExportsInfoMode::NamedNestedExports(ids),
+          );
+          ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithNames(&exports_info),
+            *runtime,
+            ids,
+          )
+        };
+
+        !used_name.map(|used| used.is_inlined()).unwrap_or_default()
+      }
     {
       return;
     }
@@ -441,14 +463,10 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         let mut concated_ids = prefixed_ids.clone();
         concated_ids.push(prop.id.clone());
         let Some(new_name) = ExportsInfoGetter::get_used_name(
-          &module_graph.get_prefetched_exports_info(
+          GetUsedNameParam::WithNames(&module_graph.get_prefetched_exports_info(
             &module.identifier(),
-            if concated_ids.is_empty() {
-              PrefetchExportsInfoMode::AllExports
-            } else {
-              PrefetchExportsInfoMode::NamedNestedExports(&concated_ids)
-            },
-          ),
+            PrefetchExportsInfoMode::NamedNestedExports(&concated_ids),
+          )),
           code_generatable_context.runtime,
           &concated_ids,
         )

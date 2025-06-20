@@ -89,13 +89,13 @@ impl ExportInfoDependency {
         can_mangle.map(|v| v.to_string())
       }
       "inlinable" => {
-        let inlinable = ExportInfoGetter::inlinable(
-          if let Some(export_info) = exports_info.get_read_only_export_info_recursive(export_name) {
-            export_info
-          } else {
-            exports_info.other_exports_info()
-          },
-        );
+        let inlinable = if let Some(export_info) =
+          exports_info.get_read_only_export_info_recursive(export_name)
+        {
+          export_info.inlinable()
+        } else {
+          exports_info.other_exports_info().inlinable()
+        };
         Some(match inlinable {
           Inlinable::Inlined(inlined) => format!("inlined {}", inlined.render()),
           _ => "no inline".to_string(),

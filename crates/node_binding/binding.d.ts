@@ -41,7 +41,6 @@ export interface Module {
 	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
-	get _readableIdentifier(): string;
 	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
 }
@@ -111,6 +110,7 @@ export declare class CodeGenerationResults {
 export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -121,6 +121,7 @@ export declare class ConcatenatedModule {
 }
 
 export declare class ContextModule {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -183,6 +184,7 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -404,6 +406,7 @@ export declare class KnownBuildInfo {
 }
 
 export declare class Module {
+  readableIdentifier(): string
   _originalSource(): JsCompatSource | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
@@ -2115,6 +2118,11 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   inlineConst?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  typeReexportsPresence?: string
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2478,6 +2486,9 @@ export interface RawRspackFuture {
 
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
+  importMetaPathName: boolean
+  hoistMockModule: boolean
+  manualMockRoot: string
 }
 
 export interface RawRuleSetCondition {

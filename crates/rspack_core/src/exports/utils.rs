@@ -8,7 +8,7 @@ use rspack_cacheable::{
 use rspack_util::{atom::Atom, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{DependencyId, ModuleIdentifier};
+use crate::DependencyId;
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -158,26 +158,6 @@ pub enum ExportProvided {
   Unknown,
 }
 
-#[derive(Clone, Debug)]
-pub struct ResolvedExportInfoTarget {
-  pub module: ModuleIdentifier,
-  pub export: Option<Vec<Atom>>,
-  /// using dependency id to retrieve Connection
-  pub dependency: DependencyId,
-}
-
-#[derive(Clone, Debug)]
-pub enum FindTargetRetEnum {
-  Undefined,
-  False,
-  Value(FindTargetRetValue),
-}
-#[derive(Clone, Debug)]
-pub struct FindTargetRetValue {
-  pub module: ModuleIdentifier,
-  pub export: Option<Vec<Atom>>,
-}
-
 #[derive(Debug, Hash, PartialEq, Eq, Default)]
 pub struct UsageKey(pub Vec<Either<Box<UsageKey>, UsageState>>);
 
@@ -185,18 +165,6 @@ impl UsageKey {
   pub fn add(&mut self, value: Either<Box<UsageKey>, UsageState>) {
     self.0.push(value);
   }
-}
-
-#[derive(Debug, Clone)]
-pub struct UnResolvedExportInfoTarget {
-  pub dependency: Option<DependencyId>,
-  pub export: Option<Vec<Atom>>,
-}
-
-#[derive(Debug)]
-pub enum ResolvedExportInfoTargetWithCircular {
-  Target(ResolvedExportInfoTarget),
-  Circular,
 }
 
 pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
@@ -216,65 +184,4 @@ pub enum UsageState {
 pub enum UsedByExports {
   Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
   Bool(bool),
-}
-
-/// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
-#[derive(Clone, Debug)]
-pub enum ExtendedReferencedExport {
-  Array(Vec<Atom>),
-  Export(ReferencedExport),
-}
-
-pub fn is_no_exports_referenced(exports: &[ExtendedReferencedExport]) -> bool {
-  exports.is_empty()
-}
-
-pub fn is_exports_object_referenced(exports: &[ExtendedReferencedExport]) -> bool {
-  matches!(exports[..], [ExtendedReferencedExport::Array(ref arr)] if arr.is_empty())
-}
-
-pub fn create_no_exports_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![]
-}
-
-pub fn create_exports_object_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![ExtendedReferencedExport::Array(vec![])]
-}
-
-impl From<Vec<Atom>> for ExtendedReferencedExport {
-  fn from(value: Vec<Atom>) -> Self {
-    ExtendedReferencedExport::Array(value)
-  }
-}
-impl From<ReferencedExport> for ExtendedReferencedExport {
-  fn from(value: ReferencedExport) -> Self {
-    ExtendedReferencedExport::Export(value)
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct ReferencedExport {
-  pub name: Vec<Atom>,
-  pub can_mangle: bool,
-  pub can_inline: bool,
-}
-
-impl ReferencedExport {
-  pub fn new(name: Vec<Atom>, can_mangle: bool, can_inline: bool) -> Self {
-    Self {
-      name,
-      can_mangle,
-      can_inline,
-    }
-  }
-}
-
-impl Default for ReferencedExport {
-  fn default() -> Self {
-    Self {
-      name: vec![],
-      can_mangle: true,
-      can_inline: true,
-    }
-  }
 }

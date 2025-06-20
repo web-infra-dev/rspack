@@ -8,10 +8,10 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoGetter,
-  ExportInfoSetter, ExportProvided, Filename, LibraryExport, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType,
-  UsageState,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoSetter,
+  ExportProvided, Filename, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  ModuleIdentifier, PathData, Plugin, PluginContext, PrefetchExportsInfoMode, RuntimeGlobals,
+  SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -265,18 +265,14 @@ async fn render_startup(
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
-    let exports_info = module_graph.get_exports_info(module);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::AllExports);
     let mut provided = vec![];
-    for export_info in exports_info.ordered_exports(&module_graph) {
-      if matches!(
-        ExportInfoGetter::provided(export_info.as_data(&module_graph)),
-        Some(ExportProvided::NotProvided)
-      ) {
+    for (_, export_info) in exports_info.exports() {
+      if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
-      let export_info_name = ExportInfoGetter::name(export_info.as_data(&module_graph))
-        .expect("should have name")
-        .to_string();
+      let export_info_name = export_info.name().expect("should have name").to_string();
       provided.push(export_info_name.clone());
       let name_access = property_access([export_info_name], 0);
       source.add(RawStringSource::from(format!(
@@ -476,7 +472,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
       let info = export_info.as_data_mut(&mut module_graph);
       ExportInfoSetter::set_used(info, UsageState::Used, Some(&runtime));
-      ExportInfoSetter::set_can_mangle_use(info, Some(false));
+      info.set_can_mangle_use(Some(false));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);
       exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));

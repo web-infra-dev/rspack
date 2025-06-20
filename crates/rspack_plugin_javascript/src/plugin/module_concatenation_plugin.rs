@@ -11,7 +11,7 @@ use rspack_core::{
   concatenated_module::{
     is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
   },
-  filter_runtime,
+  filter_runtime, get_target,
   incremental::IncrementalPasses,
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
   ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
@@ -839,7 +839,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter(|export_info| {
             ExportInfoGetter::is_reexport(export_info)
-              && export_info.get_target(&module_graph).is_none()
+              && get_target(export_info, &module_graph).is_none()
           })
           .copied()
           .collect::<Vec<_>>();
@@ -847,7 +847,8 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_exports
             .into_iter()
             .map(|export_info| {
-              let name = ExportInfoGetter::name(export_info)
+              let name = export_info
+                .name()
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
@@ -873,12 +874,7 @@ impl ModuleConcatenationPlugin {
         }
         let unknown_provided_exports = relevant_exports
           .iter()
-          .filter(|export_info| {
-            !matches!(
-              ExportInfoGetter::provided(export_info),
-              Some(ExportProvided::Provided)
-            )
-          })
+          .filter(|export_info| !matches!(export_info.provided(), Some(ExportProvided::Provided)))
           .copied()
           .collect::<Vec<_>>();
 
@@ -886,7 +882,8 @@ impl ModuleConcatenationPlugin {
           let cur_bailout_reason = unknown_provided_exports
             .into_iter()
             .map(|export_info| {
-              let name = ExportInfoGetter::name(export_info)
+              let name = export_info
+                .name()
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
               format!(
@@ -981,12 +978,12 @@ impl ModuleConcatenationPlugin {
       let module_graph = compilation.get_module_graph();
       let module_graph_cache = &compilation.module_graph_cache_artifact;
       let exports_info = module_graph.get_exports_info(current_root);
+      let exports_info_data = ExportsInfoGetter::prefetch(
+        &exports_info,
+        &module_graph,
+        PrefetchExportsInfoMode::AllExports,
+      );
       let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
-        let exports_info_data = ExportsInfoGetter::prefetch(
-          &exports_info,
-          &module_graph,
-          PrefetchExportsInfoMode::AllExports,
-        );
         ExportsInfoGetter::is_module_used(&exports_info_data, r)
       });
       let active_runtime = match filtered_runtime {

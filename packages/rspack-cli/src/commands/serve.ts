@@ -105,24 +105,17 @@ export class ServeCommand implements RspackCommand {
 
 				const result = (compilerForDevServer.options.devServer ??= {});
 
-				if (compilerForDevServer.options.experiments.lazyCompilation) {
-					const options =
-						compilerForDevServer.options.experiments.lazyCompilation;
+				const setupMiddlewares = result.setupMiddlewares;
 
-					const setupMiddlewares = result.setupMiddlewares;
-					const lazyCompileMiddleware =
-						rspack.experiments.lazyCompilationMiddleware(
-							compilerForDevServer,
-							options
-						);
-					result.setupMiddlewares = (middlewares, server) => {
-						let finalMiddlewares = middlewares;
-						if (setupMiddlewares) {
-							finalMiddlewares = setupMiddlewares(finalMiddlewares, server);
-						}
-						return [lazyCompileMiddleware, ...finalMiddlewares];
-					};
-				}
+				const lazyCompileMiddleware =
+					rspack.experiments.lazyCompilationMiddleware(compiler);
+				result.setupMiddlewares = (middlewares, server) => {
+					let finalMiddlewares = middlewares;
+					if (setupMiddlewares) {
+						finalMiddlewares = setupMiddlewares(finalMiddlewares, server);
+					}
+					return [lazyCompileMiddleware, ...finalMiddlewares];
+				};
 
 				/**
 				 * Enable this to tell Rspack that we need to enable React Refresh by default

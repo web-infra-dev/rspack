@@ -1,18 +1,10 @@
-<!--
-  Thank you for submitting a pull request!
-
-  We appreciate the time and effort you have invested in making these changes. Please ensure that you provide enough information to allow others to review your pull request.
-
-  Upon submission, your pull request will be automatically assigned with reviewers.
-
-  If you want to learn more about contributing to this project, please visit: https://github.com/web-infra-dev/rspack/blob/main/CONTRIBUTING.md.
--->
-
 ## Summary
 
-<!-- Can you explain the reasoning behind implementing this change? What problem or issue does this pull request resolve? -->
+<!-- Describe what this PR does and why. -->
 
-<!-- It would be helpful if you could provide any relevant context, such as GitHub issues or related discussions. -->
+## Related links
+
+<!-- Related issues or discussions. -->
 
 ## Checklist
 

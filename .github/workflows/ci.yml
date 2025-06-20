@@ -60,6 +60,7 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
       bench: true
+      prefer_docker: false
 
   test-windows:
     name: Test Windows
@@ -69,7 +70,8 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: "dev"
-      runner: ${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}
+      runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
+      test-runner: '"windows-latest"'
       test: true
 
   test-mac:

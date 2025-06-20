@@ -49,10 +49,10 @@ pub struct MakeArtifact {
 
 impl MakeArtifact {
   pub fn get_module_graph(&self) -> ModuleGraph {
-    ModuleGraph::new(vec![&self.module_graph_partial], None)
+    ModuleGraph::new([Some(&self.module_graph_partial), None], None)
   }
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
-    ModuleGraph::new(vec![], Some(&mut self.module_graph_partial))
+    ModuleGraph::new([None, None], Some(&mut self.module_graph_partial))
   }
   // TODO remove it
   pub fn get_module_graph_partial(&self) -> &ModuleGraphPartial {
@@ -64,7 +64,7 @@ impl MakeArtifact {
   }
 
   fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
+    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
     let module = mg
       .module_by_identifier(module_identifier)
       .expect("should have module");
@@ -116,7 +116,7 @@ impl MakeArtifact {
   }
 
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
+    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
 
     let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
       // make failed dependencies clean it.

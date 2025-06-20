@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.4.0-beta.0",
+  "version": "1.4.0-beta.1",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -83,7 +83,7 @@
     "@types/react": "^19.1.7",
     "@types/react-dom": "^19.1.6",
     "@webdiscus/pug-loader": "^2.11.1",
-    "acorn": "^8.14.1",
+    "acorn": "^8.15.0",
     "babel-loader": "^10.0.0",
     "babel-plugin-import": "^1.13.8",
     "chalk": "^4.1.2",
@@ -105,7 +105,7 @@
     "source-map": "^0.7.4",
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
-    "terser": "5.42.0",
+    "terser": "5.43.0",
     "typescript": "^5.8.3",
     "wast-loader": "^1.14.1",
     "worker-rspack-loader": "^3.1.2"
