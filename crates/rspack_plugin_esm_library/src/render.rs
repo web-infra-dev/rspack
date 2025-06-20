@@ -275,7 +275,6 @@ impl EsmLibraryPlugin {
                 }
 
                 rspack_core::Binding::Symbol(symbol_binding) => {
-                  let imported = imported_symbols.entry(symbol_binding.info_id).or_default();
                   let info = concatenated_modules_map
                     .get(&symbol_binding.info_id)
                     .expect("info should be set in finish_modules")
@@ -285,16 +284,25 @@ impl EsmLibraryPlugin {
                     .get(&symbol_binding.name)
                     .expect("should have set top level symbol");
 
+                  // imported from another chunk
+                  let imported = imported_symbols.entry(symbol_binding.info_id).or_default();
                   let local = if let Some(local) = imported.get(symbol) {
+                    // it's imported from another chunk, and we've calculated
                     local.clone()
-                  } else if used_names.contains(symbol) {
-                    let local = find_new_name(symbol, &chunk_link.used_names, None, "");
-                    used_names.insert(local.clone());
-                    imported.insert(symbol.clone(), local.clone());
-                    local
+                  } else if Self::get_module_chunk(symbol_binding.info_id, compilation)
+                    != *chunk_ukey
+                  {
+                    if used_names.contains(symbol) {
+                      let local = find_new_name(symbol, &chunk_link.used_names, None, "");
+                      used_names.insert(local.clone());
+                      imported.insert(symbol.clone(), local.clone());
+                      local
+                    } else {
+                      used_names.insert(symbol.clone());
+                      imported.insert(symbol.clone(), symbol.clone());
+                      symbol.clone()
+                    }
                   } else {
-                    used_names.insert(symbol.clone());
-                    imported.insert(symbol.clone(), symbol.clone());
                     symbol.clone()
                   };
 
