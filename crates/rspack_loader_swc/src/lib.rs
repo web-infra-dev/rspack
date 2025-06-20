@@ -106,7 +106,7 @@ impl SwcLoader {
         else {
           return;
         };
-        if !loader_context.remaining_request().is_empty() {
+        if loader_context.loader_index != 0 {
           loader_context.emit_diagnostic(
             miette::miette! { severity = miette::Severity::Warning, "To ensure the accuracy of the collected TypeScript information, `rspackExperiments.collectTypeScriptInfo` can only be used when `builtin:swc-loader` is employed as the last loader." }.into(),
           );
