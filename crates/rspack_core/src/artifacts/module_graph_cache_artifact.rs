@@ -50,7 +50,7 @@ impl ModuleGraphCacheArtifactInner {
       Some(value) => value,
       None => {
         let value = f();
-        self.get_exports_type_cache.set(key, value.clone());
+        self.get_exports_type_cache.set(key, value);
         value
       }
     }
@@ -115,7 +115,7 @@ pub(super) mod get_exports_type {
 
     pub fn get(&self, key: &GetExportsTypeCacheKey) -> Option<ExportsType> {
       let inner = self.cache.read().expect("should get lock");
-      inner.get(key).cloned()
+      inner.get(key)
     }
 
     pub fn set(&self, key: GetExportsTypeCacheKey, value: ExportsType) {
