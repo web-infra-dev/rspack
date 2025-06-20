@@ -933,6 +933,11 @@ type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
 
 // @public (undocumented)
+type CollectTypeScriptInfoOptions = {
+    typeExports?: boolean;
+};
+
+// @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {
     // (undocumented)
     type: "commonjs";
@@ -7680,6 +7685,7 @@ export type SwcLoaderOptions = Config_2 & {
     isModule?: boolean | "unknown";
     rspackExperiments?: {
         import?: PluginImportOptions;
+        collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     };
 };
 
