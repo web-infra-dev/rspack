@@ -27,7 +27,7 @@
     "create-rstack": "1.4.5"
   },
   "devDependencies": {
-    "@rslib/core": "0.10.0",
+    "@rslib/core": "0.10.2",
     "typescript": "^5.8.3"
   },
   "publishConfig": {
