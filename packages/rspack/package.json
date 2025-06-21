@@ -59,7 +59,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "watchpack": "^2.4.4",
-    "webpack-sources": "3.3.2",
+    "webpack-sources": "3.3.3",
     "zod": "^3.25.58",
     "zod-validation-error": "3.5.2"
   },
