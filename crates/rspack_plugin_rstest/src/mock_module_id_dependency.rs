@@ -6,6 +6,8 @@ use rspack_core::{
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
+use crate::import_dependency::module_id2;
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct MockModuleIdDependency {
@@ -140,7 +142,7 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
       dep.range.end,
       &format!(
         "{}{}",
-        module_id(
+        module_id2(
           code_generatable_context.compilation,
           &dep.id,
           &dep.request,

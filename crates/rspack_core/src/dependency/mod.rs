@@ -187,7 +187,7 @@ impl std::fmt::Debug for DependencyCondition {
 }
 
 #[rspack_cacheable::cacheable]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct ImportAttributes(FxHashMap<String, String>);
 
 impl FromIterator<(String, String)> for ImportAttributes {

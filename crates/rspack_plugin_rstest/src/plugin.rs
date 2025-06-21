@@ -17,7 +17,8 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
-  mock_hoist_dependency::MockHoistDependencyTemplate,
+  common_js_require_dependency::CommonJsRequireDependencyTemplate,
+  import_dependency::ImportDependencyTemplate, mock_dependency::MockDependencyTemplate,
   mock_module_id_dependency::MockModuleIdDependencyTemplate,
   module_path_name_dependency::ModulePathNameDependencyTemplate, parser_plugin::RstestParserPlugin,
 };
@@ -125,13 +126,34 @@ async fn compilation(
   );
 
   compilation.set_dependency_template(
-    MockHoistDependencyTemplate::template_type(),
-    Arc::new(MockHoistDependencyTemplate::default()),
+    MockDependencyTemplate::template_type(),
+    Arc::new(MockDependencyTemplate::default()),
   );
 
   compilation.set_dependency_template(
     MockModuleIdDependencyTemplate::template_type(),
     Arc::new(MockModuleIdDependencyTemplate::default()),
+  );
+
+  Ok(())
+}
+
+#[plugin_hook(CompilerCompilation for RstestPlugin, stage = 9999)]
+async fn compilation2(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  // override the default import dependency template
+  compilation.set_dependency_template(
+    ImportDependencyTemplate::template_type(),
+    Arc::new(ImportDependencyTemplate::default()),
+  );
+
+  // override the default commonjs require dependency template
+  compilation.set_dependency_template(
+    CommonJsRequireDependencyTemplate::template_type(),
+    Arc::new(CommonJsRequireDependencyTemplate::default()),
   );
   Ok(())
 }
@@ -219,6 +241,12 @@ impl Plugin for RstestPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation2::new(self));
 
     if self.options.module_path_name {
       ctx

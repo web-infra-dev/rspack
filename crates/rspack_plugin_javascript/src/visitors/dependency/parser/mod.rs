@@ -214,7 +214,7 @@ impl From<Span> for StatementPath {
 }
 
 pub struct JavascriptParser<'parser> {
-  pub(crate) source_map: Arc<SourceMap>,
+  pub source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
@@ -223,7 +223,7 @@ pub struct JavascriptParser<'parser> {
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
-  pub(crate) blocks: Vec<Box<AsyncDependenciesBlock>>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   // TODO: remove `additional_data` once we have builtin:css-extract-loader
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: FxHashMap<String, String>,
@@ -237,7 +237,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
-  pub(crate) module_identifier: &'parser ModuleIdentifier,
+  pub module_identifier: &'parser ModuleIdentifier,
   // TODO: remove `is_esm` after `ESMExports::isEnabled`
   pub(crate) is_esm: bool,
   pub(crate) in_tagged_template_tag: bool,

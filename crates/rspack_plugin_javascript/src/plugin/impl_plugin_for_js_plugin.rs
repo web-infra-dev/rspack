@@ -178,6 +178,7 @@ async fn compilation(
     ESMCompatibilityDependencyTemplate::template_type(),
     Arc::new(ESMCompatibilityDependencyTemplate::default()),
   );
+
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
     Arc::new(ImportDependencyTemplate::default()),
