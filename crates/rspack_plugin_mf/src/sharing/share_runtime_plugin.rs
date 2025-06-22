@@ -11,12 +11,11 @@ use crate::{ShareRuntimeModule, ShareUsagePlugin, ShareUsagePluginOptions};
 #[derive(Debug)]
 pub struct ShareRuntimePlugin {
   enhanced: bool,
-  enable_share_usage_tracking: bool,
 }
 
 impl ShareRuntimePlugin {
   pub fn new(enhanced: bool) -> Self {
-    Self::new_inner(enhanced, true) // Always enable share usage tracking
+    Self::new_inner(enhanced)
   }
 }
 
@@ -46,10 +45,8 @@ impl Plugin for ShareRuntimePlugin {
     options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     // Always apply ShareUsagePlugin for share usage tracking
-    if self.enable_share_usage_tracking {
-      ShareUsagePlugin::new(ShareUsagePluginOptions::default())
-        .apply(PluginContext::with_context(ctx.context), options)?;
-    }
+    ShareUsagePlugin::new(ShareUsagePluginOptions::default())
+      .apply(PluginContext::with_context(ctx.context), options)?;
 
     ctx
       .context

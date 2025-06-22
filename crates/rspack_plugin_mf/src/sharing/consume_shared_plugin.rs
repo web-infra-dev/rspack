@@ -24,6 +24,7 @@ use rustc_hash::FxHashMap;
 use super::{
   consume_shared_module::ConsumeSharedModule,
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
+  share_usage_plugin::{ShareUsagePlugin, ShareUsagePluginOptions},
 };
 
 #[cacheable]
@@ -230,7 +231,7 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    add_diagnostic: &mut impl FnMut(Diagnostic),
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> Option<ConsumeVersion> {
     let mut required_version_warning = |details: &str| {
       add_diagnostic(Diagnostic::warn(self.name().into(), format!("No required version specified and unable to automatically determine one. {details} file: shared module {request}")))
@@ -310,7 +311,7 @@ impl ConsumeSharedPlugin {
           .as_any()
           .downcast_ref::<ConsumeSharedModule>()
         {
-          consume_shared.find_fallback_module_id(&module_graph)?
+          consume_shared.find_fallback_module_id(&module_graph)
         } else {
           None
         }
@@ -581,7 +582,7 @@ impl ConsumeSharedPlugin {
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
 
-    ConsumeSharedModule::new(
+    Ok(ConsumeSharedModule::new(
       if direct_fallback {
         self.get_context()
       } else {
@@ -601,14 +602,7 @@ impl ConsumeSharedPlugin {
         singleton: config.singleton,
         eager: config.eager,
       },
-    )
-    .map_err(|e| {
-      add_diagnostic(Diagnostic::error(
-        "ConsumeSharedModuleCreationError".into(),
-        format!("Failed to create ConsumeShared module for {request}: {e}"),
-      ));
-      e
-    })
+    ))
   }
 }
 
@@ -773,7 +767,11 @@ impl Plugin for ConsumeSharedPlugin {
     "rspack.ConsumeSharedPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
+    // Always apply ShareUsagePlugin for share usage tracking
+    ShareUsagePlugin::new(ShareUsagePluginOptions::default())
+      .apply(PluginContext::with_context(ctx.context), options)?;
+
     ctx
       .context
       .compiler_hooks

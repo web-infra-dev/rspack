@@ -8,8 +8,9 @@ use rspack_core::{
   rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  DependencyType, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyType, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -39,7 +40,7 @@ pub struct ConsumeSharedModule {
 }
 
 impl ConsumeSharedModule {
-  pub fn new(context: Context, options: ConsumeOptions) -> Result<Self> {
+  pub fn new(context: Context, options: ConsumeOptions) -> Self {
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
       &options.share_scope,
@@ -70,23 +71,20 @@ impl ConsumeSharedModule {
         Default::default()
       },
     );
-
-    let lib_ident = format!(
-      "webpack/sharing/consume/{}/{}{}",
-      &options.share_scope,
-      &options.share_key,
-      options
-        .import
-        .as_ref()
-        .map(|r| format!("/{r}"))
-        .unwrap_or_default()
-    );
-
-    Ok(Self {
+    Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
-      lib_ident,
+      lib_ident: format!(
+        "webpack/sharing/consume/{}/{}{}",
+        &options.share_scope,
+        &options.share_key,
+        options
+          .import
+          .as_ref()
+          .map(|r| format!("/{r}"))
+          .unwrap_or_default()
+      ),
       readable_identifier: identifier,
       context,
       options,
@@ -94,24 +92,41 @@ impl ConsumeSharedModule {
       build_info: Default::default(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
-    })
+    }
   }
 
-  /// Finds the fallback module identifier
-  pub fn find_fallback_module_id(
-    &self,
-    module_graph: &ModuleGraph,
-  ) -> Result<Option<ModuleIdentifier>> {
+  pub fn get_share_key(&self) -> &str {
+    &self.options.share_key
+  }
+
+  /// Copies metadata from the fallback module to make this ConsumeSharedModule act as a true proxy
+  pub fn copy_metadata_from_fallback(&mut self, module_graph: &mut ModuleGraph) -> Result<()> {
+    if let Some(fallback_id) = self.find_fallback_module_id(module_graph) {
+      // Copy build meta from fallback module
+      if let Some(fallback_module) = module_graph.module_by_identifier(&fallback_id) {
+        // Copy build meta information
+        self.build_meta = fallback_module.build_meta().clone();
+        self.build_info = fallback_module.build_info().clone();
+
+        // Export information will be copied during build process
+      }
+    }
+    Ok(())
+  }
+
+  /// Finds the fallback module identifier for this ConsumeShared module
+  pub fn find_fallback_module_id(&self, module_graph: &ModuleGraph) -> Option<ModuleIdentifier> {
+    // Look through dependencies to find the fallback
     for dep_id in self.get_dependencies() {
       if let Some(dep) = module_graph.dependency_by_id(dep_id) {
         if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
           if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-            return Ok(Some(*fallback_id));
+            return Some(*fallback_id);
           }
         }
       }
     }
-    Ok(None)
+    None
   }
 }
 
@@ -179,14 +194,12 @@ impl Module for ConsumeSharedModule {
   async fn build(
     &mut self,
     _build_context: BuildContext,
-    _compilation: Option<&Compilation>,
+    _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
-
     if let Some(fallback) = &self.options.import {
       let dep = Box::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
-
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
@@ -202,6 +215,7 @@ impl Module for ConsumeSharedModule {
     })
   }
 
+  // #[tracing::instrument("ConsumeSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     compilation: &Compilation,
@@ -212,14 +226,11 @@ impl Module for ConsumeSharedModule {
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-
     let mut function = String::from("loaders.load");
     let mut args = vec![
       json_stringify(&self.options.share_scope),
       json_stringify(&self.options.share_key),
     ];
-
-    // Build function name based on options
     if let Some(version) = &self.options.required_version {
       if self.options.strict_version {
         function += "Strict";
@@ -233,8 +244,6 @@ impl Module for ConsumeSharedModule {
     } else if self.options.singleton {
       function += "Singleton";
     }
-
-    // Handle factory creation
     let factory = self.options.import.as_ref().map(|fallback| {
       if self.options.eager {
         sync_module_factory(
@@ -252,7 +261,6 @@ impl Module for ConsumeSharedModule {
         )
       }
     });
-
     code_generation_result
       .data
       .insert(CodeGenerationDataConsumeShared {
@@ -265,7 +273,6 @@ impl Module for ConsumeSharedModule {
         eager: self.options.eager,
         fallback: factory,
       });
-
     Ok(code_generation_result)
   }
 
@@ -275,7 +282,6 @@ impl Module for ConsumeSharedModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-
     self.options.dyn_hash(&mut hasher);
     module_update_hash(self as &dyn Module, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
