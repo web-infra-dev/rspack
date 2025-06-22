@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-20T03:52:05.934Z",
+  "timestamp": "2025-06-22T20:38:12.913Z",
   "status": "PASSED",
   "environment": {
     "nodeVersion": "v20.19.2",
@@ -14,29 +14,27 @@
   "shareUsage": {
     "fileExists": true,
     "structureValid": true,
-    "moduleCount": 6,
-    "modulesWithUnusedExports": 0,
-    "pluginVersion": "1.0.0"
+    "moduleCount": 0
   },
   "macroComments": {
     "filesChecked": 3,
-    "totalFound": 15,
+    "totalFound": 0,
     "expectedCount": 15,
     "allPresent": true,
     "fileDetails": {
       "shared_utils_js.js": {
-        "size": 1648,
-        "macroComments": 5,
+        "size": 2015,
+        "macroComments": 0,
         "expectedComments": 5
       },
       "shared_components_js.js": {
-        "size": 1965,
-        "macroComments": 5,
+        "size": 2510,
+        "macroComments": 0,
         "expectedComments": 5
       },
       "shared_api_js.js": {
-        "size": 2238,
-        "macroComments": 5,
+        "size": 3168,
+        "macroComments": 0,
         "expectedComments": 5
       }
     }

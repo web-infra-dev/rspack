@@ -15,12 +15,12 @@ module.exports = {
 		minimize: false, // Keep false for dev mode debugging
 		usedExports: true,
 		providedExports: true,
-		sideEffects: false,
+		sideEffects: true,
 		// Enable all optimizations even in dev mode
-		concatenateModules: true,
+		concatenateModules: false,
 		innerGraph: true,
 		// Additional optimizations for better tree-shaking analysis
-		mangleExports: true,
+		mangleExports: false,
 		removeAvailableModules: true,
 		removeEmptyChunks: true,
 		mergeDuplicateChunks: true,
@@ -72,47 +72,50 @@ module.exports = {
 
 			// Share dependencies with other federated modules
 			shared: {
-				// Share utilities - actually imported by the app
-				"./shared/utils": {
+				// Original shared modules
+				"./shared/utils.js": {
 					singleton: true,
 					eager: false,
 					requiredVersion: false,
 					shareKey: "utility-lib"
 				},
-				"./shared/components": {
+				"./shared/components.js": {
 					singleton: true,
 					eager: false,
 					requiredVersion: false,
 					shareKey: "component-lib"
 				},
-				"./shared/api": {
+				"./shared/api.js": {
 					singleton: true,
 					eager: false,
 					requiredVersion: false,
 					shareKey: "api-lib"
 				},
-
-				// Share external libraries that are actually used
-				react: {
+				// New shared modules with various export patterns
+				"./shared/commonjs-module.js": {
 					singleton: true,
-					requiredVersion: "^18.2.0",
 					eager: false,
-					shareKey: "react",
-					shareScope: "default"
+					requiredVersion: false,
+					shareKey: "commonjs-lib"
 				},
-				"react-dom": {
+				"./shared/mixed-exports.js": {
 					singleton: true,
-					requiredVersion: "^18.2.0",
 					eager: false,
-					shareKey: "react-dom",
-					shareScope: "default"
+					requiredVersion: false,
+					shareKey: "mixed-exports-lib"
 				},
-				"lodash-es": {
+				"./shared/module-exports.js": {
 					singleton: true,
-					requiredVersion: "^4.17.21",
 					eager: false,
-					shareKey: "lodash-es",
-					shareScope: "default"
+					requiredVersion: false,
+					shareKey: "module-exports-lib"
+				},
+				// Fake CommonJS module as local shared
+				"./fake-node-module/index.js": {
+					singleton: true,
+					eager: false,
+					requiredVersion: false,
+					shareKey: "fake-commonjs-lib"
 				}
 			},
 

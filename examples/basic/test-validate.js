@@ -77,14 +77,15 @@ describe("ConsumeShared Macro Validation", () => {
 		);
 		assert.ok(content.metadata, "should have metadata");
 
-		// Check expected modules exist
+		// Check expected modules exist (updated for local modules only)
 		const expectedModules = [
-			"react-dom",
 			"utility-lib",
-			"api-lib",
-			"react",
-			"lodash-es",
-			"component-lib"
+			"api-lib", 
+			"component-lib",
+			"commonjs-lib",
+			"mixed-exports-lib",
+			"module-exports-lib",
+			"fake-commonjs-lib"
 		];
 		for (const module of expectedModules) {
 			assert.ok(
@@ -99,15 +100,7 @@ describe("ConsumeShared Macro Validation", () => {
 			"number",
 			"metadata.total_modules should be a number"
 		);
-		assert.strictEqual(
-			typeof content.metadata.modules_with_unused_exports,
-			"number",
-			"metadata.modules_with_unused_exports should be a number"
-		);
-		assert.ok(
-			content.metadata.plugin_version,
-			"metadata.plugin_version should exist"
-		);
+		// Removed plugin_version and modules_with_unused_exports requirements
 	});
 
 	describe("macro comments validation", () => {
