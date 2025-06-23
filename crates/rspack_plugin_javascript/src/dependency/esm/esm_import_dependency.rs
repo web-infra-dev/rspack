@@ -235,7 +235,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   should_error: bool,
 ) -> Option<Diagnostic> {
   let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
-  if !imported_module.diagnostics().is_empty() {
+  if imported_module.first_error().is_some() {
     return None;
   }
   let parent_module_identifier = module_graph
