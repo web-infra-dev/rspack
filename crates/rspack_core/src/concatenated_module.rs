@@ -44,17 +44,19 @@ use crate::{
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, to_identifier, to_normal_comment, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BoxDependencyTemplate, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
-  ChunkRenderContext, CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
-  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
-  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SourceType, SpanExt, UsageState, UsedName, UsedNameItem, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  BoxDependency, BoxDependencyTemplate, BoxModule, BoxModuleDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
+  ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
+  ConnectionState, Context, DependenciesBlock, DependencyId, DependencyType, ErrorSpan,
+  ExportInfoGetter, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
+  GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
+  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -735,7 +737,8 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
-      let readable_identifier = module.readable_identifier(&context);
+      let readable_identifier =
+        get_cached_readable_identifier(module, &compilation.module_static_cache_artifact, &context);
       let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
       let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
       match info {
@@ -971,6 +974,7 @@ impl Module for ConcatenatedModule {
           let final_name = Self::get_final_name(
             &compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
+            &compilation.module_static_cache_artifact,
             referenced_info_id,
             export_name,
             &module_to_info_map,
@@ -983,17 +987,12 @@ impl Module for ConcatenatedModule {
           );
 
           // We assume this should be concatenated module info because previous loop
-          // let info = module_to_info_map
-          //   .get(&module_info_id)
-          //   .and_then(|info| info.try_as_concatenated_mut())
-          //   .expect("should have concatenate module info");
           let span = reference_ident.id.span();
           let low = span.real_lo();
           let high = span.real_hi();
           // let source = info.source.as_mut().expect("should have source");
           // range is extended by 2 chars to cover the appended "._"
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
-          // source.replace(low, high + 2, &name, None);
           changes.push((final_name, (low, high + 2)));
         }
         (module_info_id, changes)
@@ -1011,45 +1010,6 @@ impl Module for ConcatenatedModule {
         source.replace(low, high, &name_result.name, None);
       }
     }
-
-    // for (module_info_id, info_params_list) in info_map {
-    //   for (
-    //     reference_ident,
-    //     referenced_info_id,
-    //     export_name,
-    //     call,
-    //     call_context,
-    //     strict_esm_module,
-    //     asi_safe,
-    //   ) in info_params_list
-    //   {
-    //     let final_name = Self::get_final_name(
-    //       &compilation.get_module_graph(),
-    //       &compilation.module_graph_cache_artifact,
-    //       referenced_info_id,
-    //       export_name,
-    //       &module_to_info_map,
-    //       runtime,
-    //       call,
-    //       call_context,
-    //       strict_esm_module,
-    //       asi_safe,
-    //       &context,
-    //     );
-    //     // We assume this should be concatenated module info because previous loop
-    //     let info = module_to_info_map
-    //       .get_mut(&module_info_id)
-    //       .and_then(|info| info.try_as_concatenated_mut())
-    //       .expect("should have concatenate module info");
-    //     let span = reference_ident.id.span();
-    //     let low = span.real_lo();
-    //     let high = span.real_hi();
-    //     let source = info.source.as_mut().expect("should have source");
-    //     // range is extended by 2 chars to cover the appended "._"
-    //     // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
-    //     source.replace(low, high + 2, &final_name, None);
-    //   }
-    // }
 
     let mut exports_map: HashMap<Atom, String> = HashMap::default();
     let mut unused_exports: HashSet<Atom> = HashSet::default();
@@ -1089,6 +1049,7 @@ impl Module for ConcatenatedModule {
         let final_name = Self::get_final_name(
           &compilation.get_module_graph(),
           &compilation.module_graph_cache_artifact,
+          &compilation.module_static_cache_artifact,
           &root_module_id,
           [name.clone()].to_vec(),
           &module_to_info_map,
@@ -1259,7 +1220,11 @@ impl Module for ConcatenatedModule {
         let box_module = module_graph
           .module_by_identifier(module_info_id)
           .expect("should have box module");
-        let module_readable_identifier = box_module.readable_identifier(&context);
+        let module_readable_identifier = get_cached_readable_identifier(
+          box_module,
+          &compilation.module_static_cache_artifact,
+          &context,
+        );
         let strict_esm_module = box_module.build_meta().strict_esm_module;
         let name_space_name = module_info.namespace_object_name.clone();
 
@@ -1281,6 +1246,7 @@ impl Module for ConcatenatedModule {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
+              &compilation.module_static_cache_artifact,
               module_info_id,
               vec![export_info.name().cloned().unwrap_or("".into())],
               &module_to_info_map,
@@ -1362,7 +1328,11 @@ impl Module for ConcatenatedModule {
       let box_module = module_graph
         .module_by_identifier(&module_info_id)
         .expect("should have box module");
-      let module_readable_identifier = box_module.readable_identifier(&context);
+      let module_readable_identifier = get_cached_readable_identifier(
+        box_module,
+        &compilation.module_static_cache_artifact,
+        &context,
+      );
 
       match info {
         ModuleInfo::Concatenated(info) => {
@@ -2045,6 +2015,7 @@ impl ConcatenatedModule {
   fn get_final_name(
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    module_static_cache_artifact: &ModuleStaticCacheArtifact,
     info: &ModuleIdentifier,
     export_name: Vec<Atom>,
     module_to_info_map: &IdentifierIndexMap<ModuleInfo>,
@@ -2105,7 +2076,7 @@ impl ConcatenatedModule {
           panic!(
             "The export \"{}\" in \"{}\" has no internal name (existing names: {})",
             export_id,
-            module.readable_identifier(context),
+            get_cached_readable_identifier(module, module_static_cache_artifact, &context),
             info
               .internal_names
               .iter()
@@ -2177,10 +2148,6 @@ impl ConcatenatedModule {
       match exports_type {
         ExportsType::DefaultOnly => {
           // shadowing the previous immutable ref to avoid violating rustc borrow rules
-          // let info = module_to_info_map
-          //   .get_mut(info_id)
-          //   .expect("should have module info");
-          // info.set_interop_namespace_object2_used(true);
           let raw_name = info.get_interop_namespace_object2_name();
           return FinalBindingResult {
             binding: Binding::Raw(RawBinding {
@@ -2198,10 +2165,6 @@ impl ConcatenatedModule {
         }
         ExportsType::DefaultWithNamed => {
           // shadowing the previous immutable ref to avoid violating rustc borrow rules
-          // let info = module_to_info_map
-          //   .get_mut(info_id)
-          //   .expect("should have module info");
-          // info.set_interop_namespace_object_used(true);
           let raw_name = info
             .get_interop_namespace_object_name()
             .expect("should have interop_namespace_object_name");
@@ -2264,10 +2227,6 @@ impl ConcatenatedModule {
         ExportsType::Dynamic => match export_name.first().map(|atom| atom.as_str()) {
           Some("default") => {
             // shadowing the previous immutable ref to avoid violating rustc borrow rules
-            // let info = module_to_info_map
-            //   .get_mut(info_id)
-            //   .expect("should have module info");
-            // info.set_interop_default_access_used(true);
             export_name = export_name[1..].to_vec();
             // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L335-L341
             let default_access_name = info
@@ -2723,4 +2682,14 @@ impl FinalNameResult {
       needed_namespace_objects.insert(value);
     }
   }
+}
+
+pub fn get_cached_readable_identifier(
+  module: &BoxModule,
+  module_static_cache_artifact: &ModuleStaticCacheArtifact,
+  compilation_context: &Context,
+) -> String {
+  module_static_cache_artifact.cached_readable_identifier((module.identifier(), None), || {
+    module.readable_identifier(compilation_context).to_string()
+  })
 }

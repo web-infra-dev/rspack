@@ -11,7 +11,7 @@ use rspack_core::{
   concatenated_module::{
     is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
   },
-  filter_runtime, get_target,
+  filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
   ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
@@ -243,7 +243,6 @@ impl ModuleConcatenationPlugin {
       .or_insert(1);
     let Compilation {
       chunk_graph,
-      options,
       chunk_by_ukey,
       ..
     } = compilation;
@@ -266,7 +265,11 @@ impl ModuleConcatenationPlugin {
       let module = module_graph
         .module_by_identifier(module_id)
         .expect("should have module");
-      let module_readable_identifier = module.readable_identifier(&options.context);
+      let module_readable_identifier = get_cached_readable_identifier(
+        &module,
+        &compilation.module_static_cache_artifact,
+        &compilation.options.context,
+      );
 
       if !possible_modules.contains(module_id) {
         statistics.invalid_module += 1;
@@ -408,8 +411,11 @@ impl ModuleConcatenationPlugin {
               let m = module_graph
                 .module_by_identifier(mid)
                 .expect("should have module");
-              m.readable_identifier(&compilation.options.context)
-                .to_string()
+              get_cached_readable_identifier(
+                &m,
+                &compilation.module_static_cache_artifact,
+                &compilation.options.context,
+              )
             })
             .collect();
           names.sort();
@@ -453,7 +459,11 @@ impl ModuleConcatenationPlugin {
               let module = module_graph
                 .module_by_identifier(origin_module)
                 .expect("should have module");
-              let readable_identifier = module.readable_identifier(&compilation.options.context);
+              let readable_identifier = get_cached_readable_identifier(
+                &module,
+                &compilation.module_static_cache_artifact,
+                &compilation.options.context,
+              );
               let mut names = connections
                 .iter()
                 .filter_map(|item| {
@@ -528,8 +538,11 @@ impl ModuleConcatenationPlugin {
                   let module = module_graph
                     .module_by_identifier(origin_module)
                     .expect("should have module");
-                  let readable_identifier =
-                    module.readable_identifier(&compilation.options.context);
+                  let readable_identifier = get_cached_readable_identifier(
+                    &module,
+                    &compilation.module_static_cache_artifact,
+                    &compilation.options.context,
+                  );
                   format!(
                     "{} (expected runtime {}, module is only referenced in {})",
                     readable_identifier,
@@ -623,9 +636,11 @@ impl ModuleConcatenationPlugin {
 
     let root_module_ctxt = RootModuleContext {
       id: root_module_id,
-      readable_identifier: box_module
-        .readable_identifier(&compilation.options.context)
-        .to_string(),
+      readable_identifier: get_cached_readable_identifier(
+        &box_module,
+        &compilation.module_static_cache_artifact,
+        &compilation.options.context,
+      ),
       name_for_condition: box_module.name_for_condition().clone(),
       lib_indent: box_module
         .lib_ident(LibIdentOptions {
@@ -668,9 +683,11 @@ impl ModuleConcatenationPlugin {
             source.dyn_hash(&mut hasher);
             hasher.finish()
           }),
-          shorten_id: module
-            .readable_identifier(&compilation.options.context)
-            .to_string(),
+          shorten_id: get_cached_readable_identifier(
+            &module,
+            &compilation.module_static_cache_artifact,
+            &compilation.options.context,
+          ),
         };
         inner_module
       })

@@ -56,9 +56,9 @@ use crate::{
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats,
+  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -261,6 +261,8 @@ pub struct Compilation {
   pub chunk_render_artifact: ChunkRenderArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
+  // artiface for caching module static info
+  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -383,6 +385,7 @@ impl Compilation {
       chunk_hashes_artifact: Default::default(),
       chunk_render_artifact: Default::default(),
       module_graph_cache_artifact: Default::default(),
+      module_static_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       cache,
@@ -1476,6 +1479,9 @@ impl Compilation {
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.other_module_graph = Some(ModuleGraphPartial::default());
+
+    self.module_static_cache_artifact.freeze();
+
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
@@ -1864,6 +1870,7 @@ impl Compilation {
     self.after_seal(plugin_driver).await?;
     logger.time_end(start);
 
+    self.module_static_cache_artifact.unfreeze();
     Ok(())
   }
 
