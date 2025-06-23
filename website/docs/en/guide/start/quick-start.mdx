@@ -83,6 +83,10 @@ We provide an online example based on Rsbuild. The example gives an intuitive fe
 
 - [Rsbuild CodeSandbox example](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
 
+Here we also provide an online example based on Wasm and WebContainer on StackBlitz:
+
+- [Rspack StackBlitz Example](https://stackblitz.com/~/github.com/rspack-contrib/rspack-stackblitz-example)
+
 ## Manual installation
 
 Start by creating a project directory and generating an npm `package.json':
@@ -121,6 +125,32 @@ If you need to migrate from an existing project to Rspack stack, you can refer t
 - [Migrating from Vite to Rsbuild](https://rsbuild.rs/guide/migration/vite)
 - [Migrating from Tsup to Rslib](https://rslib.rs/guide/migration/tsup)
 - [Migrating from Storybook](/guide/migration/storybook)
+
+## Preview projects online with StackBlitz
+
+Rspack 1.4 includes a Wasm binding, which makes Rspack available in StackBlitz/WebContainer. Currently, if you want to preview your Rspack projects on StackBlitz, you need to specify the cpu architecture when installing dependencies. Different package managers have different ways to do it.
+
+For npm, you can specify the conditions for optional dependencies with `--cpu` option:
+
+```bash
+npm install --cpu=wasm32
+```
+
+For pnpm, you need to specify [supportedArchitectures](https://pnpm.io/settings#supportedarchitectures) in your `package.json`:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "supportedArchitectures": {
+      "cpu": ["wasm32"]
+    }
+  }
+}
+```
+
+For other package managers, please refer to their respective documentation.
+
+In the future, we will optimize the workflow to enable users to preview Rspack projects seamlessly. Additionally, we are planing to implement browser-based version of Rspack.
 
 ## Install canary version
 
