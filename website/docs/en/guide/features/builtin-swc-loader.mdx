@@ -10,6 +10,33 @@ Rspack provides a built-in loader for SWC, which is the Rust version of [swc-loa
 
 If you need to use `builtin:swc-loader` in your project, configure it as follows:
 
+### Auto Detect Syntax transpilation
+
+By setting `autoParser: true` , `builtin:swc-loader` will automatically configure `jsc.parser.syntax` based on file extensions:
+
+- For `.ts` and `.tsx` files (case-insensitive), TypeScript transpilation will be automatically enabled
+- For `.jsx` and `.tsx` files (case-insensitive), JSX transpilation will be automatically enabled
+
+Example configuration:
+
+```
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[t|j]sx?$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          autoParser: true,
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+}
+```
+
 ### TypeScript transpilation
 
 To transpile `.ts` files:

@@ -4448,6 +4448,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cargo_toml",
+ "cow-utils",
  "either",
  "rspack_cacheable",
  "rspack_core",

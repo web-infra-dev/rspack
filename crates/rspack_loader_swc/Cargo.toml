@@ -18,6 +18,7 @@ plugin = [
 
 [dependencies]
 async-trait                = { workspace = true }
+cow-utils                  = { workspace = true }
 either                     = { workspace = true }
 rspack_cacheable           = { workspace = true }
 rspack_core                = { workspace = true }
