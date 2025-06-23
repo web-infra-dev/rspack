@@ -83,6 +83,10 @@ npx create-rsbuild -d my-project -t react
 
 - [Rsbuild CodeSandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
 
+同时我们也提供了基于 Wasm 和 WebContainer 的 StackBlitz 上的在线示例:
+
+- [Rspack StackBlitz 示例](https://stackblitz.com/~/github.com/rspack-contrib/rspack-stackblitz-example)
+
 ## 手动安装
 
 首先创建一个项目目录，并生成一个 npm `package.json` 文件：
@@ -121,6 +125,32 @@ npm init -y
 - [从 Vite 迁移到 Rsbuild](https://rsbuild.rs/zh/guide/migration/vite)
 - [从 Tsup 迁移到 Rslib](https://rslib.rs/zh/guide/migration/tsup)
 - [从 Storybook 迁移](/guide/migration/storybook)
+
+## 使用 StackBlitz 在线预览项目
+
+Rspack >= 1.4 实现了 Wasm 版本，支持直接在 StackBlitz (WebContainers) 中使用。在当前版本下，如果你想在 StackBlitz 上预览你的 Rspack 项目，需要在安装依赖的时候指定 CPU 架构。不同包管理器指定 CPU 架构的方式有所不同。
+
+对于 npm，可以通过 `--cpu` 指定可选依赖需要满足的条件：
+
+```bash
+npm install --cpu=wasm32
+```
+
+对于 pnpm，需要在项目的 `package.json` 中指定 [supportedArchitectures](https://pnpm.io/settings#supportedarchitectures)：
+
+```json title="package.json"
+{
+  "pnpm": {
+    "supportedArchitectures": {
+      "cpu": ["wasm32"]
+    }
+  }
+}
+```
+
+其余包管理器可自行查阅相应的文档。
+
+未来我们会持续优化使用流程，使用户可以无缝地预览 Rspack 项目。此外，我们也计划提供 `@rspack/browser` 包，允许你在浏览器上直接使用 Rspack。
 
 ## 安装 canary 版本
 
