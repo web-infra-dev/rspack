@@ -1,5 +1,7 @@
 const path = require("path");
-const { RstestPlugin } = require("@rspack/core");
+const {
+	experiments: { RstestPlugin }
+} = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
