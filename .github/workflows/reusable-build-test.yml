@@ -132,7 +132,7 @@ jobs:
       - name: Test WASM
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
-        run: pnpm run test:ci
+        run: env NODE_OPTIONS=--disable-warning=ExperimentalWarning pnpm run test:ci
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
