@@ -1,4 +1,10 @@
 /** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
+const wasmConfig = process.env.WASM && {
+	testPathIgnorePatterns: ["profile.test.ts"],
+	maxWorkers: process.env.CI ? "100%" : 1
+};
+
+/** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
 const config = {
 	preset: "ts-jest",
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
@@ -10,7 +16,8 @@ const config = {
 		"^.+\\.(ts)?$": ["ts-jest", { tsconfig: "<rootDir>/tests/tsconfig.json" }]
 	},
 	cache: false,
-	prettierPath: require.resolve("prettier-2")
+	prettierPath: require.resolve("prettier-2"),
+	...(wasmConfig || {})
 };
 
 module.exports = config;

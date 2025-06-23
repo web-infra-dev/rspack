@@ -134,6 +134,7 @@ jobs:
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
         run: |
           export NODE_NO_WARNINGS=1
+          export WASM=1
           pnpm run test:ci
 
       ### write the latest metric into branch gh-pages
