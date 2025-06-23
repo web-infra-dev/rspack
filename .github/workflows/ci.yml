@@ -118,7 +118,15 @@ jobs:
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
-    needs: [check-codspeed, test-linux, test-windows, test-mac, check-changed]
+    needs:
+      [
+        check-codspeed,
+        test-linux,
+        test-windows,
+        test-mac,
+        test-wasm,
+        check-changed
+      ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
