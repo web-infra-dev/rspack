@@ -242,19 +242,19 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     CompilationAsset::new(Some(RawSource::from(json).boxed()), AssetInfo::default()),
   );
 
-  // Also generate a simplified report for easier consumption
-  let simple_filename = format!("simple-{}", self.options.filename);
-  let simple_report = self.generate_simple_report(compilation)?;
-  let simple_json = serde_json::to_string_pretty(&simple_report)
-    .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize simple report: {e}")))?;
+  // Disabled: Simple report generation for easier consumption
+  // let simple_filename = format!("simple-{}", self.options.filename);
+  // let simple_report = self.generate_simple_report(compilation)?;
+  // let simple_json = serde_json::to_string_pretty(&simple_report)
+  //   .map_err(|e| rspack_error::Error::msg(format!("Failed to serialize simple report: {e}")))?;
 
-  compilation.emit_asset(
-    simple_filename,
-    CompilationAsset::new(
-      Some(RawSource::from(simple_json).boxed()),
-      AssetInfo::default(),
-    ),
-  );
+  // compilation.emit_asset(
+  //   simple_filename,
+  //   CompilationAsset::new(
+  //     Some(RawSource::from(simple_json).boxed()),
+  //     AssetInfo::default(),
+  //   ),
+  // );
 
   Ok(())
 }

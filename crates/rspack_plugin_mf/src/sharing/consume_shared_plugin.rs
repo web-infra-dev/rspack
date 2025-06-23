@@ -310,7 +310,7 @@ impl ConsumeSharedPlugin {
           .as_any()
           .downcast_ref::<ConsumeSharedModule>()
         {
-          consume_shared.find_fallback_module_id(&module_graph)?
+          consume_shared.find_fallback_module_id(&module_graph)
         } else {
           None
         }
@@ -581,7 +581,7 @@ impl ConsumeSharedPlugin {
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
 
-    ConsumeSharedModule::new(
+    Ok(ConsumeSharedModule::new(
       if direct_fallback {
         self.get_context()
       } else {
@@ -601,14 +601,7 @@ impl ConsumeSharedPlugin {
         singleton: config.singleton,
         eager: config.eager,
       },
-    )
-    .map_err(|e| {
-      add_diagnostic(Diagnostic::error(
-        "ConsumeSharedModuleCreationError".into(),
-        format!("Failed to create ConsumeShared module for {request}: {e}"),
-      ));
-      e
-    })
+    ))
   }
 }
 

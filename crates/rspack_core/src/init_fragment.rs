@@ -5,7 +5,6 @@ use std::{
   sync::atomic::AtomicU32,
 };
 
-use cow_utils::CowUtils;
 use dyn_clone::{clone_trait_object, DynClone};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
@@ -365,7 +364,6 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
     context.add_runtime_requirements(RuntimeGlobals::EXPORTS);
     context.add_runtime_requirements(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
-
     let exports = format!(
       "{{\n  {}\n}}",
       self
@@ -373,63 +371,11 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
         .iter()
         .map(|s| {
           let prop = property_name(&s.0)?;
-          let value = context.returning_function(&s.1, "");
-
-          // Check if the value already contains ConsumeShared macros
-          if s.1.contains("@common:if") && s.1.contains("@common:endif") {
-            // Value has ConsumeShared macros - handle different cases
-            if let Some(condition_start) = s.1.find("[condition=\"") {
-              if let Some(condition_end) = s.1[condition_start..].find("\"]") {
-                // Validate condition bounds before slicing
-                let end_pos = condition_start + condition_end + 2;
-                if end_pos > s.1.len() {
-                  tracing::warn!("Malformed condition bounds in value: {}", s.1);
-                  return Ok(format!("{prop}: {value}"));
-                }
-                let condition = &s.1[condition_start..end_pos];
-                let share_key = extract_share_key_from_condition(condition);
-
-                // Validate share_key is not empty or unknown
-                if share_key == "unknown" || share_key.is_empty() {
-                  tracing::warn!("Failed to extract valid share_key from condition, falling back to standard format");
-                  return Ok(format!("{prop}: {value}"));
-                }
-
-                // For ConsumeShared modules, ALL exports should be wrapped
-
-                // Check if this is a default export with an object literal (look for both patterns)
-                if prop == "\"default\"" && (s.1.contains("({") || s.1.contains("{ ")) {
-                  // Handle object literal within ConsumeShared default export
-                  let processed_value = process_consume_shared_object_literal(&s.1, &share_key);
-                  let clean_value_func = context.returning_function(&processed_value, "");
-                  Ok(format!(
-                    "/* @common:if {condition} */ {prop}: {clean_value_func} /* @common:endif */"
-                  ))
-                } else {
-                  // ALL exports should be wrapped for ConsumeShared modules
-                  let start_pattern = format!("/* @common:if {condition} */ ");
-                  let clean_value = s
-                    .1
-                    .cow_replace(&start_pattern, "")
-                    .cow_replace(" /* @common:endif */", "")
-                    .into_owned();
-                  let clean_value_func = context.returning_function(&clean_value, "");
-                  Ok(format!(
-                    "/* @common:if {condition} */ {prop}: {clean_value_func} /* @common:endif */"
-                  ))
-                }
-              } else {
-                // Fallback if we can't parse the condition
-                Ok(format!("{prop}: {value}"))
-              }
-            } else {
-              // Fallback if we can't find the condition
-              Ok(format!("{prop}: {value}"))
-            }
-          } else {
-            // Standard format for non-ConsumeShared modules
-            Ok(format!("{prop}: {value}"))
-          }
+          Ok(format!(
+            "{}: {}",
+            prop,
+            context.returning_function(&s.1, "")
+          ))
         })
         .collect::<Result<Vec<_>>>()?
         .join(",\n  ")
@@ -437,7 +383,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
 
     Ok(InitFragmentContents {
       start: format!(
-        "{}({}, {});",
+        "{}({}, {});\n",
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
         self.exports_argument,
         exports
@@ -754,146 +700,3 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
   }
 }
 
-fn extract_share_key_from_condition(condition: &str) -> String {
-  // Enhanced error handling for share key extraction
-  if condition.is_empty() {
-    tracing::warn!("Empty condition string provided to extract_share_key_from_condition");
-    return "unknown".to_string();
-  }
-
-  if let Some(start) = condition.find("treeShake.") {
-    let start_pos = start + 10; // Length of "treeShake."
-    if start_pos >= condition.len() {
-      tracing::warn!(
-        "Malformed condition: treeShake. found at end of string: {}",
-        condition
-      );
-      return "unknown".to_string();
-    }
-
-    let after_treeshake = &condition[start_pos..];
-    if let Some(dot_pos) = after_treeshake.find('.') {
-      if dot_pos == 0 {
-        tracing::warn!("Empty share key in condition: {}", condition);
-        return "unknown".to_string();
-      }
-      return after_treeshake[..dot_pos].to_string();
-    } else {
-      tracing::warn!(
-        "No export name found after share key in condition: {}",
-        condition
-      );
-      return after_treeshake.to_string(); // Return the share key even without export name
-    }
-  }
-
-  tracing::warn!("No treeShake. pattern found in condition: {}", condition);
-  "unknown".to_string()
-}
-
-fn process_consume_shared_object_literal(value: &str, share_key: &str) -> String {
-  // Validate inputs
-  if value.is_empty() {
-    tracing::warn!("Empty value provided to process_consume_shared_object_literal");
-    return value.to_string();
-  }
-  if share_key.is_empty() || share_key == "unknown" {
-    tracing::warn!("Invalid share_key provided: {}", share_key);
-    return value.to_string();
-  }
-
-  // Try to load usage data from share-usage.json to determine which properties to wrap
-  let _unused_exports = load_unused_exports_for_module(share_key);
-
-  // Handle different object literal patterns with improved error handling
-  let (_obj_start, _obj_end, before_obj, after_obj, obj_content) =
-    if let Some(start) = value.find("({") {
-      if let Some(end) = value.find("})") {
-        if start >= end || start + 2 > end {
-          tracing::warn!(
-            "Malformed object literal pattern ({{}})) in value: {}",
-            value
-          );
-          return value.to_string();
-        }
-        (
-          start,
-          end + 2,
-          &value[..start],
-          &value[end + 2..],
-          &value[start + 2..end],
-        )
-      } else {
-        tracing::warn!("Unmatched '({{' found without '}})' in value: {}", value);
-        return value.to_string();
-      }
-    } else if let Some(start) = value.find("{") {
-      if let Some(end) = value.find("}") {
-        if start >= end {
-          tracing::warn!(
-            "Malformed object literal pattern {{{{}}}} in value: {}",
-            value
-          );
-          return value.to_string();
-        }
-        (
-          start,
-          end + 1,
-          &value[..start],
-          &value[end + 1..],
-          &value[start + 1..end],
-        )
-      } else {
-        tracing::warn!("Unmatched '{{' found without '}}' in value: {}", value);
-        return value.to_string();
-      }
-    } else {
-      tracing::debug!("No object literal pattern found in value, returning as-is");
-      return value.to_string();
-    };
-
-  let properties: Vec<&str> = obj_content
-    .split(',')
-    .map(|s| s.trim())
-    .filter(|s| !s.is_empty())
-    .collect();
-
-  let wrapped_properties: Vec<String> = properties
-    .into_iter()
-    .map(|prop| {
-      let prop_name = prop.trim();
-      // For ConsumeShared modules, wrap ALL properties with conditional macros
-      format!(
-        "/* @common:if [condition=\"treeShake.{share_key}.{prop_name}\"] */ {prop_name} /* @common:endif */"
-      )
-    })
-    .collect();
-
-  let result = if value.contains("({") {
-    format!(
-      "{}({{\n  {}\n}}){}",
-      before_obj,
-      wrapped_properties.join(",\n  "),
-      after_obj
-    )
-  } else {
-    format!(
-      "{}{{\n  {}\n}}{}",
-      before_obj,
-      wrapped_properties.join(",\n  "),
-      after_obj
-    )
-  };
-
-  result
-}
-
-fn load_unused_exports_for_module(_share_key: &str) -> Vec<String> {
-  // Note: Currently unused as we wrap ALL exports for ConsumeShared modules
-  // This function is kept for potential future use where selective wrapping might be needed
-  //
-  // TODO: Implement dynamic loading from share-usage.json when selective wrapping is required
-  // Example implementation would read from dist/share-usage.json and parse the unused_exports
-  // for the given share_key
-  vec![]
-}

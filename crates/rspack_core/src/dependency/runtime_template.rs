@@ -8,7 +8,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  Module, ModuleGraph, ModuleId, ModuleIdentifier, ModuleType, NormalInitFragment, PathInfo,
   PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
   UsedName,
 };
@@ -393,17 +393,26 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  // Check if this is a side-effect dependency (bare import)
-  // Side-effect imports should NOT be marked as pure
+  // Check if this import should be marked as pure
+  // Only apply PURE annotations to modules that descend from ConsumeShared modules
   let is_pure = compilation
     .get_module_graph()
     .dependency_by_id(id)
     .is_some_and(|dep| {
-      // Check the dependency type to distinguish between bare imports and named/default imports
+      // Check the dependency type to distinguish between different import types
       let dep_type = dep.dependency_type();
-      // EsmImport = bare imports (side-effect imports like `import './style.css'`) - should NOT be pure
-      // EsmImportSpecifier = named/default imports (like `import { foo } from 'bar'`) - should be pure
-      matches!(dep_type.as_str(), "esm import specifier") && import_var != "__webpack_require__"
+      // Include both "esm import" (bare imports) and "esm import specifier" (named imports)
+      // but exclude __webpack_require__ calls themselves
+      let is_esm_import = matches!(dep_type.as_str(), "esm import" | "esm import specifier") && import_var != "__webpack_require__";
+      
+      // Only apply PURE annotation if this is an ESM import AND descends from ConsumeShared
+      if is_esm_import {
+        // Check if the current module or any ancestor is ConsumeShared
+        let module_graph = compilation.get_module_graph();
+        is_consume_shared_descendant(&module_graph, &module.identifier())
+      } else {
+        false
+      }
     });
 
   let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
@@ -702,6 +711,60 @@ fn missing_module(request: &str) -> String {
 
 fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
+}
+
+/// Check if a module is a descendant of a ConsumeShared module
+/// by traversing incoming connections recursively
+fn is_consume_shared_descendant(
+  module_graph: &ModuleGraph,
+  module_identifier: &ModuleIdentifier,
+) -> bool {
+  let mut visited = std::collections::HashSet::new();
+  is_consume_shared_descendant_recursive(module_graph, module_identifier, &mut visited, 10)
+}
+
+/// Recursively search for ConsumeShared modules in the module graph ancestry
+fn is_consume_shared_descendant_recursive(
+  module_graph: &ModuleGraph,
+  current_module: &ModuleIdentifier,
+  visited: &mut std::collections::HashSet<ModuleIdentifier>,
+  max_depth: usize,
+) -> bool {
+  if max_depth == 0 || visited.contains(current_module) {
+    return false;
+  }
+  visited.insert(current_module.clone());
+
+  // Check if current module is ConsumeShared
+  if let Some(module) = module_graph.module_by_identifier(current_module) {
+    if module.module_type() == &ModuleType::ConsumeShared {
+      return true;
+    }
+  }
+
+  // Check all incoming connections for ConsumeShared ancestors
+  for connection in module_graph.get_incoming_connections(current_module) {
+    if let Some(origin_module_id) = connection.original_module_identifier.as_ref() {
+      if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
+        // Found a ConsumeShared module - this is a descendant
+        if origin_module.module_type() == &ModuleType::ConsumeShared {
+          return true;
+        }
+        
+        // Recursively check this module's incoming connections
+        if is_consume_shared_descendant_recursive(
+          module_graph,
+          origin_module_id,
+          visited,
+          max_depth - 1,
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+
+  false
 }
 
 fn missing_module_promise(request: &str) -> String {

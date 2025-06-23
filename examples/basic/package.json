@@ -5,14 +5,23 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "./run-build.sh",
-    "test": "node --test test.js",
-    "test:validate": "node --test test-validate.js"
+    "build": "pnpm --dir ../.. build:cli:dev && pnpm build:app",
+    "build:app":"rspack build",
+    "test": "rstest run test-validate.test.js",
+    "test:validate": "rstest run test-validate.test.js",
+    "test:snapshots": "rstest run test-snapshots.test.js",
+    "test:snapshots:update": "rstest run test-snapshots.test.js --update",
+    "test:all": "rstest run test-validate.test.js test-snapshots.test.js",
+    "test:runner": "node test-runner.js",
+    "test:runner:update": "node test-runner.js --update-snapshots"
   },
   "dependencies": {
     "@rspack/core": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "lodash-es": "^4.17.21"
+  },
+  "devDependencies": {
+    "@rstest/core": "^0.0.2"
   }
 }

@@ -14,6 +14,32 @@ use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
 
+/// Enhanced ConsumeShared detection for default exports
+fn get_consume_shared_info(
+  module_graph: &ModuleGraph,
+  module_identifier: &rspack_core::ModuleIdentifier,
+) -> Option<String> {
+  // Check if this module is ConsumeShared
+  if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+    if module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+      return module.get_consume_shared_key();
+    }
+  }
+
+  // Check incoming connections for ConsumeShared modules
+  for connection in module_graph.get_incoming_connections(module_identifier) {
+    if let Some(origin_module_id) = connection.original_module_identifier.as_ref() {
+      if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
+        if origin_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+          return origin_module.get_consume_shared_key();
+        }
+      }
+    }
+  }
+
+  None
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub enum DeclarationId {
@@ -230,6 +256,19 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);
           if supports_const {
+            // Enhanced ConsumeShared detection for default exports
+            let default_export_value = if let Some(consume_shared_key) =
+              get_consume_shared_info(&mg, &module_identifier)
+            {
+              format!(
+            "/* @common:if [condition=\"treeShake.{}.default\"] */ /* ESM default export */ {} /* @common:endif */",
+            consume_shared_key,
+            DEFAULT_EXPORT
+          )
+            } else {
+              DEFAULT_EXPORT.to_string()
+            };
+
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(
@@ -239,7 +278,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   .collect_vec()
                   .join("")
                   .into(),
-                DEFAULT_EXPORT.into(),
+                default_export_value.into(),
               )],
             )));
             format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")

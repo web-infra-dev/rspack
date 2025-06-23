@@ -17,7 +17,7 @@ module.exports = {
 		providedExports: true,
 		sideEffects: false,
 		// Enable all optimizations even in dev mode
-		concatenateModules: true,
+		concatenateModules: false,
 		innerGraph: true,
 		// Additional optimizations for better tree-shaking analysis
 		mangleExports: true,

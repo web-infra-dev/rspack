@@ -60,6 +60,7 @@ impl ESMExportSpecifierDependency {
   }
 
   /// Determines if this export is related to ConsumeShared module fallback.
+  /// Enhanced to traverse the full module graph for reexport scenarios.
   fn get_consume_shared_info(&self, module_graph: &ModuleGraph) -> Option<String> {
     // Check if parent module is ConsumeShared
     if let Some(parent_module_id) = module_graph.get_parent_module(&self.id) {
@@ -70,17 +71,64 @@ impl ESMExportSpecifierDependency {
       }
     }
 
-    // Check if current module is a fallback for ConsumeShared modules
+    // Get current module identifier for deeper analysis
     let module_identifier = module_graph
       .get_parent_module(&self.id)
       .and_then(|id| module_graph.module_by_identifier(id))
       .map(|m| m.identifier())?;
 
+    // Check immediate incoming connections for ConsumeShared modules
     for connection in module_graph.get_incoming_connections(&module_identifier) {
       if let Some(origin_module) = connection.original_module_identifier.as_ref() {
         if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
           if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
             return origin_module_obj.get_consume_shared_key();
+          }
+        }
+      }
+    }
+
+    // Enhanced: Check deeper in the module graph for reexport scenarios
+    // Traverse incoming connections recursively to find ConsumeShared modules
+    // that might be multiple levels up in the module dependency chain
+    let mut visited = std::collections::HashSet::new();
+    if let Some(share_key) = self.find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5) {
+      return Some(share_key);
+    }
+
+    None
+  }
+
+  /// Recursively search for ConsumeShared modules in the module graph
+  fn find_consume_shared_recursive(
+    &self,
+    current_module: &rspack_core::ModuleIdentifier,
+    module_graph: &ModuleGraph,
+    visited: &mut std::collections::HashSet<rspack_core::ModuleIdentifier>,
+    max_depth: usize,
+  ) -> Option<String> {
+    if max_depth == 0 || visited.contains(current_module) {
+      return None;
+    }
+    visited.insert(current_module.clone());
+
+    // Check all incoming connections for this module
+    for connection in module_graph.get_incoming_connections(current_module) {
+      if let Some(origin_module_id) = connection.original_module_identifier.as_ref() {
+        if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
+          // Found a ConsumeShared module - return its share key
+          if origin_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+            return origin_module.get_consume_shared_key();
+          }
+          
+          // Recursively check this module's incoming connections
+          if let Some(share_key) = self.find_consume_shared_recursive(
+            origin_module_id,
+            module_graph,
+            visited,
+            max_depth - 1,
+          ) {
+            return Some(share_key);
           }
         }
       }

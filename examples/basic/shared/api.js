@@ -1,5 +1,8 @@
 // Shared API utilities
-export const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
+import { generateId } from './nested-utils.js';
+import { API_ENDPOINTS, DEFAULT_TIMEOUT, getApiUrl } from './config.js';
+
+export const fetchWithTimeout = async (url, options = {}, timeout = DEFAULT_TIMEOUT) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
   
@@ -20,6 +23,7 @@ export class ApiClient {
   constructor(baseUrl, headers = {}) {
     this.baseUrl = baseUrl;
     this.headers = headers;
+    this.sessionId = generateId(); // Use imported function
   }
 
   async get(endpoint) {

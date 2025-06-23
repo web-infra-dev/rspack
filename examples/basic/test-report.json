@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-20T02:40:52.032Z",
+  "timestamp": "2025-06-23T03:41:58.776Z",
   "status": "PASSED",
   "build": {
     "distExists": true,
@@ -7,13 +7,11 @@
   },
   "shareUsage": {
     "fileExists": true,
-    "structureValid": true,
-    "moduleCount": 6,
-    "modulesWithUnusedExports": 0
+    "structureValid": true
   },
   "macroComments": {
     "filesChecked": 3,
-    "commentsValidated": 9,
+    "commentsValidated": 0,
     "allPresent": true
   }
 }

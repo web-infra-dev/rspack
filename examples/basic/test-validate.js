@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
-import { describe, test } from "node:test";
+import { describe, test, expect } from "@rstest/core";
 
 /**
  * Node.js test runner for rspack ConsumeShared macro functionality
@@ -40,10 +39,7 @@ describe("ConsumeShared Macro Validation", () => {
 	];
 
 	test("dist directory exists", () => {
-		assert.ok(
-			fs.existsSync(distPath),
-			`Dist directory should exist at ${distPath}`
-		);
+		expect(fs.existsSync(distPath)).toBe(true);
 	});
 
 	test("all expected chunk files exist", () => {
@@ -56,26 +52,20 @@ describe("ConsumeShared Macro Validation", () => {
 
 		for (const file of expectedFiles) {
 			const filePath = path.join(distPath, file);
-			assert.ok(
-				fs.existsSync(filePath),
-				`Expected chunk file should exist: ${file}`
-			);
+			expect(fs.existsSync(filePath)).toBe(true);
 		}
 	});
 
 	test("share-usage.json exists and has valid structure", () => {
 		const shareUsagePath = path.join(distPath, "share-usage.json");
 
-		assert.ok(fs.existsSync(shareUsagePath), "share-usage.json should exist");
+		expect(fs.existsSync(shareUsagePath)).toBe(true);
 
 		const content = JSON.parse(fs.readFileSync(shareUsagePath, "utf8"));
 
 		// Check structure
-		assert.ok(
-			content.consume_shared_modules,
-			"should have consume_shared_modules"
-		);
-		assert.ok(content.metadata, "should have metadata");
+		expect(content.consume_shared_modules).toBeTruthy();
+		expect(content.metadata).toBeTruthy();
 
 		// Check expected modules exist
 		const expectedModules = [
@@ -87,27 +77,13 @@ describe("ConsumeShared Macro Validation", () => {
 			"component-lib"
 		];
 		for (const module of expectedModules) {
-			assert.ok(
-				content.consume_shared_modules[module],
-				`should have module '${module}' in consume_shared_modules`
-			);
+			expect(content.consume_shared_modules[module]).toBeTruthy();
 		}
 
 		// Check metadata structure
-		assert.strictEqual(
-			typeof content.metadata.total_modules,
-			"number",
-			"metadata.total_modules should be a number"
-		);
-		assert.strictEqual(
-			typeof content.metadata.modules_with_unused_exports,
-			"number",
-			"metadata.modules_with_unused_exports should be a number"
-		);
-		assert.ok(
-			content.metadata.plugin_version,
-			"metadata.plugin_version should exist"
-		);
+		expect(typeof content.metadata.total_modules).toBe("number");
+		expect(typeof content.metadata.modules_with_unused_exports).toBe("number");
+		expect(content.metadata.plugin_version).toBeTruthy();
 	});
 
 	describe("macro comments validation", () => {
@@ -115,15 +91,12 @@ describe("ConsumeShared Macro Validation", () => {
 			test(`${snapshot.file} contains expected macro comments`, () => {
 				const filePath = path.join(distPath, snapshot.file);
 
-				assert.ok(fs.existsSync(filePath), `${snapshot.file} should exist`);
+				expect(fs.existsSync(filePath)).toBe(true);
 
 				const content = fs.readFileSync(filePath, "utf8");
 
 				for (const expectedComment of snapshot.expectedComments) {
-					assert.ok(
-						content.includes(expectedComment),
-						`${snapshot.file} should contain macro comment: ${expectedComment}`
-					);
+					expect(content.includes(expectedComment)).toBe(true);
 				}
 			});
 		}
@@ -161,7 +134,7 @@ describe("ConsumeShared Macro Validation", () => {
 		const reportPath = path.join(process.cwd(), "test-report.json");
 		fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
-		assert.ok(fs.existsSync(reportPath), "test report should be generated");
+		expect(fs.existsSync(reportPath)).toBe(true);
 
 		console.log(`✅ Test report generated: ${reportPath}`);
 		console.log(

@@ -931,8 +931,8 @@ impl EnhancedShareUsagePlugin {
       ) {
         // Use the enhanced API with proper error handling
         match consume_shared.find_fallback_module_id(module_graph) {
-          Ok(fallback_id) => fallback_id,
-          Err(_) => {
+          Some(fallback_id) => Some(fallback_id),
+          None => {
             // Log warning but don't fail - graceful degradation
             tracing::warn!(
               "Failed to find fallback module for ConsumeShared: {}",
