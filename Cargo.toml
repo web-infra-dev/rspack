@@ -215,9 +215,9 @@ opt-level = 0
 # This is for local development
 [profile.dev]
 codegen-units = 16
-debug         = 2       # debug build will cause runtime panic if codegen-unints is default
+debug         = 2        # debug build will cause runtime panic if codegen-unints is default
 incremental   = true
-panic         = "abort"
+panic         = "unwind" # only enable unwind for dev profile to help debugging panic cause it generate bigger size for release profile
 
 [profile.release-debug]
 codegen-units = 16

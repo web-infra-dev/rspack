@@ -1,6 +1,6 @@
-use color_backtrace::{default_output_stream, BacktracePrinter};
-
+#[cfg(feature = "color-backtrace")]
 pub fn install_panic_handler() {
+  use color_backtrace::{default_output_stream, BacktracePrinter};
   let panic_handler = BacktracePrinter::default()
     .message("Panic occurred at runtime. Please file an issue on GitHub with the backtrace below: https://github.com/web-infra-dev/rspack/issues")
     .add_frame_filter(Box::new(|frames| {
