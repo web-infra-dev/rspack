@@ -2498,6 +2498,8 @@ interface Experiments_2 {
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
     // (undocumented)
+    RstestPlugin: typeof RstestPlugin;
+    // (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
@@ -6356,7 +6358,6 @@ declare namespace rspackExports {
         ProvidePlugin,
         DefinePlugin,
         ProgressPlugin,
-        RstestPlugin,
         EntryPlugin,
         DynamicEntryPlugin,
         ExternalsPlugin,
@@ -6782,7 +6783,7 @@ export type RspackSeverity = binding.JsRspackSeverity;
 export const rspackVersion: string;
 
 // @public (undocumented)
-export const RstestPlugin: {
+const RstestPlugin: {
     new (rstest: RawRstestPluginOptions): {
         name: BuiltinPluginName;
         _args: [rstest: RawRstestPluginOptions];
