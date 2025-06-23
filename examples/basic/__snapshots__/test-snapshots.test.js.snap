@@ -1,132 +1,5 @@
 // Rstest Snapshot v1
 
-exports[`ConsumeShared Share Chunks Snapshots > all chunks tree-shaking annotations snapshot 1`] = `
-{
-  "shared_api_js.js": {
-    "macroComments": [
-      {
-        "condition": "treeShake.api-lib.ApiClient",
-        "fullMatch": 115,
-      },
-      {
-        "condition": "treeShake.api-lib.createApiClient",
-        "fullMatch": 127,
-      },
-      {
-        "condition": "treeShake.api-lib.fetchWithTimeout",
-        "fullMatch": 129,
-      },
-      {
-        "condition": "treeShake.api-lib.DEFAULT_TIMEOUT",
-        "fullMatch": 127,
-      },
-      {
-        "condition": "treeShake.utility-lib.deepClone",
-        "fullMatch": 119,
-      },
-      {
-        "condition": "treeShake.utility-lib.generateId",
-        "fullMatch": 121,
-      },
-      {
-        "condition": "treeShake.utility-lib.validateEmail",
-        "fullMatch": 127,
-      },
-    ],
-    "pureAnnotations": {
-      "count": 2,
-      "hasAny": true,
-    },
-    "treeShakingMarkers": {
-      "hasESMExportComments": false,
-      "hasESMImportComments": true,
-      "hasReexportComments": false,
-      "hasUnusedExportComments": false,
-    },
-  },
-  "shared_components_js.js": {
-    "macroComments": [
-      {
-        "condition": "treeShake.component-lib.Button",
-        "fullMatch": 115,
-      },
-      {
-        "condition": "treeShake.component-lib.Modal",
-        "fullMatch": 113,
-      },
-      {
-        "condition": "treeShake.component-lib.createCard",
-        "fullMatch": 123,
-      },
-    ],
-    "pureAnnotations": {
-      "count": 0,
-      "hasAny": false,
-    },
-    "treeShakingMarkers": {
-      "hasESMExportComments": false,
-      "hasESMImportComments": false,
-      "hasReexportComments": false,
-      "hasUnusedExportComments": false,
-    },
-  },
-  "shared_utils_js.js": {
-    "macroComments": [
-      {
-        "condition": "treeShake.api-lib.DEFAULT_TIMEOUT",
-        "fullMatch": 127,
-      },
-      {
-        "condition": "treeShake.utility-lib.deepClone",
-        "fullMatch": 119,
-      },
-      {
-        "condition": "treeShake.utility-lib.generateId",
-        "fullMatch": 121,
-      },
-      {
-        "condition": "treeShake.utility-lib.validateEmail",
-        "fullMatch": 127,
-      },
-      {
-        "condition": "treeShake.utility-lib.capitalize",
-        "fullMatch": 121,
-      },
-      {
-        "condition": "treeShake.utility-lib.debounce",
-        "fullMatch": 117,
-      },
-      {
-        "condition": "treeShake.utility-lib.deepClone",
-        "fullMatch": 151,
-      },
-      {
-        "condition": "treeShake.utility-lib.formatDate",
-        "fullMatch": 121,
-      },
-      {
-        "condition": "treeShake.utility-lib.generateId",
-        "fullMatch": 152,
-      },
-      {
-        "condition": "treeShake.utility-lib.validateEmail",
-        "fullMatch": 155,
-      },
-    ],
-    "pureAnnotations": {
-      "count": 2,
-      "hasAny": true,
-    },
-    "treeShakingMarkers": {
-      "hasESMExportComments": false,
-      "hasESMImportComments": true,
-      "hasReexportComments": false,
-      "hasUnusedExportComments": false,
-    },
-  },
-}
-`;
-
 exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`] = `
 {
   "main.js": {
@@ -141,25 +14,25 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasMacroComments": true,
     "hasPureAnnotations": true,
     "hasWebpackRequire": true,
-    "macroCount": 7,
+    "macroCount": 8,
     "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], { "./shared/api.js": /*!***********************!*\\ !*** ./shared/a",
-    "size": 5693,
+    "size": 5394,
   },
   "shared_components_js.js": {
     "hasMacroComments": true,
     "hasPureAnnotations": false,
     "hasWebpackRequire": true,
-    "macroCount": 3,
+    "macroCount": 4,
     "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], { "./shared/components.js": /*!******************************",
-    "size": 1941,
+    "size": 1908,
   },
   "shared_utils_js.js": {
     "hasMacroComments": true,
     "hasPureAnnotations": true,
     "hasWebpackRequire": true,
-    "macroCount": 10,
+    "macroCount": 11,
     "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], { "./shared/config.js": /*!**************************!*\\ !*** ./",
-    "size": 5456,
+    "size": 5185,
   },
   "vendors-node_modules_pnpm_lodash-es_4_17_21_node_modules_lodash-es_lodash_js.js": {
     "hasMacroComments": true,
@@ -193,8 +66,9 @@ exports[`ConsumeShared Share Chunks Snapshots > macro annotations extracted 1`] 
   "shared_api_js.js": [
     "/* @common:if [condition="treeShake.api-lib.ApiClient"] */ /* ESM export specifier */ ApiClient /* @common:endif */",
     "/* @common:if [condition="treeShake.api-lib.createApiClient"] */ /* ESM export specifier */ createApiClient /* @common:endif */",
+    "/* @common:if [condition="treeShake.api-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
     "/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ /* ESM export specifier */ fetchWithTimeout /* @common:endif */",
-    "/* @common:if [condition="treeShake.api-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* ESM export specifier */ deepClone /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.generateId"] */ /* ESM export specifier */ generateId /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ /* ESM export specifier */ validateEmail /* @common:endif */",
@@ -203,40 +77,21 @@ exports[`ConsumeShared Share Chunks Snapshots > macro annotations extracted 1`] 
     "/* @common:if [condition="treeShake.component-lib.Button"] */ /* ESM export specifier */ Button /* @common:endif */",
     "/* @common:if [condition="treeShake.component-lib.Modal"] */ /* ESM export specifier */ Modal /* @common:endif */",
     "/* @common:if [condition="treeShake.component-lib.createCard"] */ /* ESM export specifier */ createCard /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
   ],
   "shared_utils_js.js": [
-    "/* @common:if [condition="treeShake.api-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* ESM export specifier */ deepClone /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.generateId"] */ /* ESM export specifier */ generateId /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ /* ESM export specifier */ validateEmail /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.capitalize"] */ /* ESM export specifier */ capitalize /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.debounce"] */ /* ESM export specifier */ debounce /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_0__.I8 /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.formatDate"] */ /* ESM export specifier */ formatDate /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.generateId"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_0__.Ox /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_0__.oH /* @common:endif */",
   ],
-}
-`;
-
-exports[`ConsumeShared Share Chunks Snapshots > main chunk consumption patterns snapshot 1`] = `
-{
-  "consumeSharedCalls": {
-    "count": 25,
-    "uniquePaths": [
-      "webpack/sharing/consume/default/api-lib/./shared/api",
-      "webpack/sharing/consume/default/component-lib/./shared/components",
-      "webpack/sharing/consume/default/lodash-es/lodash-es",
-      "webpack/sharing/consume/default/react-dom/react-dom",
-      "webpack/sharing/consume/default/react/react",
-      "webpack/sharing/consume/default/utility-lib/./shared/utils",
-    ],
-  },
-  "hasConsumesLoadingData": true,
-  "hasFallbackFunctions": true,
-  "hasModuleFederationRuntime": true,
-  "hasShareScope": true,
-  "sharedModuleReferences": [],
 }
 `;
 
@@ -368,35 +223,6 @@ var __webpack_unused_export__;
             console.war"
 `;
 
-exports[`ConsumeShared Share Chunks Snapshots > share-usage.json structure snapshot 1`] = `
-{
-  "hasConsumeSharedModules": true,
-  "metadataStructure": {
-    "hasModulesWithUnusedExports": false,
-    "hasPluginVersion": false,
-    "hasTimestamp": false,
-    "hasTotalModules": false,
-  },
-  "moduleCount": 6,
-  "moduleKeys": [
-    "api-lib",
-    "component-lib",
-    "lodash-es",
-    "react",
-    "react-dom",
-    "utility-lib",
-  ],
-  "sampleModuleStructure": {
-    "hasExportDetails": false,
-    "hasFallbackInfo": false,
-    "hasProvidedExports": false,
-    "hasUnusedExports": true,
-    "hasUnusedImports": false,
-    "hasUsedExports": true,
-  },
-}
-`;
-
 exports[`ConsumeShared Share Chunks Snapshots > shared API chunk content 1`] = `
 ""use strict";
 (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], {
@@ -405,14 +231,11 @@ exports[`ConsumeShared Share Chunks Snapshots > shared API chunk content 1`] = `
   !*** ./shared/api.js ***!
   \\***********************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* DEBUG: ESM export 'fetchWithTimeout' -> 'fetchWithTimeout' */
-/* DEBUG: ESM export 'ApiClient' -> 'ApiClient' */
-/* DEBUG: ESM export 'createApiClient' -> 'createApiClient' */
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   ApiClient: () => (/* @common:if [condition="treeShake.api-lib.ApiClient"] */ /* ESM export specifier */ ApiClient /* @common:endif */),
   createApiClient: () => (/* @common:if [condition="treeShake.api-lib.createApiClient"] */ /* ESM export specifier */ createApiClient /* @common:endif */),
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (/* @common:if [condition="treeShake.api-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */),
   fetchWithTimeout: () => (/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ /* ESM export specifier */ fetchWithTimeout /* @common:endif */)
 });
 /* ESM import */var _nested_utils_js__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__(/*! ./nested-utils.js */ "./shared/nested-utils.js");
@@ -479,12 +302,11 @@ const createApiClient = (baseUrl, headers) => {
   !*** ./shared/config.js ***!
   \\**************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* DEBUG: ESM export 'DEFAULT_TIMEOUT' -> 'DEFAULT_TIMEOUT' */
 /* unused ESM export 'API_ENDPOINTS' */
 /* unused ESM export 'MAX_RETRIES' */
 /* unused ESM export 'getApiUrl' */
 __webpack_require__.d(__webpack_exports__, {
-  EH: () => (/* @common:if [condition="treeShake.api-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */)
+  EH: () => (/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */)
 });
 // Shared configuration module
 const API_ENDPOINTS = (/* unused pure expression or super */ null && ({
@@ -513,9 +335,6 @@ const getApiUrl = (endpoint) => {
   !*** ./shared/nested-utils.js ***!
   \\********************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* DEBUG: ESM export 'validateEmail' -> 'validateEmail' */
-/* DEBUG: ESM export 'generateId' -> 'generateId' */
-/* DEBUG: ESM export 'deepClone' -> 'deepClone' */
 /* unused ESM export 'sortBy' */
 __webpack_require__.d(__webpack_exports__, {
   I8: () => (/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* ESM export specifier */ deepClone /* @common:endif */),
@@ -566,54 +385,6 @@ const sortBy = (array, key) => {
 }]);"
 `;
 
-exports[`ConsumeShared Share Chunks Snapshots > shared api chunk snapshot 1`] = `
-{
-  "exportStructure": [
-    {
-      "exportCount": 3,
-      "hasArrowFunctions": true,
-      "hasGetters": false,
-    },
-    {
-      "exportCount": 1,
-      "hasArrowFunctions": true,
-      "hasGetters": false,
-    },
-    {
-      "exportCount": 3,
-      "hasArrowFunctions": true,
-      "hasGetters": false,
-    },
-  ],
-  "hasModuleFederationComment": false,
-  "hasPureAnnotations": true,
-  "importStatements": {
-    "count": 2,
-    "hasComments": true,
-    "hasPureAnnotations": true,
-  },
-  "macroComments": [
-    {
-      "condition": "treeShake.api-lib.ApiClient",
-      "fullMatch": 115,
-    },
-    {
-      "condition": "treeShake.api-lib.createApiClient",
-      "fullMatch": 127,
-    },
-    {
-      "condition": "treeShake.api-lib.fetchWithTimeout",
-      "fullMatch": 129,
-    },
-    {
-      "condition": "treeShake.api-lib.DEFAULT_TIMEOUT",
-      "fullMatch": 127,
-    },
-  ],
-  "webpackRequireCalls": 2,
-}
-`;
-
 exports[`ConsumeShared Share Chunks Snapshots > shared components chunk content 1`] = `
 ""use strict";
 (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], {
@@ -622,15 +393,12 @@ exports[`ConsumeShared Share Chunks Snapshots > shared components chunk content 
   !*** ./shared/components.js ***!
   \\******************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* DEBUG: ESM export 'Button' -> 'Button' */
-/* DEBUG: ESM export 'Modal' -> 'Modal' */
-/* DEBUG: ESM export 'createCard' -> 'createCard' */
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   Button: () => (/* @common:if [condition="treeShake.component-lib.Button"] */ /* ESM export specifier */ Button /* @common:endif */),
   Modal: () => (/* @common:if [condition="treeShake.component-lib.Modal"] */ /* ESM export specifier */ Modal /* @common:endif */),
   createCard: () => (/* @common:if [condition="treeShake.component-lib.createCard"] */ /* ESM export specifier */ createCard /* @common:endif */),
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */)
 });
 // Shared component library
 class Button {
@@ -684,40 +452,6 @@ const createCard = (title, description) => {
 }]);"
 `;
 
-exports[`ConsumeShared Share Chunks Snapshots > shared components chunk snapshot 1`] = `
-{
-  "exportStructure": [
-    {
-      "exportCount": 3,
-      "hasArrowFunctions": true,
-      "hasGetters": false,
-    },
-  ],
-  "hasModuleFederationComment": false,
-  "hasPureAnnotations": false,
-  "importStatements": {
-    "count": 0,
-    "hasComments": false,
-    "hasPureAnnotations": false,
-  },
-  "macroComments": [
-    {
-      "condition": "treeShake.component-lib.Button",
-      "fullMatch": 115,
-    },
-    {
-      "condition": "treeShake.component-lib.Modal",
-      "fullMatch": 113,
-    },
-    {
-      "condition": "treeShake.component-lib.createCard",
-      "fullMatch": 123,
-    },
-  ],
-  "webpackRequireCalls": 0,
-}
-`;
-
 exports[`ConsumeShared Share Chunks Snapshots > shared utilities chunk content 1`] = `
 ""use strict";
 (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], {
@@ -726,12 +460,11 @@ exports[`ConsumeShared Share Chunks Snapshots > shared utilities chunk content 1
   !*** ./shared/config.js ***!
   \\**************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* DEBUG: ESM export 'DEFAULT_TIMEOUT' -> 'DEFAULT_TIMEOUT' */
 /* unused ESM export 'API_ENDPOINTS' */
 /* unused ESM export 'MAX_RETRIES' */
 /* unused ESM export 'getApiUrl' */
 __webpack_require__.d(__webpack_exports__, {
-  EH: () => (/* @common:if [condition="treeShake.api-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */)
+  EH: () => (/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ /* ESM export specifier */ DEFAULT_TIMEOUT /* @common:endif */)
 });
 // Shared configuration module
 const API_ENDPOINTS = (/* unused pure expression or super */ null && ({
@@ -760,9 +493,6 @@ const getApiUrl = (endpoint) => {
   !*** ./shared/nested-utils.js ***!
   \\********************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* DEBUG: ESM export 'validateEmail' -> 'validateEmail' */
-/* DEBUG: ESM export 'generateId' -> 'generateId' */
-/* DEBUG: ESM export 'deepClone' -> 'deepClone' */
 /* unused ESM export 'sortBy' */
 __webpack_require__.d(__webpack_exports__, {
   I8: () => (/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* ESM export specifier */ deepClone /* @common:endif */),
@@ -814,15 +544,12 @@ const sortBy = (array, key) => {
   !*** ./shared/utils.js ***!
   \\*************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* DEBUG: ESM export 'formatDate' -> 'formatDate' */
-/* DEBUG: ESM export 'capitalize' -> 'capitalize' */
-/* DEBUG: ESM export 'debounce' -> 'debounce' */
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   capitalize: () => (/* @common:if [condition="treeShake.utility-lib.capitalize"] */ /* ESM export specifier */ capitalize /* @common:endif */),
   debounce: () => (/* @common:if [condition="treeShake.utility-lib.debounce"] */ /* ESM export specifier */ debounce /* @common:endif */),
   deepClone: () => (/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_0__.I8 /* @common:endif */),
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (/* @common:if [condition="treeShake.utility-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */),
   formatDate: () => (/* @common:if [condition="treeShake.utility-lib.formatDate"] */ /* ESM export specifier */ formatDate /* @common:endif */),
   generateId: () => (/* @common:if [condition="treeShake.utility-lib.generateId"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_0__.Ox /* @common:endif */),
   validateEmail: () => (/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_0__.oH /* @common:endif */)
@@ -865,72 +592,4 @@ const debounce = (func, wait) => {
 }),
 
 }]);"
-`;
-
-exports[`ConsumeShared Share Chunks Snapshots > shared utilities chunk snapshot 1`] = `
-{
-  "exportStructure": [
-    {
-      "exportCount": 1,
-      "hasArrowFunctions": true,
-      "hasGetters": false,
-    },
-    {
-      "exportCount": 3,
-      "hasArrowFunctions": true,
-      "hasGetters": false,
-    },
-    {
-      "exportCount": 6,
-      "hasArrowFunctions": true,
-      "hasGetters": false,
-    },
-  ],
-  "hasModuleFederationComment": false,
-  "hasPureAnnotations": true,
-  "importStatements": {
-    "count": 2,
-    "hasComments": true,
-    "hasPureAnnotations": true,
-  },
-  "macroComments": [
-    {
-      "condition": "treeShake.utility-lib.deepClone",
-      "fullMatch": 119,
-    },
-    {
-      "condition": "treeShake.utility-lib.generateId",
-      "fullMatch": 121,
-    },
-    {
-      "condition": "treeShake.utility-lib.validateEmail",
-      "fullMatch": 127,
-    },
-    {
-      "condition": "treeShake.utility-lib.capitalize",
-      "fullMatch": 121,
-    },
-    {
-      "condition": "treeShake.utility-lib.debounce",
-      "fullMatch": 117,
-    },
-    {
-      "condition": "treeShake.utility-lib.deepClone",
-      "fullMatch": 151,
-    },
-    {
-      "condition": "treeShake.utility-lib.formatDate",
-      "fullMatch": 121,
-    },
-    {
-      "condition": "treeShake.utility-lib.generateId",
-      "fullMatch": 152,
-    },
-    {
-      "condition": "treeShake.utility-lib.validateEmail",
-      "fullMatch": 155,
-    },
-  ],
-  "webpackRequireCalls": 2,
-}
 `;

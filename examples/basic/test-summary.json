@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-06-23T04:33:47.395Z",
+  "status": "PASSED",
+  "tests": {
+    "build": true,
+    "usageValidation": true,
+    "legacyValidation": true,
+    "snapshots": true
+  },
+  "summary": {
+    "totalTestSuites": 3,
+    "macroAnnotationsValidated": true,
+    "shareUsageReportGenerated": true,
+    "actualUsageAligned": true
+  }
+}

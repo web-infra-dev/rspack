@@ -1,6 +1,7 @@
 # Rspack Export System Architecture - Source Verified
 
 ## Overview
+
 This document provides a source-verified analysis of Rspack's export system architecture, based on deep research into the actual Rust implementation.
 
 ## Core Export Dependency Architecture
@@ -14,13 +15,14 @@ pub struct ESMExportSpecifierDependency {
   id: DependencyId,
   range: DependencyRange,
   name: Atom,     // Export name (what's exported)
-  value: Atom,    // Export value identifier (what's being exported) 
+  value: Atom,    // Export value identifier (what's being exported)
   inline: Option<EvaluatedInlinableValue>,
   source_map: Option<SharedSourceMap>,
 }
 ```
 
 **Key Architectural Features**:
+
 - **ConsumeShared Integration**: Recursive module graph traversal up to 5 levels deep
 - **Tree-shaking Macro Support**: Advanced `@common:if` condition generation
 - **Performance Optimization**: Multi-level caching with freeze/unfreeze controls
@@ -29,11 +31,12 @@ pub struct ESMExportSpecifierDependency {
 ### ESMExportImportedSpecifierDependency - Complex Mode System
 
 **Verified Export Modes** (11 total modes):
+
 ```rust
 enum ExportMode {
   Missing,                          // Module not found/resolvable
   Unused(ExportModeUnused),        // Tree-shaken exports
-  EmptyStar(ExportModeEmptyStar),  // Star exports with no content  
+  EmptyStar(ExportModeEmptyStar),  // Star exports with no content
   ReexportDynamicDefault(ExportModeReexportDynamicDefault),
   ReexportNamedDefault(ExportModeReexportNamedDefault),
   ReexportNamespaceObject(ExportModeReexportNamespaceObject),
@@ -45,6 +48,7 @@ enum ExportMode {
 ```
 
 **Mode Resolution Algorithm**:
+
 1. **Module Validation**: Target module existence and accessibility
 2. **Export Type Analysis**: Namespace, default-only, or mixed export detection
 3. **Usage State Evaluation**: Tree-shaking and dead code elimination checks
@@ -84,6 +88,7 @@ pub struct ExportInfoData {
 ```
 
 **Advanced Features**:
+
 - **Complex Target System**: Multi-dependency target tracking with priority
 - **Runtime-Specific Usage**: Separate usage tracking per runtime environment
 - **Inlining Support**: Sophisticated inlinable value tracking
@@ -102,6 +107,7 @@ impl DependencyCodeGeneration for ESMExportSpecifierDependency {
 ```
 
 **Template Resolution Process**:
+
 1. Dependencies register templates via `dependency_template()` method
 2. Templates are stored in centralized template registry
 3. Resolution occurs during generate phase through `get_dependency_template()`
@@ -109,10 +115,11 @@ impl DependencyCodeGeneration for ESMExportSpecifierDependency {
 ### InitFragment System - Stage-Based Composition
 
 **Verified Stage Ordering**:
+
 ```rust
 pub enum InitFragmentStage {
   StageConstants,        // -400
-  StageAsyncBoundary,    // -300  
+  StageAsyncBoundary,    // -300
   StageESMExports,       // -200
   StageESMImports,       // -100
   StageProvides,         // 0
@@ -122,6 +129,7 @@ pub enum InitFragmentStage {
 ```
 
 **Composition Algorithm**:
+
 1. **Stage Sorting**: Fragments ordered by stage value first
 2. **Key-based Merging**: Same-key fragments merged using type-specific logic
 3. **Conditional Generation**: Runtime condition support via `ConditionalInitFragment`
@@ -142,6 +150,7 @@ pub struct TemplateContext<'a, 'b, 'c> {
 ```
 
 **Generation Process**:
+
 1. **Parse Phase**: Dependencies collected during AST traversal
 2. **Template Registration**: Each dependency type has associated template
 3. **Generate Phase**: Templates applied in dependency order
@@ -153,8 +162,9 @@ pub struct TemplateContext<'a, 'b, 'c> {
 ### Star Export Discovery Algorithm
 
 **Verified Implementation**: `get_star_reexports()` method
+
 - Analyzes export availability from target modules
-- Identifies conflicts between multiple star exports  
+- Identifies conflicts between multiple star exports
 - Tracks hidden and checked exports for tree-shaking
 - Manages ignored exports to prevent infinite loops
 
@@ -164,7 +174,7 @@ pub struct TemplateContext<'a, 'b, 'c> {
 fn detect_circular_reexport(&self, module_graph: &ModuleGraph) -> Option<String> {
   let parent_module_id = module_graph.get_parent_module(&self.id)?;
   let target_module_id = module_graph.module_identifier_by_dependency_id(&self.id)?;
-  
+
   // Check if target module reexports back to parent
   for dep_id in target_module.get_dependencies() {
     if let Some(dep_target) = module_graph.module_identifier_by_dependency_id(dep_id) {
@@ -182,6 +192,7 @@ fn detect_circular_reexport(&self, module_graph: &ModuleGraph) -> Option<String>
 ### Advanced Features Discovered
 
 **Recursive ConsumeShared Detection**:
+
 ```rust
 fn find_consume_shared_recursive(
   &self,
@@ -193,15 +204,17 @@ fn find_consume_shared_recursive(
 ```
 
 **Tree-shaking Macro Generation**:
+
 ```javascript
 // Generated output example
-/* @common:if [condition="treeShake.lodash.escape"] */ 
-/* ESM export */ 
+/* @common:if [condition="treeShake.lodash.escape"] */
+/* ESM export */
 return escape;
 /* @common:endif */
 ```
 
 **Key Capabilities**:
+
 - Traverses up to 5 levels in module dependency chain
 - Detects ConsumeShared modules in re-export scenarios
 - Propagates share keys through dependency relationships
@@ -220,6 +233,7 @@ pub struct ModuleGraphCacheArtifactInner {
 ```
 
 **Optimization Patterns**:
+
 - **Freeze/Unfreeze Mechanism**: Enables/disables caching based on compilation phase
 - **Export Mode Caching**: Caches expensive export resolution computations
 - **Thread-Safe Design**: Uses RwLock for concurrent access
@@ -228,13 +242,15 @@ pub struct ModuleGraphCacheArtifactInner {
 ### Runtime Globals Optimization
 
 **Verified Runtime Requirements** (69 total flags):
+
 ```rust
 const REQUIRE = 1 << 5;              // __webpack_require__
-const MODULE_FACTORIES = 1 << 17;   // __webpack_require__.m  
+const MODULE_FACTORIES = 1 << 17;   // __webpack_require__.m
 const DEFINE_PROPERTY_GETTERS = 1 << 38; // __webpack_require__.d
 ```
 
 **Accumulation Strategy**:
+
 - Templates call `runtime_requirements.insert(RuntimeGlobals::*)`
 - Requirements collected per chunk
 - Runtime modules generated based on actual requirements
@@ -242,28 +258,34 @@ const DEFINE_PROPERTY_GETTERS = 1 << 38; // __webpack_require__.d
 
 ## Error Handling and Diagnostics
 
-### Advanced Error Analysis
+### Streamlined Error Analysis
 
-**Pattern Analysis Types**:
+**Essential Diagnostic Features**:
+
 ```rust
-enum ExportPatternAnalysis {
-  Valid,
-  CircularReexport { cycle_info: String },
-  AmbiguousWildcard { conflicts: Vec<String> },
+fn get_diagnostics(
+  &self,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+) -> Option<Vec<Diagnostic>> {
+  // Focused error detection for essential compilation issues
+  // Optimized for performance and developer experience
 }
 ```
 
-**Diagnostic Features**:
-- **Context-Aware Messages**: Detailed explanations of export failures
-- **Recovery Suggestions**: Actionable advice for resolving issues
-- **Source Location Mapping**: Precise error location reporting
-- **Severity Classification**: Warning vs error based on configuration
+**Diagnostic Capabilities**:
+
+- **Essential Error Detection**: Focused on compilation-critical issues
+- **Performance-Optimized**: Streamlined diagnostic collection
+- **Clear Error Messages**: Actionable feedback for developers
+- **Source Location Mapping**: Precise error location reporting when available
 
 ## Key Architectural Insights
 
 ### Enterprise-Grade Robustness
 
 The implementation demonstrates sophisticated patterns:
+
 - **Comprehensive error handling** with detailed diagnostics
 - **Advanced optimization** support (tree shaking, mangling, inlining)
 - **Robust Module Federation** integration beyond standard bundlers
@@ -272,6 +294,7 @@ The implementation demonstrates sophisticated patterns:
 ### Implementation Sophistication
 
 Key discoveries show the actual implementation is significantly more complex than typical documentation:
+
 - **11-mode export classification** vs simplified 3-4 mode descriptions
 - **Recursive ConsumeShared traversal** vs basic module detection
 - **Advanced caching strategies** vs simple memoization
@@ -280,7 +303,7 @@ Key discoveries show the actual implementation is significantly more complex tha
 ## Recommendations for Future Documentation
 
 1. **Export Mode Detail**: Document the complete 11-mode classification system
-2. **ConsumeShared Integration**: Detail the recursive traversal and macro generation  
+2. **ConsumeShared Integration**: Detail the recursive traversal and macro generation
 3. **Caching Architecture**: Explain the multi-level caching with freeze/unfreeze
 4. **Performance Characteristics**: Document optimization strategies and complexity analysis
 5. **Error Diagnostic System**: Explain the sophisticated error analysis and recovery

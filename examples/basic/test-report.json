@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-23T03:41:58.776Z",
+  "timestamp": "2025-06-23T04:33:45.913Z",
   "status": "PASSED",
   "build": {
     "distExists": true,
@@ -7,11 +7,48 @@
   },
   "shareUsage": {
     "fileExists": true,
-    "structureValid": true
+    "structureValid": true,
+    "moduleCount": 6,
+    "modulesWithUnusedExports": 5
   },
   "macroComments": {
     "filesChecked": 3,
     "commentsValidated": 0,
     "allPresent": true
+  },
+  "actualUsage": {
+    "utility-lib": {
+      "used": [
+        "capitalize",
+        "formatDate",
+        "default"
+      ],
+      "unused": [
+        "debounce",
+        "deepClone",
+        "generateId",
+        "validateEmail"
+      ]
+    },
+    "component-lib": {
+      "used": [
+        "Modal",
+        "Button",
+        "default"
+      ],
+      "unused": [
+        "createCard"
+      ]
+    },
+    "api-lib": {
+      "used": [
+        "createApiClient",
+        "default"
+      ],
+      "unused": [
+        "ApiClient",
+        "fetchWithTimeout"
+      ]
+    }
   }
 }

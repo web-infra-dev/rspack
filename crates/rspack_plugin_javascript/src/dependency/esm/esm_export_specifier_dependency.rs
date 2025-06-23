@@ -92,7 +92,9 @@ impl ESMExportSpecifierDependency {
     // Traverse incoming connections recursively to find ConsumeShared modules
     // that might be multiple levels up in the module dependency chain
     let mut visited = std::collections::HashSet::new();
-    if let Some(share_key) = self.find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5) {
+    if let Some(share_key) =
+      self.find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5)
+    {
       return Some(share_key);
     }
 
@@ -120,7 +122,7 @@ impl ESMExportSpecifierDependency {
           if origin_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
             return origin_module.get_consume_shared_key();
           }
-          
+
           // Recursively check this module's incoming connections
           if let Some(share_key) = self.find_consume_shared_recursive(
             origin_module_id,
@@ -168,7 +170,7 @@ impl Dependency for ESMExportSpecifierDependency {
         ..Default::default()
       })]),
       priority: Some(1),
-      can_mangle: Some(true), // Allow mangling for better optimization
+      can_mangle: None,
       terminal_binding: Some(true),
       from: None,
       dependencies: None,
@@ -288,21 +290,6 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         );
 
         init_fragments.push(Box::new(export_fragment));
-
-        // Add debug comment fragment if in development mode
-        if compilation.options.mode.is_development() {
-          let debug_fragment = NormalInitFragment::new(
-            format!(
-              "/* DEBUG: ESM export '{}' -> '{}' */\n",
-              dep.name, dep.value
-            ),
-            InitFragmentStage::StageConstants,
-            -1000, // High priority for debug info
-            InitFragmentKey::unique(),
-            None,
-          );
-          init_fragments.push(debug_fragment.boxed());
-        }
       }
       Some(UsedName::Inlined(_)) => {
         // Export is inlined, add comment for clarity
