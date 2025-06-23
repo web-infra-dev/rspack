@@ -2665,12 +2665,12 @@ pub fn find_new_name(
   used_names2: Option<&HashSet<Atom>>,
   extra_info: &Vec<String>,
 ) -> Atom {
-  let mut name = Cow::Borrowed(old_name);
+  let mut name = old_name.to_string();
 
   let mut splitted_info = extra_info.clone();
 
   for info_part in extra_info {
-    name = Cow::Owned(format!(
+    name = format!(
       "{}{}",
       info_part,
       if name.is_empty() {
@@ -2682,8 +2682,8 @@ pub fn find_new_name(
           format!("_{name}")
         }
       }
-    ));
-    let name_ident = to_identifier_with_escaped(&name).into();
+    );
+    let name_ident = Atom::from(to_identifier_with_escaped(name.clone()));
     if !used_names1.contains(&name_ident)
       && (used_names2.is_none()
         || !used_names2
@@ -2695,7 +2695,7 @@ pub fn find_new_name(
   }
 
   let mut i = 0;
-  let name_with_number_ident = Atom::from(to_identifier_with_escaped(&format!("{}_", name)));
+  let name_with_number_ident = Atom::from(to_identifier_with_escaped(format!("{}_", name)));
   let mut name_with_number = format!("{}{}", name_with_number_ident, itoa!(i)).into();
   while used_names1.contains(&name_with_number)
     || used_names2

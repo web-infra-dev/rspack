@@ -32,18 +32,18 @@ pub fn to_identifier(v: &str) -> Cow<str> {
   }
 }
 
-pub fn to_identifier_with_escaped(v: &str) -> Cow<str> {
+pub fn to_identifier_with_escaped(v: String) -> String {
   if v.is_empty() {
-    return Cow::Borrowed(v);
+    return v;
   }
 
   if let Some(first_char) = v.chars().next() {
     if first_char.is_ascii_alphabetic() || first_char == '$' || first_char == '_' {
-      return Cow::Borrowed(v);
+      return v;
     }
-    Cow::Owned(format!("_{v}"))
+    format!("_{v}")
   } else {
-    Cow::Borrowed(v)
+    v
   }
 }
 
