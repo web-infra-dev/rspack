@@ -1012,7 +1012,7 @@ impl Module for ConcatenatedModule {
 
     // Find and replace references to modules
     // Splitting read and write to avoid violating rustc borrow rules
-    let info_map = module_to_info_map
+    let changes = module_to_info_map
       .par_values()
       .filter_map(|info| {
         let ModuleInfo::Concatenated(info) = info else {
@@ -1043,13 +1043,7 @@ impl Module for ConcatenatedModule {
             ));
           }
         }
-        Some((info.module, refs))
-      })
-      .collect::<IdentifierIndexMap<Vec<_>>>();
 
-    let changes = info_map
-      .into_par_iter()
-      .map(|(module_info_id, info_params_list)| {
         let mut changes = vec![];
         for (
           reference_ident,
@@ -1059,7 +1053,7 @@ impl Module for ConcatenatedModule {
           call_context,
           strict_esm_module,
           asi_safe,
-        ) in info_params_list
+        ) in refs
         {
           let final_name = Self::get_final_name(
             &compilation.get_module_graph(),
@@ -1085,7 +1079,7 @@ impl Module for ConcatenatedModule {
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
           changes.push((final_name, (low, high + 2)));
         }
-        (module_info_id, changes)
+        Some((info.module, changes))
       })
       .collect::<Vec<_>>();
 
