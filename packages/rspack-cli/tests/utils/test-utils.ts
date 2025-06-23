@@ -75,6 +75,7 @@ const createProcess = (cwd, args, options, env) => {
 		reject: false,
 		stdio: ENABLE_LOG_COMPILATION ? "inherit" : "pipe",
 		maxBuffer: Infinity,
+		timeout: process.env.CI ? 200000 : 30000,
 		env: { RSPACK_CLI_HELP_WIDTH: 1024, ...env },
 		...options
 	});
