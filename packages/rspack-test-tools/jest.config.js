@@ -4,9 +4,7 @@ const root = path.resolve(__dirname, "../../");
 
 /** @type {import('jest').Config} */
 const wasmConfig = process.env.WASM && {
-	// Skip snapshots
-	testPathIgnorePatterns: ["/__snapshots__/"],
-	passWithNoTests: true,
+	testPathIgnorePatterns: ["Error.test.js"],
 	maxWorkers: process.env.CI ? "80%" : 1
 };
 
