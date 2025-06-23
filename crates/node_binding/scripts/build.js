@@ -1,12 +1,14 @@
 const path = require("path");
 const { readFileSync, writeFileSync } = require("fs");
-const { values } = require("util").parseArgs({
+const { values, positionals } = require("util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
 		profile: {
 			type: "string"
 		}
-	}
+	},
+	strict: true,
+	allowPositionals: true
 });
 
 const { spawn } = require("child_process");
@@ -66,6 +68,12 @@ async function build() {
 		}
 		if (features.length) {
 			args.push("--features " + features.join(","));
+		}
+
+		if (positionals.length > 0) {
+			// napi need `--` to separate options and positional arguments.
+			args.push("--");
+			args.push(...positionals);
 		}
 
 		console.log(`Run command: napi ${args.join(" ")}`);
