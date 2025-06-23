@@ -105,9 +105,9 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
       chunk_key_to_id.insert(chunk.ukey(), id);
       true
     },
-    &[usize::pow(10, max_length)],
+    &[u64::pow(10, max_length)],
     expand_factor,
-    used_ids_len,
+    used_ids_len as u64,
     salt,
   );
 

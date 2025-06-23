@@ -121,24 +121,24 @@ pub fn assign_deterministic_ids<T: Copy>(
   mut items: Vec<T>,
   get_name: impl Fn(T) -> String,
   comparator: impl Fn(&T, &T) -> Ordering,
-  mut assign_id: impl FnMut(T, usize) -> bool,
-  ranges: &[usize],
-  expand_factor: usize,
-  extra_space: usize,
-  salt: usize,
+  mut assign_id: impl FnMut(T, u64) -> bool,
+  ranges: &[u64],
+  expand_factor: u64,
+  extra_space: u64,
+  salt: u64,
 ) {
   items.sort_unstable_by(comparator);
 
-  let optimal_range = usize::min(items.len() * 20 + extra_space, usize::MAX);
+  let optimal_range = u64::min(items.len() as u64 * 20 + extra_space, u64::MAX);
   let mut i = 0;
   debug_assert!(!ranges.is_empty());
   let mut range = ranges[i];
   while range < optimal_range {
     i += 1;
     if i < ranges.len() {
-      range = usize::min(ranges[i], usize::MAX);
+      range = u64::min(ranges[i], u64::MAX);
     } else if expand_factor != 0 {
-      range = usize::min(range * expand_factor, usize::MAX);
+      range = u64::min(range * expand_factor, u64::MAX);
     } else {
       break;
     }

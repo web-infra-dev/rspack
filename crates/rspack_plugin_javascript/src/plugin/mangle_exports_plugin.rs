@@ -291,11 +291,11 @@ fn mangle_exports_info(
         }
       },
       &[
-        NUMBER_OF_IDENTIFIER_START_CHARS as usize,
-        (NUMBER_OF_IDENTIFIER_START_CHARS * NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) as usize,
+        NUMBER_OF_IDENTIFIER_START_CHARS as u64,
+        (NUMBER_OF_IDENTIFIER_START_CHARS * NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) as u64,
       ],
-      NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS as usize,
-      used_names_len,
+      NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS as u64,
+      used_names_len as u64,
       0,
     );
     for (export_info, name) in export_info_used_name {

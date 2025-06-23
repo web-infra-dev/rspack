@@ -55,9 +55,9 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
       ChunkGraph::set_module_id(&mut module_ids, module.identifier(), id.to_string().into());
       true
     },
-    &[usize::pow(10, max_length)],
+    &[u64::pow(10, max_length)],
     if fixed_length { 0 } else { 10 },
-    used_ids_len,
+    used_ids_len as u64,
     salt,
   );
   compilation.module_ids_artifact = module_ids;
