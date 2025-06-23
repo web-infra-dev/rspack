@@ -28,10 +28,10 @@ function assert_cycle_module_count(modules, count) {
 	let cycle1_count = 0;
 	let cycle2_count = 0;
 	for (const m of modules) {
-		if (m.identifier.includes("/cycle1/")) {
+		if (/[\/\\]cycle1[\/\\]/.test(m.identifier)) {
 			cycle1_count++;
 		}
-		if (m.identifier.includes("/cycle2/")) {
+		if (/[\/\\]cycle2[\/\\]/.test(m.identifier)) {
 			cycle2_count++;
 		}
 	}
