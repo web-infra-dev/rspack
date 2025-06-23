@@ -266,7 +266,7 @@ impl ModuleConcatenationPlugin {
         .module_by_identifier(module_id)
         .expect("should have module");
       let module_readable_identifier = get_cached_readable_identifier(
-        &module,
+        module,
         &compilation.module_static_cache_artifact,
         &compilation.options.context,
       );
@@ -412,7 +412,7 @@ impl ModuleConcatenationPlugin {
                 .module_by_identifier(mid)
                 .expect("should have module");
               get_cached_readable_identifier(
-                &m,
+                m,
                 &compilation.module_static_cache_artifact,
                 &compilation.options.context,
               )
@@ -460,7 +460,7 @@ impl ModuleConcatenationPlugin {
                 .module_by_identifier(origin_module)
                 .expect("should have module");
               let readable_identifier = get_cached_readable_identifier(
-                &module,
+                module,
                 &compilation.module_static_cache_artifact,
                 &compilation.options.context,
               );
@@ -539,7 +539,7 @@ impl ModuleConcatenationPlugin {
                     .module_by_identifier(origin_module)
                     .expect("should have module");
                   let readable_identifier = get_cached_readable_identifier(
-                    &module,
+                    module,
                     &compilation.module_static_cache_artifact,
                     &compilation.options.context,
                   );
@@ -637,7 +637,7 @@ impl ModuleConcatenationPlugin {
     let root_module_ctxt = RootModuleContext {
       id: root_module_id,
       readable_identifier: get_cached_readable_identifier(
-        &box_module,
+        box_module,
         &compilation.module_static_cache_artifact,
         &compilation.options.context,
       ),
@@ -684,7 +684,7 @@ impl ModuleConcatenationPlugin {
             hasher.finish()
           }),
           shorten_id: get_cached_readable_identifier(
-            &module,
+            module,
             &compilation.module_static_cache_artifact,
             &compilation.options.context,
           ),

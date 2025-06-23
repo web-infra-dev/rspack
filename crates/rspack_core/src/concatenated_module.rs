@@ -8,7 +8,6 @@ use std::{
 
 use dashmap::DashMap;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_cacheable::{
@@ -749,12 +748,12 @@ impl Module for ConcatenatedModule {
 
         match info {
           ModuleInfo::Concatenated(info) => {
-            for (id, refs) in info.binding_to_ref.iter() {
+            for (id, _) in info.binding_to_ref.iter() {
               escaped_names.insert(id.0.to_string(), escape_name(id.0.as_str()));
             }
 
             if let Some(import_map) = &info.import_map {
-              for ((source, attr), imported_atoms) in import_map.iter() {
+              for ((source, _), imported_atoms) in import_map.iter() {
                 escaped_identifiers.insert(
                   source.to_string(),
                   split_readable_identifier(source.as_str()),
@@ -2167,7 +2166,7 @@ impl ConcatenatedModule {
           panic!(
             "The export \"{}\" in \"{}\" has no internal name (existing names: {})",
             export_id,
-            get_cached_readable_identifier(module, module_static_cache_artifact, &context),
+            get_cached_readable_identifier(module, module_static_cache_artifact, context),
             info
               .internal_names
               .iter()
@@ -2667,20 +2666,16 @@ pub fn find_new_name(
 ) -> Atom {
   let mut name = old_name.to_string();
 
-  let mut splitted_info = extra_info.clone();
-
   for info_part in extra_info {
     name = format!(
       "{}{}",
       info_part,
       if name.is_empty() {
         String::new()
+      } else if name.starts_with('_') || info_part.ends_with('_') {
+        name.to_string()
       } else {
-        if name.starts_with('_') || info_part.ends_with('_') {
-          name.to_string()
-        } else {
-          format!("_{name}")
-        }
+        format!("_{name}")
       }
     );
     let name_ident = Atom::from(to_identifier_with_escaped(name.clone()));
@@ -2695,7 +2690,7 @@ pub fn find_new_name(
   }
 
   let mut i = 0;
-  let name_with_number_ident = Atom::from(to_identifier_with_escaped(format!("{}_", name)));
+  let name_with_number_ident = Atom::from(to_identifier_with_escaped(format!("{name}_")));
   let mut name_with_number = format!("{}{}", name_with_number_ident, itoa!(i)).into();
   while used_names1.contains(&name_with_number)
     || used_names2
@@ -2793,7 +2788,7 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<String> {
 
 pub fn escape_name(name: &str) -> String {
   if name == DEFAULT_EXPORT {
-    return "".to_string();
+    return String::new();
   }
   if name == NAMESPACE_OBJECT_EXPORT {
     return "namespaceObject".to_string();
