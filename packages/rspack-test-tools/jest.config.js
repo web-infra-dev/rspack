@@ -1,6 +1,15 @@
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "../../");
+
+/** @type {import('jest').Config} */
+const wasmConfig = process.env.WASM && {
+	// Skip snapshots
+	testPathIgnorePatterns: ["/__snapshots__/"],
+	passWithNoTests: true,
+	maxWorkers: process.env.CI ? "80%" : 1
+};
+
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
@@ -43,7 +52,8 @@ const config = {
 					]
 				: undefined,
 		printLogger: process.argv.includes("--verbose")
-	}
+	},
+	...(wasmConfig || {})
 };
 
 module.exports = config;
