@@ -126,9 +126,9 @@ npm init -y
 - [从 Tsup 迁移到 Rslib](https://rslib.rs/zh/guide/migration/tsup)
 - [从 Storybook 迁移](/guide/migration/storybook)
 
-## 使用 StackBlitz 在线部署项目
+## 使用 StackBlitz 在线预览项目
 
-Rspack 1.4 实现了 Wasm 版本，支持直接在 StackBlitz/WebContainer 使用。当前版本下，如果你想在 StackBlitz 上部署你的 Rspack 项目，你需要在安装依赖的时候指定 cpu 架构。不同包管理器指定 cpu 架构的方式有所不同。
+Rspack 1.4 实现了 Wasm 版本，支持直接在 StackBlitz/WebContainer 使用。当前版本下，如果你想在 StackBlitz 上预览你的 Rspack 项目，你需要在安装依赖的时候指定 cpu 架构。不同包管理器指定 cpu 架构的方式有所不同。
 
 对于 npm，可以通过 `--cpu` 指定可选依赖需要满足的条件：
 
@@ -150,7 +150,7 @@ npm install --cpu=wasm32
 
 其余包管理器可自行查阅相应的文档。
 
-未来我们会优化使用流程，使得用户可以无缝地部署 Rspack 项目。除此之外，未来我们也会实现能够在浏览器上直接使用 Rspack。
+未来我们会优化使用流程，使得用户可以无缝地预览 Rspack 项目。除此之外，未来我们也会实现能够在浏览器上直接使用 Rspack。
 
 ## 安装 canary 版本
 
