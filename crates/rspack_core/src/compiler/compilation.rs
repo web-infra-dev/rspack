@@ -1480,7 +1480,9 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.other_module_graph = Some(ModuleGraphPartial::default());
 
-    self.module_static_cache_artifact.freeze();
+    if !self.options.mode.is_development() {
+      self.module_static_cache_artifact.freeze();
+    }
 
     let logger = self.get_logger("rspack.Compilation");
 
@@ -1870,7 +1872,9 @@ impl Compilation {
     self.after_seal(plugin_driver).await?;
     logger.time_end(start);
 
-    self.module_static_cache_artifact.unfreeze();
+    if !self.options.mode.is_development() {
+      self.module_static_cache_artifact.unfreeze();
+    }
     Ok(())
   }
 
