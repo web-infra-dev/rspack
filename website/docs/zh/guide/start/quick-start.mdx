@@ -83,9 +83,9 @@ npx create-rsbuild -d my-project -t react
 
 - [Rsbuild CodeSandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
 
-同时我们也提供了基于 WASM 和 WebContainer 的 Stackblitz 上的在线示例:
+同时我们也提供了基于 Wasm 和 WebContainer 的 StackBlitz 上的在线示例:
 
-- [Rspack Stackblitz 示例](https://stackblitz.com/~/github.com/rspack-contrib/rspack-stackblitz-example)
+- [Rspack StackBlitz 示例](https://stackblitz.com/~/github.com/rspack-contrib/rspack-stackblitz-example)
 
 ## 手动安装
 
@@ -126,9 +126,9 @@ npm init -y
 - [从 Tsup 迁移到 Rslib](https://rslib.rs/zh/guide/migration/tsup)
 - [从 Storybook 迁移](/guide/migration/storybook)
 
-## 使用 Stackblitz 在线部署项目
+## 使用 StackBlitz 在线部署项目
 
-Rspack 1.4 实现了 WASM 版本，支持直接在 Stackblitz/WebContainer 使用。当前版本下，如果你想在 Stackblitz 上部署你的 Rspack 项目，你需要在安装依赖的时候指定 cpu 架构。不同包管理器指定 cpu 架构的方式有所不同。
+Rspack 1.4 实现了 Wasm 版本，支持直接在 StackBlitz/WebContainer 使用。当前版本下，如果你想在 StackBlitz 上部署你的 Rspack 项目，你需要在安装依赖的时候指定 cpu 架构。不同包管理器指定 cpu 架构的方式有所不同。
 
 对于 npm，可以通过 `--cpu` 指定可选依赖需要满足的条件：
 
@@ -136,7 +136,7 @@ Rspack 1.4 实现了 WASM 版本，支持直接在 Stackblitz/WebContainer 使�
 npm install --cpu=wasm32
 ```
 
-对于 pnpm，需要在项目的 `package.json` 中指定 [supportedArchitectures](https://pnpm.io/settings#supportedarchitectures)
+对于 pnpm，需要在项目的 `package.json` 中指定 [supportedArchitectures](https://pnpm.io/settings#supportedarchitectures)：
 
 ```json title="package.json"
 {
