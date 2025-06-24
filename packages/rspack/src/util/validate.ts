@@ -10,7 +10,7 @@ export class ValidationError extends Error {
 
 export function validate<T extends z.ZodType>(
 	opts: any,
-	createSchema: T | (() => T),
+	createSchema: () => T,
 	options: {
 		output?: boolean;
 		strategy?: "strict" | "loose-unrecognized-keys" | "loose-silent" | "loose";
@@ -99,7 +99,7 @@ function toValidationError(error: z.ZodError): ValidationError {
 
 export function isValidate<T extends z.ZodType>(
 	opts: any,
-	createSchema: T | (() => T)
+	createSchema: () => T
 ) {
 	try {
 		validate(opts, createSchema);
