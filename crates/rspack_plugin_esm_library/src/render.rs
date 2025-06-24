@@ -252,6 +252,7 @@ impl EsmLibraryPlugin {
                     used_names.insert(symbol.clone());
                     symbol.clone()
                   };
+                  dbg!(&local);
 
                   if needs_require_module {
                     required_symbols.insert(imported_id, local.clone());

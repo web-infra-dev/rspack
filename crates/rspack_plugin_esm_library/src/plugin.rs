@@ -3,18 +3,19 @@ use std::sync::{Arc, LazyLock};
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
+  get_target,
+  rspack_sources::{ReplaceSource, Source},
   AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
   ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter, ExportProvided, ExportsInfoGetter,
   ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition,
-  RuntimeGlobals, get_target,
-  rspack_sources::{ReplaceSource, Source},
+  RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource, dependency::ImportDependencyTemplate,
+  dependency::ImportDependencyTemplate, JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
 };
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
@@ -227,7 +228,8 @@ async fn concatenation_scope(
 
 #[plugin_hook(CompilationAfterCodeGeneration for EsmLibraryPlugin)]
 async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
-  self.link(compilation).await
+  self.link(compilation).await?;
+  Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EsmLibraryPlugin)]
@@ -247,6 +249,10 @@ async fn additional_chunk_runtime_requirements(
 
     for info in modules_info_map.values() {
       runtime_requirements.insert(*info.get_runtime_requirements());
+    }
+
+    if !runtime_requirements.is_empty() {
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     }
   }
 
