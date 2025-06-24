@@ -7,7 +7,7 @@ HEAD_SHA="${HEAD_SHA:-}"
 GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
 AUTH_HEADER="Authorization: Bearer ${GITHUB_TOKEN}"
 POLL_INTERVAL=5
-MAX_RETRIES=600  # 5 minutes
+MAX_RETRIES=60  # 5 minutes
 
 if [[ -z "$PR_NUMBER" || -z "$HEAD_SHA" || -z "$GITHUB_TOKEN" ]]; then
   echo "Missing required environment variables: PR_NUMBER, HEAD_SHA, or GITHUB_TOKEN"
