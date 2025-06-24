@@ -7,7 +7,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 <ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
 
 `CssChunkingPlugin` is an experimental plugin (inspired by Next.js) specifically designed for CSS module code splitting.
-It ensures that the execution order of style rules remains consistent with the source code import sequence, preventing style override errors.
+It ensures that the execution order of style rules remains consistent with the source code import sequence, preventing styling errors.
 
 ```js
 new rspack.experiments.CssChunkingPlugin(options);
@@ -49,3 +49,29 @@ import './a.css';
 Regular Mode (strict: false): Considers `a.css` and `b.css` to have no dependency relationship and doesn't enforce execution order, thus merging them into the same chunk.
 
 Strict Mode (strict: true): Strictly maintains execution order consistent with import sequence, therefore packaging `a.css` and `b.css` into separate chunks
+
+## Differences from SplitChunksPlugin
+
+JavaScript vs. CSS Module Characteristics:
+
+- CSS lacks function scope and cannot control execution order through runtime calls like JavaScript
+- CSS rule execution order is solely determined by their position in output files
+
+While SplitChunksPlugin disregards CSS import order during code splitting, CssChunkingPlugin respects CSS module import sequences to ensure style execution order matches the source code import order.
+
+Given the following CSS module imports:
+
+```js
+import './a.css';
+import './b.css';
+import './c.css';
+```
+
+SplitChunksPlugin may split the code into the following chunks to satisfy configuration constraints like `maxSize`:
+
+```
+chunk-1: b.css
+chunk-2: a.css, c.css  // Possibly extracted due to larger size
+```
+
+This changes the execution order to b.css → a.css → c.css, violating the original declaration and potentially causing styling errors.
