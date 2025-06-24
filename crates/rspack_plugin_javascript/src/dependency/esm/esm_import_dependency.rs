@@ -10,9 +10,9 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ErrorSpan, ExportProvided, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
   FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, TypeReexportPresenceMode,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -230,11 +230,12 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   ids: &[Atom],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
-  additional_msg: String,
+  name: &Atom,
+  is_reexport: bool,
   should_error: bool,
 ) -> Option<Diagnostic> {
   let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
-  if !imported_module.diagnostics().is_empty() {
+  if imported_module.first_error().is_some() {
     return None;
   }
   let parent_module_identifier = module_graph
@@ -248,6 +249,13 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     module_graph_cache,
     parent_module.build_meta().strict_esm_module,
   );
+  let additional_msg = || {
+    if is_reexport {
+      format!("(reexported as '{name}')")
+    } else {
+      format!("(imported as '{name}')")
+    }
+  };
   let create_error = |message: String| {
     let (severity, title) = if should_error {
       (Severity::Error, "ESModulesLinkingError")
@@ -309,17 +317,18 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .and_then(|o| o.get_javascript())
         .and_then(|o| o.type_reexports_presence)
         .unwrap_or_default();
-      if !matches!(type_reexports_presence, TypeReexportPresenceMode::NoTolerant)
-        // TODO: Check the parent module is transpiled from typescript
+      if !matches!(
+        type_reexports_presence,
+        TypeReexportPresenceMode::NoTolerant
+      ) && parent_module.build_info().is_transpiled_typescript
         && ids.len() == 1
-        && let export_name = &ids[0]
         && matches!(
           ExportsInfoGetter::is_export_provided(
             &module_graph.get_prefetched_exports_info(
               parent_module_identifier,
-              PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([export_name]))
+              PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name]))
             ),
-            std::slice::from_ref(export_name)
+            std::slice::from_ref(name)
           ),
           Some(ExportProvided::Provided)
         )
@@ -330,8 +339,14 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         ) {
           return None;
         }
-        // TODO: check if the export is a type export
-        return None;
+        if find_type_exports_from_outgoings(
+          module_graph,
+          &imported_module_identifier,
+          &ids[0],
+          &mut IdentifierSet::default(),
+        ) {
+          return None;
+        }
       }
       let mut pos = 0;
       let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
@@ -370,7 +385,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
               .map(|id| format!("'{id}'"))
               .collect::<Vec<_>>()
               .join("."),
-            additional_msg,
+            additional_msg(),
             module_dependency.user_request(),
           );
           return Some(create_error(msg));
@@ -388,7 +403,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           .map(|id| format!("'{id}'"))
           .collect::<Vec<_>>()
           .join("."),
-        additional_msg,
+        additional_msg(),
         module_dependency.user_request()
       );
       return Some(create_error(msg));
@@ -404,7 +419,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
             .map(|id| format!("'{id}'"))
             .collect::<Vec<_>>()
             .join("."),
-          additional_msg,
+          additional_msg(),
         );
         return Some(create_error(msg));
       }
@@ -424,7 +439,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
             .map(|id| format!("'{id}'"))
             .collect::<Vec<_>>()
             .join("."),
-          additional_msg,
+          additional_msg(),
         );
         return Some(create_error(msg));
       }
@@ -432,6 +447,44 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     _ => {}
   }
   None
+}
+
+fn find_type_exports_from_outgoings(
+  mg: &ModuleGraph,
+  module_identifier: &ModuleIdentifier,
+  export_name: &Atom,
+  visited: &mut IdentifierSet,
+) -> bool {
+  let module = mg
+    .module_by_identifier(module_identifier)
+    .expect("should have module");
+  // bailout the check of this export chain if there is a module that not transpiled from
+  // typescript, we only support that the export chain is all transpiled typescript, if not
+  // the check will be very slow especially when big javascript npm package exists.
+  if !module.build_info().is_transpiled_typescript {
+    return false;
+  }
+  if module.build_info().type_exports.contains(export_name) {
+    return true;
+  }
+  for connection in mg.get_outgoing_connections(module_identifier) {
+    if visited.contains(connection.module_identifier()) {
+      continue;
+    }
+    let dependency = mg
+      .dependency_by_id(&connection.dependency_id)
+      .expect("should have dependency");
+    if !matches!(
+      dependency.dependency_type(),
+      DependencyType::EsmImport | DependencyType::EsmExport
+    ) {
+      continue;
+    }
+    if find_type_exports_from_outgoings(mg, connection.module_identifier(), export_name, visited) {
+      return true;
+    }
+  }
+  false
 }
 
 #[cacheable_dyn]

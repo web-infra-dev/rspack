@@ -33,6 +33,7 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
       Some(swc_core::common::FileName::Anon),
       options,
       None,
+      |_| {},
       |_| noop_pass(),
     )
     .map(TransformOutput::from)

@@ -10,6 +10,7 @@ fn main() {
     Some(swc_core::common::FileName::Custom("test.js".to_string())),
     Default::default(),
     None,
+    |_| {},
     |_| noop_pass(),
   );
 

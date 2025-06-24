@@ -4456,6 +4456,7 @@ dependencies = [
  "rspack_javascript_compiler",
  "rspack_loader_runner",
  "rspack_swc_plugin_import",
+ "rspack_swc_plugin_ts_collector",
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
@@ -5515,6 +5516,17 @@ dependencies = [
  "heck 0.5.0",
  "rustc-hash 2.1.1",
  "serde",
+ "swc_core",
+]
+
+[[package]]
+name = "rspack_swc_plugin_ts_collector"
+version = "0.2.0"
+dependencies = [
+ "glob",
+ "rspack_javascript_compiler",
+ "rustc-hash 2.1.1",
+ "serde_json",
  "swc_core",
 ]
 

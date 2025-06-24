@@ -1314,18 +1314,18 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       .get_effective_export_presence(&**module)
     {
       let mut diagnostics = Vec::new();
-      if let Some(error) = esm_import_dependency_get_linking_error(
-        self,
-        ids,
-        module_graph,
-        module_graph_cache,
-        self
-          .name
-          .as_ref()
-          .map(|name| format!("(reexported as '{name}')"))
-          .unwrap_or_default(),
-        should_error,
-      ) {
+      // don't need to check the import specifier is existed or not when name is None (export *)
+      if let Some(name) = &self.name
+        && let Some(error) = esm_import_dependency_get_linking_error(
+          self,
+          ids,
+          module_graph,
+          module_graph_cache,
+          name,
+          true,
+          should_error,
+        )
+      {
         diagnostics.push(error);
       }
       if let Some(errors) = self.get_conflicting_star_exports_errors(

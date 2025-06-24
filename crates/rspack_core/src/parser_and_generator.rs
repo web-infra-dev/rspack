@@ -7,8 +7,8 @@ use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
-use rustc_hash::FxHashMap;
-use swc_core::common::Span;
+use rustc_hash::{FxHashMap, FxHashSet};
+use swc_core::{atoms::Atom, common::Span};
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
@@ -35,6 +35,11 @@ pub struct ParseContext<'a> {
   pub parse_meta: FxHashMap<String, String>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CollectedTypeScriptInfo {
+  pub type_exports: FxHashSet<Atom>,
 }
 
 #[derive(Debug)]

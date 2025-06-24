@@ -6,7 +6,7 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 	module: {
 		parser: {
 			javascript: {
-				typeReexportsPresence: "tolerant-no-check"
+				typeReexportsPresence: "tolerant"
 			}
 		},
 		rules: [
@@ -22,7 +22,9 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 								}
 							},
 							rspackExperiments: {
-								collectTypeScriptInfo: {}
+								collectTypeScriptInfo: {
+									typeExports: true
+								}
 							}
 						}
 					}
@@ -31,6 +33,6 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 		]
 	},
 	experiments: {
-		typeReexportsPresence: "tolerant-no-check"
+		typeReexportsPresence: "tolerant"
 	}
 });

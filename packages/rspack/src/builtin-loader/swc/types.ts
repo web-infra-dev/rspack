@@ -29,6 +29,10 @@ import * as z from "zod/v4";
 import { numberOrInfinity } from "../../config/utils";
 import { memoize } from "../../util/memoize";
 import {
+	type CollectTypeScriptInfoOptions,
+	ZodSwcCollectTypeScriptInfo
+} from "./collectTypeScriptInfo";
+import {
 	type PluginImportOptions,
 	ZodSwcPluginImportConfig
 } from "./pluginImport";
@@ -47,6 +51,7 @@ export type SwcLoaderOptions = Config & {
 	 */
 	rspackExperiments?: {
 		import?: PluginImportOptions;
+		collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
 	};
 };
 
@@ -482,7 +487,8 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 		isModule: z.boolean().or(z.literal("unknown")).optional(),
 		rspackExperiments: z
 			.strictObject({
-				import: ZodSwcPluginImportConfig.optional()
+				import: ZodSwcPluginImportConfig.optional(),
+				collectTypeScriptInfo: ZodSwcCollectTypeScriptInfo.optional()
 			})
 			.optional()
 	}) satisfies z.ZodType<SwcLoaderOptions>;
