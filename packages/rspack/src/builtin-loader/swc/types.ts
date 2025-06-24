@@ -29,10 +29,7 @@ import * as z from "zod/v4";
 import { numberOrInfinity } from "../../config/utils";
 import { memoize } from "../../util/memoize";
 import type { CollectTypeScriptInfoOptions } from "./collectTypeScriptInfo";
-import {
-	type PluginImportOptions,
-	ZodSwcPluginImportConfig
-} from "./pluginImport";
+import type { PluginImportOptions } from "./pluginImport";
 export type SwcLoaderEnvConfig = EnvConfig;
 export type SwcLoaderJscConfig = JscConfig;
 export type SwcLoaderModuleConfig = ModuleConfig;
