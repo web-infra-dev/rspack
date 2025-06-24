@@ -27,6 +27,14 @@ This means that options like `optimization.splitChunks` will no longer handle CS
 
 Whether to strictly preserve the import order of CSS modules.
 
+### minSize
+
+The minimum size (in bytes) for a generated chunk.
+
+### maxSize
+
+The maximum size (in bytes) for a generated chunk. Chunks larger than maxSize will be split into smaller parts, each with a size of at least minSize.
+
 ## Mode Comparison
 
 ### Normal Mode (strict: false, default)

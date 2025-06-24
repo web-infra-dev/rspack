@@ -541,6 +541,8 @@ export interface ContextInfo {
 
 export interface CssChunkingPluginOptions {
   strict?: boolean
+  minSize?: number
+  maxSize?: number
   exclude?: RegExp
 }
 

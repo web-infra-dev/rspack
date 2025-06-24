@@ -24,6 +24,14 @@ new rspack.experiments.CssChunkingPlugin(options);
 
 是否严格保持 CSS 模块的导入顺序。
 
+### minSize
+
+生成 chunk 的最小体积（以 bytes 为单位）。
+
+### maxSize
+
+生成 chunk 的最大体积（以 bytes 为单位）。大于 maxSize 的 chunk 会被拆分成更小的部分，这些部分的体积至少为 minSize。
+
 ## 模式对比
 
 ### 常规模式 (strict: false，默认)
