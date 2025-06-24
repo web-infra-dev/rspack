@@ -15,9 +15,9 @@ use rspack_core::{
   incremental::IncrementalPasses,
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, DependencyId,
   ExportInfoGetter, ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions,
-  Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphModule,
-  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -181,16 +181,17 @@ impl ModuleConcatenationPlugin {
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
-    module_cache: &HashMap<
-      ModuleIdentifier,
-      (bool, Vec<(DependencyId, Vec<ExtendedReferencedExport>)>),
-    >,
+    module_cache: &HashMap<ModuleIdentifier, ModuleCacheWithoutRuntime>,
   ) -> IdentifierIndexSet {
     if let Some(set) = imports_cache.get(&mi, runtime) {
       return set.clone();
     }
 
-    let (is_provided_names, dep_import_names) = module_cache.get(&mi).expect("should have module");
+    let ModuleCacheWithoutRuntime {
+      is_provided_names,
+      dep_import_names,
+      ..
+    } = module_cache.get(&mi).expect("should have module");
 
     let mut set = IdentifierIndexSet::default();
 
@@ -228,10 +229,7 @@ impl ModuleConcatenationPlugin {
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
-    module_cache: &HashMap<
-      ModuleIdentifier,
-      (bool, Vec<(DependencyId, Vec<ExtendedReferencedExport>)>),
-    >,
+    module_cache: &HashMap<ModuleIdentifier, ModuleCacheWithoutRuntime>,
   ) -> Option<Warning> {
     statistics
       .module_visit
@@ -240,13 +238,7 @@ impl ModuleConcatenationPlugin {
         *count += 1;
       })
       .or_insert(1);
-    let Compilation {
-      chunk_graph,
-      chunk_by_ukey,
-      ..
-    } = compilation;
-    let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache_artifact;
+
     if let Some(cache_entry) = failure_cache.get(module_id) {
       statistics.cached += 1;
       return Some(cache_entry.clone());
@@ -256,6 +248,14 @@ impl ModuleConcatenationPlugin {
       statistics.already_in_config += 1;
       return None;
     }
+
+    let Compilation {
+      chunk_graph,
+      chunk_by_ukey,
+      ..
+    } = compilation;
+    let module_graph = compilation.get_module_graph();
+    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     let incoming_modules = if let Some(incomings) = success_cache.get(module_id, runtime) {
       statistics.cache_hit += 1;
@@ -280,8 +280,7 @@ impl ModuleConcatenationPlugin {
       let missing_chunks: Vec<_> = chunk_graph
         .get_module_chunks(config.root_module)
         .iter()
-        .cloned()
-        .filter(|&chunk| !chunk_graph.is_module_in_chunk(module_id, chunk))
+        .filter(|chunk| !chunk_graph.is_module_in_chunk(module_id, **chunk))
         .collect();
 
       if !missing_chunks.is_empty() {
@@ -319,16 +318,17 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      let incoming_connections = module_graph.get_incoming_connections_by_origin_module(module_id);
+      let ModuleCacheWithoutRuntime { incomings, .. } = module_cache
+        .get(module_id)
+        .expect("should have module cache");
 
-      if let Some(incoming_connections_from_non_modules) = incoming_connections.get(&None) {
-        let active_non_modules_connections = incoming_connections_from_non_modules
+      if let Some(incoming_connections_from_non_modules) = incomings.get(&None) {
+        let has_active_non_modules_connections = incoming_connections_from_non_modules
           .iter()
-          .filter(|&connection| connection.is_active(&module_graph, runtime, module_graph_cache))
-          .collect::<Vec<_>>();
+          .any(|connection| connection.is_active(&module_graph, runtime, module_graph_cache));
 
         // TODO: ADD module connection explanations
-        if !active_non_modules_connections.is_empty() {
+        if has_active_non_modules_connections {
           let problem = {
             // let importing_explanations = active_non_modules_connections
             //   .iter()
@@ -353,7 +353,7 @@ impl ModuleConcatenationPlugin {
       }
 
       let mut incoming_connections_from_modules = HashMap::default();
-      for (origin_module, connections) in incoming_connections.iter() {
+      for (origin_module, connections) in incomings.iter() {
         if let Some(origin_module) = origin_module {
           if chunk_graph.get_number_of_module_chunks(*origin_module) == 0 {
             // Ignore connection from orphan modules
@@ -377,7 +377,6 @@ impl ModuleConcatenationPlugin {
           let active_connections: Vec<_> = connections
             .iter()
             .filter(|&connection| connection.is_active(&module_graph, runtime, module_graph_cache))
-            .cloned()
             .collect();
 
           if !active_connections.is_empty() {
@@ -388,8 +387,7 @@ impl ModuleConcatenationPlugin {
 
       let mut incoming_modules = incoming_connections_from_modules
         .keys()
-        .copied()
-        .copied()
+        .map(|mid| **mid)
         .collect::<Vec<_>>();
       let other_chunk_modules = incoming_modules
         .iter()
@@ -399,13 +397,12 @@ impl ModuleConcatenationPlugin {
             .iter()
             .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
         })
-        .cloned()
         .collect::<Vec<_>>();
 
       if !other_chunk_modules.is_empty() {
         let problem = {
           let mut names: Vec<_> = other_chunk_modules
-            .iter()
+            .into_iter()
             .map(|mid| {
               let m = module_graph
                 .module_by_identifier(mid)
@@ -433,19 +430,15 @@ impl ModuleConcatenationPlugin {
 
       let mut non_esm_connections = HashMap::default();
       for (origin_module, connections) in incoming_connections_from_modules.iter() {
-        let selected: Vec<_> = connections
-          .iter()
-          .filter(|&connection| {
-            if let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) {
-              !is_esm_dep_like(dep)
-            } else {
-              false
-            }
-          })
-          .cloned()
-          .collect();
+        let has_non_esm_connections = connections.iter().any(|connection| {
+          if let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) {
+            !is_esm_dep_like(dep)
+          } else {
+            false
+          }
+        });
 
-        if !selected.is_empty() {
+        if has_non_esm_connections {
           non_esm_connections.insert(origin_module, connections);
         }
       }
@@ -1022,7 +1015,16 @@ impl ModuleConcatenationPlugin {
             Some((*d, imported_names))
           })
           .collect::<Vec<_>>();
-        (*module_id, (is_provided_names, dep_import_names))
+
+        let incomings = module_graph.get_incoming_connections_by_origin_module(module_id);
+        (
+          *module_id,
+          ModuleCacheWithoutRuntime {
+            is_provided_names,
+            dep_import_names,
+            incomings,
+          },
+        )
       })
       .collect::<HashMap<_, _>>();
 
@@ -1223,4 +1225,11 @@ struct Statistics {
   cache_hit: u32,
   module_visit: IdentifierMap<usize>,
   added: u32,
+}
+
+#[derive(Debug)]
+pub struct ModuleCacheWithoutRuntime {
+  is_provided_names: bool,
+  dep_import_names: Vec<(DependencyId, Vec<ExtendedReferencedExport>)>,
+  incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>>,
 }
