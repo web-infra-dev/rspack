@@ -936,6 +936,7 @@ type CodeValuePrimitive = null | undefined | RegExp | Function | string | number
 // @public (undocumented)
 type CollectTypeScriptInfoOptions = {
     typeExports?: boolean;
+    crossModuleEnums?: boolean | "const-only";
 };
 
 // @public (undocumented)

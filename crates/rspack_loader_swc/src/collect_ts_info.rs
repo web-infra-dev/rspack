@@ -1,6 +1,6 @@
 use rspack_core::{CollectedTypeScriptInfo, EvaluatedInlinableValue};
 use rspack_swc_plugin_ts_collector::{
-  EnumMemberValue, TopLevelEnumCollector, TypeExportsCollector,
+  EnumMemberValue, ExportedEnumCollector, TypeExportsCollector,
 };
 use rustc_hash::FxHashMap;
 use swc::atoms::Atom;
@@ -16,27 +16,30 @@ pub fn collect_typescript_info(
   if options.type_exports.unwrap_or_default() {
     program.visit_with(&mut TypeExportsCollector::new(&mut type_exports));
   }
-  let mut top_level_enums: FxHashMap<
-    (Atom, Atom),
-    rspack_swc_plugin_ts_collector::EnumMemberValue,
-  > = Default::default();
+  let mut exported_enums: FxHashMap<Atom, FxHashMap<Atom, EnumMemberValue>> = Default::default();
   if let Some(kind) = &options.cross_module_enums {
-    program.visit_with(&mut TopLevelEnumCollector::new(
+    program.visit_with(&mut ExportedEnumCollector::new(
       matches!(kind, CrossModuleEnumKind::ConstOnly),
-      &mut top_level_enums,
+      &mut exported_enums,
     ));
   }
   CollectedTypeScriptInfo {
     type_exports,
-    top_level_enums: top_level_enums
+    exported_enums: exported_enums
       .into_iter()
-      .map(|(k, v)| {
-        let value = match v {
-          EnumMemberValue::Number(n) => {
-            EvaluatedInlinableValue::new_number(n.to_js_string().into())
-          }
-          EnumMemberValue::String(s) => EvaluatedInlinableValue::new_string(s),
-        };
+      .map(|(k, members)| {
+        let value = members
+          .into_iter()
+          .map(|(id, v)| {
+            let value = match v {
+              EnumMemberValue::Number(n) => {
+                EvaluatedInlinableValue::new_number(n.to_js_string().into())
+              }
+              EnumMemberValue::String(s) => EvaluatedInlinableValue::new_string(s),
+            };
+            (id, value)
+          })
+          .collect();
         (k, value)
       })
       .collect(),

@@ -1,19 +1,20 @@
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{
-      Decl, ExportDecl, Expr, Lit, ModuleDecl, ModuleItem, Program, Stmt, TsEnumDecl,
-      TsEnumMemberId,
+      Decl, ExportDecl, ExportSpecifier, Expr, Lit, ModuleDecl, ModuleItem, Program, Stmt,
+      TsEnumDecl, TsEnumMemberId,
     },
     visit::Visit,
   },
 };
 
 #[derive(Debug)]
-pub struct TopLevelEnumCollector<'a> {
+pub struct ExportedEnumCollector<'a> {
   const_only: bool,
-  collected: &'a mut FxHashMap<(Atom, Atom), EnumMemberValue>,
+  export_idents: FxHashSet<Atom>,
+  collected: &'a mut FxHashMap<Atom, FxHashMap<Atom, EnumMemberValue>>,
 }
 
 #[derive(Debug)]
@@ -22,13 +23,14 @@ pub enum EnumMemberValue {
   String(Atom),
 }
 
-impl<'a> TopLevelEnumCollector<'a> {
+impl<'a> ExportedEnumCollector<'a> {
   pub fn new(
     const_only: bool,
-    collected: &'a mut FxHashMap<(Atom, Atom), EnumMemberValue>,
+    collected: &'a mut FxHashMap<Atom, FxHashMap<Atom, EnumMemberValue>>,
   ) -> Self {
     Self {
       const_only,
+      export_idents: Default::default(),
       collected,
     }
   }
@@ -40,44 +42,53 @@ impl<'a> TopLevelEnumCollector<'a> {
     // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/js_parser/js_parser.go#L11263-L11320
     let mut next_numeric_value = 0.0;
     let mut has_numeric_value = true;
-    for member in &enum_decl.members {
-      if let Some(expr) = &member.init {
-        has_numeric_value = false;
-        if let Expr::Lit(literal) = &**expr {
-          // only string and number is allowed
-          match literal {
-            Lit::Num(n) => {
-              self.collected.insert(
-                (enum_decl.id.sym.clone(), enum_member_id_atom(&member.id)),
-                EnumMemberValue::Number(n.value),
-              );
-              has_numeric_value = true;
-              next_numeric_value = n.value + 1.0;
+    let enum_members: FxHashMap<Atom, EnumMemberValue> = enum_decl
+      .members
+      .iter()
+      .filter_map(|member| {
+        if let Some(expr) = &member.init {
+          has_numeric_value = false;
+          if let Expr::Lit(literal) = &**expr {
+            // only string and number is allowed
+            match literal {
+              Lit::Num(n) => {
+                has_numeric_value = true;
+                next_numeric_value = n.value + 1.0;
+                return Some((
+                  enum_member_id_atom(&member.id),
+                  EnumMemberValue::Number(n.value),
+                ));
+              }
+              Lit::Str(s) => {
+                return Some((
+                  enum_member_id_atom(&member.id),
+                  EnumMemberValue::String(s.value.clone()),
+                ));
+              }
+              _ => return None,
             }
-            Lit::Str(s) => {
-              self.collected.insert(
-                (enum_decl.id.sym.clone(), enum_member_id_atom(&member.id)),
-                EnumMemberValue::String(s.value.clone()),
-              );
-            }
-            _ => continue,
+          } else {
+            // TODO: try eval simple expr here
+            return None;
           }
+        } else if has_numeric_value {
+          let value = next_numeric_value;
+          next_numeric_value += 1.0;
+          return Some((
+            enum_member_id_atom(&member.id),
+            EnumMemberValue::Number(value),
+          ));
         } else {
-          // TODO: try eval simple expr here
+          // value is undefined here, usually TypeScript isolatedModules will emit an error
+          // if value is undefined: https://github.com/evanw/esbuild/issues/3868
+          // we don't optimize this enum member, so do nothing here
+          return None;
         }
-      } else if has_numeric_value {
-        self.collected.insert(
-          (enum_decl.id.sym.clone(), enum_member_id_atom(&member.id)),
-          EnumMemberValue::Number(next_numeric_value),
-        );
-        next_numeric_value += 1.0;
-      } else {
-        // value is undefined here, usually TypeScript isolatedModules will emit an error
-        // if value is undefined: https://github.com/evanw/esbuild/issues/3868
-        // we don't optimize this enum member, so do nothing here
-        continue;
-      }
-    }
+      })
+      .collect();
+    self
+      .collected
+      .insert(enum_decl.id.sym.clone(), enum_members);
   }
 }
 
@@ -88,22 +99,44 @@ fn enum_member_id_atom(member_id: &TsEnumMemberId) -> Atom {
   }
 }
 
-impl Visit for TopLevelEnumCollector<'_> {
+impl Visit for ExportedEnumCollector<'_> {
   fn visit_program(&mut self, node: &Program) {
     let Program::Module(node) = node else {
       return;
     };
     for item in &node.body {
       match item {
-        ModuleItem::ModuleDecl(decl) => {
-          if let ModuleDecl::ExportDecl(ExportDecl {
+        ModuleItem::ModuleDecl(decl) => match decl {
+          ModuleDecl::ExportDecl(ExportDecl {
             decl: Decl::TsEnum(enum_decl),
             ..
-          }) = decl
-          {
+          }) => {
+            self.export_idents.insert(enum_decl.id.sym.clone());
             self.collect(&enum_decl);
           }
-        }
+          ModuleDecl::ExportNamed(named_export) => {
+            if named_export.src.is_some() {
+              return;
+            }
+            for specifier in &named_export.specifiers {
+              match specifier {
+                ExportSpecifier::Named(specifier) => {
+                  if specifier.is_type_only {
+                    continue;
+                  }
+                  self.export_idents.insert(specifier.orig.atom().clone());
+                }
+                _ => continue,
+              }
+            }
+          }
+          ModuleDecl::ExportDefaultExpr(expr) => {
+            if let Some(ident) = expr.expr.unwrap_parens().as_ident() {
+              self.export_idents.insert(ident.sym.clone());
+            }
+          }
+          _ => {}
+        },
         ModuleItem::Stmt(stmt) => {
           if let Stmt::Decl(Decl::TsEnum(enum_decl)) = stmt {
             self.collect(&enum_decl);
@@ -111,5 +144,9 @@ impl Visit for TopLevelEnumCollector<'_> {
         }
       }
     }
+
+    self
+      .collected
+      .retain(|enum_name, _| self.export_idents.contains(&enum_name));
   }
 }

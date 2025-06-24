@@ -40,8 +40,10 @@ pub struct ParseContext<'a> {
 #[derive(Debug, Default, Clone)]
 pub struct CollectedTypeScriptInfo {
   pub type_exports: FxHashSet<Atom>,
-  pub top_level_enums: FxHashMap<(Atom, Atom), EvaluatedInlinableValue>,
+  pub exported_enums: FxHashMap<Atom, TSEnumValue>,
 }
+
+pub type TSEnumValue = FxHashMap<Atom, EvaluatedInlinableValue>;
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItem {

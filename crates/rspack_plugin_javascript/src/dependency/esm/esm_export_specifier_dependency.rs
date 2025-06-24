@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
   GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
@@ -27,6 +27,7 @@ pub struct ESMExportSpecifierDependency {
   #[cacheable(with=AsPreset)]
   value: Atom, // id
   inline: Option<EvaluatedInlinableValue>,
+  enum_value: Option<TSEnumValue>,
 }
 
 impl ESMExportSpecifierDependency {
@@ -34,6 +35,7 @@ impl ESMExportSpecifierDependency {
     name: Atom,
     value: Atom,
     inline: Option<EvaluatedInlinableValue>,
+    enum_value: Option<TSEnumValue>,
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -41,6 +43,7 @@ impl ESMExportSpecifierDependency {
       name,
       value,
       inline,
+      enum_value,
       range,
       source_map,
       id: DependencyId::new(),
@@ -75,6 +78,18 @@ impl Dependency for ESMExportSpecifierDependency {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.clone(),
         inlinable: self.inline.clone(),
+        exports: self.enum_value.as_ref().map(|enum_value| {
+          enum_value
+            .iter()
+            .map(|(enum_name, enum_value)| {
+              ExportNameOrSpec::ExportSpec(ExportSpec {
+                name: enum_name.clone(),
+                inlinable: Some(enum_value.clone()),
+                ..Default::default()
+              })
+            })
+            .collect()
+        }),
         ..Default::default()
       })]),
       priority: Some(1),
