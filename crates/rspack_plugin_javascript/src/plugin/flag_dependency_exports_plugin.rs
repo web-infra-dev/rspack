@@ -278,7 +278,7 @@ impl<'a> FlagDependencyExportsState<'a> {
             None => global_export_info.priority,
           },
           spec.hidden.unwrap_or(false),
-          spec.inlinable,
+          spec.inlinable.as_ref(),
         ),
       };
       let export_info = exports_info.get_export_info(self.mg, &name);
@@ -301,7 +301,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       if let Some(inlined) = inlinable
         && !export_info_data.inlinable().can_inline()
       {
-        export_info_data.set_inlinable(Inlinable::Inlined(inlined));
+        export_info_data.set_inlinable(Inlinable::Inlined(inlined.clone()));
         self.changed = true;
       }
 

@@ -13,8 +13,8 @@ use swc_core::{atoms::Atom, common::Span};
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
-  ConcatenationScope, Context, Module, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
-  NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ConcatenationScope, Context, EvaluatedInlinableValue, Module, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -40,6 +40,7 @@ pub struct ParseContext<'a> {
 #[derive(Debug, Default, Clone)]
 pub struct CollectedTypeScriptInfo {
   pub type_exports: FxHashSet<Atom>,
+  pub top_level_enums: FxHashMap<(Atom, Atom), EvaluatedInlinableValue>,
 }
 
 #[derive(Debug)]

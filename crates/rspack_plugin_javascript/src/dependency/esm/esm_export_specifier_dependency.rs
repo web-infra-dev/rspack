@@ -74,7 +74,7 @@ impl Dependency for ESMExportSpecifierDependency {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.clone(),
-        inlinable: self.inline,
+        inlinable: self.inline.clone(),
         ..Default::default()
       })]),
       priority: Some(1),

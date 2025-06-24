@@ -32,47 +32,18 @@ pub enum UsedExports {
   UsedNames(Vec<Atom>),
 }
 
-// refer from: https://github.com/rust-analyzer/smol_str/blob/5ffc90069f545c0444447cd08c2a29c6abb97fbb/src/lib.rs#L481-L484
 #[cacheable]
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-struct InlineStr<const S: usize> {
-  len: u8,
-  buf: [u8; S],
-}
-
-impl<const S: usize> InlineStr<S> {
-  fn new(v: &str) -> Self {
-    let len = v.len();
-    debug_assert!(len <= S);
-    let mut buf = [0; S];
-    buf[..len].copy_from_slice(v.as_bytes());
-    Self {
-      len: len as u8,
-      buf,
-    }
-  }
-
-  fn as_str(&self) -> &str {
-    let len: usize = self.len as usize;
-    // SAFETY: len is guaranteed to be <= Self::SHORT_SIZE
-    let buf = unsafe { self.buf.get_unchecked(..len) };
-    // SAFETY: buf is guaranteed to be valid utf8 for ..len bytes
-    unsafe { ::core::str::from_utf8_unchecked(buf) }
-  }
-}
-
-#[cacheable]
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum EvaluatedInlinableValueInner {
   Null,
   Undefined,
   Boolean(bool),
-  ShortNumber(InlineStr<{ EvaluatedInlinableValue::SHORT_SIZE }>),
-  ShortString(InlineStr<{ EvaluatedInlinableValue::SHORT_SIZE }>),
+  Number(Atom),
+  String(Atom),
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct EvaluatedInlinableValue(EvaluatedInlinableValueInner);
 
 impl EvaluatedInlinableValue {
@@ -90,12 +61,12 @@ impl EvaluatedInlinableValue {
     Self(EvaluatedInlinableValueInner::Boolean(v))
   }
 
-  pub fn new_short_number(v: &str) -> Self {
-    Self(EvaluatedInlinableValueInner::ShortNumber(InlineStr::new(v)))
+  pub fn new_number(v: Atom) -> Self {
+    Self(EvaluatedInlinableValueInner::Number(v))
   }
 
-  pub fn new_short_string(v: &str) -> Self {
-    Self(EvaluatedInlinableValueInner::ShortString(InlineStr::new(v)))
+  pub fn new_string(v: Atom) -> Self {
+    Self(EvaluatedInlinableValueInner::String(v))
   }
 
   pub fn render(&self) -> Cow<str> {
@@ -103,14 +74,14 @@ impl EvaluatedInlinableValue {
       EvaluatedInlinableValueInner::Null => "null".into(),
       EvaluatedInlinableValueInner::Undefined => "undefined".into(),
       EvaluatedInlinableValueInner::Boolean(v) => if *v { "true" } else { "false" }.into(),
-      EvaluatedInlinableValueInner::ShortNumber(v) => v.as_str().into(),
-      EvaluatedInlinableValueInner::ShortString(v) => json_stringify(v.as_str()).into(),
+      EvaluatedInlinableValueInner::Number(v) => v.as_str().into(),
+      EvaluatedInlinableValueInner::String(v) => json_stringify(v.as_str()).into(),
     }
   }
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Inlinable {
   NoByProvide,
   NoByUse,

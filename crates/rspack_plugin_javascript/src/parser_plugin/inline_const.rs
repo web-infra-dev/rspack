@@ -89,12 +89,12 @@ fn to_evaluated_inlinable_value(
     && let num = num.to_js_string()
     && num.len() <= EvaluatedInlinableValue::SHORT_SIZE
   {
-    Some(EvaluatedInlinableValue::new_short_number(&num))
+    Some(EvaluatedInlinableValue::new_number(num.into()))
   } else if evaluated.is_string()
     && let str = evaluated.string()
     && str.len() <= EvaluatedInlinableValue::SHORT_SIZE
   {
-    Some(EvaluatedInlinableValue::new_short_string(str))
+    Some(EvaluatedInlinableValue::new_string(str.as_str().into()))
   } else if evaluated.is_null() {
     Some(EvaluatedInlinableValue::new_null())
   } else if evaluated.is_undefined() {
