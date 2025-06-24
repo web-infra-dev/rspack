@@ -81,3 +81,9 @@ jobs:
         with:
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
+      - name: Check Bench Result
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash ./.github/actions/codspeed/check-comment.sh

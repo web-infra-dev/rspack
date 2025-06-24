@@ -23,12 +23,6 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Debug
-        uses: ./.github/actions/debugger
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
