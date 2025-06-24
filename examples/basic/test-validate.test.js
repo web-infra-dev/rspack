@@ -271,6 +271,144 @@ describe("ConsumeShared Build Validation", () => {
 		});
 	});
 
+	test("macro positioning validation in CommonJS files", () => {
+		const commonJSFiles = [
+			"cjs-modules_pure-cjs-helper_js.js",
+			"cjs-modules_legacy-utils_js.js",
+			"cjs-modules_data-processor_js.js"
+		];
+
+		const positioningIssues = [];
+		
+		for (const fileName of commonJSFiles) {
+			const filePath = path.join(distPath, fileName);
+			
+			if (!fs.existsSync(filePath)) {
+				continue;
+			}
+
+			const content = fs.readFileSync(filePath, "utf8");
+			
+			// Check for incorrect macro positioning pattern:
+			// /* @common:if */ exports.prop /* @common:endif */ = value (WRONG)
+			// Should be: /* @common:if */ exports.prop = value; /* @common:endif */ (CORRECT)
+			
+			const lines = content.split('\n');
+			lines.forEach((line, lineIndex) => {
+				if (line.includes('@common:if') && line.includes('@common:endif') && line.includes('=')) {
+					const macroEndifIndex = line.indexOf('/* @common:endif');
+					const equalsIndex = line.indexOf('=');
+					
+					// If @common:endif appears before the equals sign, it's incorrect positioning
+					if (macroEndifIndex !== -1 && macroEndifIndex < equalsIndex) {
+						positioningIssues.push({
+							file: fileName,
+							line: lineIndex + 1,
+							content: line.trim(),
+							issue: "Macro ends before assignment completion"
+						});
+					}
+				}
+			});
+		}
+
+		if (positioningIssues.length > 0) {
+			console.log("❌ Macro positioning issues found:");
+			positioningIssues.forEach(issue => {
+				console.log(`  ${issue.file}:${issue.line} - ${issue.issue}`);
+				console.log(`    ${issue.content}`);
+			});
+		}
+
+		// This test should fail if there are positioning issues
+		expect(positioningIssues).toHaveLength(0);
+	});
+
+	test("mixed export pattern detection", () => {
+		const filePath = path.join(distPath, "cjs-modules_pure-cjs-helper_js.js");
+		
+		if (!fs.existsSync(filePath)) {
+			// Skip if file doesn't exist
+			return;
+		}
+
+		const content = fs.readFileSync(filePath, "utf8");
+
+		// Count different export patterns
+		const moduleExportsPattern = (content.match(/module\.exports\./g) || []).length;
+		const exportsPattern = (content.match(/(?<!module\.)exports\./g) || []).length;
+
+		const mixedPatternReport = {
+			file: "cjs-modules_pure-cjs-helper_js.js",
+			moduleExportsCount: moduleExportsPattern,
+			exportsCount: exportsPattern,
+			hasMixedPattern: moduleExportsPattern > 0 && exportsPattern > 0,
+			totalExports: moduleExportsPattern + exportsPattern
+		};
+
+		console.log("📊 Mixed export pattern analysis:", mixedPatternReport);
+
+		// Validate that we have export patterns
+		expect(mixedPatternReport.totalExports).toBeGreaterThan(0);
+
+		// Log warning if mixed patterns detected
+		if (mixedPatternReport.hasMixedPattern) {
+			console.log("⚠️  Mixed export patterns detected - this can cause macro positioning issues");
+		}
+	});
+
+	test("specific incorrect macro patterns validation", () => {
+		const filePath = path.join(distPath, "cjs-modules_pure-cjs-helper_js.js");
+		
+		if (!fs.existsSync(filePath)) {
+			// Skip if file doesn't exist
+			return;
+		}
+
+		const content = fs.readFileSync(filePath, "utf8");
+
+		// Test for the specific patterns found in the issue
+		const specificProblems = [];
+		
+		// Pattern 1: /* @common:if */ exports.prop /* @common:endif */ = value
+		const incorrectExportsPattern = /\/\*\s*@common:if[^*]+\*\/\s*exports\.[\w]+\s*\/\*\s*@common:endif[^*]*\*\/\s*=/g;
+		const incorrectExportsMatches = content.match(incorrectExportsPattern) || [];
+		
+		// Pattern 2: /* @common:if */ module.exports.prop /* @common:endif */ = value  
+		const incorrectModuleExportsPattern = /\/\*\s*@common:if[^*]+\*\/\s*module\.exports\.[\w]+\s*\/\*\s*@common:endif[^*]*\*\/\s*=/g;
+		const incorrectModuleExportsMatches = content.match(incorrectModuleExportsPattern) || [];
+
+		if (incorrectExportsMatches.length > 0) {
+			specificProblems.push({
+				pattern: "Incorrect exports.prop positioning",
+				count: incorrectExportsMatches.length,
+				examples: incorrectExportsMatches.slice(0, 3)
+			});
+		}
+
+		if (incorrectModuleExportsMatches.length > 0) {
+			specificProblems.push({
+				pattern: "Incorrect module.exports.prop positioning", 
+				count: incorrectModuleExportsMatches.length,
+				examples: incorrectModuleExportsMatches.slice(0, 3)
+			});
+		}
+
+		if (specificProblems.length > 0) {
+			console.log("❌ Specific macro positioning problems detected:");
+			specificProblems.forEach(problem => {
+				console.log(`  ${problem.pattern}: ${problem.count} occurrences`);
+				problem.examples.forEach((example, i) => {
+					console.log(`    ${i + 1}. ${example.replace(/\s+/g, ' ').trim()}`);
+				});
+			});
+		}
+
+		// Test should fail if we find these specific incorrect patterns
+		expect(incorrectExportsMatches.length).toBe(0);
+		expect(incorrectModuleExportsMatches.length).toBe(0);
+	});
+
 	test("generate test report", () => {
 		const shareUsagePath = path.join(distPath, "share-usage.json");
 		const shareUsageData = JSON.parse(fs.readFileSync(shareUsagePath, "utf8"));

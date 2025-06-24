@@ -123,4 +123,100 @@ describe("ConsumeShared Share Chunks Snapshots", () => {
 
 		expect(extractedMacros).toMatchSnapshot();
 	});
+
+	test("CommonJS macro positioning snapshot", () => {
+		const commonJSFiles = [
+			"cjs-modules_pure-cjs-helper_js.js",
+			"cjs-modules_legacy-utils_js.js", 
+			"cjs-modules_data-processor_js.js"
+		];
+
+		const macroPositioningSummary = {};
+
+		for (const file of commonJSFiles) {
+			const filePath = path.join(distPath, file);
+			if (fs.existsSync(filePath)) {
+				const content = fs.readFileSync(filePath, "utf8");
+
+				// Extract macro positioning patterns
+				const lines = content.split('\n');
+				const macroLines = [];
+				const positioningIssues = [];
+
+				lines.forEach((line, index) => {
+					if (line.includes('@common:if')) {
+						macroLines.push({
+							lineNumber: index + 1,
+							content: line.trim(),
+							hasEndif: line.includes('@common:endif'),
+							hasEquals: line.includes('='),
+							potentialIssue: line.includes('@common:endif') && line.includes('=') && 
+							               line.indexOf('@common:endif') < line.indexOf('=')
+						});
+
+						// Check for positioning issues
+						if (line.includes('@common:endif') && line.includes('=') && 
+							line.indexOf('@common:endif') < line.indexOf('=')) {
+							positioningIssues.push({
+								line: index + 1,
+								issue: "macro_ends_before_assignment",
+								pattern: line.trim()
+							});
+						}
+					}
+				});
+
+				macroPositioningSummary[file] = {
+					totalMacroLines: macroLines.length,
+					positioningIssues: positioningIssues,
+					macroPatterns: macroLines
+				};
+			}
+		}
+
+		// Snapshot the positioning summary
+		expect(macroPositioningSummary).toMatchSnapshot();
+	});
+
+	test("export pattern analysis snapshot", () => {
+		const filePath = path.join(distPath, "cjs-modules_pure-cjs-helper_js.js");
+		
+		if (!fs.existsSync(filePath)) {
+			return;
+		}
+
+		const content = fs.readFileSync(filePath, "utf8");
+		
+		// Extract all export patterns with their context
+		const exportPatterns = {
+			moduleExports: [],
+			exports: [],
+			mixedPatterns: false
+		};
+
+		const lines = content.split('\n');
+		lines.forEach((line, index) => {
+			if (line.includes('module.exports.')) {
+				exportPatterns.moduleExports.push({
+					line: index + 1,
+					content: line.trim(),
+					hasMacro: line.includes('@common:if')
+				});
+			}
+			
+			if (line.includes('exports.') && !line.includes('module.exports.')) {
+				exportPatterns.exports.push({
+					line: index + 1,
+					content: line.trim(),
+					hasMacro: line.includes('@common:if')
+				});
+			}
+		});
+
+		exportPatterns.mixedPatterns = exportPatterns.moduleExports.length > 0 && 
+		                              exportPatterns.exports.length > 0;
+
+		// Snapshot the export pattern analysis
+		expect(exportPatterns).toMatchSnapshot();
+	});
 });

@@ -4,6 +4,8 @@ mod common_js_full_require_dependency;
 mod common_js_require_dependency;
 mod common_js_self_reference_dependency;
 #[cfg(test)]
+mod comma_positioning_tests;
+#[cfg(test)]
 mod comprehensive_edge_case_tests;
 #[cfg(test)]
 mod final_verification_test;

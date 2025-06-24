@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-23T06:51:48.160Z",
+  "timestamp": "2025-06-24T22:22:40.756Z",
   "status": "PASSED",
   "build": {
     "distExists": true,
@@ -8,8 +8,8 @@
   "shareUsage": {
     "fileExists": true,
     "structureValid": true,
-    "moduleCount": 6,
-    "modulesWithUnusedExports": 5
+    "moduleCount": 10,
+    "modulesWithUnusedExports": 6
   },
   "macroComments": {
     "filesChecked": 3,
@@ -33,8 +33,8 @@
     },
     "component-lib": {
       "used": [
-        "Modal",
         "Button",
+        "Modal",
         "default"
       ],
       "unused": [

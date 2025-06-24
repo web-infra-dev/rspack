@@ -12,6 +12,7 @@ use rspack_core::{
   ModuleType, NormalInitFragment, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
+use rspack_core::rspack_sources::Source;
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
   Diagnostic,
@@ -625,20 +626,78 @@ impl CommonJsExportsDependencyTemplate {
           // ENHANCED: Use ExportContext for precise macro wrapping
           match dep.context {
             ExportContext::ObjectLiteralPropertyFirst => {
-              // First property in object literal - no leading comma
+              // First property in object literal - include trailing comma inside macro and remove external comma
               let macro_export = format!(
-                "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
+                "/* @common:if [condition=\"{}\"] */ {}, /* @common:endif */",
                 macro_condition, export_name
               );
-              source.replace(dep.range.start, dep.range.end, &macro_export, None);
+              // Check if there's a comma immediately after the property range
+              let source_str = source.source();
+              let end_usize = dep.range.end as usize;
+              let mut extended_end = dep.range.end;
+              
+              // Look ahead to find and consume the trailing comma
+              if end_usize < source_str.len() {
+                let after_prop = &source_str[end_usize..];
+                // Check for comma with optional whitespace
+                let mut chars = after_prop.chars();
+                let mut offset = 0;
+                
+                // Skip whitespace
+                while let Some(ch) = chars.next() {
+                  if ch.is_whitespace() {
+                    offset += ch.len_utf8();
+                  } else {
+                    break;
+                  }
+                }
+                
+                // Check if next non-whitespace character is a comma
+                if after_prop[offset..].starts_with(',') {
+                  extended_end = dep.range.end + (offset + 1) as u32;
+                  tracing::debug!("🔧 Extended range to include comma: {} -> {}", dep.range.end, extended_end);
+                }
+              }
+              
+              tracing::debug!("🔧 Replacing range {}..{} with macro: {}", dep.range.start, extended_end, &macro_export);
+              source.replace(dep.range.start, extended_end, &macro_export, None);
             }
             ExportContext::ObjectLiteralPropertySubsequent => {
-              // Subsequent properties in object literal - use leading comma to prevent orphaned commas
+              // Subsequent properties in object literal - include trailing comma inside macro and remove external comma
               let macro_export = format!(
-                "/* @common:if [condition=\"{}\"] */ , {} /* @common:endif */",
+                "/* @common:if [condition=\"{}\"] */ {}, /* @common:endif */",
                 macro_condition, export_name
               );
-              source.replace(dep.range.start, dep.range.end, &macro_export, None);
+              // Check if there's a comma immediately after the property range
+              let source_str = source.source();
+              let end_usize = dep.range.end as usize;
+              let mut extended_end = dep.range.end;
+              
+              // Look ahead to find and consume the trailing comma
+              if end_usize < source_str.len() {
+                let after_prop = &source_str[end_usize..];
+                // Check for comma with optional whitespace
+                let mut chars = after_prop.chars();
+                let mut offset = 0;
+                
+                // Skip whitespace
+                while let Some(ch) = chars.next() {
+                  if ch.is_whitespace() {
+                    offset += ch.len_utf8();
+                  } else {
+                    break;
+                  }
+                }
+                
+                // Check if next non-whitespace character is a comma
+                if after_prop[offset..].starts_with(',') {
+                  extended_end = dep.range.end + (offset + 1) as u32;
+                  tracing::debug!("🔧 Extended range to include comma: {} -> {}", dep.range.end, extended_end);
+                }
+              }
+              
+              tracing::debug!("🔧 Replacing range {}..{} with macro: {}", dep.range.start, extended_end, &macro_export);
+              source.replace(dep.range.start, extended_end, &macro_export, None);
             }
             ExportContext::VariableAssignment => {
               // For variable assignments (foo = exports.bar), wrap the exports reference
