@@ -6,11 +6,15 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
 
-`CssChunkingPlugin` 是专为处理 CSS 模块代码分割的实验性插件（参考自 Next.js），确保样式规则的执行顺序与源代码导入顺序保持一致，避免样式错误。
+`CssChunkingPlugin` 是一个专为 CSS 模块代码分割设计的实验性插件（参考自 Next.js），确保样式的执行顺序与源代码导入顺序保持一致，避免样式错误。
 
 ```js
 new rspack.experiments.CssChunkingPlugin(options);
 ```
+
+:::tip
+启用 CssChunkingPlugin 后，SplitChunksPlugin 将不再处理 CSS 模块。
+:::
 
 ## 选项
 
@@ -19,21 +23,22 @@ new rspack.experiments.CssChunkingPlugin(options);
 - **类型：** `bool`
 - **默认值：** `false`
 
-是否强制保持 CSS 模块的导入顺序。
+是否严格保持 CSS 模块的导入顺序。
 
-## 模式对比
+## 工作模式对比
 
-### 常规模式 (strict: false，默认)
+常规模式 (strict: false，默认)
 
-允许合并无依赖关系的 CSS 模块，减少 chunk 数量。
+- 假定 CSS 模块在项目中各处的导入顺序不同，则认为它们之间无依赖关系
+- 允许合并无依赖关系的 CSS 模块，以减少 chunk 数量
 
-### 严格模式 (strict: true)
+严格模式 (strict: true)
 
-保证 CSS 模块的执行顺序**严格匹配**源代码导入顺序。
+- 严格保证 CSS 模块的执行顺序与源代码导入顺序一致
 
-### 示例
+示例：
 
-`a.css` 和 `b.css` 分别在 `foo.js` 和 `bar.js` 中被导入，但两者导入顺序不同：
+`a.css` 和 `b.css` 分别在 `foo.js` 和 `bar.js` 中被导入，但导入顺序不同：
 
 ```js
 // foo.js
@@ -45,20 +50,17 @@ import './b.css';
 import './a.css';
 ```
 
-常规模式 (strict: false)：认为 `a.css` 和 `b.css` 无依赖关系，无需保证执行顺序，因此会将它们合并到同一个 chunk 中。
+常规模式 (strict: false)：认为 `a.css` 和 `b.css` 之间无依赖关系，会将它们合并到同一个 chunk 中。
 
-严格模式 (strict: true)：严格保证执行顺序与导入顺序一致，因此会将 `a.css` 和 `b.css` 单独打包到不同的 chunk 中。
+严格模式 (strict: true)：严格按照导入顺序，将 `a.css` 和 `b.css` 分别打包到不同的 chunk 中，确保执行顺序一致。
 
 ## 与 SplitChunksPlugin 的区别
 
-JavaScript 与 CSS 模块的差异：
+`SplitChunksPlugin` 在进行代码分割时不会考虑模块的导入顺序。对于 JavaScript 模块，这不是问题，因为模块的执行顺序在运行时通过函数调用决定。
 
-- CSS 没有函数作用域，无法像 JavaScript 那样通过运行时调用来控制执行顺序
-- CSS 规则的执行顺序完全由其在产物文件中的位置决定
+但对于 CSS 模块，CSS 的执行顺序完全由其在产物文件中的排列顺序决定，无法在运行时控制。如果执行顺序变化，可能导致样式错误。
 
-SplitChunksPlugin 进行代码分割时并不考虑 CSS 模块的导入顺序，而 CssChunkingPlugin 尊重 CSS 模块的导入顺序，确保样式执行顺序与源码导入顺序一致。
-
-导入以下 CSS 模块：
+例如，导入如下 CSS 模块：
 
 ```js
 import './a.css';
@@ -66,11 +68,17 @@ import './b.css';
 import './c.css';
 ```
 
-SplitChunksPlugin 可能生成以下 chunk 以满足 `maxSize` 等配置约束：
+`SplitChunksPlugin` 可能拆分成以下 chunk 以满足 `maxSize` 等配置约束：
 
 ```
 chunk-1: b.css
 chunk-2: a.css, c.css // 可能因尺寸较大而被提取
 ```
 
-执行顺序变为 b.css → a.css → c.css，违反原始声明，可能引发样式错误。
+这样，最终执行顺序变为 b.css → a.css → c.css，违背了原始导入顺序，可能导致样式错误。
+
+CssChunkingPlugin 的内部算法会先分离出所有 CSS 模块，然后根据源代码的导入顺序判断哪些可以合并，无法合并则拆分为独立的 chunk，以保证样式的正确性。
+
+:::tip
+CssChunkingPlugin 算法决定了，相比 SplitChunksPlugin 可能生成更多的 chunk。
+:::
