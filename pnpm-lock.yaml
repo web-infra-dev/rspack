@@ -129,6 +129,24 @@ importers:
         specifier: workspace:*
         version: link:../../npm/win32-x64-msvc
 
+  crates/rspack_binding_builder_testing:
+    devDependencies:
+      '@emnapi/core':
+        specifier: ^1.4.3
+        version: 1.4.3
+      '@napi-rs/cli':
+        specifier: 3.0.0-alpha.88
+        version: 3.0.0-alpha.88(@emnapi/runtime@1.4.3)(@types/node@20.19.0)(emnapi@1.4.3)
+      '@napi-rs/wasm-runtime':
+        specifier: ^0.2.11
+        version: 0.2.11
+      emnapi:
+        specifier: ^1.4.3
+        version: 1.4.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
   npm/darwin-arm64: {}
 
   npm/darwin-x64: {}

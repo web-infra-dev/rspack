@@ -1,0 +1,13 @@
+[package]
+description       = "rspack node builder"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_binding_builder"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
+
+[features]
+plugin = ["rspack_binding_api/plugin"]
+
+[dependencies]
+rspack_binding_api = { workspace = true }
