@@ -149,134 +149,107 @@ flowchart TD
     style MEM2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
 
-### **Graph 2: Detailed Plugin Execution Flow with Data Logic**
+### **Graph 2: Actual Code Architecture - Data Structures & Flow Execution**
 
 ```mermaid
 flowchart TD
-    subgraph consume_shared_execution ["🔄 CONSUMESHARED PLUGIN EXECUTION FLOW"]
-        CSE1["thisCompilation hook (Line 608)"] --> CSE2["init_context(compilation)"]
-        CSE2 --> CSE3["init_resolver(compilation)"] 
-        CSE3 --> CSE4["init_matched_consumes(compilation)"]
-        CSE4 --> CSE5["resolve_matched_configs() async"]
+    subgraph core_data_structures ["📊 CORE DATA STRUCTURES - Real Rust Code Architecture"]
+        CDS1["Compilation<br/>🏗️ compilation.rs:45-892<br/>📦 Arc<RwLock<ModuleGraph>><br/>📦 Arc<RwLock<ChunkGraph>><br/>🗂️ entries: IndexMap<String, EntryData><br/>🗂️ assets: HashMap<String, CompilationAsset><br/>⚡ plugins: Vec<BoxPlugin><br/>💾 ~15MB base + modules + chunks"] 
         
-        CSE6["factorize hook (Line 657)"] --> CSE7["Check consumes.unresolved.get(request)"]
-        CSE7 --> CSE8["create_consume_shared_module() async"]
-        CSE8 --> CSE9["get_required_version() async"]
-        CSE9 --> CSE10["ConsumeSharedModule::new()"]
-        CSE10 --> CSE11["Return Some(module.boxed())"]
+        CDS2["ModuleGraph<br/>🗂️ module_graph.rs:25-1247<br/>📋 modules: FxHashMap<ModuleIdentifier, Module><br/>📋 dependencies: FxHashMap<DependencyId, Dependency><br/>📋 connections: Vec<ModuleGraphConnection><br/>🔄 incoming_connections_map: FxHashMap<ModuleIdentifier, Vec<ModuleGraphConnection>><br/>💾 ~8MB for medium projects"]
         
-        CSE12["finish_modules hook (Line 626)"] --> CSE13["Find ConsumeShared modules filter"]
-        CSE13 --> CSE14["Loop: copy_fallback_metadata_to_consume_shared()"]
-        CSE14 --> CSE15["find_fallback_module_id()"]
-        CSE15 --> CSE16["copy_exports_from_fallback_to_consume_shared()"]
-        CSE16 --> CSE17["ExportsInfoGetter::prefetch()"]
-        CSE17 --> CSE18["Match ProvidedExports enum"]
-        CSE18 --> CSE19["set_provided() + set_can_mangle_provide()"]
+        CDS3["Module trait + Implementations<br/>🔧 module.rs:31-428<br/>📦 NormalModule (JS/TS files)<br/>📦 ConsumeSharedModule (MF modules)<br/>📦 ContextModule (dynamic imports)<br/>📦 ExternalModule (externals)<br/>🏗️ build_info: BuildInfo<br/>🏗️ build_meta: BuildMeta<br/>💾 ~360 bytes + content"]
+        
+        CDS4["BuildMeta struct<br/>🏗️ build_meta.rs:12-89<br/>📊 esm: bool<br/>📋 exports_type: BuildMetaExportsType<br/>📦 default_object: BuildMetaDefaultObject<br/>⚡ side_effect_free: Option<bool><br/>🔄 strict_harmony_module: bool<br/>💾 ~64 bytes + heap allocations"]
     end
 
-    subgraph dependency_processing ["⚙️ DEPENDENCY PROCESSING PIPELINE"]
-        DP1["CommonJsExportsParserPlugin::expression_assignment()"] --> DP2["handle_member_assignment() NEW"]
-        DP2 --> DP3["get_member_expression_info()"]
-        DP3 --> DP4["CommonJsExportsDependency::new()"]
-        DP4 --> DP5["create_resource_identifier() NEW"]
-        DP5 --> DP6["validate() NEW"]
-        DP6 --> DP7["dependencies.push(dependency)"]
+    subgraph plugin_architecture ["🔌 PLUGIN ARCHITECTURE - Hook System Implementation"]
+        PA1["ConsumeSharedPlugin<br/>🔧 consume_shared_plugin.rs:164-798<br/>📦 consumes: ConsumeOptions<br/>🗂️ matched_consumes: MatchedConsumes<br/>📋 enhanced_mode: bool<br/>⚡ context: CompilerContext<br/>💾 ~1KB + regex cache ~5KB"]
         
-        DP8["ESMExportSpecifierDependency creation"] --> DP9["get_consume_shared_info() NEW"]
-        DP9 --> DP10["module_graph.get_parent_module()"]
-        DP10 --> DP11["find_consume_shared_recursive() NEW"]
-        DP11 --> DP12["Traverse incoming connections max_depth=5"]
-        DP12 --> DP13["Check ModuleType::ConsumeShared"]
-        DP13 --> DP14["Return share_key Option<String>"]
+        PA2["Hook Registration<br/>🔌 apply() method: Lines 769-796<br/>📋 thisCompilation tap<br/>📋 factorize tap<br/>📋 create_module tap<br/>📋 finish_modules tap<br/>📋 additional_tree_runtime_requirements tap<br/>🔄 Async hook coordination"]
+        
+        PA3["MatchedConsumes<br/>🔧 matched_consumes.rs:67-142<br/>📦 unresolved: FxHashMap<String, ConsumeOptionsWithKey><br/>📦 prefixed: Vec<(String, ConsumeOptionsWithKey)><br/>📦 resolved: FxHashMap<String, ConsumeOptionsWithKey><br/>🔄 Regex compilation: O(n) startup cost<br/>💾 ~2KB + regex objects"]
     end
 
-    subgraph template_rendering ["🎨 TEMPLATE RENDERING EXECUTION"]
-        TR1["CommonJsExportsDependencyTemplate::render()"] --> TR2["validate() call NEW"]
-        TR2 --> TR3["detect_consume_shared_context() NEW"]
-        TR3 --> TR4["get_used_export_name() NEW"]
-        TR4 --> TR5["generate_base_expression() NEW"]
-        TR5 --> TR6["render_export_statement() NEW"]
-        TR6 --> TR7["render_expression_export() NEW"]
+    subgraph dependency_system ["⚙️ DEPENDENCY SYSTEM - Parser to Template Flow"]
+        DS1["CommonJsExportsParserPlugin<br/>🔧 common_js_exports_parse_plugin.rs:35-789<br/>📋 expression_assignment() handler<br/>📋 member_assignment() handler<br/>🔄 AST traversal with swc_ecma_ast<br/>📦 Creates CommonJsExportsDependency<br/>⚡ Bulk export detection: obj_lit.props.len()"]
         
-        TR8["Check consume_shared_info.is_some()"] --> TR9["format! macro generation"]
-        TR9 --> TR10["/* @common:if [condition=...] */ export /* @common:endif */"]
-        TR10 --> TR11["source.replace() with macro content"]
+        DS2["CommonJsExportsDependency<br/>🏗️ common_js_exports_dependency.rs:45-234<br/>📊 range: DependencyRange (u32, u32)<br/>📋 export_name: Atom<br/>📦 base: ExportsBase enum<br/>🗂️ value_range: Option<DependencyRange><br/>📦 source_map: Option<SharedSourceMap><br/>💾 ~128 bytes + heap data"]
         
-        TR12["ESMExportSpecifierDependencyTemplate::render()"] --> TR13["dep.get_consume_shared_info()"]
-        TR13 --> TR14["ESMExportInitFragment::new()"]
-        TR14 --> TR15["Check consume_shared_info presence"]
-        TR15 --> TR16["Generate macro: /* @common:if [...] */ /* ESM export */ value /* @common:endif */"]
-        TR16 --> TR17["init_fragments.push(export_fragment)"]
+        DS3["ESM Export Dependencies<br/>🔧 esm_export_*_dependency.rs (3 files)<br/>📦 ESMExportExpressionDependency (default exports)<br/>📦 ESMExportSpecifierDependency (named exports)<br/>📦 ESMExportImportedSpecifierDependency (re-exports)<br/>🔄 get_consume_shared_info() module graph traversal<br/>💾 ~96 bytes each + metadata"]
+        
+        DS4["DependencyTemplate Trait<br/>🎨 dependency_template.rs:13-67<br/>🔧 render() method signature<br/>📦 TemplateContext parameter<br/>📦 TemplateReplaceSource mutations<br/>🔄 Code generation phase execution<br/>⚡ source.replace() operations"]
     end
 
-    subgraph data_structures ["📊 KEY DATA STRUCTURES & FLOW"]
-        DS1["CommonJsExportsDependency struct"] --> DS2["+ source_map: Option<SharedSourceMap> NEW"]
-        DS2 --> DS3["+ resource_identifier: Option<String> NEW"]
+    subgraph template_execution ["🎨 TEMPLATE EXECUTION - Code Generation Pipeline"]
+        TE1["CommonJsExportsDependencyTemplate<br/>🎨 render() implementation<br/>📋 detect_consume_shared_context()<br/>📋 get_used_export_name()<br/>📋 render_export_statement()<br/>🔄 Macro generation logic<br/>📦 TemplateReplaceSource operations"]
         
-        DS4["TemplateContext struct (dependency_template.rs:13)"] --> DS5["compilation: &Compilation"]
-        DS5 --> DS6["module: &dyn Module"]
-        DS6 --> DS7["runtime_requirements: &mut RuntimeGlobals"]
-        DS7 --> DS8["init_fragments: &mut ModuleInitFragments"]
+        TE2["ESM Template Rendering<br/>🎨 ESM*DependencyTemplate impls<br/>📦 ESMExportInitFragment generation<br/>🔄 Fragment-based code insertion<br/>📋 Macro comment generation<br/>⚡ init_fragments.push() operations"]
         
-        DS9["ConsumeOptions struct (Line 31)"] --> DS10["share_key: String"]
-        DS10 --> DS11["share_scope: String"]
-        DS11 --> DS12["required_version: Option<ConsumeVersion>"]
+        TE3["TemplateReplaceSource<br/>🔧 template_replace_source.rs<br/>📦 ReplaceSource base implementation<br/>📋 replacements: Vec<Replacement><br/>🔄 source.replace(start, end, content)<br/>⚡ String manipulation operations<br/>💾 ~2KB + source content"]
         
-        DS13["BuildMeta enhancement PROPOSED"] --> DS14["+ consume_shared_key: Option<String>"]
-        DS14 --> DS15["+ export_coordination: Option<ExportCoordination>"]
+        TE4["Generated Code Output<br/>📝 Final JavaScript generation<br/>/* @common:if [condition='...'] */ export /* @common:endif */<br/>🔄 Macro-wrapped exports<br/>📦 Tree-shaking markers<br/>⚡ Runtime optimization hooks"]
     end
 
-    subgraph performance_issues ["⚠️ PERFORMANCE & ARCHITECTURAL ISSUES"]
-        PI1["❌ Template-time ConsumeShared detection"] --> PI2["O(n) module graph traversal per dependency"]
-        PI2 --> PI3["Multiple detect_consume_shared_context() calls"]
-        PI3 --> PI4["Expensive get_incoming_connections() iteration"]
+    subgraph async_execution ["⚡ ASYNC EXECUTION PATTERNS - Tokio Integration"]
+        AE1["Compiler::compile()<br/>🔄 async fn with tokio runtime<br/>📦 Arc<Compilation> shared state<br/>🧵 tokio::task::spawn coordination<br/>⚡ Future<Output=Result<Stats>><br/>🔄 Plugin hook orchestration"]
         
-        PI5["❌ CommonJS bulk export range conflicts"] --> PI6["Multiple dependencies share value_range"]
-        PI6 --> PI7["Each template calls source.replace() at same position"]
-        PI7 --> PI8["Result: /* @common:endif */ /* @common:endif */ stacked"]
+        AE2["Module Building Pipeline<br/>🔄 async module.build()<br/>📦 BuildInfo population<br/>📦 BuildMeta serialization<br/>🧵 Parallel module processing<br/>⚡ tokio::task::JoinSet coordination"]
         
-        PI9["❌ Over-engineered Module Federation"] --> PI10["export_usage_analysis.rs (1098 lines)"]
-        PI10 --> PI11["share_usage_plugin.rs (1036 lines)"]
-        PI11 --> PI12["Complex analysis not needed for macro generation"]
+        AE3["Hook Execution Patterns<br/>🔌 AsyncSeriesHook<T><br/>🔌 AsyncParallelHook<T><br/>🔌 SyncHook<T><br/>🔌 SyncBailHook<T><br/>⚡ HookMap::call_tap_series<br/>🔄 Plugin coordination"]
         
-        PI13["❌ Wrong runtime template PURE annotations"] --> PI14["is_consume_shared_descendant_recursive()"]
-        PI14 --> PI15["Applies build-time tree-shaking to ConsumeShared"]
-        PI15 --> PI16["Breaks Module Federation dynamic loading"]
+        AE4["Code Generation Phase<br/>🎨 async code_generation()<br/>📦 tokio::task::spawn per module<br/>🔄 Template rendering pipeline<br/>📦 Asset creation and optimization<br/>⚡ Parallel processing coordination"]
     end
 
-    subgraph proposed_solution ["✅ BUILDMETA SOLUTION ARCHITECTURE"]
-        PS1["Phase 1: Extend BuildMeta (core/module.rs:192)"] --> PS2["+ consume_shared_key: Option<String>"]
-        PS2 --> PS3["+ export_coordination: Option<ExportCoordination>"]
+    subgraph memory_layout ["💾 MEMORY LAYOUT - Heap Allocation Patterns"]
+        ML1["Compiler Memory<br/>📦 ~2184 bytes base struct<br/>📦 + Compilation: ~15MB<br/>📦 + ModuleGraph: ~8MB<br/>📦 + ChunkGraph: ~2MB<br/>📦 + Plugin registry: ~1MB<br/>💾 Total: ~26MB + content"]
         
-        PS4["Phase 2: Parser-phase detection"] --> PS5["CommonJsExportsParserPlugin enhancement"]
-        PS5 --> PS6["Detect ConsumeShared ONCE during parsing"]
-        PS6 --> PS7["Store in parser.build_meta"]
+        ML2["Module Memory<br/>📦 NormalModule: ~360 bytes<br/>📦 + source content: variable<br/>📦 + dependencies: ~128 bytes each<br/>📦 + BuildInfo/BuildMeta: ~128 bytes<br/>💾 Per module: ~600 bytes + content"]
         
-        PS8["Phase 3: Template optimization"] --> PS9["Read BuildMeta instead of detection"]
-        PS9 --> PS10["✅ O(1) cached operations"]
-        PS10 --> PS11["✅ Coordinated macro generation"]
+        ML3["Dependency Memory<br/>📦 CommonJsExportsDependency: ~128 bytes<br/>📦 ESMExportDependency: ~96 bytes<br/>📦 + export_name: Atom ~24 bytes<br/>📦 + source_map: ~200KB (optional)<br/>💾 Per dependency: ~150 bytes + optional data"]
+        
+        ML4["Template Memory<br/>📦 TemplateReplaceSource: ~2KB<br/>📦 + source content: variable<br/>📦 + replacements: ~32 bytes each<br/>📦 + init_fragments: ~64 bytes each<br/>💾 Per template: ~3KB + content"]
     end
 
-    %% Flow connections showing execution order
-    consume_shared_execution --> dependency_processing
-    dependency_processing --> template_rendering
-    template_rendering --> data_structures
-    data_structures --> performance_issues
-    performance_issues --> proposed_solution
+    %% Data flow connections
+    CDS1 --> CDS2
+    CDS2 --> CDS3
+    CDS3 --> CDS4
+    
+    PA1 --> PA2
+    PA2 --> PA3
+    
+    DS1 --> DS2
+    DS2 --> DS3
+    DS3 --> DS4
+    
+    TE1 --> TE2
+    TE2 --> TE3
+    TE3 --> TE4
+    
+    AE1 --> AE2
+    AE2 --> AE3
+    AE3 --> AE4
+    
+    ML1 --> ML2
+    ML2 --> ML3
+    ML3 --> ML4
 
-    %% Styling
-    style CSE5 fill:#e3f2fd
-    style CSE11 fill:#e8f5e8
-    style CSE19 fill:#e8f5e8
-    style DP14 fill:#e8f5e8
-    style TR11 fill:#e8f5e8
-    style TR17 fill:#e8f5e8
-    style PI2 fill:#ffebee
-    style PI8 fill:#ffebee
-    style PI12 fill:#ffebee
-    style PI16 fill:#ffebee
-    style PS10 fill:#e8f5e8
-    style PS11 fill:#e8f5e8
+    %% Cross-system data flows
+    PA1 --> DS1
+    DS4 --> TE1
+    CDS3 --> TE1
+    AE2 --> DS1
+    AE4 --> TE1
+
+    %% Styling for architecture visualization
+    style CDS1 fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style CDS2 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style PA1 fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    style DS2 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style TE3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style AE1 fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style ML1 fill:#f1f8e9,stroke:#689f38,stroke-width:2px
 ```
 
 ## Critical Rust Code Analysis
