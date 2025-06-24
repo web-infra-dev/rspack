@@ -160,7 +160,7 @@ const getPluginOptionsSchema = memoize(
 );
 
 export function validateHtmlPluginOptions(options: HtmlRspackPluginOptions) {
-	return validate(options, getPluginOptionsSchema());
+	return validate(options, getPluginOptionsSchema);
 }
 
 export const getPluginOptions = (compilation: Compilation, uid: number) => {

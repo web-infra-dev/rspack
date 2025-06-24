@@ -65,7 +65,7 @@ export class DllPlugin {
 	private options: DllPluginOptions;
 
 	constructor(options: DllPluginOptions) {
-		validate(options, getDllPluginOptionsSchema());
+		validate(options, getDllPluginOptionsSchema);
 		this.options = {
 			...options,
 			entryOnly: options.entryOnly !== false
