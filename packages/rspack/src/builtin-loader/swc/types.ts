@@ -494,6 +494,21 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 		typeExports: z.boolean().optional()
 	}) satisfies z.ZodType<CollectTypeScriptInfoOptions>;
 
+	const ZodSwcPluginImportConfig = z
+		.strictObject({
+			libraryName: z.string(),
+			libraryDirectory: z.string().optional(),
+			customName: z.string().optional(),
+			customStyleName: z.string().optional(),
+			style: z.string().or(z.boolean()).optional(),
+			styleLibraryDirectory: z.string().optional(),
+			camelToDashComponentName: z.boolean().optional(),
+			transformToDefaultImport: z.boolean().optional(),
+			ignoreEsComponent: z.string().array().optional(),
+			ignoreStyleComponent: z.string().array().optional()
+		})
+		.array() satisfies z.ZodType<PluginImportOptions>;
+
 	return ZodSwcConfig.extend({
 		isModule: z.boolean().or(z.literal("unknown")),
 		rspackExperiments: z
