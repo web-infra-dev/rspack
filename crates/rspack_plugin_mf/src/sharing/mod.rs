@@ -2,7 +2,6 @@ pub mod consume_shared_fallback_dependency;
 pub mod consume_shared_module;
 pub mod consume_shared_plugin;
 pub mod consume_shared_runtime_module;
-pub mod enhanced_share_usage_plugin;
 pub mod export_usage_analysis;
 pub mod export_usage_plugin;
 pub mod export_usage_types;

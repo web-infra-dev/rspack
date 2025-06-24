@@ -30,6 +30,64 @@ import {
 import { Button as DynamicButton, Modal } from "./shared/components.js";
 import { createApiClient as dynamicCreateApiClient } from "./shared/api.js";
 
+// CJS Test Package Usage Examples - Different import patterns for testing Module Federation
+// Pattern 1: Direct require from alias
+const cjsTestPackage = require("@cjs-test/legacy-utils");
+console.log("CJS Test Package (via alias):", {
+	name: cjsTestPackage.name,
+	version: cjsTestPackage.version,
+	formatPath: cjsTestPackage.formatPath("/test/path")
+});
+
+// Pattern 2: Import specific modules from the CJS test package
+const {
+	formatPath: cjsFormatPath,
+	constants: cjsConstants
+} = require("cjs-modules/legacy-utils");
+const {
+	processArray: cjsProcessArray,
+	dataUtils: cjsDataUtils
+} = require("cjs-modules/data-processor");
+
+// Pattern 3: Test federated CJS modules (if exposed to other apps)
+const testCjsFederated = async () => {
+	try {
+		// This would be used by other federated apps to consume our CJS modules
+		const { formatPath } = await import("./cjs-test");
+		console.log(
+			"Federated CJS test module loaded:",
+			formatPath("/federated/path")
+		);
+	} catch (error) {
+		console.log(
+			"Federated CJS import not available in current context:",
+			error.message
+		);
+	}
+};
+
+// Import CommonJS modules for interoperability testing - ONLY import some exports to test unused detection
+const {
+	processArray,
+	dataUtils
+	// Intentionally NOT importing: createProcessor, filterArray, reduceArray, DataProcessor, DEFAULT_OPTIONS
+} = require("./cjs-modules/data-processor.js");
+const {
+	formatPath,
+	constants
+	// Intentionally NOT importing: FileManager, readFileSync, validateFile, getSelf
+} = require("./cjs-modules/legacy-utils.js");
+
+// Import CommonJS modules for testing CommonJS tracking in the plugin
+const legacyUtils = require("./cjs-modules/legacy-utils.js");
+const dataProcessor = require("./cjs-modules/data-processor.js");
+
+// Pure CommonJS require usage - NO ES6 imports, only require()
+const pureCjsHelper = require("./cjs-modules/pure-cjs-helper.js");
+
+// Test the pure module.exports = { ... } pattern
+const moduleExportsPattern = require("./cjs-modules/module-exports-pattern.js");
+
 console.log("Test exports:", {
 	namedExport,
 	functionExport: functionExport(),
@@ -84,3 +142,99 @@ const staticClient = dynamicCreateApiClient("https://static.api.example.com", {
 	Authorization: "Bearer static-token"
 });
 console.log("Created static API client:", staticClient);
+
+// Test CJS test package usage through different patterns
+console.log("CJS Test Package Usage:");
+console.log("- Format path via alias:", cjsFormatPath("/test/from/alias"));
+console.log("- Constants via alias:", cjsConstants);
+console.log(
+	"- Process array via modules:",
+	cjsProcessArray([1, 2, 3], x => x * 3)
+);
+console.log("- Data utils via modules:", cjsDataUtils.sum([10, 20, 30]));
+
+// Execute federated test
+testCjsFederated();
+
+// Test CommonJS modules usage - ONLY use imported exports to test unused detection
+const testData = [1, 2, 3, 4, 5];
+const processedData = processArray(testData, x => x * 2);
+console.log("Processed array:", processedData);
+
+console.log("Data utils sum:", dataUtils.sum(testData));
+console.log("Data utils average:", dataUtils.average(testData));
+
+// NOTE: NOT using createProcessor, DataProcessor, filterArray, reduceArray to test unused detection
+
+const filePath = "/some/path/to/file.txt";
+console.log("Formatted path:", formatPath(filePath));
+console.log("Path constants:", constants);
+
+// NOTE: NOT using FileManager, readFileSync, validateFile to test unused detection
+
+// Test CommonJS modules usage to trigger ConsumeShared tracking
+console.log("CommonJS Legacy Utils:", {
+	name: legacyUtils.name,
+	version: legacyUtils.version,
+	join: legacyUtils.join("test", "path")
+});
+
+console.log("CommonJS Data Processor:", {
+	version: dataProcessor.version,
+	sum: dataProcessor.dataUtils.sum([1, 2, 3, 4, 5]),
+	processArray: dataProcessor.processArray([1, 2, 3], x => x * 2)
+});
+
+// Test pure CommonJS helper - ONLY use some exports to test unused detection
+console.log("Pure CommonJS Helper:", {
+	info: pureCjsHelper.info,
+	generateId: pureCjsHelper.generateId(),
+	helpers: {
+		timestamp: pureCjsHelper.helpers.timestamp(),
+		random: pureCjsHelper.helpers.random()
+	},
+	constants: pureCjsHelper.CONSTANTS
+});
+
+// NOTE: NOT using hashString, validateInput, processData, DataValidator, createValidator
+// These should appear as unused exports in the analysis
+
+// Test the pure module.exports = { ... } pattern - ONLY use selected exports
+console.log("Module Exports Pattern Test:", {
+	info: moduleExportsPattern.moduleInfo,
+	// Math utilities
+	sum: moduleExportsPattern.calculateSum([1, 2, 3, 4, 5]),
+	average: moduleExportsPattern.calculateAverage([10, 20, 30]),
+	minMax: moduleExportsPattern.findMinMax([5, 2, 8, 1, 9]),
+	// String utilities
+	slugified: moduleExportsPattern.slugify("Hello World Test"),
+	capitalized: moduleExportsPattern.capitalize("hello"),
+	// Formatting
+	currency: moduleExportsPattern.formatCurrency(1234.56),
+	percentage: moduleExportsPattern.formatPercentage(0.75),
+	// Date utilities
+	formattedDate: moduleExportsPattern.formatDate(new Date()),
+	isWeekend: moduleExportsPattern.isWeekend(new Date()),
+	// Validation
+	isEmailValid: moduleExportsPattern.isEmail("test@example.com"),
+	isUrlValid: moduleExportsPattern.isUrl("https://example.com"),
+	isEmpty: moduleExportsPattern.isEmpty(""),
+	// Constants
+	mathConstants: moduleExportsPattern.MATH_CONSTANTS,
+	httpStatus: moduleExportsPattern.HTTP_STATUS.OK,
+	// DataStore usage
+	dataStore: (() => {
+		const store = moduleExportsPattern.createDataStore();
+		store.set("test", "value");
+		return {
+			hasTest: store.has("test"),
+			testValue: store.get("test"),
+			json: store.toJSON()
+		};
+	})()
+});
+
+// NOTE: Intentionally NOT using some exports to test tree-shaking:
+// - truncate, transformData, filterData, groupBy
+// - isEmail in some contexts, DataStore constructor directly
+// These should appear as unused in the tree-shaking analysis

@@ -156,6 +156,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    // dbg!("CommonJS Full Require Template render");
     let dep = dep
       .as_any()
       .downcast_ref::<CommonJsFullRequireDependency>()

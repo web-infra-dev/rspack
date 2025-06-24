@@ -5,15 +5,17 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "pnpm --dir ../.. build:cli:dev && pnpm build:app",
-    "build:app":"rspack build",
+    "build": "cp -r ./cjs-modules ./node_modules/@cjs-test && pnpm --dir ../.. build:cli:dev && pnpm build:app",
+    "build:app": "rspack build 2>&1 | tee build.log",
+    "build:quiet": "rspack build 2>/dev/null",
     "test": "rstest run test-validate.test.js",
     "test:validate": "rstest run test-validate.test.js",
     "test:snapshots": "rstest run test-snapshots.test.js",
     "test:snapshots:update": "rstest run test-snapshots.test.js --update",
     "test:all": "rstest run test-validate.test.js test-snapshots.test.js",
     "test:runner": "node test-runner.js",
-    "test:runner:update": "node test-runner.js --update-snapshots"
+    "test:runner:update": "node test-runner.js --update-snapshots",
+    "test:cjs": "node test-cjs-integration.cjs"
   },
   "dependencies": {
     "@rspack/core": "workspace:*",

@@ -160,7 +160,7 @@ impl ESMExportImportedSpecifierDependency {
     // Enhanced: Check deeper in the module graph for reexport scenarios
     let mut visited = std::collections::HashSet::new();
     if let Some(share_key) =
-      self.find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5)
+      Self::find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5)
     {
       return Some(share_key);
     }
@@ -170,7 +170,6 @@ impl ESMExportImportedSpecifierDependency {
 
   /// Recursively search for ConsumeShared modules in the module graph
   fn find_consume_shared_recursive(
-    &self,
     current_module: &rspack_core::ModuleIdentifier,
     module_graph: &ModuleGraph,
     visited: &mut std::collections::HashSet<rspack_core::ModuleIdentifier>,
@@ -179,7 +178,7 @@ impl ESMExportImportedSpecifierDependency {
     if max_depth == 0 || visited.contains(current_module) {
       return None;
     }
-    visited.insert(current_module.clone());
+    visited.insert(*current_module);
 
     // Check all incoming connections for this module
     for connection in module_graph.get_incoming_connections(current_module) {
@@ -191,7 +190,7 @@ impl ESMExportImportedSpecifierDependency {
           }
 
           // Recursively check this module's incoming connections
-          if let Some(share_key) = self.find_consume_shared_recursive(
+          if let Some(share_key) = Self::find_consume_shared_recursive(
             origin_module_id,
             module_graph,
             visited,
@@ -1426,7 +1425,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   ) -> ConnectionState {
     if let Some(parent_module_id) = module_graph.get_parent_module(&self.id) {
       if let Some(cached_state) = connection_state_cache.get(parent_module_id) {
-        return cached_state.clone();
+        return *cached_state;
       }
 
       let state = if let Some(imported_module_id) =
@@ -1444,7 +1443,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         ConnectionState::Active(false)
       };
 
-      connection_state_cache.insert(*parent_module_id, state.clone());
+      connection_state_cache.insert(*parent_module_id, state);
       return state;
     }
 

@@ -430,6 +430,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    // dbg!("CommonJS Export Require Template render");
     let dep = dep
       .as_any()
       .downcast_ref::<CommonJsExportRequireDependency>()
@@ -464,6 +465,8 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     } else {
       None
     };
+
+    // dbg!(&dep.request, &dep.names, &consume_shared_info);
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();

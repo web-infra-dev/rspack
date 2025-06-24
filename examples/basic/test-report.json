@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-23T04:33:45.913Z",
+  "timestamp": "2025-06-23T06:51:48.160Z",
   "status": "PASSED",
   "build": {
     "distExists": true,
@@ -27,6 +27,7 @@
         "debounce",
         "deepClone",
         "generateId",
+        "processWithHelper",
         "validateEmail"
       ]
     },

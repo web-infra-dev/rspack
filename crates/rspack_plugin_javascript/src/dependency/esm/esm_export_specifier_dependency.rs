@@ -15,10 +15,7 @@ use rspack_core::{
 use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
-/// Creates `_webpack_require__.d(__webpack_exports__, {})` for each export specifier.
-///
-/// Handles both regular export specifiers and ConsumeShared module fallback exports
-/// with sophisticated tree-shaking macro integration.
+// Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMExportSpecifierDependency {
@@ -34,14 +31,6 @@ pub struct ESMExportSpecifierDependency {
 }
 
 impl ESMExportSpecifierDependency {
-  /// Creates a new ESM export specifier dependency with comprehensive validation.
-  ///
-  /// # Arguments
-  /// * `name` - Export name (what's exported)
-  /// * `value` - Export value identifier (what's being exported)
-  /// * `inline` - Optional inline evaluation information for optimization
-  /// * `range` - Source code range for error reporting
-  /// * `source_map` - Source map for accurate error locations
   pub fn new(
     name: Atom,
     value: Atom,
@@ -93,7 +82,7 @@ impl ESMExportSpecifierDependency {
     // that might be multiple levels up in the module dependency chain
     let mut visited = std::collections::HashSet::new();
     if let Some(share_key) =
-      self.find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5)
+      Self::find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5)
     {
       return Some(share_key);
     }
@@ -103,7 +92,6 @@ impl ESMExportSpecifierDependency {
 
   /// Recursively search for ConsumeShared modules in the module graph
   fn find_consume_shared_recursive(
-    &self,
     current_module: &rspack_core::ModuleIdentifier,
     module_graph: &ModuleGraph,
     visited: &mut std::collections::HashSet<rspack_core::ModuleIdentifier>,
@@ -112,7 +100,7 @@ impl ESMExportSpecifierDependency {
     if max_depth == 0 || visited.contains(current_module) {
       return None;
     }
-    visited.insert(current_module.clone());
+    visited.insert(*current_module);
 
     // Check all incoming connections for this module
     for connection in module_graph.get_incoming_connections(current_module) {
@@ -124,7 +112,7 @@ impl ESMExportSpecifierDependency {
           }
 
           // Recursively check this module's incoming connections
-          if let Some(share_key) = self.find_consume_shared_recursive(
+          if let Some(share_key) = Self::find_consume_shared_recursive(
             origin_module_id,
             module_graph,
             visited,

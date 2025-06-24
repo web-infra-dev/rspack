@@ -11,6 +11,17 @@ module.exports = {
 	output: {
 		clean: true
 	},
+	resolve: {
+		// Add alias for the CJS test package
+		alias: {
+			"@cjs-test": require
+				.resolve("./cjs-modules/package.json")
+				.replace("/package.json", ""),
+			"cjs-modules": require
+				.resolve("./cjs-modules/package.json")
+				.replace("/package.json", "")
+		}
+	},
 	optimization: {
 		minimize: false, // Keep false for dev mode debugging
 		usedExports: true,
@@ -70,6 +81,14 @@ module.exports = {
 			name: "basic_example",
 			filename: "remoteEntry.js",
 
+			// Expose CJS test modules for other federated apps to consume
+			exposes: {
+				"./cjs-test": "./cjs-modules/legacy-utils.js",
+				"./cjs-data-processor": "./cjs-modules/data-processor.js",
+				"./cjs-pure-helper": "./cjs-modules/pure-cjs-helper.js",
+				"./cjs-module-exports": "./cjs-modules/module-exports-pattern.js"
+			},
+
 			// Share dependencies with other federated modules
 			shared: {
 				// Share utilities - actually imported by the app
@@ -90,6 +109,39 @@ module.exports = {
 					eager: false,
 					requiredVersion: false,
 					shareKey: "api-lib"
+				},
+
+				// Share CJS test package modules
+				"cjs-modules": {
+					singleton: true,
+					eager: false,
+					requiredVersion: false,
+					shareKey: "cjs-test-package",
+					shareScope: "cjs-testing"
+				},
+				"./cjs-modules/legacy-utils.js": {
+					singleton: true,
+					eager: false,
+					requiredVersion: false,
+					shareKey: "cjs-legacy-utils"
+				},
+				"./cjs-modules/data-processor.js": {
+					singleton: true,
+					eager: false,
+					requiredVersion: false,
+					shareKey: "cjs-data-processor"
+				},
+				"./cjs-modules/pure-cjs-helper.js": {
+					singleton: true,
+					eager: false,
+					requiredVersion: false,
+					shareKey: "cjs-pure-helper"
+				},
+				"./cjs-modules/module-exports-pattern.js": {
+					singleton: true,
+					eager: false,
+					requiredVersion: false,
+					shareKey: "cjs-module-exports"
 				},
 
 				// Share external libraries that are actually used
@@ -118,8 +170,12 @@ module.exports = {
 
 			// Remote modules this app can consume
 			remotes: {
-				remote_app: "remote_app@http://localhost:3001/remoteEntry.js"
+				remote_app: "remote_app@http://localhost:3001/remoteEntry.js",
+				cjs_test_remote: "cjs_test@http://localhost:3002/remoteEntry.js"
 			}
 		})
+
+		// NOTE: CommonJS modules accessed via require() cannot be made ConsumeShared
+		// They are ProvideShared but consumed directly, which is a current limitation
 	]
 };

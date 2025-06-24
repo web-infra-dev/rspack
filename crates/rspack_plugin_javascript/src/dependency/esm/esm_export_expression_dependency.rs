@@ -261,9 +261,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               get_consume_shared_info(&mg, &module_identifier)
             {
               format!(
-            "/* @common:if [condition=\"treeShake.{}.default\"] */ /* ESM default export */ {} /* @common:endif */",
-            consume_shared_key,
-            DEFAULT_EXPORT
+            "/* @common:if [condition=\"treeShake.{consume_shared_key}.default\"] */ /* ESM default export */ {DEFAULT_EXPORT} /* @common:endif */"
           )
             } else {
               DEFAULT_EXPORT.to_string()

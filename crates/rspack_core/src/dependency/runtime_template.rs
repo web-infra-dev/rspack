@@ -401,12 +401,14 @@ pub fn import_statement(
     .is_some_and(|dep| {
       // Check the dependency type to distinguish between different import types
       let dep_type = dep.dependency_type();
-      // Include both "esm import" (bare imports) and "esm import specifier" (named imports)
-      // but exclude __webpack_require__ calls themselves
-      let is_esm_import = matches!(dep_type.as_str(), "esm import" | "esm import specifier") && import_var != "__webpack_require__";
+      // Include ESM imports and CommonJS requires but exclude __webpack_require__ calls themselves
+      let is_relevant_import = matches!(
+        dep_type.as_str(), 
+        "esm import" | "esm import specifier" | "cjs require"
+      ) && import_var != "__webpack_require__";
       
-      // Only apply PURE annotation if this is an ESM import AND descends from ConsumeShared
-      if is_esm_import {
+      // Only apply PURE annotation if this is a relevant import AND descends from ConsumeShared
+      if is_relevant_import {
         // Check if the current module or any ancestor is ConsumeShared
         let module_graph = compilation.get_module_graph();
         is_consume_shared_descendant(&module_graph, &module.identifier())
@@ -733,7 +735,7 @@ fn is_consume_shared_descendant_recursive(
   if max_depth == 0 || visited.contains(current_module) {
     return false;
   }
-  visited.insert(current_module.clone());
+  visited.insert(*current_module);
 
   // Check if current module is ConsumeShared
   if let Some(module) = module_graph.module_by_identifier(current_module) {

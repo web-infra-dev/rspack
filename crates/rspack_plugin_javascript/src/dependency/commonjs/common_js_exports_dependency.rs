@@ -4,7 +4,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, ConnectionState, Dependency,
+  property_access, rspack_sources::Source, AsContextDependency, AsModuleDependency, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec,
   ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt,
@@ -324,6 +324,12 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       })
       .expect("Failed to downcast CommonJsExportsDependency");
 
+    // Debug: CommonJS exports dependency rendering
+    // dbg!("🔍 DEBUG: CommonJsExportsDependency render called");
+    // dbg!(&dep.names);
+    // dbg!(&dep.base);
+    // dbg!(&dep.range);
+
     // Validate dependency before rendering
     if let Err(diagnostic) = dep.validate() {
       tracing::warn!(
@@ -353,13 +359,26 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       })
       .expect("Module should be available in module graph");
 
+    // Debug: Module information
+    // dbg!("🔍 DEBUG: Module info");
+    // dbg!(&module_identifier);
+    // dbg!(current_module.module_type());
+
     // Enhanced ConsumeShared detection with fallback module support
     let consume_shared_info =
       Self::detect_consume_shared_context(&module_graph, &dep.id, &module_identifier);
 
+    // Debug: ConsumeShared detection result  
+    // dbg!("🔍 DEBUG: ConsumeShared detection result");
+    // dbg!(&consume_shared_info);
+
     // Enhanced export usage analysis with caching
     let used =
       Self::get_used_export_name(&module_graph, current_module.as_ref(), runtime, &dep.names);
+
+    // Debug: Export usage analysis
+    // dbg!("🔍 DEBUG: Export usage analysis");
+    // dbg!(&used);
 
     // Enhanced runtime requirements management
     let (base_expression, runtime_condition) = Self::generate_base_expression(
@@ -369,6 +388,11 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       runtime,
       &consume_shared_info,
     );
+
+    // Debug: Base expression generated
+    // dbg!("🔍 DEBUG: Base expression generated");
+    // dbg!(&base_expression);
+    // dbg!(&runtime_condition);
 
     // Enhanced code generation with better error handling
     match Self::render_export_statement(
@@ -380,8 +404,14 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       &consume_shared_info,
       runtime_condition,
     ) {
-      Ok(()) => {}
+      Ok(()) => {
+        // Debug: Export statement rendered successfully
+        // dbg!("🔍 DEBUG: Export statement rendered successfully");
+      }
       Err(err) => {
+        // Debug: Export statement rendering failed
+        // dbg!("🔍 DEBUG: Export statement rendering failed");
+        // dbg!(&err);
         tracing::error!("Failed to render CommonJS export: {:?}", err);
         // Fallback: render as unused export to maintain code structure
         Self::render_fallback_export(dep, source, init_fragments);
@@ -397,7 +427,7 @@ impl CommonJsExportsDependencyTemplate {
     dep_id: &DependencyId,
     module_identifier: &rspack_core::ModuleIdentifier,
   ) -> Option<String> {
-    // Check direct parent module
+    // Check direct parent module for ConsumeShared context
     if let Some(parent_module_id) = module_graph.get_parent_module(dep_id) {
       if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
         if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
@@ -407,7 +437,9 @@ impl CommonJsExportsDependencyTemplate {
     }
 
     // Check incoming connections for ConsumeShared modules (fallback detection)
-    for connection in module_graph.get_incoming_connections(module_identifier) {
+    let incoming_connections = module_graph.get_incoming_connections(module_identifier);
+    
+    for connection in incoming_connections {
       if let Some(origin_module) = connection.original_module_identifier.as_ref() {
         if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
           if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
@@ -416,7 +448,6 @@ impl CommonJsExportsDependencyTemplate {
         }
       }
     }
-
     None
   }
 
@@ -543,15 +574,39 @@ impl CommonJsExportsDependencyTemplate {
           .collect::<Vec<_>>()
           .join(".");
 
-        let export_content = if let Some(ref share_key) = consume_shared_info {
-          format!(
-            "/* @common:if [condition=\"treeShake.{share_key}.{export_name}\"] */ {export_assignment} /* @common:endif */"
-          )
+        // Generate ConsumeShared macro if applicable
+        if let Some(ref share_key) = consume_shared_info {
+          // Generate tree-shaking macro for ConsumeShared exports
+          let macro_condition = format!("treeShake.{}.{}", share_key, export_name);
+          
+          // Check if we have a value range to wrap the entire assignment
+          if let Some(value_range) = &dep.value_range {
+            // Wrap the entire assignment: /* @common:if */ exports.foo = value /* @common:endif */
+            source.replace(
+              dep.range.start,
+              dep.range.end,
+              &format!("/* @common:if [condition=\"{}\"] */ {}", macro_condition, export_assignment),
+              None,
+            );
+            source.replace(
+              value_range.end,
+              value_range.end,
+              " /* @common:endif */",
+              None,
+            );
+          } else {
+            // Fallback: only wrap the left-hand side if no value range available
+            let macro_export = format!(
+              "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
+              macro_condition,
+              export_assignment
+            );
+            source.replace(dep.range.start, dep.range.end, &macro_export, None);
+          }
         } else {
-          export_assignment
-        };
-
-        source.replace(dep.range.start, dep.range.end, &export_content, None);
+          // No ConsumeShared context, render normal export
+          source.replace(dep.range.start, dep.range.end, &export_assignment, None);
+        }
       }
       Some(UsedName::Inlined(_)) => {
         Self::render_placeholder_export(dep, source, init_fragments, "inlined")?;
@@ -589,39 +644,37 @@ impl CommonJsExportsDependencyTemplate {
           String::new()
         };
 
-        let define_property_start = if let Some(ref share_key) = consume_shared_info {
-          format!(
-            "/* @common:if [condition=\"treeShake.{}.{}\"] */ Object.defineProperty({}{}, {}, (",
-            share_key,
-            export_name,
-            base_expression,
-            property_path,
-            serde_json::to_string(export_name)
-              .map_err(|e| format!("Failed to serialize export name: {}", e))?
-          )
+        if let Some(ref share_key) = consume_shared_info {
+          source.replace(
+            dep.range.start,
+            value_range.start,
+            &format!(
+              "/* @common:if [condition=\"treeShake.{}.{}\"] */\nObject.defineProperty({}{}, {}, (",
+              share_key,
+              export_name,
+              base_expression,
+              property_path,
+              serde_json::to_string(export_name)
+                .map_err(|e| format!("Failed to serialize export name: {}", e))?
+            ),
+            None,
+          );
+          source.replace(value_range.end, dep.range.end, "))\n/* @common:endif */", None);
         } else {
-          format!(
-            "Object.defineProperty({}{}, {}, (",
-            base_expression,
-            property_path,
-            serde_json::to_string(export_name)
-              .map_err(|e| format!("Failed to serialize export name: {}", e))?
-          )
-        };
-
-        source.replace(
-          dep.range.start,
-          value_range.start,
-          &define_property_start,
-          None,
-        );
-
-        let define_property_end = if consume_shared_info.is_some() {
-          ")) /* @common:endif */"
-        } else {
-          "))"
-        };
-        source.replace(value_range.end, dep.range.end, define_property_end, None);
+          source.replace(
+            dep.range.start,
+            value_range.start,
+            &format!(
+              "Object.defineProperty({}{}, {}, (",
+              base_expression,
+              property_path,
+              serde_json::to_string(export_name)
+                .map_err(|e| format!("Failed to serialize export name: {}", e))?
+            ),
+            None,
+          );
+          source.replace(value_range.end, dep.range.end, "))", None);
+        }
       }
       _ => {
         Self::render_unused_define_property(dep, source, init_fragments, value_range)?;

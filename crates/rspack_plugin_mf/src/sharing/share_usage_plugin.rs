@@ -50,12 +50,25 @@ impl ShareUsagePlugin {
     let module_graph = compilation.get_module_graph();
 
     // Find all ConsumeShared modules and their fallbacks
+    // Also look for ProvideShared modules that might contain CommonJS modules
     for module_id in module_graph.modules().keys() {
       if let Some(module) = module_graph.module_by_identifier(module_id) {
-        if module.module_type() == &ModuleType::ConsumeShared {
+        let module_type = module.module_type();
+        let module_id_str = module_id.to_string();
+        
+        // Debug: Print module information to understand what we're dealing with
+        if module_id_str.contains("legacy-utils") || module_id_str.contains("data-processor") || 
+           module_id_str.contains("consume shared") || module_type == &ModuleType::ConsumeShared ||
+           module_type == &ModuleType::ProvideShared {
+          println!("🔍 DEBUG: Module type: {:?}, ID: {}", module_type, module_id);
+        }
+        
+        if module_type == &ModuleType::ConsumeShared {
           if let Some(share_key) = module.get_consume_shared_key() {
+            println!("🔍 DEBUG: Found ConsumeShared module with share_key: {}", share_key);
             // Find the fallback module directly
             if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
+              println!("🔍 DEBUG: Found fallback module for {}: {}", share_key, fallback_id);
               // Get the basic usage analysis first
               let (used_exports, provided_exports) =
                 self.analyze_fallback_module_usage(&module_graph, &fallback_id, module_id);
@@ -98,6 +111,7 @@ impl ShareUsagePlugin {
               );
             } else {
               // If no fallback found, still record the share_key with empty data
+              println!("🔍 DEBUG: No fallback module found for share_key: {}", share_key);
               usage_map.insert(
                 share_key,
                 SimpleModuleExports {
@@ -229,51 +243,35 @@ impl ShareUsagePlugin {
   ) {
     use rspack_core::DependencyType;
 
-    // Check if this is an ESM import dependency that would contain import specifier information
+    // Handle ALL possible dependency types that can contain import/export information
     match dependency.dependency_type() {
+      // ESM Import Dependencies
       DependencyType::EsmImportSpecifier => {
-        // For ESM import specifiers, we need to extract the import name
-        // This represents individual named imports like { VERSION, map, filter, uniq }
-        if let Some(module_dep) = dependency.as_module_dependency() {
-          // Try to extract import name from the dependency's request or identifier
-          let _request = module_dep.request();
-
-          // For import specifiers, the request often contains the imported name
-          // However, this is implementation-specific and may need adjustment based on actual dependency structure
-
-          // Look for import specifier dependencies which represent individual imports
-          // Note: This is a heuristic approach since the exact API for extracting import names
-          // may vary based on rspack's internal dependency structure
-
-          // As a fallback, try to extract from any string representation that might contain import info
+        // Named ESM imports like: import { name } from 'module'
+        if let Some(_module_dep) = dependency.as_module_dependency() {
           let dep_str = format!("{dependency:?}");
-          if dep_str.contains("import") && !dep_str.contains("*") {
-            // This is a named import, but we need the actual import name
-            // For now, we'll use a conservative approach and mark that we found an import
-            // but can't extract the exact name
-
-            // Try to parse common import patterns from debug output
-            if let Some(imported_name) = self.parse_import_name_from_debug(&dep_str) {
-              if !all_imported_exports.contains(&imported_name) {
-                all_imported_exports.push(imported_name);
-              }
+          if let Some(imported_name) = self.parse_import_name_from_debug(&dep_str) {
+            if !all_imported_exports.contains(&imported_name) {
+              all_imported_exports.push(imported_name);
             }
           }
         }
       }
       DependencyType::EsmImport => {
-        // This might be a default import or side-effect import
+        // Default or side-effect imports like: import module from 'module' or import 'module'
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          // For default imports, add "default" to imported exports
-          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
-            all_imported_exports.push("default".to_string());
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
           }
         }
       }
-      DependencyType::EsmExportImportedSpecifier => {
-        // This might be a re-export case
-        // Extract exported name if available
+      
+      // ESM Export Dependencies
+      DependencyType::EsmExportSpecifier => {
+        // Named ESM exports like: export { name }
         if let Some(_module_dep) = dependency.as_module_dependency() {
           let dep_str = format!("{dependency:?}");
           if let Some(exported_name) = self.parse_export_name_from_debug(&dep_str) {
@@ -283,29 +281,516 @@ impl ShareUsagePlugin {
           }
         }
       }
+      DependencyType::EsmExportImportedSpecifier => {
+        // Re-exports like: export { name } from 'module'
+        if let Some(_module_dep) = dependency.as_module_dependency() {
+          let dep_str = format!("{dependency:?}");
+          if let Some(exported_name) = self.parse_export_name_from_debug(&dep_str) {
+            if !all_imported_exports.contains(&exported_name) {
+              all_imported_exports.push(exported_name);
+            }
+          }
+        }
+      }
+      DependencyType::EsmExportExpression => {
+        // Export expressions like: export default expression
+        if !all_imported_exports.contains(&"default".to_string()) {
+          all_imported_exports.push("default".to_string());
+        }
+      }
+      
+      // CommonJS Dependencies
+      DependencyType::CjsRequire => {
+        // Basic CommonJS require like: require('module')
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            // Track the whole module import
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+            
+            // Also try to extract specific property accesses
+            let dep_str = format!("{dependency:?}");
+            if let Some(property_name) = self.parse_cjs_property_access(&dep_str) {
+              if !all_imported_exports.contains(&property_name) {
+                all_imported_exports.push(property_name);
+              }
+            }
+          }
+        }
+      }
+      DependencyType::CjsFullRequire => {
+        // Full CommonJS require with property access like: require('module').property
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+            
+            let dep_str = format!("{dependency:?}");
+            if let Some(property_name) = self.parse_cjs_property_access(&dep_str) {
+              if !all_imported_exports.contains(&property_name) {
+                all_imported_exports.push(property_name);
+              }
+            }
+          }
+        }
+      }
+      DependencyType::CjsExports => {
+        // CommonJS exports like: exports.name = value
+        if let Some(_module_dep) = dependency.as_module_dependency() {
+          let dep_str = format!("{dependency:?}");
+          if let Some(exported_name) = self.parse_export_name_from_debug(&dep_str) {
+            if !all_imported_exports.contains(&exported_name) {
+              all_imported_exports.push(exported_name);
+            }
+          }
+        }
+      }
+      DependencyType::CjsExportRequire => {
+        // CommonJS export require like: module.exports = require('module')
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+          }
+        }
+      }
+      DependencyType::CjsSelfReference => {
+        // Self-referential CommonJS dependencies
+        if !all_imported_exports.contains(&"default".to_string()) {
+          all_imported_exports.push("default".to_string());
+        }
+      }
+      
+      // Dynamic Import Dependencies
+      DependencyType::DynamicImport => {
+        // Dynamic imports like: import('module')
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            // Dynamic imports typically return the full module
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+            // Try to detect if it's destructured: const { prop } = await import('module')
+            let dep_str = format!("{dependency:?}");
+            if let Some(property_name) = self.parse_cjs_property_access(&dep_str) {
+              if !all_imported_exports.contains(&property_name) {
+                all_imported_exports.push(property_name);
+              }
+            }
+          }
+        }
+      }
+      
+      // Context Dependencies (for require.context, etc.)
+      DependencyType::RequireContext | DependencyType::RequireResolveContext => {
+        // Context requires can import multiple modules dynamically
+        if !all_imported_exports.contains(&"*".to_string()) {
+          all_imported_exports.push("*".to_string());
+        }
+      }
+      
+      // AMD Dependencies
+      DependencyType::AmdRequire | DependencyType::AmdDefine => {
+        // AMD-style requires/defines
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+          }
+        }
+      }
+      
+      // Webpack-specific Dependencies
+      DependencyType::RequireEnsure | DependencyType::RequireEnsureItem => {
+        // Webpack require.ensure
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+          }
+        }
+      }
+      DependencyType::RequireResolve => {
+        // require.resolve calls
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"__resolve".to_string()) {
+              all_imported_exports.push("__resolve".to_string());
+            }
+          }
+        }
+      }
+      
+      // Module Federation Dependencies
+      DependencyType::ConsumeSharedFallback => {
+        // Module federation fallback dependencies
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+          }
+        }
+      }
+      DependencyType::RemoteToExternal => {
+        // Remote module federation dependencies
+        if !all_imported_exports.contains(&"*".to_string()) {
+          all_imported_exports.push("*".to_string());
+        }
+      }
+      
+      // Worker Dependencies
+      DependencyType::NewUrl | DependencyType::WebpackIsIncluded => {
+        // Worker and URL dependencies
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            if !all_imported_exports.contains(&"default".to_string()) {
+              all_imported_exports.push("default".to_string());
+            }
+          }
+        }
+      }
+      
+      // Note: SystemImport and UmdCompat are not available in current DependencyType enum
+      // Removing these cases to fix compilation
+      
+      // Catch-all for any other dependency types
       _ => {
-        // For other dependency types, we might not be able to extract specific import names
-        // This is acceptable as we're trying to supplement the referenced_exports analysis
+        // For any other dependency types, try to extract what we can
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          let request = module_dep.request();
+          if !request.is_empty() {
+            let dep_str = format!("{dependency:?}");
+            
+            // Try to parse any recognizable patterns
+            if let Some(imported_name) = self.parse_import_name_from_debug(&dep_str) {
+              if !all_imported_exports.contains(&imported_name) {
+                all_imported_exports.push(imported_name);
+              }
+            }
+            
+            if let Some(exported_name) = self.parse_export_name_from_debug(&dep_str) {
+              if !all_imported_exports.contains(&exported_name) {
+                all_imported_exports.push(exported_name);
+              }
+            }
+            
+            if let Some(property_name) = self.parse_cjs_property_access(&dep_str) {
+              if !all_imported_exports.contains(&property_name) {
+                all_imported_exports.push(property_name);
+              }
+            }
+          }
+        }
       }
     }
   }
 
   /// Parse import name from debug string representation (heuristic approach)
-  fn parse_import_name_from_debug(&self, _debug_str: &str) -> Option<String> {
-    // This is a heuristic method to extract import names from dependency debug output
-    // In a real implementation, you'd use the proper dependency API methods
+  fn parse_import_name_from_debug(&self, debug_str: &str) -> Option<String> {
+    // This is a comprehensive heuristic method to extract import names from dependency debug output
+    
+    // Pattern 1: ESM named imports like: import { name } from 'module'
+    if let Some(start) = debug_str.find("import {") {
+      if let Some(end) = debug_str[start..].find('}') {
+        let import_section = &debug_str[start + 8..start + end];
+        let import_name = import_section.trim();
+        if !import_name.is_empty() && !import_name.contains(',') {
+          return Some(import_name.to_string());
+        }
+      }
+    }
 
-    // Look for common patterns in debug output that might contain import names
-    // This is a fallback approach when proper API methods aren't available
+    // Pattern 2: ESM default imports like: import name from 'module'
+    if debug_str.contains("import ") && debug_str.contains(" from ") {
+      if let Some(import_pos) = debug_str.find("import ") {
+        if let Some(from_pos) = debug_str[import_pos..].find(" from ") {
+          let import_section = &debug_str[import_pos + 7..import_pos + from_pos];
+          let import_name = import_section.trim();
+          if !import_name.is_empty() && !import_name.contains('{') && !import_name.contains('*') {
+            return Some("default".to_string());
+          }
+        }
+      }
+    }
 
-    // For now, return None as this would require specific knowledge of rspack's
-    // dependency debug format
+    // Pattern 3: CommonJS require patterns like: require('module').property
+    if let Some(start) = debug_str.find("require(") {
+      if let Some(prop_start) = debug_str[start..].find('.') {
+        let prop_section = &debug_str[start + prop_start + 1..];
+        if let Some(space_pos) = prop_section.find(' ') {
+          let property_name = &prop_section[..space_pos];
+          if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return Some(property_name.to_string());
+          }
+        }
+      }
+    }
+
+    // Pattern 4: Destructuring patterns like: const { name } = require('module')
+    if let Some(start) = debug_str.find("const {") {
+      if let Some(end) = debug_str[start..].find('}') {
+        let destructure_section = &debug_str[start + 7..start + end];
+        let property_name = destructure_section.trim().split(',').next()?.trim();
+        if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(property_name.to_string());
+        }
+      }
+    }
+
+    // Pattern 5: Dynamic import patterns like: import('module').then(({ name }) => ...)
+    if debug_str.contains("import(") && debug_str.contains("then") {
+      if let Some(then_pos) = debug_str.find("then") {
+        if let Some(start) = debug_str[then_pos..].find("({") {
+          if let Some(end) = debug_str[then_pos + start..].find("})") {
+            let destructure_section = &debug_str[then_pos + start + 2..then_pos + start + end];
+            let property_name = destructure_section.trim().split(',').next()?.trim();
+            if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+              return Some(property_name.to_string());
+            }
+          }
+        }
+      }
+    }
+
+    // Pattern 6: Look for property names in dependency types
+    if debug_str.contains("Dependency") && debug_str.contains("property:") {
+      if let Some(prop_start) = debug_str.find("property: ") {
+        let prop_section = &debug_str[prop_start + 10..];
+        if let Some(space_pos) = prop_section.find(' ') {
+          let property_name = &prop_section[..space_pos];
+          if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return Some(property_name.to_string());
+          }
+        }
+      }
+    }
+
     None
   }
 
   /// Parse export name from debug string representation (heuristic approach)
-  fn parse_export_name_from_debug(&self, _debug_str: &str) -> Option<String> {
-    // Similar heuristic approach for export names
+  fn parse_export_name_from_debug(&self, debug_str: &str) -> Option<String> {
+    // Pattern 1: CommonJS export patterns like: exports.name = value
+    if let Some(start) = debug_str.find("exports.") {
+      let export_section = &debug_str[start + 8..];
+      let mut end_pos = 0;
+      for (i, ch) in export_section.char_indices() {
+        if ch.is_whitespace() || ch == '=' || ch == ',' || ch == ')' || ch == ';' {
+          end_pos = i;
+          break;
+        }
+      }
+      if end_pos == 0 {
+        end_pos = export_section.len();
+      }
+      let export_name = &export_section[..end_pos];
+      if !export_name.is_empty() && export_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        return Some(export_name.to_string());
+      }
+    }
+
+    // Pattern 2: module.exports patterns like: module.exports.name = value
+    if let Some(start) = debug_str.find("module.exports.") {
+      let export_section = &debug_str[start + 15..];
+      let mut end_pos = 0;
+      for (i, ch) in export_section.char_indices() {
+        if ch.is_whitespace() || ch == '=' || ch == ',' || ch == ')' || ch == ';' {
+          end_pos = i;
+          break;
+        }
+      }
+      if end_pos == 0 {
+        end_pos = export_section.len();
+      }
+      let export_name = &export_section[..end_pos];
+      if !export_name.is_empty() && export_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        return Some(export_name.to_string());
+      }
+    }
+
+    // Pattern 3: ESM export patterns like: export { name }
+    if let Some(start) = debug_str.find("export {") {
+      if let Some(end) = debug_str[start..].find('}') {
+        let export_section = &debug_str[start + 8..start + end];
+        let export_name = export_section.trim();
+        if !export_name.is_empty() && !export_name.contains(',') && export_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(export_name.to_string());
+        }
+      }
+    }
+
+    // Pattern 4: ESM default export patterns
+    if debug_str.contains("export default") {
+      return Some("default".to_string());
+    }
+
+    // Pattern 5: ESM named export patterns like: export const name = value
+    if let Some(start) = debug_str.find("export const ") {
+      let export_section = &debug_str[start + 13..];
+      if let Some(space_pos) = export_section.find(' ') {
+        let export_name = &export_section[..space_pos];
+        if !export_name.is_empty() && export_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(export_name.to_string());
+        }
+      }
+    }
+
+    // Pattern 6: ESM function export patterns like: export function name()
+    if let Some(start) = debug_str.find("export function ") {
+      let export_section = &debug_str[start + 16..];
+      if let Some(paren_pos) = export_section.find('(') {
+        let export_name = &export_section[..paren_pos];
+        if !export_name.is_empty() && export_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(export_name.to_string());
+        }
+      }
+    }
+
+    // Pattern 7: Re-export patterns like: export { name } from 'module'
+    if debug_str.contains("export") && debug_str.contains("from") {
+      if let Some(start) = debug_str.find("export {") {
+        if let Some(end) = debug_str[start..].find('}') {
+          let export_section = &debug_str[start + 8..start + end];
+          let export_name = export_section.trim();
+          if !export_name.is_empty() && !export_name.contains(',') && export_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return Some(export_name.to_string());
+          }
+        }
+      }
+    }
+
+    None
+  }
+
+  /// Parse CommonJS property access patterns like require('module').property
+  fn parse_cjs_property_access(&self, debug_str: &str) -> Option<String> {
+    // Look for patterns like: require('module').property or const { property } = require('module')
+    
+    // Pattern 1: require('module').property
+    if let Some(require_pos) = debug_str.find("require(") {
+      if let Some(close_paren) = debug_str[require_pos..].find(')') {
+        let after_require = &debug_str[require_pos + close_paren + 1..];
+        if let Some(dot_pos) = after_require.find('.') {
+          let property_section = &after_require[dot_pos + 1..];
+          // Extract property name until space, comma, or other delimiter
+          let mut end_pos = 0;
+          for (i, ch) in property_section.char_indices() {
+            if ch.is_whitespace() || ch == ',' || ch == ')' || ch == ';' || ch == '.' {
+              end_pos = i;
+              break;
+            }
+          }
+          if end_pos == 0 {
+            end_pos = property_section.len();
+          }
+          
+          let property_name = &property_section[..end_pos];
+          if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return Some(property_name.to_string());
+          }
+        }
+      }
+    }
+
+    // Pattern 2: const { property } = require('module') or const { prop1, prop2 } = require('module')
+    if let Some(destructure_start) = debug_str.find("const {") {
+      if let Some(destructure_end) = debug_str[destructure_start..].find('}') {
+        let destructure_content = &debug_str[destructure_start + 7..destructure_start + destructure_end];
+        // For now, just get the first property if it's a simple destructure
+        let property_name = destructure_content.trim().split(',').next()?.trim();
+        if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(property_name.to_string());
+        }
+      }
+    }
+
+    // Pattern 3: let { property } = require('module')
+    if let Some(destructure_start) = debug_str.find("let {") {
+      if let Some(destructure_end) = debug_str[destructure_start..].find('}') {
+        let destructure_content = &debug_str[destructure_start + 5..destructure_start + destructure_end];
+        let property_name = destructure_content.trim().split(',').next()?.trim();
+        if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(property_name.to_string());
+        }
+      }
+    }
+
+    // Pattern 4: var { property } = require('module')
+    if let Some(destructure_start) = debug_str.find("var {") {
+      if let Some(destructure_end) = debug_str[destructure_start..].find('}') {
+        let destructure_content = &debug_str[destructure_start + 5..destructure_start + destructure_end];
+        let property_name = destructure_content.trim().split(',').next()?.trim();
+        if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(property_name.to_string());
+        }
+      }
+    }
+
+    // Pattern 5: require('module')['property'] (bracket notation)
+    if let Some(require_pos) = debug_str.find("require(") {
+      if let Some(close_paren) = debug_str[require_pos..].find(')') {
+        let after_require = &debug_str[require_pos + close_paren + 1..];
+        if let Some(bracket_start) = after_require.find("['") {
+          if let Some(bracket_end) = after_require[bracket_start + 2..].find("']") {
+            let property_name = &after_require[bracket_start + 2..bracket_start + 2 + bracket_end];
+            if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+              return Some(property_name.to_string());
+            }
+          }
+        }
+      }
+    }
+
+    // Pattern 6: Object.assign or similar patterns in CommonJS exports
+    if debug_str.contains("Object.assign") {
+      if let Some(assign_pos) = debug_str.find("Object.assign(") {
+        let after_assign = &debug_str[assign_pos + 14..];
+        if let Some(comma_pos) = after_assign.find(',') {
+          let first_arg = &after_assign[..comma_pos];
+          if first_arg.contains("exports") || first_arg.contains("module.exports") {
+            // This suggests we're assigning properties to exports
+            return Some("*".to_string()); // Wildcard for complex assignment
+          }
+        }
+      }
+    }
+
+    // Pattern 7: Look for property names in dependency debug output
+    if debug_str.contains("property: ") {
+      if let Some(prop_start) = debug_str.find("property: ") {
+        let prop_section = &debug_str[prop_start + 10..];
+        let mut end_pos = 0;
+        for (i, ch) in prop_section.char_indices() {
+          if ch.is_whitespace() || ch == ',' || ch == ')' || ch == ';' || ch == '"' || ch == '\'' {
+            end_pos = i;
+            break;
+          }
+        }
+        if end_pos == 0 {
+          end_pos = prop_section.len();
+        }
+        let property_name = &prop_section[..end_pos];
+        if !property_name.is_empty() && property_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+          return Some(property_name.to_string());
+        }
+      }
+    }
+
     None
   }
 
@@ -501,11 +986,15 @@ impl ShareUsagePlugin {
           let fallback_path =
             &consume_shared_str[fallback_path_start..fallback_path_start + fallback_end];
 
-          // Try to find module by exact path match
-          for (module_id, _) in module_graph.modules() {
+          // Try to find module by exact path match - also consider CommonJS modules
+          for (module_id, module) in module_graph.modules() {
             let module_id_str = module_id.to_string();
             if module_id_str == fallback_path || module_id_str.ends_with(fallback_path) {
-              return Some((*module_id).into());
+              // Prefer modules that are JavaScript or have specific exports information
+              let module_type = module.module_type();
+              if matches!(module_type, ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic) {
+                return Some((*module_id).into());
+              }
             }
           }
         }

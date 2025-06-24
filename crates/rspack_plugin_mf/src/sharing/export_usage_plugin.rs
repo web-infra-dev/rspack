@@ -180,53 +180,6 @@ impl SharedExportUsagePlugin {
       metadata,
     })
   }
-
-  /// Generate a simplified report with just module ID -> used/unused/possibly unused exports
-  fn generate_simple_report(
-    &self,
-    compilation: &Compilation,
-  ) -> Result<HashMap<String, SimpleModuleExports>> {
-    let module_graph = compilation.get_module_graph();
-    let mut simple_modules = HashMap::new();
-
-    // Collect all runtimes for analysis
-    let runtimes: Vec<RuntimeSpec> = compilation
-      .chunk_by_ukey
-      .values()
-      .map(|chunk| chunk.runtime())
-      .cloned()
-      .collect();
-
-    // Analyze all modules and extract simplified export information
-    for (module_id, _module) in module_graph.modules() {
-      if let Some(usage_info) =
-        self.analyze_module(&module_graph, &module_id, compilation, &runtimes)
-      {
-        let used_exports = usage_info.used_exports.unwrap_or_default();
-        let provided_exports = usage_info.provided_exports;
-        let possibly_unused = usage_info.potentially_unused_exports.unwrap_or_default();
-
-        // Calculate unused exports (those that are provided but not used)
-        let mut unused_exports = Vec::new();
-        for export in &provided_exports {
-          if !used_exports.contains(export) && !possibly_unused.contains(export) && export != "*" {
-            unused_exports.push(export.clone());
-          }
-        }
-
-        simple_modules.insert(
-          module_id.to_string(),
-          SimpleModuleExports {
-            used_exports,
-            unused_exports,
-            possibly_unused_exports: possibly_unused,
-          },
-        );
-      }
-    }
-
-    Ok(simple_modules)
-  }
 }
 
 #[plugin_hook(CompilerEmit for SharedExportUsagePlugin)]

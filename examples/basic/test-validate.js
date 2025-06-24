@@ -20,7 +20,10 @@ describe("ConsumeShared Macro Validation", () => {
 			"main.js",
 			"shared_api_js.js",
 			"shared_components_js.js",
-			"shared_utils_js.js"
+			"shared_utils_js.js",
+			"cjs-modules_legacy-utils_js.js",
+			"cjs-modules_data-processor_js.js",
+			"cjs-modules_pure-cjs-helper_js.js"
 		];
 
 		for (const file of expectedFiles) {
@@ -39,8 +42,8 @@ describe("ConsumeShared Macro Validation", () => {
 		// Check structure
 		expect(content.consume_shared_modules).toBeTruthy();
 
-		// Check expected modules exist
-		const expectedModules = [
+		// Check expected modules exist (ESM modules only - CommonJS via require() are not ConsumeShared)
+		const expectedESMModules = [
 			"react-dom",
 			"utility-lib",
 			"api-lib",
@@ -48,8 +51,19 @@ describe("ConsumeShared Macro Validation", () => {
 			"lodash-es",
 			"component-lib"
 		];
-		for (const module of expectedModules) {
+		for (const module of expectedESMModules) {
 			expect(content.consume_shared_modules[module]).toBeTruthy();
+		}
+
+		// CommonJS modules accessed via require() do NOT appear in ConsumeShared tracking
+		// This is a current limitation - they are ProvideShared but not ConsumeShared
+		const commonJSModules = [
+			"legacy-utils-lib",
+			"data-processor-lib",
+			"pure-cjs-helper-lib"
+		];
+		for (const module of commonJSModules) {
+			expect(content.consume_shared_modules[module]).toBeUndefined();
 		}
 	});
 
@@ -58,6 +72,7 @@ describe("ConsumeShared Macro Validation", () => {
 		const shareUsageData = JSON.parse(fs.readFileSync(shareUsagePath, "utf8"));
 
 		// Expected used exports based on actual source code analysis
+		// Only ESM modules have ConsumeShared tracking
 		const expectedUsedExports = {
 			"utility-lib": ["capitalize", "formatDate", "default"],
 			"component-lib": ["Button", "Modal", "default"],
@@ -67,7 +82,10 @@ describe("ConsumeShared Macro Validation", () => {
 		const moduleToChunkMap = {
 			"utility-lib": "shared_utils_js.js",
 			"component-lib": "shared_components_js.js",
-			"api-lib": "shared_api_js.js"
+			"api-lib": "shared_api_js.js",
+			"legacy-utils-lib": "cjs-modules_legacy-utils_js.js",
+			"data-processor-lib": "cjs-modules_data-processor_js.js",
+			"pure-cjs-helper-lib": "cjs-modules_pure-cjs-helper_js.js"
 		};
 
 		let totalValidated = 0;
@@ -125,7 +143,21 @@ describe("ConsumeShared Macro Validation", () => {
 			const expectedUnusedExports = {
 				"utility-lib": ["debounce", "deepClone", "generateId", "validateEmail"],
 				"component-lib": ["createCard"],
-				"api-lib": ["ApiClient", "fetchWithTimeout"]
+				"api-lib": ["ApiClient", "fetchWithTimeout"],
+				"legacy-utils-lib": ["readFileSync", "validateFile"],
+				"data-processor-lib": [
+					"filterArray",
+					"reduceArray",
+					"DataProcessor",
+					"DEFAULT_OPTIONS"
+				],
+				"pure-cjs-helper-lib": [
+					"hashString",
+					"validateInput",
+					"processData",
+					"DataValidator",
+					"createValidator"
+				]
 			};
 
 			const expectedUnused = expectedUnusedExports[moduleName] || [];
@@ -224,6 +256,22 @@ describe("ConsumeShared Macro Validation", () => {
 						shareUsageData.consume_shared_modules["lodash-es"]
 							?.unused_exports || [],
 					note: "Check if imported but unused exports are properly detected"
+				},
+				"legacy-utils-lib": {
+					used:
+						shareUsageData.consume_shared_modules["legacy-utils-lib"]
+							?.used_exports || [],
+					unused:
+						shareUsageData.consume_shared_modules["legacy-utils-lib"]
+							?.unused_exports || []
+				},
+				"data-processor-lib": {
+					used:
+						shareUsageData.consume_shared_modules["data-processor-lib"]
+							?.used_exports || [],
+					unused:
+						shareUsageData.consume_shared_modules["data-processor-lib"]
+							?.unused_exports || []
 				}
 			}
 		};
@@ -243,6 +291,157 @@ describe("ConsumeShared Macro Validation", () => {
 		);
 		console.log(
 			`⚠️  ${report.shareUsage.modulesWithUnusedExports} modules have unused exports`
+		);
+	});
+
+	test("macro annotations validation - expect at least one macro per ConsumeShared chunk", () => {
+		// Expected ESM ConsumeShared files that MUST have macro annotations
+		const expectedESMFiles = [
+			"shared_utils_js.js",
+			"shared_components_js.js",
+			"shared_api_js.js"
+		];
+
+		let totalMacrosFound = 0;
+		const macroResults = {};
+
+		for (const file of expectedESMFiles) {
+			const filePath = path.join(distPath, file);
+			expect(fs.existsSync(filePath)).toBe(true);
+
+			const content = fs.readFileSync(filePath, "utf8");
+
+			// Count macro annotations in this file
+			const macroMatches =
+				content.match(/@common:if\s*\[condition="treeShake\.[^"]+"\]/g) || [];
+			const macroCount = macroMatches.length;
+
+			macroResults[file] = {
+				macroCount,
+				examples: macroMatches.slice(0, 3) // First 3 examples
+			};
+
+			// STRICT REQUIREMENT: Each ConsumeShared chunk MUST have at least one macro annotation
+			expect(macroCount).toBeGreaterThan(0);
+			expect(content).toContain("@common:if");
+			expect(content).toContain("treeShake");
+
+			totalMacrosFound += macroCount;
+			console.log(`✅ ${file}: Found ${macroCount} macro annotations`);
+		}
+
+		// Overall validation: We must find macros across all ConsumeShared chunks
+		expect(totalMacrosFound).toBeGreaterThan(0);
+		console.log(`📊 Total macro annotations found: ${totalMacrosFound}`);
+		console.log(
+			"🔍 Macro analysis results:",
+			JSON.stringify(macroResults, null, 2)
+		);
+	});
+
+	test("CommonJS module sharing validation - limitation documented", () => {
+		// Check if CommonJS modules are properly shared as ProvideShared
+		const expectedCommonJSFiles = [
+			"cjs-modules_legacy-utils_js.js",
+			"cjs-modules_data-processor_js.js",
+			"cjs-modules_pure-cjs-helper_js.js"
+		];
+
+		for (const file of expectedCommonJSFiles) {
+			const filePath = path.join(distPath, file);
+			if (fs.existsSync(filePath)) {
+				const content = fs.readFileSync(filePath, "utf8");
+
+				// Verify CommonJS module structure
+				expect(content).toContain("module.exports");
+				expect(content).toContain("exports.");
+
+				// CURRENT LIMITATION: CommonJS modules accessed via require() do NOT get macro comments
+				// They are ProvideShared but not ConsumeShared, so no tree-shaking annotations
+				expect(content).not.toContain("@common:if");
+				expect(content).not.toContain("treeShake");
+
+				console.log(
+					`✅ CommonJS module chunk found (no macros - current limitation): ${file}`
+				);
+			} else {
+				console.log(`⚠️  CommonJS module chunk not found: ${file}`);
+			}
+		}
+
+		console.log(
+			"📝 LIMITATION: CommonJS modules accessed via require() are not tracked as ConsumeShared"
+		);
+		console.log("   - They are shared via ProvideShared but consumed directly");
+		console.log(
+			"   - No tree-shaking macros are generated for CommonJS require() calls"
+		);
+		console.log(
+			"   - This is a current architectural limitation of Module Federation"
+		);
+	});
+
+	test("CommonJS Module Federation sharing analysis", () => {
+		const mainJsPath = path.join(distPath, "main.js");
+		expect(fs.existsSync(mainJsPath)).toBe(true);
+
+		const mainContent = fs.readFileSync(mainJsPath, "utf8");
+
+		// Check for CommonJS require() calls
+		expect(mainContent).toContain("require");
+
+		// Look for Module Federation sharing setup that includes CommonJS modules
+		const sharingDataMatch = mainContent.match(
+			/__webpack_require__\.initializeSharingData\s*=\s*{[^}]+}/
+		);
+		if (sharingDataMatch) {
+			const sharingData = sharingDataMatch[0];
+
+			// Check if CommonJS modules are registered as ProvideShared
+			const commonJSSharedModules = [
+				"data-processor-lib",
+				"legacy-utils-lib",
+				"pure-cjs-helper-lib"
+			];
+
+			for (const moduleKey of commonJSSharedModules) {
+				const isProvideShared = sharingData.includes(`"${moduleKey}"`);
+				console.log(`📦 ${moduleKey} is ProvideShared: ${isProvideShared}`);
+				expect(isProvideShared).toBe(true);
+			}
+		}
+
+		// Check for direct CommonJS module references (not through shared mechanism)
+		const commonJSModulePatterns = [
+			"cjs-modules/legacy-utils",
+			"cjs-modules/data-processor",
+			"cjs-modules/pure-cjs-helper"
+		];
+
+		let directRequireCount = 0;
+		for (const pattern of commonJSModulePatterns) {
+			// Look for direct require() calls (not through Module Federation)
+			const directRequireMatch = mainContent.match(
+				new RegExp(
+					`require\\("\\.\\/\\${pattern.replace(/[/-]/g, "[/-]")}\\.js"\\)`,
+					"g"
+				)
+			);
+			if (directRequireMatch) {
+				directRequireCount += directRequireMatch.length;
+				console.log(
+					`🔗 Direct require() calls to ${pattern}: ${directRequireMatch.length}`
+				);
+			}
+		}
+
+		// This explains why CommonJS modules don't have macro annotations:
+		// They're accessed via direct require() calls, not through ConsumeShared
+		console.log(
+			`⚠️  Total direct require() calls found: ${directRequireCount}`
+		);
+		console.log(
+			"📝 Analysis: CommonJS modules are ProvideShared but consumed via direct require(), not ConsumeShared"
 		);
 	});
 });

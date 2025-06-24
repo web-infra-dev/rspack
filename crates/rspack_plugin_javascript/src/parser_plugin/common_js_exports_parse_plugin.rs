@@ -375,94 +375,18 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     if parser.is_esm {
       return None;
     }
-    let AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)) = &assign_expr.left else {
-      return None;
-    };
-
-    let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
-      let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-      let remaining = get_member_expression_info(parser, left_expr, Some(is_module_exports_start))?;
-
-      if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
-        && parser.is_require_call_expr(&assign_expr.right)
-        && let Some(right_expr) = assign_expr.right.as_call()
-        && let Some(first_arg) = right_expr.args.first().map(|arg| &arg.expr)
-      {
-        let param = parser.evaluate_expression(first_arg);
-        if param.is_string() {
-          parser.enable();
-          if remaining.is_empty() {
-            // exports = require('xx');
-            // module.exports = require('xx');
-            // this = require('xx');
-            // It's possible to reexport __esModule, so we must convert to a dynamic module
-            parser.set_dynamic();
-          }
-          // exports.aaa = require('xx');
-          // module.exports.aaa = require('xx');
-          // this.aaa = require('xx');
-          let range: DependencyRange = assign_expr.span.into();
-          parser
-            .dependencies
-            .push(Box::new(CommonJsExportRequireDependency::new(
-              param.string().to_string(),
-              parser.in_try,
-              range,
-              base,
-              remaining,
-              !parser.is_statement_level_expression(assign_expr.span()),
-            )));
-          return Some(true);
-        }
+    
+    // Handle both member expressions (exports.foo = value) and identifier expressions (module.exports = { ... })
+    match &assign_expr.left {
+      AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)) => {
+        // Handle member expressions: exports.foo = value, module.exports.foo = value
+        self.handle_member_assignment(parser, assign_expr, left_expr)
       }
-
-      if remaining.is_empty() {
-        return None;
+      AssignTarget::Simple(SimpleAssignTarget::Ident(left_ident)) => {
+        // Handle identifier expressions: module.exports = { ... }, exports = { ... }
+        self.handle_identifier_assignment(parser, assign_expr, left_ident)
       }
-
-      parser.enable();
-      // exports.__esModule = true;
-      // module.exports.__esModule = true;
-      // this.__esModule = true;
-      if let Some(first_member) = remaining.first()
-        && first_member == "__esModule"
-      {
-        parser.check_namespace(
-          // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
-          // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
-          // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-          parser.statement_path.len() == 1
-            && parser.is_statement_level_expression(assign_expr.span()),
-          Some(&assign_expr.right),
-        );
-      }
-      // exports.a = 1;
-      // module.exports.a = 1;
-      // this.a = 1;
-      parser
-        .dependencies
-        .push(Box::new(CommonJsExportsDependency::new(
-          left_expr.span().into(),
-          None,
-          base,
-          remaining.to_owned(),
-        )));
-      parser.walk_expression(&assign_expr.right);
-      Some(true)
-    };
-
-    if parser.is_exports_member_expr_start(left_expr) {
-      // exports.x = y;
-      handle_remaining(parser, ExportsBase::Exports)
-    } else if is_module_exports_member_expr_start(left_expr) {
-      // module.exports.x = y;
-      parser.append_module_runtime();
-      handle_remaining(parser, ExportsBase::ModuleExports)
-    } else if parser.is_this_member_expr_start(left_expr) {
-      // this.x = y
-      handle_remaining(parser, ExportsBase::This)
-    } else {
-      None
+      _ => None,
     }
   }
 
@@ -499,9 +423,9 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           None
         }
       };
-      // Object.defineProperty(exports, "xxx", { value: 1 });
-      // Object.defineProperty(module.exports, "xxx", { value: 1 });
-      // Object.defineProperty(this, "xxx", { value: 1 });
+      // Object.defineProperty(exports, \"xxx\", { value: 1 });
+      // Object.defineProperty(module.exports, \"xxx\", { value: 1 });
+      // Object.defineProperty(this, \"xxx\", { value: 1 });
       if expr_matcher::is_object_define_property(&**expr)
         && parser.is_statement_level_expression(call_expr.span())
         && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
@@ -580,3 +504,276 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     })
   }
 }
+
+impl CommonJsExportsParserPlugin {
+  fn handle_member_assignment(
+    &self,
+    parser: &mut JavascriptParser,
+    assign_expr: &AssignExpr,
+    left_expr: &MemberExpr,
+  ) -> Option<bool> {
+
+    let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
+      let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
+      let remaining = get_member_expression_info(parser, left_expr, Some(is_module_exports_start))?;
+
+      if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
+        && parser.is_require_call_expr(&assign_expr.right)
+        && let Some(right_expr) = assign_expr.right.as_call()
+        && let Some(first_arg) = right_expr.args.first().map(|arg| &arg.expr)
+      {
+        let param = parser.evaluate_expression(first_arg);
+        if param.is_string() {
+          parser.enable();
+          if remaining.is_empty() {
+            // exports = require('xx');
+            // module.exports = require('xx');
+            // this = require('xx');
+            // It's possible to reexport __esModule, so we must convert to a dynamic module
+            parser.set_dynamic();
+          }
+          // exports.aaa = require('xx');
+          // module.exports.aaa = require('xx');
+          // this.aaa = require('xx');
+          let range: DependencyRange = assign_expr.span.into();
+          parser
+            .dependencies
+            .push(Box::new(CommonJsExportRequireDependency::new(
+              param.string().to_string(),
+              parser.in_try,
+              range,
+              base,
+              remaining,
+              !parser.is_statement_level_expression(assign_expr.span()),
+            )));
+          return Some(true);
+        }
+      }
+
+      if remaining.is_empty() {
+        // Handle bulk assignments like module.exports = { ... }
+        if let Expr::Object(obj_lit) = &*assign_expr.right {
+          // dbg!("Found module.exports = {{ ... }} pattern with {} properties", obj_lit.props.len());
+          
+          // Process each property in the object literal
+          for prop in &obj_lit.props {
+            if let PropOrSpread::Prop(prop) = prop {
+              match &**prop {
+                Prop::Shorthand(ident) => {
+                  // Handle shorthand properties: { func1, func2 }
+                  let export_name = ident.sym.to_string();
+                  // dbg!("Creating dependency for shorthand export: {}", &export_name);
+                  parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
+                    ident.span().into(),
+                    Some(assign_expr.right.span().into()),
+                    base.clone(),
+                    vec![export_name.into()],
+                  )));
+                }
+                Prop::KeyValue(key_value) => {
+                  // Handle key-value properties: { key: value }
+                  if let PropName::Ident(key_ident) = &key_value.key {
+                    let export_name = key_ident.sym.to_string();
+                    // println!("🔍 DEBUG: Creating dependency for key-value export: {}", export_name);
+                    parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
+                      key_value.span().into(),
+                      Some(assign_expr.right.span().into()),
+                      base.clone(),
+                      vec![export_name.into()],
+                    )));
+                  }
+                }
+                Prop::Method(method) => {
+                  // Handle method properties: { method() { ... } }
+                  if let PropName::Ident(method_ident) = &method.key {
+                    let export_name = method_ident.sym.to_string();
+                    // println!("🔍 DEBUG: Creating dependency for method export: {}", export_name);
+                    parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
+                      method.span().into(),
+                      Some(assign_expr.right.span().into()),
+                      base.clone(),
+                      vec![export_name.into()],
+                    )));
+                  }
+                }
+                _ => {
+                  // Handle other property types if needed
+                }
+              }
+            }
+          }
+          
+          // Walk the right-hand side expression
+          parser.walk_expression(&assign_expr.right);
+          return Some(true);
+        } else {
+          // Non-object assignments like module.exports = someVariable
+          return None;
+        }
+      }
+
+      parser.enable();
+      // exports.__esModule = true;
+      // module.exports.__esModule = true;
+      // this.__esModule = true;
+      if let Some(first_member) = remaining.first()
+        && first_member == "__esModule"
+      {
+        parser.check_namespace(
+          // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
+          // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
+          // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
+          parser.statement_path.len() == 1
+            && parser.is_statement_level_expression(assign_expr.span()),
+          Some(&assign_expr.right),
+        );
+      }
+      // exports.a = 1;
+      // module.exports.a = 1;
+      // this.a = 1;
+      parser
+        .dependencies
+        .push(Box::new(CommonJsExportsDependency::new(
+          left_expr.span().into(), // Keep original LHS range to avoid overlaps
+          Some(assign_expr.right.span().into()), // Track the value range for code generation
+          base,
+          remaining.to_owned(),
+        )));
+      parser.walk_expression(&assign_expr.right);
+      Some(true)
+    };
+
+    if parser.is_exports_member_expr_start(left_expr) {
+      // exports.x = y;
+      handle_remaining(parser, ExportsBase::Exports)
+    } else if is_module_exports_member_expr_start(left_expr) {
+      // module.exports.x = y;
+      parser.append_module_runtime();
+      handle_remaining(parser, ExportsBase::ModuleExports)
+    } else if parser.is_this_member_expr_start(left_expr) {
+      // this.x = y
+      handle_remaining(parser, ExportsBase::This)
+    } else {
+      None
+    }
+  }
+
+  fn handle_identifier_assignment(
+    &self,
+    parser: &mut JavascriptParser,
+    assign_expr: &AssignExpr,
+    left_ident: &Ident,
+  ) -> Option<bool> {
+    // println!("🔍 DEBUG: handle_identifier_assignment called with ident: {}", left_ident.sym);
+    
+    // Check if this is a module.exports assignment
+    if left_ident.sym == "module" {
+      // This would be "module = something" which is not a valid exports pattern
+      return None;
+    }
+    
+    // Check if this is an exports assignment (exports = { ... })
+    if left_ident.sym == "exports" && parser.is_unresolved_ident("exports") {
+      // Handle exports = { ... } pattern
+      return self.handle_bulk_exports_assignment(parser, assign_expr, ExportsBase::Exports);
+    }
+    
+    // Check for module.exports pattern by looking at the context
+    // Since we're in identifier assignment, we need to check if this identifier
+    // is actually part of a member expression like "module.exports"
+    // This case should not happen since member expressions are handled separately
+    // But let's be defensive and handle it anyway
+    None
+  }
+
+  fn handle_bulk_exports_assignment(
+    &self,
+    parser: &mut JavascriptParser,
+    assign_expr: &AssignExpr,
+    base: ExportsBase,
+  ) -> Option<bool> {
+    // Handle patterns like:
+    // module.exports = { func1, func2, ... }
+    // exports = { func1, func2, ... }
+    
+    if let Expr::Object(obj_lit) = &*assign_expr.right {
+      parser.enable();
+      
+      // Process each property in the object literal
+      for prop in &obj_lit.props {
+        if let PropOrSpread::Prop(prop) = prop {
+          match &**prop {
+            Prop::Shorthand(ident) => {
+              // Handle shorthand properties: { func1, func2 }
+              let export_name = ident.sym.to_string();
+              self.create_export_dependency(
+                parser,
+                assign_expr,
+                &export_name,
+                base.clone(),
+                ident.span(),
+              );
+            }
+            Prop::KeyValue(key_value) => {
+              // Handle key-value properties: { key: value }
+              if let PropName::Ident(key_ident) = &key_value.key {
+                let export_name = key_ident.sym.to_string();
+                self.create_export_dependency(
+                  parser,
+                  assign_expr,
+                  &export_name,
+                  base.clone(),
+                  key_value.span(),
+                );
+              }
+            }
+            Prop::Method(method) => {
+              // Handle method properties: { method() { ... } }
+              if let PropName::Ident(method_ident) = &method.key {
+                let export_name = method_ident.sym.to_string();
+                self.create_export_dependency(
+                  parser,
+                  assign_expr,
+                  &export_name,
+                  base.clone(),
+                  method.span(),
+                );
+              }
+            }
+            _ => {
+              // Handle other property types if needed
+            }
+          }
+        }
+      }
+      
+      // Walk the right-hand side expression to handle nested expressions
+      parser.walk_expression(&assign_expr.right);
+      
+      Some(true)
+    } else {
+      // Handle non-object assignments like: module.exports = someVariable
+      // In this case, we don't know the individual exports, so we can't create
+      // individual export dependencies. We'll just handle it as a single export.
+      None
+    }
+  }
+
+  fn create_export_dependency(
+    &self,
+    parser: &mut JavascriptParser,
+    assign_expr: &AssignExpr,
+    export_name: &str,
+    base: ExportsBase,
+    property_span: swc_core::common::Span,
+  ) {
+    // Create a dependency for each individual export
+    parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
+      property_span.into(), // Use the property span for more precise location
+      Some(assign_expr.right.span().into()), // Track the value range
+      base,
+      vec![export_name.to_string().into()], // Convert to Atom
+    )));
+  }
+}
+

@@ -125,6 +125,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    // dbg!("CommonJS Self Reference Template render");
     let dep = dep
       .as_any()
       .downcast_ref::<CommonJsSelfReferenceDependency>()

@@ -2,12 +2,20 @@
 import { validateEmail, generateId, deepClone } from './nested-utils.js';
 import { DEFAULT_TIMEOUT } from './config.js';
 
+// Import CommonJS helper to test PURE annotations for CommonJS requires
+const cjsHelper = require('./cjs-helper.js');
+
 export const formatDate = (date) => {
   return new Intl.DateTimeFormat('en-US').format(date);
 };
 
 export const capitalize = (str) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+// Use CommonJS helper function to test CommonJS integration
+export const processWithHelper = (input) => {
+  return cjsHelper.helperFunction(input);
 };
 
 // Re-export nested utilities

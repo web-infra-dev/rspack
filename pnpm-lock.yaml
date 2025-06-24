@@ -145,8 +145,10 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@rstest/core':
-        specifier: '*'
+        specifier: ^0.0.2
         version: 0.0.2(jsdom@26.1.0)
+
+  examples/basic/cjs-modules: {}
 
   npm/darwin-arm64: {}
 
