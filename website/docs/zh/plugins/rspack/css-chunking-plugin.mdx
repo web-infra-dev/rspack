@@ -1,0 +1,46 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CssChunkingPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
+
+`CssChunkingPlugin` 是专为处理 CSS 模块代码分割的实验性插件（参考自 Next.js），确保样式规则的执行顺序与源代码导入顺序保持一致，避免样式覆盖错误。
+
+```js
+new rspack.experiments.CssChunkingPlugin(options);
+```
+
+## 选项
+
+### strict
+
+- **类型：** `bool`
+- **默认值：** `false`
+
+是否强制保持 CSS 模块的导入顺序。
+
+#### 常规模式 (strict: false，默认)
+
+允许合并无依赖关系的 CSS 模块，减少 chunk 数量。
+
+#### 严格模式 (strict: true)
+
+保证 CSS 模块的执行顺序**严格匹配**源代码导入顺序。
+
+#### 示例场景
+
+```js
+// foo.js
+import './a.css'; // 独立样式
+import './b.css'; // 独立样式
+
+// bar.js
+import './b.css';
+import './a.css'; // 顺序交换不影响渲染
+```
+
+常规模式 (strict: false) 认为 `a.css` 和 `b.css` 没有依赖关系，将它们合并到同一个 chunk 中。
+
+严格模式 (strict: true) 则会将 `a.css` 和 `b.css` 分别打包到不同的 chunk 中，确保它们在 `foo.js` 和 `bar.js` 中的执行顺序与导入顺序一致。
