@@ -17,7 +17,7 @@ export interface CssChunkingPluginOptions {
 export const CssChunkingPlugin = create(
 	binding.BuiltinPluginName.CssChunkingPlugin,
 	function (
-		options: CssChunkingPluginOptions
+		options: CssChunkingPluginOptions = {}
 	): binding.CssChunkingPluginOptions {
 		if (options.nextjs) {
 			return {
