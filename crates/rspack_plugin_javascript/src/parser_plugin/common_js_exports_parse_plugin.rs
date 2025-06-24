@@ -15,7 +15,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportsBase, ModuleDecoratorDependency,
+    ExportContext, ExportsBase, ModuleDecoratorDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -375,7 +375,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     if parser.is_esm {
       return None;
     }
-    
+
     // Handle both member expressions (exports.foo = value) and identifier expressions (module.exports = { ... })
     match &assign_expr.left {
       AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)) => {
@@ -467,6 +467,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
             Some(arg2.span().into()),
             base,
             vec![str.value.clone()],
+            ExportContext::DefineProperty,
           )));
 
         parser.walk_expression(&arg2.expr);
@@ -512,7 +513,6 @@ impl CommonJsExportsParserPlugin {
     assign_expr: &AssignExpr,
     left_expr: &MemberExpr,
   ) -> Option<bool> {
-
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
       let remaining = get_member_expression_info(parser, left_expr, Some(is_module_exports_start))?;
@@ -553,47 +553,72 @@ impl CommonJsExportsParserPlugin {
       if remaining.is_empty() {
         // Handle bulk assignments like module.exports = { ... }
         if let Expr::Object(obj_lit) = &*assign_expr.right {
-          // dbg!("Found module.exports = {{ ... }} pattern with {} properties", obj_lit.props.len());
-          
+          let total_exports = obj_lit.props.len();
+
+          // NOTE: ConsumeShared detection moved to template-time due to parser API limitations
+          // BuildMeta caching will happen in the dependency templates
+
+          // EXISTING: Create dependencies as before (no changes to dependency creation)
           // Process each property in the object literal
-          for prop in &obj_lit.props {
+          for (prop_index, prop) in obj_lit.props.iter().enumerate() {
             if let PropOrSpread::Prop(prop) = prop {
               match &**prop {
                 Prop::Shorthand(ident) => {
                   // Handle shorthand properties: { func1, func2 }
                   let export_name = ident.sym.to_string();
-                  // dbg!("Creating dependency for shorthand export: {}", &export_name);
-                  parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
-                    ident.span().into(),
-                    Some(assign_expr.right.span().into()),
-                    base.clone(),
-                    vec![export_name.into()],
-                  )));
+                  let context = if prop_index == 0 {
+                    ExportContext::ObjectLiteralPropertyFirst
+                  } else {
+                    ExportContext::ObjectLiteralPropertySubsequent
+                  };
+                  parser
+                    .dependencies
+                    .push(Box::new(CommonJsExportsDependency::new(
+                      ident.span().into(),
+                      Some(assign_expr.right.span().into()),
+                      base.clone(),
+                      vec![export_name.into()],
+                      context,
+                    )));
                 }
                 Prop::KeyValue(key_value) => {
                   // Handle key-value properties: { key: value }
                   if let PropName::Ident(key_ident) = &key_value.key {
                     let export_name = key_ident.sym.to_string();
-                    // println!("🔍 DEBUG: Creating dependency for key-value export: {}", export_name);
-                    parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
-                      key_value.span().into(),
-                      Some(assign_expr.right.span().into()),
-                      base.clone(),
-                      vec![export_name.into()],
-                    )));
+                    let context = if prop_index == 0 {
+                      ExportContext::ObjectLiteralPropertyFirst
+                    } else {
+                      ExportContext::ObjectLiteralPropertySubsequent
+                    };
+                    parser
+                      .dependencies
+                      .push(Box::new(CommonJsExportsDependency::new(
+                        key_value.span().into(),
+                        Some(assign_expr.right.span().into()),
+                        base.clone(),
+                        vec![export_name.into()],
+                        context,
+                      )));
                   }
                 }
                 Prop::Method(method) => {
                   // Handle method properties: { method() { ... } }
                   if let PropName::Ident(method_ident) = &method.key {
                     let export_name = method_ident.sym.to_string();
-                    // println!("🔍 DEBUG: Creating dependency for method export: {}", export_name);
-                    parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
-                      method.span().into(),
-                      Some(assign_expr.right.span().into()),
-                      base.clone(),
-                      vec![export_name.into()],
-                    )));
+                    let context = if prop_index == 0 {
+                      ExportContext::ObjectLiteralPropertyFirst
+                    } else {
+                      ExportContext::ObjectLiteralPropertySubsequent
+                    };
+                    parser
+                      .dependencies
+                      .push(Box::new(CommonJsExportsDependency::new(
+                        method.span().into(),
+                        Some(assign_expr.right.span().into()),
+                        base.clone(),
+                        vec![export_name.into()],
+                        context,
+                      )));
                   }
                 }
                 _ => {
@@ -602,7 +627,7 @@ impl CommonJsExportsParserPlugin {
               }
             }
           }
-          
+
           // Walk the right-hand side expression
           parser.walk_expression(&assign_expr.right);
           return Some(true);
@@ -634,10 +659,11 @@ impl CommonJsExportsParserPlugin {
       parser
         .dependencies
         .push(Box::new(CommonJsExportsDependency::new(
-          left_expr.span().into(), // Keep original LHS range to avoid overlaps
-          Some(assign_expr.right.span().into()), // Track the value range for code generation
+          assign_expr.span().into(), // Use full assignment span for macro wrapping
+          Some(assign_expr.right.span().into()), // Track value range for potential coordination
           base,
           remaining.to_owned(),
+          ExportContext::IndividualAssignment,
         )));
       parser.walk_expression(&assign_expr.right);
       Some(true)
@@ -665,24 +691,45 @@ impl CommonJsExportsParserPlugin {
     left_ident: &Ident,
   ) -> Option<bool> {
     // println!("🔍 DEBUG: handle_identifier_assignment called with ident: {}", left_ident.sym);
-    
+
     // Check if this is a module.exports assignment
     if left_ident.sym == "module" {
       // This would be "module = something" which is not a valid exports pattern
       return None;
     }
-    
+
     // Check if this is an exports assignment (exports = { ... })
     if left_ident.sym == "exports" && parser.is_unresolved_ident("exports") {
       // Handle exports = { ... } pattern
       return self.handle_bulk_exports_assignment(parser, assign_expr, ExportsBase::Exports);
     }
-    
-    // Check for module.exports pattern by looking at the context
-    // Since we're in identifier assignment, we need to check if this identifier
-    // is actually part of a member expression like "module.exports"
-    // This case should not happen since member expressions are handled separately
-    // But let's be defensive and handle it anyway
+
+    // Check if this is a variable assignment to an exports reference (foo = exports.bar)
+    if let Expr::Member(member_expr) = &*assign_expr.right {
+      if let Some(base) = self.detect_exports_base(parser, member_expr) {
+        // This is a variable assignment pattern like: foo = exports.bar
+        let remaining = get_member_expression_info(
+          parser,
+          member_expr,
+          Some(matches!(base, ExportsBase::ModuleExports)),
+        )?;
+
+        if !remaining.is_empty() {
+          // Create dependency with VariableAssignment context to wrap the right-hand side
+          parser
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              member_expr.span().into(), // Target the exports.foo part (right-hand side)
+              None,                      // No value range needed for variable assignments
+              base,
+              remaining.to_owned(),
+              ExportContext::VariableAssignment,
+            )));
+          return Some(true);
+        }
+      }
+    }
+
     None
   }
 
@@ -695,35 +742,53 @@ impl CommonJsExportsParserPlugin {
     // Handle patterns like:
     // module.exports = { func1, func2, ... }
     // exports = { func1, func2, ... }
-    
+
     if let Expr::Object(obj_lit) = &*assign_expr.right {
+      let total_exports = obj_lit.props.len();
+
+      // NOTE: ConsumeShared detection moved to template-time due to parser API limitations
+      // BuildMeta caching will happen in the dependency templates
+
       parser.enable();
-      
+
+      // EXISTING: Create dependencies as before (no changes to dependency creation)
       // Process each property in the object literal
-      for prop in &obj_lit.props {
+      for (prop_index, prop) in obj_lit.props.iter().enumerate() {
         if let PropOrSpread::Prop(prop) = prop {
           match &**prop {
             Prop::Shorthand(ident) => {
               // Handle shorthand properties: { func1, func2 }
               let export_name = ident.sym.to_string();
+              let context = if prop_index == 0 {
+                ExportContext::ObjectLiteralPropertyFirst
+              } else {
+                ExportContext::ObjectLiteralPropertySubsequent
+              };
               self.create_export_dependency(
                 parser,
                 assign_expr,
                 &export_name,
                 base.clone(),
                 ident.span(),
+                context,
               );
             }
             Prop::KeyValue(key_value) => {
               // Handle key-value properties: { key: value }
               if let PropName::Ident(key_ident) = &key_value.key {
                 let export_name = key_ident.sym.to_string();
+                let context = if prop_index == 0 {
+                  ExportContext::ObjectLiteralPropertyFirst
+                } else {
+                  ExportContext::ObjectLiteralPropertySubsequent
+                };
                 self.create_export_dependency(
                   parser,
                   assign_expr,
                   &export_name,
                   base.clone(),
                   key_value.span(),
+                  context,
                 );
               }
             }
@@ -731,12 +796,18 @@ impl CommonJsExportsParserPlugin {
               // Handle method properties: { method() { ... } }
               if let PropName::Ident(method_ident) = &method.key {
                 let export_name = method_ident.sym.to_string();
+                let context = if prop_index == 0 {
+                  ExportContext::ObjectLiteralPropertyFirst
+                } else {
+                  ExportContext::ObjectLiteralPropertySubsequent
+                };
                 self.create_export_dependency(
                   parser,
                   assign_expr,
                   &export_name,
                   base.clone(),
                   method.span(),
+                  context,
                 );
               }
             }
@@ -746,15 +817,32 @@ impl CommonJsExportsParserPlugin {
           }
         }
       }
-      
+
       // Walk the right-hand side expression to handle nested expressions
       parser.walk_expression(&assign_expr.right);
-      
+
       Some(true)
     } else {
       // Handle non-object assignments like: module.exports = someVariable
       // In this case, we don't know the individual exports, so we can't create
       // individual export dependencies. We'll just handle it as a single export.
+      None
+    }
+  }
+
+  fn detect_exports_base(
+    &self,
+    parser: &mut JavascriptParser,
+    member_expr: &MemberExpr,
+  ) -> Option<ExportsBase> {
+    // Check if this is exports.something or module.exports.something
+    if parser.is_exports_member_expr_start(member_expr) {
+      Some(ExportsBase::Exports)
+    } else if is_module_exports_member_expr_start(member_expr) {
+      Some(ExportsBase::ModuleExports)
+    } else if parser.is_this_member_expr_start(member_expr) {
+      Some(ExportsBase::This)
+    } else {
       None
     }
   }
@@ -766,14 +854,20 @@ impl CommonJsExportsParserPlugin {
     export_name: &str,
     base: ExportsBase,
     property_span: swc_core::common::Span,
+    context: ExportContext,
   ) {
-    // Create a dependency for each individual export
-    parser.dependencies.push(Box::new(CommonJsExportsDependency::new(
-      property_span.into(), // Use the property span for more precise location
-      Some(assign_expr.right.span().into()), // Track the value range
-      base,
-      vec![export_name.to_string().into()], // Convert to Atom
-    )));
+    // For bulk exports, target the individual property within the object literal
+    parser
+      .dependencies
+      .push(Box::new(CommonJsExportsDependency::new(
+        property_span.into(), // Use the property span for individual exports in object literals
+        Some(assign_expr.right.span().into()), // Keep value range for coordination
+        base,
+        vec![export_name.to_string().into()], // Convert to Atom
+        context,
+      )));
   }
-}
 
+  // REMOVED: detect_consume_shared_context method due to architectural limitations
+  // ConsumeShared detection will be handled at template-time with BuildMeta caching
+}

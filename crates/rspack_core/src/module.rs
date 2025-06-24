@@ -186,6 +186,9 @@ impl Display for ExportsArgument {
   }
 }
 
+// REMOVED: ExportCoordination enum - unnecessary complexity
+// The only real need is to cache ConsumeShared detection result
+
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -200,6 +203,11 @@ pub struct BuildMeta {
   pub side_effect_free: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub exports_final_name: Option<Vec<(String, String)>>,
+
+  // NEW: ConsumeShared context (simple string, established pattern)
+  // This caches the result of ConsumeShared detection to avoid repeated module graph traversals
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub consume_shared_key: Option<String>,
 }
 
 // webpack build info

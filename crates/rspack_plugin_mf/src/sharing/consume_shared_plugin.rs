@@ -9,13 +9,13 @@ use async_trait::async_trait;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerOptions, CompilerThisCompilation, Context,
-  DependencyCategory, DependencyType, ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleCreateData,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType, ResolveResult,
-  Resolver, RuntimeGlobals,
+  ApplyContext, BoxDependency, BoxModule, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerOptions, CompilerThisCompilation, Context, DependencyCategory, DependencyType,
+  ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleCreateData, NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin,
+  PluginContext, PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -223,6 +223,49 @@ impl ConsumeSharedPlugin {
   fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
     let lock = self.matched_consumes.read().expect("should lock");
     lock.clone().expect("init_matched_consumes first")
+  }
+
+  /// Find ConsumeShared configuration for a dependency request
+  /// Leverages existing MatchedConsumes logic from factorize hook
+  fn find_consume_config(&self, dependency: &BoxDependency) -> Option<Arc<ConsumeOptions>> {
+    let dep = dependency
+      .as_module_dependency()
+      .expect("should be module dependency");
+
+    if matches!(
+      dep.dependency_type(),
+      DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+    ) {
+      return None;
+    }
+
+    let request = dep.request();
+    let consumes = self.get_matched_consumes();
+
+    // Check unresolved patterns (exact matches)
+    if let Some(matched) = consumes.unresolved.get(request) {
+      return Some(matched.clone());
+    }
+
+    // Check prefixed patterns
+    for (prefix, options) in &consumes.prefixed {
+      if request.starts_with(prefix) {
+        let remainder = &request[prefix.len()..];
+        return Some(Arc::new(ConsumeOptions {
+          import: options.import.as_ref().map(|i| i.to_owned() + remainder),
+          import_resolved: options.import_resolved.clone(),
+          share_key: options.share_key.clone() + remainder,
+          share_scope: options.share_scope.clone(),
+          required_version: options.required_version.clone(),
+          package_name: options.package_name.clone(),
+          strict_version: options.strict_version,
+          singleton: options.singleton,
+          eager: options.eager,
+        }));
+      }
+    }
+
+    None
   }
 
   async fn get_required_version(
@@ -625,7 +668,12 @@ async fn this_compilation(
 
 #[plugin_hook(CompilationFinishModules for ConsumeSharedPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  // Find all ConsumeShared modules and copy metadata from their fallbacks
+  // PHASE 1: Pre-cache ConsumeShared detection results in BuildMeta for template performance
+  self
+    .populate_consume_shared_buildmeta_cache(compilation)
+    .await?;
+
+  // PHASE 2: Find all ConsumeShared modules and copy metadata from their fallbacks
   let consume_shared_modules: Vec<ModuleIdentifier> = compilation
     .get_module_graph()
     .modules()
@@ -708,6 +756,11 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   Ok(None)
 }
 
+// ARCHITECTURAL CORRECTION: The BuildMeta approach requires parser-level detection
+// The after_resolve hook cannot set BuildMeta because modules haven't been created yet.
+// Instead, parsers should detect ConsumeShared context and set BuildMeta during parsing.
+// This hook is removed in favor of parser-level detection using existing module graph traversal.
+
 #[plugin_hook(NormalModuleFactoryCreateModule for ConsumeSharedPlugin)]
 async fn create_module(
   &self,
@@ -758,6 +811,85 @@ async fn additional_tree_runtime_requirements(
     Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
   )?;
   Ok(())
+}
+
+impl ConsumeSharedPlugin {
+  /// Pre-populate BuildMeta with ConsumeShared detection results for template performance
+  /// This runs during finish_modules hook where we have mutable access to modules
+  async fn populate_consume_shared_buildmeta_cache(
+    &self,
+    compilation: &mut Compilation,
+  ) -> Result<()> {
+    // Get mutable access to module graph for BuildMeta updates
+    let module_identifiers: Vec<ModuleIdentifier> = {
+      let module_graph = compilation.get_module_graph();
+      module_graph.modules().keys().copied().collect()
+    };
+
+    // Process each module to detect and cache ConsumeShared context
+    for module_id in module_identifiers {
+      // Detect ConsumeShared context using immutable access
+      let consume_shared_key = {
+        let module_graph = compilation.get_module_graph();
+
+        // Skip if already cached
+        if let Some(module) = module_graph.module_by_identifier(&module_id) {
+          if module.build_meta().consume_shared_key.is_some() {
+            continue;
+          }
+        }
+
+        Self::detect_consume_shared_context_for_module(&module_graph, &module_id)
+      };
+
+      // Cache the result in BuildMeta if ConsumeShared context was detected
+      if let Some(key) = consume_shared_key {
+        let mut module_graph = compilation.get_module_graph_mut();
+        if let Some(module) = module_graph.module_by_identifier_mut(&module_id) {
+          module.build_meta_mut().consume_shared_key = Some(key);
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  /// Detect ConsumeShared context by traversing module graph connections
+  /// This is called during finish_modules hook for optimal caching
+  fn detect_consume_shared_context_for_module(
+    module_graph: &ModuleGraph,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<String> {
+    // Check if this is a direct ConsumeShared module
+    if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+      if module.module_type() == &ModuleType::ConsumeShared {
+        // Try to extract the share_key using get_consume_shared_key() method
+        if let Some(share_key) = module.get_consume_shared_key() {
+          return Some(share_key);
+        }
+      }
+    }
+
+    // Check incoming connections to see if we're being imported by ConsumeShared modules
+    let incoming_connections: Vec<_> = module_graph
+      .get_incoming_connections(module_identifier)
+      .collect();
+
+    for connection in incoming_connections {
+      if let Some(origin_module_id) = &connection.original_module_identifier {
+        if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
+          if origin_module.module_type() == &ModuleType::ConsumeShared {
+            // Extract share_key from ConsumeShared module
+            if let Some(share_key) = origin_module.get_consume_shared_key() {
+              return Some(share_key);
+            }
+          }
+        }
+      }
+    }
+
+    None
+  }
 }
 
 #[async_trait]

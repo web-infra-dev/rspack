@@ -129,81 +129,7 @@ impl ESMExportImportedSpecifierDependency {
       .unwrap_or_else(|| self.ids.as_slice())
   }
 
-  /// Enhanced ConsumeShared detection that traverses the module graph for reexport scenarios
-  fn get_consume_shared_info(&self, module_graph: &ModuleGraph) -> Option<String> {
-    // Check if parent module is ConsumeShared
-    if let Some(parent_module_id) = module_graph.get_parent_module(&self.id) {
-      if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
-        if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
-          return parent_module.get_consume_shared_key();
-        }
-      }
-    }
-
-    // Get current module identifier for deeper analysis
-    let module_identifier = module_graph
-      .get_parent_module(&self.id)
-      .and_then(|id| module_graph.module_by_identifier(id))
-      .map(|m| m.identifier())?;
-
-    // Check immediate incoming connections for ConsumeShared modules
-    for connection in module_graph.get_incoming_connections(&module_identifier) {
-      if let Some(origin_module) = connection.original_module_identifier.as_ref() {
-        if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
-          if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
-            return origin_module_obj.get_consume_shared_key();
-          }
-        }
-      }
-    }
-
-    // Enhanced: Check deeper in the module graph for reexport scenarios
-    let mut visited = std::collections::HashSet::new();
-    if let Some(share_key) =
-      Self::find_consume_shared_recursive(&module_identifier, module_graph, &mut visited, 5)
-    {
-      return Some(share_key);
-    }
-
-    None
-  }
-
-  /// Recursively search for ConsumeShared modules in the module graph
-  fn find_consume_shared_recursive(
-    current_module: &rspack_core::ModuleIdentifier,
-    module_graph: &ModuleGraph,
-    visited: &mut std::collections::HashSet<rspack_core::ModuleIdentifier>,
-    max_depth: usize,
-  ) -> Option<String> {
-    if max_depth == 0 || visited.contains(current_module) {
-      return None;
-    }
-    visited.insert(*current_module);
-
-    // Check all incoming connections for this module
-    for connection in module_graph.get_incoming_connections(current_module) {
-      if let Some(origin_module_id) = connection.original_module_identifier.as_ref() {
-        if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
-          // Found a ConsumeShared module - return its share key
-          if origin_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
-            return origin_module.get_consume_shared_key();
-          }
-
-          // Recursively check this module's incoming connections
-          if let Some(share_key) = Self::find_consume_shared_recursive(
-            origin_module_id,
-            module_graph,
-            visited,
-            max_depth - 1,
-          ) {
-            return Some(share_key);
-          }
-        }
-      }
-    }
-
-    None
-  }
+  // REMOVED: get_consume_shared_info() and find_consume_shared_recursive() - No longer needed, using BuildMeta directly
 
   /// Enhanced mode calculation with module graph caching
   fn get_mode(
@@ -945,8 +871,8 @@ impl ESMExportImportedSpecifierDependency {
     let mut export_map = vec![];
     let module_graph = compilation.get_module_graph();
 
-    // Enhanced ConsumeShared detection - check deeper in module graph for reexports
-    let consume_shared_info = self.get_consume_shared_info(&module_graph);
+    // SIMPLIFIED: Use pre-computed ConsumeShared context from BuildMeta
+    let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
 
     // Use macro comments for ConsumeShared modules, standard format otherwise
     let export_content = if let Some(ref share_key) = consume_shared_info {
@@ -987,8 +913,8 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     let mut export_map = vec![];
 
-    // Enhanced ConsumeShared detection - check deeper in module graph for reexports
-    let consume_shared_info = self.get_consume_shared_info(&module_graph);
+    // SIMPLIFIED: Use pre-computed ConsumeShared context from BuildMeta
+    let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
 
     // Use macro comments for ConsumeShared modules, standard format otherwise
     let value = if let Some(ref share_key) = consume_shared_info {

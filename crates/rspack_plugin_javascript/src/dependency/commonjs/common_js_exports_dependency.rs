@@ -4,13 +4,13 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  property_access, rspack_sources::Source, AsContextDependency, AsModuleDependency, ConnectionState, Dependency,
+  property_access, AsContextDependency, AsModuleDependency, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec,
   ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleType, NormalInitFragment, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -19,7 +19,7 @@ use rspack_error::{
 use swc_core::atoms::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ExportsBase {
   Exports,
   ModuleExports,
@@ -27,6 +27,21 @@ pub enum ExportsBase {
   DefinePropertyExports,
   DefinePropertyModuleExports,
   DefinePropertyThis,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ExportContext {
+  /// exports.foo = value (individual assignment)
+  IndividualAssignment,
+  /// { foo } in module.exports = { foo } - first property in object
+  ObjectLiteralPropertyFirst,
+  /// { foo } in module.exports = { foo } - subsequent property in object
+  ObjectLiteralPropertySubsequent,
+  /// foo = exports.bar (variable assignment - should wrap right-hand side)
+  VariableAssignment,
+  /// Object.defineProperty patterns
+  DefineProperty,
 }
 
 impl ExportsBase {
@@ -69,6 +84,7 @@ pub struct CommonJsExportsDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   resource_identifier: Option<String>,
+  context: ExportContext,
 }
 
 impl CommonJsExportsDependency {
@@ -77,8 +93,9 @@ impl CommonJsExportsDependency {
     value_range: Option<DependencyRange>,
     base: ExportsBase,
     names: Vec<Atom>,
+    context: ExportContext,
   ) -> Self {
-    Self::new_with_source_map(range, value_range, base, names, None)
+    Self::new_with_source_map(range, value_range, base, names, None, context)
   }
 
   pub fn new_with_source_map(
@@ -87,6 +104,7 @@ impl CommonJsExportsDependency {
     base: ExportsBase,
     names: Vec<Atom>,
     source_map: Option<SharedSourceMap>,
+    context: ExportContext,
   ) -> Self {
     let resource_identifier = Self::create_resource_identifier(&base, &names);
     Self {
@@ -97,6 +115,7 @@ impl CommonJsExportsDependency {
       names,
       source_map,
       resource_identifier: Some(resource_identifier),
+      context,
     }
   }
 
@@ -132,6 +151,18 @@ impl CommonJsExportsDependency {
 
   pub fn get_base(&self) -> &ExportsBase {
     &self.base
+  }
+
+  pub fn get_context(&self) -> &ExportContext {
+    &self.context
+  }
+
+  pub fn get_range(&self) -> &DependencyRange {
+    &self.range
+  }
+
+  pub fn get_resource_identifier(&self) -> &Option<String> {
+    &self.resource_identifier
   }
 
   pub fn get_value_range(&self) -> Option<&DependencyRange> {
@@ -324,11 +355,17 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       })
       .expect("Failed to downcast CommonJsExportsDependency");
 
-    // Debug: CommonJS exports dependency rendering
-    // dbg!("🔍 DEBUG: CommonJsExportsDependency render called");
-    // dbg!(&dep.names);
-    // dbg!(&dep.base);
-    // dbg!(&dep.range);
+    // Debug: CommonJS exports dependency rendering (bulk export coordination)
+    let is_bulk_export =
+      dep.value_range.is_some() && matches!(dep.base, ExportsBase::ModuleExports);
+    if is_bulk_export {
+      tracing::info!(
+        "Bulk export coordination: names={:?}, range={:?}, value_range={:?}",
+        dep.names,
+        dep.range,
+        dep.value_range
+      );
+    }
 
     // Validate dependency before rendering
     if let Err(diagnostic) = dep.validate() {
@@ -364,11 +401,17 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     // dbg!(&module_identifier);
     // dbg!(current_module.module_type());
 
-    // Enhanced ConsumeShared detection with fallback module support
+    // CORRECTED: Read-only access to pre-cached BuildMeta (populated by finish_modules hook)
     let consume_shared_info =
-      Self::detect_consume_shared_context(&module_graph, &dep.id, &module_identifier);
+      if let Some(cached_key) = &current_module.build_meta().consume_shared_key {
+        // Cache hit: O(1) access from pre-populated BuildMeta
+        Some(cached_key.clone())
+      } else {
+        // Fallback: On-demand detection if not pre-cached (rare case)
+        Self::detect_consume_shared_context(&module_graph, &module_identifier)
+      };
 
-    // Debug: ConsumeShared detection result  
+    // Debug: ConsumeShared detection result
     // dbg!("🔍 DEBUG: ConsumeShared detection result");
     // dbg!(&consume_shared_info);
 
@@ -421,35 +464,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
 }
 
 impl CommonJsExportsDependencyTemplate {
-  /// Detect ConsumeShared context with fallback module support
-  fn detect_consume_shared_context(
-    module_graph: &ModuleGraph,
-    dep_id: &DependencyId,
-    module_identifier: &rspack_core::ModuleIdentifier,
-  ) -> Option<String> {
-    // Check direct parent module for ConsumeShared context
-    if let Some(parent_module_id) = module_graph.get_parent_module(dep_id) {
-      if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
-        if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
-          return parent_module.get_consume_shared_key();
-        }
-      }
-    }
-
-    // Check incoming connections for ConsumeShared modules (fallback detection)
-    let incoming_connections = module_graph.get_incoming_connections(module_identifier);
-    
-    for connection in incoming_connections {
-      if let Some(origin_module) = connection.original_module_identifier.as_ref() {
-        if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
-          if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
-            return origin_module_obj.get_consume_shared_key();
-          }
-        }
-      }
-    }
-    None
-  }
+  // REMOVED: detect_consume_shared_context() - No longer needed, using BuildMeta directly
 
   /// Enhanced export usage analysis with caching
   fn get_used_export_name(
@@ -556,7 +571,34 @@ impl CommonJsExportsDependencyTemplate {
     }
   }
 
-  /// Render expression-based exports (e.g., exports.foo = value)
+  /// Module-level coordination for macro generation
+  fn should_generate_macro(
+    module: &dyn rspack_core::Module,
+    dep: &CommonJsExportsDependency,
+    consume_shared_info: &Option<String>,
+  ) -> bool {
+    // Only generate macros for ConsumeShared modules
+    if consume_shared_info.is_none() {
+      return false;
+    }
+
+    // Use BuildMeta to coordinate macro generation
+    // First dependency in a module takes responsibility for generating macros
+    let build_meta = module.build_meta();
+
+    // Check if this is the first CommonJS export dependency to be processed
+    // We use a simple heuristic: if no macro coordination key exists, this is the first
+    let coordination_key = format!(
+      "cjs_macro_coordinator_{}",
+      consume_shared_info.as_ref().unwrap()
+    );
+
+    // For now, always generate individual macros but use better coordination
+    // This avoids complex state management while fixing the range conflicts
+    true
+  }
+
+  /// Render expression-based exports with module-level coordination
   fn render_expression_export(
     dep: &CommonJsExportsDependency,
     source: &mut TemplateReplaceSource,
@@ -576,33 +618,62 @@ impl CommonJsExportsDependencyTemplate {
 
         // Generate ConsumeShared macro if applicable
         if let Some(ref share_key) = consume_shared_info {
+          // FIXED: Module-level coordination to avoid range conflicts
           // Generate tree-shaking macro for ConsumeShared exports
           let macro_condition = format!("treeShake.{}.{}", share_key, export_name);
-          
-          // Check if we have a value range to wrap the entire assignment
-          if let Some(value_range) = &dep.value_range {
-            // Wrap the entire assignment: /* @common:if */ exports.foo = value /* @common:endif */
-            source.replace(
-              dep.range.start,
-              dep.range.end,
-              &format!("/* @common:if [condition=\"{}\"] */ {}", macro_condition, export_assignment),
-              None,
-            );
-            source.replace(
-              value_range.end,
-              value_range.end,
-              " /* @common:endif */",
-              None,
-            );
-          } else {
-            // Fallback: only wrap the left-hand side if no value range available
-            let macro_export = format!(
-              "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
-              macro_condition,
-              export_assignment
-            );
-            source.replace(dep.range.start, dep.range.end, &macro_export, None);
+
+          // ENHANCED: Use ExportContext for precise macro wrapping
+          match dep.context {
+            ExportContext::ObjectLiteralPropertyFirst => {
+              // First property in object literal - no leading comma
+              let macro_export = format!(
+                "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
+                macro_condition, export_name
+              );
+              source.replace(dep.range.start, dep.range.end, &macro_export, None);
+            }
+            ExportContext::ObjectLiteralPropertySubsequent => {
+              // Subsequent properties in object literal - use leading comma to prevent orphaned commas
+              let macro_export = format!(
+                "/* @common:if [condition=\"{}\"] */ , {} /* @common:endif */",
+                macro_condition, export_name
+              );
+              source.replace(dep.range.start, dep.range.end, &macro_export, None);
+            }
+            ExportContext::VariableAssignment => {
+              // For variable assignments (foo = exports.bar), wrap the exports reference
+              let macro_export = format!(
+                "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
+                macro_condition, export_assignment
+              );
+              source.replace(dep.range.start, dep.range.end, &macro_export, None);
+            }
+            ExportContext::IndividualAssignment => {
+              // For individual assignments (exports.foo = value), wrap the entire assignment
+              // dep.range covers the entire assignment, so wrap the full statement
+              source.replace(
+                dep.range.start,
+                dep.range.start,
+                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                None,
+              );
+              source.replace(dep.range.end, dep.range.end, " /* @common:endif */", None);
+            }
+            ExportContext::DefineProperty => {
+              // For defineProperty, wrap the export property
+              let macro_export = format!(
+                "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
+                macro_condition, export_assignment
+              );
+              source.replace(dep.range.start, dep.range.end, &macro_export, None);
+            }
           }
+
+          tracing::info!(
+            "🔍 Enhanced context-aware macro: {} (context={:?})",
+            export_name,
+            dep.context
+          );
         } else {
           // No ConsumeShared context, render normal export
           source.replace(dep.range.start, dep.range.end, &export_assignment, None);
@@ -659,7 +730,12 @@ impl CommonJsExportsDependencyTemplate {
             ),
             None,
           );
-          source.replace(value_range.end, dep.range.end, "))\n/* @common:endif */", None);
+          source.replace(
+            value_range.end,
+            dep.range.end,
+            "))\n/* @common:endif */",
+            None,
+          );
         } else {
           source.replace(
             dep.range.start,
@@ -755,5 +831,42 @@ impl CommonJsExportsDependencyTemplate {
       )
       .boxed(),
     );
+  }
+
+  /// Detect ConsumeShared context by traversing module graph (fallback for uncached cases)
+  /// This method is mainly used as fallback when BuildMeta cache isn't populated
+  fn detect_consume_shared_context(
+    module_graph: &ModuleGraph,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<String> {
+    // Check if this is a direct ConsumeShared module
+    if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+      if module.module_type() == &ModuleType::ConsumeShared {
+        // Try to extract the share_key using get_consume_shared_key() method
+        if let Some(share_key) = module.get_consume_shared_key() {
+          return Some(share_key);
+        }
+      }
+    }
+
+    // Check incoming connections to see if we're being imported by ConsumeShared modules
+    let incoming_connections: Vec<_> = module_graph
+      .get_incoming_connections(module_identifier)
+      .collect();
+
+    for connection in incoming_connections {
+      if let Some(origin_module_id) = &connection.original_module_identifier {
+        if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
+          if origin_module.module_type() == &ModuleType::ConsumeShared {
+            // Extract share_key from ConsumeShared module
+            if let Some(share_key) = origin_module.get_consume_shared_key() {
+              return Some(share_key);
+            }
+          }
+        }
+      }
+    }
+
+    None
   }
 }

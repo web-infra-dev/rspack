@@ -67,6 +67,9 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     local_id: &Atom,
     export_name: &Atom,
   ) -> Option<bool> {
+    // NOTE: ConsumeShared detection moved to template-time due to parser API limitations
+    // BuildMeta caching will happen in the dependency templates
+
     InnerGraphPlugin::add_variable_usage(
       parser,
       local_id,
@@ -120,6 +123,9 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     local_id: Option<&Atom>,
     export_name: Option<&Atom>,
   ) -> Option<bool> {
+    // NOTE: ConsumeShared detection moved to template-time due to parser API limitations
+    // BuildMeta caching will happen in the dependency templates
+
     let star_exports = if let Some(export_name) = export_name {
       parser
         .build_info
@@ -157,6 +163,9 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     statement: ExportDefaultDeclaration,
     expr: ExportDefaultExpression,
   ) -> Option<bool> {
+    // NOTE: ConsumeShared detection moved to template-time due to parser API limitations
+    // BuildMeta caching will happen in the dependency templates
+
     let expr_span = expr.span();
     let statement_span = statement.span();
 
@@ -218,4 +227,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     );
     Some(true)
   }
+
+  // REMOVED: detect_consume_shared_context method due to architectural limitations
+  // ConsumeShared detection will be handled at template-time with BuildMeta caching
 }
