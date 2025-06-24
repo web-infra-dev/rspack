@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use criterion::{criterion_group, Criterion};
-use rspack_tasks::within_compiler_context_for_testing;
+use rspack_tasks::{within_compiler_context, within_compiler_context_sync, CompilerContext};
 use tokio::runtime;
 
 use crate::groups::bundle::util::{derive_projects, CompilerBuilderGenerator};
@@ -31,13 +31,21 @@ fn bundle_benchmark(c: &mut Criterion) {
 
   for (id, get_compiler) in derive_projects(projects) {
     group.bench_function(format!("bundle@{id}"), |b| {
-      b.to_async(&rt).iter(|| async {
-        within_compiler_context_for_testing(async {
-          let mut compiler = get_compiler();
-          compiler.build().unwrap().run().await.unwrap();
-        })
-        .await
-      });
+      b.to_async(&rt).iter_batched(
+        || {
+          let compiler_context = Arc::new(CompilerContext::new());
+          (
+            compiler_context.clone(),
+            within_compiler_context_sync(compiler_context, || get_compiler().build().unwrap()),
+          )
+        },
+        |(compiler_context, mut compiler)| {
+          within_compiler_context(compiler_context, async move {
+            compiler.run().await.unwrap();
+          })
+        },
+        criterion::BatchSize::PerIteration,
+      );
     });
   }
 }
