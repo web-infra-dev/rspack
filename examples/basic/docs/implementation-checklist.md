@@ -82,6 +82,7 @@ async fn after_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Opti
 - [ ] **Use existing find_consume_config logic** from lines 715-741
 - [ ] **Reuse MatchedConsumes** pattern matching (unresolved, prefixed, resolved)
 - [ ] **Add necessary imports** for hook registration and BuildMeta types
+- [ ] **Create find_consume_config helper method** that wraps existing MatchedConsumes logic
 
 ## Phase 4: Enhance CommonJS Parser
 
@@ -241,3 +242,41 @@ match &build_meta.consume_shared_key {
 - [ ] **Add BuildMeta imports** to ConsumeSharedPlugin
 - [ ] **Add ExportCoordination imports** to parser plugins
 - [ ] **Add DependencyRange imports** for coordination struct
+
+## Pre-Implementation Analysis (DO FIRST)
+
+### Codebase Analysis Required
+- [ ] **Examine existing FlagDependencyUsagePlugin** to understand what needs reverting
+- [ ] **Check current export_usage_analysis.rs complexity** (count lines, assess if >1000 lines)
+- [ ] **Check current share_usage_plugin.rs complexity** (count lines, assess if >1000 lines)  
+- [ ] **Review existing ConsumeSharedPlugin structure** to understand hook integration points
+- [ ] **Find actual method names** in CommonJsExportsParserPlugin (may not be handle_assign_to_exports)
+- [ ] **Find actual method names** in ESMExportDependencyParserPlugin  
+- [ ] **Verify BuildMeta structure location** and existing fields
+- [ ] **Check existing template method signatures** for proper context parameter access
+
+### Missing Solution Components from Design Document
+- [ ] **Add render_with_consume_shared_macro implementation** with proper coordination logic
+- [ ] **Add is_last_in_bulk_export method** to determine endif placement
+- [ ] **Add render_standard fallback methods** for non-ConsumeShared modules
+- [ ] **Add template context access helpers** for BuildMeta retrieval
+- [ ] **Add proper dependency ordering logic** for coordinated macro generation
+
+### Template Method Implementations Missing
+- [ ] **CommonJS render_with_consume_shared_macro**:
+  ```rust
+  fn render_with_consume_shared_macro(&self, dep: &dyn DependencyCodeGeneration, source: &mut TemplateReplaceSource, share_key: &str, coordination: &Option<ExportCoordination>) {
+    match coordination {
+      Some(ExportCoordination::CommonJS { total_exports, shared_range }) => {
+        let is_last_dependency = self.is_last_in_bulk_export(dep, *total_exports);
+        self.render_commonjs_macro(dep, source, share_key, is_last_dependency);
+      }
+      _ => {
+        self.render_individual_macro(dep, source, share_key);
+      }
+    }
+  }
+  ```
+- [ ] **Add render_individual_macro method** for single exports
+- [ ] **Add render_commonjs_macro method** with coordination
+- [ ] **Add render_standard_esm_export methods** for all three ESM templates
