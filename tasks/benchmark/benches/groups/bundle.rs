@@ -15,6 +15,9 @@ criterion_group!(bundle, bundle_benchmark);
 fn bundle_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("bundle");
 
+  #[cfg(feature = "codspeed")]
+  group.sample_size(10);
+
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
     ("basic-react", Arc::new(basic_react::compiler)),
     ("threejs", Arc::new(threejs::compiler)),
@@ -22,8 +25,7 @@ fn bundle_benchmark(c: &mut Criterion) {
 
   // Codspeed can only handle to up to 500 threads by default
   let rt = runtime::Builder::new_multi_thread()
-    .worker_threads(1)
-    .max_blocking_threads(1)
+    .max_blocking_threads(256)
     .build()
     .unwrap();
 
