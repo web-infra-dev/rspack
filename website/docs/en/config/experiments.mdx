@@ -333,11 +333,7 @@ The table below shows the results of incremental in different scenarios:
 |  cold start  |          ❌          |
 | rebuild/HMR  |          ✅          |
 
-Currently, incremental for the `make` and `emitAssets` stages is enabled by default. This is also the default behavior since Rspack v1.0. As this feature further stabilizes, we will enable incremental for more stages by default.
-
-:::tip
-The 'advance' and 'advance-silent' options of this feature are experimental. You can check its relevant progress at [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106). You can also report bugs and any related feedback here.
-:::
+Starting from v1.4.0, Rspack enables incremental builds for all phases by default using `'advance-silent'` mode. In previous versions, it only activated incremental builds for the `make` and `emitAssets` phases by default with `'safe'` mode.
 
 ## experiments.parallelCodeSplitting
 
