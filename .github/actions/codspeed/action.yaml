@@ -94,7 +94,9 @@ runs:
         #   curl -fsSL https://github.com/CodSpeedHQ/runner/releases/download/v$RUNNER_VERSION/codspeed-runner-installer.sh | bash -s -- --quiet
         # fi
 
-        cargo install --git https://github.com/CPunisher/runner.git --branch 06-20-feat/valgrind-flags
+        # We can use official official runner if it supports config valgrind flags in the future: https://github.com/CodSpeedHQ/runner/pull/92
+        cargo install --git https://github.com/CPunisher/runner.git --rev 7e87e3c5d93390fb28e4fbd5f3859f3b20d8fc6a
 
         # Run the benchmarks
-        env CODSPEED=debug VALGRIND_FLAGS='--fair-sched=no' codspeed run $RUNNER_ARGS -- '${{ inputs.run }}'
+        # Enable fair sched to make benchmark more stable, see: https://github.com/CodSpeedHQ/runner/pull/91
+        env VALGRIND_FLAGS='--fair-sched=yes' codspeed run $RUNNER_ARGS -- '${{ inputs.run }}'
