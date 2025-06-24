@@ -68,7 +68,12 @@ jobs:
     strategy:
       fail-fast: true # for better utilize ci runners
       matrix:
-        node: ${{ fromJSON(contains(inputs.target, 'linux') && github.ref_name == 'main' && '[16, 18, 20]' || '[18]' )}}
+        node: ${{ fromJSON(
+          inputs.target == 'wasm32-wasip1-threads'
+          && '[20]'
+          || (contains(inputs.target, 'linux') && github.ref_name == 'main'
+          && '[16, 18, 20]'
+          || '[18]') )}}
     name: Test Node ${{ matrix.node }}
     defaults:
       run:
