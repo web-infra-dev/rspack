@@ -9,14 +9,15 @@
   - [x] ✅ **No ConsumeShared logic found** - File contains only general dependency usage flagging, no revert needed
 
 ### 1.2 Remove Over-Engineered Systems (If Overly Complex)
+
 - [x] **Check export_usage_analysis.rs**: `crates/rspack_plugin_mf/src/sharing/export_usage_analysis.rs`
-  - [x] Evaluate if file is overly complex (>1000 lines) 
-  - [x] ✅ **1098 lines - OVERLY COMPLEX** - Should be removed per solution design
-  - [ ] Remove if excessive: `rm crates/rspack_plugin_mf/src/sharing/export_usage_analysis.rs`
-- [x] **Check share_usage_plugin.rs**: `crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs`  
   - [x] Evaluate if file is overly complex (>1000 lines)
-  - [x] ✅ **1036 lines - OVERLY COMPLEX** - Should be removed per solution design  
-  - [ ] Remove if excessive: `rm crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs`
+  - [x] ✅ **1098 lines - OVERLY COMPLEX but kept** - Should be removed per solution design
+  - [x] ✅ **Files identified but NOT removing** - Per user instruction, keeping complex files
+- [x] **Check share_usage_plugin.rs**: `crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs`
+  - [x] Evaluate if file is overly complex (>1000 lines)
+  - [x] ✅ **1036 lines - OVERLY COMPLEX but kept** - Per user instruction, not removing
+  - [x] ✅ **Files identified but NOT removing** - Per user instruction, keeping complex files
 
 ### 1.3 Preserve Essential Changes
 
@@ -26,11 +27,21 @@
     - Line 433: `"/*#__PURE__*/"` annotations for ESM default exports
     - Line 698: `"/* #__PURE__ */"` annotations for module factories
     - ConsumeShared descendant detection functions (lines 720-768) are **essential**
-- [ ] **KEEP CommonJS macro enhancements**: `crates/rspack_plugin_javascript/src/dependency/commonjs/common_js_exports_dependency.rs`
-- [ ] **KEEP ESM macro enhancements**:
-  - [ ] `crates/rspack_plugin_javascript/src/dependency/esm/esm_export_expression_dependency.rs`
-  - [ ] `crates/rspack_plugin_javascript/src/dependency/esm/esm_export_specifier_dependency.rs`
-  - [ ] `crates/rspack_plugin_javascript/src/dependency/esm/esm_export_imported_specifier_dependency.rs`
+- [x] **KEEP CommonJS macro enhancements**: `crates/rspack_plugin_javascript/src/dependency/commonjs/common_js_exports_dependency.rs`
+  - [x] ✅ **Enhanced ConsumeShared detection** - `detect_consume_shared_context()` function (lines 425-453)
+  - [x] ✅ **Macro generation logic** - Tree-shaking macro wrapping in `render_expression_export()` (lines 574-610)
+  - [x] ✅ **Value range handling** - Comprehensive macro wrapping with proper endif placement
+  - [x] ✅ **Export coordination** - Enhanced export statement rendering with error handling
+- [x] **KEEP ESM macro enhancements**:
+  - [x] ✅ `crates/rspack_plugin_javascript/src/dependency/esm/esm_export_expression_dependency.rs`
+    - [x] **ConsumeShared detection**: `get_consume_shared_info()` function (lines 17-40)
+    - [x] **Default export macros**: Tree-shaking macro generation (lines 260-265)
+  - [x] ✅ `crates/rspack_plugin_javascript/src/dependency/esm/esm_export_specifier_dependency.rs`
+    - [x] **ConsumeShared detection**: `get_consume_shared_info()` method (line 52)
+    - [x] **Named export macros**: ConsumeShared macro usage (line 241)
+  - [x] ✅ `crates/rspack_plugin_javascript/src/dependency/esm/esm_export_imported_specifier_dependency.rs`
+    - [x] **ConsumeShared detection**: `get_consume_shared_info()` method (line 132)
+    - [x] **Re-export macros**: ConsumeShared macro usage (lines 948, 990)
 
 ## Phase 2: Extend BuildMeta Structure
 
@@ -64,6 +75,8 @@ pub enum ExportCoordination {
 
 - [ ] Add necessary imports for `DependencyRange` and other types
 - [ ] Ensure `#[cacheable]` and serialization attributes are correct
+- [ ] Add `serde::Serialize` import if not already present
+- [ ] Add `rspack_cacheable::cacheable` import if not already present
 
 ## Phase 3: Extend ConsumeSharedPlugin
 
@@ -323,3 +336,35 @@ match &build_meta.consume_shared_key {
 - [ ] **Add render_individual_macro method** for single exports
 - [ ] **Add render_commonjs_macro method** with coordination
 - [ ] **Add render_standard_esm_export methods** for all three ESM templates
+
+## Missing Implementation Items (Add to Phases Above)
+
+### Phase 2 Additional Items
+- [ ] **Verify BuildMeta struct location** - Confirm file structure and existing fields
+- [ ] **Check existing serialization** - Ensure compatibility with current BuildMeta serialization
+- [ ] **Validate DependencyRange type** - Confirm import path and usage patterns
+
+### Phase 3 Additional Items  
+- [ ] **Study existing hook registration patterns** in ConsumeSharedPlugin apply() method
+- [ ] **Verify ModuleFactoryCreateData structure** - Confirm data parameter access patterns
+- [ ] **Check plugin trait implementation** - Ensure proper async trait bounds
+
+### Phase 4-5 Additional Items
+- [ ] **Verify parser method names** - Find actual method names in CommonJS/ESM parser plugins
+- [ ] **Check parser.build_meta access** - Confirm BuildMeta is accessible in parser context
+- [ ] **Validate span conversion** - Ensure assign_expr.right.span().into() works with DependencyRange
+
+### Phase 6-7 Additional Items
+- [ ] **Implement dependency ordering detection** - Logic to determine is_last_in_bulk_export
+- [ ] **Add proper export value extraction** - Correct variable references in object literal context
+- [ ] **Create template method helpers**:
+  - [ ] render_commonjs_macro(dep, source, share_key, is_last)
+  - [ ] render_individual_macro(dep, source, share_key)  
+  - [ ] render_standard(dep, source, context) - fallback for non-ConsumeShared
+  - [ ] render_standard_esm_export(dep, source, context) - ESM fallback
+
+### Compilation and Error Handling
+- [ ] **Add comprehensive error handling** for all Option<> unwrapping
+- [ ] **Verify compilation after each phase** - Ensure no build errors introduced
+- [ ] **Add proper import statements** for all new types and traits
+- [ ] **Test serialization compatibility** - Ensure #[cacheable] works correctly
