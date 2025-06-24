@@ -41,15 +41,19 @@ if module.module_type() == &rspack_core::ModuleType::ConsumeShared {
 3. **Macro comments are the tree-shaking mechanism, not build-time removal**
 4. **This breaks Module Federation's dynamic loading architecture**
 
-#### **❌ Over-Engineered Module Federation Changes**
+#### **⚠️ Distinguish Runtime vs Build-Time Tree-Shaking**
 
-Current branch adds extensive Module Federation infrastructure that's unnecessary for core macro issues:
-- `export_usage_analysis.rs` - 1098 lines
-- `export_usage_plugin.rs` - 225 lines  
-- `share_usage_plugin.rs` - 1036 lines
-- Multiple complex analysis systems
+Current branch adds extensive analysis infrastructure, but we need to **distinguish what's needed**:
 
-**These are NOT needed** for solving the macro generation problems.
+**✅ KEEP (Runtime Tree-Shaking Support)**:
+- PURE annotations in runtime templates - **Essential for webpack_require purity**
+- Side effect detection for ConsumeShared modules - **Required for runtime optimization**
+- Basic export metadata tracking - **Needed for shared module coordination**
+
+**❌ REMOVE (Build-Time Tree-Shaking Violations)**:
+- `FlagDependencyUsagePlugin` ConsumeShared handling - **Breaks Module Federation architecture**
+- Complex export usage analysis systems - **Over-engineered for macro coordination**
+- Build-time removal of ConsumeShared module exports - **Violates runtime selection principle**
 
 ## Problem Analysis Summary
 
@@ -57,17 +61,25 @@ Current branch adds extensive Module Federation infrastructure that's unnecessar
 
 ### **Core Macro Issues (What We Actually Need to Fix)**
 
-1. **Stacked endif tags** from bulk CommonJS exports
-2. **Wrong export values** (`module.exports.foo` vs `foo`)  
-3. **Template-time ConsumeShared detection** (expensive repeated operations)
-4. **Shared range conflicts** in CommonJS bulk exports
+**CommonJS Issues:**
+1. **Stacked endif tags** from bulk CommonJS exports  
+2. **Wrong export values** (`module.exports.foo` vs `foo`)
+3. **Shared range conflicts** in CommonJS bulk exports
+
+**ESM Issues:**
+4. **Redundant ConsumeShared detection** across multiple ESM export dependencies
+5. **Template-time detection** in ESMExportSpecifierDependency, ESMExportExpressionDependency, ESMExportImportedSpecifierDependency  
+
+**Universal Issues (Both Systems):**
+6. **Template-time ConsumeShared detection** (expensive repeated operations)
+7. **Module graph traversal performance** (O(n) operations per dependency)
 
 ### **What We DON'T Need to Fix**
 
 1. ❌ ConsumeShared build-time tree-shaking (breaks architecture)
-2. ❌ Complex export usage analysis systems  
+2. ❌ Over-complex export usage analysis systems  
 3. ❌ Module Federation plugin ecosystem overhaul
-4. ❌ Pure annotation systems for tree-shaking
+4. ✅ **Keep PURE annotations** - Essential for runtime tree-shaking purity
 
 ## Comprehensive Change Analysis
 
@@ -76,14 +88,18 @@ Current branch adds extensive Module Federation infrastructure that's unnecessar
 #### **✅ Useful Changes (Keep)**
 - `common_js_exports_dependency.rs` - Enhanced macro generation logic
 - `common_js_exports_parse_plugin.rs` - Bulk export detection improvements
-- `esm_export_*_dependency.rs` - ESM macro generation enhancements
+- **ESM export dependency enhancements**:
+  - `esm_export_expression_dependency.rs` - Default export ConsumeShared detection
+  - `esm_export_specifier_dependency.rs` - Named export ConsumeShared detection
+  - `esm_export_imported_specifier_dependency.rs` - Re-export ConsumeShared detection
+- `runtime_template.rs` PURE annotation changes - **Essential for runtime tree-shaking**
+- Side effect detection improvements - **Required for webpack_require purity**
 - Build log analysis and test infrastructure
 
 #### **❌ Problematic Changes (Remove/Revert)**
-- `flag_dependency_usage_plugin.rs` - Wrong ConsumeShared tree-shaking
-- `export_usage_analysis.rs` - Over-engineered analysis system
-- `share_usage_plugin.rs` - Unnecessary Module Federation complexity
-- `runtime_template.rs` PURE annotation changes - Not needed for macro issues
+- `flag_dependency_usage_plugin.rs` - Wrong ConsumeShared **build-time** tree-shaking
+- Over-complex export usage analysis systems - **Excessive for macro coordination**
+- Build-time removal of ConsumeShared exports - **Violates Module Federation architecture**
 
 #### **🤔 Neutral Changes (Documentation)**
 - Test files and documentation - Keep for reference
@@ -96,7 +112,7 @@ Current branch adds extensive Module Federation infrastructure that's unnecessar
 3. **BuildMeta is the perfect infrastructure** for module-level metadata
 4. **Current changes mix multiple unrelated problems**
 
-## Revised Solution Architecture: BuildMeta Pattern
+## Revised Solution Architecture: NormalModuleFactory + BuildMeta Pattern
 
 ### **🎯 Focused Solution Scope**
 
@@ -106,30 +122,62 @@ Our solution should ONLY address:
 3. ✅ Bulk export coordination
 4. ❌ NOT tree-shaking behavior changes
 
-### **1. Minimal BuildMeta Enhancement**
+### **🏗️ Three-Tier Architecture Implementation**
+
+Based on codebase analysis, the optimal solution uses **existing ConsumeSharedPlugin infrastructure** with **NormalModuleFactory hooks** for early detection.
+
+### **1. Extend ConsumeSharedPlugin (Tier 1: Early Detection)**
 
 ```rust
-// SIMPLE: Extend existing BuildMeta structure
+// ENHANCE: Existing ConsumeSharedPlugin with NormalModuleFactoryAfterResolve hook
+impl ConsumeSharedPlugin {
+  #[plugin_hook(NormalModuleFactoryAfterResolve)]
+  async fn after_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
+    // Use existing detection logic from lines 715-741 in consume_shared_plugin.rs
+    if let Some(config) = self.find_consume_config(&data.request) {
+      // Set BuildMeta BEFORE parsing begins (prevents all conflicts)
+      data.build_info.build_meta.consume_shared_key = Some(config.share_key.clone());
+      
+      // Mark for enhanced macro coordination
+      data.build_info.build_meta.export_coordination = Some(ExportCoordination::Pending);
+    }
+    Ok(None)
+  }
+  
+  // LEVERAGE: Existing find_consume_config logic (lines 715-741)
+  fn find_consume_config(&self, request: &str) -> Option<&ConsumeSharedConfig> {
+    // Use existing MatchedConsumes logic - no changes needed
+    // This already handles unresolved, prefixed, resolved patterns
+    self.matched_consumes.find_consume_config(request)
+  }
+}
+```
+
+### **2. Minimal BuildMeta Enhancement (Tier 2: Metadata Storage)**
+
+```rust
+// SIMPLE: Extend existing BuildMeta structure (crates/rspack_core/src/build_meta.rs)
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, Serialize)]
 pub struct BuildMeta {
-  // ... existing fields unchanged
+  // ... existing fields unchanged (24 existing fields)
   pub esm: bool,
   pub exports_type: BuildMetaExportsType,
   pub default_object: BuildMetaDefaultObject,
   pub side_effect_free: Option<bool>,
   
-  // NEW: ConsumeShared context (simple string, not complex struct)
+  // NEW: ConsumeShared context (simple string, established pattern)
   pub consume_shared_key: Option<String>,
   
-  // NEW: Export coordination (simple enum)
+  // NEW: Export coordination (simple enum for range management)
   pub export_coordination: Option<ExportCoordination>,
 }
 
-// SIMPLE: Basic coordination info
+// SIMPLE: Basic coordination info (cacheable for serialization)
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Serialize)]
 pub enum ExportCoordination {
+  Pending,  // Set by NormalModuleFactory hook
   CommonJS {
     total_exports: usize,           // Available from obj_lit.props.len()
     shared_range: DependencyRange,  // Available from assign_expr.right.span()
@@ -141,40 +189,62 @@ pub enum ExportCoordination {
 }
 ```
 
-### **2. Parser-Phase Detection (Minimal Changes)**
+### **3. Parser Enhancement (Tier 3: Coordination Logic)**
 
 ```rust
-// In CommonJS parser plugin (existing location around line 556)
-if let Expr::Object(obj_lit) = &*assign_expr.right {
-  let total_exports = obj_lit.props.len(); // Already available!
-  
-  // NEW: Single ConsumeShared detection (move existing template logic here)
-  if let Some(share_key) = detect_consume_shared_at_parse_time(parser) {
-    parser.build_meta.consume_shared_key = Some(share_key);
-    parser.build_meta.export_coordination = Some(ExportCoordination::CommonJS {
-      total_exports,
-      shared_range: assign_expr.right.span().into(),
-    });
+// ENHANCE: CommonJS parser plugin (minimal changes to existing bulk export handling)
+impl CommonJsExportsParserPlugin {
+  // In existing handle_assign_to_exports method around line 556
+  fn handle_bulk_assignment(&mut self, parser: &mut JavascriptParser, assign_expr: &AssignExpr) {
+    if let Expr::Object(obj_lit) = &*assign_expr.right {
+      let total_exports = obj_lit.props.len(); // Already available!
+      
+      // CHECK: Use pre-computed ConsumeShared context from NormalModuleFactory
+      if let Some(share_key) = &parser.build_meta.consume_shared_key {
+        // Update coordination with parser-level details
+        parser.build_meta.export_coordination = Some(ExportCoordination::CommonJS {
+          total_exports,
+          shared_range: assign_expr.right.span().into(),
+        });
+      }
+      
+      // EXISTING: Create dependencies as before (no changes to dependency creation)
+      for prop in &obj_lit.props {
+        // ... existing dependency creation logic unchanged
+      }
+    }
   }
-  
-  // EXISTING: Create dependencies as before (no changes)
-  for prop in &obj_lit.props {
-    // ... existing dependency creation logic unchanged
+}
+
+// ENHANCE: ESM parser plugin (coordinate across multiple ESM export dependencies)
+impl ESMExportDependencyParserPlugin {
+  fn export_specifier(&mut self, parser: &mut JavascriptParser, statement: &ExportSpecifier) {
+    // CHECK: Use pre-computed ConsumeShared context from NormalModuleFactory
+    if let Some(share_key) = &parser.build_meta.consume_shared_key {
+      // Update coordination for ESM exports
+      parser.build_meta.export_coordination = Some(ExportCoordination::ESM {
+        export_count: parser.exports_info.len(),
+        fragment_group_id: format!("esm_exports_{}", parser.module_identifier),
+      });
+    }
+    
+    // EXISTING: Create ESM dependencies as before
+    // All three ESM dependency types will use the shared BuildMeta context
   }
 }
 ```
 
-### **3. Template Simplification (Remove Complexity)**
+### **4. Template Simplification (Remove Module Graph Traversal)**
 
 ```rust
-// SIMPLIFIED template logic
+// SIMPLIFIED: Use BuildMeta instead of expensive module graph operations
 impl DependencyTemplate for CommonJsExportsDependencyTemplate {
   fn render(&self, dep: &dyn DependencyCodeGeneration, source: &mut TemplateReplaceSource, context: &mut TemplateContext) {
-    let build_meta = get_build_meta(context);
+    let build_meta = &context.module.build_meta;
     
     match &build_meta.consume_shared_key {
       Some(share_key) => {
-        // Use pre-computed context - no detection needed
+        // Use pre-computed context - NO module graph traversal needed
         self.render_with_consume_shared_macro(dep, source, share_key, &build_meta.export_coordination)
       }
       None => {
@@ -183,46 +253,105 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       }
     }
   }
+  
+  fn render_with_consume_shared_macro(&self, dep: &dyn DependencyCodeGeneration, source: &mut TemplateReplaceSource, share_key: &str, coordination: &Option<ExportCoordination>) {
+    match coordination {
+      Some(ExportCoordination::CommonJS { total_exports, shared_range }) => {
+        // Coordinated macro generation - only last dependency adds endif
+        let is_last_dependency = self.is_last_in_bulk_export(dep, *total_exports);
+        self.render_commonjs_macro(dep, source, share_key, is_last_dependency);
+      }
+      _ => {
+        // Standard individual export macro
+        self.render_individual_macro(dep, source, share_key);
+      }
+    }
+  }
 }
+
+// SIMPLIFIED: ESM templates use BuildMeta for all three ESM export dependency types
+impl ESMExportSpecifierDependencyTemplate {
+  fn render(&self, dep: &dyn DependencyCodeGeneration, source: &mut TemplateReplaceSource, context: &mut TemplateContext) {
+    let build_meta = &context.module.build_meta;
+    
+    match &build_meta.consume_shared_key {
+      Some(share_key) => {
+        // Use pre-computed context - NO get_consume_shared_info() module graph traversal
+        let export_content = format!(
+          "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
+          share_key, 
+          dep.export_name,
+          dep.export_value
+        );
+        source.replace(dep.range.start, dep.range.end, &export_content, None);
+      }
+      None => {
+        // EXISTING logic unchanged - standard ESM export
+        self.render_standard_esm_export(dep, source, context)
+      }
+    }
+  }
+}
+
+// APPLY SAME PATTERN: ESMExportExpressionDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate
+// All three ESM templates use identical BuildMeta approach instead of individual detection
 ```
 
 ## Cleanup and Implementation Strategy
 
-### **Phase 1: Critical Cleanup (URGENT)**
+### **Phase 1: Selective Cleanup (URGENT)**
 
 ```bash
-# 1. Revert wrong FlagDependencyUsagePlugin changes
+# 1. Revert wrong FlagDependencyUsagePlugin build-time tree-shaking
 git checkout main -- crates/rspack_plugin_javascript/src/plugin/flag_dependency_usage_plugin.rs
 
-# 2. Remove over-engineered Module Federation files
-rm crates/rspack_plugin_mf/src/sharing/export_usage_analysis.rs
-rm crates/rspack_plugin_mf/src/sharing/export_usage_plugin.rs  
-rm crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs
+# 2. Remove over-engineered analysis systems (keep basic ones)
+rm crates/rspack_plugin_mf/src/sharing/export_usage_analysis.rs  # If overly complex
+rm crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs     # If overly complex
 
-# 3. Revert runtime template PURE annotation changes
-git checkout main -- crates/rspack_core/src/dependency/runtime_template.rs
+# 3. KEEP runtime template PURE annotation changes - ESSENTIAL for runtime tree-shaking
+# ✅ DON'T revert: crates/rspack_core/src/dependency/runtime_template.rs
 
-# 4. Keep only core macro generation improvements in:
-# - common_js_exports_dependency.rs (macro logic)
-# - common_js_exports_parse_plugin.rs (bulk detection)
-# - esm_export_*_dependency.rs (ESM macros)
+# 4. Keep all runtime tree-shaking support:
+# ✅ PURE annotations in templates
+# ✅ Side effect detection logic  
+# ✅ Core macro generation improvements (CommonJS + ESM)
+# ✅ ConsumeShared module metadata tracking
+# ✅ ESM export dependency ConsumeShared detection (3 files)
+# ✅ ESM fragment-based macro generation
 ```
 
-### **Phase 2: Implement BuildMeta Solution**
+### **Phase 2: Implement NormalModuleFactory + BuildMeta Solution**
 
 ```rust
-// 1. Add fields to BuildMeta (2 lines)
+// 1. Add BuildMeta fields (crates/rspack_core/src/build_meta.rs)
 pub consume_shared_key: Option<String>,
 pub export_coordination: Option<ExportCoordination>,
 
-// 2. Add parser detection (5 lines in existing bulk export handling)
-if let Some(share_key) = detect_consume_shared_at_parse_time(parser) {
-  parser.build_meta.consume_shared_key = Some(share_key);
-  // ... coordination info
+// 2. Extend ConsumeSharedPlugin with NormalModuleFactoryAfterResolve hook
+#[plugin_hook(NormalModuleFactoryAfterResolve)]
+async fn after_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
+  if let Some(config) = self.find_consume_config(&data.request) {
+    data.build_info.build_meta.consume_shared_key = Some(config.share_key.clone());
+  }
 }
 
-// 3. Simplify template logic (remove existing complex detection)
-// Read BuildMeta instead of doing module graph traversal
+// 3. Enhance parser coordination (both CommonJS + ESM)
+// CommonJS: Handle bulk export coordination
+if let Some(share_key) = &parser.build_meta.consume_shared_key {
+  parser.build_meta.export_coordination = Some(ExportCoordination::CommonJS { ... });
+}
+// ESM: Handle multiple export dependencies coordination  
+if let Some(share_key) = &parser.build_meta.consume_shared_key {
+  parser.build_meta.export_coordination = Some(ExportCoordination::ESM { ... });
+}
+
+// 4. Simplify template logic (remove module graph traversal for both systems)
+// CommonJS + ESM: Read BuildMeta instead of doing expensive detection
+match &build_meta.consume_shared_key {
+  Some(share_key) => self.render_with_consume_shared_macro(...),
+  None => self.render_standard(...),
+}
 ```
 
 ### **Phase 3: Testing and Validation**
@@ -266,24 +395,27 @@ Update docs to reflect:
 ## Summary: Surgical Solution
 
 ### **What We Keep**
-- ✅ Macro generation improvements 
+- ✅ **CommonJS macro generation improvements** - Enhanced dependency + template logic
+- ✅ **ESM macro generation improvements** - All 3 export dependency types enhanced
 - ✅ BuildMeta metadata enhancements
-- ✅ Parser-phase ConsumeShared detection
-- ✅ Bulk export coordination logic
+- ✅ Parser-phase ConsumeShared detection (both CommonJS + ESM)
+- ✅ Bulk export coordination logic (CommonJS) + fragment coordination (ESM)
+- ✅ **Runtime template PURE annotation changes** - Essential for webpack_require purity
+- ✅ **Side effect detection** - Required for runtime tree-shaking
 - ✅ Test infrastructure and documentation
 
 ### **What We Remove**
-- ❌ FlagDependencyUsagePlugin ConsumeShared changes
+- ❌ FlagDependencyUsagePlugin ConsumeShared **build-time** tree-shaking
 - ❌ Over-engineered Module Federation analysis systems  
-- ❌ Runtime template PURE annotation changes
-- ❌ Complex export usage tracking
-- ❌ Build-time tree-shaking of ConsumeShared modules
+- ❌ Complex build-time export usage tracking
+- ❌ **Build-time** removal of ConsumeShared modules (runtime selection must be preserved)
 
 ### **Final Result**
-- 🎯 **Focused solution** that fixes actual macro problems
+- 🎯 **Focused solution** that fixes actual macro problems (CommonJS + ESM)
 - 🏗️ **Preserves architecture** of ConsumeShared systems  
-- ⚡ **Performance gains** from parser-phase detection
+- ⚡ **Performance gains** from parser-phase detection (eliminates O(n) template-time traversals)
 - 🔧 **Maintainable code** with minimal complexity
+- ✅ **Universal approach** - Single BuildMeta pattern works for both CommonJS and ESM
 - ✅ **Backward compatible** with existing systems
 
 The solution uses the **perfect existing pattern** (BuildMeta) for **exactly the right purpose** (module-level parser→template metadata) while **removing architectural violations** and **focusing only on the actual problems** that need solving.

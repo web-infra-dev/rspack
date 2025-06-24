@@ -9,6 +9,7 @@
 - **[CommonJS Macro Wrapping Issue](#file-commonjs-macro-wrapping-issue-md)** - Critical bug analysis for CommonJS bulk export patterns and ESM considerations
 - **[CommonJS Parser Dependency Flow](#file-commonjs-parser-dependency-flow-md)** - Enhanced flow analysis with BuildMeta integration
 - **[ESM Parser Dependency Flow](#file-esm-parser-dependency-flow-md)** - Comprehensive ESM dependency processing with enhanced architecture
+- **[Actual Rspack Implementation Analysis](actual-rspack-implementation-analysis.md)** - Real codebase findings: actual hooks, data structures, async patterns
 
 ### 🛠️ Solution Design
 
@@ -22,6 +23,7 @@
 | [commonjs-parser-dependency-flow.md](#file-commonjs-parser-dependency-flow-md) | System analysis        | Enhanced parser → dependency → template flow    |
 | [esm-parser-dependency-flow.md](#file-esm-parser-dependency-flow-md)           | Comparison system      | ESM processing with BuildMeta integration       |
 | [commonjs-macro-solution-design.md](#file-commonjs-macro-solution-design-md)   | Implementation guide   | BuildMeta-based universal solution architecture |
+| [actual-rspack-implementation-analysis.md](actual-rspack-implementation-analysis.md) | Real codebase analysis | Actual hooks, data structures, memory layout, async patterns |
 
 ## Architecture Summary
 
@@ -31,57 +33,89 @@
 - **Redundant Operations**: Repeated detection for each dependency
 - **System-Specific Issues**: CommonJS range conflicts, ESM fragment coordination needs
 
-### Enhanced Solution: BuildMeta Pattern
+### Enhanced Solution: ConsumeSharedPlugin Extension + BuildMeta Pattern
 
-> **🔧 Complete Details**: See [BuildMeta Pattern Analysis](commonjs-macro-solution-design.md#codebase-analysis-findings)
+> **🔧 Complete Details**: See [NormalModuleFactory + BuildMeta Architecture](commonjs-macro-solution-design.md#revised-solution-architecture-normalmodulefactory--buildmeta-pattern)
+> **🚀 Super Massive Flow**: See [Rust Plugin Technical Flow](comprehensive-system-flow-analysis.md#super-massive-rust-plugin-source-code-technical-flow)
 
-**Key Insight**: ConsumeShared context is **module-level metadata**, not dependency-level. The codebase analysis revealed that **BuildMeta is the perfect fit** - it's designed exactly for module-level parser→template metadata passing.
+**Key Insight**: **ConsumeSharedPlugin already exists** with perfect infrastructure. The optimal solution **extends existing patterns** rather than creating new plugins. Codebase analysis revealed the **perfect integration approach**:
 
-#### Established Rspack Patterns
+#### 🎯 Optimal Integration Strategy (Leverage Existing)
 
-1. **BuildMeta/BuildInfo Pattern** ✅ - **Perfect fit** for module-level parser→template metadata
-2. **FactorizeInfo Pattern** ✅ - Dependency-level factory metadata (not needed for our use case)
-3. **AdditionalData Pattern** ⚠️ - Limited usage for specialized cases (overkill for our needs)
+1. **Extend ConsumeSharedPlugin** ✅ - **BEST: Use existing NormalModuleFactory hooks**
+   - Plugin already hooks NormalModuleFactoryFactorize (lines 657-741)
+   - Add NormalModuleFactoryAfterResolve for BuildMeta population
+   - Leverage existing MatchedConsumes logic (lines 715-741)
 
-#### Our Revised Approach
+2. **BuildMeta/BuildInfo Pattern** ✅ - **Perfect metadata storage**
+   - Module-level parser→template metadata passing
+   - Automatic caching and serialization
+   - Established Rspack pattern (24 existing fields)
+
+3. **Parser Coordination Enhancement** ✅ - **Minimal changes to existing bulk export handling**
+   - Use pre-computed BuildMeta context
+   - Coordinate range management for bulk exports
+
+#### 🏗️ Three-Tier Architecture Implementation
 
 ```rust
-// ENHANCED: Extend existing BuildMeta structure
-impl BuildMeta {
-  // ... existing fields unchanged
-  pub esm: bool,
-  pub exports_type: BuildMetaExportsType,
+// TIER 1: Early Detection (Extend Existing ConsumeSharedPlugin)
+impl ConsumeSharedPlugin {
+  #[plugin_hook(NormalModuleFactoryAfterResolve)]
+  async fn after_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
+    // Use existing detection logic from lines 715-741
+    if let Some(config) = self.find_consume_config(&data.request) {
+      // Set BuildMeta BEFORE parsing begins (prevents all conflicts)
+      data.build_info.build_meta.consume_shared_key = Some(config.share_key.clone());
+    }
+  }
+}
 
-  // NEW: ConsumeShared module-level context
-  pub consume_shared_context: Option<ConsumeSharedContext>,
-  pub bulk_export_coordination: Option<BulkExportCoordination>,
+// TIER 2: BuildMeta Storage (Extend Existing Pattern)
+impl BuildMeta {
+  // ... existing 24 fields unchanged
+  pub consume_shared_key: Option<String>,           // NEW: Early detection result
+  pub export_coordination: Option<ExportCoordination>, // NEW: Parser coordination data
+}
+
+// TIER 3: Parser Enhancement (Use Pre-computed Context)
+impl CommonJsExportsParserPlugin {
+  fn handle_bulk_assignment(&mut self, parser: &mut JavascriptParser) {
+    // Use existing BuildMeta context - NO detection needed
+    if let Some(share_key) = &parser.build_meta.consume_shared_key {
+      parser.build_meta.export_coordination = Some(ExportCoordination::CommonJS { ... });
+    }
+  }
 }
 ```
 
 ### Universal Benefits
 
-- **✅ Perfect Pattern Match**: BuildMeta designed exactly for module-level metadata
-- **✅ Parser-Phase Detection**: ConsumeShared context computed once, cached automatically
+- **✅ Leverages Existing Infrastructure**: ConsumeSharedPlugin already has perfect patterns
+- **✅ Early Detection**: ConsumeShared context set before parsing prevents all conflicts
 - **✅ Module Coordination**: Handles CommonJS range conflicts + ESM fragment coordination
 - **✅ Zero Dependency Changes**: Dependencies remain completely unchanged
-- **✅ Universal Solution**: Single approach for both CommonJS and ESM
+- **✅ Performance Optimization**: Eliminates expensive template-time module graph traversal
 - **✅ Backwards Compatible**: All existing behavior preserved
+- **✅ Minimal Code Changes**: Extends existing patterns rather than creating new systems
 
 ## Implementation Strategy
 
 ### Phase-Based Rollout
 
-1. **Phase 1**: Extend BuildMeta structure (no behavior change)
-2. **Phase 2**: Add parser detection helpers (not called yet)
-3. **Phase 3**: Add enhanced template methods (not triggered yet)
-4. **Phase 4**: Activate for ConsumeShared modules only
+1. **Phase 1**: Critical cleanup - remove architectural violations (FlagDependencyUsagePlugin changes)
+2. **Phase 2**: Extend BuildMeta structure + ConsumeSharedPlugin hook (no behavior change)
+3. **Phase 3**: Add parser coordination using pre-computed BuildMeta context
+4. **Phase 4**: Simplify template logic to use BuildMeta instead of module graph traversal
+5. **Phase 5**: Activate coordinated macro generation for ConsumeShared modules
 
 ### Risk Assessment: Why This Is Safe
 
-- **Uses Perfect-Fit Architecture**: BuildMeta designed for module-level parser→template metadata
+- **Leverages Existing Architecture**: ConsumeSharedPlugin + BuildMeta are established patterns
+- **Early Detection Prevents Conflicts**: BuildMeta set before parsing eliminates range conflicts
 - **Module-Level Fail-Safe**: Falls back to existing logic if ConsumeShared context not present
-- **Zero Dependency Impact**: Dependencies unchanged, only BuildMeta extended
-- **Easy Rollback**: Stop populating BuildMeta fields to revert
+- **Zero Dependency Impact**: Dependencies unchanged, only BuildMeta metadata extended
+- **Easy Rollback**: Stop populating BuildMeta fields to revert to current behavior
 
 ## Raw File Links
 
@@ -101,4 +135,4 @@ For direct access to file contents:
 
 ---
 
-_Navigation for Rspack CommonJS macro generation and Module Federation ConsumeShared integration documentation - Updated with BuildMeta-based universal solution architecture._
+_Navigation for Rspack CommonJS macro generation and Module Federation ConsumeShared integration documentation - Updated with ConsumeSharedPlugin extension + BuildMeta pattern solution architecture._
