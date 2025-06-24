@@ -1,0 +1,51 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CssChunkingPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
+
+`CssChunkingPlugin` is an experimental plugin (inspired by Next.js) specifically designed for CSS module code splitting.
+It ensures that the execution order of style rules remains consistent with the source code import sequence, preventing style override errors.
+
+```js
+new rspack.experiments.CssChunkingPlugin(options);
+```
+
+## Options
+
+### strict
+
+- **Type:** `bool`
+- **Default:** `false`
+
+Enforces strict preservation of CSS module import order.
+
+## Mode Comparison
+
+### Regular Mode (strict: false, default)
+
+Allows merging CSS modules with no dependency relationship, reducing the number of chunks.
+
+### Strict Mode (strict: true)
+
+Guarantees that CSS modules execute in strict accordance with their source code import order.
+
+### Example Scenario
+
+`a.css` and `b.css` are imported in `foo.js` and `bar.js` with different sequences:
+
+```js
+// foo.js
+import './a.css';
+import './b.css';
+
+// bar.js
+import './b.css';
+import './a.css';
+```
+
+Regular Mode (strict: false): Considers `a.css` and `b.css` to have no dependency relationship and doesn't enforce execution order, thus merging them into the same chunk.
+
+Strict Mode (strict: true): Strictly maintains execution order consistent with import sequence, therefore packaging `a.css` and `b.css` into separate chunks
