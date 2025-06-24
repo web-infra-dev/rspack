@@ -3,11 +3,11 @@ use std::{collections::hash_map::Entry, sync::Arc};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_core::{
-  Binding, BuildMetaDefaultObject, BuildMetaExportsType, ChunkLinkContext, ChunkUkey, Compilation,
-  ConcatenatedModule, ConcatenatedModuleIdent, ExportInfoGetter, ExportProvided, IdentCollector,
-  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, SourceType, UsedNameItem,
   find_new_name, property_name, reserved_names::RESERVED_NAMES, returning_function,
-  rspack_sources::ReplaceSource,
+  rspack_sources::ReplaceSource, Binding, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModule, ConcatenatedModuleIdent,
+  ExportInfoGetter, ExportProvided, IdentCollector, ModuleIdentifier, ModuleInfo, RuntimeGlobals,
+  SourceType, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
@@ -20,7 +20,7 @@ use swc_core::{
   common::{FileName, SyntaxContext},
   ecma::{
     ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
+    parser::{parse_file_as_module, Syntax},
   },
 };
 
@@ -142,13 +142,11 @@ impl EsmLibraryPlugin {
               &compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
               module_info_id,
-              vec![
-                export_info
-                  .as_data(&module_graph)
-                  .name()
-                  .cloned()
-                  .unwrap_or("".into()),
-              ],
+              vec![export_info
+                .as_data(&module_graph)
+                .name()
+                .cloned()
+                .unwrap_or("".into())],
               concate_modules_map,
               None,
               &mut needed_namespace_objects,
@@ -221,6 +219,10 @@ impl EsmLibraryPlugin {
 
     compilation.chunk_graph.link = Some(link);
     Ok(())
+  }
+
+  pub fn is_orphan(m: ModuleIdentifier, compilation: &Compilation) -> bool {
+    compilation.chunk_graph.get_module_chunks(m).is_empty()
   }
 
   pub fn get_module_chunk(m: ModuleIdentifier, compilation: &Compilation) -> ChunkUkey {
@@ -402,6 +404,7 @@ impl EsmLibraryPlugin {
     // analyze each module and collect all identifiers
     concate_modules_map
       .par_iter_mut()
+      .filter(|(m, _)| !Self::is_orphan(**m, compilation))
       .for_each(|(id, info)| match info {
         rspack_core::ModuleInfo::External(external_module_info) => {
           // we use Object.assign(__webpack_require__.m, {...}) to register modules
