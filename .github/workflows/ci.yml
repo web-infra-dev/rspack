@@ -105,9 +105,13 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
       - name: Polling Comment
-        run: bash ./.github/actions/codspeed/check-comment.sh
+        run: bash .github/actions/codspeed/check-comment.sh
 
   test_required_check:
     name: Test Required Check
