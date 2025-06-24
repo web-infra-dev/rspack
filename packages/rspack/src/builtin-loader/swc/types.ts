@@ -28,10 +28,7 @@ import type { Assumptions } from "@swc/types/assumptions";
 import * as z from "zod/v4";
 import { numberOrInfinity } from "../../config/utils";
 import { memoize } from "../../util/memoize";
-import {
-	type CollectTypeScriptInfoOptions,
-	ZodSwcCollectTypeScriptInfo
-} from "./collectTypeScriptInfo";
+import type { CollectTypeScriptInfoOptions } from "./collectTypeScriptInfo";
 import {
 	type PluginImportOptions,
 	ZodSwcPluginImportConfig
@@ -492,6 +489,10 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 			inlineSourcesContent: z.boolean()
 		})
 		.partial() satisfies z.ZodType<Config>;
+
+	const ZodSwcCollectTypeScriptInfo = z.strictObject({
+		typeExports: z.boolean().optional()
+	}) satisfies z.ZodType<CollectTypeScriptInfoOptions>;
 
 	return ZodSwcConfig.extend({
 		isModule: z.boolean().or(z.literal("unknown")),
