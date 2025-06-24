@@ -99,7 +99,7 @@ jobs:
   check-codspeed:
     name: Check Bench Result
     needs: [test-linux]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'pull_request' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
