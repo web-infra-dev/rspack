@@ -58,7 +58,11 @@ pub enum ExportCoordination {
 - [ ] **Edit ConsumeSharedPlugin**: `crates/rspack_plugin_mf/src/sharing/consume_shared_plugin.rs`
 - [ ] **Add hook registration** in `apply()` method around line 769-796:
 ```rust
-compilation.add_runtime_requirement_dependency(RuntimeGlobals::SHARE_SCOPE_MAP);
+compilation
+  .normal_module_factory()
+  .add_hook(|normal_module_factory| {
+    normal_module_factory.after_resolve.tap(self.after_resolve_tap())
+  });
 ```
 
 ### 3.2 Implement Hook Handler
@@ -77,6 +81,7 @@ async fn after_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Opti
 ### 3.3 Leverage Existing Detection Logic
 - [ ] **Use existing find_consume_config logic** from lines 715-741
 - [ ] **Reuse MatchedConsumes** pattern matching (unresolved, prefixed, resolved)
+- [ ] **Add necessary imports** for hook registration and BuildMeta types
 
 ## Phase 4: Enhance CommonJS Parser
 
@@ -136,6 +141,8 @@ fn render(&self, dep: &dyn DependencyCodeGeneration, source: &mut TemplateReplac
 ### 6.2 Add Coordinated Macro Generation
 - [ ] **Implement range coordination** for bulk exports to prevent stacked endif tags
 - [ ] **Fix export value generation** (use `foo` not `module.exports.foo` in object literals)
+- [ ] **Add render_with_consume_shared_macro method** to handle coordinated generation
+- [ ] **Add is_last_in_bulk_export logic** to determine when to add endif tag
 
 ## Phase 7: Update ESM Templates
 
@@ -146,6 +153,7 @@ fn render(&self, dep: &dyn DependencyCodeGeneration, source: &mut TemplateReplac
 
 ### 7.2 Replace get_consume_shared_info() Calls
 - [ ] **Remove module graph traversal** in each template
+- [ ] **Remove find_consume_shared_recursive() methods** 
 - [ ] **Use BuildMeta context** instead:
 ```rust
 match &build_meta.consume_shared_key {
@@ -161,6 +169,7 @@ match &build_meta.consume_shared_key {
   }
 }
 ```
+- [ ] **Update ESMExportInitFragment generation** to use BuildMeta context
 
 ## Testing & Validation
 
@@ -180,6 +189,14 @@ match &build_meta.consume_shared_key {
 - [ ] **Verify BuildMeta caching**: No repeated module graph traversals
 - [ ] **Check macro output**: Proper `@common:if` / `@common:endif` structure
 - [ ] **Validate coordination**: No stacked endif tags in CommonJS
+- [ ] **Validate performance**: Eliminate O(n) template-time operations
+- [ ] **Test serialization**: Ensure BuildMeta fields serialize correctly with #[cacheable]
+
+### Integration Testing
+- [ ] **Test mixed scenarios**: Modules with both ConsumeShared and regular exports
+- [ ] **Test nested scenarios**: ConsumeShared modules importing other ConsumeShared modules  
+- [ ] **Test edge cases**: Empty exports, dynamic exports, conditional exports
+- [ ] **Test build pipeline**: Ensure no compilation errors after changes
 
 ## Commit Strategy
 
@@ -202,3 +219,25 @@ match &build_meta.consume_shared_key {
 - Only optimize detection and coordination
 - Maintain backward compatibility
 - Follow established Rspack patterns
+
+## Missing Critical Implementation Details
+
+### Hook Registration Pattern
+- [ ] **Use #[plugin_hook] attribute macro** for proper hook registration
+- [ ] **Follow existing hook patterns** in ConsumeSharedPlugin apply() method
+- [ ] **Ensure proper async coordination** with existing hooks
+
+### BuildMeta Access Patterns  
+- [ ] **Access via context.module.build_meta** in templates
+- [ ] **Access via parser.build_meta** in parser plugins
+- [ ] **Access via data.build_info.build_meta** in NormalModuleFactory hooks
+
+### Error Handling
+- [ ] **Add proper Result<> return types** for all async methods
+- [ ] **Handle Option<> unwrapping safely** for BuildMeta fields
+- [ ] **Add validation** for ExportCoordination enum variants
+
+### Import Requirements
+- [ ] **Add BuildMeta imports** to ConsumeSharedPlugin
+- [ ] **Add ExportCoordination imports** to parser plugins
+- [ ] **Add DependencyRange imports** for coordination struct
