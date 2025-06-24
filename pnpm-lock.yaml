@@ -129,24 +129,6 @@ importers:
         specifier: workspace:*
         version: link:../../npm/win32-x64-msvc
 
-  crates/rspack_binding_builder_testing:
-    devDependencies:
-      '@emnapi/core':
-        specifier: ^1.4.3
-        version: 1.4.3
-      '@napi-rs/cli':
-        specifier: 3.0.0-alpha.88
-        version: 3.0.0-alpha.88(@emnapi/runtime@1.4.3)(@types/node@20.19.0)(emnapi@1.4.3)
-      '@napi-rs/wasm-runtime':
-        specifier: ^0.2.11
-        version: 0.2.11
-      emnapi:
-        specifier: ^1.4.3
-        version: 1.4.3
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
-
   npm/darwin-arm64: {}
 
   npm/darwin-x64: {}
@@ -999,6 +981,9 @@ importers:
       cspell-ban-words:
         specifier: 0.0.4
         version: 0.0.4
+      heading-case:
+        specifier: ^0.1.6
+        version: 0.1.6
       prettier:
         specifier: 3.5.3
         version: 3.5.3
@@ -4993,6 +4978,10 @@ packages:
 
   he@1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
+    hasBin: true
+
+  heading-case@0.1.6:
+    resolution: {integrity: sha512-SuymMv+TxrW2df/5arvKzoZu+HsMU+OpYVkmkCuI2qpdLUd7QDvkzpupFbBy180XpSp+Y5jTLdY3lZRGDjtn8A==}
     hasBin: true
 
   hookable@5.5.3:
@@ -12498,6 +12487,8 @@ snapshots:
       space-separated-tokens: 2.0.2
 
   he@1.2.0: {}
+
+  heading-case@0.1.6: {}
 
   hookable@5.5.3: {}
 

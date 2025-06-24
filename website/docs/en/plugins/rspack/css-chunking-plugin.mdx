@@ -35,9 +35,9 @@ The minimum size (in bytes) for a generated chunk.
 
 The maximum size (in bytes) for a generated chunk. Chunks larger than maxSize will be split into smaller parts, each with a size of at least minSize.
 
-## Mode Comparison
+## Mode comparison
 
-### Normal Mode (strict: false, default)
+### Normal mode (strict: false, default)
 
 ```js
 new rspack.experiments.CssChunkingPlugin({
@@ -48,7 +48,7 @@ new rspack.experiments.CssChunkingPlugin({
 - If CSS modules are imported in different orders throughout the project, they are considered to have no dependencies between them.
 - Allow merging independent CSS modules into the same chunk to reduce the number of chunks.
 
-### Strict Mode (strict: true)
+### Strict mode (strict: true)
 
 ```js
 new rspack.experiments.CssChunkingPlugin({
