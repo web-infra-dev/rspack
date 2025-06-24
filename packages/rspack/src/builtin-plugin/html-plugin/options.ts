@@ -116,47 +116,48 @@ export type HtmlRspackPluginOptions = {
 
 const getPluginOptionsSchema = memoize(
 	() =>
-		z.object({
-			filename: z.string().or(anyFunction).optional(),
-			template: z
-				.string()
-				.refine(val => !val.includes("!"), {
+		z
+			.object({
+				filename: z.string().or(anyFunction),
+				template: z.string().refine(val => !val.includes("!"), {
 					error:
 						"HtmlRspackPlugin does not support template path with loader yet"
-				})
-				.optional(),
-			templateContent: z.string().or(templateRenderFunction).optional(),
-			templateParameters: z
-				.record(z.string(), z.string())
-				.or(z.boolean())
-				.or(templateParamFunction)
-				.optional(),
-			inject: z.enum(["head", "body"]).or(z.boolean()).optional(),
-			publicPath: z.string().optional(),
-			base: z
-				.string()
-				.or(
-					z.strictObject({
-						href: z.string().optional(),
-						target: z.enum(["_self", "_blank", "_parent", "_top"]).optional()
-					})
-				)
-				.optional(),
-			scriptLoading: z
-				.enum(["blocking", "defer", "module", "systemjs-module"])
-				.optional(),
-			chunks: z.string().array().optional(),
-			excludeChunks: z.string().array().optional(),
-			chunksSortMode: z.enum(["auto", "manual"]).optional(),
-			sri: z.enum(["sha256", "sha384", "sha512"]).optional(),
-			minify: z.boolean().optional(),
-			title: z.string().optional(),
-			favicon: z.string().optional(),
-			meta: z
-				.record(z.string(), z.string().or(z.record(z.string(), z.string())))
-				.optional(),
-			hash: z.boolean().optional()
-		}) satisfies z.ZodType<HtmlRspackPluginOptions>
+				}),
+				templateContent: z.string().or(templateRenderFunction),
+				templateParameters: z
+					.record(z.string(), z.string())
+					.or(z.boolean())
+					.or(templateParamFunction),
+				inject: z.enum(["head", "body"]).or(z.boolean()),
+				publicPath: z.string(),
+				base: z.string().or(
+					z
+						.strictObject({
+							href: z.string(),
+							target: z.enum(["_self", "_blank", "_parent", "_top"])
+						})
+						.partial()
+				),
+				scriptLoading: z.enum([
+					"blocking",
+					"defer",
+					"module",
+					"systemjs-module"
+				]),
+				chunks: z.string().array(),
+				excludeChunks: z.string().array(),
+				chunksSortMode: z.enum(["auto", "manual"]),
+				sri: z.enum(["sha256", "sha384", "sha512"]),
+				minify: z.boolean(),
+				title: z.string(),
+				favicon: z.string(),
+				meta: z.record(
+					z.string(),
+					z.string().or(z.record(z.string(), z.string()))
+				),
+				hash: z.boolean()
+			})
+			.partial() satisfies z.ZodType<HtmlRspackPluginOptions>
 );
 
 export function validateHtmlPluginOptions(options: HtmlRspackPluginOptions) {
