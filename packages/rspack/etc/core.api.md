@@ -74,6 +74,7 @@ import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
+import { RawRslibPluginOptions } from '@rspack/binding';
 import { RawRstestPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
@@ -2502,6 +2503,8 @@ interface Experiments_2 {
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
+    // (undocumented)
+    RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
     // (undocumented)
@@ -6251,6 +6254,17 @@ const RsdoctorPluginImpl: {
 type RsdoctorPluginOptions = {
     moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
     chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+};
+
+// @public (undocumented)
+const RslibPlugin: {
+    new (rslib: RawRslibPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [rslib: RawRslibPluginOptions];
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
 };
 
 // @public (undocumented)

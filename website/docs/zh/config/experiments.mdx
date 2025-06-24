@@ -277,7 +277,7 @@ export default {
 <ApiMeta addedVersion="1.1.0-beta.0" />
 
 - **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
-- **默认值：** `'safe'`
+- **默认值：** `'advance-silent'`
 
 控制是否启用增量构建功能，该功能通过只重新构建变更的部分来显著加快重构建和热模块替换（HMR）的速度。提供两种配置方式：
 
@@ -333,11 +333,7 @@ export default {
 |   冷启动   |    ❌    |
 | 重构建/HMR |    ✅    |
 
-目前 Rspack 默认仅开启 `make` 和 `emitAssets` 阶段的增量，这也是之前 Rspack v1.0 的默认行为。随着该特性的进一步稳定，我们会默认开启更多阶段的增量，直到完全启用。
-
-:::tip
-该特性的 `'advance'` 和 `'advance-silent'` 选项属于实验性特性，可前往 [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106) 查看其相关进度，也可在此 issue 中反馈 bugs 以及任何与之相关的反馈信息。
-:::
+Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
 
 ## experiments.parallelCodeSplitting
 

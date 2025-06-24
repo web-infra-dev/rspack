@@ -210,6 +210,7 @@ import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
 import { RsdoctorPlugin } from "./builtin-plugin";
 import { RstestPlugin } from "./builtin-plugin";
+import { RslibPlugin } from "./builtin-plugin";
 import { CssChunkingPlugin } from "./builtin-plugin";
 
 interface Optimize {
@@ -353,6 +354,7 @@ interface Experiments {
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
+	RslibPlugin: typeof RslibPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
 	swc: {
@@ -391,6 +393,12 @@ export const experiments: Experiments = {
 	 * @internal
 	 */
 	RstestPlugin,
+	/**
+	 * Note: This plugin is unstable yet
+	 *
+	 * @internal
+	 */
+	RslibPlugin,
 	SubresourceIntegrityPlugin,
 	lazyCompilationMiddleware,
 	swc: {

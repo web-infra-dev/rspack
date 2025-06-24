@@ -204,7 +204,7 @@ export class DllReferencePlugin {
 	private errors: WeakMap<CompilationParams, DllManifestError>;
 
 	constructor(options: DllReferencePluginOptions) {
-		validate(options, getDllReferencePluginOptionsSchema());
+		validate(options, getDllReferencePluginOptionsSchema);
 
 		this.options = options;
 		this.errors = new WeakMap();
