@@ -1674,6 +1674,10 @@ const CssChunkingPlugin: {
 
 // @public (undocumented)
 interface CssChunkingPluginOptions {
+    // (undocumented)
+    maxSize?: number;
+    // (undocumented)
+    minSize?: number;
     nextjs?: boolean;
     // (undocumented)
     strict?: boolean;
