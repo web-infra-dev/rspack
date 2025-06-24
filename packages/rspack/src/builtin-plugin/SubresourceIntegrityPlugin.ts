@@ -326,7 +326,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 function validateSubresourceIntegrityPluginOptions(
 	options: SubresourceIntegrityPluginOptions
 ) {
-	validate(options, getPluginOptionsSchema());
+	validate(options, getPluginOptionsSchema);
 }
 
 function isErrorWithCode<T extends Error>(obj: T): boolean {

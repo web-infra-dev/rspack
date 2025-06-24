@@ -10,18 +10,26 @@ export class ValidationError extends Error {
 
 export function validate<T extends z.ZodType>(
 	opts: any,
-	schema: T,
+	createSchema: T | (() => T),
 	options: {
 		output?: boolean;
 		strategy?: "strict" | "loose-unrecognized-keys" | "loose-silent" | "loose";
 	} = {}
 ): string | null {
+	const strategy =
+		options.strategy ?? process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+
+	// Skip schema validation if the strategy is `loose-silent`
+	if (strategy === "loose-silent") {
+		return null;
+	}
+
+	const schema =
+		typeof createSchema === "function" ? createSchema() : createSchema;
 	const res = schema.safeParse(opts);
+
 	if (!res.success) {
-		const strategy =
-			options.strategy ?? process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
 		const output = options.output ?? true;
-		if (strategy === "loose-silent") return null;
 
 		let friendlyErr: ValidationError;
 		const originalIssues = res.error.issues;
@@ -89,9 +97,12 @@ function toValidationError(error: z.ZodError): ValidationError {
 	return new ValidationError(validationErr.message);
 }
 
-export function isValidate<T extends z.ZodType>(opts: any, schema: T) {
+export function isValidate<T extends z.ZodType>(
+	opts: any,
+	createSchema: T | (() => T)
+) {
 	try {
-		validate(opts, schema);
+		validate(opts, createSchema);
 		return true;
 	} catch {
 		return false;
