@@ -97,7 +97,7 @@ console.log(BrowserRouter, Routes, Route);
 
 ### 新增 CssChunkingPlugin
 
-CssChunkingPlugin 是专为处理 CSS 模块代码分割的实验性插件（参考自 Next.js），确保样式规则的执行顺序与源代码导入顺序保持一致，避免样式错误。
+CssChunkingPlugin 是专为处理 CSS 模块代码分割的实验性插件，确保样式规则的执行顺序与源代码导入顺序保持一致，避免样式错误。
 
 ```js
 new rspack.experiments.CssChunkingPlugin(options);
@@ -106,6 +106,8 @@ new rspack.experiments.CssChunkingPlugin(options);
 启用 CssChunkingPlugin 后，SplitChunksPlugin 将不再处理 CSS 模块。这意味着 `optimization.splitChunks` 等配置对 CSS 模块将不再生效，所有 CSS 模块的代码分割逻辑完全由 CssChunkingPlugin 处理。
 
 [这里](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/css-chunking-plugin)是一个最小化的示例，更多请参考[文档](https://rspack.dev/zh/plugins/rspack/css-chunking-plugin)。
+
+> 该插件参考自 [Next.js CssChunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking)，非常感谢 Next.js 团队在这一领域的创新和贡献。
 
 ### Lazy compilation 支持 MultiCompiler
 
