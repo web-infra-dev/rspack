@@ -7,32 +7,32 @@
 
 const SAFE_LIMIT: u64 = 0x80000000u64;
 const SAFE_PART: u64 = SAFE_LIMIT - 1;
-const COUNT: u64 = 4;
+const COUNT: usize = 4;
 
 pub fn get_number_hash(str: &str, range: u64) -> u64 {
-  let mut arr = [0u64; COUNT as usize];
+  let mut arr = [0u64; COUNT];
   let primes = [3u64, 7u64, 17u64, 19u64];
 
   for i in 0..str.len() {
     let c = str.as_bytes()[i] as u64;
-    arr[0] = (arr[0] + c * primes[0] + arr[3]) & SAFE_PART;
-    arr[1] = (arr[1] + c * primes[1] + arr[0]) & SAFE_PART;
-    arr[2] = (arr[2] + c * primes[2] + arr[1]) & SAFE_PART;
-    arr[3] = (arr[3] + c * primes[3] + arr[2]) & SAFE_PART;
+    arr[0] = (arr[0] + c * primes[0] + arr[3]) & SAFE_PART as u64;
+    arr[1] = (arr[1] + c * primes[1] + arr[0]) & SAFE_PART as u64;
+    arr[2] = (arr[2] + c * primes[2] + arr[1]) & SAFE_PART as u64;
+    arr[3] = (arr[3] + c * primes[3] + arr[2]) & SAFE_PART as u64;
 
-    arr[0] ^= arr[(arr[0] % COUNT) as usize] >> 1;
-    arr[1] ^= arr[(arr[1] % COUNT) as usize] >> 1;
-    arr[2] ^= arr[(arr[2] % COUNT) as usize] >> 1;
-    arr[3] ^= arr[(arr[3] % COUNT) as usize] >> 1;
+    arr[0] ^= arr[(arr[0] % COUNT as u64) as usize] >> 1;
+    arr[1] ^= arr[(arr[1] % COUNT as u64) as usize] >> 1;
+    arr[2] ^= arr[(arr[2] % COUNT as u64) as usize] >> 1;
+    arr[3] ^= arr[(arr[3] % COUNT as u64) as usize] >> 1;
   }
 
   if range <= SAFE_PART {
-    (arr[0] + arr[1] + arr[2] + arr[3]) % range
+    (arr[0] + arr[1] + arr[2] + arr[3]) % range as u64
   } else {
     let range_ext = range / SAFE_LIMIT;
-    let sum1 = (arr[0] + arr[2]) & SAFE_PART;
-    let sum2 = (arr[0] + arr[2]) % range_ext;
-    (sum2 * SAFE_LIMIT + sum1) % range
+    let sum1 = (arr[0] + arr[2]) & SAFE_PART as u64;
+    let sum2 = (arr[0] + arr[2]) % range_ext as u64;
+    (sum2 * SAFE_LIMIT as u64 + sum1) % range as u64
   }
 }
 
