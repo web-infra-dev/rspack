@@ -21,7 +21,7 @@ pub struct RawRspackExperiments {
 #[serde(rename_all = "camelCase", default)]
 pub struct RawCollectTypeScriptInfoOptions {
   pub type_exports: Option<bool>,
-  pub cross_module_enums: Option<String>,
+  pub exported_enum: Option<String>,
 }
 
 #[derive(Default, Debug)]
@@ -33,11 +33,11 @@ pub(crate) struct RspackExperiments {
 #[derive(Default, Debug)]
 pub(crate) struct CollectTypeScriptInfoOptions {
   pub(crate) type_exports: Option<bool>,
-  pub(crate) cross_module_enums: Option<CrossModuleEnumKind>,
+  pub(crate) exported_enum: Option<CollectingEnumKind>,
 }
 
 #[derive(Default, Debug)]
-pub(crate) enum CrossModuleEnumKind {
+pub(crate) enum CollectingEnumKind {
   All,
   #[default]
   ConstOnly,
@@ -58,9 +58,9 @@ impl From<RawCollectTypeScriptInfoOptions> for CollectTypeScriptInfoOptions {
   fn from(value: RawCollectTypeScriptInfoOptions) -> Self {
     Self {
       type_exports: value.type_exports,
-      cross_module_enums: value.cross_module_enums.and_then(|v| match v.as_str() {
-        "const-only" => Some(CrossModuleEnumKind::ConstOnly),
-        "all" => Some(CrossModuleEnumKind::All),
+      exported_enum: value.exported_enum.and_then(|v| match v.as_str() {
+        "const-only" => Some(CollectingEnumKind::ConstOnly),
+        "all" => Some(CollectingEnumKind::All),
         _ => None,
       }),
     }

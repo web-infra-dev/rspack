@@ -489,7 +489,7 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 
 	const ZodSwcCollectTypeScriptInfo = z.strictObject({
 		typeExports: z.boolean().optional(),
-		crossModuleEnums: z.boolean().or(z.literal("const-only")).optional()
+		exportedEnum: z.boolean().or(z.literal("const-only")).optional()
 	}) satisfies z.ZodType<CollectTypeScriptInfoOptions>;
 
 	const ZodSwcPluginImportConfig = z

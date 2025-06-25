@@ -1,6 +1,6 @@
 export type CollectTypeScriptInfoOptions = {
 	typeExports?: boolean;
-	crossModuleEnums?: boolean | "const-only";
+	exportedEnum?: boolean | "const-only";
 };
 
 export function resolveCollectTypeScriptInfo(
@@ -8,10 +8,10 @@ export function resolveCollectTypeScriptInfo(
 ) {
 	return {
 		typeExports: options.typeExports,
-		crossModuleEnums:
-			options.crossModuleEnums === true
+		exportedEnum:
+			options.exportedEnum === true
 				? "all"
-				: options.crossModuleEnums === false
+				: options.exportedEnum === false
 					? "none"
 					: "const-only"
 	};

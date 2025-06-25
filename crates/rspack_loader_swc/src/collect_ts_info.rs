@@ -6,7 +6,7 @@ use rustc_hash::FxHashMap;
 use swc::atoms::Atom;
 use swc_core::ecma::{ast::Program, utils::number::ToJsString, visit::VisitWith};
 
-use crate::options::{CollectTypeScriptInfoOptions, CrossModuleEnumKind};
+use crate::options::{CollectTypeScriptInfoOptions, CollectingEnumKind};
 
 pub fn collect_typescript_info(
   program: &Program,
@@ -17,9 +17,9 @@ pub fn collect_typescript_info(
     program.visit_with(&mut TypeExportsCollector::new(&mut type_exports));
   }
   let mut exported_enums: FxHashMap<Atom, FxHashMap<Atom, EnumMemberValue>> = Default::default();
-  if let Some(kind) = &options.cross_module_enums {
+  if let Some(kind) = &options.exported_enum {
     program.visit_with(&mut ExportedEnumCollector::new(
-      matches!(kind, CrossModuleEnumKind::ConstOnly),
+      matches!(kind, CollectingEnumKind::ConstOnly),
       &mut exported_enums,
     ));
   }
