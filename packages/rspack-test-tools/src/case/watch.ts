@@ -51,7 +51,7 @@ const creator = new BasicCaseCreator({
 					)
 		);
 	},
-	concurrent: false
+	concurrent: !process.env.WASM
 });
 
 export function createWatchCase(
