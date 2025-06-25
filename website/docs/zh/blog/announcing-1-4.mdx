@@ -55,20 +55,31 @@ Rspack 1.4 已经正式发布！
 
 [TODO image]
 
-- SWC 改进了死代码消除（DCE），这使得 Rspack 的构建产物体积更小。
+- SWC 改进了死代码消除（DCE），这使得 Rspack 1.4 能够输出比 Rspack 1.3 更小的构建产物。
 
-| Build tool    | Minified size | Min+Gzipped size |
-| ------------- | ------------- | ---------------- |
-| Rspack        | 36.35 kB      | 13.26 kB         |
-| Rsbuild       | 36.39 kB      | 13.29 kB         |
-| webpack       | 36.96 kB      | 13.37 kB         |
-| Vite          | 42.67 kB      | 15.67 kB         |
-| Rolldown      | 42.74 kB      | 15.17 kB         |
-| Rolldown Vite | 43.42 kB      | 15.46 kB         |
-| Farm          | 43.42 kB      | 15.63 kB         |
-| Parcel        | 44.62 kB      | 16.07 kB         |
-| esbuild       | 46.12 kB      | 16.63 kB         |
-| Bun           | 57.73 kB      | 20.8 kB          |
+我们以 `react-router` 作为测试用例，在源代码中引用了 `react-router` 的一部分导出，然后使用不同的打包工具进行构建。
+
+```js title="src/index.js"
+import { BrowserRouter, Routes, Route } from 'react-router';
+
+console.log(BrowserRouter, Routes, Route);
+```
+
+得益于 SWC 优秀的 DCE 优化，以及 Rspack 对于 ESM/CJS 的 tree shaking，最终输出的包体积如下：
+
+| 打包工具         | 压缩后体积 | Gzipped 后体积 |
+| ---------------- | ---------- | -------------- |
+| Rspack (Rsbuild) | 36.35 kB   | 13.26 kB       |
+| webpack          | 36.96 kB   | 13.37 kB       |
+| Vite             | 42.67 kB   | 15.67 kB       |
+| Rolldown         | 42.74 kB   | 15.17 kB       |
+| Rolldown Vite    | 43.42 kB   | 15.46 kB       |
+| Farm             | 43.42 kB   | 15.63 kB       |
+| Parcel           | 44.62 kB   | 16.07 kB       |
+| esbuild          | 46.12 kB   | 16.63 kB       |
+| Bun              | 57.73 kB   | 20.8 kB        |
+
+> 以上数据来自：[react-router-tree-shaking-compare](https://github.com/chenjiahan/react-router-tree-shaking-compare)。
 
 ### 新增 CssChunkingPlugin
 
@@ -133,7 +144,6 @@ Rspack 现已支持自定义 `compiler.inputFileSystem`；可通过配置 [exper
 ## 性能优化
 
 ### 默认启用增量构建
-
 
 在 Rspack v1.4.0 中，**增量构建功能已默认开启所有阶段的优化**（'advance-silent' 模式），这将为开发者带来显著的重构建速度提升和更流畅的热模块替换 (HMR) 体验。
 
