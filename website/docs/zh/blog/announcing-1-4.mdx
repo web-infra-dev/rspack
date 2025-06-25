@@ -49,15 +49,18 @@ Rspack 1.4 已经正式发布！
 
 ### 更快的 SWC
 
-在过去几个月中，Rspack 团队致力于与 SWC 团队合作，共同优化 JavaScript 工具链的性能和可靠性。经过双方团队与社区的共同努力，我们很高兴地看到，SWC 在以下方面取得了显著的提升：
+在过去几个月中，Rspack 团队致力于与 SWC 团队合作，共同优化 JavaScript 工具链的性能和可靠性。经过双方团队和社区开发者的共同努力，我们很高兴地看到，SWC 在以下方面取得了显著的提升：
 
-- **SWC parser 的性能提升了 35%，minifier 的性能提升了 10%**（与 Rspack 1.3.0 使用的 SWC 16 相比）
+- **JavaScript parser（解析器）的性能提升了 30%～35%，minifier（压缩器）的性能提升了 10%**：
 
-[TODO image]
+<img
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-swc-benchmark.png"
+  alt="SWC benchmark"
+/>
 
-- SWC 改进了死代码消除（DCE），这使得 Rspack 1.4 能够输出比 Rspack 1.3 更小的构建产物。
+> 以上数据来自：[Codspeed - SWC](https://codspeed.io/swc-project/swc)，对比的基准为 Rspack 1.3 所使用的 SWC 16。
 
-我们以 `react-router` 作为测试用例，在源代码中引用了 `react-router` 的一部分导出，然后使用不同的打包工具进行构建。
+- **SWC 改进了死代码消除（DCE）**，这使得 Rspack 1.4 能够输出比 Rspack 1.3 更小的构建产物。我们以 `react-router` 作为测试用例，在源代码中引用了 `react-router` 的一部分导出，然后使用不同的打包工具进行构建。
 
 ```js title="src/index.js"
 import { BrowserRouter, Routes, Route } from 'react-router';
