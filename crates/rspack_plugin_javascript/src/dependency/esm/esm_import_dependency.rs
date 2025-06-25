@@ -520,6 +520,7 @@ impl Dependency for ESMImportSideEffectDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -527,7 +528,12 @@ impl Dependency for ESMImportSideEffectDependency {
       .module_identifier_by_dependency_id(&self.id)
       .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
     {
-      module.get_side_effects_connection_state(module_graph, module_chain, connection_state_cache)
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        module_chain,
+        connection_state_cache,
+      )
     } else {
       ConnectionState::Active(true)
     }
@@ -559,12 +565,13 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     conn: &rspack_core::ModuleGraphConnection,
     _runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
     if let Some(module) = module_graph.module_by_identifier(&id) {
       module.get_side_effects_connection_state(
         module_graph,
+        module_graph_cache,
         &mut IdentifierSet::default(),
         &mut IdentifierMap::default(),
       )

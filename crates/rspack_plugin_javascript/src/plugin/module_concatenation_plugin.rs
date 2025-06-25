@@ -13,11 +13,11 @@ use rspack_core::{
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
-  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, DependencyId,
-  ExportInfoGetter, ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions,
-  Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
+  ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
+  ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
+  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -181,32 +181,39 @@ impl ModuleConcatenationPlugin {
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
-    module_cache: &HashMap<ModuleIdentifier, ModuleCacheWithoutRuntime>,
+    module_cache: &HashMap<ModuleIdentifier, NoRuntimeModuleCache>,
   ) -> IdentifierIndexSet {
     if let Some(set) = imports_cache.get(&mi, runtime) {
       return set.clone();
     }
 
-    let ModuleCacheWithoutRuntime {
-      is_provided_names,
-      dep_import_names,
-      ..
-    } = module_cache.get(&mi).expect("should have module");
+    let cached = module_cache.get(&mi).expect("should have module");
 
     let mut set = IdentifierIndexSet::default();
+    for (con, (has_imported_names, cached_active)) in &cached.connections {
+      let is_target_active = if let Some(runtime) = runtime {
+        if cached.runtime == *runtime {
+          // runtime is same, use cached value
+          *cached_active
+        } else if cached.runtime.is_subset(runtime) && *cached_active {
+          // cached runtime is subset and active, means it is also active in current runtime
+          true
+        } else if cached.runtime.is_superset(runtime) && !*cached_active {
+          // cached runtime is superset and inactive, means it is also inactive in current runtime
+          false
+        } else {
+          // can't determine, need to check
+          con.is_target_active(mg, Some(runtime), mg_cache)
+        }
+      } else {
+        // no runtime, need to check
+        con.is_target_active(mg, None, mg_cache)
+      };
 
-    for (d, imported_names) in dep_import_names {
-      let con = mg
-        .connection_by_dependency_id(d)
-        .expect("should have connection");
-      if !con.is_target_active(mg, runtime, mg_cache) {
+      if !is_target_active {
         continue;
       }
-      if imported_names.iter().all(|item| match item {
-        ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
-        ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-      }) || *is_provided_names
-      {
+      if *has_imported_names || cached.provided_names {
         set.insert(*con.module_identifier());
       }
     }
@@ -229,7 +236,7 @@ impl ModuleConcatenationPlugin {
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
-    module_cache: &HashMap<ModuleIdentifier, ModuleCacheWithoutRuntime>,
+    module_cache: &HashMap<ModuleIdentifier, NoRuntimeModuleCache>,
   ) -> Option<Warning> {
     statistics
       .module_visit
@@ -288,7 +295,7 @@ impl ModuleConcatenationPlugin {
           let mut missing_chunks_list = missing_chunks
             .iter()
             .map(|&chunk| {
-              let chunk = chunk_by_ukey.expect_get(&chunk);
+              let chunk = chunk_by_ukey.expect_get(chunk);
               chunk.name().unwrap_or("unnamed chunk(s)")
             })
             .collect::<Vec<_>>();
@@ -318,7 +325,7 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      let ModuleCacheWithoutRuntime { incomings, .. } = module_cache
+      let NoRuntimeModuleCache { incomings, .. } = module_cache
         .get(module_id)
         .expect("should have module cache");
 
@@ -652,6 +659,7 @@ impl ModuleConcatenationPlugin {
       context: Some(compilation.options.context.clone()),
       side_effect_connection_state: box_module.get_side_effects_connection_state(
         &module_graph,
+        &compilation.module_graph_cache_artifact,
         &mut IdentifierSet::default(),
         &mut IdentifierMap::default(),
       ),
@@ -990,17 +998,25 @@ impl ModuleConcatenationPlugin {
           &module_graph,
           PrefetchExportsInfoMode::AllExports,
         );
-        let is_provided_names = matches!(
+        let provided_names = matches!(
           exports_info_data.get_provided_exports(),
           ProvidedExports::ProvidedNames(_)
         );
         let module = module_graph
           .module_by_identifier(module_id)
           .expect("should have module");
+        let mut runtime = RuntimeSpec::default();
+        for r in compilation
+          .chunk_graph
+          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+        {
+          runtime.extend(r);
+        }
+
         let _ =
           get_cached_readable_identifier(module, module_static_cache_artifact, compilation_context);
 
-        let dep_import_names = module
+        let connections = module
           .get_dependencies()
           .iter()
           .filter_map(|d| {
@@ -1008,20 +1024,31 @@ impl ModuleConcatenationPlugin {
             if !is_esm_dep_like(dep) {
               return None;
             }
-            let _ = module_graph.connection_by_dependency_id(d)?;
+            let con = module_graph.connection_by_dependency_id(d)?;
             let module_dep = dep.as_module_dependency().expect("should be module dep");
             let imported_names =
               module_dep.get_referenced_exports(&module_graph, module_graph_cache, None);
-            Some((*d, imported_names))
+
+            Some((
+              con.clone(),
+              (
+                imported_names.iter().all(|item| match item {
+                  ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
+                  ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
+                }),
+                con.is_target_active(&module_graph, Some(&runtime), module_graph_cache),
+              ),
+            ))
           })
           .collect::<Vec<_>>();
 
         let incomings = module_graph.get_incoming_connections_by_origin_module(module_id);
         (
           *module_id,
-          ModuleCacheWithoutRuntime {
-            is_provided_names,
-            dep_import_names,
+          NoRuntimeModuleCache {
+            runtime,
+            provided_names,
+            connections,
             incomings,
           },
         )
@@ -1032,13 +1059,10 @@ impl ModuleConcatenationPlugin {
       if used_as_inner.contains(current_root) {
         continue;
       }
-      let mut chunk_runtime = RuntimeSpec::default();
-      for r in compilation
-        .chunk_graph
-        .get_module_runtimes_iter(*current_root, &compilation.chunk_by_ukey)
-      {
-        chunk_runtime.extend(r);
-      }
+
+      let NoRuntimeModuleCache { runtime, .. } = modules_without_runtime_cache
+        .get(current_root)
+        .expect("should have module");
       let module_graph = compilation.get_module_graph();
       let module_graph_cache = &compilation.module_graph_cache_artifact;
       let exports_info = module_graph.get_exports_info(current_root);
@@ -1047,11 +1071,11 @@ impl ModuleConcatenationPlugin {
         &module_graph,
         PrefetchExportsInfoMode::AllExports,
       );
-      let filtered_runtime = filter_runtime(Some(&chunk_runtime), |r| {
+      let filtered_runtime = filter_runtime(Some(runtime), |r| {
         ExportsInfoGetter::is_module_used(&exports_info_data, r)
       });
       let active_runtime = match filtered_runtime {
-        RuntimeCondition::Boolean(true) => Some(chunk_runtime.clone()),
+        RuntimeCondition::Boolean(true) => Some(runtime.clone()),
         RuntimeCondition::Boolean(false) => None,
         RuntimeCondition::Spec(spec) => Some(spec),
       };
@@ -1088,7 +1112,7 @@ impl ModuleConcatenationPlugin {
           compilation,
           &mut current_configuration,
           &imp,
-          Some(&chunk_runtime),
+          Some(runtime),
           active_runtime.as_ref(),
           &possible_inners,
           &mut import_candidates,
@@ -1228,8 +1252,9 @@ struct Statistics {
 }
 
 #[derive(Debug)]
-pub struct ModuleCacheWithoutRuntime {
-  is_provided_names: bool,
-  dep_import_names: Vec<(DependencyId, Vec<ExtendedReferencedExport>)>,
+pub struct NoRuntimeModuleCache {
+  runtime: RuntimeSpec,
+  provided_names: bool,
+  connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>>,
 }
