@@ -54,9 +54,10 @@ Rspack 1.4 已经正式发布！
 
 ### 更快的 SWC
 
-在过去几个月中，Rspack 团队致力于与 SWC 团队合作，共同优化 JavaScript 工具链的性能和可靠性。经过双方团队和社区开发者的共同努力，我们很高兴地看到，SWC 在以下方面取得了显著的提升：
+在过去几个月中，Rspack 团队致力于与 SWC 团队合作，共同优化 JavaScript 工具链的性能和可靠性。经过双方团队和社区开发者的共同努力，我们很高兴地看到，SWC 在性能方面取得了显著的提升：
 
-- **JavaScript parser（解析器）的性能提升了 30%～35%，minifier（压缩器）的性能提升了 10%**：
+- JavaScript parser（解析器）的性能提升了 **30%～35%**
+- JavaScript minifier（压缩器）的性能提升了 **10%**
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-swc-benchmark.png"
@@ -65,7 +66,11 @@ Rspack 1.4 已经正式发布！
 
 > 以上数据来自：[Codspeed - SWC](https://codspeed.io/swc-project/swc)，对比的基准为 Rspack 1.3 所使用的 SWC 16。
 
-- **SWC 改进了死代码消除（DCE）**，这使得 Rspack 1.4 能够输出比 Rspack 1.3 更小的构建产物。我们以 `react-router` 作为测试用例，在源代码中引用了 `react-router` 的一部分导出，然后使用不同的打包工具进行构建。
+### 更小的构建产物
+
+在最新版本中，SWC 还改进了死代码消除（DCE），这项改进与 Rspack 的 tree shaking 相结合，使得 Rspack 1.4 能够生成体积更小的构建产物。
+
+我们以 `react-router` 为例进行测试：在源代码中仅引入其部分功能，然后对比不同打包工具的构建结果，可以发现 Rspack 生成的产物尺寸更小。
 
 ```js title="src/index.js"
 import { BrowserRouter, Routes, Route } from 'react-router';
@@ -73,7 +78,7 @@ import { BrowserRouter, Routes, Route } from 'react-router';
 console.log(BrowserRouter, Routes, Route);
 ```
 
-得益于 SWC 优秀的 DCE 优化，以及 Rspack 对于 ESM/CJS 的 tree shaking，最终输出的包体积如下：
+各个打包工具输出的包体积如下：
 
 | 打包工具         | 压缩后体积 | Gzipped 后体积 |
 | ---------------- | ---------- | -------------- |
