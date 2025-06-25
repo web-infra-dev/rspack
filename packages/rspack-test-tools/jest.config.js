@@ -1,9 +1,14 @@
 const path = require("node:path");
-
 const root = path.resolve(__dirname, "../../");
+
+const setupFilesAfterEnv = [
+	"@rspack/test-tools/setup-expect",
+	"@rspack/test-tools/setup-env"
+];
 
 /** @type {import('jest').Config} */
 const wasmConfig = process.env.WASM && {
+	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
 	testPathIgnorePatterns: [
 		"Diagnostics.test.js",
 		"Error.test.js",
@@ -15,10 +20,7 @@ const wasmConfig = process.env.WASM && {
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
-	setupFilesAfterEnv: [
-		"@rspack/test-tools/setup-expect",
-		"@rspack/test-tools/setup-env"
-	],
+	setupFilesAfterEnv,
 	reporters: [
 		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
 		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
