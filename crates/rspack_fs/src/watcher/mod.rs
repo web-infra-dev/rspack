@@ -18,6 +18,7 @@ pub use manager::{Ignored, PathUpdater};
 use rspack_error::Result;
 use rspack_paths::ArcPath;
 use scanner::Scanner;
+use tokio::sync::mpsc;
 use trigger::Trigger;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -69,7 +70,7 @@ pub struct FsWatcher {
 
 impl FsWatcher {
   pub fn new(options: FsWatcherOptions, ignored: Option<Box<dyn Ignored>>) -> Self {
-    let (tx, rx) = std::sync::mpsc::channel::<FsEvent>();
+    let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager = Arc::new(PathManager::new(ignored));
     let trigger = Trigger::new(Arc::clone(&path_manager), tx.clone());

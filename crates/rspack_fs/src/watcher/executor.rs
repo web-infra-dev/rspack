@@ -1,12 +1,15 @@
 use std::{collections::HashSet, sync::Arc};
 
-use tokio::sync::Mutex;
+use tokio::sync::{
+  mpsc::{self, UnboundedReceiver, UnboundedSender},
+  Mutex,
+};
 
-use super::{EventHandler, StdReceiver};
-use crate::watcher::{FsEvent, StdSender};
+use super::EventHandler;
+use crate::watcher::FsEvent;
 
 type ThreadSafetyFiles = ThreadSafety<HashSet<String>>;
-type ThreadSafetyReceiver<T> = ThreadSafety<StdReceiver<T>>;
+type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
 
 /// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
@@ -15,15 +18,15 @@ type ThreadSafety<T> = Arc<Mutex<T>>;
 /// deleted files, and coordinates the event handling logic.
 pub struct Executor {
   aggregate_timeout: u32,
-  rx: ThreadSafetyReceiver<FsEvent>,
+  rx: ThreadSafety<UnboundedReceiver<FsEvent>>,
   changed_files: ThreadSafetyFiles,
   deleted_files: ThreadSafetyFiles,
-  exec_aggreate_tx: StdSender<ExecAggreateEvent>,
+  exec_aggreate_tx: UnboundedSender<ExecAggreateEvent>,
   exec_aggreate_rx: ThreadSafetyReceiver<ExecAggreateEvent>,
-  exec_tx: StdSender<ExecEvent>,
+  exec_tx: UnboundedSender<ExecEvent>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
-  join_handle: Option<tokio::task::JoinHandle<()>>,
-
+  run: bool,
+  // join_handle: Option<tokio::task::JoinHandle<()>>,
   /// The executor is responsible for executing the event handler after a configurable timeout.
   execute_handler: Option<ExecuteHandler>,
   execute_aggregate_handler: Option<ExecuteAggregateHandler>,
@@ -48,11 +51,12 @@ enum ExecEvent {
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  pub fn new(rx: StdReceiver<FsEvent>, aggregate_timeout: Option<u32>) -> Self {
-    let (exec_aggreate_tx, exec_aggreate_rx) = std::sync::mpsc::channel::<ExecAggreateEvent>();
-    let (exec_tx, exec_rx) = std::sync::mpsc::channel::<ExecEvent>();
+  pub fn new(rx: UnboundedReceiver<FsEvent>, aggregate_timeout: Option<u32>) -> Self {
+    let (exec_aggreate_tx, exec_aggreate_rx) = mpsc::unbounded_channel::<ExecAggreateEvent>();
+    let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 
     Self {
+      run: false,
       rx: Arc::new(Mutex::new(rx)),
       changed_files: Default::default(),
       deleted_files: Default::default(),
@@ -62,7 +66,7 @@ impl Executor {
       exec_tx,
       execute_aggregate_handler: None,
       execute_handler: None,
-      join_handle: None,
+      // join_handle: None,
       aggregate_timeout: aggregate_timeout.unwrap_or(DEFAULT_AGGREGATE_TIMEOUT),
     }
   }
@@ -79,7 +83,7 @@ impl Executor {
 
   /// Execute the watcher executor loop.
   pub async fn wait_for_execute(&mut self, event_handler: Box<dyn EventHandler + Send + Sync>) {
-    if self.join_handle.is_none() {
+    if !self.run {
       let changed_files = Arc::clone(&self.changed_files);
       let deleted_files = Arc::clone(&self.deleted_files);
 
@@ -88,7 +92,7 @@ impl Executor {
       let exec_tx = self.exec_tx.clone();
 
       let future = async move {
-        while let Ok(event) = rx.lock().await.recv() {
+        while let Some(event) = rx.lock().await.recv().await {
           let path = event.path.to_string_lossy().to_string();
           let files = match event.kind {
             super::FsEventKind::Change => &changed_files,
@@ -105,7 +109,8 @@ impl Executor {
         let _ = exec_tx.send(ExecEvent::Close);
       };
 
-      self.join_handle = Some(tokio::spawn(future));
+      tokio::spawn(future);
+      self.run = true;
     }
     self.pause().await;
 
@@ -164,7 +169,7 @@ impl ExecuteHandler {
           }
         }
 
-        if let Ok(event) = exec_rx.lock().await.recv() {
+        if let Some(event) = exec_rx.lock().await.recv().await {
           match event {
             ExecEvent::Execute(event) => {
               let path = event.path.to_string_lossy().to_string();
@@ -205,14 +210,14 @@ struct ExecuteAggregateHandler {
   changed_files: ThreadSafetyFiles,
   deleted_files: ThreadSafetyFiles,
   aggregate_timeout: u64,
-  exec_aggreate_rx: ThreadSafety<StdReceiver<ExecAggreateEvent>>,
+  exec_aggreate_rx: ThreadSafetyReceiver<ExecAggreateEvent>,
   stoped: ThreadSafety<bool>,
 }
 
 impl ExecuteAggregateHandler {
   fn new(
     event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-    exec_aggreate_rx: ThreadSafety<StdReceiver<ExecAggreateEvent>>,
+    exec_aggreate_rx: ThreadSafetyReceiver<ExecAggreateEvent>,
     changed_files: ThreadSafetyFiles,
     deleted_files: ThreadSafetyFiles,
     aggregate_timeout: u64,
@@ -245,7 +250,7 @@ impl ExecuteAggregateHandler {
           }
         }
 
-        if let Ok(event) = exec_aggreate_rx.lock().await.recv() {
+        if let Some(event) = exec_aggreate_rx.lock().await.recv().await {
           match event {
             ExecAggreateEvent::Execute => {
               let mut changed_files = changed_files.lock().await;

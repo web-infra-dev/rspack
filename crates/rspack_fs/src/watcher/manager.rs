@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::PathBuf};
+use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
 use async_trait::async_trait;
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
@@ -84,6 +84,7 @@ impl<'a> PathAccessor<'a> {
 }
 
 /// Updating the set of registered paths, directories, and missing paths.
+#[derive(Debug)]
 pub struct PathUpdater {
   pub added: Vec<String>,
   pub removed: Vec<String>,

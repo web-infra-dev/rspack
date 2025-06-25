@@ -190,9 +190,9 @@ export type ReadFile = {
 		path: PathOrFileDescriptor,
 		options:
 			| ({
-					encoding: null | undefined;
-					flag?: string;
-			  } & Abortable)
+				encoding: null | undefined;
+				flag?: string;
+			} & Abortable)
 			| null
 			| undefined,
 		callback: BufferCallback
@@ -277,10 +277,10 @@ export type Readdir = {
 		path: PathLike,
 		options:
 			| {
-					encoding: BufferEncoding | null;
-					withFileTypes?: false;
-					recursive?: boolean;
-			  }
+				encoding: BufferEncoding | null;
+				withFileTypes?: false;
+				recursive?: boolean;
+			}
 			| BufferEncoding
 			| null
 			| undefined,
@@ -318,10 +318,10 @@ export type ReaddirSync = {
 		path: PathLike,
 		options:
 			| {
-					encoding: BufferEncoding | null;
-					withFileTypes?: false;
-					recursive?: boolean;
-			  }
+				encoding: BufferEncoding | null;
+				withFileTypes?: false;
+				recursive?: boolean;
+			}
 			| BufferEncoding
 			| null
 	): string[];
@@ -487,18 +487,18 @@ export type IntermediateFileSystem = InputFileSystem &
 export type WriteStreamOptions = {
 	flags?: string;
 	encoding?:
-		| "ascii"
-		| "utf8"
-		| "utf-8"
-		| "utf16le"
-		| "utf-16le"
-		| "ucs2"
-		| "ucs-2"
-		| "latin1"
-		| "binary"
-		| "base64"
-		| "base64url"
-		| "hex";
+	| "ascii"
+	| "utf8"
+	| "utf-8"
+	| "utf16le"
+	| "utf-16le"
+	| "ucs2"
+	| "ucs-2"
+	| "latin1"
+	| "binary"
+	| "base64"
+	| "base64url"
+	| "hex";
 	fd?: any;
 	mode?: number;
 };
@@ -698,6 +698,7 @@ export interface WatcherIncrementalDependencies {
 
 export interface WatchFileSystem {
 	watch(
+		symbol: Symbol,
 		files: WatcherIncrementalDependencies,
 		directories: WatcherIncrementalDependencies,
 		missing: WatcherIncrementalDependencies,

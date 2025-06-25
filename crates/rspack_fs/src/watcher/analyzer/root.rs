@@ -117,11 +117,15 @@ impl<'a> TreeBuilder<'a> {
     match path.parent() {
       Some(parent) => {
         if let Some(node) = tree.get_mut(parent) {
-          node.add_child(path.clone());
+          if path.is_dir() {
+            node.add_child(path.clone());
+          }
           None
         } else {
           let parent_node = TreeNode::default();
-          parent_node.add_child(path.clone());
+          if path.is_dir() {
+            parent_node.add_child(path.clone());
+          }
           tree.insert(ArcPath::from(parent), parent_node);
           Self::build_tree_recursive(&ArcPath::from(parent), tree)
         }

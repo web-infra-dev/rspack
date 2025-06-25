@@ -221,8 +221,8 @@ export class WatchProcessor<
 			this._multiOptions.configFiles
 		)
 			? readConfigFile(
-					this._multiOptions.configFiles!.map(i => context.getSource(i))
-				)
+				this._multiOptions.configFiles!.map(i => context.getSource(i))
+			)
 			: [{}];
 
 		for (const [index, options] of caseOptions.entries()) {
@@ -277,6 +277,9 @@ export class WatchProcessor<
 			options.experiments.css ??= true;
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.nativeWatcher ??= true;
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture ??= {};
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
@@ -313,7 +316,7 @@ export class WatchProcessor<
 }
 
 export interface IWatchStepProcessorOptions<T extends ECompilerType>
-	extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> {}
+	extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> { }
 
 export class WatchStepProcessor<
 	T extends ECompilerType

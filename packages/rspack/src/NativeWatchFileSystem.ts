@@ -1,21 +1,23 @@
 import * as binding from "@rspack/binding";
-import type { WatchOptions } from "./exports";
 import type {
 	FileSystemInfoEntry,
 	WatchFileSystem,
 	Watcher,
 	WatcherIncrementalDependencies
 } from "./util/fs";
+import type Watchpack from "watchpack";
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
-	#inner: binding.NativeWatcher | undefined;
+	// #inner: binding.NativeWatcher | undefined;
+	#inners: Map<Symbol, binding.NativeWatcher> = new Map();
 
 	async watch(
+		symbol: Symbol,
 		files: WatcherIncrementalDependencies,
 		directories: WatcherIncrementalDependencies,
 		missing: WatcherIncrementalDependencies,
 		_startTime: number,
-		options: WatchOptions,
+		options: Watchpack.WatchOptions,
 		callback: (
 			error: Error | null,
 			fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
@@ -52,32 +54,11 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			throw new Error("Invalid arguments: 'callbackUndelayed'");
 		}
 
-		if (!this.#inner) {
-			const ignoredCallback = options.ignored
-				? async (path: string): Promise<boolean> => {
-						const ignored = options.ignored;
-						if (Array.isArray(ignored)) {
-							return ignored.some(item => path.includes(item));
-						}
-						if (typeof ignored === "string") {
-							return path.includes(ignored);
-						}
-						if (ignored instanceof RegExp) {
-							return ignored.test(path);
-						}
-						return false;
-					}
-				: undefined;
-			const nativeWatcherOptions: binding.NativeWatcherOptions = {
-				followSymlinks: options.followSymlinks,
-				aggregateTimeout: options.aggregateTimeout,
-				pollInterval: typeof options.poll === "boolean" ? 0 : options.poll,
-				ignored: ignoredCallback
-			};
-			this.#inner = new binding.NativeWatcher(nativeWatcherOptions);
-		}
 
-		await this.#inner.watch(
+		const nativeWatcher = this.getNativeWatcher(symbol, options);
+
+
+		await nativeWatcher.watch(
 			[Array.from(files.added), Array.from(files.removed)],
 			[Array.from(directories.added), Array.from(directories.removed)],
 			[Array.from(missing.added), Array.from(missing.removed)],
@@ -99,15 +80,12 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
 		return {
 			close: () => {
-				if (this.#inner) {
-					this.#inner.close();
-				}
+				nativeWatcher.close();
+				this.#inners.delete(symbol);
 			},
 
 			pause: () => {
-				if (this.#inner) {
-					this.#inner.pause();
-				}
+				nativeWatcher.pause();
 			},
 
 			getInfo() {
@@ -121,5 +99,37 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 				};
 			}
 		};
+	}
+
+	getNativeWatcher(symbol: Symbol, options: Watchpack.WatchOptions): binding.NativeWatcher {
+		const watcher = this.#inners.get(symbol);
+		if (watcher) {
+			return watcher;
+		}
+
+		const ignoredCallback = options.ignored
+			? async (path: string): Promise<boolean> => {
+				const ignored = options.ignored;
+				if (Array.isArray(ignored)) {
+					return ignored.some(item => path.includes(item));
+				}
+				if (typeof ignored === "string") {
+					return path.includes(ignored);
+				}
+				if (ignored instanceof RegExp) {
+					return ignored.test(path);
+				}
+				return false;
+			}
+			: undefined;
+		const nativeWatcherOptions: binding.NativeWatcherOptions = {
+			followSymlinks: options.followSymlinks,
+			aggregateTimeout: options.aggregateTimeout,
+			pollInterval: typeof options.poll === "boolean" ? 0 : options.poll,
+			ignored: ignoredCallback
+		};
+		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
+		this.#inners.set(symbol, nativeWatcher);
+		return nativeWatcher;
 	}
 }
