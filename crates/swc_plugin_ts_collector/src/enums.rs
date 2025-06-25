@@ -54,35 +54,33 @@ impl<'a> ExportedEnumCollector<'a> {
               Lit::Num(n) => {
                 has_numeric_value = true;
                 next_numeric_value = n.value + 1.0;
-                return Some((
+                Some((
                   enum_member_id_atom(&member.id),
                   EnumMemberValue::Number(n.value),
-                ));
+                ))
               }
-              Lit::Str(s) => {
-                return Some((
-                  enum_member_id_atom(&member.id),
-                  EnumMemberValue::String(s.value.clone()),
-                ));
-              }
-              _ => return None,
+              Lit::Str(s) => Some((
+                enum_member_id_atom(&member.id),
+                EnumMemberValue::String(s.value.clone()),
+              )),
+              _ => None,
             }
           } else {
             // TODO: try eval simple expr here
-            return None;
+            None
           }
         } else if has_numeric_value {
           let value = next_numeric_value;
           next_numeric_value += 1.0;
-          return Some((
+          Some((
             enum_member_id_atom(&member.id),
             EnumMemberValue::Number(value),
-          ));
+          ))
         } else {
-          // value is undefined here, usually TypeScript isolatedModules will emit an error
-          // if value is undefined: https://github.com/evanw/esbuild/issues/3868
-          // we don't optimize this enum member, so do nothing here
-          return None;
+          // enum member value is undefined here, usually TypeScript isolatedModules will emit
+          // an error if value is undefined: https://github.com/evanw/esbuild/issues/3868
+          // we don't optimize this kind of enum member, so do nothing here
+          None
         }
       })
       .collect();
@@ -112,7 +110,7 @@ impl Visit for ExportedEnumCollector<'_> {
             ..
           }) => {
             self.export_idents.insert(enum_decl.id.sym.clone());
-            self.collect(&enum_decl);
+            self.collect(enum_decl);
           }
           ModuleDecl::ExportNamed(named_export) => {
             if named_export.src.is_some() {
@@ -139,7 +137,7 @@ impl Visit for ExportedEnumCollector<'_> {
         },
         ModuleItem::Stmt(stmt) => {
           if let Stmt::Decl(Decl::TsEnum(enum_decl)) = stmt {
-            self.collect(&enum_decl);
+            self.collect(enum_decl);
           }
         }
       }
@@ -147,6 +145,6 @@ impl Visit for ExportedEnumCollector<'_> {
 
     self
       .collected
-      .retain(|enum_name, _| self.export_idents.contains(&enum_name));
+      .retain(|enum_name, _| self.export_idents.contains(enum_name));
   }
 }
