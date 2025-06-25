@@ -9,6 +9,7 @@ describeByWalk(
 	},
 	{
 		level: 1,
-		type: "file"
+		type: "file",
+		exclude: globalThis.WasmSkips?.Compilers || []
 	}
 );

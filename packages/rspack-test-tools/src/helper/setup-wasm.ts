@@ -15,3 +15,9 @@ expect.extend({
 	toMatchInlineSnapshot,
 	toMatchFileSnapshot
 });
+
+globalThis.WasmSkips = {
+	Normals: [/pnpm-workspace/],
+	Compilers: [/swc\-api\.js/],
+	Defaults: [/browserslist\.js/]
+};
