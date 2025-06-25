@@ -16,6 +16,7 @@ expect.extend({
 	toMatchFileSnapshot
 });
 
+// @ts-ignore
 globalThis.WasmSkips = {
 	Normals: [/pnpm-workspace/],
 	Compilers: [/swc\-api\.js/],
