@@ -100,7 +100,6 @@ jobs:
     name: Check Bench Result
     needs: [test-linux]
     runs-on: ubuntu-22.04
-    if: ${{ github.event_name == 'pull_request' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -111,6 +110,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Polling Comment
+        if: ${{ github.event_name == 'pull_request' }}
         run: bash .github/actions/codspeed/check-comment.sh
 
   test_required_check:
