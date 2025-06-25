@@ -1664,9 +1664,9 @@ export type CssChunkFilename = Filename;
 
 // @public (undocumented)
 const CssChunkingPlugin: {
-    new (options: CssChunkingPluginOptions): {
+    new (options?: CssChunkingPluginOptions | undefined): {
         name: binding.BuiltinPluginName;
-        _args: [options: CssChunkingPluginOptions];
+        _args: [options?: CssChunkingPluginOptions | undefined];
         affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): binding.BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -1675,6 +1675,10 @@ const CssChunkingPlugin: {
 
 // @public (undocumented)
 interface CssChunkingPluginOptions {
+    // (undocumented)
+    maxSize?: number;
+    // (undocumented)
+    minSize?: number;
     nextjs?: boolean;
     // (undocumented)
     strict?: boolean;

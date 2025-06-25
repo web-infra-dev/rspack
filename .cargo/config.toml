@@ -55,7 +55,11 @@ rustflags = [
 ]
 
 [target.wasm32-wasip1-threads]
-rustflags = ["--cfg", "tokio_unstable"]
+rustflags = [
+  "-C",
+  "target-feature=+simd128", 
+  "--cfg", "tokio_unstable"
+]
 
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
