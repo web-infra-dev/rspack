@@ -17,7 +17,7 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
   Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
 };
-use rspack_error::{error, miette::IntoDiagnostic, Result};
+use rspack_error::{error, miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{asset_condition::AssetConditions, identifier::make_paths_absolute};
@@ -252,53 +252,77 @@ impl SourceMapDevToolPlugin {
       })
       .collect::<HashMap<_, _>>();
 
-    let module_source_names = source_map_modules.values().collect::<Vec<_>>();
     let mut module_to_source_name = match &self.module_filename_template {
-      ModuleFilenameTemplate::String(s) => {
-        let tasks = module_source_names
-          .into_iter()
-          .map(|(file, module_or_source)| async move {
-            if let ModuleOrSource::Source(source) = module_or_source {
-              if SCHEMA_SOURCE_REGEXP.is_match(source) {
-                return Ok((module_or_source, source.to_string()));
-              }
-            }
+      ModuleFilenameTemplate::String(template) => {
+        let source_names = rspack_futures::scope::<_, Result<_>>(|token| {
+          source_map_modules.values()
+            .for_each(|(file, module_or_source)| {
+              let s = unsafe {
+                token.used((
+                  self.namespace.as_str(),
+                  &compilation,
+                  file,
+                  module_or_source,
+                  file_to_chunk,
+                  template,
+                ))
+              };
+              s.spawn(
+                |(namespace, compilation, file, module_or_source, file_to_chunk, template)| async move {
+                  if let ModuleOrSource::Source(source) = module_or_source {
+                    if SCHEMA_SOURCE_REGEXP.is_match(source) {
+                      return Ok(source.to_string());
+                    }
+                  }
 
-            let chunk = file_to_chunk.get(file);
-            let path_data = PathData::default()
-              .chunk_id_optional(
-                chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
-              )
-              .chunk_name_optional(chunk.and_then(|c| c.name()))
-              .chunk_hash_optional(chunk.and_then(|c| {
-                c.rendered_hash(
-                  &compilation.chunk_hashes_artifact,
-                  compilation.options.output.hash_digest_length,
-                )
-              }));
+                  let chunk = file_to_chunk.get(file);
+                  let path_data = PathData::default()
+                    .chunk_id_optional(
+                      chunk
+                        .and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+                    )
+                    .chunk_name_optional(chunk.and_then(|c| c.name()))
+                    .chunk_hash_optional(chunk.and_then(|c| {
+                      c.rendered_hash(
+                        &compilation.chunk_hashes_artifact,
+                        compilation.options.output.hash_digest_length,
+                      )
+                    }));
 
-            let filename = Filename::from(self.namespace.as_str());
-            let namespace = compilation.get_path(&filename, path_data).await?;
+                  let filename = Filename::from(namespace);
+                  let namespace = compilation.get_path(&filename, path_data).await?;
 
-            let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
-              module_or_source,
-              compilation,
-              s,
-              output_options,
-              &namespace,
-            );
-            Ok((module_or_source, source_name))
-          })
-          .collect::<Vec<_>>();
+                  let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
+                    module_or_source,
+                    compilation,
+                    template,
+                    &compilation.options.output,
+                    &namespace,
+                  );
+                  Ok(source_name)
+                },
+              );
+            })
+        })
+        .await
+        .into_iter()
+        .map(|r| r.to_rspack_result())
+        .collect::<Result<Vec<_>>>()?;
 
-        join_all(tasks)
-          .await
-          .into_iter()
-          .collect::<Result<HashMap<_, _>>>()?
+        let mut res = HashMap::default();
+
+        for ((_, module_or_source), source_name) in
+          source_map_modules.values().zip(source_names.into_iter())
+        {
+          res.insert(module_or_source, source_name?);
+        }
+
+        res
       }
       ModuleFilenameTemplate::Fn(f) => {
-        let tasks = module_source_names
-          .into_iter()
+        // the tsfn will be called sync in javascript side so there is no need to use rspack futures to parallelize it
+        let tasks = source_map_modules
+          .values()
           .map(|(_, module_or_source)| async move {
             if let ModuleOrSource::Source(source) = module_or_source {
               if SCHEMA_SOURCE_REGEXP.is_match(source) {
