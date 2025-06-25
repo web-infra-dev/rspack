@@ -17,12 +17,13 @@ Rspack 1.4 已经正式发布！
 
 - 新功能
   - [WASM target 支持](#wasm-target-支持)
+  - [更快的 SWC](#更快的-swc)
+  - [更小的构建产物](#更小的构建产物)
   - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
   - [Lazy compilation 支持 MultiCompiler](#lazy-compilation-支持-multicompiler)
   - [支持自定义 inputFileSystem](#支持自定义-inputfilesystem)
 - 性能优化
   - [默认启用增量构建](#默认启用增量构建)
-  - [升级 SWC](#升级-swc)
   - [升级 zod v4](#升级-zod-v4)
 - Rstack 进展
   - [Rsbuild 1.4](#rsbuild-14)
@@ -180,7 +181,7 @@ Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
   width="760"
 />
 
-- **内置支持 `.js?raw` 查询参数**：允许你将 JavaScript、TypeScript 和 JSX 文件的原始内容作为文本导入。这在需要将代码作为字符串进行处理的场景（例如展示代码示例）下非常有用。
+- **内置支持 `.js?raw` 查询参数**：允许你将 JavaScript、TypeScript 和 JSX 文件的原始内容作为文本导入。这在需要将代码作为字符串进行处理的场景下非常有用（例如展示代码示例）。
 
 ```js
 import rawJs from './script1.js?raw';
