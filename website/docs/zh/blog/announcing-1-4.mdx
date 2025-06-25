@@ -45,7 +45,12 @@ Rspack 1.4 已经正式发布！
 
 > Rsbuild Demo: https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example
 
-[a0d8edff-ee60-498e-aec8-bba77b42de81.mp4]
+<video
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-wasm-target.mp4"
+  autoPlay
+  muted
+  loop
+/>
 
 ### 更快的 SWC
 
@@ -164,18 +169,33 @@ Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
 
 - **新增 [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) 插件**：通过该插件，你可以无缝集成 Chrome DevTools 的 ["自动工作区文件夹"](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) (Automatic Workspace Folders) 新特性。这意味着你可以在 DevTools 中直接修改和调试项目源码，并将改动保存到本地文件系统。
 
+  ![rsbuild plugin devtools json](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png)
+
 - **内置支持 `.js?raw` 查询参数**：允许你将 JavaScript、TypeScript 和 JSX 文件的原始内容作为文本导入。这在需要将代码作为字符串进行处理的场景（例如展示代码示例）下非常有用。
 
+  ![rsbuild js raw](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-js-raw.png)
+
 - **编译范围变化**：当你在 monorepo 中引用其他包的 JS 文件时，Rsbuild 现在默认使用 SWC 编译它们，这有助于避免外部依赖引入的浏览器兼容性问题。
+
   - 在下面的例子中，假设 app 目标为 ES2015，utils 目标为 ES2021，当 app 引用 `utils/dist/index.js` 时，SWC 现在会将它降级到 ES2015。
+
+  ![rsbuild monorepo compile scope](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png)
 
 ### Rslib 0.10
 
 Rslib 目前已发布 v0.10 版本，主要新增了以下功能：
 
 - **ESM 产物优化**：现在会生成更简洁清晰、体积更小的 ESM 产物。
+
+  ![rslib esm](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-esm.png)
+
 - **支持构建 Vue 组件库**：通过引入 [rsbuild-plugin-unplugin-vue](https://github.com/rspack-contrib/rsbuild-plugin-unplugin-vue) 插件，你可以使用 Rslib 生成 Vue 组件库的 bundleless 产物。
+
+  ![rslib vue](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-vue.png)
+
 - **支持输出 `iife` 格式**：现在可以生成 IIFE 格式的产物，将代码包裹在函数表达式中。
+
+  ![rslib iife](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-iife.png)
 
 > 阅读[博客](https://rslib.rs/blog/introducing-rslib)进一步了解 Rslib。
 
@@ -184,6 +204,10 @@ Rslib 目前已发布 v0.10 版本，主要新增了以下功能：
 Rspress 2.0 beta 中已经开启 lazyCompilation 和默认集成 shiki 等，带来了更快的启动速度和更强大的功能。
 
 目前正在开发最后的文档样式，在 Rspress 2.0 中，我们将采用全新的主题，大幅优化文档的阅读体验。
+
+![rspress theme 1](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rspress1.png)
+
+![rspress theme 2](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rspress2.png)
 
 ### Rsdoctor MCP
 
@@ -196,7 +220,12 @@ Rsdoctor 结合人工智能能力推出了 `@rsdoctor/mcp-server`，旨在协助
 - **产物优化建议**：提供产物体积优化、代码分割等建议。
 - **编译优化建议**：分析编译耗时，提供编译性能优化建议。
 
-TODO: 添加视频
+<video
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
+  autoPlay
+  muted
+  loop
+/>
 
 > 阅读[官网文档](https://rsdoctor.rs/zh/guide/start/mcp)进一步了解。
 
@@ -205,6 +234,8 @@ TODO: 添加视频
 Rstest 发布了首个正式版本 v0.0.1，现已支持 Node.js 和 jsdom 测试。更多功能和文档正在逐步完善中，欢迎大家前来体验。
 
 Rstest 是一个基于 Rspack 的测试框架，提供与 Jest 兼容的 API。它将为 Rstack 项目提供开箱即用的测试支持。
+
+![rstest](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rstest.png)
 
 ## 生态系统
 
@@ -218,6 +249,8 @@ Rstest 是一个基于 Rspack 的测试框架，提供与 Jest 兼容的 API。�
 目前，Rspack 对 Next.js 的功能支持已趋于完善。接下来，我们将继续努力，将 Next.js 的测试覆盖率提升至 100%。
 
 未来的工作重点将转向进一步提升 Rspack 在 Next.js 项目中的性能表现。
+
+![next-rspack](https://assets.rspack.dev/rspack/assets/rspack-v1-4-next-rspack.png)
 
 ## 升级指南
 
