@@ -174,17 +174,31 @@ Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
 
 - **新增 [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) 插件**：通过该插件，你可以无缝集成 Chrome DevTools 的 ["自动工作区文件夹"](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) (Automatic Workspace Folders) 新特性。这意味着你可以在 DevTools 中直接修改和调试项目源码，并将改动保存到本地文件系统。
 
-  ![rsbuild plugin devtools json](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png)
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
+  alt="rsbuild plugin devtools json"
+  width="760"
+/>
 
 - **内置支持 `.js?raw` 查询参数**：允许你将 JavaScript、TypeScript 和 JSX 文件的原始内容作为文本导入。这在需要将代码作为字符串进行处理的场景（例如展示代码示例）下非常有用。
 
-  ![rsbuild js raw](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-js-raw.png)
+```js
+import rawJs from './script1.js?raw';
+import rawTs from './script2.ts?raw';
+import rawJsx from './script3.jsx?raw';
 
-- **编译范围变化**：当你在 monorepo 中引用其他包的 JS 文件时，Rsbuild 现在默认使用 SWC 编译它们，这有助于避免外部依赖引入的浏览器兼容性问题。
+console.log(rawJs); // JS 文件的原始内容
+console.log(rawTs); // TS 文件的原始内容
+console.log(rawJsx); // JSX 文件的原始内容
+```
 
-  - 在下面的例子中，假设 app 目标为 ES2015，utils 目标为 ES2021，当 app 引用 `utils/dist/index.js` 时，SWC 现在会将它降级到 ES2015。
+- **改进浏览器兼容性**：当你在 monorepo 中引用其他包的 JS 文件时，Rsbuild 现在默认使用 SWC 编译它们，这有助于避免外部依赖引入的浏览器兼容性问题。以下图为例，假设 app 目标为 ES2015，utils 目标为 ES2021，当 app 引用 `utils/dist/index.js` 时，SWC 现在会将它降级到 ES2015。
 
-  ![rsbuild monorepo compile scope](https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png)
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png"
+  alt="rsbuild monorepo compile scope"
+  width="600"
+/>
 
 ### Rslib 0.10
 
