@@ -114,6 +114,9 @@ jobs:
         run: bash .github/actions/codspeed/check-comment.sh
 
   test_required_check:
+    # this job will be used for GitHub actions to determine required job success or not;
+    # When code changed, it will check if any of the test jobs failed.
+    # When *only* doc changed, it will run as success directly
     name: Test Required Check
     needs: [check-codspeed, test-linux, test-windows, test-mac, check-changed]
     if: ${{ always() && !cancelled() }}
