@@ -127,19 +127,19 @@ impl DependencyConditionFn for InlineValueDependencyCondition {
     let module = mg
       .get_module_by_dependency_id(&self.dependency_id)
       .expect("should have target module");
-    let inline_const_disabled = module
+    let inline_const_enabled = module
       .as_normal_module()
       .and_then(|m| m.get_parser_options())
       .and_then(|options| options.get_javascript())
-      .map(|options| options.inline_const != Some(true))
+      .map(|options| options.inline_const == Some(true))
       .unwrap_or_default();
-    let inline_enum_disabled = module
+    let inline_enum_enabled = module
       .build_info()
       .collected_typescript_info
       .as_ref()
-      .map(|info| info.exported_enums.is_empty())
+      .map(|info| !info.exported_enums.is_empty())
       .unwrap_or_default();
-    if inline_const_disabled && inline_enum_disabled {
+    if !inline_const_enabled && !inline_enum_enabled {
       // bailout if the target module didn't enable inline const/enum
       return bailout;
     }
