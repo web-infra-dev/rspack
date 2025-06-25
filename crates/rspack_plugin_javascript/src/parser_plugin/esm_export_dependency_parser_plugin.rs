@@ -1,7 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{
-  BoxDependency, CollectedTypeScriptInfo, ConstDependency, DependencyRange, DependencyType, SpanExt,
-};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
 use swc_core::{
   atoms::Atom,
   common::{comments::CommentKind, Spanned},
@@ -99,11 +97,10 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .map(InlinableConstData::downcast)
         .map(|data| data.value);
       let enum_value = parser
-        .additional_data
-        .as_mut()
-        .and_then(|data| data.get_mut::<CollectedTypeScriptInfo>())
-        .and_then(|info| info.exported_enums.remove(export_name));
-      dbg!(&enum_value);
+        .build_info
+        .collected_typescript_info
+        .as_ref()
+        .and_then(|info| info.exported_enums.get(export_name).cloned());
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),

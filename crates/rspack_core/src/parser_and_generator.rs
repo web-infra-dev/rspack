@@ -1,7 +1,10 @@
-use std::{any::Any, borrow::Cow};
+use std::{any::Any, borrow::Cow, ops::Deref};
 
 use derive_more::Debug;
-use rspack_cacheable::cacheable_dyn;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsMap, AsPreset, AsVec},
+};
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{AdditionalData, ResourceData};
@@ -37,13 +40,32 @@ pub struct ParseContext<'a> {
   pub build_meta: &'a mut BuildMeta,
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CollectedTypeScriptInfo {
+  #[cacheable(with=AsVec<AsPreset>)]
   pub type_exports: FxHashSet<Atom>,
+  #[cacheable(with=AsMap<AsPreset>)]
   pub exported_enums: FxHashMap<Atom, TSEnumValue>,
 }
 
-pub type TSEnumValue = FxHashMap<Atom, EvaluatedInlinableValue>;
+#[cacheable]
+#[derive(Debug, Default, Clone)]
+pub struct TSEnumValue(#[cacheable(with=AsMap<AsPreset>)] FxHashMap<Atom, EvaluatedInlinableValue>);
+
+impl TSEnumValue {
+  pub fn new(value: FxHashMap<Atom, EvaluatedInlinableValue>) -> Self {
+    Self(value)
+  }
+}
+
+impl Deref for TSEnumValue {
+  type Target = FxHashMap<Atom, EvaluatedInlinableValue>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItem {

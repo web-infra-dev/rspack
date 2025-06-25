@@ -167,27 +167,46 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
+    if let Some(enum_value) = &dep.enum_value {
+      let all_enum_member_inlined = enum_value.keys().all(|enum_key| {
+        let export_name = &[dep.name.clone(), enum_key.clone()];
+        let exports_info = module_graph.get_prefetched_exports_info(
+          &module.identifier(),
+          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+        );
+        let enum_member_used_name = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          *runtime,
+          export_name,
+        );
+        matches!(enum_member_used_name, Some(UsedName::Inlined(_)))
+      });
+      if all_enum_member_inlined {
+        return;
+      }
+    }
+
     let exports_info = module_graph.get_prefetched_exports_info(
       &module.identifier(),
       PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
     );
-    let used_name = ExportsInfoGetter::get_used_name(
+    let Some(used_name) = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),
       *runtime,
       std::slice::from_ref(&dep.name),
-    );
-    if let Some(used_name) = used_name {
-      let used_name = match used_name {
-        UsedName::Normal(vec) => {
-          // only have one value for export specifier dependency
-          vec[0].clone()
-        }
-        UsedName::Inlined(_) => return,
-      };
-      init_fragments.push(Box::new(ESMExportInitFragment::new(
-        module.get_exports_argument(),
-        vec![(used_name, dep.value.clone())],
-      )));
-    }
+    ) else {
+      return;
+    };
+    let used_name = match used_name {
+      UsedName::Normal(vec) => {
+        // only have one value for export specifier dependency
+        vec[0].clone()
+      }
+      UsedName::Inlined(_) => return,
+    };
+    init_fragments.push(Box::new(ESMExportInitFragment::new(
+      module.get_exports_argument(),
+      vec![(used_name, dep.value.clone())],
+    )));
   }
 }

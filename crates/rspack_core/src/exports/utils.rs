@@ -38,8 +38,8 @@ enum EvaluatedInlinableValueInner {
   Null,
   Undefined,
   Boolean(bool),
-  Number(Atom),
-  String(Atom),
+  Number(#[cacheable(with=AsPreset)] Atom),
+  String(#[cacheable(with=AsPreset)] Atom),
 }
 
 #[cacheable]

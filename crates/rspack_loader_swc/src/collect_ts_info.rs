@@ -1,4 +1,4 @@
-use rspack_core::{CollectedTypeScriptInfo, EvaluatedInlinableValue};
+use rspack_core::{CollectedTypeScriptInfo, EvaluatedInlinableValue, TSEnumValue};
 use rspack_swc_plugin_ts_collector::{
   EnumMemberValue, ExportedEnumCollector, TypeExportsCollector,
 };
@@ -28,18 +28,20 @@ pub fn collect_typescript_info(
     exported_enums: exported_enums
       .into_iter()
       .map(|(k, members)| {
-        let value = members
-          .into_iter()
-          .map(|(id, v)| {
-            let value = match v {
-              EnumMemberValue::Number(n) => {
-                EvaluatedInlinableValue::new_number(n.to_js_string().into())
-              }
-              EnumMemberValue::String(s) => EvaluatedInlinableValue::new_string(s),
-            };
-            (id, value)
-          })
-          .collect();
+        let value = TSEnumValue::new(
+          members
+            .into_iter()
+            .map(|(id, v)| {
+              let value = match v {
+                EnumMemberValue::Number(n) => {
+                  EvaluatedInlinableValue::new_number(n.to_js_string().into())
+                }
+                EnumMemberValue::String(s) => EvaluatedInlinableValue::new_string(s),
+              };
+              (id, value)
+            })
+            .collect(),
+        );
         (k, value)
       })
       .collect(),
