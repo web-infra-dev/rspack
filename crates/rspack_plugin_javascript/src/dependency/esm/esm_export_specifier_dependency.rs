@@ -84,7 +84,7 @@ impl Dependency for ESMExportSpecifierDependency {
             .map(|(enum_name, enum_value)| {
               ExportNameOrSpec::ExportSpec(ExportSpec {
                 name: enum_name.clone(),
-                inlinable: Some(enum_value.clone()),
+                inlinable: enum_value.clone(),
                 ..Default::default()
               })
             })
@@ -167,8 +167,13 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
+    // remove the enum decl if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
-      let all_enum_member_inlined = enum_value.keys().all(|enum_key| {
+      let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
+        // if there are enum member need to keep origin/non-inlineable, then we need to keep the enum decl
+        if enum_member.is_none() {
+          return false;
+        }
         let export_name = &[dep.name.clone(), enum_key.clone()];
         let exports_info = module_graph.get_prefetched_exports_info(
           &module.identifier(),

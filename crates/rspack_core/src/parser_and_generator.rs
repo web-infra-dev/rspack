@@ -51,16 +51,18 @@ pub struct CollectedTypeScriptInfo {
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
-pub struct TSEnumValue(#[cacheable(with=AsMap<AsPreset>)] FxHashMap<Atom, EvaluatedInlinableValue>);
+pub struct TSEnumValue(
+  #[cacheable(with=AsMap<AsPreset>)] FxHashMap<Atom, Option<EvaluatedInlinableValue>>,
+);
 
 impl TSEnumValue {
-  pub fn new(value: FxHashMap<Atom, EvaluatedInlinableValue>) -> Self {
+  pub fn new(value: FxHashMap<Atom, Option<EvaluatedInlinableValue>>) -> Self {
     Self(value)
   }
 }
 
 impl Deref for TSEnumValue {
-  type Target = FxHashMap<Atom, EvaluatedInlinableValue>;
+  type Target = FxHashMap<Atom, Option<EvaluatedInlinableValue>>;
 
   fn deref(&self) -> &Self::Target {
     &self.0

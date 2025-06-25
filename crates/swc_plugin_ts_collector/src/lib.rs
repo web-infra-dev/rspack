@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod enums;
 mod type_exports;
 

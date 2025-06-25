@@ -34,9 +34,10 @@ pub fn collect_typescript_info(
             .map(|(id, v)| {
               let value = match v {
                 EnumMemberValue::Number(n) => {
-                  EvaluatedInlinableValue::new_number(n.to_js_string().into())
+                  Some(EvaluatedInlinableValue::new_number(n.to_js_string().into()))
                 }
-                EnumMemberValue::String(s) => EvaluatedInlinableValue::new_string(s),
+                EnumMemberValue::String(s) => Some(EvaluatedInlinableValue::new_string(s)),
+                EnumMemberValue::Unknown => None,
               };
               (id, value)
             })
