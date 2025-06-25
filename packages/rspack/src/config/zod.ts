@@ -269,9 +269,11 @@ export const getRspackOptionsSchema = memoize(() => {
 
 	const clean = z.union([
 		z.boolean(),
-		z.strictObject({
-			keep: z.instanceof(RegExp).or(z.string()).or(anyFunction).optional()
-		})
+		z
+			.strictObject({
+				keep: z.instanceof(RegExp).or(z.string()).or(anyFunction)
+			})
+			.partial()
 	]) satisfies z.ZodType<t.Clean>;
 
 	const outputModule = z.boolean() satisfies z.ZodType<t.OutputModule>;
@@ -583,36 +585,46 @@ export const getRspackOptionsSchema = memoize(() => {
 		z.literal("...").or(ruleSetRule).or(falsy)
 	) satisfies z.ZodType<t.RuleSetRules>;
 
-	const assetParserDataUrlOptions = z.strictObject({
-		maxSize: numberOrInfinity.optional()
-	}) satisfies z.ZodType<t.AssetParserDataUrlOptions>;
+	const assetParserDataUrlOptions = z
+		.strictObject({
+			maxSize: numberOrInfinity
+		})
+		.partial() satisfies z.ZodType<t.AssetParserDataUrlOptions>;
 
 	const assetParserDataUrl =
 		assetParserDataUrlOptions satisfies z.ZodType<t.AssetParserDataUrl>;
 
-	const assetParserOptions = z.strictObject({
-		dataUrlCondition: assetParserDataUrl.optional()
-	}) satisfies z.ZodType<t.AssetParserOptions>;
+	const assetParserOptions = z
+		.strictObject({
+			dataUrlCondition: assetParserDataUrl
+		})
+		.partial() satisfies z.ZodType<t.AssetParserOptions>;
 
 	const cssParserNamedExports =
 		z.boolean() satisfies z.ZodType<t.CssParserNamedExports>;
 
 	const cssParserUrl = z.boolean() satisfies z.ZodType<t.CssParserUrl>;
 
-	const cssParserOptions = z.strictObject({
-		namedExports: cssParserNamedExports.optional(),
-		url: cssParserUrl.optional()
-	}) satisfies z.ZodType<t.CssParserOptions>;
+	const cssParserOptions = z
+		.strictObject({
+			namedExports: cssParserNamedExports,
+			url: cssParserUrl
+		})
+		.partial() satisfies z.ZodType<t.CssParserOptions>;
 
-	const cssAutoParserOptions = z.strictObject({
-		namedExports: cssParserNamedExports.optional(),
-		url: cssParserUrl.optional()
-	}) satisfies z.ZodType<t.CssAutoParserOptions>;
+	const cssAutoParserOptions = z
+		.strictObject({
+			namedExports: cssParserNamedExports,
+			url: cssParserUrl
+		})
+		.partial() satisfies z.ZodType<t.CssAutoParserOptions>;
 
-	const cssModuleParserOptions = z.strictObject({
-		namedExports: cssParserNamedExports.optional(),
-		url: cssParserUrl.optional()
-	}) satisfies z.ZodType<t.CssModuleParserOptions>;
+	const cssModuleParserOptions = z
+		.strictObject({
+			namedExports: cssParserNamedExports,
+			url: cssParserUrl
+		})
+		.partial() satisfies z.ZodType<t.CssModuleParserOptions>;
 
 	const dynamicImportMode = z.enum(["eager", "lazy", "weak", "lazy-once"]);
 	const dynamicImportPreload = z.union([z.boolean(), numberOrInfinity]);
@@ -702,9 +714,11 @@ export const getRspackOptionsSchema = memoize(() => {
 		assetGeneratorDataUrlFunction
 	) satisfies z.ZodType<t.AssetGeneratorDataUrl>;
 
-	const assetInlineGeneratorOptions = z.strictObject({
-		dataUrl: assetGeneratorDataUrl.optional()
-	}) satisfies z.ZodType<t.AssetInlineGeneratorOptions>;
+	const assetInlineGeneratorOptions = z
+		.strictObject({
+			dataUrl: assetGeneratorDataUrl
+		})
+		.partial() satisfies z.ZodType<t.AssetInlineGeneratorOptions>;
 
 	const assetResourceGeneratorOptions = z
 		.strictObject({
@@ -761,9 +775,11 @@ export const getRspackOptionsSchema = memoize(() => {
 		})
 		.partial() satisfies z.ZodType<t.CssModuleGeneratorOptions>;
 
-	const jsonGeneratorOptions = z.strictObject({
-		JSONParse: z.boolean().optional()
-	}) satisfies z.ZodType<t.JsonGeneratorOptions>;
+	const jsonGeneratorOptions = z
+		.strictObject({
+			JSONParse: z.boolean()
+		})
+		.partial() satisfies z.ZodType<t.JsonGeneratorOptions>;
 
 	const generatorOptionsByModuleTypeKnown = z
 		.strictObject({
@@ -1188,9 +1204,11 @@ export const getRspackOptionsSchema = memoize(() => {
 		.enum(["single", "multiple"])
 		.or(z.boolean())
 		.or(
-			z.strictObject({
-				name: z.string().or(anyFunction).optional()
-			})
+			z
+				.strictObject({
+					name: z.string().or(anyFunction)
+				})
+				.partial()
 		) satisfies z.ZodType<t.OptimizationRuntimeChunk>;
 
 	const optimizationSplitChunksNameFunction =
@@ -1292,16 +1310,17 @@ export const getRspackOptionsSchema = memoize(() => {
 	//#endregion
 
 	//#region Experiments
-	const rspackFutureOptions = z.strictObject({
-		bundlerInfo: z
-			.strictObject({
-				version: z.string(),
-				bundler: z.string(),
-				force: z.boolean().or(z.array(z.enum(["version", "uniqueId"])))
-			})
-			.partial()
-			.optional()
-	}) satisfies z.ZodType<t.RspackFutureOptions>;
+	const rspackFutureOptions = z
+		.strictObject({
+			bundlerInfo: z
+				.strictObject({
+					version: z.string(),
+					bundler: z.string(),
+					force: z.boolean().or(z.array(z.enum(["version", "uniqueId"])))
+				})
+				.partial()
+		})
+		.partial() satisfies z.ZodType<t.RspackFutureOptions>;
 
 	const experimentCacheOptions = z
 		.object({
