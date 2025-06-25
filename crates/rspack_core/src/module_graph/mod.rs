@@ -1091,6 +1091,18 @@ impl<'a> ModuleGraph<'a> {
       .expect("should have export info")
   }
 
+  pub fn prepare_export_info_map(&mut self) {
+    let _ = self
+      .loop_partials_mut::<UkeyMap<ExportInfo, ExportInfoData>, UkeyMap<ExportInfo, ExportInfoData>>(
+        |_| false,
+        |p, search_result| {
+          let _ = std::mem::replace::<UkeyMap<ExportInfo, ExportInfoData>>(&mut p.export_info_map, search_result);
+        },
+        |p| Some(p.export_info_map.clone()),
+        |p| Some(&mut p.export_info_map),
+      );
+  }
+
   pub fn set_export_info(&mut self, id: ExportInfo, info: ExportInfoData) {
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
