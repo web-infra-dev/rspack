@@ -1,0 +1,206 @@
+---
+date: 2025-6-26 16:00:00
+sidebar: false
+---
+
+_2025 年 6 月 26 日_
+
+# Rspack 1.4 发布公告
+
+![Rspack 1.4](https://assets.rspack.dev/rspack/rspack-banner-v1-4.png)
+
+---
+
+Rspack 1.4 已经正式发布！
+
+值得关注的变更如下：
+
+- 新功能
+  - [WASM target 支持](#wasm-target-支持)
+  - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
+  - [Lazy compilation 支持 MultiCompiler](#lazy-compilation-支持-multicompiler)
+  - [支持自定义 inputFileSystem](#支持自定义-inputfilesystem)
+- 性能优化
+  - [默认启用增量构建](#默认启用增量构建)
+  - [升级 SWC](#升级-swc)
+  - [升级 zod v4](#升级-zod-v4)
+- Rstack 进展
+  - [Rsbuild 1.4](#rsbuild-14)
+  - [Rslib 0.10](#rslib-010)
+  - [Rspress 2.0 beta](#rspress-20-beta)
+  - [Rsdoctor MCP](#rsdoctor-mcp)
+  - [Rstest](#rstest)
+- 生态系统
+  - [next-rspack](#next-rspack)
+- 升级指南
+  - [SWC 插件版本升级](#swc-插件版本升级)
+
+## 新功能
+
+### WASM target 支持
+
+从 Rspack 1.4 开始，Rspack 支持直接在 StackBlitz (WebContainers) 中使用。在 [Rspack 的文档](https://rspack.dev/zh/guide/start/quick-start)中可以预览在线 Demo 以及如何在 StackBlitz 上预览你的项目的指南。
+
+未来我们会持续优化使用流程和包体积，使用户可以无缝地预览 Rspack 项目。此外，我们也计划提供 `@rspack/browser` 包，允许你在浏览器上直接使用 Rspack。
+
+> Rsbuild Demo: https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example
+
+[a0d8edff-ee60-498e-aec8-bba77b42de81.mp4]
+
+### 新增 CssChunkingPlugin
+
+CssChunkingPlugin 是专为处理 CSS 模块代码分割的实验性插件（参考自 Next.js），确保样式规则的执行顺序与源代码导入顺序保持一致，避免样式错误。
+
+```js
+new rspack.experiments.CssChunkingPlugin(options);
+```
+
+启用 CssChunkingPlugin 后，SplitChunksPlugin 将不再处理 CSS 模块。这意味着 `optimization.splitChunks` 等配置对 CSS 模块将不再生效，所有 CSS 模块的代码分割逻辑完全由 CssChunkingPlugin 处理。
+
+[这里](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/css-chunking-plugin)是一个最小化的示例，更多请参考[文档](https://rspack.dev/zh/plugins/rspack/css-chunking-plugin)。
+
+### Lazy compilation 支持 MultiCompiler
+
+Rspack 现已支持在 MultiCompiler 里启用 lazyCompilation 功能。同时，lazyCompilationMiddleware 的接入方式已更新：不再需要手动传入配置选项，该中间件将直接从 compiler 实例中自动读取 lazyCompilation 配置，开发者可为不同 compiler 实例独立设置差异化的 lazyCompilation 策略。
+
+```js
+import { experiments, rspack } from '@rspack/core';
+import { RspackDevServer } from '@rspack/dev-server';
+
+const compiler = rspack([
+  {
+    target: 'web',
+    name: 'client',
+    experiments: {
+      // enable lazy compilation for client
+      lazyCompilation: true,
+    },
+  },
+  {
+    target: 'node',
+    name: 'server',
+    experiments: {
+      // disable lazy compilation for server
+      lazyCompilation: false,
+    },
+  },
+]);
+
+// no need to pass options to lazyCompilationMiddleware
+const middleware = experiments.lazyCompilationMiddleware(compiler);
+const server = new RspackDevServer(
+  {
+    port: 3000,
+    setupMiddlewares: other => [middleware, ...other],
+  },
+  compiler,
+);
+```
+
+### 支持自定义 inputFileSystem
+
+Rspack 现已支持自定义 `compiler.inputFileSystem`；可通过配置 [experiments.useInputFileSystem](https://rspack.dev/zh/config/experiments) 开启，与 [Webpack Virtual Module 插件](https://www.npmjs.com/package/webpack-virtual-modules) 兼容使用。
+
+需要注意的是，若 Rust 侧的所有文件访问均经由 JavaScript 传入的 `inputFileSystem` 实现，可能会带来显著的[性能下降](https://gist.github.com/stormslowly/bd99e62abdc8a979635beaa0c942e6c4)，最严重可达 40%。为此，我们引入了 `useInputFileSystem` 配置项，支持通过正则规则精细控制哪些路径使用自定义 `inputFileSystem`，哪些仍走原生文件系统，以在功能扩展与性能之间取得平衡。
+
+这是一个优化的配置选项，适用于少量文件需要从 inputFileSystem 读取的场景仍能保持 Rspack 高性能。未来 Rspack 将内置虚拟模块支持，进一步简化使用并提升效率。
+
+[这里](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-test-tools/tests/configCases/input-file-system)是一个最小化的示例，更多请参考[文档](https://rspack.dev/config/experiments#experimentsuseinputfilesystem)。
+
+## 性能优化
+
+### 默认启用增量构建
+
+_Author [@ahabhgk](https://github.com/ahabhgk) @何庚坤_
+
+在 Rspack v1.4.0 中，**增量构建功能已默认开启所有阶段的优化**（'advance-silent' 模式），这将为开发者带来显著的重构建速度提升和更流畅的热模块替换 (HMR) 体验。
+
+增量构建开启后一般来说能够有 **30%-40%** 左右的重构建速度提升，具体需视项目情况而定。如果您需要保留之前的行为，可以通过配置 `experiments.incremental: 'safe'` 来恢复。但我们建议大多数项目直接使用新的默认设置，以获得最佳性能。具体文档请参考 [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental)。
+
+### 升级 SWC
+
+在 Rspack 1.4.0，我们将底层编译工具 SWC 升级至 [**v29.1.2**](https://crates.io/crates/swc_core/29.1.2)！此次升级带来：
+
+- JavaScript / TypeScript 的编译速度显著提升
+- 代码压缩效率提高
+
+⚠️ **重要 Breaking change**
+
+若您的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），必须将插件升级至兼容 `swc_core@29.1.2` 的版本，否则可能因版本不兼容导致构建报错。详情请查阅：[SWC Plugin Version Unmatched](https://rspack.dev/errors/swc-plugin-version)
+
+### 升级 zod v4
+
+Rspack 1.4 已升级 zod 到 v4 版本。
+
+## Rstack 进展
+
+### Rsbuild 1.4
+
+Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
+
+- **新增 [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) 插件**：通过该插件，你可以无缝集成 Chrome DevTools 的 ["自动工作区文件夹"](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) (Automatic Workspace Folders) 新特性。这意味着你可以在 DevTools 中直接修改和调试项目源码，并将改动保存到本地文件系统。
+
+- **内置支持 `.js?raw` 查询参数**：允许你将 JavaScript、TypeScript 和 JSX 文件的原始内容作为文本导入。这在需要将代码作为字符串进行处理的场景（例如展示代码示例）下非常有用。
+
+- **编译范围变化**：当你在 monorepo 中引用其他包的 JS 文件时，Rsbuild 现在默认使用 SWC 编译它们，这有助于避免外部依赖引入的浏览器兼容性问题。
+  - 在下面的例子中，假设 app 目标为 ES2015，utils 目标为 ES2021，当 app 引用 `utils/dist/index.js` 时，SWC 现在会将它降级到 ES2015。
+
+### Rslib 0.10
+
+Rslib 目前已发布 v0.10 版本，主要新增了以下功能：
+
+- **ESM 产物优化**：现在会生成更简洁清晰、体积更小的 ESM 产物。
+- **支持构建 Vue 组件库**：通过引入 [rsbuild-plugin-unplugin-vue](https://github.com/rspack-contrib/rsbuild-plugin-unplugin-vue) 插件，你可以使用 Rslib 生成 Vue 组件库的 bundleless 产物。
+- **支持输出 `iife` 格式**：现在可以生成 IIFE 格式的产物，将代码包裹在函数表达式中。
+
+> 阅读[博客](https://rslib.rs/blog/introducing-rslib)进一步了解 Rslib。
+
+### Rspress 2.0 beta
+
+Rspress 2.0 beta 中已经开启 lazyCompilation 和默认集成 shiki 等，带来了更快的启动速度和更强大的功能。
+
+目前正在开发最后的文档样式，在 Rspress 2.0 中，我们将采用全新的主题，大幅优化文档的阅读体验。
+
+### Rsdoctor MCP
+
+Rsdoctor 结合人工智能能力推出了 `@rsdoctor/mcp-server`，旨在协助用户更便利地运用 Rsdoctor 的构建数据。该服务器可与 Rsdoctor 的本地构建分析数据协同使用，以问答形式助力用户迅速获取构建分析结果。
+
+`@rsdoctor/mcp-server` 提供四大类核心分析能力：
+
+- **产物信息分析**：分析构建产物的体积、组成等信息。
+- **依赖问题分析**：分析项目依赖关系、重复依赖等问题。
+- **产物优化建议**：提供产物体积优化、代码分割等建议。
+- **编译优化建议**：分析编译耗时，提供编译性能优化建议。
+
+TODO: 添加视频
+
+> 阅读[官网文档](https://rsdoctor.rs/zh/guide/start/mcp)进一步了解。
+
+### Rstest
+
+Rstest 发布了首个正式版本 v0.0.1，现已支持 Node.js 和 jsdom 测试。更多功能和文档正在逐步完善中，欢迎大家前来体验。
+
+Rstest 是一个基于 Rspack 的测试框架，提供与 Jest 兼容的 API。它将为 Rstack 项目提供开箱即用的测试支持。
+
+## 生态系统
+
+### next-rspack
+
+自 Rspack 与 Next.js 合作以来，我们的首要目标是提升 Next.js 在使用 Rspack 时的测试覆盖率。截至 next 和 next-rspack 15.4.0-canary.94 版本，测试覆盖率已达到：
+
+- 生产构建 **99.4%**
+- 开发构建 **98.4%**
+
+目前，Rspack 对 Next.js 的功能支持已趋于完善。接下来，我们将继续努力，将 Next.js 的测试覆盖率提升至 100%。
+
+未来的工作重点将转向进一步提升 Rspack 在 Next.js 项目中的性能表现。
+
+## 升级指南
+
+### SWC 插件版本升级
+
+⚠️ **重要 Breaking change**
+
+若您的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），必须将插件升级至兼容 swc_core@29.1.2 的版本，否则可能因版本不兼容导致构建报错。
+
+> 详情请查阅：[SWC Plugin Version Unmatched](/errors/swc-plugin-version)
