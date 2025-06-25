@@ -47,6 +47,29 @@ Rspack 1.4 已经正式发布！
 
 [a0d8edff-ee60-498e-aec8-bba77b42de81.mp4]
 
+### 更快的 SWC
+
+在过去几个月中，Rspack 团队致力于与 SWC 团队合作，共同优化 JavaScript 工具链的性能和可靠性。经过双方团队与社区的共同努力，我们很高兴地看到，SWC 在以下方面取得了显著的提升：
+
+- **SWC parser 的性能提升了 35%，minifier 的性能提升了 10%**（与 Rspack 1.3.0 使用的 SWC 16 相比）
+
+[TODO image]
+
+- SWC 改进了死代码消除（DCE），这使得 Rspack 的构建产物体积更小。
+
+| Build tool    | Minified size | Min+Gzipped size |
+| ------------- | ------------- | ---------------- |
+| Rspack        | 36.35 kB      | 13.26 kB         |
+| Rsbuild       | 36.39 kB      | 13.29 kB         |
+| webpack       | 36.96 kB      | 13.37 kB         |
+| Vite          | 42.67 kB      | 15.67 kB         |
+| Rolldown      | 42.74 kB      | 15.17 kB         |
+| Rolldown Vite | 43.42 kB      | 15.46 kB         |
+| Farm          | 43.42 kB      | 15.63 kB         |
+| Parcel        | 44.62 kB      | 16.07 kB         |
+| esbuild       | 46.12 kB      | 16.63 kB         |
+| Bun           | 57.73 kB      | 20.8 kB          |
+
 ### 新增 CssChunkingPlugin
 
 CssChunkingPlugin 是专为处理 CSS 模块代码分割的实验性插件（参考自 Next.js），确保样式规则的执行顺序与源代码导入顺序保持一致，避免样式错误。
@@ -115,18 +138,7 @@ _Author [@ahabhgk](https://github.com/ahabhgk) @何庚坤_
 
 在 Rspack v1.4.0 中，**增量构建功能已默认开启所有阶段的优化**（'advance-silent' 模式），这将为开发者带来显著的重构建速度提升和更流畅的热模块替换 (HMR) 体验。
 
-增量构建开启后一般来说能够有 **30%-40%** 左右的重构建速度提升，具体需视项目情况而定。如果您需要保留之前的行为，可以通过配置 `experiments.incremental: 'safe'` 来恢复。但我们建议大多数项目直接使用新的默认设置，以获得最佳性能。具体文档请参考 [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental)。
-
-### 升级 SWC
-
-在 Rspack 1.4.0，我们将底层编译工具 SWC 升级至 [**v29.1.2**](https://crates.io/crates/swc_core/29.1.2)！此次升级带来：
-
-- JavaScript / TypeScript 的编译速度显著提升
-- 代码压缩效率提高
-
-⚠️ **重要 Breaking change**
-
-若您的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），必须将插件升级至兼容 `swc_core@29.1.2` 的版本，否则可能因版本不兼容导致构建报错。详情请查阅：[SWC Plugin Version Unmatched](https://rspack.dev/errors/swc-plugin-version)
+增量构建开启后一般来说能够有 **30%-40%** 左右的重构建速度提升，具体需视项目情况而定。如果你需要保留之前的行为，可以通过配置 `experiments.incremental: 'safe'` 来恢复。但我们建议大多数项目直接使用新的默认设置，以获得最佳性能。具体文档请参考 [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental)。
 
 ### 升级 zod v4
 
@@ -199,8 +211,6 @@ Rstest 是一个基于 Rspack 的测试框架，提供与 Jest 兼容的 API。�
 
 ### SWC 插件版本升级
 
-⚠️ **重要 Breaking change**
+如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），需要将插件升级至兼容 `swc_core@29` 的版本，否则可能因版本不兼容导致构建报错。
 
-若您的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），必须将插件升级至兼容 swc_core@29.1.2 的版本，否则可能因版本不兼容导致构建报错。
-
-> 详情请查阅：[SWC Plugin Version Unmatched](/errors/swc-plugin-version)
+> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
