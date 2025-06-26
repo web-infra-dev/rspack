@@ -439,7 +439,7 @@ export declare class Sources {
 }
 
 export interface BuiltinPlugin {
-  name: BuiltinPluginName
+  name: BuiltinPluginName | CustomPluginName
   options: unknown
   canInherentFromParent?: boolean
 }
