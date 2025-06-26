@@ -142,3 +142,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{ github.sha }}
+
+      - name: Reports
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: tests-reports-${{ inputs.target }}
+          path: |
+            packages/rspack-test-tools/*.html

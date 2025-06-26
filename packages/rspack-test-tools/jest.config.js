@@ -46,4 +46,14 @@ const config = {
 	}
 };
 
+config.reporters.push([
+	"jest-html-reporters",
+	{
+		filename: "base.html",
+		includeConsoleLog: true,
+		inlineSource: true,
+		pageTitle: "rspack tests"
+	}
+]);
+
 module.exports = config;
