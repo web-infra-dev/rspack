@@ -222,8 +222,8 @@ export class WatchProcessor<
 			this._multiOptions.configFiles
 		)
 			? readConfigFile(
-				this._multiOptions.configFiles!.map(i => context.getSource(i))
-			)
+					this._multiOptions.configFiles!.map(i => context.getSource(i))
+				)
 			: [{}];
 
 		for (const [index, options] of caseOptions.entries()) {
@@ -320,7 +320,7 @@ export class WatchProcessor<
 }
 
 export interface IWatchStepProcessorOptions<T extends ECompilerType>
-	extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> { }
+	extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> {}
 
 export class WatchStepProcessor<
 	T extends ECompilerType
