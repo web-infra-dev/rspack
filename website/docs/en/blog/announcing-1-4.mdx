@@ -3,45 +3,45 @@ date: 2025-6-26 16:00:00
 sidebar: false
 ---
 
-_2025 年 6 月 26 日_
+_June 26, 2025_
 
-# Rspack 1.4 发布公告
+# Announcing Rspack 1.4
 
 ![Rspack 1.4](https://assets.rspack.dev/rspack/rspack-banner-v1-4.png)
 
 ---
 
-Rspack 1.4 已经正式发布！
+Rspack 1.4 has been released!
 
-值得关注的变更如下：
+Notable changes:
 
-- 新功能
-  - [在浏览器中运行](#在浏览器中运行)
-  - [更快的 SWC](#更快的-swc)
-  - [更小的构建产物](#更小的构建产物)
-  - [默认启用增量构建](#默认启用增量构建)
-  - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
-  - [更灵活的 lazy compilation](#更灵活的-lazy-compilation)
-  - [自定义文件系统](#自定义文件系统)
-  - [性能分析工具](#性能分析工具)
-- Rstack 进展
+- New features
+  - [Running in the browser](#running-in-the-browser)
+  - [Faster SWC](#faster-swc)
+  - [Smaller bundles](#smaller-bundles)
+  - [Incremental builds by default](#incremental-builds-enabled-by-default)
+  - [New CssChunkingPlugin](#new-csschunkingplugin)
+  - [More flexible lazy compilation](#more-flexible-lazy-compilation)
+  - [Custom file system](#custom-file-system)
+  - [Performance analysis tool](#performance-analysis-tool)
+- Rstack progress
   - [Rsbuild 1.4](#rsbuild-14)
   - [Rslib 0.10](#rslib-010)
   - [Rspress 2.0 beta](#rspress-20-beta)
   - [Rsdoctor MCP](#rsdoctor-mcp)
-  - [Rstest 发布](#rstest-发布)
-- 生态系统
+  - [Rstest released](#rstest-released)
+- Ecosystem
   - [next-rspack](#next-rspack)
   - [Kmi](#kmi)
-- 升级指南
+- Upgrade guide
 
-## 新功能
+## New features
 
-### 在浏览器中运行
+### Running in the browser
 
-从 Rspack 1.4 开始，我们正式引入了 Wasm target 支持，这意味着 Rspack 现在可以在浏览器环境中运行，包括 [StackBlitz](https://stackblitz.com/)（[WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)）等在线平台。这使得开发者无需配置本地环境，即可快速创建原型、分享代码示例。
+Starting with Rspack 1.4, we have added Wasm target support, which means Rspack can now run in browser environments, including online platforms like [StackBlitz](https://stackblitz.com/) ([WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)). This enables developers to quickly create prototypes and share code examples without having to configure local environments.
 
-你可以直接体验我们提供的 [在线示例](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example)，也可以在 [这篇文档](/zh/guide/start/quick-start#使用-stackblitz-在线预览) 中了解 StackBlitz 的使用指南。
+You can try out our [online example](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#preview-with-stackblitz).
 
 <video
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-wasm-target.mp4"
@@ -50,29 +50,31 @@ Rspack 1.4 已经正式发布！
   loop
 />
 
-在后续版本中，我们将继续优化 Wasm 版本的使用流程和包体积。
+In future versions, we will continue to optimize the Wasm version's usability and bundle size.
 
-同时我们也在开发 `@rspack/browser` 包，它是专为浏览器环境设计的版本，允许你直接在任何现代浏览器中使用 Rspack，而无需依赖 WebContainers 或是特定平台。
+We are also developing the `@rspack/browser` package, which is a browser-specific version of Rspack, allowing you to use Rspack directly in any modern browser without relying on WebContainers or specific platforms.
 
-### 更快的 SWC
+### Faster SWC
 
-在过去几个月中，我们与 SWC 团队持续合作，共同优化 JavaScript 工具链的性能和可靠性。经过一段时间的优化，我们很高兴地看到，SWC 的性能取得了显著提升，使 Rspack 用户和所有基于 SWC 的工具都从中受益：
+Over the past few months, we have been continuously collaborating with the SWC team to optimize the performance and reliability of the JavaScript toolchain. After a period of optimization, we are pleased to see that SWC's performance has improved significantly, benefiting both Rspack users and all SWC-based tools:
 
-- JavaScript parser（解析器）的性能提升了 **30%～35%**
-- JavaScript minifier（压缩器）的性能提升了 **10%**
+- JavaScript parser is **30%～35%** faster
+- JavaScript minifier is **10%** faster
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-swc-benchmark.png"
   alt="SWC benchmark"
 />
 
-> 以上数据来自：[CodSpeed - SWC](https://codspeed.io/swc-project/swc)，对比的基准为 Rspack 1.3 所使用的 SWC 16。
+> The above data is from: [CodSpeed - SWC](https://codspeed.io/swc-project/swc), compared against SWC 16 used by Rspack 1.3 as the baseline.
 
-### 更小的构建产物
+Here's the professional English translation:
 
-在当前版本中，SWC 加强了死代码消除（DCE）能力，结合 Rspack 强大的 [tree shaking](/guide/optimization/tree-shaking) 功能，使 Rspack 1.4 能够生成体积更小的构建产物。
+### Smaller bundles
 
-我们以 `react-router` 为例进行测试：在源代码中仅引入它的一部分导出，然后对比不同打包工具的构建结果，可以看到 Rspack 生成的包体积最小。
+SWC has enhanced its dead code elimination (DCE) capabilities in the current version, which combined with Rspack's powerful [tree shaking](/guide/optimization/tree-shaking) functionality, enables Rspack 1.4 to generate smaller bundles.
+
+We tested this using `react-router` as an example: by importing only part of its exports in the source code and then comparing the build outputs from different bundlers, we found that Rspack generates smallest bundles.
 
 ```js title="src/index.js"
 import { BrowserRouter, Routes, Route } from 'react-router';
@@ -80,21 +82,21 @@ import { BrowserRouter, Routes, Route } from 'react-router';
 console.log(BrowserRouter, Routes, Route);
 ```
 
-各个打包工具输出的包体积如下：
+The output bundle sizes by different bundlers are as follows:
 
-| 打包工具         | 压缩后体积   | Gzipped 后体积 |
-| ---------------- | ------------ | -------------- |
-| Rspack (Rsbuild) | **36.35 kB** | **13.26 kB**   |
-| webpack          | 36.96 kB     | 13.37 kB       |
-| Vite             | 42.67 kB     | 15.67 kB       |
-| Rolldown         | 42.74 kB     | 15.17 kB       |
-| Rolldown Vite    | 43.42 kB     | 15.46 kB       |
-| Farm             | 43.42 kB     | 15.63 kB       |
-| Parcel           | 44.62 kB     | 16.07 kB       |
-| esbuild          | 46.12 kB     | 16.63 kB       |
-| Bun              | 57.73 kB     | 20.8 kB        |
+| Bundler          | Minified Size | Min+Gzipped Size |
+| ---------------- | ------------- | ---------------- |
+| Rspack (Rsbuild) | **36.35 kB**  | **13.26 kB**     |
+| webpack          | 36.96 kB      | 13.37 kB         |
+| Vite             | 42.67 kB      | 15.67 kB         |
+| Rolldown         | 42.74 kB      | 15.17 kB         |
+| Rolldown Vite    | 43.42 kB      | 15.46 kB         |
+| Farm             | 43.42 kB      | 15.63 kB         |
+| Parcel           | 44.62 kB      | 16.07 kB         |
+| esbuild          | 46.12 kB      | 16.63 kB         |
+| Bun              | 57.73 kB      | 20.8 kB          |
 
-> 以上数据来自：[react-router-tree-shaking-compare](https://github.com/chenjiahan/react-router-tree-shaking-compare)。
+> Data from [react-router-tree-shaking-compare](https://github.com/chenjiahan/react-router-tree-shaking-compare).
 
 ### 默认启用增量构建
 
