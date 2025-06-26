@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
   get_dependency_used_by_exports_condition, visitors::DestructuringAssignmentProperty,
-  InlineConstDependencyCondition,
+  InlineValueDependencyCondition,
 };
 
 #[cacheable]
@@ -282,7 +282,7 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let inline_const_condition = InlineConstDependencyCondition::new(self.id);
+    let inline_const_condition = InlineValueDependencyCondition::new(self.id);
     if let Some(used_by_exports_condition) =
       get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
     {

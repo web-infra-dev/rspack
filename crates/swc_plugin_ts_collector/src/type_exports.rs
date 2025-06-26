@@ -3,7 +3,7 @@ use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{Decl, ExportSpecifier, ModuleDecl, ModuleItem, Program, Stmt},
-    visit::{visit_pass, Visit, VisitPass},
+    visit::Visit,
   },
 };
 
@@ -134,10 +134,4 @@ impl Visit for TypeExportsCollector<'_> {
         .map(|(_, exported_as)| exported_as.clone()),
     );
   }
-}
-
-pub fn type_exports<'a>(
-  type_exports_results: &'a mut FxHashSet<Atom>,
-) -> VisitPass<TypeExportsCollector<'a>> {
-  visit_pass(TypeExportsCollector::new(type_exports_results))
 }

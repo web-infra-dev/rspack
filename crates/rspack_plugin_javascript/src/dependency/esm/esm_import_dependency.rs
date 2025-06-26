@@ -317,10 +317,14 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .and_then(|o| o.get_javascript())
         .and_then(|o| o.type_reexports_presence)
         .unwrap_or_default();
+      // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/linker/linker.go#L3129-L3131
       if !matches!(
         type_reexports_presence,
         TypeReexportPresenceMode::NoTolerant
-      ) && parent_module.build_info().is_transpiled_typescript
+      ) && parent_module
+        .build_info()
+        .collected_typescript_info
+        .is_some()
         && ids.len() == 1
         && matches!(
           ExportsInfoGetter::is_export_provided(
@@ -461,10 +465,10 @@ fn find_type_exports_from_outgoings(
   // bailout the check of this export chain if there is a module that not transpiled from
   // typescript, we only support that the export chain is all transpiled typescript, if not
   // the check will be very slow especially when big javascript npm package exists.
-  if !module.build_info().is_transpiled_typescript {
+  let Some(info) = &module.build_info().collected_typescript_info else {
     return false;
-  }
-  if module.build_info().type_exports.contains(export_name) {
+  };
+  if info.type_exports.contains(export_name) {
     return true;
   }
   for connection in mg.get_outgoing_connections(module_identifier) {

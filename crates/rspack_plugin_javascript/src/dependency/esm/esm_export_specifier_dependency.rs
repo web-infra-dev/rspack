@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
   GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
@@ -27,6 +27,7 @@ pub struct ESMExportSpecifierDependency {
   #[cacheable(with=AsPreset)]
   value: Atom, // id
   inline: Option<EvaluatedInlinableValue>,
+  enum_value: Option<TSEnumValue>,
 }
 
 impl ESMExportSpecifierDependency {
@@ -34,6 +35,7 @@ impl ESMExportSpecifierDependency {
     name: Atom,
     value: Atom,
     inline: Option<EvaluatedInlinableValue>,
+    enum_value: Option<TSEnumValue>,
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -41,6 +43,7 @@ impl ESMExportSpecifierDependency {
       name,
       value,
       inline,
+      enum_value,
       range,
       source_map,
       id: DependencyId::new(),
@@ -74,7 +77,19 @@ impl Dependency for ESMExportSpecifierDependency {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.clone(),
-        inlinable: self.inline,
+        inlinable: self.inline.clone(),
+        exports: self.enum_value.as_ref().map(|enum_value| {
+          enum_value
+            .iter()
+            .map(|(enum_name, enum_value)| {
+              ExportNameOrSpec::ExportSpec(ExportSpec {
+                name: enum_name.clone(),
+                inlinable: enum_value.clone(),
+                ..Default::default()
+              })
+            })
+            .collect()
+        }),
         ..Default::default()
       })]),
       priority: Some(1),
@@ -152,27 +167,51 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
+    // remove the enum decl if all the enum members are inlined
+    if let Some(enum_value) = &dep.enum_value {
+      let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
+        // if there are enum member need to keep origin/non-inlineable, then we need to keep the enum decl
+        if enum_member.is_none() {
+          return false;
+        }
+        let export_name = &[dep.name.clone(), enum_key.clone()];
+        let exports_info = module_graph.get_prefetched_exports_info(
+          &module.identifier(),
+          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+        );
+        let enum_member_used_name = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          *runtime,
+          export_name,
+        );
+        matches!(enum_member_used_name, Some(UsedName::Inlined(_)))
+      });
+      if all_enum_member_inlined {
+        return;
+      }
+    }
+
     let exports_info = module_graph.get_prefetched_exports_info(
       &module.identifier(),
       PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
     );
-    let used_name = ExportsInfoGetter::get_used_name(
+    let Some(used_name) = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),
       *runtime,
       std::slice::from_ref(&dep.name),
-    );
-    if let Some(used_name) = used_name {
-      let used_name = match used_name {
-        UsedName::Normal(vec) => {
-          // only have one value for export specifier dependency
-          vec[0].clone()
-        }
-        UsedName::Inlined(_) => return,
-      };
-      init_fragments.push(Box::new(ESMExportInitFragment::new(
-        module.get_exports_argument(),
-        vec![(used_name, dep.value.clone())],
-      )));
-    }
+    ) else {
+      return;
+    };
+    let used_name = match used_name {
+      UsedName::Normal(vec) => {
+        // only have one value for export specifier dependency
+        vec[0].clone()
+      }
+      UsedName::Inlined(_) => return,
+    };
+    init_fragments.push(Box::new(ESMExportInitFragment::new(
+      module.get_exports_argument(),
+      vec![(used_name, dep.value.clone())],
+    )));
   }
 }

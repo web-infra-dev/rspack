@@ -29,11 +29,12 @@ use serde::Serialize;
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate,
-  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset,
-  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo,
+  Compilation, CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
+  ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -69,9 +70,7 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
-  pub is_transpiled_typescript: bool,
-  #[cacheable(with=AsVec<AsPreset>)]
-  pub type_exports: HashSet<Atom>,
+  pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -98,8 +97,7 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
-      is_transpiled_typescript: false,
-      type_exports: Default::default(),
+      collected_typescript_info: None,
       extras: Default::default(),
     }
   }
