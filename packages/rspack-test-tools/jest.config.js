@@ -17,7 +17,7 @@ const wasmConfig = process.env.WASM && {
 		"StatsOutput.test.js",
 		"Cache.test.js"
 	],
-	maxWorkers: process.env.CI ? "80%" : 1
+	maxWorkers: 1
 };
 
 /** @type {import('jest').Config} */
