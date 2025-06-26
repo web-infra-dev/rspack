@@ -54,8 +54,8 @@ export class Watching {
 		this.#invalidReported = true;
 		this.blocked = false;
 		this.isBlocked = () => false;
-		this.onChange = () => { };
-		this.onInvalid = () => { };
+		this.onChange = () => {};
+		this.onInvalid = () => {};
 		this.compiler = compiler;
 		this.running = false;
 		this.#initial = true;

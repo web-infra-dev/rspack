@@ -28,31 +28,31 @@ const creator = new BasicCaseCreator({
 		return runs.map((run, index) =>
 			index === 0
 				? new WatchProcessor(
-					{
-						name,
-						stepName: run.name,
-						tempDir: temp!,
-						runable: true,
-						compilerType: ECompilerType.Rspack,
-						configFiles: ["rspack.config.js", "webpack.config.js"],
-						nativeWatcher: true,
-					},
-					watchState
-				)
+						{
+							name,
+							stepName: run.name,
+							tempDir: temp!,
+							runable: true,
+							compilerType: ECompilerType.Rspack,
+							configFiles: ["rspack.config.js", "webpack.config.js"],
+							nativeWatcher: true
+						},
+						watchState
+					)
 				: new WatchStepProcessor(
-					{
-						name,
-						stepName: run.name,
-						tempDir: temp!,
-						runable: true,
-						compilerType: ECompilerType.Rspack,
-						configFiles: ["rspack.config.js", "webpack.config.js"]
-					},
-					watchState
-				)
+						{
+							name,
+							stepName: run.name,
+							tempDir: temp!,
+							runable: true,
+							compilerType: ECompilerType.Rspack,
+							configFiles: ["rspack.config.js", "webpack.config.js"]
+						},
+						watchState
+					)
 		);
 	},
-	concurrent: true,
+	concurrent: true
 });
 
 export function createNativeWatcher(

@@ -53,9 +53,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			throw new Error("Invalid arguments: 'callbackUndelayed'");
 		}
 
-
 		const nativeWatcher = this.getNativeWatcher(symbol, options);
-
 
 		await nativeWatcher.watch(
 			[Array.from(files.added), Array.from(files.removed)],
@@ -100,7 +98,10 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		};
 	}
 
-	getNativeWatcher(symbol: Symbol, options: Watchpack.WatchOptions): binding.NativeWatcher {
+	getNativeWatcher(
+		symbol: Symbol,
+		options: Watchpack.WatchOptions
+	): binding.NativeWatcher {
 		const watcher = this.#inners.get(symbol);
 		if (watcher) {
 			return watcher;
@@ -108,18 +109,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
 		const ignoredCallback = options.ignored
 			? async (path: string): Promise<boolean> => {
-				const ignored = options.ignored;
-				if (Array.isArray(ignored)) {
-					return ignored.some(item => path.includes(item));
+					const ignored = options.ignored;
+					if (Array.isArray(ignored)) {
+						return ignored.some(item => path.includes(item));
+					}
+					if (typeof ignored === "string") {
+						return path.includes(ignored);
+					}
+					if (ignored instanceof RegExp) {
+						return ignored.test(path);
+					}
+					return false;
 				}
-				if (typeof ignored === "string") {
-					return path.includes(ignored);
-				}
-				if (ignored instanceof RegExp) {
-					return ignored.test(path);
-				}
-				return false;
-			}
 			: undefined;
 		const nativeWatcherOptions: binding.NativeWatcherOptions = {
 			followSymlinks: options.followSymlinks,
