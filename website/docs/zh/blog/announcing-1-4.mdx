@@ -19,12 +19,10 @@ Rspack 1.4 已经正式发布！
   - [在浏览器中运行](#在浏览器中运行)
   - [更快的 SWC](#更快的-swc)
   - [更小的构建产物](#更小的构建产物)
+  - [默认启用增量构建](#默认启用增量构建)
   - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
   - [更灵活的 lazy compilation](#更灵活的-lazy-compilation)
   - [自定义文件系统](#自定义文件系统)
-- 性能优化
-  - [默认启用增量构建](#默认启用增量构建)
-  - [升级 zod v4](#升级-zod-v4)
 - Rstack 进展
   - [Rsbuild 1.4](#rsbuild-14)
   - [Rslib 0.10](#rslib-010)
@@ -96,6 +94,29 @@ console.log(BrowserRouter, Routes, Route);
 | Bun              | 57.73 kB     | 20.8 kB        |
 
 > 以上数据来自：[react-router-tree-shaking-compare](https://github.com/chenjiahan/react-router-tree-shaking-compare)。
+
+### 默认启用增量构建
+
+经过持续优化，Rspack 的增量构建功能已趋于稳定，在 Rspack 1.4 中，已默认开启所有阶段的增量优化。这将显著提升重构建速度，HMR 性能通常可提升 **30%-40%**，具体效果因项目而异。
+
+下面是一位用户开启增量构建后的性能对比：
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-incremental-data.png"
+  alt="incremental benchmark"
+  width="760"
+/>
+
+如果你需要降级到之前的行为，可以设置 [experiments.incremental](/config/experiments#experimentsincremental) 为 `'safe'` ，但我们推荐大部分项目直接使用新的默认配置，以获得最佳性能。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    // 降级到之前的行为
+    incremental: 'safe',
+  },
+};
+```
 
 ### 新增 CssChunkingPlugin
 
@@ -169,30 +190,12 @@ export default {
 
 > 详细用法请参考 [文档](/config/experiments#experimentsuseinputfilesystem)。
 
-## 性能优化
+### 依赖升级
 
-### 默认启用增量构建
+在 Rspack 1.4 中，我们升级了一些主要依赖的版本，包括：
 
-经过持续优化，Rspack 的增量构建功能已趋于稳定，在 Rspack 1.4 中，已默认开启所有阶段的增量优化。这将显著提升重构建速度，HMR 性能通常可提升 **30%-40%**，具体效果因项目而异。
-
-下面是一位用户开启增量构建后的性能对比：
-
-<img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-incremental-data.png"
-  alt="incremental benchmark"
-  width="760"
-/>
-
-如果你需要降级到之前的行为，可以设置 [experiments.incremental](/config/experiments#experimentsincremental) 为 `'safe'` ，但我们推荐大部分项目直接使用新的默认配置，以获得最佳性能。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    // 降级到之前的行为
-    incremental: 'safe',
-  },
-};
-```
+- Rspack 现在使用 [Zod v4](https://zod.dev/v4) 来校验配置的正确性。
+- `create-rspack` 现在提供 [Biome v2](https://biomejs.dev/blog/biome-v2/) 作为代码校验和格式化的工具。
 
 ## Rstack 进展
 
