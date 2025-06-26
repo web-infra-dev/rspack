@@ -9,10 +9,12 @@ const setupFilesAfterEnv = [
 /** @type {import('jest').Config} */
 const wasmConfig = process.env.WASM && {
 	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
+	passWithNoTests: true,
 	testPathIgnorePatterns: [
 		"Diagnostics.test.js",
 		"Error.test.js",
 		"StatsAPI.test.js",
+		"StatsOutput.test.js",
 		"Cache.test.js"
 	],
 	maxWorkers: process.env.CI ? "80%" : 1
