@@ -18,7 +18,9 @@ const wasmConfig = process.env.WASM && {
 		"Cache.test.js"
 	],
 	maxWorkers: 1,
-	maxConcurrency: 1
+	maxConcurrency: 1,
+	detectOpenHandles: true,
+	forceExit: true
 };
 
 /** @type {import('jest').Config} */
