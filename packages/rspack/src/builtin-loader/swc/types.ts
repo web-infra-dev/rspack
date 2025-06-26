@@ -28,10 +28,8 @@ import type { Assumptions } from "@swc/types/assumptions";
 import * as z from "zod/v4";
 import { numberOrInfinity } from "../../config/utils";
 import { memoize } from "../../util/memoize";
-import {
-	type PluginImportOptions,
-	ZodSwcPluginImportConfig
-} from "./pluginImport";
+import type { CollectTypeScriptInfoOptions } from "./collectTypeScriptInfo";
+import type { PluginImportOptions } from "./pluginImport";
 export type SwcLoaderEnvConfig = EnvConfig;
 export type SwcLoaderJscConfig = JscConfig;
 export type SwcLoaderModuleConfig = ModuleConfig;
@@ -47,6 +45,7 @@ export type SwcLoaderOptions = Config & {
 	 */
 	rspackExperiments?: {
 		import?: PluginImportOptions;
+		collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
 	};
 };
 
@@ -110,47 +109,51 @@ export interface TerserCompressOptions {
 }
 
 export const getZodSwcLoaderOptionsSchema = memoize(() => {
-	const ZodSwcEnvConfig = z.strictObject({
-		mode: z.enum(["usage", "entry"]).optional(),
-		debug: z.boolean().optional(),
-		dynamicImport: z.boolean().optional(),
-		loose: z.boolean().optional(),
-		bugfixes: z.boolean().optional(),
-		skip: z.string().array().optional(),
-		include: z.string().array().optional(),
-		exclude: z.string().array().optional(),
-		coreJs: z.string().optional(),
-		targets: z.any().optional(),
-		path: z.string().optional(),
-		shippedProposals: z.boolean().optional(),
-		forceAllTransforms: z.boolean().optional()
-	}) satisfies z.ZodType<EnvConfig>;
+	const ZodSwcEnvConfig = z
+		.strictObject({
+			mode: z.enum(["usage", "entry"]),
+			debug: z.boolean(),
+			dynamicImport: z.boolean(),
+			loose: z.boolean(),
+			bugfixes: z.boolean(),
+			skip: z.string().array(),
+			include: z.string().array(),
+			exclude: z.string().array(),
+			coreJs: z.string(),
+			targets: z.any(),
+			path: z.string(),
+			shippedProposals: z.boolean(),
+			forceAllTransforms: z.boolean()
+		})
+		.partial() satisfies z.ZodType<EnvConfig>;
 
-	const ZodSwcAssumptions = z.strictObject({
-		arrayLikeIsIterable: z.boolean().optional(),
-		constantReexports: z.boolean().optional(),
-		constantSuper: z.boolean().optional(),
-		enumerableModuleMeta: z.boolean().optional(),
-		ignoreFunctionLength: z.boolean().optional(),
-		ignoreFunctionName: z.boolean().optional(),
-		ignoreToPrimitiveHint: z.boolean().optional(),
-		iterableIsArray: z.boolean().optional(),
-		mutableTemplateObject: z.boolean().optional(),
-		noClassCalls: z.boolean().optional(),
-		noDocumentAll: z.boolean().optional(),
-		noIncompleteNsImportDetection: z.boolean().optional(),
-		noNewArrows: z.boolean().optional(),
-		objectRestNoSymbols: z.boolean().optional(),
-		privateFieldsAsProperties: z.boolean().optional(),
-		pureGetters: z.boolean().optional(),
-		setClassMethods: z.boolean().optional(),
-		setComputedProperties: z.boolean().optional(),
-		setPublicClassFields: z.boolean().optional(),
-		setSpreadProperties: z.boolean().optional(),
-		skipForOfIteratorClosing: z.boolean().optional(),
-		superIsCallableConstructor: z.boolean().optional(),
-		tsEnumIsReadonly: z.boolean().optional()
-	}) satisfies z.ZodType<Assumptions>;
+	const ZodSwcAssumptions = z
+		.strictObject({
+			arrayLikeIsIterable: z.boolean(),
+			constantReexports: z.boolean(),
+			constantSuper: z.boolean(),
+			enumerableModuleMeta: z.boolean(),
+			ignoreFunctionLength: z.boolean(),
+			ignoreFunctionName: z.boolean(),
+			ignoreToPrimitiveHint: z.boolean(),
+			iterableIsArray: z.boolean(),
+			mutableTemplateObject: z.boolean(),
+			noClassCalls: z.boolean(),
+			noDocumentAll: z.boolean(),
+			noIncompleteNsImportDetection: z.boolean(),
+			noNewArrows: z.boolean(),
+			objectRestNoSymbols: z.boolean(),
+			privateFieldsAsProperties: z.boolean(),
+			pureGetters: z.boolean(),
+			setClassMethods: z.boolean(),
+			setComputedProperties: z.boolean(),
+			setPublicClassFields: z.boolean(),
+			setSpreadProperties: z.boolean(),
+			skipForOfIteratorClosing: z.boolean(),
+			superIsCallableConstructor: z.boolean(),
+			tsEnumIsReadonly: z.boolean()
+		})
+		.partial() satisfies z.ZodType<Assumptions>;
 
 	const ZodSwcParserConfig = z.strictObject({
 		syntax: z.enum(["typescript", "ecmascript"]),
@@ -206,229 +209,233 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 		z.int()
 	]) satisfies z.ZodType<TerserEcmaVersion>;
 
-	const ZodSwcJsFormatOptions = z.strictObject({
-		asciiOnly: z.boolean().optional(),
-		beautify: z.boolean().optional(),
-		braces: z.boolean().optional(),
-		comments: z
-			.literal("some")
-			.or(z.literal("all"))
-			.or(z.literal(false))
-			.optional(),
-		ecma: ZodSwcTerserEcmaVersion.optional(),
-		indentLevel: z.int().optional(),
-		indentStart: z.int().optional(),
-		inlineScript: z.boolean().optional(),
-		keepNumbers: z.int().optional(),
-		keepQuotedProps: z.boolean().optional(),
-		maxLineLen: numberOrInfinity.optional(),
-		preamble: z.string().optional(),
-		quoteKeys: z.boolean().optional(),
-		quoteStyle: z.boolean().optional(),
-		preserveAnnotations: z.boolean().optional(),
-		safari10: z.boolean().optional(),
-		semicolons: z.boolean().optional(),
-		shebang: z.boolean().optional(),
-		webkit: z.boolean().optional(),
-		wrapIife: z.boolean().optional(),
-		wrapFuncArgs: z.boolean().optional()
-	}) satisfies z.ZodType<JsFormatOptions>;
+	const ZodSwcJsFormatOptions = z
+		.strictObject({
+			asciiOnly: z.boolean(),
+			beautify: z.boolean(),
+			braces: z.boolean(),
+			comments: z.literal("some").or(z.literal("all")).or(z.literal(false)),
+			ecma: ZodSwcTerserEcmaVersion,
+			indentLevel: z.int(),
+			indentStart: z.int(),
+			inlineScript: z.boolean(),
+			keepNumbers: z.int(),
+			keepQuotedProps: z.boolean(),
+			maxLineLen: numberOrInfinity,
+			preamble: z.string(),
+			quoteKeys: z.boolean(),
+			quoteStyle: z.boolean(),
+			preserveAnnotations: z.boolean(),
+			safari10: z.boolean(),
+			semicolons: z.boolean(),
+			shebang: z.boolean(),
+			webkit: z.boolean(),
+			wrapIife: z.boolean(),
+			wrapFuncArgs: z.boolean()
+		})
+		.partial() satisfies z.ZodType<JsFormatOptions>;
 
-	const ZodSwcTerserCompressOptions = z.strictObject({
-		arguments: z.boolean().optional(),
-		arrows: z.boolean().optional(),
-		booleans: z.boolean().optional(),
-		booleans_as_integers: z.boolean().optional(),
-		collapse_vars: z.boolean().optional(),
-		comparisons: z.boolean().optional(),
-		computed_props: z.boolean().optional(),
-		conditionals: z.boolean().optional(),
-		dead_code: z.boolean().optional(),
-		defaults: z.boolean().optional(),
-		directives: z.boolean().optional(),
-		drop_console: z.boolean().optional(),
-		drop_debugger: z.boolean().optional(),
-		ecma: ZodSwcTerserEcmaVersion.optional(),
-		evaluate: z.boolean().optional(),
-		expression: z.boolean().optional(),
-		global_defs: z.any().optional(),
-		hoist_funs: z.boolean().optional(),
-		hoist_props: z.boolean().optional(),
-		hoist_vars: z.boolean().optional(),
-		ie8: z.boolean().optional(),
-		if_return: z.boolean().optional(),
-		inline: z
-			.literal(0)
-			.or(z.literal(1))
-			.or(z.literal(2))
-			.or(z.literal(3))
-			.optional(),
-		join_vars: z.boolean().optional(),
-		keep_classnames: z.boolean().optional(),
-		keep_fargs: z.boolean().optional(),
-		keep_fnames: z.boolean().optional(),
-		keep_infinity: z.boolean().optional(),
-		loops: z.boolean().optional(),
-		negate_iife: z.boolean().optional(),
-		passes: numberOrInfinity.optional(),
-		properties: z.boolean().optional(),
-		pure_getters: z.any().optional(),
-		pure_funcs: z.string().array().optional(),
-		reduce_funcs: z.boolean().optional(),
-		reduce_vars: z.boolean().optional(),
-		sequences: z.any().optional(),
-		side_effects: z.boolean().optional(),
-		switches: z.boolean().optional(),
-		top_retain: z.any().optional(),
-		toplevel: z.any().optional(),
-		typeofs: z.boolean().optional(),
-		unsafe: z.boolean().optional(),
-		unsafe_passes: z.boolean().optional(),
-		unsafe_arrows: z.boolean().optional(),
-		unsafe_comps: z.boolean().optional(),
-		unsafe_function: z.boolean().optional(),
-		unsafe_math: z.boolean().optional(),
-		unsafe_symbols: z.boolean().optional(),
-		unsafe_methods: z.boolean().optional(),
-		unsafe_proto: z.boolean().optional(),
-		unsafe_regexp: z.boolean().optional(),
-		unsafe_undefined: z.boolean().optional(),
-		unused: z.boolean().optional(),
-		const_to_let: z.boolean().optional(),
-		module: z.boolean().optional()
-	}) satisfies z.ZodType<TerserCompressOptions>;
+	const ZodSwcTerserCompressOptions = z
+		.strictObject({
+			arguments: z.boolean(),
+			arrows: z.boolean(),
+			booleans: z.boolean(),
+			booleans_as_integers: z.boolean(),
+			collapse_vars: z.boolean(),
+			comparisons: z.boolean(),
+			computed_props: z.boolean(),
+			conditionals: z.boolean(),
+			dead_code: z.boolean(),
+			defaults: z.boolean(),
+			directives: z.boolean(),
+			drop_console: z.boolean(),
+			drop_debugger: z.boolean(),
+			ecma: ZodSwcTerserEcmaVersion,
+			evaluate: z.boolean(),
+			expression: z.boolean(),
+			global_defs: z.any(),
+			hoist_funs: z.boolean(),
+			hoist_props: z.boolean(),
+			hoist_vars: z.boolean(),
+			ie8: z.boolean(),
+			if_return: z.boolean(),
+			inline: z.literal(0).or(z.literal(1)).or(z.literal(2)).or(z.literal(3)),
+			join_vars: z.boolean(),
+			keep_classnames: z.boolean(),
+			keep_fargs: z.boolean(),
+			keep_fnames: z.boolean(),
+			keep_infinity: z.boolean(),
+			loops: z.boolean(),
+			negate_iife: z.boolean(),
+			passes: numberOrInfinity,
+			properties: z.boolean(),
+			pure_getters: z.any(),
+			pure_funcs: z.string().array(),
+			reduce_funcs: z.boolean(),
+			reduce_vars: z.boolean(),
+			sequences: z.any(),
+			side_effects: z.boolean(),
+			switches: z.boolean(),
+			top_retain: z.any(),
+			toplevel: z.any(),
+			typeofs: z.boolean(),
+			unsafe: z.boolean(),
+			unsafe_passes: z.boolean(),
+			unsafe_arrows: z.boolean(),
+			unsafe_comps: z.boolean(),
+			unsafe_function: z.boolean(),
+			unsafe_math: z.boolean(),
+			unsafe_symbols: z.boolean(),
+			unsafe_methods: z.boolean(),
+			unsafe_proto: z.boolean(),
+			unsafe_regexp: z.boolean(),
+			unsafe_undefined: z.boolean(),
+			unused: z.boolean(),
+			const_to_let: z.boolean(),
+			module: z.boolean()
+		})
+		.partial() satisfies z.ZodType<TerserCompressOptions>;
 
-	const ZodSwcTerserMangleOptions = z.strictObject({
-		props: z.record(z.string(), z.any()).optional(),
-		topLevel: z.boolean().optional(),
-		toplevel: z.boolean().optional(),
-		keepClassNames: z.boolean().optional(),
-		keep_classnames: z.boolean().optional(),
-		keepFnNames: z.boolean().optional(),
-		keep_fnames: z.boolean().optional(),
-		keepPrivateProps: z.boolean().optional(),
-		keep_private_props: z.boolean().optional(),
-		ie8: z.boolean().optional(),
-		safari10: z.boolean().optional(),
-		reserved: z.string().array().optional()
-	}) satisfies z.ZodType<TerserMangleOptions>;
+	const ZodSwcTerserMangleOptions = z
+		.strictObject({
+			props: z.record(z.string(), z.any()),
+			topLevel: z.boolean(),
+			toplevel: z.boolean(),
+			keepClassNames: z.boolean(),
+			keep_classnames: z.boolean(),
+			keepFnNames: z.boolean(),
+			keep_fnames: z.boolean(),
+			keepPrivateProps: z.boolean(),
+			keep_private_props: z.boolean(),
+			ie8: z.boolean(),
+			safari10: z.boolean(),
+			reserved: z.string().array()
+		})
+		.partial() satisfies z.ZodType<TerserMangleOptions>;
 
-	const ZodSwcReactConfig = z.strictObject({
-		pragma: z.string().optional(),
-		pragmaFrag: z.string().optional(),
-		throwIfNamespace: z.boolean().optional(),
-		development: z.boolean().optional(),
-		useBuiltins: z.boolean().optional(),
-		refresh: z
-			.boolean()
-			.or(
-				z.strictObject({
-					refreshReg: z.string().optional(),
-					refreshSig: z.string().optional(),
-					emitFullSignatures: z.boolean().optional()
-				})
-			)
-			.optional(),
-		runtime: z.enum(["automatic", "classic"]).optional(),
-		importSource: z.string().optional()
-	}) satisfies z.ZodType<ReactConfig>;
+	const ZodSwcReactConfig = z
+		.strictObject({
+			pragma: z.string(),
+			pragmaFrag: z.string(),
+			throwIfNamespace: z.boolean(),
+			development: z.boolean(),
+			useBuiltins: z.boolean(),
+			refresh: z.boolean().or(
+				z
+					.strictObject({
+						refreshReg: z.string(),
+						refreshSig: z.string(),
+						emitFullSignatures: z.boolean()
+					})
+					.partial()
+			),
+			runtime: z.enum(["automatic", "classic"]),
+			importSource: z.string()
+		})
+		.partial() satisfies z.ZodType<ReactConfig>;
 
 	const ZodSwcConstModulesConfig = z.strictObject({
 		globals: z.record(z.string(), z.record(z.string(), z.string())).optional()
 	}) satisfies z.ZodType<ConstModulesConfig>;
 
-	const ZodSwcGlobalPassOption = z.strictObject({
-		vars: z.record(z.string(), z.string()).optional(),
-		envs: z
-			.union([z.string().array(), z.record(z.string(), z.string())])
-			.optional(),
-		typeofs: z.record(z.string(), z.string()).optional()
-	}) satisfies z.ZodType<GlobalPassOption>;
+	const ZodSwcGlobalPassOption = z
+		.strictObject({
+			vars: z.record(z.string(), z.string()),
+			envs: z.union([z.string().array(), z.record(z.string(), z.string())]),
+			typeofs: z.record(z.string(), z.string())
+		})
+		.partial() satisfies z.ZodType<GlobalPassOption>;
 
-	const ZodSwcOptimizerConfig = z.strictObject({
-		simplify: z.boolean().optional(),
-		globals: ZodSwcGlobalPassOption.optional(),
-		jsonify: z
-			.strictObject({
+	const ZodSwcOptimizerConfig = z
+		.strictObject({
+			simplify: z.boolean(),
+			globals: ZodSwcGlobalPassOption,
+			jsonify: z.strictObject({
 				minCost: numberOrInfinity
 			})
-			.optional()
-	}) satisfies z.ZodType<OptimizerConfig>;
+		})
+		.partial() satisfies z.ZodType<OptimizerConfig>;
 
-	const ZodSwcTransformConfig = z.strictObject({
-		react: ZodSwcReactConfig.optional(),
-		constModules: ZodSwcConstModulesConfig.optional(),
-		optimizer: ZodSwcOptimizerConfig.optional(),
-		legacyDecorator: z.boolean().optional(),
-		decoratorMetadata: z.boolean().optional(),
-		decoratorVersion: z.enum(["2021-12", "2022-03"]).optional(),
-		treatConstEnumAsEnum: z.boolean().optional(),
-		useDefineForClassFields: z.boolean().optional(),
-		verbatimModuleSyntax: z.boolean().optional()
-	}) satisfies z.ZodType<TransformConfig>;
+	const ZodSwcTransformConfig = z
+		.strictObject({
+			react: ZodSwcReactConfig,
+			constModules: ZodSwcConstModulesConfig,
+			optimizer: ZodSwcOptimizerConfig,
+			legacyDecorator: z.boolean(),
+			decoratorMetadata: z.boolean(),
+			decoratorVersion: z.enum(["2021-12", "2022-03"]),
+			treatConstEnumAsEnum: z.boolean(),
+			useDefineForClassFields: z.boolean(),
+			verbatimModuleSyntax: z.boolean()
+		})
+		.partial() satisfies z.ZodType<TransformConfig>;
 
-	const ZodSwcJsMinifyOptions = z.strictObject({
-		compress: z.union([ZodSwcTerserCompressOptions, z.boolean()]).optional(),
-		format: ZodSwcJsFormatOptions.optional(),
-		mangle: z.union([ZodSwcTerserMangleOptions, z.boolean()]).optional(),
-		ecma: ZodSwcTerserEcmaVersion.optional(),
-		keep_classnames: z.boolean().optional(),
-		keep_fnames: z.boolean().optional(),
-		module: z.union([z.boolean(), z.literal("unknown")]).optional(),
-		safari10: z.boolean().optional(),
-		toplevel: z.boolean().optional(),
-		sourceMap: z.boolean().optional(),
-		outputPath: z.string().optional(),
-		inlineSourcesContent: z.boolean().optional()
-	}) satisfies z.ZodType<JsMinifyOptions>;
+	const ZodSwcJsMinifyOptions = z
+		.strictObject({
+			compress: z.union([ZodSwcTerserCompressOptions, z.boolean()]),
+			format: ZodSwcJsFormatOptions,
+			mangle: z.union([ZodSwcTerserMangleOptions, z.boolean()]),
+			ecma: ZodSwcTerserEcmaVersion,
+			keep_classnames: z.boolean(),
+			keep_fnames: z.boolean(),
+			module: z.union([z.boolean(), z.literal("unknown")]),
+			safari10: z.boolean(),
+			toplevel: z.boolean(),
+			sourceMap: z.boolean(),
+			outputPath: z.string(),
+			inlineSourcesContent: z.boolean()
+		})
+		.partial() satisfies z.ZodType<JsMinifyOptions>;
 
-	const ZodSwcJscConfig = z.strictObject({
-		assumptions: ZodSwcAssumptions.optional(),
-		loose: z.boolean().optional(),
-		parser: ZodSwcParserConfig.optional(),
-		transform: ZodSwcTransformConfig.optional(),
-		externalHelpers: z.boolean().optional(),
-		target: ZodSwcJscTarget.optional(),
-		keepClassNames: z.boolean().optional(),
-		experimental: z
-			.strictObject({
-				optimizeHygiene: z.boolean().optional(),
-				keepImportAttributes: z.boolean().optional(),
-				emitAssertForImportAttributes: z.boolean().optional(),
-				cacheRoot: z.string().optional(),
-				plugins: z
-					.array(z.tuple([z.string(), z.record(z.string(), z.any())]))
-					.optional(),
-				runPluginFirst: z.boolean().optional(),
-				disableBuiltinTransformsForInternalTesting: z.boolean().optional(),
-				emitIsolatedDts: z.boolean().optional(),
-				disableAllLints: z.boolean().optional(),
-				keepImportAssertions: z.boolean().optional()
-			})
-			.optional(),
-		baseUrl: z.string().optional(),
-		paths: z.record(z.string(), z.string().array()).optional(),
-		minify: ZodSwcJsMinifyOptions.optional(),
-		preserveAllComments: z.boolean().optional(),
-		output: z
-			.strictObject({
+	const ZodSwcJscConfig = z
+		.strictObject({
+			assumptions: ZodSwcAssumptions,
+			loose: z.boolean(),
+			parser: ZodSwcParserConfig,
+			transform: ZodSwcTransformConfig,
+			externalHelpers: z.boolean(),
+			target: ZodSwcJscTarget,
+			keepClassNames: z.boolean(),
+			experimental: z
+				.strictObject({
+					optimizeHygiene: z.boolean(),
+					keepImportAttributes: z.boolean(),
+					emitAssertForImportAttributes: z.boolean(),
+					cacheRoot: z.string(),
+					plugins: z.array(
+						z.tuple([z.string(), z.record(z.string(), z.any())])
+					),
+					runPluginFirst: z.boolean(),
+					disableBuiltinTransformsForInternalTesting: z.boolean(),
+					emitIsolatedDts: z.boolean(),
+					disableAllLints: z.boolean(),
+					keepImportAssertions: z.boolean()
+				})
+				.partial(),
+			baseUrl: z.string(),
+			paths: z.record(z.string(), z.string().array()),
+			minify: ZodSwcJsMinifyOptions,
+			preserveAllComments: z.boolean(),
+			output: z.strictObject({
 				charset: z.enum(["utf8", "ascii"]).optional()
 			})
-			.optional()
-	}) satisfies z.ZodType<JscConfig>;
+		})
+		.partial() satisfies z.ZodType<JscConfig>;
 
-	const ZodSwcBaseModuleConfig = z.strictObject({
-		strict: z.boolean().optional(),
-		strictMode: z.boolean().optional(),
-		lazy: z.union([z.boolean(), z.string().array()]).optional(),
-		noInterop: z.boolean().optional(),
-		importInterop: z.enum(["swc", "babel", "node", "none"]).optional(),
-		outFileExtension: z.enum(["js", "mjs", "cjs"]).optional(),
-		exportInteropAnnotation: z.boolean().optional(),
-		ignoreDynamic: z.boolean().optional(),
-		allowTopLevelThis: z.boolean().optional(),
-		preserveImportMeta: z.boolean().optional()
-	}) satisfies z.ZodType<BaseModuleConfig>;
+	const ZodSwcBaseModuleConfig = z
+		.strictObject({
+			strict: z.boolean(),
+			strictMode: z.boolean(),
+			lazy: z.union([z.boolean(), z.string().array()]),
+			noInterop: z.boolean(),
+			importInterop: z.enum(["swc", "babel", "node", "none"]),
+			outFileExtension: z.enum(["js", "mjs", "cjs"]),
+			exportInteropAnnotation: z.boolean(),
+			ignoreDynamic: z.boolean(),
+			allowTopLevelThis: z.boolean(),
+			preserveImportMeta: z.boolean()
+		})
+		.partial() satisfies z.ZodType<BaseModuleConfig>;
 
 	const ZodSwcEs6Config = ZodSwcBaseModuleConfig.extend({
 		type: z.literal("es6")
@@ -466,24 +473,47 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 		ZodSwcSystemjsConfig
 	]) satisfies z.ZodType<ModuleConfig>;
 
-	const ZodSwcConfig = z.strictObject({
-		$schema: z.string().optional(),
-		test: z.string().or(z.string().array()).optional(),
-		exclude: z.string().or(z.string().array()).optional(),
-		env: ZodSwcEnvConfig.optional(),
-		jsc: ZodSwcJscConfig.optional(),
-		module: ZodSwcModuleConfig.optional(),
-		minify: z.boolean().optional(),
-		sourceMaps: z.boolean().or(z.literal("inline")).optional(),
-		inlineSourcesContent: z.boolean().optional()
-	}) satisfies z.ZodType<Config>;
+	const ZodSwcConfig = z
+		.strictObject({
+			$schema: z.string(),
+			test: z.string().or(z.string().array()),
+			exclude: z.string().or(z.string().array()),
+			env: ZodSwcEnvConfig,
+			jsc: ZodSwcJscConfig,
+			module: ZodSwcModuleConfig,
+			minify: z.boolean(),
+			sourceMaps: z.boolean().or(z.literal("inline")),
+			inlineSourcesContent: z.boolean()
+		})
+		.partial() satisfies z.ZodType<Config>;
+
+	const ZodSwcCollectTypeScriptInfo = z.strictObject({
+		typeExports: z.boolean().optional(),
+		exportedEnum: z.boolean().or(z.literal("const-only")).optional()
+	}) satisfies z.ZodType<CollectTypeScriptInfoOptions>;
+
+	const ZodSwcPluginImportConfig = z
+		.strictObject({
+			libraryName: z.string(),
+			libraryDirectory: z.string().optional(),
+			customName: z.string().optional(),
+			customStyleName: z.string().optional(),
+			style: z.string().or(z.boolean()).optional(),
+			styleLibraryDirectory: z.string().optional(),
+			camelToDashComponentName: z.boolean().optional(),
+			transformToDefaultImport: z.boolean().optional(),
+			ignoreEsComponent: z.string().array().optional(),
+			ignoreStyleComponent: z.string().array().optional()
+		})
+		.array() satisfies z.ZodType<PluginImportOptions>;
 
 	return ZodSwcConfig.extend({
-		isModule: z.boolean().or(z.literal("unknown")).optional(),
+		isModule: z.boolean().or(z.literal("unknown")),
 		rspackExperiments: z
 			.strictObject({
-				import: ZodSwcPluginImportConfig.optional()
+				import: ZodSwcPluginImportConfig,
+				collectTypeScriptInfo: ZodSwcCollectTypeScriptInfo
 			})
-			.optional()
-	}) satisfies z.ZodType<SwcLoaderOptions>;
+			.partial()
+	}).partial() satisfies z.ZodType<SwcLoaderOptions>;
 });

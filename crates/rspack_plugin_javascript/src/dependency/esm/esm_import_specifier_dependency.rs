@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
   get_dependency_used_by_exports_condition, visitors::DestructuringAssignmentProperty,
-  InlineConstDependencyCondition,
+  InlineValueDependencyCondition,
 };
 
 #[cacheable]
@@ -194,7 +194,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_diagnostics(
     &self,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
@@ -205,7 +205,9 @@ impl Dependency for ESMImportSpecifierDependency {
         self,
         self.get_ids(module_graph),
         module_graph,
-        format!("(imported as '{}')", self.name),
+        module_graph_cache,
+        &self.name,
+        false,
         should_error,
       )
     {
@@ -217,7 +219,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut ids = self.get_ids(module_graph);
@@ -233,7 +235,8 @@ impl Dependency for ESMImportSpecifierDependency {
       let parent_module = module_graph
         .get_parent_module(&self.id)
         .expect("should have parent module");
-      let exports_type = get_exports_type(module_graph, &self.id, parent_module);
+      let exports_type =
+        get_exports_type(module_graph, module_graph_cache, &self.id, parent_module);
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {
@@ -279,7 +282,7 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let inline_const_condition = InlineConstDependencyCondition::new(self.id);
+    let inline_const_condition = InlineValueDependencyCondition::new(self.id);
     if let Some(used_by_exports_condition) =
       get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
     {
@@ -448,8 +451,13 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           .get_parent_module(&dep.id)
           .and_then(|id| module_graph.module_by_identifier(id))
           .expect("should have parent module");
-        let exports_type =
-          module.get_exports_type(&module_graph, self_module.build_meta().strict_esm_module);
+        let exports_type = module.get_exports_type(
+          &module_graph,
+          &code_generatable_context
+            .compilation
+            .module_graph_cache_artifact,
+          self_module.build_meta().strict_esm_module,
+        );
         if matches!(
           exports_type,
           ExportsType::DefaultOnly | ExportsType::DefaultWithNamed

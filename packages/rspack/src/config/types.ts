@@ -2708,7 +2708,7 @@ export type Experiments = {
 	 */
 	useInputFileSystem?: UseInputFileSystem;
 	/**
-	 * Enable inline constants
+	 * Enable inline const feature
 	 * @default false
 	 */
 	inlineConst?: boolean;
@@ -2719,10 +2719,15 @@ export type Experiments = {
 	 */
 	nativeWatcher?: boolean;
 	/**
-	 * Enable inline constants
+	 * Enable inline enum feature
 	 * @default false
 	 */
-	typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+	inlineEnum?: boolean;
+	/**
+	 * Enable type reexports presence feature
+	 * @default false
+	 */
+	typeReexportsPresence?: boolean;
 };
 //#endregion
 

@@ -85,7 +85,7 @@ const RsdoctorPluginImpl = create(
 			chunkGraphFeatures: true
 		}
 	): RawRsdoctorPluginOptions {
-		validate(c, getRsdoctorPluginSchema());
+		validate(c, getRsdoctorPluginSchema);
 		return {
 			moduleGraphFeatures: c.moduleGraphFeatures ?? true,
 			chunkGraphFeatures: c.chunkGraphFeatures ?? true

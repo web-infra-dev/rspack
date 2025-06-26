@@ -1,0 +1,16 @@
+[package]
+description       = "Collect TypeScript info for Rspack"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_swc_plugin_ts_collector"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
+
+[dependencies]
+rustc-hash = { workspace = true }
+swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit", "ecma_parser"] }
+
+[dev-dependencies]
+glob                       = { workspace = true }
+rspack_javascript_compiler = { workspace = true }
+serde_json                 = { workspace = true }

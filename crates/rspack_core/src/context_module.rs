@@ -234,6 +234,7 @@ impl ContextModule {
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
         &compilation.get_module_graph(),
+        &compilation.module_graph_cache_artifact,
         dep,
         matches!(
           self.options.context_options.namespace_object,

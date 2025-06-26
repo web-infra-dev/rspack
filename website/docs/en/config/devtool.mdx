@@ -16,23 +16,23 @@ type Devtool = 'string' | false;
 
 - **Default:** `eval`
 
-## Configuration Guide
+## Configuration guide
 
-### Step 1: Determine Debugging Needs
+### Step 1: determine debugging needs
 
 - **Not required** → Set `devtool: false`
   - Disables all debugging information
   - Zero build overhead with maximum build speed
 - **Required** → Proceed to [Step 2](#step-2-define-debugging-requirements)
 
-### Step 2: Define Debugging Requirements
+### Step 2: define debugging requirements
 
 - **Module-level positioning only** → Set `devtool: 'eval'`
   - Each module executed via `eval()` with `//# sourceURL` comment
   - Extremely fast build speed
 - **Full source code mapping needed** → Proceed to [Step 3](#step-3-configure-sourcemap)
 
-### Step 3: Configure source map
+### Step 3: configure source map
 
 Set `devtool: 'source-map'`, A full source map is emitted as a separate file. It adds a `//# sourceMapURL` comment to the bundle so development tools know where to find it.
 

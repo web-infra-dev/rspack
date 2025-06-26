@@ -134,6 +134,7 @@ impl<C> Display for LoaderItem<C> {
   }
 }
 
+#[derive(Debug)]
 pub struct LoaderItemList<'a, Context>(pub &'a [LoaderItem<Context>]);
 
 impl<Context> Deref for LoaderItemList<'_, Context> {

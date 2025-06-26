@@ -186,7 +186,8 @@ impl ESMExportImportedSpecifierDependency {
     if is_name_unused {
       return ExportMode::Unused(ExportModeUnused { name: "*".into() });
     }
-    let imported_exports_type = get_exports_type(module_graph, id, parent_module);
+    let imported_exports_type =
+      get_exports_type(module_graph, module_graph_cache, id, parent_module);
     let ids = self.get_ids(module_graph);
 
     // Special handling for reexporting the default export
@@ -1313,17 +1314,18 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       .get_effective_export_presence(&**module)
     {
       let mut diagnostics = Vec::new();
-      if let Some(error) = esm_import_dependency_get_linking_error(
-        self,
-        ids,
-        module_graph,
-        self
-          .name
-          .as_ref()
-          .map(|name| format!("(reexported as '{name}')"))
-          .unwrap_or_default(),
-        should_error,
-      ) {
+      // don't need to check the import specifier is existed or not when name is None (export *)
+      if let Some(name) = &self.name
+        && let Some(error) = esm_import_dependency_get_linking_error(
+          self,
+          ids,
+          module_graph,
+          module_graph_cache,
+          name,
+          true,
+          should_error,
+        )
+      {
         diagnostics.push(error);
       }
       if let Some(errors) = self.get_conflicting_star_exports_errors(

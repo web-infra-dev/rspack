@@ -530,6 +530,7 @@ export declare enum BuiltinPluginName {
   SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   RstestPlugin = 'RstestPlugin',
+  RslibPlugin = 'RslibPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
@@ -547,6 +548,8 @@ export interface ContextInfo {
 
 export interface CssChunkingPluginOptions {
   strict?: boolean
+  minSize?: number
+  maxSize?: number
   exclude?: RegExp
 }
 
@@ -1904,6 +1907,8 @@ rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 inlineConst: boolean
+inlineEnum: boolean
+typeReexportsPresence: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2478,6 +2483,10 @@ export interface RawResolveTsconfigOptions {
 export interface RawRsdoctorPluginOptions {
   moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
+}
+
+export interface RawRslibPluginOptions {
+  interceptApiPlugin: boolean
 }
 
 export interface RawRspackFuture {

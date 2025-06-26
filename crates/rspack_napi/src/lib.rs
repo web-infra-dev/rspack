@@ -18,13 +18,9 @@ pub mod string {
   pub use crate::ext::js_string_ext::JsStringExt;
 }
 
-pub use utils::*;
-
-pub mod napi {
-  pub use napi::*;
-}
-
 pub use js_values::{
   one_shot_instance_ref::*, one_shot_value_ref::*, threadsafe_one_shot_value_ref::*, value_ref::*,
   weak_ref::*,
 };
+pub use napi;
+pub use utils::*;
