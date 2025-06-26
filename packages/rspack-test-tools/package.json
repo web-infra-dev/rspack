@@ -20,6 +20,7 @@
     "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
     "testu": "pnpm run --stream /^test:.*/ -u",
     "test:base": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
+    "test:base-builder": "cross-env RSPACK_BINDING_BUILDER_TESTING=1 npm run test:base",
     "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
     "test:diff": "cross-env RSPACK_DIFF=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.diff.js --passWithNoTests",
     "api-extractor": "api-extractor run --verbose",
@@ -72,6 +73,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
+    "@rspack/binding-testing": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.2",
     "@rspack/plugin-react-refresh": "^1.4.3",
     "@rspack/test-tools": "workspace:*",

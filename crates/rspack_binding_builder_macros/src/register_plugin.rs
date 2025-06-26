@@ -1,5 +1,9 @@
-use proc_macro2::TokenStream;
-use syn::{parse::Parse, Expr, LitStr, Token};
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::quote;
+use syn::{
+  parse::{Parse, ParseStream},
+  Expr, LitStr, Token,
+};
 
 pub struct RegisterPluginInput {
   name: LitStr,
@@ -31,10 +35,10 @@ impl RegisterPluginInput {
             ) -> Result<rspack_core::BoxPlugin> {
               (#plugin)(env, options)
             }
-            match rspack_binding_builder::register_custom_plugin(#name, register as rspack_binding_builder::CustomPluginBuilder) {
-                Ok(_) => {}
-                Err(_) => Err(napi::Error::from_reason(format!("Cannot register plugins under the same name: {}", #name))),
-            }
+            let name = #name.to_string();
+            rspack_binding_builder::register_custom_plugin(name, register as rspack_binding_builder::CustomPluginBuilder).map_err(|e| {
+                napi::Error::from_reason(format!("Cannot register plugins under the same name: {}", #name))
+            })
         }
     };
 

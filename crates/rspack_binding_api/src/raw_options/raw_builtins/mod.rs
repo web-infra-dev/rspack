@@ -235,10 +235,10 @@ thread_local! {
 #[doc(hidden)]
 #[allow(clippy::result_unit_err)]
 pub fn register_custom_plugin(
-  name: &'static str,
+  name: String,
   plugin_builder: CustomPluginBuilder,
 ) -> std::result::Result<(), ()> {
-  CUSTOMED_PLUGINS_CTOR.with_borrow_mut(|ctors| match ctors.entry(name.to_string()) {
+  CUSTOMED_PLUGINS_CTOR.with_borrow_mut(|ctors| match ctors.entry(name) {
     std::collections::hash_map::Entry::Occupied(_) => Err(()),
     std::collections::hash_map::Entry::Vacant(vacant_entry) => {
       vacant_entry.insert(plugin_builder);
@@ -776,15 +776,7 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<CssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
-      } // BuiltinPluginName::Custom(ref name) => {
-        //   CUSTOMED_PLUGINS_CTOR.with_borrow(|ctors| {
-        //     let ctor = ctors.get(name).ok_or_else(|| {
-        //       napi::Error::from_reason(format!("Expected plugin installed '{name}'"))
-        //     })?;
-        //     plugins.push(ctor(env, self.options)?);
-        //     Ok::<_, napi::Error>(())
-        //   })?;
-        // }
+      }
     }
     Ok(())
   }
