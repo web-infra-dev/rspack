@@ -79,7 +79,7 @@ jobs:
         run: |
           unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
           rustup target add x86_64-unknown-linux-gnu
-          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }} -- --timings
+          RUSTFLAGS="-Z time-passes" RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }} -- --timings
 
       - name: Build x86_64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.prefer_docker }}
