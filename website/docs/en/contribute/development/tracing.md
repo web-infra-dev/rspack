@@ -20,7 +20,12 @@ RSPACK_PROFILE=ALL rsbuild build
 
 - If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check how we implement [`RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
 
-The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/).
+The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/):
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-tracing.png"
+  alt="tracing"
+/>
 
 ## Tracing layer
 
