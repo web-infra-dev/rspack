@@ -1454,6 +1454,13 @@ export const getRspackOptionsSchema = memoize(() => {
 	const ignoreWarnings = z
 		.instanceof(RegExp)
 		.or(anyFunction)
+		.or(
+			z.object({
+				file: z.instanceof(RegExp).optional(),
+				message: z.instanceof(RegExp).optional(),
+				module: z.instanceof(RegExp).optional()
+			})
+		)
 		.array() satisfies z.ZodType<t.IgnoreWarnings>;
 	//#endregion
 
