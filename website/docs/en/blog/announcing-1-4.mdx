@@ -19,10 +19,10 @@ Notable changes:
   - [Running in the browser](#running-in-the-browser)
   - [Faster SWC](#faster-swc)
   - [Smaller bundles](#smaller-bundles)
-  - [Incremental builds by default](#incremental-builds-enabled-by-default)
+  - [Incremental build by default](#incremental-build-by-default)
   - [New CssChunkingPlugin](#new-csschunkingplugin)
   - [More flexible lazy compilation](#more-flexible-lazy-compilation)
-  - [Custom file system](#custom-file-system)
+  - [Custom input file system](#custom-input-file-system)
   - [Performance analysis tool](#performance-analysis-tool)
 - Rstack progress
   - [Rsbuild 1.4](#rsbuild-14)
@@ -98,11 +98,11 @@ The output bundle sizes by different bundlers are as follows:
 
 > Data from [react-router-tree-shaking-compare](https://github.com/chenjiahan/react-router-tree-shaking-compare).
 
-### 默认启用增量构建
+### Incremental build by default
 
-通过不断的优化迭代，Rspack 的增量构建功能已趋于稳定，在 Rspack 1.4 中，我们将所有阶段的增量优化设为默认开启，这能够显著加快重新构建的速度，HMR 性能通常可提升 **30%-40%**，具体提升幅度因项目而异。
+After extensive optimization, Rspack's incremental build has become stable. In Rspack 1.4, we've enabled incremental build for all phases by default, which significantly speeds up rebuilds - HMR performance typically improves by **30%-40%**, depending on the project.
 
-下面是一位用户开启增量构建后的性能对比：
+Here is a performance comparison from one user after enabling incremental build:
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-incremental-data.png"
@@ -110,20 +110,20 @@ The output bundle sizes by different bundlers are as follows:
   width="760"
 />
 
-如果你需要降级到之前的行为，可以设置 [experiments.incremental](/config/experiments#experimentsincremental) 为 `'safe'` ，但我们推荐大部分项目直接使用新的默认配置，以获得最佳性能。
+If you need to revert to the previous behavior, you can set [experiments.incremental](/config/experiments#experimentsincremental) to `'safe'`. However, we recommend that most projects use the new default configuration to achieve optimal performance.
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    // 降级到之前的行为
+    // Revert to previous behavior
     incremental: 'safe',
   },
 };
 ```
 
-### 新增 CssChunkingPlugin
+### New CssChunkingPlugin
 
-Rspack 1.4 新增了实验性的 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin) 插件，专门用于处理 CSS 代码分割。该插件能够确保样式的加载顺序与源代码中的导入顺序保持一致，避免因 CSS 加载顺序错误而导致的 UI 问题。
+Rspack 1.4 introduces an experimental [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin) specifically designed for handling CSS code splitting. This plugin ensures that styles are loaded in the same order as they are imported in the source code, preventing UI issues caused by incorrect CSS loading order.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -137,13 +137,13 @@ export default {
 };
 ```
 
-启用 `CssChunkingPlugin` 后，CSS 模块的代码分割将完全由该插件处理，`optimization.splitChunks` 配置将不再对 CSS 模块生效，你可以查看 [使用文档](/plugins/rspack/css-chunking-plugin) 了解更多。
+Once `CssChunkingPlugin` is enabled, CSS code splitting will be handled entirely by this plugin, and the `optimization.splitChunks` configuration will no longer affect CSS modules. You can check the [documentation](/plugins/rspack/css-chunking-plugin) for more details.
 
-> 该插件由 Next.js 的 [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) 功能启发而来，感谢 Next.js 团队在这一领域的创新。
+> This plugin is inspired by Next.js's [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) feature. Thanks to the Next.js team for their innovation in this area.
 
-### 更灵活的 lazy compilation
+### Enhanced lazy compilation
 
-Rspack 现已支持在 `MultiCompiler` 中启用 lazy compilation 功能，这意味着当你在单次构建中使用多份 Rspack 配置时，可以为不同的 compiler 实例独立设置各自的 [lazyCompilation 选项](/config/experiments#experimentslazycompilation)。
+Rspack now supports enabling lazy compilation with `MultiCompiler`, which means that when you use multiple Rspack configurations in a single build, you can independently configure the [lazyCompilation options](/config/experiments#experimentslazycompilation) for each compiler instance.
 
 ```js title="rspack.config.mjs"
 export default [
@@ -164,12 +164,14 @@ export default [
 ];
 ```
 
-### 自定义文件系统
+Here's the English translation:
 
-Rspack 现在允许你自定义 `compiler.inputFileSystem`（编译器的文件读取系统），该功能可以通过配置 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 开启，典型的使用场景包括：
+### Custom input file system
 
-- 在浏览器中使用 [memfs](https://github.com/streamich/memfs) 代替默认的文件读取系统。
-- 搭配 [webpack-virtual-modules 插件](https://www.npmjs.com/package/webpack-virtual-modules) 来支持虚拟模块。
+Rspack now allows you to customize `compiler.inputFileSystem` (the compiler's input file system). This feature can be enabled by configuring [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem). Typical use cases include:
+
+- Using [memfs](https://github.com/streamich/memfs) instead of the default input file system in browsers.
+- Working with the [webpack-virtual-modules plugin](https://www.npmjs.com/package/webpack-virtual-modules) to support virtual modules.
 
 ```js title="rspack.config.mjs"
 import VirtualModulesPlugin from 'webpack-virtual-modules';
@@ -187,41 +189,41 @@ export default {
 };
 ```
 
-由于自定义的 `inputFileSystem` 是通过 JavaScript 实现的，可能导致性能下降。为了缓解这个问题，`useInputFileSystem` 允许你传入一个正则表达式数组，过滤哪些文件需要从自定义的 `inputFileSystem` 读取，避免因替换原生文件系统而导致的性能劣化。
+Since the custom `inputFileSystem` is implemented in JavaScript, it may lead to performance degradation. To mitigate this issue, `useInputFileSystem` allows you to pass an array of regular expressions to filter which files need to be read from the custom `inputFileSystem`, which avoids performance overhead caused by replacing the native file system.
 
-未来我们还计划在 Rspack 中内置虚拟模块支持，从而提供更好的性能和使用体验。
+In the future, we also plan to add built-in virtual module support in Rspack to provide better performance and user experience.
 
-> 详细用法请参考 [文档](/config/experiments#experimentsuseinputfilesystem)。
+> For detailed usage, see the [documentation](/config/experiments#experimentsuseinputfilesystem).
 
-### 性能分析工具
+### Performance analysis tools
 
-Rspack 1.4 进一步优化了 tracing 功能，基于 [perfetto](https://perfetto.dev/) 来提供更强大的性能分析工具，可以用于快速定位构建性能的瓶颈。
+Rspack 1.4 introduces more precise tracing capabilities, which can be used for performance analysis based on [perfetto](https://perfetto.dev/) to quickly identify build performance bottlenecks.
 
-你可以通过 `RSPACK_PROFILE` 环境变量开启 tracing 功能：
+You can enable tracing through the `RSPACK_PROFILE` environment variable:
 
 ```sh
 RSPACK_PROFILE=OVERVIEW rspack build
 ```
 
-生成的 `rspack.pftrace` 文件可在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中进行可视化分析：
+The generated `rspack.pftrace` file can be visualized and analyzed at [ui.perfetto.dev](https://ui.perfetto.dev/):
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-tracing.png"
   alt="tracing"
 />
 
-> 更多用法请参考 [Tracing 文档](/contribute/development/tracing)。
+> For more detailed usage, see the [Tracing documentation](/contribute/development/tracing).
 
-### 依赖升级
+### Dependency upgrades
 
-在 Rspack 1.4 中，我们升级了一些主要依赖的版本，包括：
+In Rspack 1.4, we have upgraded several major dependencies, including:
 
-- Rspack 现在使用 [Zod v4](https://zod.dev/v4) 来校验配置的正确性。
-- `create-rspack` 现在提供 [Biome v2](https://biomejs.dev/blog/biome-v2/) 作为代码校验和格式化的工具。
+- Rspack now uses [Zod v4](https://zod.dev/v4) for configuration validation.
+- `create-rspack` now provides [Biome v2](https://biomejs.dev/blog/biome-v2/) as an optional linter and formatter.
 
-## Rstack 进展
+## Rstack progress
 
-[Rstack](/guide/start/ecosystem#rstack) 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
+[Rstack](/guide/start/ecosystem#rstack) is a unified JavaScript toolchain built around Rspack, with high performance and consistent architecture.
 
 ### Rsbuild 1.4
 

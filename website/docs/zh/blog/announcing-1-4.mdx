@@ -21,7 +21,7 @@ Rspack 1.4 已经正式发布！
   - [更小的构建产物](#更小的构建产物)
   - [默认启用增量构建](#默认启用增量构建)
   - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
-  - [更灵活的 lazy compilation](#更灵活的-lazy-compilation)
+  - [增强 lazy compilation](#增强-lazy-compilation)
   - [自定义文件系统](#自定义文件系统)
   - [性能分析工具](#性能分析工具)
 - Rstack 进展
@@ -139,9 +139,9 @@ export default {
 
 > 该插件由 Next.js 的 [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) 功能启发而来，感谢 Next.js 团队在这一领域的创新。
 
-### 更灵活的 lazy compilation
+### 增强 lazy compilation
 
-Rspack 现已支持在 `MultiCompiler` 中启用 lazy compilation 功能，这意味着当你在单次构建中使用多份 Rspack 配置时，可以为不同的 compiler 实例独立设置各自的 [lazyCompilation 选项](/config/experiments#experimentslazycompilation)。
+Rspack 现已支持在 `MultiCompiler` 中启用 lazy compilation，这意味着当你在单次构建中使用多份 Rspack 配置时，可以为不同的 compiler 实例独立设置各自的 [lazyCompilation 选项](/config/experiments#experimentslazycompilation)。
 
 ```js title="rspack.config.mjs"
 export default [
@@ -162,7 +162,7 @@ export default [
 ];
 ```
 
-### 自定义文件系统
+### 自定义文件读取系统
 
 Rspack 现在允许你自定义 `compiler.inputFileSystem`（编译器的文件读取系统），该功能可以通过配置 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 开启，典型的使用场景包括：
 
@@ -185,7 +185,7 @@ export default {
 };
 ```
 
-由于自定义的 `inputFileSystem` 是通过 JavaScript 实现的，可能导致性能下降。为了缓解这个问题，`useInputFileSystem` 允许你传入一个正则表达式数组，过滤哪些文件需要从自定义的 `inputFileSystem` 读取，避免因替换原生文件系统而导致的性能劣化。
+由于自定义的 `inputFileSystem` 是通过 JavaScript 实现的，可能导致性能下降。为了缓解这个问题，`useInputFileSystem` 允许你传入一个正则表达式数组，过滤哪些文件需要从自定义的 `inputFileSystem` 读取，避免因替换原生文件系统而导致的性能开销。
 
 未来我们还计划在 Rspack 中内置虚拟模块支持，从而提供更好的性能和使用体验。
 
@@ -193,9 +193,9 @@ export default {
 
 ### 性能分析工具
 
-Rspack 1.4 进一步优化了 tracing 功能，基于 [perfetto](https://perfetto.dev/) 来提供更强大的性能分析工具，可以用于快速定位构建性能的瓶颈。
+Rspack 1.4 引入了更精确的 tracing 能力，它可以基于 [perfetto](https://perfetto.dev/) 进行性能分析，用于快速定位构建性能的瓶颈。
 
-你可以通过 `RSPACK_PROFILE` 环境变量开启 tracing 功能：
+你可以通过 `RSPACK_PROFILE` 环境变量开启 tracing：
 
 ```sh
 RSPACK_PROFILE=OVERVIEW rspack build
@@ -208,14 +208,14 @@ RSPACK_PROFILE=OVERVIEW rspack build
   alt="tracing"
 />
 
-> 更多用法请参考 [Tracing 文档](/contribute/development/tracing)。
+> 详细的用法请参考 [Tracing 文档](/contribute/development/tracing)。
 
 ### 依赖升级
 
 在 Rspack 1.4 中，我们升级了一些主要依赖的版本，包括：
 
 - Rspack 现在使用 [Zod v4](https://zod.dev/v4) 来校验配置的正确性。
-- `create-rspack` 现在提供 [Biome v2](https://biomejs.dev/blog/biome-v2/) 作为代码校验和格式化的工具。
+- `create-rspack` 现在提供 [Biome v2](https://biomejs.dev/blog/biome-v2/) 作为可选的代码校验和格式化的工具。
 
 ## Rstack 进展
 
