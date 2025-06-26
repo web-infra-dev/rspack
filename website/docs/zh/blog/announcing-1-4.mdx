@@ -23,6 +23,7 @@ Rspack 1.4 已经正式发布！
   - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
   - [更灵活的 lazy compilation](#更灵活的-lazy-compilation)
   - [自定义文件系统](#自定义文件系统)
+  - [性能分析工具](#性能分析工具)
 - Rstack 进展
   - [Rsbuild 1.4](#rsbuild-14)
   - [Rslib 0.10](#rslib-010)
@@ -189,6 +190,18 @@ export default {
 未来我们还计划在 Rspack 中内置虚拟模块支持，从而提供更好的性能和使用体验。
 
 > 详细用法请参考 [文档](/config/experiments#experimentsuseinputfilesystem)。
+
+### 性能分析工具
+
+Rspack 1.4 进一步优化了 tracing 功能，基于 [perfetto](https://perfetto.dev/) 来提供更强大的性能分析工具，可以用于快速定位构建性能的瓶颈。
+
+你可以通过 `RSPACK_PROFILE` 环境变量开启 tracing 功能：
+
+```sh
+RSPACK_PROFILE=OVERVIEW rspack build
+```
+
+生成的 `rspack.pftrace` 文件可在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中进行可视化分析，更多用法请参考 [Tracing 文档](/contribute/development/tracing)。
 
 ### 依赖升级
 
