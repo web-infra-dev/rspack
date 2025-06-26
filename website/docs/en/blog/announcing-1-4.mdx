@@ -58,7 +58,7 @@ We are also developing the `@rspack/browser` package, which is a browser-specifi
 
 Over the past few months, we have been continuously collaborating with the SWC team to optimize the performance and reliability of the JavaScript toolchain. After a period of optimization, we are pleased to see that SWC's performance has improved significantly, benefiting both Rspack users and all SWC-based tools:
 
-- JavaScript parser is **30%～35%** faster
+- JavaScript parser is **30%-35%** faster
 - JavaScript minifier is **10%** faster
 
 <img
@@ -68,13 +68,11 @@ Over the past few months, we have been continuously collaborating with the SWC t
 
 > The above data is from: [CodSpeed - SWC](https://codspeed.io/swc-project/swc), compared against SWC 16 used by Rspack 1.3 as the baseline.
 
-Here's the professional English translation:
-
 ### Smaller bundles
 
 SWC has enhanced its dead code elimination (DCE) capabilities in the current version, which combined with Rspack's powerful [tree shaking](/guide/optimization/tree-shaking) functionality, enables Rspack 1.4 to generate smaller bundles.
 
-We tested this using `react-router` as an example: by importing only part of its exports in the source code and then comparing the build outputs from different bundlers, we found that Rspack generates smallest bundles.
+We tested this using `react-router` as an example: by importing only part of its exports in the source code and then comparing the build outputs from different bundlers, we found that Rspack generates the smallest bundles.
 
 ```js title="src/index.js"
 import { BrowserRouter, Routes, Route } from 'react-router';
@@ -163,8 +161,6 @@ export default [
   },
 ];
 ```
-
-Here's the English translation:
 
 ### Custom input file system
 
