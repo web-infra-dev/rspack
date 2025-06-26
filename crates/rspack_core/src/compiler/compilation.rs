@@ -34,18 +34,14 @@ use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
-use super::{
-  make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
-  module_executor::ModuleExecutor,
-  rebuild::CompilationRecords,
-  CompilerId,
-};
+use super::{rebuild::CompilationRecords, CompilerId};
 use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   cache::Cache,
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
+  make::{make, update_module_graph, ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam},
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
@@ -54,11 +50,11 @@ use crate::{
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats,
+  EntryOptions, EntryRuntime, Entrypoint, Filename, ImportVarMap, Logger, ModuleFactory,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -649,7 +645,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntry(
+      vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -700,7 +696,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntry(
+      vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -932,7 +928,7 @@ impl Compilation {
     }
 
     let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = make_module_graph(self, artifact).await?;
+    self.make_artifact = make(self, artifact).await?;
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -952,7 +948,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       artifact,
-      vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
+      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
 
@@ -1342,7 +1338,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
+      vec![UpdateParam::BuildEntryAndClean(
         self
           .entries
           .values()

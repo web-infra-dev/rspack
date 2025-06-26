@@ -1,7 +1,7 @@
 use rspack_collections::IdentifierMap;
 use rspack_error::Diagnosable;
 
-use super::super::MakeArtifact;
+use super::MakeArtifact;
 use crate::{BuildMeta, Module, ModuleIdentifier};
 
 #[derive(Debug, Default)]

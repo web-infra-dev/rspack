@@ -12,7 +12,8 @@ use crate::{
   chunk_graph_module::ModuleId,
   fast_set,
   incremental::{Incremental, IncrementalPasses},
-  ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
+  make::ModuleExecutor,
+  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
 };
 
 impl Compiler {
