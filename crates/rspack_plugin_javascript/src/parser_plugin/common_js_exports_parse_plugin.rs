@@ -555,10 +555,10 @@ impl CommonJsExportsParserPlugin {
         if let Expr::Object(obj_lit) = &*assign_expr.right {
           let total_exports = obj_lit.props.len();
 
-          // NOTE: ConsumeShared detection moved to template-time due to parser API limitations
-          // BuildMeta caching will happen in the dependency templates
+          // Get source text for enhanced parsing
+          let source_text = &parser.source_file.src;
 
-          // EXISTING: Create dependencies as before (no changes to dependency creation)
+          // ENHANCED: Create dependencies with comma analysis
           // Process each property in the object literal
           for (prop_index, prop) in obj_lit.props.iter().enumerate() {
             if let PropOrSpread::Prop(prop) = prop {
@@ -571,15 +571,34 @@ impl CommonJsExportsParserPlugin {
                   } else {
                     ExportContext::ObjectLiteralPropertySubsequent
                   };
-                  parser
-                    .dependencies
-                    .push(Box::new(CommonJsExportsDependency::new(
-                      ident.span().into(),
+
+                  // Enhanced comma detection
+                  let is_last = prop_index == total_exports - 1;
+                  let next_prop_start = if !is_last {
+                    obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
+                  } else {
+                    None
+                  };
+
+                  let (enhanced_range, has_trailing_comma) =
+                    Self::calculate_property_range_with_comma(
+                      ident.span(),
+                      source_text,
+                      next_prop_start,
+                      is_last,
+                    );
+
+                  parser.dependencies.push(Box::new(
+                    CommonJsExportsDependency::new_with_comma_info(
+                      enhanced_range,
                       Some(assign_expr.right.span().into()),
                       base.clone(),
                       vec![export_name.into()],
                       context,
-                    )));
+                      has_trailing_comma,
+                      is_last,
+                    ),
+                  ));
                 }
                 Prop::KeyValue(key_value) => {
                   // Handle key-value properties: { key: value }
@@ -590,15 +609,34 @@ impl CommonJsExportsParserPlugin {
                     } else {
                       ExportContext::ObjectLiteralPropertySubsequent
                     };
-                    parser
-                      .dependencies
-                      .push(Box::new(CommonJsExportsDependency::new(
-                        key_value.span().into(),
+
+                    // Enhanced comma detection for key-value pairs
+                    let is_last = prop_index == total_exports - 1;
+                    let next_prop_start = if !is_last {
+                      obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
+                    } else {
+                      None
+                    };
+
+                    let (enhanced_range, has_trailing_comma) =
+                      Self::calculate_property_range_with_comma(
+                        key_value.span(),
+                        source_text,
+                        next_prop_start,
+                        is_last,
+                      );
+
+                    parser.dependencies.push(Box::new(
+                      CommonJsExportsDependency::new_with_comma_info(
+                        enhanced_range,
                         Some(assign_expr.right.span().into()),
                         base.clone(),
                         vec![export_name.into()],
                         context,
-                      )));
+                        has_trailing_comma,
+                        is_last,
+                      ),
+                    ));
                   }
                 }
                 Prop::Method(method) => {
@@ -610,15 +648,34 @@ impl CommonJsExportsParserPlugin {
                     } else {
                       ExportContext::ObjectLiteralPropertySubsequent
                     };
-                    parser
-                      .dependencies
-                      .push(Box::new(CommonJsExportsDependency::new(
-                        method.span().into(),
+
+                    // Enhanced comma detection for methods
+                    let is_last = prop_index == total_exports - 1;
+                    let next_prop_start = if !is_last {
+                      obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
+                    } else {
+                      None
+                    };
+
+                    let (enhanced_range, has_trailing_comma) =
+                      Self::calculate_property_range_with_comma(
+                        method.span(),
+                        source_text,
+                        next_prop_start,
+                        is_last,
+                      );
+
+                    parser.dependencies.push(Box::new(
+                      CommonJsExportsDependency::new_with_comma_info(
+                        enhanced_range,
                         Some(assign_expr.right.span().into()),
                         base.clone(),
                         vec![export_name.into()],
                         context,
-                      )));
+                        has_trailing_comma,
+                        is_last,
+                      ),
+                    ));
                   }
                 }
                 _ => {
@@ -746,12 +803,12 @@ impl CommonJsExportsParserPlugin {
     if let Expr::Object(obj_lit) = &*assign_expr.right {
       let total_exports = obj_lit.props.len();
 
-      // NOTE: ConsumeShared detection moved to template-time due to parser API limitations
-      // BuildMeta caching will happen in the dependency templates
-
       parser.enable();
 
-      // EXISTING: Create dependencies as before (no changes to dependency creation)
+      // Get source text for enhanced parsing
+      let source_text = &parser.source_file.src;
+
+      // ENHANCED: Use same comma analysis as module.exports path
       // Process each property in the object literal
       for (prop_index, prop) in obj_lit.props.iter().enumerate() {
         if let PropOrSpread::Prop(prop) = prop {
@@ -764,14 +821,33 @@ impl CommonJsExportsParserPlugin {
               } else {
                 ExportContext::ObjectLiteralPropertySubsequent
               };
-              self.create_export_dependency(
-                parser,
-                assign_expr,
-                &export_name,
-                base.clone(),
+
+              // Enhanced comma detection
+              let is_last = prop_index == total_exports - 1;
+              let next_prop_start = if !is_last {
+                obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
+              } else {
+                None
+              };
+
+              let (enhanced_range, has_trailing_comma) = Self::calculate_property_range_with_comma(
                 ident.span(),
-                context,
+                source_text,
+                next_prop_start,
+                is_last,
               );
+
+              parser
+                .dependencies
+                .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
+                  enhanced_range,
+                  Some(assign_expr.right.span().into()),
+                  base.clone(),
+                  vec![export_name.into()],
+                  context,
+                  has_trailing_comma,
+                  is_last,
+                )));
             }
             Prop::KeyValue(key_value) => {
               // Handle key-value properties: { key: value }
@@ -782,14 +858,34 @@ impl CommonJsExportsParserPlugin {
                 } else {
                   ExportContext::ObjectLiteralPropertySubsequent
                 };
-                self.create_export_dependency(
-                  parser,
-                  assign_expr,
-                  &export_name,
-                  base.clone(),
-                  key_value.span(),
-                  context,
-                );
+
+                // Enhanced comma detection for key-value pairs
+                let is_last = prop_index == total_exports - 1;
+                let next_prop_start = if !is_last {
+                  obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
+                } else {
+                  None
+                };
+
+                let (enhanced_range, has_trailing_comma) =
+                  Self::calculate_property_range_with_comma(
+                    key_value.span(),
+                    source_text,
+                    next_prop_start,
+                    is_last,
+                  );
+
+                parser
+                  .dependencies
+                  .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
+                    enhanced_range,
+                    Some(assign_expr.right.span().into()),
+                    base.clone(),
+                    vec![export_name.into()],
+                    context,
+                    has_trailing_comma,
+                    is_last,
+                  )));
               }
             }
             Prop::Method(method) => {
@@ -801,14 +897,34 @@ impl CommonJsExportsParserPlugin {
                 } else {
                   ExportContext::ObjectLiteralPropertySubsequent
                 };
-                self.create_export_dependency(
-                  parser,
-                  assign_expr,
-                  &export_name,
-                  base.clone(),
-                  method.span(),
-                  context,
-                );
+
+                // Enhanced comma detection for methods
+                let is_last = prop_index == total_exports - 1;
+                let next_prop_start = if !is_last {
+                  obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
+                } else {
+                  None
+                };
+
+                let (enhanced_range, has_trailing_comma) =
+                  Self::calculate_property_range_with_comma(
+                    method.span(),
+                    source_text,
+                    next_prop_start,
+                    is_last,
+                  );
+
+                parser
+                  .dependencies
+                  .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
+                    enhanced_range,
+                    Some(assign_expr.right.span().into()),
+                    base.clone(),
+                    vec![export_name.into()],
+                    context,
+                    has_trailing_comma,
+                    is_last,
+                  )));
               }
             }
             _ => {
@@ -847,27 +963,58 @@ impl CommonJsExportsParserPlugin {
     }
   }
 
-  fn create_export_dependency(
-    &self,
-    parser: &mut JavascriptParser,
-    assign_expr: &AssignExpr,
-    export_name: &str,
-    base: ExportsBase,
-    property_span: swc_core::common::Span,
-    context: ExportContext,
-  ) {
-    // For bulk exports, target the individual property within the object literal
-    parser
-      .dependencies
-      .push(Box::new(CommonJsExportsDependency::new(
-        property_span.into(), // Use the property span for individual exports in object literals
-        Some(assign_expr.right.span().into()), // Keep value range for coordination
-        base,
-        vec![export_name.to_string().into()], // Convert to Atom
-        context,
-      )));
-  }
+  // REMOVED: create_export_dependency function - now using enhanced comma detection everywhere
 
   // REMOVED: detect_consume_shared_context method due to architectural limitations
   // ConsumeShared detection will be handled at template-time with BuildMeta caching
+
+  /// Calculate property range including trailing comma for precise replacement
+  fn calculate_property_range_with_comma(
+    property_span: swc_core::common::Span,
+    source_text: &str,
+    next_prop_start: Option<u32>,
+    is_last: bool,
+  ) -> (DependencyRange, bool) {
+    use rspack_core::DependencyRange;
+
+    let prop_start = property_span.lo.0 - 1;
+    let prop_end = property_span.hi.0 - 1;
+
+    if is_last {
+      // For the last property, check if there's a trailing comma before the closing brace
+      let search_slice = &source_text[prop_end as usize..];
+      if let Some(brace_pos) = search_slice.find('}') {
+        let before_brace = &search_slice[..brace_pos];
+        let trimmed = before_brace.trim();
+
+        if trimmed.ends_with(',') {
+          // Include the trailing comma in the range
+          let comma_pos = prop_end + before_brace.rfind(',').unwrap() as u32 + 1;
+          (DependencyRange::new(prop_start, comma_pos), true)
+        } else {
+          // No trailing comma
+          (DependencyRange::new(prop_start, prop_end), false)
+        }
+      } else {
+        // Fallback: no closing brace found
+        (DependencyRange::new(prop_start, prop_end), false)
+      }
+    } else if let Some(next_start) = next_prop_start {
+      // Look for comma between this property and the next
+      let search_end = std::cmp::min(next_start, source_text.len() as u32);
+      let search_slice = &source_text[prop_end as usize..search_end as usize];
+
+      if let Some(comma_pos) = search_slice.find(',') {
+        // Include the comma in the range
+        let comma_end = prop_end + comma_pos as u32 + 1;
+        (DependencyRange::new(prop_start, comma_end), true)
+      } else {
+        // No comma found (shouldn't happen in valid JS, but handle gracefully)
+        (DependencyRange::new(prop_start, prop_end), false)
+      }
+    } else {
+      // Fallback: just the property span
+      (DependencyRange::new(prop_start, prop_end), false)
+    }
+  }
 }

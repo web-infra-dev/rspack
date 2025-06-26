@@ -12,7 +12,6 @@ use rspack_core::{
   ModuleType, NormalInitFragment, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
-use rspack_core::rspack_sources::Source;
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
   Diagnostic,
@@ -86,6 +85,10 @@ pub struct CommonJsExportsDependency {
   source_map: Option<SharedSourceMap>,
   resource_identifier: Option<String>,
   context: ExportContext,
+  /// Whether this property has a trailing comma in the source
+  has_trailing_comma: Option<bool>,
+  /// Whether this is the last property in an object literal
+  is_last_property: Option<bool>,
 }
 
 impl CommonJsExportsDependency {
@@ -97,6 +100,30 @@ impl CommonJsExportsDependency {
     context: ExportContext,
   ) -> Self {
     Self::new_with_source_map(range, value_range, base, names, None, context)
+  }
+
+  pub fn new_with_comma_info(
+    range: DependencyRange,
+    value_range: Option<DependencyRange>,
+    base: ExportsBase,
+    names: Vec<Atom>,
+    context: ExportContext,
+    has_trailing_comma: bool,
+    is_last_property: bool,
+  ) -> Self {
+    let resource_identifier = Self::create_resource_identifier(&base, &names);
+    Self {
+      id: DependencyId::new(),
+      range,
+      value_range,
+      base,
+      names,
+      source_map: None,
+      resource_identifier: Some(resource_identifier),
+      context,
+      has_trailing_comma: Some(has_trailing_comma),
+      is_last_property: Some(is_last_property),
+    }
   }
 
   pub fn new_with_source_map(
@@ -117,6 +144,8 @@ impl CommonJsExportsDependency {
       source_map,
       resource_identifier: Some(resource_identifier),
       context,
+      has_trailing_comma: None,
+      is_last_property: None,
     }
   }
 
@@ -574,8 +603,8 @@ impl CommonJsExportsDependencyTemplate {
 
   /// Module-level coordination for macro generation
   fn should_generate_macro(
-    module: &dyn rspack_core::Module,
-    dep: &CommonJsExportsDependency,
+    _module: &dyn rspack_core::Module,
+    _dep: &CommonJsExportsDependency,
     consume_shared_info: &Option<String>,
   ) -> bool {
     // Only generate macros for ConsumeShared modules
@@ -585,14 +614,14 @@ impl CommonJsExportsDependencyTemplate {
 
     // Use BuildMeta to coordinate macro generation
     // First dependency in a module takes responsibility for generating macros
-    let build_meta = module.build_meta();
+    // let _build_meta = module.build_meta();
 
     // Check if this is the first CommonJS export dependency to be processed
     // We use a simple heuristic: if no macro coordination key exists, this is the first
-    let coordination_key = format!(
-      "cjs_macro_coordinator_{}",
-      consume_shared_info.as_ref().unwrap()
-    );
+    // let _coordination_key = format!(
+    //   "cjs_macro_coordinator_{}",
+    //   consume_shared_info.as_ref().unwrap()
+    // );
 
     // For now, always generate individual macros but use better coordination
     // This avoids complex state management while fixing the range conflicts
@@ -625,79 +654,21 @@ impl CommonJsExportsDependencyTemplate {
 
           // ENHANCED: Use ExportContext for precise macro wrapping
           match dep.context {
-            ExportContext::ObjectLiteralPropertyFirst => {
-              // First property in object literal - include trailing comma inside macro and remove external comma
-              let macro_export = format!(
-                "/* @common:if [condition=\"{}\"] */ {}, /* @common:endif */",
-                macro_condition, export_name
+            ExportContext::ObjectLiteralPropertyFirst
+            | ExportContext::ObjectLiteralPropertySubsequent => {
+              let end = if dep.is_last_property.unwrap_or(false) {
+                dep.range.end
+              } else {
+                dep.range.end + 1 // Include the comma
+              };
+
+              source.replace(
+                dep.range.start,
+                dep.range.start,
+                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                None,
               );
-              // Check if there's a comma immediately after the property range
-              let source_str = source.source();
-              let end_usize = dep.range.end as usize;
-              let mut extended_end = dep.range.end;
-              
-              // Look ahead to find and consume the trailing comma
-              if end_usize < source_str.len() {
-                let after_prop = &source_str[end_usize..];
-                // Check for comma with optional whitespace
-                let mut chars = after_prop.chars();
-                let mut offset = 0;
-                
-                // Skip whitespace
-                while let Some(ch) = chars.next() {
-                  if ch.is_whitespace() {
-                    offset += ch.len_utf8();
-                  } else {
-                    break;
-                  }
-                }
-                
-                // Check if next non-whitespace character is a comma
-                if after_prop[offset..].starts_with(',') {
-                  extended_end = dep.range.end + (offset + 1) as u32;
-                  tracing::debug!("🔧 Extended range to include comma: {} -> {}", dep.range.end, extended_end);
-                }
-              }
-              
-              tracing::debug!("🔧 Replacing range {}..{} with macro: {}", dep.range.start, extended_end, &macro_export);
-              source.replace(dep.range.start, extended_end, &macro_export, None);
-            }
-            ExportContext::ObjectLiteralPropertySubsequent => {
-              // Subsequent properties in object literal - include trailing comma inside macro and remove external comma
-              let macro_export = format!(
-                "/* @common:if [condition=\"{}\"] */ {}, /* @common:endif */",
-                macro_condition, export_name
-              );
-              // Check if there's a comma immediately after the property range
-              let source_str = source.source();
-              let end_usize = dep.range.end as usize;
-              let mut extended_end = dep.range.end;
-              
-              // Look ahead to find and consume the trailing comma
-              if end_usize < source_str.len() {
-                let after_prop = &source_str[end_usize..];
-                // Check for comma with optional whitespace
-                let mut chars = after_prop.chars();
-                let mut offset = 0;
-                
-                // Skip whitespace
-                while let Some(ch) = chars.next() {
-                  if ch.is_whitespace() {
-                    offset += ch.len_utf8();
-                  } else {
-                    break;
-                  }
-                }
-                
-                // Check if next non-whitespace character is a comma
-                if after_prop[offset..].starts_with(',') {
-                  extended_end = dep.range.end + (offset + 1) as u32;
-                  tracing::debug!("🔧 Extended range to include comma: {} -> {}", dep.range.end, extended_end);
-                }
-              }
-              
-              tracing::debug!("🔧 Replacing range {}..{} with macro: {}", dep.range.start, extended_end, &macro_export);
-              source.replace(dep.range.start, extended_end, &macro_export, None);
+              source.replace(end, end, " /* @common:endif */", None);
             }
             ExportContext::VariableAssignment => {
               // For variable assignments (foo = exports.bar), wrap the exports reference
@@ -708,15 +679,30 @@ impl CommonJsExportsDependencyTemplate {
               source.replace(dep.range.start, dep.range.end, &macro_export, None);
             }
             ExportContext::IndividualAssignment => {
-              // For individual assignments (exports.foo = value), wrap the entire assignment
-              // dep.range covers the entire assignment, so wrap the full statement
-              source.replace(
-                dep.range.start,
-                dep.range.start,
-                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
-                None,
-              );
-              source.replace(dep.range.end, dep.range.end, " /* @common:endif */", None);
+              if let Some(ref value_range) = dep.value_range {
+                // Wrap only the value part of the assignment
+                source.replace(
+                  value_range.start,
+                  value_range.start,
+                  &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                  None,
+                );
+                source.replace(
+                  value_range.end,
+                  value_range.end,
+                  " /* @common:endif */",
+                  None,
+                );
+              } else {
+                // Fallback for safety, though value_range should always be present for this context
+                source.replace(
+                  dep.range.start,
+                  dep.range.start,
+                  &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                  None,
+                );
+                source.replace(dep.range.end, dep.range.end, " /* @common:endif */", None);
+              }
             }
             ExportContext::DefineProperty => {
               // For defineProperty, wrap the export property
