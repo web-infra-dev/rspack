@@ -1,4 +1,4 @@
-# Case clean_isolated_module: Step 0
+# Case clean-isolated-cycle: Step 0
 
 ## Changed Files
 
