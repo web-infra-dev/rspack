@@ -21,7 +21,7 @@ Notable changes:
   - [Smaller bundles](#smaller-bundles)
   - [Incremental build by default](#incremental-build-by-default)
   - [New CssChunkingPlugin](#new-csschunkingplugin)
-  - [More flexible lazy compilation](#more-flexible-lazy-compilation)
+  - [Enhanced lazy compilation](#enhanced-lazy-compilation)
   - [Custom input file system](#custom-input-file-system)
   - [Performance analysis tool](#performance-analysis-tool)
 - Rstack progress
@@ -191,7 +191,7 @@ In the future, we also plan to add built-in virtual module support in Rspack to 
 
 > For detailed usage, see the [documentation](/config/experiments#experimentsuseinputfilesystem).
 
-### Performance analysis tools
+### Performance analysis tool
 
 Rspack 1.4 introduces more precise tracing capabilities, which can be used for performance analysis based on [perfetto](https://perfetto.dev/) to quickly identify build performance bottlenecks.
 
@@ -325,7 +325,7 @@ Additionally, we are developing a brand new theme, with the preview shown below:
 
 Rsdoctor has introduced [@rsdoctor/mcp-server](https://rsdoctor.rs/guide/start/mcp), which combines LLMs to help you better analyze build data. It can access Rsdoctor's local build analysis data and provide intelligent analysis and optimization suggestions.
 
-Rsdoctor MCP primarily provides features such as bundle analysis, dependency analysis, bundle optimization suggestions, and build optimization suggestions. It can analyze bundle size composition, dependency relationships, and duplicate dependencies, while providing targeted optimization suggestions for bundle size optimization, code splitting, and build performance.
+Rsdoctor MCP provides bundle analysis, dependency analysis, bundle optimization suggestions, and build optimization suggestions. It can analyze bundle size composition, dependency relationships, and duplicate dependencies, while providing targeted optimization suggestions for bundle size optimization, code splitting, and build performance.
 
 <video
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
