@@ -23,7 +23,7 @@ RSPACK_PROFILE=ALL rsbuild build
 The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/):
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-tracing.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
   alt="tracing"
 />
 

@@ -76,7 +76,7 @@ function parseTriple(rawTriple) {
 
 function generateReadme(pkgName) {
 	const README = `<picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
 </picture>
 
 # ${pkgName}
@@ -102,7 +102,7 @@ const NPM = path.resolve(__dirname, "../npm");
 try {
 	// Error tolerant if the directory already exists
 	fs.mkdirSync(NPM);
-} catch (e) {}
+} catch (e) { }
 
 // Releasing bindings
 const releasingPackages = [];
@@ -186,7 +186,7 @@ for (const binding of bindings) {
 	const output = path.join(NPM, platformArchABI);
 	try {
 		fs.mkdirSync(output);
-	} catch (e) {}
+	} catch (e) { }
 
 	const coreJson = require(
 		path.resolve(__dirname, "../packages/rspack/package.json")
