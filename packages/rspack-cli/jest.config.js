@@ -1,7 +1,8 @@
 /** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
 const wasmConfig = process.env.WASM && {
 	testPathIgnorePatterns: ["profile.test.ts"],
-	maxWorkers: 1
+	maxWorkers: 1,
+	maxConcurrency: 1
 };
 
 /** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
