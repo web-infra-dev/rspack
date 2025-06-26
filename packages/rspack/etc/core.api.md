@@ -2499,6 +2499,7 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
+    nativeWatcher?: boolean;
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
 };
@@ -9084,7 +9085,7 @@ type WatchFiles = {
 // @public (undocumented)
 interface WatchFileSystem {
     // (undocumented)
-    watch(files: WatcherIncrementalDependencies, directories: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Promise<Watcher>;
+    watch(symbol: Symbol, files: WatcherIncrementalDependencies, directories: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Promise<Watcher>;
 }
 
 // @public (undocumented)
