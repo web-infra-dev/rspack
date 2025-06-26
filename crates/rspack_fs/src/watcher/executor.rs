@@ -264,7 +264,7 @@ impl ExecuteAggregateHandler {
             .await;
           running.store(false, Ordering::Relaxed);
         }
-        _ => return,
+        _ => (),
       }
     };
 
