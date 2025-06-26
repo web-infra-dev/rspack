@@ -37,12 +37,12 @@ pub struct Executor {
   aggregate_timeout: u32,
   rx: ThreadSafety<UnboundedReceiver<FsEvent>>,
   files_data: ThreadSafety<FilesData>,
-  exec_aggreate_tx: UnboundedSender<ExecAggreateEvent>,
-  exec_aggreate_rx: ThreadSafetyReceiver<ExecAggreateEvent>,
+  exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
+  exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   exec_tx: UnboundedSender<ExecEvent>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
   paused: Arc<AtomicBool>,
-  aggreate_running: Arc<AtomicBool>,
+  aggregate_running: Arc<AtomicBool>,
   start_waiting: bool,
   execute_handler: Option<ExecuteHandler>,
   execute_aggregate_handler: Option<ExecuteAggregateHandler>,
@@ -53,7 +53,7 @@ const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
 /// `ExecEvent` represents control events for the watcher executor loop.
 /// - `Execute`: Indicates that an event (change or delete) has occurred and the handler should be triggered.
 /// - `Close`: Indicates that the event receiver has been closed and the executor should stop.
-enum ExecAggreateEvent {
+enum ExecAggregateEvent {
   /// Trigger the execution of the event handler (e.g., after a file change or delete).
   Execute,
   /// Signal to close the executor loop (e.g., when the receiver is closed).
@@ -68,17 +68,17 @@ enum ExecEvent {
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
   pub fn new(rx: UnboundedReceiver<FsEvent>, aggregate_timeout: Option<u32>) -> Self {
-    let (exec_aggreate_tx, exec_aggreate_rx) = mpsc::unbounded_channel::<ExecAggreateEvent>();
+    let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 
     Self {
       start_waiting: false,
-      aggreate_running: Arc::new(AtomicBool::new(false)),
+      aggregate_running: Arc::new(AtomicBool::new(false)),
       paused: Arc::new(AtomicBool::new(false)),
       rx: Arc::new(Mutex::new(rx)),
       files_data: Default::default(),
-      exec_aggreate_tx,
-      exec_aggreate_rx: Arc::new(Mutex::new(exec_aggreate_rx)),
+      exec_aggregate_tx,
+      exec_aggregate_rx: Arc::new(Mutex::new(exec_aggregate_rx)),
       exec_rx: Arc::new(Mutex::new(exec_rx)),
       exec_tx,
       execute_aggregate_handler: None,
@@ -115,10 +115,10 @@ impl Executor {
       let files = Arc::clone(&self.files_data);
 
       let rx = Arc::clone(&self.rx);
-      let exec_aggreate_tx = self.exec_aggreate_tx.clone();
+      let exec_aggregate_tx = self.exec_aggregate_tx.clone();
       let exec_tx = self.exec_tx.clone();
       let paused = Arc::clone(&self.paused);
-      let aggreate_running = Arc::clone(&self.aggreate_running);
+      let aggregate_running = Arc::clone(&self.aggregate_running);
 
       let future = async move {
         while let Some(event) = rx.lock().await.recv().await {
@@ -135,13 +135,13 @@ impl Executor {
             }
           };
 
-          if !paused.load(Ordering::Relaxed) && !aggreate_running.load(Ordering::Relaxed) {
-            let _ = exec_aggreate_tx.send(ExecAggreateEvent::Execute);
+          if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
+            let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
           }
           let _ = exec_tx.send(ExecEvent::Execute(event));
         }
 
-        let _ = exec_aggreate_tx.send(ExecAggreateEvent::Close);
+        let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
         let _ = exec_tx.send(ExecEvent::Close);
       };
 
@@ -163,10 +163,10 @@ impl Executor {
 
     self.execute_aggregate_handler = Some(ExecuteAggregateHandler::new(
       Arc::clone(&event_handler),
-      Arc::clone(&self.exec_aggreate_rx),
+      Arc::clone(&self.exec_aggregate_rx),
       Arc::clone(&self.files_data),
       self.aggregate_timeout as u64,
-      Arc::clone(&self.aggreate_running),
+      Arc::clone(&self.aggregate_running),
     ));
 
     self.execute_handler = Some(ExecuteHandler::new(
@@ -227,24 +227,24 @@ struct ExecuteAggregateHandler {
 impl ExecuteAggregateHandler {
   fn new(
     event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-    exec_aggreate_rx: ThreadSafetyReceiver<ExecAggreateEvent>,
+    exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
     files: ThreadSafety<FilesData>,
     aggregate_timeout: u64,
     running: Arc<AtomicBool>,
   ) -> Self {
     let future = async move {
-      let aggreate_rx = {
-        // release the lock on exec_aggreate_rx
+      let aggregate_rx = {
+        // release the lock on exec_aggregate_rx
         // and wait for the next event
-        let mut exec_aggreate_rx_guard = exec_aggreate_rx.lock().await;
-        match exec_aggreate_rx_guard.recv().await {
+        let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
+        match exec_aggregate_rx_guard.recv().await {
           Some(event) => event,
           None => return,
         }
       };
 
-      match aggreate_rx {
-        ExecAggreateEvent::Execute => {
+      match aggregate_rx {
+        ExecAggregateEvent::Execute => {
           running.store(true, Ordering::Relaxed);
           // Wait for the aggregate timeout before executing the handler
           tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;

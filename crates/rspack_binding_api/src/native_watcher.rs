@@ -6,12 +6,12 @@ use napi_derive::*;
 use rspack_fs::{FsWatcher, FsWatcherOptions, Ignored, PathUpdater};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
-struct SaftyIgnored {
+struct SafetyIgnored {
   f: ThreadsafeFunction<String, Promise<bool>>,
 }
 
 #[async_trait]
-impl Ignored for SaftyIgnored {
+impl Ignored for SafetyIgnored {
   async fn ignore(&self, path: &str) -> bool {
     self
       .f
@@ -45,7 +45,7 @@ impl NativeWatcher {
   pub fn new(options: NativeWatcherOptions) -> Self {
     let ignored = options
       .ignored
-      .map(|f| Box::new(SaftyIgnored { f: f.clone() }) as Box<dyn Ignored>);
+      .map(|f| Box::new(SafetyIgnored { f: f.clone() }) as Box<dyn Ignored>);
 
     let watcher = FsWatcher::new(
       FsWatcherOptions {

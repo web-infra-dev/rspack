@@ -98,7 +98,7 @@ mod tests {
   }
 
   #[test]
-  fn test_find_non_exsists_watcher_directories() {
+  fn test_find_non_exists_watcher_directories() {
     let files = HashSet::with_capacity(3);
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let file_0 = ArcPath::from(current_dir.join("Cargo.toml"));
