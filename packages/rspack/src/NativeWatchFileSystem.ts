@@ -1,11 +1,11 @@
 import * as binding from "@rspack/binding";
+import type Watchpack from "watchpack";
 import type {
 	FileSystemInfoEntry,
 	WatchFileSystem,
 	Watcher,
 	WatcherIncrementalDependencies
 } from "./util/fs";
-import type Watchpack from "watchpack";
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inners: Map<Symbol, binding.NativeWatcher> = new Map();
@@ -109,18 +109,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
 		const ignoredCallback = options.ignored
 			? async (path: string): Promise<boolean> => {
-					const ignored = options.ignored;
-					if (Array.isArray(ignored)) {
-						return ignored.some(item => path.includes(item));
-					}
-					if (typeof ignored === "string") {
-						return path.includes(ignored);
-					}
-					if (ignored instanceof RegExp) {
-						return ignored.test(path);
-					}
-					return false;
+				const ignored = options.ignored;
+				if (Array.isArray(ignored)) {
+					return ignored.some(item => path.includes(item));
 				}
+				if (typeof ignored === "string") {
+					return path.includes(ignored);
+				}
+				if (ignored instanceof RegExp) {
+					return ignored.test(path);
+				}
+				return false;
+			}
 			: undefined;
 		const nativeWatcherOptions: binding.NativeWatcherOptions = {
 			followSymlinks: options.followSymlinks,
