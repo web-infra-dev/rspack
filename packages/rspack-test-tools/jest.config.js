@@ -12,7 +12,8 @@ const wasmConfig = process.env.WASM && {
 	testPathIgnorePatterns: [
 		"Diagnostics.test.js",
 		"Error.test.js",
-		"StatsAPI.test.js"
+		"StatsAPI.test.js",
+		"Cache.test.js"
 	],
 	maxWorkers: process.env.CI ? "80%" : 1
 };
