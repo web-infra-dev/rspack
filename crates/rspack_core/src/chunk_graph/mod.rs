@@ -1,5 +1,5 @@
 use core::fmt;
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
@@ -7,8 +7,7 @@ use rspack_util::{atom::Atom, env::has_query};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, Binding, ChunkGroupUkey, ChunkUkey, Compilation,
-  ModuleIdentifier,
+  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
 };
 
 pub mod chunk_graph_chunk;
@@ -16,24 +15,69 @@ pub mod chunk_graph_module;
 pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
 
+#[derive(Debug, Clone)]
+pub enum Ref {
+  Symbol(SymbolRef),
+  Inline(String),
+}
+
+#[derive(Clone)]
+pub struct SymbolRef {
+  pub module: ModuleIdentifier,
+  pub symbol: Atom,
+  pub ids: Vec<Atom>,
+  renderer: Arc<dyn Fn(&SymbolRef) -> String + Send + Sync>,
+}
+
+impl std::fmt::Debug for SymbolRef {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("SymbolRef")
+      .field("module", &self.module)
+      .field("symbol", &self.symbol)
+      .field("ids", &self.ids)
+      .finish()
+  }
+}
+
+impl SymbolRef {
+  pub fn new(
+    module: ModuleIdentifier,
+    symbol: Atom,
+    ids: Vec<Atom>,
+    renderer: Arc<dyn Fn(&SymbolRef) -> String + Send + Sync>,
+  ) -> Self {
+    Self {
+      module,
+      symbol,
+      ids,
+      renderer,
+    }
+  }
+
+  pub fn render(&self) -> String {
+    (self.renderer)(self)
+  }
+}
+
+pub trait BindingRenderer {
+  fn render(&self) -> Cow<str>;
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ChunkLinkContext {
   // specifier order doesn't matter, we can sort them based on name
   pub exports: IdentifierMap<HashSet<Atom>>,
 
   // import order matters, it affects execution order
-  pub imports: IdentifierIndexMap<HashSet<Atom>>,
+  pub imports: IdentifierIndexMap<HashMap<Atom, Atom>>,
+
+  // const symbol = __webpack_require__(module_id)
+  pub required: IdentifierMap<Atom>,
 
   pub needed_namespace_objects: IdentifierIndexSet,
   pub hoisted_modules: IdentifierIndexSet,
-  pub ref_to_final_name: HashMap<String, ModuleReference>,
+  pub refs: HashMap<String, Ref>,
   pub used_names: HashSet<Atom>,
-}
-
-#[derive(Debug, Clone)]
-pub enum ModuleReference {
-  Binding(Binding),
-  Str(String),
 }
 
 #[derive(Debug, Clone, Default)]

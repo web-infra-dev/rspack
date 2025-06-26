@@ -1,7 +1,7 @@
 use std::sync::{Arc, LazyLock};
 
 use regex::Regex;
-use rspack_collections::IdentifierIndexMap;
+use rspack_collections::{IdentifierIndexMap, IdentifierSet};
 use rspack_core::{
   get_target,
   rspack_sources::{ReplaceSource, Source},
@@ -199,6 +199,24 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   let mut self_modules_map = self.concatenated_modules_map.lock().await;
   self_modules_map.insert(id.0, Arc::new(modules_map));
 
+  // mark all entry exports as used
+  let mut entry_modules = IdentifierSet::default();
+  for entry_data in compilation.entries.values() {
+    entry_modules.extend(
+      entry_data
+        .all_dependencies()
+        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+        .copied(),
+    );
+  }
+
+  let mut module_graph = compilation.get_module_graph_mut();
+  for m in entry_modules {
+    let exports_info = module_graph.get_exports_info(&m);
+
+    exports_info.set_all_known_exports_used(&mut module_graph, None);
+  }
+
   Ok(())
 }
 
@@ -240,22 +258,24 @@ async fn additional_chunk_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let info_map = self.concatenated_modules_map.lock().await;
+  let info_map = info_map
+    .get(&compilation.id().0)
+    .expect("should have compilation info map");
+
+  for m in compilation
+    .chunk_graph
+    .get_chunk_modules_identifier(chunk_ukey)
+  {
+    let info = info_map.get(m).expect("should have this info map");
+    runtime_requirements.extend(*info.get_runtime_requirements());
+  }
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    let lock = self.concatenated_modules_map.lock().await;
-    let modules_info_map = lock
-      .get(&compilation.id().0)
-      .expect("should has compilation");
-
-    for info in modules_info_map.values() {
-      runtime_requirements.insert(*info.get_runtime_requirements());
-    }
-
     if !runtime_requirements.is_empty() {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     }
   }
-
   Ok(())
 }
 
