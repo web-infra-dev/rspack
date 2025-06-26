@@ -35,6 +35,7 @@ const creator = new BasicCaseCreator({
 						runable: true,
 						compilerType: ECompilerType.Rspack,
 						configFiles: ["rspack.config.js", "webpack.config.js"],
+						nativeWatcher: true,
 					},
 					watchState
 				)
@@ -54,7 +55,7 @@ const creator = new BasicCaseCreator({
 	concurrent: true,
 });
 
-export function createWatchCase(
+export function createNativeWatcher(
 	name: string,
 	src: string,
 	dist: string,

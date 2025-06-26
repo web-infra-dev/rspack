@@ -25,6 +25,7 @@ export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
+	nativeWatcher?: boolean;
 }
 
 export class WatchProcessor<
@@ -250,7 +251,7 @@ export class WatchProcessor<
 
 	static overrideOptions<T extends ECompilerType>({
 		tempDir,
-		name
+		nativeWatcher,
 	}: IWatchProcessorOptions<T>) {
 		return (
 			index: number,
@@ -275,9 +276,12 @@ export class WatchProcessor<
 			options.optimization ??= {};
 			options.experiments ??= {};
 			options.experiments.css ??= true;
-			(
-				options as TCompilerOptions<ECompilerType.Rspack>
-			).experiments!.nativeWatcher ??= true;
+			if (nativeWatcher) {
+				(
+					options as TCompilerOptions<ECompilerType.Rspack>
+				).experiments!.nativeWatcher ??= true;
+			}
+
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture ??= {};
@@ -338,6 +342,9 @@ export class WatchStepProcessor<
 		currentWatchStepModule.step[this._options.name] =
 			this._watchOptions.stepName;
 		const task = new Promise((resolve, reject) => {
+			setTimeout(() => {
+				reject(`Timeout waiting for compiler to start watching files ${this._watchOptions.tempDir}_${this._watchOptions.stepName}`,);
+			}, 5000);
 			compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 				if (e) return reject(e);
 				resolve(stats);

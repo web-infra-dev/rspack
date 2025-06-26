@@ -103,12 +103,13 @@ impl FsWatcher {
   pub fn close(&mut self) -> Result<()> {
     self.disk_watcher.close();
     self.scanner.close();
+    self.executor.close();
 
     Ok(())
   }
 
-  pub async fn pause(&self) -> Result<()> {
-    self.executor.pause().await;
+  pub fn pause(&self) -> Result<()> {
+    self.executor.pause();
 
     Ok(())
   }

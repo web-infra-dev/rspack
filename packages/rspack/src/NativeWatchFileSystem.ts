@@ -8,7 +8,6 @@ import type {
 import type Watchpack from "watchpack";
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
-	// #inner: binding.NativeWatcher | undefined;
 	#inners: Map<Symbol, binding.NativeWatcher> = new Map();
 
 	async watch(

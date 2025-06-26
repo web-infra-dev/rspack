@@ -119,11 +119,10 @@ impl NativeWatcher {
   }
 
   #[napi]
-  pub async fn pause(&self) -> napi::Result<()> {
+  pub fn pause(&self) -> napi::Result<()> {
     if let Some(watcher) = &self.watcher {
       watcher
         .pause()
-        .await
         .map_err(|e| napi::Error::from_reason(e.to_string()))?;
     }
 
@@ -161,7 +160,7 @@ impl rspack_fs::EventHandler for JsEventHandler {
     self
       .callback
       .call_with_sync(FnArgs {
-        data: (None, changed_files_vec.clone(), deleted_files_vec.clone()),
+        data: (None, changed_files_vec, deleted_files_vec),
       })
       .await
   }

@@ -427,7 +427,7 @@ export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, changedFiles: string[], removedFiles: string[]) => void, callbackUndelayed: (path: string) => void): Promise<void>
   close(): void
-  pause(): Promise<void>
+  pause(): void
 }
 
 
