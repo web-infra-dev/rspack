@@ -23,7 +23,7 @@ use std::cell::RefCell;
 
 use napi::{
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
-  Env, Unknown,
+  Either, Env, Unknown,
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -223,14 +223,13 @@ pub enum BuiltinPluginName {
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
   CssChunkingPlugin,
-  // Custom(String),
 }
 
 pub type CustomPluginBuilder =
   for<'a> fn(env: Env, options: Unknown<'a>) -> napi::Result<BoxPlugin>;
 
 thread_local! {
-  static CUSTOMED_PLUGINS_CTOR: RefCell<HashMap<String, CustomPluginBuilder>> = RefCell::new(HashMap::default());
+  static CUSTOMED_PLUGINS_CTOR: RefCell<HashMap<CustomPluginName, CustomPluginBuilder>> = RefCell::new(HashMap::default());
 }
 
 #[doc(hidden)]
@@ -248,9 +247,11 @@ pub fn register_custom_plugin(
   })
 }
 
+type CustomPluginName = String;
+
 #[napi(object)]
 pub struct BuiltinPlugin<'a> {
-  pub name: BuiltinPluginName,
+  pub name: Either<BuiltinPluginName, CustomPluginName>,
   pub options: Unknown<'a>,
   pub can_inherent_from_parent: Option<bool>,
 }
@@ -262,7 +263,20 @@ impl<'a> BuiltinPlugin<'a> {
     compiler_object: &mut Object,
     plugins: &mut Vec<BoxPlugin>,
   ) -> napi::Result<()> {
-    match self.name {
+    let name = match self.name {
+      Either::A(name) => name,
+      Either::B(name) => {
+        CUSTOMED_PLUGINS_CTOR.with_borrow(|ctors| {
+          let ctor = ctors.get(&name).ok_or_else(|| {
+            napi::Error::from_reason(format!("Expected plugin installed '{name}'"))
+          })?;
+          plugins.push(ctor(env, self.options)?);
+          Ok::<_, napi::Error>(())
+        })?;
+        return Ok(());
+      }
+    };
+    match name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
         let plugin = DefinePlugin::new(
