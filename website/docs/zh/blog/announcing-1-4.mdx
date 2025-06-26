@@ -163,13 +163,32 @@ const server = new RspackDevServer(
 
 ### 支持自定义 inputFileSystem
 
-Rspack 现已支持自定义 `compiler.inputFileSystem`；可通过配置 [experiments.useInputFileSystem](https://rspack.dev/zh/config/experiments) 开启，与 [Webpack Virtual Module 插件](https://www.npmjs.com/package/webpack-virtual-modules) 兼容使用。
+Rspack 现在允许你自定义 `compiler.inputFileSystem`（编译器的文件读取系统），可通过配置 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 开启。典型的使用场景有：
 
-需要注意的是，若 Rust 侧的所有文件访问均经由 JavaScript 传入的 `inputFileSystem` 实现，可能会带来显著的[性能下降](https://gist.github.com/stormslowly/bd99e62abdc8a979635beaa0c942e6c4)，最严重可达 40%。为此，我们引入了 `useInputFileSystem` 配置项，支持通过正则规则精细控制哪些路径使用自定义 `inputFileSystem`，哪些仍走原生文件系统，以在功能扩展与性能之间取得平衡。
+- 在浏览器中使用 [memfs](https://github.com/streamich/memfs) 代替默认的文件读取系统。
+- 搭配 [webpack-virtual-modules 插件](https://www.npmjs.com/package/webpack-virtual-modules) 来支持虚拟模块。
 
-这是一个优化的配置选项，适用于少量文件需要从 inputFileSystem 读取的场景仍能保持 Rspack 高性能。未来 Rspack 将内置虚拟模块支持，进一步简化使用并提升效率。
+```js title="rspack.config.mjs"
+import VirtualModulesPlugin from 'webpack-virtual-modules';
 
-[这里](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-test-tools/tests/configCases/input-file-system)是一个最小化的示例，更多请参考[文档](https://rspack.dev/config/experiments#experimentsuseinputfilesystem)。
+export default {
+  entry: './virtualEntry.js',
+  plugins: [
+    new VirtualModulesPlugin({
+      'virtualEntry.js': `console.log('virtual entry')`,
+    }),
+  ],
+  experiments: {
+    useInputFileSystem: [/virtualEntry\.js$/],
+  },
+};
+```
+
+由于自定义的 `inputFileSystem` 需要通过 JavaScript 实现，导致性能下降。为了缓解这个问题，该配置允许你传入一个正则表达式数组，用于过滤哪些文件需要从自定义的 `inputFileSystem` 读取，避免因替换原生文件系统而导致的性能劣化。
+
+未来我们还计划在 Rspack 中内置虚拟模块支持，从而提供更好的性能和使用体验。
+
+> 详细用法请参考 [文档](/config/experiments#experimentsuseinputfilesystem)。
 
 ## 性能优化
 
