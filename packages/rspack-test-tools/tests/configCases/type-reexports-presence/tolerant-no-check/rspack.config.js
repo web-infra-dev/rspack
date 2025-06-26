@@ -31,6 +31,6 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 		]
 	},
 	experiments: {
-		typeReexportsPresence: "tolerant-no-check"
+		typeReexportsPresence: true
 	}
 });

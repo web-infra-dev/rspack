@@ -30,5 +30,8 @@ module.exports = {
 	},
 	optimization: {
 		moduleIds: "named"
+	},
+	experiments: {
+		inlineEnum: true
 	}
 };

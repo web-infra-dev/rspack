@@ -7,6 +7,13 @@ function config(index, { concatenateModules } = {}) {
 		output: {
 			filename: `bundle.${index}.js`
 		},
+		module: {
+			parser: {
+				javascript: {
+					inlineConst: true
+				}
+			}
+		},
 		plugins: [
 			function (compiler) {
 				new compiler.webpack.DefinePlugin({

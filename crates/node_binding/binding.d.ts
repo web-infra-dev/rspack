@@ -1892,6 +1892,8 @@ rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 inlineConst: boolean
+inlineEnum: boolean
+typeReexportsPresence: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
