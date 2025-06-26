@@ -9,11 +9,9 @@
  */
 
 import { inspect } from "node:util";
+import type { DependencyLocation } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
 import type { Module } from "../Module";
-
-// Waiting to adapt
-type DependencyLocation = any;
 
 export class WebpackError extends Error {
 	loc?: DependencyLocation;
