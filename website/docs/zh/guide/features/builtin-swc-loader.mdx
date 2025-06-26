@@ -454,3 +454,31 @@ export default {
 import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
+
+### rspackExperiments.collectTypeScriptInfo
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+从 TypeScript 的 AST 中收集信息，以供 Rspack 后续过程进行消费，提供对 TypeScript 更好的开发体验和更小的产物体积。
+
+为了保证收集到的信息的准确性，该配置只能在 builtin:swc-loader 作为最后一个 normal loader 时使用。
+
+> 可参考 [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) 进行配置
+
+#### rspackExperiments.collectTypeScriptInfo.typeExports
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否收集类型导出，提供给 [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 使用，用于 `'tolerant'` 模式下检查子模块的类型导出。
+
+#### rspackExperiments.collectTypeScriptInfo.exportedEnum
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **类型：** `boolean | 'const-only'`
+- **默认值：** `false`
+
+是否收集导出的 `enum`，使用 `'const-only'` 则仅收集导出的 `const enum`，提供给 Rspack 对收集到的 enum 进行跨模块的 inline 优化。
