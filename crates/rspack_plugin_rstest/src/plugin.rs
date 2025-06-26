@@ -17,7 +17,8 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
-  mock_hoist_dependency::MockHoistDependencyTemplate,
+  import_dependency::ImportDependencyTemplate,
+  mock_method_dependency::MockMethodDependencyTemplate,
   mock_module_id_dependency::MockModuleIdDependencyTemplate,
   module_path_name_dependency::ModulePathNameDependencyTemplate, parser_plugin::RstestParserPlugin,
 };
@@ -125,14 +126,30 @@ async fn compilation(
   );
 
   compilation.set_dependency_template(
-    MockHoistDependencyTemplate::template_type(),
-    Arc::new(MockHoistDependencyTemplate::default()),
+    MockMethodDependencyTemplate::template_type(),
+    Arc::new(MockMethodDependencyTemplate::default()),
   );
 
   compilation.set_dependency_template(
     MockModuleIdDependencyTemplate::template_type(),
     Arc::new(MockModuleIdDependencyTemplate::default()),
   );
+
+  Ok(())
+}
+
+#[plugin_hook(CompilerCompilation for RstestPlugin, stage = 9999)]
+async fn compilation_stage_9999(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  // Override the default import dependency template.
+  compilation.set_dependency_template(
+    ImportDependencyTemplate::template_type(),
+    Arc::new(ImportDependencyTemplate::default()),
+  );
+
   Ok(())
 }
 
@@ -155,9 +172,8 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       files.push(file.clone());
     }
   }
-
-  let regex =
-    regex::Regex::new(r"\/\* RSTEST:MOCK_(.*?):(.*?) \*\/").expect("should initialize `Regex`");
+  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK)_(.*?):(.*?) \*\/")
+    .expect("should initialize `Regex`");
 
   for file in files {
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
@@ -167,7 +183,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       let captures: Vec<_> = regex.captures_iter(&content).collect();
 
       for c in captures {
-        let [Some(full), Some(t), Some(request)] = [c.get(0), c.get(1), c.get(2)] else {
+        let [Some(full), Some(t), Some(request)] = [c.get(0), c.get(2), c.get(3)] else {
           continue;
         };
 
@@ -219,6 +235,12 @@ impl Plugin for RstestPlugin {
       .compiler_hooks
       .compilation
       .tap(compilation::new(self));
+
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation_stage_9999::new(self));
 
     if self.options.module_path_name {
       ctx

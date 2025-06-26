@@ -1,10 +1,12 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+
+use crate::import_dependency::module_id_rstest;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -140,7 +142,7 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
       dep.range.end,
       &format!(
         "{}{}",
-        module_id(
+        module_id_rstest(
           code_generatable_context.compilation,
           &dep.id,
           &dep.request,
