@@ -133,8 +133,9 @@ pub async fn handle_runtime(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
-  _runtime_requirements: &mut RuntimeGlobals,
+  runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
+  runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   compilation.add_runtime_module(
     chunk_ukey,
     SRIHashVariableRuntimeModule::new(*chunk_ukey, self.options.hash_func_names.clone()).boxed(),
