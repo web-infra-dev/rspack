@@ -6,11 +6,20 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
 
-`CssChunkingPlugin` is an experimental plugin specifically designed for CSS module code splitting (inspired by Next.js).
-It ensures that the execution order of styles matches the import order in your source code, preventing style issues.
+`CssChunkingPlugin` is a plugin specifically designed for CSS code splitting. It ensures that the loading order of styles matches the import order in your source code, avoiding UI issues caused by incorrect CSS order.
 
-```js
-new rspack.experiments.CssChunkingPlugin(options);
+> This plugin is inspired by Next.js's [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) feature, thanks to the Next.js team for their innovation.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.experiments.CssChunkingPlugin({
+      // ...options
+    }),
+  ],
+};
 ```
 
 :::tip

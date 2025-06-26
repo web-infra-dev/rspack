@@ -1,0 +1,407 @@
+---
+date: 2025-6-26 16:00:00
+sidebar: false
+---
+
+_June 26, 2025_
+
+# Announcing Rspack 1.4
+
+![Rspack 1.4](https://assets.rspack.dev/rspack/rspack-banner-v1-4.png)
+
+---
+
+Rspack 1.4 has been released!
+
+Notable changes:
+
+- New features
+  - [Running in the browser](#running-in-the-browser)
+  - [Faster SWC](#faster-swc)
+  - [Smaller bundles](#smaller-bundles)
+  - [Incremental build by default](#incremental-build-by-default)
+  - [New CssChunkingPlugin](#new-csschunkingplugin)
+  - [Enhanced lazy compilation](#enhanced-lazy-compilation)
+  - [Custom input file system](#custom-input-file-system)
+  - [Performance analysis tool](#performance-analysis-tool)
+- Rstack progress
+  - [Rsbuild 1.4](#rsbuild-14)
+  - [Rslib 0.10](#rslib-010)
+  - [Rspress 2.0 beta](#rspress-20-beta)
+  - [Rsdoctor MCP](#rsdoctor-mcp)
+  - [Rstest released](#rstest-released)
+- Ecosystem
+  - [next-rspack](#next-rspack)
+  - [Kmi](#kmi)
+- Upgrade guide
+
+## New features
+
+### Running in the browser
+
+Starting with Rspack 1.4, we have added Wasm target support, which means Rspack can now run in browser environments, including online platforms like [StackBlitz](https://stackblitz.com/) ([WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)). This enables developers to quickly create prototypes and share code examples without having to configure local environments.
+
+You can try out our [online example](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#preview-with-stackblitz).
+
+<video
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-wasm-target.mp4"
+  autoPlay
+  muted
+  loop
+/>
+
+In future versions, we will continue to optimize the Wasm version's usability and bundle size.
+
+We are also developing the `@rspack/browser` package, which is a browser-specific version of Rspack, allowing you to use Rspack directly in any modern browser without relying on WebContainers or specific platforms.
+
+### Faster SWC
+
+Over the past few months, we have been continuously collaborating with the SWC team to optimize the performance and reliability of the JavaScript toolchain. After a period of optimization, we are pleased to see that SWC's performance has improved significantly, benefiting both Rspack users and all SWC-based tools:
+
+- JavaScript parser is **30%-35%** faster
+- JavaScript minifier is **10%** faster
+
+<img
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-swc-benchmark.png"
+  alt="SWC benchmark"
+/>
+
+> The above data is from: [CodSpeed - SWC](https://codspeed.io/swc-project/swc), compared against SWC 16 used by Rspack 1.3 as the baseline.
+
+### Smaller bundles
+
+SWC has enhanced its dead code elimination (DCE) capabilities in the current version, which combined with Rspack's powerful [tree shaking](/guide/optimization/tree-shaking) functionality, enables Rspack 1.4 to generate smaller bundles.
+
+We tested this using `react-router` as an example: by importing only part of its exports in the source code and then comparing the build outputs from different bundlers, we found that Rspack generates the smallest bundles.
+
+```js title="src/index.js"
+import { BrowserRouter, Routes, Route } from 'react-router';
+
+console.log(BrowserRouter, Routes, Route);
+```
+
+The output bundle sizes by different bundlers are as follows:
+
+| Bundler          | Minified Size | Min+Gzipped Size |
+| ---------------- | ------------- | ---------------- |
+| Rspack (Rsbuild) | **36.35 kB**  | **13.26 kB**     |
+| webpack          | 36.96 kB      | 13.37 kB         |
+| Vite             | 42.67 kB      | 15.67 kB         |
+| Rolldown         | 42.74 kB      | 15.17 kB         |
+| Rolldown Vite    | 43.42 kB      | 15.46 kB         |
+| Farm             | 43.42 kB      | 15.63 kB         |
+| Parcel           | 44.62 kB      | 16.07 kB         |
+| esbuild          | 46.12 kB      | 16.63 kB         |
+| Bun              | 57.73 kB      | 20.8 kB          |
+
+> Data from [react-router-tree-shaking-compare](https://github.com/chenjiahan/react-router-tree-shaking-compare).
+
+### Incremental build by default
+
+After extensive optimization, Rspack's incremental build has become stable. In Rspack 1.4, we've enabled incremental build for all phases by default, which significantly speeds up rebuilds - HMR performance typically improves by **30%-40%**, depending on the project.
+
+Here is a performance comparison from one user after enabling incremental build:
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-incremental-data.png"
+  alt="incremental benchmark"
+  width="760"
+/>
+
+If you need to revert to the previous behavior, you can set [experiments.incremental](/config/experiments#experimentsincremental) to `'safe'`. However, we recommend that most projects use the new default configuration to achieve optimal performance.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    // Revert to previous behavior
+    incremental: 'safe',
+  },
+};
+```
+
+### New CssChunkingPlugin
+
+Rspack 1.4 introduces an experimental [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin) specifically designed for handling CSS code splitting. This plugin ensures that styles are loaded in the same order as they are imported in the source code, preventing UI issues caused by incorrect CSS loading order.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.experiments.CssChunkingPlugin({
+      // ...options
+    }),
+  ],
+};
+```
+
+Once `CssChunkingPlugin` is enabled, CSS code splitting will be handled entirely by this plugin, and the `optimization.splitChunks` configuration will no longer affect CSS modules. You can check the [documentation](/plugins/rspack/css-chunking-plugin) for more details.
+
+> This plugin is inspired by Next.js's [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) feature. Thanks to the Next.js team for their innovation in this area.
+
+### Enhanced lazy compilation
+
+Rspack now supports enabling lazy compilation with `MultiCompiler`, which means that when you use multiple Rspack configurations in a single build, you can independently configure the [lazyCompilation options](/config/experiments#experimentslazycompilation) for each compiler instance.
+
+```js title="rspack.config.mjs"
+export default [
+  {
+    target: 'web',
+    experiments: {
+      // enable lazy compilation for client
+      lazyCompilation: true,
+    },
+  },
+  {
+    target: 'node',
+    experiments: {
+      // disable lazy compilation for server
+      lazyCompilation: false,
+    },
+  },
+];
+```
+
+### Custom input file system
+
+Rspack now allows you to customize `compiler.inputFileSystem` (the compiler's input file system). This feature can be enabled by configuring [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem). Typical use cases include:
+
+- Using [memfs](https://github.com/streamich/memfs) instead of the default input file system in browsers.
+- Working with the [webpack-virtual-modules plugin](https://www.npmjs.com/package/webpack-virtual-modules) to support virtual modules.
+
+```js title="rspack.config.mjs"
+import VirtualModulesPlugin from 'webpack-virtual-modules';
+
+export default {
+  entry: './virtualEntry.js',
+  plugins: [
+    new VirtualModulesPlugin({
+      'virtualEntry.js': `console.log('virtual entry')`,
+    }),
+  ],
+  experiments: {
+    useInputFileSystem: [/virtualEntry\.js$/],
+  },
+};
+```
+
+Since the custom `inputFileSystem` is implemented in JavaScript, it may lead to performance degradation. To mitigate this issue, `useInputFileSystem` allows you to pass an array of regular expressions to filter which files need to be read from the custom `inputFileSystem`, which avoids performance overhead caused by replacing the native file system.
+
+In the future, we also plan to add built-in virtual module support in Rspack to provide better performance and user experience.
+
+> For detailed usage, see the [documentation](/config/experiments#experimentsuseinputfilesystem).
+
+### Performance analysis tool
+
+Rspack 1.4 introduces more precise tracing capabilities, which can be used for performance analysis based on [perfetto](https://perfetto.dev/) to quickly identify build performance bottlenecks.
+
+You can enable tracing through the `RSPACK_PROFILE` environment variable:
+
+```sh
+RSPACK_PROFILE=OVERVIEW rspack build
+```
+
+The generated `rspack.pftrace` file can be visualized and analyzed at [ui.perfetto.dev](https://ui.perfetto.dev/):
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-tracing.png"
+  alt="tracing"
+/>
+
+> For more detailed usage, see the [Tracing documentation](/contribute/development/tracing).
+
+### Dependency upgrades
+
+In Rspack 1.4, we have upgraded several major dependencies, including:
+
+- Rspack now uses [Zod v4](https://zod.dev/v4) for configuration validation.
+- `create-rspack` now provides [Biome v2](https://biomejs.dev/blog/biome-v2/) as an optional linter and formatter.
+
+## Rstack progress
+
+[Rstack](/guide/start/ecosystem#rstack) is a unified JavaScript toolchain built around Rspack, with high performance and consistent architecture.
+
+### Rsbuild 1.4
+
+Rsbuild 1.4 has been released alongside Rspack 1.4, with notable features including:
+
+#### Chrome DevTools integration
+
+We've introduced a new [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) plugin, which enables seamless integration with Chrome DevTools' new [Automatic Workspace Folders](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) feature. This means you can directly edit and debug your source code in DevTools and save changes to your local file system.
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
+  alt="rsbuild plugin devtools json"
+  width="760"
+/>
+
+#### Improved query parameters
+
+Rsbuild now has built-in support for `.js?raw` query parameters, allowing you to import the raw content of JavaScript, TypeScript, and JSX files as text. This is very useful in scenarios where you need to process code as strings (such as displaying code examples).
+
+```js
+import rawJs from './script1.js?raw';
+import rawTs from './script2.ts?raw';
+import rawJsx from './script3.jsx?raw';
+
+console.log(rawJs); // Raw content of JS file
+console.log(rawTs); // Raw content of TS file
+console.log(rawJsx); // Raw content of JSX file
+```
+
+#### Improved browser compatibility
+
+When you import JS files from other packages in a monorepo, Rsbuild now uses SWC to compile them by default, which helps avoid browser compatibility issues introduced by external dependencies.
+
+As shown in the diagram below, suppose the app's build target is ES2016 and utils' build target is ES2021. When `app/src/index.js` imports `utils/dist/index.js`, SWC will now downgrade it to ES2016.
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png"
+  alt="rsbuild monorepo compile scope"
+  width="600"
+/>
+
+### Rslib 0.10
+
+Rslib 0.10 has been released, with notable features including:
+
+#### ESM output optimization
+
+Rslib now generates cleaner, more concise, and smaller ESM output by default.
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-esm.png"
+  alt="rslib esm"
+  width="700"
+/>
+
+#### Building Vue UI libraries
+
+By integrating the [rsbuild-plugin-unplugin-vue](https://github.com/rspack-contrib/rsbuild-plugin-unplugin-vue) plugin, you can use Rslib to generate bundleless builds for Vue UI libraries.
+
+```ts title="rslib.config.mjs"
+import { defineConfig } from '@rslib/core';
+import { pluginUnpluginVue } from 'rsbuild-plugin-unplugin-vue';
+
+export default defineConfig({
+  plugins: [pluginUnpluginVue()],
+  lib: [
+    {
+      format: 'esm',
+      bundle: false,
+      output: {
+        target: 'web',
+      },
+    },
+  ],
+});
+```
+
+#### Output IIFE format
+
+Rslib now supports generating [IIFE](https://rslib.rs/guide/basic/output-format#iife) format output, wrapping the code in a function expression.
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-iife.png"
+  alt="rslib iife"
+  width="700"
+/>
+
+> See the [blog](https://rslib.rs/blog/introducing-rslib) for more information about Rslib.
+
+### Rspress 2.0 beta
+
+We are actively developing [Rspress 2.0](https://github.com/web-infra-dev/rspress) and have released multiple beta versions. Currently, we have completed most of the code refactoring work and have integrated [Shiki](https://shiki.style/) by default in Rspress 2.0 to provide more powerful code highlighting features.
+
+Additionally, we are developing a brand new theme, with the preview shown below:
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rspress-preview.png"
+  alt="rspress theme preview"
+  width="800"
+/>
+
+### Rsdoctor MCP
+
+Rsdoctor has introduced [@rsdoctor/mcp-server](https://rsdoctor.rs/guide/start/mcp), which combines LLMs to help you better analyze build data. It can access Rsdoctor's local build analysis data and provide intelligent analysis and optimization suggestions.
+
+Rsdoctor MCP provides bundle analysis, dependency analysis, bundle optimization suggestions, and build optimization suggestions. It can analyze bundle size composition, dependency relationships, and duplicate dependencies, while providing targeted optimization suggestions for bundle size optimization, code splitting, and build performance.
+
+<video
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
+  autoPlay
+  muted
+  loop
+/>
+
+### Rstest released
+
+[Rstest](https://github.com/web-infra-dev/rstest) is a brand-new testing framework built on Rspack that provides comprehensive, first-class support for the Rspack ecosystem. It integrates seamlessly into existing Rspack projects and offers Jest-compatible APIs.
+
+This month, we released Rstest v0.0.3, which provides initial support for Node.js and UI component testing, and has been adopted in our repositories like Rsbuild.
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rstest.png"
+  alt="rstest"
+  width="600"
+/>
+
+> Rstest is currently in its early stages. We recommend staying tuned as we continue to enhance its testing capabilities to provide a more complete solution.
+
+## Ecosystem
+
+### next-rspack
+
+Since [Rspack joined the Next.js ecosystem](/blog/rspack-next-partner), our primary goal has been to improve the stability and test coverage of next-rspack.
+
+In the latest version, next-rspack has been largely completed, with test coverage reaching:
+
+- Production builds **99.4%**
+- Development builds **98.4%**
+
+Moving forward, we plan to continue pushing test coverage to 100% and further optimize the performance of next-rspack.
+
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-next-rspack.png"
+  alt="next-rspack"
+  width="760"
+/>
+
+### Kmi
+
+[Kmi](https://github.com/kmijs/kmi) is a framework based on Umi and Rspack. By integrating Rspack as the bundler, Kmi delivers build performance improvements several times faster than the webpack version.
+
+For developers currently using Umi, Kmi provides a progressive migration path that allows them to enjoy the performance benefits of Rspack while maintaining project stability.
+
+For more information, see the [Kmi repository](https://github.com/kmijs/kmi).
+
+## Upgrade guide
+
+### Upgrade SWC plugins
+
+If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`), you need to upgrade the plugins to a version compatible with `swc_core@29`, otherwise it may cause build errors due to version incompatibility.
+
+> For more details, see [FAQ - SWC plugin version unmatched](/errors/swc-plugin-version).
+
+### Lazy compilation middleware
+
+The lazy compilation middleware has changed its way of accessing the [lazyCompilation](/config/experiments#experimentslazycompilation) option. Now, the middleware can automatically read the `lazyCompilation` option from the compiler instance, so you no longer need to manually pass in the `lazyCompilation` option.
+
+```js
+import { experiments, rspack } from '@rspack/core';
+import { RspackDevServer } from '@rspack/dev-server';
+
+const compiler = rspack([
+  // ...multiple configs
+]);
+
+// no longer need to pass options to the middleware
+const middleware = experiments.lazyCompilationMiddleware(compiler);
+
+const server = new RspackDevServer(
+  {
+    setupMiddlewares: other => [middleware, ...other],
+  },
+  compiler,
+);
+```
