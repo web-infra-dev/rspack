@@ -20,10 +20,14 @@ export class WebpackError extends Error {
 	module?: Module;
 	details?: string;
 	hideStack?: boolean;
-
-	[inspect.custom]() {
-		return this.stack + (this.details ? `\n${this.details}` : "");
-	}
 }
+
+Object.defineProperty(WebpackError.prototype, inspect.custom, {
+	value: function () {
+		return this.stack + (this.details ? `\n${this.details}` : "");
+	},
+	enumerable: false,
+	configurable: true
+});
 
 export default WebpackError;
