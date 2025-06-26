@@ -62,8 +62,12 @@ export class EsmRunner<
 					// no attribute
 					url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,
 					context: esmContext,
-					initializeImportMeta: (meta: { url: string }, _: any) => {
+					initializeImportMeta: (
+						meta: { url: string; dirname: string },
+						_: any
+					) => {
 						meta.url = pathToFileURL(file!.path).href;
+						meta.dirname = path.dirname(file.path);
 					},
 					importModuleDynamically: async (
 						specifier: any,
