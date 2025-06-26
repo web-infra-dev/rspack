@@ -41,6 +41,7 @@
     "threejs",
     "tokio",
     "ukey",
-    "Ukey"
+    "Ukey",
+    "volta"
   ]
 }
