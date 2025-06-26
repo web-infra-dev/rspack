@@ -177,7 +177,7 @@ jobs:
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
         run: |
           unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm --filter @rspack/binding build:${{ inputs.profile }}
+          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm --filter @rspack/binding build:dev
 
       - name: Diff artifact
         run: |
