@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 
+mod collect_ts_info;
 mod options;
 mod plugin;
 mod transformer;
@@ -10,17 +11,17 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{AdditionalData, CollectedTypeScriptInfo, Mode, RunnerContext};
+use rspack_core::{AdditionalData, Mode, RunnerContext};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use rspack_swc_plugin_ts_collector::TypeExportsCollector;
 use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
   common::FileName,
-  ecma::visit::VisitWith,
 };
+
+use crate::collect_ts_info::collect_typescript_info;
 
 #[cacheable]
 #[derive(Debug)]
@@ -104,7 +105,7 @@ impl SwcLoader {
         if !is_typescript {
           return;
         }
-        let Some(collect_typescript_info) = &self
+        let Some(options) = &self
           .options_with_additional
           .rspack_experiments
           .collect_typescript_info
@@ -117,11 +118,7 @@ impl SwcLoader {
           );
           return;
         }
-        let mut collected = CollectedTypeScriptInfo::default();
-        if collect_typescript_info.type_exports.unwrap_or_default() {
-          program.visit_with(&mut TypeExportsCollector::new(&mut collected.type_exports));
-        }
-        collected_ts_info = Some(collected);
+        collected_ts_info = Some(collect_typescript_info(program, options));
       },
       |_| transformer::transform(&self.options_with_additional.rspack_experiments),
     )?;

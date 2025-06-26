@@ -20,7 +20,7 @@ impl ExportInfoGetter {
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
     if let Inlinable::Inlined(inlined) = &info.inlinable() {
-      return Some(UsedNameItem::Inlined(*inlined));
+      return Some(UsedNameItem::Inlined(inlined.clone()));
     }
     if info.has_use_in_runtime_info() {
       if let Some(usage) = info.global_used() {
