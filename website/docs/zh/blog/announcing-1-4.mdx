@@ -298,7 +298,7 @@ Rspress 2.0 beta 中已经开启 lazyCompilation 和默认集成 shiki 等，带
 
 ### Rsdoctor MCP
 
-Rsdoctor 结合人工智能能力推出了 `@rsdoctor/mcp-server`，旨在协助用户更便利地运用 Rsdoctor 的构建数据。该服务器可与 Rsdoctor 的本地构建分析数据协同使用，以问答形式助力用户迅速获取构建分析结果。
+Rsdoctor 结合人工智能能力推出了 [@rsdoctor/mcp-server](https://rsdoctor.rs/zh/guide/start/mcp)，旨在协助用户更便利地运用 Rsdoctor 的构建数据。该服务器可与 Rsdoctor 的本地构建分析数据协同使用，以问答形式助力用户迅速获取构建分析结果。
 
 `@rsdoctor/mcp-server` 提供四大类核心分析能力：
 
@@ -313,8 +313,6 @@ Rsdoctor 结合人工智能能力推出了 `@rsdoctor/mcp-server`，旨在协助
   muted
   loop
 />
-
-> 阅读[官网文档](https://rsdoctor.rs/zh/guide/start/mcp)进一步了解。
 
 ### Rstest 0.0.1
 
@@ -334,16 +332,20 @@ Rsdoctor 结合人工智能能力推出了 `@rsdoctor/mcp-server`，旨在协助
 
 ### next-rspack
 
-自 Rspack 与 Next.js 合作以来，我们的首要目标是提升 Next.js 在使用 Rspack 时的测试覆盖率。截至 next 和 next-rspack 15.4.0-canary.94 版本，测试覆盖率已达到：
+自从 [Rspack 加入 Next.js 生态](/blog/rspack-next-partner) 以来，我们的首要目标是提升 next-rspack 的稳定性和测试覆盖率。
+
+在最新版本中，Rspack 对 Next.js 的功能支持已基本完善，测试覆盖率达到：
 
 - 生产构建 **99.4%**
 - 开发构建 **98.4%**
 
-目前，Rspack 对 Next.js 的功能支持已趋于完善。接下来，我们将继续努力，将 Next.js 的测试覆盖率提升至 100%。
+接下来，我们计划继续推进测试覆盖率至 100%，并进一步优化 next-rspack 的性能表现。
 
-未来的工作重点将转向进一步提升 Rspack 在 Next.js 项目中的性能表现。
-
-![next-rspack](https://assets.rspack.dev/rspack/assets/rspack-v1-4-next-rspack.png)
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-next-rspack.png"
+  alt="next-rspack"
+  width="760"
+/>
 
 ## 升级指南
 
