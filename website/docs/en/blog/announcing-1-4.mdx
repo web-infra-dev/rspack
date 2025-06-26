@@ -227,11 +227,11 @@ In Rspack 1.4, we have upgraded several major dependencies, including:
 
 ### Rsbuild 1.4
 
-Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
+Rsbuild 1.4 has been released alongside Rspack 1.4, with notable features including:
 
-#### Chrome DevTools 集成
+#### Chrome DevTools integration
 
-我们引入了全新的 [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) 插件，通过该插件，你可以无缝集成 Chrome DevTools 的 ["自动工作区文件夹"](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) (Automatic Workspace Folders) 新特性。这意味着你可以在 DevTools 中直接修改和调试项目源码，并将改动保存到本地文件系统。
+We've introduced a new [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) plugin, which enables seamless integration with Chrome DevTools' new [Automatic Workspace Folders](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) feature. This means you can directly edit and debug your source code in DevTools and save changes to your local file system.
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
@@ -239,25 +239,25 @@ Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
   width="760"
 />
 
-#### 改进查询参数
+#### Improved query parameters
 
-Rsbuild 现在内置支持 `.js?raw` 查询参数，允许你将 JavaScript、TypeScript 和 JSX 文件的原始内容作为文本导入。这在需要将代码作为字符串进行处理的场景下非常有用（例如展示代码示例）。
+Rsbuild now has built-in support for `.js?raw` query parameters, allowing you to import the raw content of JavaScript, TypeScript, and JSX files as text. This is very useful in scenarios where you need to process code as strings (such as displaying code examples).
 
 ```js
 import rawJs from './script1.js?raw';
 import rawTs from './script2.ts?raw';
 import rawJsx from './script3.jsx?raw';
 
-console.log(rawJs); // JS 文件的原始内容
-console.log(rawTs); // TS 文件的原始内容
-console.log(rawJsx); // JSX 文件的原始内容
+console.log(rawJs); // Raw content of JS file
+console.log(rawTs); // Raw content of TS file
+console.log(rawJsx); // Raw content of JSX file
 ```
 
-#### 改进浏览器兼容性
+#### Improved browser compatibility
 
-当你在 monorepo 中引用其他包的 JS 文件时，Rsbuild 现在默认会使用 SWC 编译它们，这有助于避免外部依赖引入的浏览器兼容性问题。
+When you import JS files from other packages in a monorepo, Rsbuild now uses SWC to compile them by default, which helps avoid browser compatibility issues introduced by external dependencies.
 
-以下图为例，假设 app 的构建目标为 ES2016，utils 的构建目标为 ES2021，当 `app/src/index.js` 引用 `utils/dist/index.js` 时，SWC 现在会将它降级到 ES2016。
+As shown in the diagram below, suppose the app's build target is ES2016 and utils' build target is ES2021. When `app/src/index.js` imports `utils/dist/index.js`, SWC will now downgrade it to ES2016.
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png"
@@ -267,11 +267,11 @@ console.log(rawJsx); // JSX 文件的原始内容
 
 ### Rslib 0.10
 
-Rslib 目前已发布 v0.10 版本，主要新增了以下功能：
+Rslib 0.10 has been released, with notable features including:
 
-#### ESM 产物优化
+#### ESM output optimization
 
-Rslib 现在默认生成更简洁清晰、体积更小的 ESM 产物。
+Rslib now generates cleaner, more concise, and smaller ESM output by default.
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-esm.png"
@@ -279,9 +279,9 @@ Rslib 现在默认生成更简洁清晰、体积更小的 ESM 产物。
   width="700"
 />
 
-#### 构建 Vue 组件库
+#### Building Vue UI libraries
 
-通过引入 [rsbuild-plugin-unplugin-vue](https://github.com/rspack-contrib/rsbuild-plugin-unplugin-vue) 插件，你可以使用 Rslib 生成 Vue 组件库的 bundleless 产物。
+By integrating the [rsbuild-plugin-unplugin-vue](https://github.com/rspack-contrib/rsbuild-plugin-unplugin-vue) plugin, you can use Rslib to generate bundleless builds for Vue UI libraries.
 
 ```ts title="rslib.config.mjs"
 import { defineConfig } from '@rslib/core';
@@ -301,9 +301,9 @@ export default defineConfig({
 });
 ```
 
-#### 输出 IIFE 格式
+#### Output IIFE format
 
-Rslib 现在可以生成 [IIFE 格式](https://rslib.rs/zh/guide/basic/output-format#iife) 的产物，将代码包裹在函数表达式中。
+Rslib now supports generating [IIFE](https://rslib.rs/guide/basic/output-format#iife) format output, wrapping the code in a function expression.
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-iife.png"
@@ -311,13 +311,13 @@ Rslib 现在可以生成 [IIFE 格式](https://rslib.rs/zh/guide/basic/output-fo
   width="700"
 />
 
-> 阅读 [博客](https://rslib.rs/blog/introducing-rslib) 进一步了解 Rslib。
+> See the [blog](https://rslib.rs/blog/introducing-rslib) for more information about Rslib.
 
 ### Rspress 2.0 beta
 
-我们正在积极开发 [Rspress 2.0](https://github.com/web-infra-dev/rspress)，并发布了多个 beta 版本。目前，我们已完成大部分代码重构工作，并在 Rspress 2.0 中默认集成 [Shiki](https://shiki.style/) 来提供更强大的代码高亮功能。
+We are actively developing [Rspress 2.0](https://github.com/web-infra-dev/rspress) and have released multiple beta versions. Currently, we have completed most of the code refactoring work and have integrated [Shiki](https://shiki.style/) by default in Rspress 2.0 to provide more powerful code highlighting features.
 
-同时，我们正在开发全新的主题，预览效果如下：
+Additionally, we are developing a brand new theme, with the preview shown below:
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rspress-preview.png"
@@ -327,9 +327,9 @@ Rslib 现在可以生成 [IIFE 格式](https://rslib.rs/zh/guide/basic/output-fo
 
 ### Rsdoctor MCP
 
-Rsdoctor 推出了 [@rsdoctor/mcp-server](https://rsdoctor.rs/zh/guide/start/mcp)，结合大模型来帮助你更好地分析构建数据。它能调用 Rsdoctor 的本地构建分析数据，支持通过问答方式快速获取构建分析结果。
+Rsdoctor has introduced [@rsdoctor/mcp-server](https://rsdoctor.rs/guide/start/mcp), which combines LLMs to help you better analyze build data. It can access Rsdoctor's local build analysis data and provide intelligent analysis and optimization suggestions.
 
-Rsdoctor MCP 主要提供产物信息分析、依赖问题分析、产物优化建议和编译优化建议等功能，能够分析构建产物的体积组成、项目依赖关系、重复依赖问题，并针对产物体积优化、代码分割以及编译性能提供相应的优化建议。
+Rsdoctor MCP primarily provides features such as bundle analysis, dependency analysis, bundle optimization suggestions, and build optimization suggestions. It can analyze bundle size composition, dependency relationships, and duplicate dependencies, while providing targeted optimization suggestions for bundle size optimization, code splitting, and build performance.
 
 <video
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
@@ -338,11 +338,11 @@ Rsdoctor MCP 主要提供产物信息分析、依赖问题分析、产物优化�
   loop
 />
 
-### Rstest 发布
+### Rstest released
 
-[Rstest](https://github.com/web-infra-dev/rstest) 是一个全新的基于 Rspack 的测试框架，它为 Rspack 生态提供了全面、一流的支持，能够轻松集成到现有的 Rspack 项目中，提供与 Jest 兼容的 API。
+[Rstest](https://github.com/web-infra-dev/rstest) is a brand-new testing framework built on Rspack that provides comprehensive, first-class support for the Rspack ecosystem. It integrates seamlessly into existing Rspack projects and offers Jest-compatible APIs.
 
-在这个月，我们发布了 Rstest 的 v0.0.3 版本，初步支持了 Node.js 和 UI 组件的测试，并在 Rsbuild 等仓库中接入使用。
+This month, we released Rstest v0.0.3, which provides initial support for Node.js and UI component testing, and has been adopted in our repositories like Rsbuild.
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rstest.png"
@@ -350,20 +350,20 @@ Rsdoctor MCP 主要提供产物信息分析、依赖问题分析、产物优化�
   width="600"
 />
 
-> Rstest 目前仍处于早期阶段，我们建议你再关注一段时间，以确保它能够提供更完整的测试能力。
+> Rstest is currently in its early stages. We recommend staying tuned as we continue to enhance its testing capabilities to provide a more complete solution.
 
-## 生态系统
+## Ecosystem
 
 ### next-rspack
 
-自从 [Rspack 加入 Next.js 生态](/blog/rspack-next-partner) 以来，我们的首要目标是提升 next-rspack 的稳定性和测试覆盖率。
+Since [Rspack joined the Next.js ecosystem](/blog/rspack-next-partner), our primary goal has been to improve the stability and test coverage of next-rspack.
 
-在最新版本中，Rspack 对 Next.js 的功能支持已基本完善，测试覆盖率达到：
+In the latest version, next-rspack has been largely completed, with test coverage reaching:
 
-- 生产构建 **99.4%**
-- 开发构建 **98.4%**
+- Production builds **99.4%**
+- Development builds **98.4%**
 
-接下来，我们计划继续推进测试覆盖率至 100%，并进一步优化 next-rspack 的性能表现。
+Moving forward, we plan to continue pushing test coverage to 100% and further optimize the performance of next-rspack.
 
 <img
   src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-next-rspack.png"
@@ -373,23 +373,23 @@ Rsdoctor MCP 主要提供产物信息分析、依赖问题分析、产物优化�
 
 ### Kmi
 
-[Kmi](https://github.com/kmijs/kmi) 是一个基于 Umi 和 Rspack 的框架，通过集成 Rspack 作为构建工具，Kmi 为 Umi 项目带来了数倍于 webpack 的构建性能提升。
+[Kmi](https://github.com/kmijs/kmi) is a framework based on Umi and Rspack. By integrating Rspack as the bundler, Kmi delivers build performance improvements several times faster than the webpack version.
 
-对于正在使用 Umi 框架的开发者而言，Kmi 提供了一种渐进式的迁移路径，让他们能够在保持项目稳定性的同时，享受 Rspack 带来的性能优势。
+For developers currently using Umi, Kmi provides a progressive migration path that allows them to enjoy the performance benefits of Rspack while maintaining project stability.
 
-更多信息请参考 [Kmi 仓库](https://github.com/kmijs/kmi)。
+For more information, see the [Kmi repository](https://github.com/kmijs/kmi).
 
-## 升级指南
+## Upgrade guide
 
-### SWC 插件版本升级
+### Upgrade SWC plugins
 
-如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），需要将插件升级至兼容 `swc_core@29` 的版本，否则可能因版本不兼容导致构建报错。
+If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`), you need to upgrade the plugins to a version compatible with `swc_core@29`, otherwise it may cause build errors due to version incompatibility.
 
-> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+> For more details, see [FAQ - SWC plugin version unmatched](/errors/swc-plugin-version).
 
-### Lazy compilation 中间件
+### Lazy compilation middleware
 
-Lazy compilation 中间件的接入方式有所变化，该中间件现在可以从 compiler 实例中自动读取 [lazyCompilation](/config/experiments#experimentslazycompilation) 选项，因此你不再需要手动传入 `lazyCompilation` 选项。
+The lazy compilation middleware has changed its way of accessing the [lazyCompilation](/config/experiments#experimentslazycompilation) option. Now, the middleware can automatically read the `lazyCompilation` option from the compiler instance, so you no longer need to manually pass in the `lazyCompilation` option.
 
 ```js
 import { experiments, rspack } from '@rspack/core';
