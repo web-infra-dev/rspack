@@ -19,6 +19,12 @@ expect.extend({
 // @ts-ignore
 globalThis.WasmSkips = {
 	Normals: [/pnpm-workspace/],
-	Compilers: [/swc\-api\.js/],
-	Defaults: [/browserslist\.js/]
+	Compilers: [/swc-api/],
+	Defaults: [/browserslist/],
+	Configs: [
+		/swc-loader-incompatible-wasm-plugin/,
+		/swc-plugin/,
+		/browserslist-config-env/,
+		/pnp-enable/
+	]
 };
