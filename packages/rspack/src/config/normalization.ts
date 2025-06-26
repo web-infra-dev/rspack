@@ -55,7 +55,6 @@ import type {
 	Incremental,
 	IncrementalPresets,
 	InfrastructureLogging,
-	JavascriptParserOptions,
 	LazyCompilationOptions,
 	LibraryOptions,
 	Loader,
@@ -630,7 +629,8 @@ export interface ExperimentsNormalized {
 	parallelLoader?: boolean;
 	useInputFileSystem?: false | RegExp[];
 	inlineConst?: boolean;
-	typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+	inlineEnum?: boolean;
+	typeReexportsPresence?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

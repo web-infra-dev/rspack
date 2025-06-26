@@ -2487,7 +2487,8 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
-    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+    inlineEnum?: boolean;
+    typeReexportsPresence?: boolean;
 };
 
 // @public (undocumented)
@@ -2540,6 +2541,8 @@ export interface ExperimentsNormalized {
     // (undocumented)
     inlineConst?: boolean;
     // (undocumented)
+    inlineEnum?: boolean;
+    // (undocumented)
     layers?: boolean;
     // (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -2554,7 +2557,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     topLevelAwait?: boolean;
     // (undocumented)
-    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+    typeReexportsPresence?: boolean;
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }
