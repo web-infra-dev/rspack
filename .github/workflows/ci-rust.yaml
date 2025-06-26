@@ -120,6 +120,7 @@ jobs:
             --exclude rspack_node \
             --exclude rspack_binding_builder \
             --exclude rspack_binding_builder_macros \
+            --exclude rspack_binding_builder_testing \
             --exclude rspack_binding_build \
             --exclude rspack_napi \
             -- --nocapture

@@ -4264,6 +4264,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_binding_builder_testing"
+version = "0.2.0"
+dependencies = [
+ "napi",
+ "napi-derive",
+ "rspack_binding_api",
+ "rspack_binding_build",
+ "rspack_binding_builder",
+ "rspack_binding_builder_macros",
+ "rspack_core",
+ "rspack_error",
+ "rspack_napi",
+]
+
+[[package]]
 name = "rspack_browserslist"
 version = "0.2.0"
 dependencies = [
