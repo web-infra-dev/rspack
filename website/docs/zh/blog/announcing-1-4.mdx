@@ -16,12 +16,12 @@ Rspack 1.4 已经正式发布！
 值得关注的变更如下：
 
 - 新功能
-  - [WASM target 支持](#wasm-target-支持)
+  - [在浏览器中运行](#在浏览器中运行)
   - [更快的 SWC](#更快的-swc)
   - [更小的构建产物](#更小的构建产物)
   - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
   - [更灵活的 lazy compilation](#更灵活的-lazy-compilation)
-  - [支持自定义 inputFileSystem](#支持自定义-inputfilesystem)
+  - [自定义文件系统](#自定义文件系统)
 - 性能优化
   - [默认启用增量构建](#默认启用增量构建)
   - [升级 zod v4](#升级-zod-v4)
@@ -38,7 +38,7 @@ Rspack 1.4 已经正式发布！
 
 ## 新功能
 
-### Wasm target 支持
+### 在浏览器中运行
 
 从 Rspack 1.4 开始，我们正式引入了 Wasm target 支持，这意味着 Rspack 现在可以在浏览器环境中运行，包括 [StackBlitz](https://stackblitz.com/)（[WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)）等在线平台。这使得开发者无需配置本地环境，即可快速创建原型、分享代码示例。
 
@@ -161,9 +161,9 @@ const server = new RspackDevServer(
 );
 ```
 
-### 支持自定义 inputFileSystem
+### 自定义文件系统
 
-Rspack 现在允许你自定义 `compiler.inputFileSystem`（编译器的文件读取系统），可通过配置 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 开启。典型的使用场景有：
+Rspack 现在允许你自定义 `compiler.inputFileSystem`（编译器的文件读取系统），该功能可以通过配置 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 开启，典型的使用场景包括：
 
 - 在浏览器中使用 [memfs](https://github.com/streamich/memfs) 代替默认的文件读取系统。
 - 搭配 [webpack-virtual-modules 插件](https://www.npmjs.com/package/webpack-virtual-modules) 来支持虚拟模块。
@@ -184,7 +184,7 @@ export default {
 };
 ```
 
-由于自定义的 `inputFileSystem` 需要通过 JavaScript 实现，导致性能下降。为了缓解这个问题，该配置允许你传入一个正则表达式数组，用于过滤哪些文件需要从自定义的 `inputFileSystem` 读取，避免因替换原生文件系统而导致的性能劣化。
+由于自定义的 `inputFileSystem` 是通过 JavaScript 实现的，可能导致性能下降。为了缓解这个问题，`useInputFileSystem` 允许你传入一个正则表达式数组，过滤哪些文件需要从自定义的 `inputFileSystem` 读取，避免因替换原生文件系统而导致的性能劣化。
 
 未来我们还计划在 Rspack 中内置虚拟模块支持，从而提供更好的性能和使用体验。
 
@@ -194,13 +194,26 @@ export default {
 
 ### 默认启用增量构建
 
-在 Rspack v1.4.0 中，**增量构建功能已默认开启所有阶段的优化**（'advance-silent' 模式），这将为开发者带来显著的重构建速度提升和更流畅的热模块替换 (HMR) 体验。
+经过持续优化，Rspack 的增量构建功能已趋于稳定，在 Rspack 1.4 中，已默认开启所有阶段的增量优化。这将显著提升重构建速度，HMR 性能通常可提升 **30%-40%**，具体效果因项目而异。
 
-增量构建开启后一般来说能够有 **30%-40%** 左右的重构建速度提升，具体需视项目情况而定。如果你需要保留之前的行为，可以通过配置 `experiments.incremental: 'safe'` 来恢复。但我们建议大多数项目直接使用新的默认设置，以获得最佳性能。具体文档请参考 [experiments.incremental](https://rspack.dev/config/experiments#experimentsincremental)。
+下面是一位用户开启增量构建后的性能对比：
 
-### 升级 zod v4
+<img
+  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-incremental-data.png"
+  alt="incremental benchmark"
+  width="760"
+/>
 
-Rspack 1.4 已升级 zod 到 v4 版本。
+如果你需要降级到之前的行为，可以设置 [experiments.incremental](/config/experiments#experimentsincremental) 为 `'safe'` ，但我们推荐大部分项目直接使用新的默认配置，以获得最佳性能。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    // 降级到之前的行为
+    incremental: 'safe',
+  },
+};
+```
 
 ## Rstack 进展
 
