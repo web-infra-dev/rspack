@@ -1017,13 +1017,10 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    let mgm = self
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have mgm");
     self
-      .loop_partials(|p| p.exports_info_map.get(&mgm.exports))
-      .expect("should have exports info")
-      .id()
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm")
+      .exports
   }
 
   pub fn get_prefetched_exports_info_optional<'b>(
