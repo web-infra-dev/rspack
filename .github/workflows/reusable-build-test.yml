@@ -133,6 +133,11 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
+      - name: Debug
+        uses: ./.github/actions/debugger
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       ### WASM
       - name: Test WASM
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
