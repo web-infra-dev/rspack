@@ -19,16 +19,19 @@ expect.extend({
 // @ts-ignore
 globalThis.WasmSkips = {
 	Normals: [/pnpm-workspace/],
-	Compilers: [/swc-api/],
+	Compilers: [
+		/swc-api/,
+		// Unknowntimeout (only in ci)
+		/persist-build-inf/,
+		/single-file/
+	],
 	Defaults: [/browserslist/],
 	Configs: [
 		/swc-loader-incompatible-wasm-plugin/,
 		/swc-plugin/,
 		/browserslist-config-env/,
 		/pnp-enable/,
-		// Unknown timeout (only in ci)
-		/loader-raw-string/,
-		/persist-build-info/,
-		/single-file/
+		// Unknown long string
+		/loader-raw-string/
 	]
 };
