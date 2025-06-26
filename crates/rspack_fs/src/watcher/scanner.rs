@@ -59,55 +59,53 @@ impl Scanner {
 
 #[cfg(test)]
 mod tests {
-  use std::thread;
-
   use dashmap::DashSet as HashSet;
   use rspack_paths::ArcPath;
 
   use super::*;
 
-  #[test]
-  fn test_scan() {
-    // let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    // let files = HashSet::new();
-    // files.insert(ArcPath::from(current_dir.join("___test_file.txt")));
+  #[tokio::test]
+  async fn test_scan() {
+    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    let files = HashSet::new();
+    files.insert(ArcPath::from(current_dir.join("___test_file.txt")));
 
-    // let directories = HashSet::new();
-    // directories.insert(ArcPath::from(current_dir.join("___test_dir/a/b/c")));
+    let directories = HashSet::new();
+    directories.insert(ArcPath::from(current_dir.join("___test_dir/a/b/c")));
 
-    // let missing = HashSet::new();
-    // missing.insert(ArcPath::from(current_dir.join("___missing_file.txt")));
+    let missing = HashSet::new();
+    missing.insert(ArcPath::from(current_dir.join("___missing_file.txt")));
 
-    // let mut path_manager = PathManager::new(None);
-    // path_manager.files.extend(files);
-    // path_manager.directories.extend(directories);
-    // path_manager.missing.extend(missing);
+    let mut path_manager = PathManager::new(None);
+    path_manager.files.extend(files);
+    path_manager.directories.extend(directories);
+    path_manager.missing.extend(missing);
 
-    // let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    // let mut scanner = Scanner::new(tx, Arc::new(path_manager));
+    let (tx, mut _rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut scanner = Scanner::new(tx, Arc::new(path_manager));
 
-    // let collector = thread::spawn(move || {
-    //   let mut collected_events = Vec::new();
-    //   while let Some(event) = _rx.recv() {
-    //     collected_events.push(event);
-    //   }
-    //   collected_events
-    // });
+    let collector = tokio::spawn(async move {
+      let mut collected_events = Vec::new();
+      while let Some(event) = _rx.recv().await {
+        collected_events.push(event);
+      }
+      collected_events
+    });
 
-    // scanner.scan();
-    // // Simulate scanner dropping to trigger the end of the channel
-    // scanner.close();
+    scanner.scan();
+    // Simulate scanner dropping to trigger the end of the channel
+    scanner.close();
 
-    // let collected_events = collector.join().unwrap();
-    // assert_eq!(collected_events.len(), 2);
+    let collected_events = collector.await.unwrap();
+    assert_eq!(collected_events.len(), 2);
 
-    // assert!(collected_events.contains(&FsEvent {
-    //   path: ArcPath::from(current_dir.join("___test_file.txt")),
-    //   kind: FsEventKind::Remove
-    // }));
-    // assert!(collected_events.contains(&FsEvent {
-    //   path: ArcPath::from(current_dir.join("___test_dir/a/b/c")),
-    //   kind: FsEventKind::Remove,
-    // }));
+    assert!(collected_events.contains(&FsEvent {
+      path: ArcPath::from(current_dir.join("___test_file.txt")),
+      kind: FsEventKind::Remove
+    }));
+    assert!(collected_events.contains(&FsEvent {
+      path: ArcPath::from(current_dir.join("___test_dir/a/b/c")),
+      kind: FsEventKind::Remove,
+    }));
   }
 }

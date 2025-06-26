@@ -8,8 +8,6 @@ describeByWalk(__filename, (name, src, dist) => {
 
 // TODO: remove this when rspack native watcher is stable
 const failedCases = [
-	'out-of-context',
-	'split-chunks-add-chunks',
 	'reuse-deps-for-incremental-make',
 	'built-modules',
 	'dynamic-entries',

@@ -7,9 +7,6 @@ mod trigger;
 
 use std::{collections::HashSet, sync::Arc};
 
-type StdReceiver<T> = std::sync::mpsc::Receiver<T>;
-type StdSender<T> = std::sync::mpsc::Sender<T>;
-
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;

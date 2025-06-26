@@ -36,7 +36,7 @@ pub struct NativeWatcherOptions {
 
 #[napi]
 pub struct NativeWatcher {
-  watcher: Option<FsWatcher>,
+  watcher: FsWatcher,
 }
 
 #[napi]
@@ -56,9 +56,7 @@ impl NativeWatcher {
       ignored,
     );
 
-    Self {
-      watcher: Some(watcher),
-    }
+    Self { watcher }
   }
 
   #[napi]
@@ -93,38 +91,34 @@ impl NativeWatcher {
       removed: missing.1,
     };
 
-    if let Some(watcher) = &mut self.watcher {
-      watcher
-        .watch(
-          file_updater,
-          directories_updater,
-          missing_updater,
-          Box::new(js_event_handler),
-        )
-        .await
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    }
+    self
+      .watcher
+      .watch(
+        file_updater,
+        directories_updater,
+        missing_updater,
+        Box::new(js_event_handler),
+      )
+      .await
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     Ok(())
   }
 
   #[napi]
   pub fn close(&mut self) -> napi::Result<()> {
-    // self
-    //   .watcher
-    //   .close()
-    //   .map_err(|e| napi::Error::from_reoson(e.to_string()))?;
-    std::mem::drop(self.watcher.take());
-    Ok(())
+    self
+      .watcher
+      .close()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))
   }
 
   #[napi]
   pub fn pause(&self) -> napi::Result<()> {
-    if let Some(watcher) = &self.watcher {
-      watcher
-        .pause()
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    }
+    self
+      .watcher
+      .pause()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     Ok(())
   }

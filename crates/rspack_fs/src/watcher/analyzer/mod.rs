@@ -37,4 +37,4 @@ fn for_each<'a>(path_accessor: &PathAccessor<'a>, mut for_each: impl FnMut(ArcPa
 pub type RecommendedAnalyzer<'a> = root::WatcherRootAnalyzer<'a>;
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub type RecommendedAnalyzer<'a> = directories::WatcherRootAnalyzer<'a>;
+pub type RecommendedAnalyzer<'a> = directories::WatcherDirectoriesAnalyzer<'a>;

@@ -222,8 +222,8 @@ export class WatchProcessor<
 			this._multiOptions.configFiles
 		)
 			? readConfigFile(
-					this._multiOptions.configFiles!.map(i => context.getSource(i))
-				)
+				this._multiOptions.configFiles!.map(i => context.getSource(i))
+			)
 			: [{}];
 
 		for (const [index, options] of caseOptions.entries()) {
@@ -320,7 +320,7 @@ export class WatchProcessor<
 }
 
 export interface IWatchStepProcessorOptions<T extends ECompilerType>
-	extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> {}
+	extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> { }
 
 export class WatchStepProcessor<
 	T extends ECompilerType
@@ -342,11 +342,6 @@ export class WatchStepProcessor<
 		currentWatchStepModule.step[this._options.name] =
 			this._watchOptions.stepName;
 		const task = new Promise((resolve, reject) => {
-			setTimeout(() => {
-				reject(
-					`Timeout waiting for compiler to start watching files ${this._watchOptions.tempDir}_${this._watchOptions.stepName}`
-				);
-			}, 5000);
 			compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 				if (e) return reject(e);
 				resolve(stats);

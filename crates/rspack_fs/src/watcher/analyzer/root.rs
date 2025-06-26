@@ -53,7 +53,7 @@ fn find_common_root_from_tree(tree: &PathTree, path: &ArcPath) -> ArcPath {
   if let Some(child) = node
     .only_child()
     // Check if the child exists in the tree
-    .and_then(|child| if child.exists() { Some(child) } else { None })
+    .and_then(|child| if child.is_dir() { Some(child) } else { None })
   {
     find_common_root_from_tree(tree, &child)
   } else {
@@ -117,15 +117,11 @@ impl<'a> TreeBuilder<'a> {
     match path.parent() {
       Some(parent) => {
         if let Some(node) = tree.get_mut(parent) {
-          if path.is_dir() {
-            node.add_child(path.clone());
-          }
+          node.add_child(path.clone());
           None
         } else {
           let parent_node = TreeNode::default();
-          if path.is_dir() {
-            parent_node.add_child(path.clone());
-          }
+          parent_node.add_child(path.clone());
           tree.insert(ArcPath::from(parent), parent_node);
           Self::build_tree_recursive(&ArcPath::from(parent), tree)
         }
