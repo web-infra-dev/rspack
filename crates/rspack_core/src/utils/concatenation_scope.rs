@@ -13,7 +13,7 @@ use swc_core::atoms::Atom;
 
 use crate::{
   concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
-  ModuleIdentifier,
+  ExportMode, ModuleIdentifier,
 };
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
@@ -46,6 +46,7 @@ pub struct ConcatenationScope {
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
   pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
   pub dyn_refs: IdentifierIndexMap<FxIndexSet<Atom>>,
+  pub star_exports: IdentifierIndexMap<ExportMode>,
 }
 
 #[allow(unused)]
@@ -59,6 +60,7 @@ impl ConcatenationScope {
       modules_map,
       refs: IdentifierIndexMap::default(),
       dyn_refs: Default::default(),
+      star_exports: Default::default(),
     }
   }
 
@@ -88,6 +90,10 @@ impl ConcatenationScope {
         vac.insert(symbol);
       }
     }
+  }
+
+  pub fn register_star_export(&mut self, module: ModuleIdentifier, mode: ExportMode) {
+    self.star_exports.insert(module, mode);
   }
 
   pub fn register_import(

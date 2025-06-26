@@ -5027,6 +5027,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_futures",
  "rspack_hook",
  "rspack_javascript_compiler",
  "rspack_plugin_javascript",
