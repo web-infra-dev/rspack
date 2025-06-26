@@ -20,7 +20,7 @@ Rspack 1.4 已经正式发布！
   - [更快的 SWC](#更快的-swc)
   - [更小的构建产物](#更小的构建产物)
   - [新增 CssChunkingPlugin](#新增-csschunkingplugin)
-  - [Lazy compilation 支持 MultiCompiler](#lazy-compilation-支持-multicompiler)
+  - [更灵活的 lazy compilation](#更灵活的-lazy-compilation)
   - [支持自定义 inputFileSystem](#支持自定义-inputfilesystem)
 - 性能优化
   - [默认启用增量构建](#默认启用增量构建)
@@ -40,7 +40,7 @@ Rspack 1.4 已经正式发布！
 
 ### Wasm target 支持
 
-从 Rspack 1.4 开始，我们正式引入了 Wasm target 支持，这意味着 Rspack 现在可以在 [StackBlitz](https://stackblitz.com/)（[WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)）中运行。这使得开发者无需配置本地环境，即可快速创建原型、分享代码示例。
+从 Rspack 1.4 开始，我们正式引入了 Wasm target 支持，这意味着 Rspack 现在可以在浏览器环境中运行，包括 [StackBlitz](https://stackblitz.com/)（[WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)）等在线平台。这使得开发者无需配置本地环境，即可快速创建原型、分享代码示例。
 
 你可以直接体验我们提供的 [在线示例](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example)，也可以在 [这篇文档](/zh/guide/start/quick-start#使用-stackblitz-在线预览) 中了解 StackBlitz 的使用指南。
 
@@ -51,11 +51,13 @@ Rspack 1.4 已经正式发布！
   loop
 />
 
-在后续版本中，我们将继续优化 Wasm 版本的使用流程和包体积。同时我们也在开发 `@rspack/browser` 包，它是专为浏览器环境设计的版本，允许你直接在任何现代浏览器中使用 Rspack，而无需依赖 WebContainers。
+在后续版本中，我们将继续优化 Wasm 版本的使用流程和包体积。
+
+同时我们也在开发 `@rspack/browser` 包，它是专为浏览器环境设计的版本，允许你直接在任何现代浏览器中使用 Rspack，而无需依赖 WebContainers 或是特定平台。
 
 ### 更快的 SWC
 
-在过去几个月中，我们与 SWC 团队合作，共同优化 JavaScript 工具链的性能和可靠性。经过一段时间的优化，我们很高兴地看到，SWC 的性能取得了显著提升：
+在过去几个月中，我们与 SWC 团队持续合作，共同优化 JavaScript 工具链的性能和可靠性。经过一段时间的优化，我们很高兴地看到，SWC 的性能取得了显著提升，使 Rspack 用户和所有基于 SWC 的工具都从中受益：
 
 - JavaScript parser（解析器）的性能提升了 **30%～35%**
 - JavaScript minifier（压缩器）的性能提升了 **10%**
@@ -81,23 +83,23 @@ console.log(BrowserRouter, Routes, Route);
 
 各个打包工具输出的包体积如下：
 
-| 打包工具         | 压缩后体积 | Gzipped 后体积 |
-| ---------------- | ---------- | -------------- |
-| Rspack (Rsbuild) | 36.35 kB   | 13.26 kB       |
-| webpack          | 36.96 kB   | 13.37 kB       |
-| Vite             | 42.67 kB   | 15.67 kB       |
-| Rolldown         | 42.74 kB   | 15.17 kB       |
-| Rolldown Vite    | 43.42 kB   | 15.46 kB       |
-| Farm             | 43.42 kB   | 15.63 kB       |
-| Parcel           | 44.62 kB   | 16.07 kB       |
-| esbuild          | 46.12 kB   | 16.63 kB       |
-| Bun              | 57.73 kB   | 20.8 kB        |
+| 打包工具         | 压缩后体积   | Gzipped 后体积 |
+| ---------------- | ------------ | -------------- |
+| Rspack (Rsbuild) | **36.35 kB** | **13.26 kB**   |
+| webpack          | 36.96 kB     | 13.37 kB       |
+| Vite             | 42.67 kB     | 15.67 kB       |
+| Rolldown         | 42.74 kB     | 15.17 kB       |
+| Rolldown Vite    | 43.42 kB     | 15.46 kB       |
+| Farm             | 43.42 kB     | 15.63 kB       |
+| Parcel           | 44.62 kB     | 16.07 kB       |
+| esbuild          | 46.12 kB     | 16.63 kB       |
+| Bun              | 57.73 kB     | 20.8 kB        |
 
 > 以上数据来自：[react-router-tree-shaking-compare](https://github.com/chenjiahan/react-router-tree-shaking-compare)。
 
 ### 新增 CssChunkingPlugin
 
-Rspack 1.4 新增了 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin) 实验性插件，专门用于处理 CSS 代码分割。该插件能够确保样式的加载顺序与源代码中的导入顺序保持一致，避免因 CSS 加载顺序错误而导致的 UI 问题。
+Rspack 1.4 新增了实验性的 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin) 插件，专门用于处理 CSS 代码分割。该插件能够确保样式的加载顺序与源代码中的导入顺序保持一致，避免因 CSS 加载顺序错误而导致的 UI 问题。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -115,18 +117,14 @@ export default {
 
 > 该插件由 Next.js 的 [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) 功能启发而来，感谢 Next.js 团队在这一领域的创新。
 
-### Lazy compilation 支持 MultiCompiler
+### 更灵活的 lazy compilation
 
-Rspack 现已支持在 MultiCompiler 里启用 lazyCompilation 功能。同时，lazyCompilationMiddleware 的接入方式已更新：不再需要手动传入配置选项，该中间件将直接从 compiler 实例中自动读取 lazyCompilation 配置，开发者可为不同 compiler 实例独立设置差异化的 lazyCompilation 策略。
+Rspack 现已支持在 `MultiCompiler` 中启用 lazy compilation 功能，这意味着当你在单次构建中使用多份 Rspack 配置时，可以为不同的 compiler 实例独立设置各自的 [lazyCompilation 选项](/config/experiments#experimentslazycompilation)。
 
-```js
-import { experiments, rspack } from '@rspack/core';
-import { RspackDevServer } from '@rspack/dev-server';
-
-const compiler = rspack([
+```js title="rspack.config.mjs"
+export default [
   {
     target: 'web',
-    name: 'client',
     experiments: {
       // enable lazy compilation for client
       lazyCompilation: true,
@@ -134,19 +132,29 @@ const compiler = rspack([
   },
   {
     target: 'node',
-    name: 'server',
     experiments: {
       // disable lazy compilation for server
       lazyCompilation: false,
     },
   },
+];
+```
+
+为了适应该特性，lazy compilation 中间件的接入方式有所变化：不再需要传入 `lazyCompilation` 配置，该中间件现在可以从 compiler 实例中自动读取 `lazyCompilation` 配置。
+
+```js
+import { experiments, rspack } from '@rspack/core';
+import { RspackDevServer } from '@rspack/dev-server';
+
+const compiler = rspack([
+  // ...multiple configs
 ]);
 
-// no need to pass options to lazyCompilationMiddleware
+// no longer need to pass options to the middleware
 const middleware = experiments.lazyCompilationMiddleware(compiler);
+
 const server = new RspackDevServer(
   {
-    port: 3000,
     setupMiddlewares: other => [middleware, ...other],
   },
   compiler,
