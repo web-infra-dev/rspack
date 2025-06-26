@@ -5,7 +5,7 @@ use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
-use super::{MakeArtifact, MakeParam};
+use super::{MakeArtifact, UpdateParam};
 use crate::{BuildDependency, FactorizeInfo};
 
 #[derive(Debug, Default)]
@@ -18,7 +18,7 @@ impl Cutout {
   pub fn cutout_artifact(
     &mut self,
     artifact: &mut MakeArtifact,
-    params: Vec<MakeParam>,
+    params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
     let mut next_entry_dependencies = HashSet::default();
     let mut clean_entry_dependencies = false;
@@ -29,14 +29,14 @@ impl Cutout {
 
     for item in params {
       match item {
-        MakeParam::BuildEntry(deps) => {
+        UpdateParam::BuildEntry(deps) => {
           next_entry_dependencies = deps;
         }
-        MakeParam::BuildEntryAndClean(deps) => {
+        UpdateParam::BuildEntryAndClean(deps) => {
           next_entry_dependencies = deps;
           clean_entry_dependencies = true;
         }
-        MakeParam::CheckNeedBuild => {
+        UpdateParam::CheckNeedBuild => {
           force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
             if module.need_build() {
               Some(module.identifier())
@@ -45,7 +45,7 @@ impl Cutout {
             }
           }));
         }
-        MakeParam::ModifiedFiles(files) | MakeParam::RemovedFiles(files) => {
+        UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
           for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
@@ -63,10 +63,10 @@ impl Cutout {
             }
           }
         }
-        MakeParam::ForceBuildDeps(deps) => {
+        UpdateParam::ForceBuildDeps(deps) => {
           force_build_deps.extend(deps);
         }
-        MakeParam::ForceBuildModules(modules) => {
+        UpdateParam::ForceBuildModules(modules) => {
           force_build_modules.extend(modules);
         }
       };

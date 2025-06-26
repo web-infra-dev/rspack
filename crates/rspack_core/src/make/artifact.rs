@@ -1,14 +1,9 @@
-mod cutout;
-pub mod repair;
-
 use rspack_collections::IdentifierSet;
-use rspack_error::{Diagnostic, Result};
-use rspack_paths::ArcPath;
+use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
-use self::{cutout::Cutout, repair::repair};
 use crate::{
-  utils::FileCounter, BuildDependency, Compilation, DependencyId, FactorizeInfo, ModuleGraph,
+  utils::FileCounter, BuildDependency, DependencyId, FactorizeInfo, ModuleGraph,
   ModuleGraphPartial, ModuleIdentifier,
 };
 
@@ -63,7 +58,7 @@ impl MakeArtifact {
     &mut self.module_graph_partial
   }
 
-  fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
+  pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
     let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
     let module = mg
       .module_by_identifier(module_identifier)
@@ -182,71 +177,4 @@ impl MakeArtifact {
     self.built_modules = Default::default();
     self.revoked_modules = Default::default();
   }
-}
-
-#[derive(Debug, Clone)]
-pub enum MakeParam {
-  BuildEntry(HashSet<DependencyId>),
-  BuildEntryAndClean(HashSet<DependencyId>),
-  CheckNeedBuild,
-  ModifiedFiles(HashSet<ArcPath>),
-  RemovedFiles(HashSet<ArcPath>),
-  ForceBuildDeps(HashSet<DependencyId>),
-  ForceBuildModules(IdentifierSet),
-}
-
-pub async fn make_module_graph(
-  compilation: &Compilation,
-  mut artifact: MakeArtifact,
-) -> Result<MakeArtifact> {
-  let mut params = Vec::with_capacity(6);
-
-  if !compilation.entries.is_empty() {
-    params.push(MakeParam::BuildEntry(
-      compilation
-        .entries
-        .values()
-        .flat_map(|item| item.all_dependencies())
-        .chain(compilation.global_entry.all_dependencies())
-        .copied()
-        .collect(),
-    ));
-  }
-  params.push(MakeParam::CheckNeedBuild);
-  if !compilation.modified_files.is_empty() {
-    params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
-  }
-  if !compilation.removed_files.is_empty() {
-    params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
-  }
-  if let MakeArtifactState::Uninitialized(force_build_deps) = &artifact.state {
-    params.push(MakeParam::ForceBuildDeps(force_build_deps.clone()));
-  }
-
-  // reset temporary data
-  artifact.reset_temporary_data();
-  artifact = update_module_graph(compilation, artifact, params).await?;
-  Ok(artifact)
-}
-
-pub async fn update_module_graph(
-  compilation: &Compilation,
-  mut artifact: MakeArtifact,
-  params: Vec<MakeParam>,
-) -> Result<MakeArtifact> {
-  artifact.state = MakeArtifactState::Initialized;
-  let mut cutout = Cutout::default();
-
-  let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
-
-  compilation
-    .plugin_driver
-    .compilation_hooks
-    .revoked_modules
-    .call(&artifact.revoked_modules)
-    .await?;
-
-  artifact = repair(compilation, artifact, build_dependencies).await?;
-  cutout.fix_artifact(&mut artifact);
-  Ok(artifact)
 }

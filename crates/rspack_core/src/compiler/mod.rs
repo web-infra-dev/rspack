@@ -1,6 +1,4 @@
 mod compilation;
-pub mod make;
-mod module_executor;
 mod rebuild;
 use std::sync::{atomic::AtomicU32, Arc};
 
@@ -16,15 +14,12 @@ use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-pub use self::{
-  compilation::*,
-  module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
-  rebuild::CompilationRecords,
-};
+pub use self::{compilation::*, rebuild::CompilationRecords};
 use crate::{
   cache::{new_cache, Cache},
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
+  make::ModuleExecutor,
   old_cache::Cache as OldCache,
   trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
   NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
