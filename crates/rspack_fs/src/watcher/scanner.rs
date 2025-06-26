@@ -4,13 +4,13 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
 
-// Scaner will scann the path whether it is exist or not in disk on initialization
-pub struct Scaner {
+// Scanner will scann the path whether it is exist or not in disk on initialization
+pub struct Scanner {
   path_manager: Arc<PathManager>,
   tx: Option<UnboundedSender<FsEvent>>,
 }
 
-impl Scaner {
+impl Scanner {
   /// Creates a new `Scanner` that will send events to the provided sender when paths are scanned.
   pub fn new(tx: UnboundedSender<FsEvent>, path_manager: Arc<PathManager>) -> Self {
     Self {
@@ -82,7 +82,7 @@ mod tests {
     path_manager.missing.extend(missing);
 
     let (tx, mut _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut scanner = Scaner::new(tx, Arc::new(path_manager));
+    let mut scanner = Scanner::new(tx, Arc::new(path_manager));
 
     let collector = tokio::spawn(async move {
       let mut collected_events = Vec::new();

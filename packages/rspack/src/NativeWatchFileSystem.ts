@@ -109,18 +109,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
 		const ignoredCallback = options.ignored
 			? async (path: string): Promise<boolean> => {
-				const ignored = options.ignored;
-				if (Array.isArray(ignored)) {
-					return ignored.some(item => path.includes(item));
+					const ignored = options.ignored;
+					if (Array.isArray(ignored)) {
+						return ignored.some(item => path.includes(item));
+					}
+					if (typeof ignored === "string") {
+						return path.includes(ignored);
+					}
+					if (ignored instanceof RegExp) {
+						return ignored.test(path);
+					}
+					return false;
 				}
-				if (typeof ignored === "string") {
-					return path.includes(ignored);
-				}
-				if (ignored instanceof RegExp) {
-					return ignored.test(path);
-				}
-				return false;
-			}
 			: undefined;
 		const nativeWatcherOptions: binding.NativeWatcherOptions = {
 			followSymlinks: options.followSymlinks,

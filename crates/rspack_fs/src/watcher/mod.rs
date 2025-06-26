@@ -14,7 +14,7 @@ use manager::PathManager;
 pub use manager::{Ignored, PathUpdater};
 use rspack_error::Result;
 use rspack_paths::ArcPath;
-use scanner::Scaner;
+use scanner::Scanner;
 use tokio::sync::mpsc;
 use trigger::Trigger;
 
@@ -62,7 +62,7 @@ pub struct FsWatcher {
   path_manager: Arc<PathManager>,
   disk_watcher: DiskWatcher,
   executor: Executor,
-  scanner: Scaner,
+  scanner: Scanner,
 }
 
 impl FsWatcher {
@@ -73,7 +73,7 @@ impl FsWatcher {
     let trigger = Trigger::new(Arc::clone(&path_manager), tx.clone());
     let disk_watcher = DiskWatcher::new(options.follow_symlinks, trigger);
     let executor = Executor::new(rx, options.aggregate_timeout);
-    let scanner = Scaner::new(tx, Arc::clone(&path_manager));
+    let scanner = Scanner::new(tx, Arc::clone(&path_manager));
 
     Self {
       disk_watcher,
