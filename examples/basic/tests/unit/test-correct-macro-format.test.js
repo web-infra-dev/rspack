@@ -25,8 +25,8 @@ describe('Correct Macro Format Tests', () => {
       const filePath = path.join(distPath, file);
       const content = fs.readFileSync(filePath, 'utf8');
       
-      // Current INCORRECT format: /* @common:if [...] */ exports.prop /* @common:endif */ = value;
-      const incorrectPattern = /\/\*\s*@common:if\s*\[condition="[^"]+"\]\s*\*\/\s*(?:exports|module\.exports)\.\w+\s*\/\*\s*@common:endif\s*\*\/\s*=/g;
+      // Current INCORRECT format: exports.prop = /* @common:if [...] */ value /* @common:endif */;
+      const incorrectPattern = /(?:exports|module\.exports)\.\w+\s*=\s*\/\*\s*@common:if\s*\[condition="[^"]+"\]\s*\*\/[\s\S]*?\/\*\s*@common:endif\s*\*\/\s*;?/g;
       const incorrectMatches = [...content.matchAll(incorrectPattern)];
       
       // Expected CORRECT format: /* @common:if [...] */ exports.prop = value; /* @common:endif */
@@ -50,16 +50,53 @@ describe('Correct Macro Format Tests', () => {
     if (totalIncorrectPatterns > 0) {
       console.log('');
       console.log('❌ Expected format examples:');
-      console.log('  WRONG: /* @common:if [...] */ exports.prop /* @common:endif */ = value;');
+      console.log('  WRONG: exports.prop = /* @common:if [...] */ value /* @common:endif */;');
       console.log('  RIGHT: /* @common:if [...] */ exports.prop = value; /* @common:endif */');
       console.log('');
-      console.log('  WRONG: /* @common:if [...] */ exports.obj /* @common:endif */ = { ... };');
+      console.log('  WRONG: exports.obj = /* @common:if [...] */ { ... } /* @common:endif */;');
       console.log('  RIGHT: /* @common:if [...] */ exports.obj = { ... }; /* @common:endif */');
     }
     
     // This test should FAIL until we fix the implementation
     expect(totalIncorrectPatterns).toBe(0);
     expect(totalCorrectPatterns).toBeGreaterThan(0);
+  });
+
+  test('should detect incorrect assignment wrapping in pure-cjs-helper', () => {
+    const targetFile = path.join(process.cwd(), 'dist', 'cjs-modules_pure-cjs-helper_js.js');
+    if (!fs.existsSync(targetFile)) {
+      throw new Error(`Target file not found: ${targetFile}`);
+    }
+    
+    const content = fs.readFileSync(targetFile, 'utf8');
+    
+    // Find the specific incorrect patterns in pure-cjs-helper
+    const incorrectExamples = [
+      'exports.DataValidator = /* @common:if',
+      'exports.generateId = /* @common:if',
+      'exports.hashString = /* @common:if'
+    ];
+    
+    let foundIncorrectPatterns = [];
+    incorrectExamples.forEach(pattern => {
+      if (content.includes(pattern)) {
+        foundIncorrectPatterns.push(pattern);
+      }
+    });
+    
+    if (foundIncorrectPatterns.length > 0) {
+      console.log(`❌ Found ${foundIncorrectPatterns.length} incorrect assignment patterns in pure-cjs-helper:`);
+      foundIncorrectPatterns.forEach(pattern => {
+        console.log(`  WRONG: ${pattern}...`);
+      });
+      console.log('');
+      console.log('✅ Expected format:');
+      console.log('  /* @common:if [...] */ exports.DataValidator = DataValidator; /* @common:endif */');
+      
+      throw new Error(`Found ${foundIncorrectPatterns.length} assignments where exports.name = is outside the macro block`);
+    }
+    
+    console.log('✅ All export assignments have correct macro positioning');
   });
 
   test('should demonstrate expected correct format examples', () => {

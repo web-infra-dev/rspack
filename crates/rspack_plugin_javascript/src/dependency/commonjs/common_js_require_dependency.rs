@@ -116,7 +116,7 @@ impl CommonJsRequireDependencyTemplate {
     module_graph: &ModuleGraph,
     dep_id: &DependencyId,
     module_identifier: &ModuleIdentifier,
-    request: &str,
+    _request: &str,
   ) -> Option<String> {
     // Check direct parent module for ConsumeShared context
     if let Some(parent_module_id) = module_graph.get_parent_module(dep_id) {

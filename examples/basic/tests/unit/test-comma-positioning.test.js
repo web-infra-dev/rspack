@@ -1,6 +1,7 @@
 // Unit test for correct comma positioning in CommonJS object literals
 const fs = require("node:fs");
 const path = require("node:path");
+const { describe, expect, test } = require("@rstest/core");
 
 describe("Comma positioning in CommonJS object literals", () => {
 	const distPath = path.join(__dirname, "../../dist");

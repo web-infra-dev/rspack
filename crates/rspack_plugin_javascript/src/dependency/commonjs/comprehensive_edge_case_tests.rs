@@ -29,12 +29,12 @@ mod context_aware_tests {
       Some(DependencyRange::new(20, 30)),
       ExportsBase::ModuleExports,
       vec![Atom::from("calculateSum")],
-      ExportContext::ObjectLiteralProperty,
+      ExportContext::ObjectLiteralPropertyFirst,
     );
 
     assert_eq!(
       *object_dep.get_context(),
-      ExportContext::ObjectLiteralProperty
+      ExportContext::ObjectLiteralPropertyFirst
     );
     assert_eq!(*object_dep.get_base(), ExportsBase::ModuleExports);
 
@@ -71,7 +71,8 @@ mod context_aware_tests {
     // Test all context variants exist and are distinct
     let contexts = [
       ExportContext::IndividualAssignment,
-      ExportContext::ObjectLiteralProperty,
+      ExportContext::ObjectLiteralPropertyFirst,
+      ExportContext::ObjectLiteralPropertySubsequent,
       ExportContext::VariableAssignment,
       ExportContext::DefineProperty,
     ];
@@ -265,7 +266,7 @@ mod context_aware_tests {
       Some(DependencyRange::new(70, 80)),   // Different value range
       ExportsBase::Exports,                 // Same base
       vec![Atom::from("testName")],         // Same names
-      ExportContext::ObjectLiteralProperty, // Different context (shouldn't affect resource ID)
+      ExportContext::ObjectLiteralPropertyFirst, // Different context (shouldn't affect resource ID)
     );
 
     // Resource identifiers should be the same for same base + names

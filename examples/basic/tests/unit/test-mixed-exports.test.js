@@ -1,6 +1,7 @@
 // Test for mixed export pattern edge case
 const fs = require('fs');
 const path = require('path');
+const { describe, expect, test } = require("@rstest/core");
 
 describe('Mixed Export Pattern Tests', () => {
   let distFiles;

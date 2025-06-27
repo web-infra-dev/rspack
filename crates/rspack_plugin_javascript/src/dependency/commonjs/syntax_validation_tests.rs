@@ -24,6 +24,26 @@ mod syntax_validation_tests {
       return false;
     }
 
+    // Check for property access wrapping in object literals
+    // This pattern matches macros wrapping property access expressions in object literals
+    let property_access_pattern = r"/\*\s*@common:if[^*]*\*/\s*(module\.exports|exports)\.[\w\.]+\s*/\*\s*@common:endif\s*\*/\s*:";
+    
+    if let Ok(regex) = regex::Regex::new(property_access_pattern) {
+      if regex.is_match(code) {
+        return false;
+      }
+    }
+    
+    // Check for property access wrapping with comma
+    // This pattern matches macros wrapping property access expressions followed by a comma
+    let property_access_comma_pattern = r"/\*\s*@common:if[^*]*\*/\s*(module\.exports|exports)\.[\w\.]+\s*/\*\s*@common:endif\s*\*/\s*,";
+    
+    if let Ok(regex) = regex::Regex::new(property_access_comma_pattern) {
+      if regex.is_match(code) {
+        return false;
+      }
+    }
+
     true
   }
 

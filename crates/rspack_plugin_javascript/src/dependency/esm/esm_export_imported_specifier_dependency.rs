@@ -869,7 +869,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
-    let module_graph = compilation.get_module_graph();
+    let _module_graph = compilation.get_module_graph();
 
     // SIMPLIFIED: Use pre-computed ConsumeShared context from BuildMeta
     let consume_shared_info = module.build_meta().consume_shared_key.as_ref();

@@ -409,6 +409,153 @@ describe("ConsumeShared Build Validation", () => {
 		expect(incorrectModuleExportsMatches.length).toBe(0);
 	});
 
+	test("double comma syntax validation", () => {
+		const commonJSFiles = [
+			"cjs-modules_module-exports-pattern_js.js",
+			"cjs-modules_pure-cjs-helper_js.js",
+			"cjs-modules_legacy-utils_js.js",
+			"cjs-modules_data-processor_js.js"
+		];
+
+		const syntaxIssues = [];
+
+		for (const fileName of commonJSFiles) {
+			const filePath = path.join(distPath, fileName);
+			
+			if (!fs.existsSync(filePath)) {
+				continue;
+			}
+
+			const content = fs.readFileSync(filePath, "utf8");
+			const lines = content.split('\n');
+			
+			// Check for double comma patterns that would result from macro processing
+			lines.forEach((line, lineIndex) => {
+				const lineNumber = lineIndex + 1;
+				
+				// Pattern 1: Direct double commas
+				if (line.includes(',,')) {
+					syntaxIssues.push({
+						file: fileName,
+						line: lineNumber,
+						type: "DOUBLE_COMMA",
+						content: line.trim(),
+						issue: "Direct double commas detected"
+					});
+				}
+				
+				// Pattern 2: Comma followed by @common:endif followed by comma
+				// This pattern: , /* @common:endif */,
+				const problematicEndifPattern = /,\s*\/\*\s*@common:endif\s*\*\/\s*,/;
+				if (problematicEndifPattern.test(line)) {
+					syntaxIssues.push({
+						file: fileName,
+						line: lineNumber,
+						type: "MACRO_COMMA_POSITIONING",
+						content: line.trim(),
+						issue: "Comma outside macro block will create double comma when macro is removed"
+					});
+				}
+				
+				// Pattern 3: Check for trailing commas in object literals that would become orphaned
+				// Look for patterns like: property, /* @common:endif */,
+				const trailingCommaAfterMacro = /\w+,\s*\/\*\s*@common:endif\s*\*\/\s*,/;
+				if (trailingCommaAfterMacro.test(line)) {
+					syntaxIssues.push({
+						file: fileName,
+						line: lineNumber,
+						type: "ORPHANED_COMMA",
+						content: line.trim(),
+						issue: "Property comma followed by macro end and another comma will create syntax error"
+					});
+				}
+			});
+			
+			// Test syntax validity by simulating macro removal
+			try {
+				// Simulate macro removal scenarios
+				const macroRemovalTests = [
+					{
+						name: "all_macros_removed",
+						pattern: /\/\*\s*@common:if[^*]*\*\/.*?\/\*\s*@common:endif\s*\*\//gs,
+						replacement: ""
+					},
+					{
+						name: "endif_only_removed", 
+						pattern: /\/\*\s*@common:endif\s*\*\//g,
+						replacement: ""
+					}
+				];
+				
+				for (const test of macroRemovalTests) {
+					const processedContent = content.replace(test.pattern, test.replacement);
+					
+					// Check for double commas in processed content
+					if (processedContent.includes(',,')) {
+						syntaxIssues.push({
+							file: fileName,
+							line: "multiple",
+							type: "MACRO_PROCESSING_ERROR",
+							content: "Double commas after " + test.name,
+							issue: `Macro processing (${test.name}) creates double comma syntax errors`
+						});
+					}
+					
+					// Try to parse the processed content as JavaScript (for object literals)
+					const objectLiteralMatches = processedContent.match(/module\.exports\s*=\s*\{[^}]*\}/gs);
+					if (objectLiteralMatches) {
+						for (const objLiteral of objectLiteralMatches) {
+							try {
+								// Wrap in parentheses to make it a valid expression for parsing
+								const testCode = `(${objLiteral})`;
+								new Function(`return ${testCode}`);
+							} catch (error) {
+								syntaxIssues.push({
+									file: fileName,
+									line: "object_literal",
+									type: "SYNTAX_ERROR_AFTER_MACRO_PROCESSING",
+									content: objLiteral.slice(0, 100) + "...",
+									issue: `JavaScript syntax error after ${test.name}: ${error.message}`
+								});
+							}
+						}
+					}
+				}
+			} catch (error) {
+				syntaxIssues.push({
+					file: fileName,
+					line: "unknown",
+					type: "PROCESSING_ERROR",
+					content: "Failed to process file",
+					issue: `Error during macro simulation: ${error.message}`
+				});
+			}
+		}
+
+		// Report all syntax issues found
+		if (syntaxIssues.length > 0) {
+			console.log("❌ Double comma and syntax issues detected:");
+			syntaxIssues.forEach(issue => {
+				console.log(`  ${issue.file}:${issue.line} [${issue.type}] - ${issue.issue}`);
+				console.log(`    Content: ${issue.content}`);
+			});
+			
+			// Group issues by type for summary
+			const issuesByType = syntaxIssues.reduce((acc, issue) => {
+				acc[issue.type] = (acc[issue.type] || 0) + 1;
+				return acc;
+			}, {});
+			
+			console.log("\n📊 Issue summary by type:");
+			Object.entries(issuesByType).forEach(([type, count]) => {
+				console.log(`  ${type}: ${count} occurrences`);
+			});
+		}
+
+		// This test should fail if any syntax issues are found
+		expect(syntaxIssues.length).toBe(0);
+	});
+
 	test("generate test report", () => {
 		const shareUsagePath = path.join(distPath, "share-usage.json");
 		const shareUsageData = JSON.parse(fs.readFileSync(shareUsagePath, "utf8"));

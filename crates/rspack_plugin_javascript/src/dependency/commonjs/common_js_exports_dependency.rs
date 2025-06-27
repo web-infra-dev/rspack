@@ -656,19 +656,21 @@ impl CommonJsExportsDependencyTemplate {
           match dep.context {
             ExportContext::ObjectLiteralPropertyFirst
             | ExportContext::ObjectLiteralPropertySubsequent => {
+              // For object literal properties, wrap the entire property including comma
+              // This ensures the correct format: /* @common:if [...] */ property, /* @common:endif */
               let end = if dep.is_last_property.unwrap_or(false) {
                 dep.range.end
               } else {
                 dep.range.end + 1 // Include the comma
               };
 
-              source.replace(
-                dep.range.start,
-                dep.range.start,
-                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
-                None,
+              // Generate the property content using export name
+              let comma_suffix = if dep.is_last_property.unwrap_or(false) { "" } else { "," };
+              let macro_property = format!(
+                "/* @common:if [condition=\"{}\"] */ {}{} /* @common:endif */",
+                macro_condition, export_name, comma_suffix
               );
-              source.replace(end, end, " /* @common:endif */", None);
+              source.replace(dep.range.start, end, &macro_property, None);
             }
             ExportContext::VariableAssignment => {
               // For variable assignments (foo = exports.bar), wrap the exports reference
@@ -679,30 +681,20 @@ impl CommonJsExportsDependencyTemplate {
               source.replace(dep.range.start, dep.range.end, &macro_export, None);
             }
             ExportContext::IndividualAssignment => {
-              if let Some(ref value_range) = dep.value_range {
-                // Wrap only the value part of the assignment
-                source.replace(
-                  value_range.start,
-                  value_range.start,
-                  &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
-                  None,
-                );
-                source.replace(
-                  value_range.end,
-                  value_range.end,
-                  " /* @common:endif */",
-                  None,
-                );
-              } else {
-                // Fallback for safety, though value_range should always be present for this context
-                source.replace(
-                  dep.range.start,
-                  dep.range.start,
-                  &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
-                  None,
-                );
-                source.replace(dep.range.end, dep.range.end, " /* @common:endif */", None);
-              }
+              // For individual assignments (exports.prop = value), wrap the entire assignment
+              // This ensures the correct format: /* @common:if [...] */ exports.prop = value; /* @common:endif */
+              source.replace(
+                dep.range.start,
+                dep.range.start,
+                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                None,
+              );
+              source.replace(
+                dep.range.end,
+                dep.range.end,
+                " /* @common:endif */",
+                None,
+              );
             }
             ExportContext::DefineProperty => {
               // For defineProperty, wrap the export property

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-24T22:22:40.756Z",
+  "timestamp": "2025-06-26T08:10:23.455Z",
   "status": "PASSED",
   "build": {
     "distExists": true,
@@ -19,8 +19,8 @@
   "actualUsage": {
     "utility-lib": {
       "used": [
-        "capitalize",
         "formatDate",
+        "capitalize",
         "default"
       ],
       "unused": [

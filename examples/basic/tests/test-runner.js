@@ -117,7 +117,7 @@ async function runUsageValidationTests() {
 	info("Running usage validation tests...");
 
 	try {
-		await runCommand("npx", ["rstest", "run", "test-validate.test.js"]);
+		await runCommand("npx", ["rstest", "run", "tests/unit/test-validate.test.js"]);
 		success("Usage validation tests passed");
 	} catch (err) {
 		throw new Error(`Usage validation tests failed: ${err.message}`);
@@ -128,7 +128,7 @@ async function runLegacyValidationTests() {
 	info("Running legacy validation tests...");
 
 	try {
-		await runCommand("npx", ["rstest", "run", "test-validate.js"]);
+		await runCommand("npx", ["rstest", "run", "tests/unit/test-validate.js"]);
 		success("Legacy validation tests passed");
 	} catch (err) {
 		throw new Error(`Legacy validation tests failed: ${err.message}`);
@@ -143,7 +143,7 @@ async function runSnapshotTests(updateSnapshots = false) {
 	if (updateSnapshots) {
 		args.push("--update");
 	}
-	args.push("test-snapshots.test.js");
+	args.push("tests/snapshots/test-snapshots.test.js");
 
 	try {
 		await runCommand("npx", args);

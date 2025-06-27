@@ -1,9 +1,15 @@
 {
   "file": "cjs-modules_pure-cjs-helper_js.js",
   "totalMacroBlocks": 9,
-  "correctlyPositioned": 9,
-  "incorrectlyPositioned": 0,
-  "issues": [],
+  "correctlyPositioned": 8,
+  "incorrectlyPositioned": 1,
+  "issues": [
+    {
+      "blockIndex": 5,
+      "content": "/* @common:if [condition=\"treeShake.cjs-pure-helper.helpers\"] */ {\n  timestamp: () => Date.now(),\n  ...",
+      "issue": "Incorrect macro positioning"
+    }
+  ],
   "patterns": {
     "moduleExports": 1,
     "exports": 10,
