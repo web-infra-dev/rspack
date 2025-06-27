@@ -2107,7 +2107,7 @@ impl ConcatenatedModule {
   }
 
   #[allow(clippy::too_many_arguments)]
-  pub fn get_final_name(
+  fn get_final_name(
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     module_static_cache_artifact: &ModuleStaticCacheArtifact,
@@ -2218,7 +2218,7 @@ impl ConcatenatedModule {
   }
 
   #[allow(clippy::too_many_arguments)]
-  pub fn get_final_binding(
+  fn get_final_binding(
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
     info_id: &ModuleIdentifier,

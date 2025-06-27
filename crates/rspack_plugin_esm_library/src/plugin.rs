@@ -126,13 +126,12 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       for export_info in prefetched_exports_info.get_relevant_exports(None) {
-        let export_info = export_info;
         if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
           logger.debug(format!(
             "module {module_identifier} has export {} that is not provided",
             export_info
               .name()
-              .map_or("".to_string(), |name| name.to_string())
+              .map_or(String::new(), |name| name.to_string())
           ));
           should_scope_hoisting = false;
           break;
@@ -271,10 +270,8 @@ async fn additional_chunk_runtime_requirements(
     runtime_requirements.extend(*info.get_runtime_requirements());
   }
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    if !runtime_requirements.is_empty() {
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    }
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey) && !runtime_requirements.is_empty() {
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }
   Ok(())
 }
