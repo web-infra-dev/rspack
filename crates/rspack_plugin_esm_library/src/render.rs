@@ -2,15 +2,17 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeySet};
 use rspack_core::{
+  get_js_chunk_filename_template, render_init_fragments,
+  rspack_sources::{ConcatSource, RawSource, RawStringSource, SourceExt},
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, Compilation,
   ConcatenationScope, InitFragment, ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals,
-  SourceType, SpanExt, get_js_chunk_filename_template, render_init_fragments,
-  rspack_sources::{ConcatSource, RawSource, RawStringSource, SourceExt},
+  SourceType, SpanExt,
 };
-use rspack_error::{Result, error};
+use rspack_error::{error, Result};
 use rspack_plugin_javascript::{
-  RenderSource, render_bootstrap,
+  render_bootstrap,
   runtime::{render_module, render_runtime_modules},
+  RenderSource,
 };
 use rspack_util::{atom::Atom, fx_hash::FxHashMap};
 
@@ -19,7 +21,7 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
   compilation.chunk_by_ukey.expect_get(&chunk_ukey)
 }
 
-use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
+use crate::{dependency::dyn_import::NAMESPACE_SYMBOL, EsmLibraryPlugin};
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -327,7 +329,7 @@ impl EsmLibraryPlugin {
           let internal_symbol = info
             .internal_names
             .get(imported)
-            .unwrap_or_else(|| panic!("module {} should have internal name for {}", id, imported));
+            .unwrap_or_else(|| panic!("module {id} should have internal name for {imported}"));
           imported_symbols.insert(internal_symbol.clone(), local.clone());
         }
       }
@@ -336,7 +338,7 @@ impl EsmLibraryPlugin {
         final_source.add(RawStringSource::from(format!(
           "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
           if imported.is_empty() {
-            "".into()
+            String::new()
           } else {
             format!(
               "{{ {} }} from ",
@@ -405,11 +407,11 @@ impl EsmLibraryPlugin {
             export_specifiers.push(local_symbol.as_str());
           }
         }
-        ModuleInfo::External(info) => {
+        ModuleInfo::External(_info) => {
           // export from external module
           // const ns = __webpack_require__('module')
           // export { ns.foo as foo }
-          for export in exports {}
+          // for export in exports {}
         }
       }
     }

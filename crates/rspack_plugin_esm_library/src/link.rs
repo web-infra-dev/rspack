@@ -2,18 +2,18 @@ use std::{collections::hash_map::Entry, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments, ChunkLinkContext, ChunkUkey,
-  Compilation, ConcatenatedModule, ConcatenatedModuleIdent, ExportInfoGetter, ExportProvided,
-  ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam, IdentCollector,
-  MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, Ref, RuntimeGlobals,
-  SourceType, SymbolRef, UsageState, UsedName, UsedNameItem, find_new_name,
-  get_js_chunk_filename_template, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, rspack_sources::ReplaceSource, to_normal_comment,
+  find_new_name, get_js_chunk_filename_template, property_access, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
+  to_normal_comment, BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments,
+  ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModuleIdent, ExportInfoGetter,
+  ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
+  IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleInfo, PathData, PrefetchExportsInfoMode, Ref, RuntimeGlobals, SourceType,
+  SymbolRef, UsageState, UsedName, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
-use rspack_plugin_javascript::{JsPlugin, RenderSource, visitors::swc_visitor::resolver};
+use rspack_plugin_javascript::{visitors::swc_visitor::resolver, JsPlugin, RenderSource};
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap},
@@ -23,7 +23,7 @@ use swc_core::{
   common::{FileName, SyntaxContext},
   ecma::{
     ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
+    parser::{parse_file_as_module, Syntax},
   },
 };
 
@@ -131,7 +131,7 @@ impl EsmLibraryPlugin {
         let strict_esm_module = box_module.build_meta().strict_esm_module;
         let name_space_name = module_info.namespace_object_name.clone();
 
-        if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
+        if module_info.namespace_export_symbol.is_some() {
           continue;
         }
 
@@ -148,31 +148,33 @@ impl EsmLibraryPlugin {
           if let Some(UsedNameItem::Str(used_name)) =
             ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, None)
           {
-            let final_name = ConcatenatedModule::get_final_name(
+            let final_name = Self::get_binding(
               &compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
               module_info_id,
-              vec![
-                export_info
-                  .as_data(&module_graph)
-                  .name()
-                  .cloned()
-                  .unwrap_or("".into()),
-              ],
+              vec![export_info
+                .as_data(&module_graph)
+                .name()
+                .cloned()
+                .unwrap_or("".into())],
               concate_modules_map,
-              None,
               &mut needed_namespace_objects,
               false,
               false,
               strict_esm_module,
               Some(true),
-              &compilation.options.context,
+              &mut Default::default(),
             );
+
+            let symbol = match &final_name {
+              Ref::Symbol(symbol_ref) => symbol_ref.symbol.as_str(),
+              Ref::Inline(inline) => inline.as_str(),
+            };
 
             ns_obj.push(format!(
               "\n  {}: {}",
               property_name(&used_name).expect("should have property_name"),
-              returning_function(&compilation.options.output.environment, &final_name, "")
+              returning_function(&compilation.options.output.environment, symbol, "")
             ));
           }
         }
@@ -240,7 +242,7 @@ impl EsmLibraryPlugin {
   pub fn get_module_chunk(m: ModuleIdentifier, compilation: &Compilation) -> ChunkUkey {
     let chunks = compilation.chunk_graph.get_module_chunks(m);
     if chunks.is_empty() {
-      panic!("module {} is not in any chunk", m);
+      panic!("module {m} is not in any chunk");
     }
 
     if chunks.len() > 1 {
@@ -287,19 +289,15 @@ impl EsmLibraryPlugin {
         .expect("should have module");
       let exports_type = module.build_meta().exports_type;
       let default_object = module.build_meta().default_object;
-      let readable_identifier = module.readable_identifier(&compilation.options.context);
+
       let info = concate_modules_map
         .get_mut(id)
         .expect("should have module info");
 
       // Handle additional logic based on module build meta
       if exports_type != BuildMetaExportsType::Namespace {
-        let external_name_interop: Atom = find_new_name(
-          "namespaceObject",
-          &all_used_names,
-          None,
-          &readable_identifier,
-        );
+        let external_name_interop: Atom =
+          find_new_name("namespaceObject", &all_used_names, None, &vec![]);
         all_used_names.insert(external_name_interop.clone());
         info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
       }
@@ -307,12 +305,8 @@ impl EsmLibraryPlugin {
       if exports_type == BuildMetaExportsType::Default
         && !matches!(default_object, BuildMetaDefaultObject::Redirect)
       {
-        let external_name_interop: Atom = find_new_name(
-          "namespaceObject2",
-          &all_used_names,
-          None,
-          &readable_identifier,
-        );
+        let external_name_interop: Atom =
+          find_new_name("namespaceObject2", &all_used_names, None, &vec![]);
         all_used_names.insert(external_name_interop.clone());
         info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
       }
@@ -321,8 +315,7 @@ impl EsmLibraryPlugin {
         exports_type,
         BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
       ) {
-        let external_name_interop: Atom =
-          find_new_name("default", &all_used_names, None, &readable_identifier);
+        let external_name_interop: Atom = find_new_name("default", &all_used_names, None, &vec![]);
         all_used_names.insert(external_name_interop.clone());
         info.set_interop_default_access_name(Some(external_name_interop.clone()));
       }
@@ -337,7 +330,7 @@ impl EsmLibraryPlugin {
         }
 
         if all_used_names.contains(atom) {
-          let new_name = find_new_name(atom, &all_used_names, None, &readable_identifier);
+          let new_name = find_new_name(atom, &all_used_names, None, &vec![]);
           all_used_names.insert(new_name.clone());
           internal_names.insert(atom.clone(), new_name);
         } else {
@@ -373,7 +366,7 @@ impl EsmLibraryPlugin {
             "namespaceObject",
             &all_used_names,
             None,
-            &readable_identifier,
+            &vec![],
           ))
         };
       if let Some(namespace_object_name) = namespace_object_name {
@@ -394,12 +387,7 @@ impl EsmLibraryPlugin {
       else {
         unreachable!("should be un-scope-hoisted module");
       };
-      let name = find_new_name(
-        "",
-        &all_used_names,
-        None,
-        &external_module.readable_identifier(&compilation.options.context),
-      );
+      let name = find_new_name("", &all_used_names, None, &vec![]);
       info.name = Some(name.clone());
       all_used_names.insert(name.clone());
     }
@@ -662,7 +650,7 @@ impl EsmLibraryPlugin {
 
     // link entry direct exports
     for entrypoint_ukey in compilation.entrypoints.values() {
-      let entrypoint = compilation.chunk_group_by_ukey.expect_get(&entrypoint_ukey);
+      let entrypoint = compilation.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       let entry_chunk_ukey = entrypoint.get_entrypoint_chunk();
       let chunk_link = link
         .get_mut(&entry_chunk_ukey)
@@ -690,7 +678,7 @@ impl EsmLibraryPlugin {
         }
 
         for (exported_module, mode) in &info.star_exports {
-          let needs_require = matches!(
+          let _needs_require = matches!(
             concate_modules_map
               .get(exported_module)
               .expect("should have info"),
@@ -703,23 +691,22 @@ impl EsmLibraryPlugin {
             | rspack_core::ExportMode::Missing => {}
 
             // export { default as name } from './dynamic'
-            rspack_core::ExportMode::ReexportDynamicDefault(mode) => {
-              dbg!(exported_module, &mode.name);
+            rspack_core::ExportMode::ReexportDynamicDefault(_mode) => {
               todo!()
             }
 
-            rspack_core::ExportMode::ReexportNamedDefault(export_mode_reexport_named_default) => {
+            rspack_core::ExportMode::ReexportNamedDefault(_export_mode_reexport_named_default) => {
               todo!()
             }
             rspack_core::ExportMode::ReexportNamespaceObject(
-              export_mode_reexport_namespace_object,
+              _export_mode_reexport_namespace_object,
             ) => todo!(),
             rspack_core::ExportMode::ReexportFakeNamespaceObject(
-              export_mode_fake_namespace_object,
+              _export_mode_fake_namespace_object,
             ) => todo!(),
-            rspack_core::ExportMode::ReexportUndefined(export_mode_reexport_undefined) => todo!(),
-            rspack_core::ExportMode::NormalReexport(export_mode_normal_reexport) => todo!(),
-            rspack_core::ExportMode::DynamicReexport(export_mode_dynamic_reexport) => todo!(),
+            rspack_core::ExportMode::ReexportUndefined(_export_mode_reexport_undefined) => todo!(),
+            rspack_core::ExportMode::NormalReexport(_export_mode_normal_reexport) => todo!(),
+            rspack_core::ExportMode::DynamicReexport(_export_mode_dynamic_reexport) => todo!(),
           }
 
           let exports_info = module_graph
@@ -731,7 +718,7 @@ impl EsmLibraryPlugin {
             if matches!(export.global_used(), Some(UsageState::Unused)) {
               continue;
             }
-            dbg!(exported_module, export.name());
+
             if let Some(name) = export.name() {
               chunk_link
                 .exports
@@ -848,7 +835,7 @@ impl EsmLibraryPlugin {
         // check if we should import this symbol from other chunk
         if needs_import_chunk || needs_require {
           let (orig_symbol, local_symbol) = if all_used_names.contains(&symbol) {
-            let new_symbol = find_new_name(&symbol, &all_used_names, None, "");
+            let new_symbol = find_new_name(&symbol, all_used_names, None, &vec![]);
             all_used_names.insert(new_symbol.clone());
 
             for (_, cur_ref) in &mut all_refs {
@@ -901,6 +888,7 @@ impl EsmLibraryPlugin {
   //
   // if imported specifier is in other chunk
   // the final name is symbol in referenced chunk
+  #[allow(clippy::too_many_arguments)]
   fn get_binding(
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
@@ -1229,7 +1217,7 @@ impl EsmLibraryPlugin {
                 "inlined export {}",
                 property_access(&export_name, 0)
               ));
-              return Ref::Inline(format!("{}{}", inlined.render(), comment).into());
+              Ref::Inline(format!("{}{comment}", inlined.render()))
             }
           }
         } else {
