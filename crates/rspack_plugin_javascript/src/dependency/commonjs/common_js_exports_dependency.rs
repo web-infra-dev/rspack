@@ -601,7 +601,6 @@ impl CommonJsExportsDependencyTemplate {
     }
   }
 
-
   /// Render expression-based exports with module-level coordination
   fn render_expression_export(
     dep: &CommonJsExportsDependency,
@@ -630,21 +629,23 @@ impl CommonJsExportsDependencyTemplate {
           match dep.context {
             ExportContext::ObjectLiteralPropertyFirst
             | ExportContext::ObjectLiteralPropertySubsequent => {
-              // For object literal properties, wrap the entire property including comma
-              // This ensures the correct format: /* @common:if [...] */ property, /* @common:endif */
+              // For object literal properties, wrap the ENTIRE property (key: value) so both are removed together
+              // This ensures: /* @common:if [...] */ default: dataUtils, /* @common:endif */
               let end = if dep.is_last_property.unwrap_or(false) {
                 dep.range.end
               } else {
+                // Find the actual comma position after the property
                 dep.range.end + 1 // Include the comma
               };
 
-              // Generate the property content using export name
-              let comma_suffix = if dep.is_last_property.unwrap_or(false) { "" } else { "," };
-              let macro_property = format!(
-                "/* @common:if [condition=\"{}\"] */ {}{} /* @common:endif */",
-                macro_condition, export_name, comma_suffix
+              // Wrap the original property content (including comma if present)
+              source.replace(
+                dep.range.start,
+                dep.range.start,
+                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                None,
               );
-              source.replace(dep.range.start, end, &macro_property, None);
+              source.replace(end, end, " /* @common:endif */", None);
             }
             ExportContext::VariableAssignment => {
               // For variable assignments (foo = exports.bar), wrap the exports reference
@@ -663,12 +664,7 @@ impl CommonJsExportsDependencyTemplate {
                 &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
                 None,
               );
-              source.replace(
-                dep.range.end,
-                dep.range.end,
-                " /* @common:endif */",
-                None,
-              );
+              source.replace(dep.range.end, dep.range.end, " /* @common:endif */", None);
             }
             ExportContext::DefineProperty => {
               // For defineProperty, wrap the export property
