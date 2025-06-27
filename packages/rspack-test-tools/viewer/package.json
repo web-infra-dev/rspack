@@ -13,7 +13,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-refresh": "^0.17.0",
-    "prettier": "^3.5.3",
+    "prettier": "^3.6.2",
     "monaco-editor": "0.52.2",
     "monaco-editor-webpack-plugin": "7.1.0"
   }
