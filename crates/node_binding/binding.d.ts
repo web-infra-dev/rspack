@@ -425,6 +425,11 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
+  /**
+   * # Safety
+   *
+   * This function is unsafe because it uses `unsafe` to call the watcher asynchronously.
+   */
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, changedFiles: string[], removedFiles: string[]) => void, callbackUndelayed: (path: string) => void): Promise<void>
   close(): void
   pause(): void
