@@ -16,7 +16,12 @@ const wasmConfig = process.env.WASM && {
 		"Error.test.js",
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
-		"Cache.test.js"
+		"Cache.test.js",
+		"Incremental-node.test.js",
+		"Incremental-watch-webpack.test.js",
+		"Incremental-watch.test.js",
+		"Incremental-web.test.js",
+		"Incremental-webworker.test.js"
 	],
 	maxWorkers: 1,
 	maxConcurrency: 1,
