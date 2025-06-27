@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
 use dashmap::DashSet as HashSet;
 use rspack_paths::ArcPath;
+use rspack_util::fx_hash::FxDashMap as HashMap;
 
-// use rspack_util::fx_hash::FxDashMap as HashMap;
 use super::{Analyzer, WatchPattern};
 use crate::watcher::manager::{All, PathAccessor};
 
@@ -118,13 +116,12 @@ impl<'a> TreeBuilder<'a> {
       Some(parent) => {
         if let Some(node) = tree.get_mut(parent) {
           node.add_child(path.clone());
-          None
-        } else {
-          let parent_node = TreeNode::default();
-          parent_node.add_child(path.clone());
-          tree.insert(ArcPath::from(parent), parent_node);
-          Self::build_tree_recursive(&ArcPath::from(parent), tree)
+          return None;
         }
+        let parent_node = TreeNode::default();
+        parent_node.add_child(path.clone());
+        tree.insert(ArcPath::from(parent), parent_node);
+        Self::build_tree_recursive(&ArcPath::from(parent), tree)
       }
       None => Some(path.clone()),
     }

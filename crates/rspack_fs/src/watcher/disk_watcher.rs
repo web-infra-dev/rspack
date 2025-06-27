@@ -1,4 +1,3 @@
-// use std::collections::HashSet;
 use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, Watcher};
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;

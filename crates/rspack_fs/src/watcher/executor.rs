@@ -243,28 +243,25 @@ impl ExecuteAggregateHandler {
         }
       };
 
-      match aggregate_rx {
-        ExecAggregateEvent::Execute => {
-          running.store(true, Ordering::Relaxed);
-          // Wait for the aggregate timeout before executing the handler
-          tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
+      if let ExecAggregateEvent::Execute = aggregate_rx {
+        running.store(true, Ordering::Relaxed);
+        // Wait for the aggregate timeout before executing the handler
+        tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
-          // Get the files to process
-          let files = {
-            let mut files = files.lock().await;
-            if files.is_empty() {
-              return;
-            }
-            std::mem::take(&mut *files)
-          };
+        // Get the files to process
+        let files = {
+          let mut files = files.lock().await;
+          if files.is_empty() {
+            return;
+          }
+          std::mem::take(&mut *files)
+        };
 
-          // Call the event handler with the changed and deleted files
-          let _ = event_handler
-            .on_event_handle(files.changed, files.deleted)
-            .await;
-          running.store(false, Ordering::Relaxed);
-        }
-        _ => (),
+        // Call the event handler with the changed and deleted files
+        let _ = event_handler
+          .on_event_handle(files.changed, files.deleted)
+          .await;
+        running.store(false, Ordering::Relaxed);
       }
     };
 
