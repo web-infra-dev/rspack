@@ -169,6 +169,51 @@ export default {
 };
 ```
 
+babel-loader 虽然功能强大，但其运行性能存在一定的瓶颈。当其被应用于所有 JSX 文件时，会显著增加编译耗时，从而对整体构建效率产生较大影响。
+通过引入 `@swc/react-compiler`，可以对 JSX 文件进行预处理，仅将需要优化的文件传递给 babel-loader 进行编译，可减少 babel-loader 的工作量，从而提升构建性能。
+
+```js title="rspack.config.mjs"
+import fs from 'node:fs';
+import { isReactCompilerRequiredSync } from '@swc/react-compiler';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JS
+            },
+          },
+        ],
+      },
+      {
+        test: /\.jsx$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JSX
+            },
+          },
+        ],
+      },
+      {
+        // Must be run before 'builtin:swc-loader' to ensure that the file is processed by the React Compiler
+        // So we add it to the beginning of the rule
+        test: (resouce) => /\.jsx$/.test(resouce) && isReactCompilerRequiredSync(fs.readFileSync(resouce)),
+        loader: 'babel-loader'
+      },
+    ],
+  },
+};
+```
+
+
+
 4. 创建 `babel.config.js` 并配置插件：
 
 ```js title="babel.config.js"

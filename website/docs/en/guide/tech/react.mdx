@@ -171,6 +171,50 @@ export default {
 };
 ```
 
+Although babel-loader is powerful in functionality, its runtime performance has certain limitations. When applied to all JSX files, it significantly increases the compilation time, thereby having a considerable impact on the overall build efficiency.
+
+By introducing `@swc/react-compiler`, we can preprocess JSX files and only pass the files that require optimization to babel-loader for compilation. This approach can reduce the workload of babel-loader and thereby enhance build performance.
+
+```js title="rspack.config.mjs"
+import fs from 'node:fs';
+import { isReactCompilerRequiredSync } from '@swc/react-compiler';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JS
+            },
+          },
+        ],
+      },
+      {
+        test: /\.jsx$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              // SWC options for JSX
+            },
+          },
+        ],
+      },
+      {
+        // Must be run before 'builtin:swc-loader' to ensure that the file is processed by the React Compiler
+        // So we add it to the beginning of the rule
+        test: (resouce) => /\.jsx$/.test(resouce) && isReactCompilerRequiredSync(fs.readFileSync(resouce)),
+        loader: 'babel-loader'
+      },
+    ],
+  },
+};
+```
+
 4. Create a `babel.config.js` and configure the plugins:
 
 ```js title="babel.config.js"
