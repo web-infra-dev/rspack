@@ -1,5 +1,13 @@
 const root = require("path").resolve(__dirname, "../");
 
+const wasmConfig = process.env.WASM && {
+	testPathIgnorePatterns: [
+		"<rootDir>/StatsTestCases.basictest.js"
+	],
+	detectOpenHandles: true,
+	forceExit: true
+};
+
 module.exports = {
 	"forceExit": false,
 	"setupFiles": [
@@ -152,4 +160,5 @@ module.exports = {
 		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
 		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
 	],
+	...(wasmConfig || {})
 }
