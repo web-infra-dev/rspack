@@ -21,6 +21,9 @@ impl Ignored for SafetyIgnored {
   }
 }
 
+type JsCallback = ThreadsafeFunction<FnArgs<(Option<napi::Error>, Vec<String>, Vec<String>)>, ()>;
+type JsCallbackUndelayed = ThreadsafeFunction<String, ()>;
+
 #[napi(object, object_to_js = false)]
 pub struct NativeWatcherOptions {
   pub follow_symlinks: Option<bool>,
@@ -37,6 +40,7 @@ pub struct NativeWatcherOptions {
 #[napi]
 pub struct NativeWatcher {
   watcher: FsWatcher,
+  close: bool,
 }
 
 #[napi]
@@ -56,10 +60,16 @@ impl NativeWatcher {
       ignored,
     );
 
-    Self { watcher }
+    Self {
+      watcher,
+      close: false,
+    }
   }
 
   #[napi]
+  /// # Safety
+  ///
+  /// This function is unsafe because it uses `unsafe` to call the watcher asynchronously.
   pub async unsafe fn watch(
     &mut self,
     files: (Vec<String>, Vec<String>),
@@ -68,12 +78,14 @@ impl NativeWatcher {
     #[napi(
       ts_arg_type = "(err: Error | null, changedFiles: string[], removedFiles: string[]) => void"
     )]
-    callback: ThreadsafeFunction<FnArgs<(Option<napi::Error>, Vec<String>, Vec<String>)>, ()>,
-    #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: ThreadsafeFunction<
-      String,
-      (),
-    >,
+    callback: JsCallback,
+    #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: JsCallbackUndelayed,
   ) -> napi::Result<()> {
+    if self.close {
+      return Err(napi::Error::from_reason(
+        "Watcher has been closed, cannot watch again.",
+      ));
+    }
     let js_event_handler = JsEventHandler::new(callback, callback_undelayed);
 
     let file_updater = PathUpdater {
@@ -110,7 +122,9 @@ impl NativeWatcher {
     self
       .watcher
       .close()
-      .map_err(|e| napi::Error::from_reason(e.to_string()))
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    self.close = true;
+    Ok(())
   }
 
   #[napi]
@@ -125,15 +139,12 @@ impl NativeWatcher {
 }
 
 struct JsEventHandler {
-  callback: ThreadsafeFunction<FnArgs<(Option<napi::Error>, Vec<String>, Vec<String>)>, ()>,
-  callback_undelayed: ThreadsafeFunction<String, ()>,
+  callback: JsCallback,
+  callback_undelayed: JsCallbackUndelayed,
 }
 
 impl JsEventHandler {
-  fn new(
-    callback: ThreadsafeFunction<FnArgs<(Option<napi::Error>, Vec<String>, Vec<String>)>, ()>,
-    callback_undelayed: ThreadsafeFunction<String, ()>,
-  ) -> Self {
+  fn new(callback: JsCallback, callback_undelayed: JsCallbackUndelayed) -> Self {
     Self {
       callback,
       callback_undelayed,

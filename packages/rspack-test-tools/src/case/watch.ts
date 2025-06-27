@@ -5,6 +5,15 @@ import { WatchProcessor, WatchStepProcessor } from "../processor/watch";
 import { WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType } from "../type";
+import process from "node:process";
+
+const NON_CONCURRENT_PLATFORMS = [
+	"aix",
+	"freebsd",
+	"linux",
+	"openbsd",
+	"sunos"
+];
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -51,7 +60,7 @@ const creator = new BasicCaseCreator({
 					)
 		);
 	},
-	concurrent: true
+	concurrent: !NON_CONCURRENT_PLATFORMS.includes(process.platform)
 });
 
 export function createWatchCase(
