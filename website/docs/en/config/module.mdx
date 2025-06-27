@@ -488,6 +488,45 @@ When using Rspack to bundle TypeScript, we strongly recommend enabling [isolated
 - `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
 - `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
 
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    typeReexportsPresence: true, // This is currently an experimental feature and requires explicit enabling
+  },
+  module: {
+    parser: {
+      javascript: {
+        typeReexportsPresence: 'tolerant',
+      },
+    },
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                },
+              },
+              rspackExperiments: {
+                collectTypeScriptInfo: {
+                  typeExports: true, // Must be enabled in "tolerant" mode
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+
 :::warning
 This is currently an experimental feature. You must enable [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) for this configuration to take effect.
 :::
@@ -558,6 +597,21 @@ Inline optimization is applied when the constant value is:
 - `boolean` values (`true` or `false`)
 - `number` with length \<= 6
 - `string` with length \<= 6
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    inlineConst: true, // This is currently an experimental feature and requires explicit enabling
+  },
+  module: {
+    parser: {
+      javascript: {
+        inlineConst: true,
+      },
+    },
+  },
+};
+```
 
 :::warning
 This is currently an experimental feature. You must enable [experiments.inlineConst](/config/experiments#experimentstypereexportspresence) for this configuration to take effect.

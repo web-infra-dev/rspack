@@ -463,7 +463,7 @@ import 'antd/es/button/style';
 
 为了保证收集到的信息的准确性，该配置只能在 builtin:swc-loader 作为最后一个 normal loader 时使用。
 
-> 可参考 [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) 进行配置
+详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
 
 #### rspackExperiments.collectTypeScriptInfo.typeExports
 
@@ -482,3 +482,35 @@ import 'antd/es/button/style';
 - **默认值：** `false`
 
 是否收集导出的 `enum`，使用 `'const-only'` 则仅收集导出的 `const enum`，提供给 Rspack 对收集到的 enum 进行跨模块的 inline 优化。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    inlineEnum: true, // 目前为实验性功能，需开启此选项
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                },
+              },
+              rspackExperiments: {
+                collectTypeScriptInfo: {
+                  exportedEnum: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
