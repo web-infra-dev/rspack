@@ -9,71 +9,26 @@ use crate::Compilation;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AvailableModules {
-  #[cfg(debug_assertions)]
-  available_modules: rspack_collections::IdentifierSet,
-
-  #[cfg(not(debug_assertions))]
   available_modules: num_bigint::BigUint,
 }
 
 impl AvailableModules {
   pub fn union(&self, other: &Self) -> Self {
-    #[cfg(debug_assertions)]
-    {
-      Self {
-        available_modules: self
-          .available_modules
-          .iter()
-          .chain(&other.available_modules)
-          .copied()
-          .collect(),
-      }
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-      Self {
-        available_modules: &self.available_modules | &other.available_modules,
-      }
+    Self {
+      available_modules: &self.available_modules | &other.available_modules,
     }
   }
 
   pub fn intersect(&self, other: &Self) -> Self {
-    #[cfg(debug_assertions)]
-    {
-      Self {
-        available_modules: self
-          .available_modules
-          .intersection(&other.available_modules)
-          .copied()
-          .collect(),
-      }
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-      Self {
-        available_modules: &self.available_modules & &other.available_modules,
-      }
+    Self {
+      available_modules: &self.available_modules & &other.available_modules,
     }
   }
 
-  #[cfg(debug_assertions)]
-  pub fn is_module_available(&self, module: crate::ModuleIdentifier) -> bool {
-    self.available_modules.contains(&module)
-  }
-
-  #[cfg(not(debug_assertions))]
   pub fn is_module_available(&self, module: u64) -> bool {
     self.available_modules.bit(module)
   }
 
-  #[cfg(debug_assertions)]
-  pub fn add(&mut self, module: crate::ModuleIdentifier) {
-    self.available_modules.insert(module);
-  }
-
-  #[cfg(not(debug_assertions))]
   pub fn add(&mut self, module: u64) {
     self.available_modules.set_bit(module, true);
   }
@@ -193,16 +148,10 @@ pub fn remove_available_modules(
     };
 
     chunk.chunk_modules_mut().retain(|module_identifier| {
-      let module = {
-        #[cfg(debug_assertions)]
-        {
-          *module_identifier
-        }
-        #[cfg(not(debug_assertions))]
-        {
-          ordinal_by_modules.get(module_identifier).copied().unwrap()
-        }
-      };
+      let module = ordinal_by_modules
+        .get(module_identifier)
+        .copied()
+        .expect("should have module ordinal");
 
       let in_parent = available.is_module_available(module);
 
