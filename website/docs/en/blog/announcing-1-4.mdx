@@ -7,7 +7,7 @@ _June 26, 2025_
 
 # Announcing Rspack 1.4
 
-![Rspack 1.4](https://assets.rspack.dev/rspack/rspack-banner-v1-4.png)
+![Rspack 1.4](https://assets.rspack.rs/rspack/rspack-banner-v1-4.png)
 
 ---
 
@@ -44,7 +44,7 @@ Starting with Rspack 1.4, we have added Wasm target support, which means Rspack 
 You can try out our [online example](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#preview-with-stackblitz).
 
 <video
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-wasm-target.mp4"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-wasm-target.mp4"
   autoPlay
   muted
   loop
@@ -103,7 +103,7 @@ After extensive optimization, Rspack's incremental build has become stable. In R
 Here is a performance comparison from one user after enabling incremental build:
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-incremental-data.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-incremental-data.png"
   alt="incremental benchmark"
   width="760"
 />
@@ -204,7 +204,7 @@ RSPACK_PROFILE=OVERVIEW rspack build
 The generated `rspack.pftrace` file can be visualized and analyzed at [ui.perfetto.dev](https://ui.perfetto.dev/):
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-tracing.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
   alt="tracing"
 />
 
@@ -230,7 +230,7 @@ Rsbuild 1.4 has been released alongside Rspack 1.4, with notable features includ
 We've introduced a new [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) plugin, which enables seamless integration with Chrome DevTools' new [Automatic Workspace Folders](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) feature. This means you can directly edit and debug your source code in DevTools and save changes to your local file system.
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
   alt="rsbuild plugin devtools json"
   width="760"
 />
@@ -256,7 +256,7 @@ When you import JS files from other packages in a monorepo, Rsbuild now uses SWC
 As shown in the diagram below, suppose the app's build target is ES2016 and utils' build target is ES2021. When `app/src/index.js` imports `utils/dist/index.js`, SWC will now downgrade it to ES2016.
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png"
   alt="rsbuild monorepo compile scope"
   width="600"
 />
@@ -270,7 +270,7 @@ Rslib 0.10 has been released, with notable features including:
 Rslib now generates cleaner, more concise, and smaller ESM output by default.
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-esm.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rslib-esm.png"
   alt="rslib esm"
   width="700"
 />
@@ -302,7 +302,7 @@ export default defineConfig({
 Rslib now supports generating [IIFE](https://rslib.rs/guide/basic/output-format#iife) format output, wrapping the code in a function expression.
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-iife.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rslib-iife.png"
   alt="rslib iife"
   width="700"
 />
@@ -316,7 +316,7 @@ We are actively developing [Rspress 2.0](https://github.com/web-infra-dev/rspres
 Additionally, we are developing a brand new theme, with the preview shown below:
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rspress-preview.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rspress-preview.png"
   alt="rspress theme preview"
   width="800"
 />
@@ -328,7 +328,7 @@ Rsdoctor has introduced [@rsdoctor/mcp-server](https://rsdoctor.rs/guide/start/m
 Rsdoctor MCP provides bundle analysis, dependency analysis, bundle optimization suggestions, and build optimization suggestions. It can analyze bundle size composition, dependency relationships, and duplicate dependencies, while providing targeted optimization suggestions for bundle size optimization, code splitting, and build performance.
 
 <video
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
   autoPlay
   muted
   loop
@@ -341,7 +341,7 @@ Rsdoctor MCP provides bundle analysis, dependency analysis, bundle optimization 
 This month, we released Rstest v0.0.3, which provides initial support for Node.js and UI component testing, and has been adopted in our repositories like Rsbuild.
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rstest.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rstest.png"
   alt="rstest"
   width="600"
 />
@@ -362,7 +362,7 @@ In the latest version, next-rspack has been largely completed, with test coverag
 Moving forward, we plan to continue pushing test coverage to 100% and further optimize the performance of next-rspack.
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-next-rspack.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-next-rspack.png"
   alt="next-rspack"
   width="760"
 />
