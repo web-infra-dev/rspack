@@ -7,14 +7,6 @@ import { WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType } from "../type";
 
-const NON_CONCURRENT_PLATFORMS = [
-	"aix",
-	"freebsd",
-	"linux",
-	"openbsd",
-	"sunos"
-];
-
 const creator = new BasicCaseCreator({
 	clean: true,
 	runner: WatchRunnerFactory,
@@ -60,7 +52,7 @@ const creator = new BasicCaseCreator({
 					)
 		);
 	},
-	concurrent: !NON_CONCURRENT_PLATFORMS.includes(process.platform)
+	concurrent: true
 });
 
 export function createWatchCase(
