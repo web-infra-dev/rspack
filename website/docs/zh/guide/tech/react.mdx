@@ -204,7 +204,7 @@ export default {
       {
         // Must be run before 'builtin:swc-loader' to ensure that the file is processed by the React Compiler
         // So we add it to the beginning of the rule
-        test: (resouce) => /\.jsx$/.test(resouce) && isReactCompilerRequiredSync(fs.readFileSync(resouce)),
+        test: (resource) => /\.jsx$/.test(resource) && isReactCompilerRequiredSync(fs.readFileSync(resource)),
         loader: 'babel-loader'
       },
     ],
