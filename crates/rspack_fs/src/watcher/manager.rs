@@ -117,7 +117,7 @@ impl PathUpdater {
   }
 }
 
-/// `PathManager` is responsible for managing the set of registered paths, directories, and missing paths.
+/// `PathManager` is responsible for managing the set of files, directories, and missing paths.
 #[derive(Default)]
 pub struct PathManager {
   pub files: HashSet<ArcPath>,
@@ -127,6 +127,7 @@ pub struct PathManager {
 }
 
 impl PathManager {
+  /// Create a new `PathManager` with an optional ignored paths filter.
   pub fn new(ignored: Option<Box<dyn Ignored>>) -> Self {
     Self {
       files: HashSet::new(),
@@ -136,6 +137,7 @@ impl PathManager {
     }
   }
 
+  /// Update the paths, directories, and missing paths in the `PathManager`.
   pub async fn update_paths(
     &self,
     files: PathUpdater,
@@ -147,6 +149,7 @@ impl PathManager {
     missing.update(&self.missing, &self.ignored).await;
   }
 
+  /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
   pub fn access(&self) -> PathAccessor<'_> {
     PathAccessor::new(&self.files, &self.directories, &self.missing)
   }
@@ -189,7 +192,7 @@ mod tests {
 
     updater.update(&paths, &Some(ignored)).await;
 
-    let mut path_iter = paths.into_iter().map(|p| p);
+    let mut path_iter = paths.into_iter();
     assert_eq!(
       path_iter.next(),
       Some(ArcPath::from(PathBuf::from("src/index.js")))
