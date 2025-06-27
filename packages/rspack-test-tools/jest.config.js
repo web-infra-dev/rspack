@@ -17,6 +17,7 @@ const wasmConfig = process.env.WASM && {
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
 		"Cache.test.js",
+		"Serial.test.js",
 		"Incremental-node.test.js",
 		"Incremental-watch-webpack.test.js",
 		"Incremental-watch.test.js",
