@@ -1116,7 +1116,7 @@ impl JsPlugin {
           let context = compilation.options.context.clone();
           let readable_identifier = module.readable_identifier(&context).to_string();
           let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-          let new_name = find_new_name(name, &all_used_names, None, &splitted_readable_identifier);
+          let new_name = find_new_name(name, &all_used_names, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
             let span = identifier.id.span();
