@@ -4,6 +4,8 @@ const wasmConfig = process.env.WASM && {
 	testPathIgnorePatterns: [
 		"<rootDir>/StatsTestCases.basictest.js"
 	],
+	maxWorkers: 1,
+	maxConcurrency: 1,
 	detectOpenHandles: true,
 	forceExit: true
 };
