@@ -204,15 +204,15 @@ export default {
       {
         // Must be run before 'builtin:swc-loader' to ensure that the file is processed by the React Compiler
         // So we add it to the beginning of the rule
-        test: (resource) => /\.jsx$/.test(resource) && isReactCompilerRequiredSync(fs.readFileSync(resource)),
-        loader: 'babel-loader'
+        test: resource =>
+          /\.jsx$/.test(resource) &&
+          isReactCompilerRequiredSync(fs.readFileSync(resource)),
+        loader: 'babel-loader',
       },
     ],
   },
 };
 ```
-
-
 
 4. 创建 `babel.config.js` 并配置插件：
 
