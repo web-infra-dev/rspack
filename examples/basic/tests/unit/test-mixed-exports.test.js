@@ -1,13 +1,13 @@
 // Test for mixed export pattern edge case
 const fs = require('fs');
 const path = require('path');
-const { describe, expect, test } = require("@rstest/core");
+const { describe, expect, test, beforeAll } = require("@rstest/core");
 
 describe('Mixed Export Pattern Tests', () => {
   let distFiles;
   
   beforeAll(() => {
-    const distPath = path.join(__dirname, 'dist');
+    const distPath = path.join(__dirname, '../../dist');
     if (!fs.existsSync(distPath)) {
       throw new Error('Dist directory not found. Run npm run build first.');
     }
@@ -17,7 +17,7 @@ describe('Mixed Export Pattern Tests', () => {
   test('should handle module.exports assignment followed by property additions', () => {
     // Find a file that demonstrates the mixed pattern
     const targetFile = distFiles.find(file => {
-      const filePath = path.join(__dirname, 'dist', file);
+      const filePath = path.join(__dirname, '../../dist', file);
       const content = fs.readFileSync(filePath, 'utf8');
       
       // Look for the specific pattern: module.exports = value followed by module.exports.prop = value
@@ -28,7 +28,7 @@ describe('Mixed Export Pattern Tests', () => {
 
     expect(targetFile).toBeDefined();
     
-    const filePath = path.join(__dirname, 'dist', targetFile);
+    const filePath = path.join(__dirname, '../../dist', targetFile);
     const content = fs.readFileSync(filePath, 'utf8');
     
     console.log(`Testing mixed export pattern in: ${targetFile}`);
@@ -41,7 +41,7 @@ describe('Mixed Export Pattern Tests', () => {
 
   test('should correctly position macros for property additions after module.exports assignment', () => {
     const targetFile = distFiles.find(file => {
-      const filePath = path.join(__dirname, 'dist', file);
+      const filePath = path.join(__dirname, '../../dist', file);
       const content = fs.readFileSync(filePath, 'utf8');
       return content.includes('module.exports.') && content.includes('@common:if');
     });
@@ -51,7 +51,7 @@ describe('Mixed Export Pattern Tests', () => {
       return;
     }
 
-    const filePath = path.join(__dirname, 'dist', targetFile);
+    const filePath = path.join(__dirname, '../../dist', targetFile);
     const content = fs.readFileSync(filePath, 'utf8');
     
     // Extract all module.exports property assignments with macros
@@ -77,7 +77,7 @@ describe('Mixed Export Pattern Tests', () => {
 
   test('should handle circular reference exports correctly', () => {
     const targetFile = distFiles.find(file => {
-      const filePath = path.join(__dirname, 'dist', file);
+      const filePath = path.join(__dirname, '../../dist', file);
       const content = fs.readFileSync(filePath, 'utf8');
       return content.includes('getSelf') || content.includes('return module.exports');
     });
@@ -87,7 +87,7 @@ describe('Mixed Export Pattern Tests', () => {
       return;
     }
 
-    const filePath = path.join(__dirname, 'dist', targetFile);
+    const filePath = path.join(__dirname, '../../dist', targetFile);
     const content = fs.readFileSync(filePath, 'utf8');
     
     console.log(`Testing circular reference pattern in: ${targetFile}`);
@@ -106,7 +106,7 @@ describe('Mixed Export Pattern Tests', () => {
 
   test('should not wrap the entire assignment for property additions', () => {
     const targetFile = distFiles.find(file => {
-      const filePath = path.join(__dirname, 'dist', file);
+      const filePath = path.join(__dirname, '../../dist', file);
       const content = fs.readFileSync(filePath, 'utf8');
       return content.includes('module.exports.') && content.includes('@common:if');
     });
@@ -116,7 +116,7 @@ describe('Mixed Export Pattern Tests', () => {
       return;
     }
 
-    const filePath = path.join(__dirname, 'dist', targetFile);
+    const filePath = path.join(__dirname, '../../dist', targetFile);
     const content = fs.readFileSync(filePath, 'utf8');
     
     // This pattern would be WRONG - wrapping the entire assignment
@@ -138,7 +138,7 @@ describe('Mixed Export Pattern Tests', () => {
 
   test('should maintain correct syntax after macro insertion', () => {
     distFiles.forEach(file => {
-      const filePath = path.join(__dirname, 'dist', file);
+      const filePath = path.join(__dirname, '../../dist', file);
       const content = fs.readFileSync(filePath, 'utf8');
       
       // Check for basic JavaScript syntax errors that might be introduced by macro insertion

@@ -601,32 +601,6 @@ impl CommonJsExportsDependencyTemplate {
     }
   }
 
-  /// Module-level coordination for macro generation
-  fn should_generate_macro(
-    _module: &dyn rspack_core::Module,
-    _dep: &CommonJsExportsDependency,
-    consume_shared_info: &Option<String>,
-  ) -> bool {
-    // Only generate macros for ConsumeShared modules
-    if consume_shared_info.is_none() {
-      return false;
-    }
-
-    // Use BuildMeta to coordinate macro generation
-    // First dependency in a module takes responsibility for generating macros
-    // let _build_meta = module.build_meta();
-
-    // Check if this is the first CommonJS export dependency to be processed
-    // We use a simple heuristic: if no macro coordination key exists, this is the first
-    // let _coordination_key = format!(
-    //   "cjs_macro_coordinator_{}",
-    //   consume_shared_info.as_ref().unwrap()
-    // );
-
-    // For now, always generate individual macros but use better coordination
-    // This avoids complex state management while fixing the range conflicts
-    true
-  }
 
   /// Render expression-based exports with module-level coordination
   fn render_expression_export(

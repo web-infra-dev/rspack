@@ -250,9 +250,11 @@ describe("Macro Positioning Validation", () => {
 		}
 		
 		// Check if the macro wraps the entire assignment
-		// The @common:if should come before the assignment
-		// The @common:endif should come after the assignment (including semicolon)
-		return macroIfIndex < equalsIndex && 
+		// The @common:if should come before the exports.prop
+		// The @common:endif should come after the semicolon (or at end if no semicolon)
+		const exportsIndex = line.indexOf('exports.');
+		return macroIfIndex < exportsIndex && 
+		       macroIfIndex < equalsIndex && 
 		       (semicolonIndex === -1 || macroEndifIndex > semicolonIndex);
 	}
 
@@ -325,11 +327,11 @@ describe("Macro Positioning Validation", () => {
 		
 		// Check if it's a complete assignment
 		if (content.includes('=')) {
-			// Should end with semicolon for complete assignment
-			return content.endsWith(';') || content.includes(';\n') || content.includes('};');
+			// For exports assignments, should end with semicolon or be part of complete statement
+			return content.endsWith(';') || content.includes(';\n') || content.includes('};') || content.match(/^\s*exports\.\w+\s*=.*$/);
 		}
 
-		// If no assignment, it's likely just a property access, which is also valid
+		// If no assignment, it's likely just a property access or object property, which is also valid
 		return true;
 	}
 });

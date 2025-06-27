@@ -1,12 +1,22 @@
 {
   "file": "cjs-modules_pure-cjs-helper_js.js",
   "totalMacroBlocks": 9,
-  "correctlyPositioned": 8,
-  "incorrectlyPositioned": 1,
+  "correctlyPositioned": 6,
+  "incorrectlyPositioned": 3,
   "issues": [
     {
       "blockIndex": 5,
-      "content": "/* @common:if [condition=\"treeShake.cjs-pure-helper.helpers\"] */ {\n  timestamp: () => Date.now(),\n  ...",
+      "content": "/* @common:if [condition=\"treeShake.cjs-pure-helper.helpers\"] */ exports.helpers = {\n  timestamp: ()...",
+      "issue": "Incorrect macro positioning"
+    },
+    {
+      "blockIndex": 6,
+      "content": "/* @common:if [condition=\"treeShake.cjs-pure-helper.CONSTANTS\"] */ exports.CONSTANTS = {\n  MAX_LENGT...",
+      "issue": "Incorrect macro positioning"
+    },
+    {
+      "blockIndex": 9,
+      "content": "/* @common:if [condition=\"treeShake.cjs-pure-helper.info\"] */ module.exports.info = {\n  name: \"pure-...",
       "issue": "Incorrect macro positioning"
     }
   ],
