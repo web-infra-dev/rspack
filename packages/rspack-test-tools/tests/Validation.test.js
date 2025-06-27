@@ -164,8 +164,7 @@ describe("Validation", () => {
 				expect(log).toMatchInlineSnapshot(`
 			Array [
 			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- Expected string at "output.devtoolModuleFilenameTemplate" or Expected function, received object at "output.devtoolModuleFilenameTemplate"
-			- Input not instance of RegExp at "ignoreWarnings[0]" or Expected function, received object at "ignoreWarnings[0]",
+			- Expected string at "output.devtoolModuleFilenameTemplate" or Expected function, received object at "output.devtoolModuleFilenameTemplate",
 			]
 		`);
 			}
@@ -227,7 +226,6 @@ describe("Validation", () => {
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
 			- Expected string at "output.filename" or Expected function, received object at "output.filename"
 			- Expected string at "output.devtoolModuleFilenameTemplate" or Expected function, received object at "output.devtoolModuleFilenameTemplate"
-			- Input not instance of RegExp at "ignoreWarnings[0]" or Expected function, received object at "ignoreWarnings[0]"
 		`);
 			},
 			"strict",
@@ -290,7 +288,6 @@ describe("Validation", () => {
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
 			- Expected string at "output.filename" or Expected function, received object at "output.filename"
 			- Expected string at "output.devtoolModuleFilenameTemplate" or Expected function, received object at "output.devtoolModuleFilenameTemplate"
-			- Input not instance of RegExp at "ignoreWarnings[0]" or Expected function, received object at "ignoreWarnings[0]"
 		`);
 			},
 			log => {

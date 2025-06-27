@@ -176,6 +176,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -442,9 +443,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     if let Some(referenced_properties) = &dep.referenced_properties_in_destructuring {
       let mut prefixed_ids = ids.to_vec();
 
-      let module = module_graph
-        .get_module_by_dependency_id(&dep.id)
-        .expect("should have imported module");
+      let Some(module) = module_graph.get_module_by_dependency_id(&dep.id) else {
+        return;
+      };
 
       if ids.first().is_some_and(|id| id == "default") {
         let self_module = module_graph

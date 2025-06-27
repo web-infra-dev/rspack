@@ -4189,6 +4189,7 @@ name = "rspack_allocator"
 version = "0.2.0"
 dependencies = [
  "mimalloc-rspack",
+ "sftrace-setup",
 ]
 
 [[package]]
@@ -4904,6 +4905,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_futures",
  "rspack_hash",
  "rspack_hook",
  "rspack_plugin_javascript",

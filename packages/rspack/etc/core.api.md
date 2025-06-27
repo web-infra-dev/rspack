@@ -24,6 +24,7 @@ import { ContextModule } from '@rspack/binding';
 import { createReadStream } from 'fs';
 import { default as default_2 } from './util/hash';
 import { Dependency } from '@rspack/binding';
+import type { DependencyLocation } from '@rspack/binding';
 import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
@@ -33,7 +34,6 @@ import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { IncomingMessage } from 'http';
-import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
 import type { JsAfterTemplateExecutionData } from '@rspack/binding';
@@ -1085,7 +1085,7 @@ export class Compilation {
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
         chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
-        processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
+        processWarnings: liteTapable.SyncWaterfallHook<[WebpackError_2[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
         stillValidModule: liteTapable.SyncHook<[Module], void>;
         statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[
@@ -1827,9 +1827,6 @@ export type DefinePluginOptions = Record<string, CodeValue>;
 export type Dependencies = Name[];
 
 export { Dependency }
-
-// @public (undocumented)
-type DependencyLocation = any;
 
 // @public (undocumented)
 type DevMiddlewareContext<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = {
@@ -3248,10 +3245,14 @@ export type IgnorePluginOptions = {
 };
 
 // @public
-export type IgnoreWarnings = (RegExp | ((error: Error, compilation: Compilation) => boolean))[];
+export type IgnoreWarnings = (RegExp | {
+    file?: RegExp;
+    message?: RegExp;
+    module?: RegExp;
+} | ((warning: WebpackError_2, compilation: Compilation) => boolean))[];
 
 // @public (undocumented)
-export type IgnoreWarningsNormalized = ((warning: Error, compilation: Compilation) => boolean)[];
+export type IgnoreWarningsNormalized = ((warning: WebpackError_2, compilation: Compilation) => boolean)[];
 
 // @public
 export type Iife = boolean;
@@ -9257,8 +9258,6 @@ export const WebpackError: ErrorConstructor;
 
 // @public (undocumented)
 class WebpackError_2 extends Error {
-    // (undocumented)
-    [inspect.custom](): string;
     // (undocumented)
     chunk?: Chunk;
     // (undocumented)

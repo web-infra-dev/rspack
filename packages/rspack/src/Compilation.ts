@@ -222,7 +222,7 @@ export class Compilation {
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
 		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
-		processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
+		processWarnings: liteTapable.SyncWaterfallHook<[WebpackError[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
 		stillValidModule: liteTapable.SyncHook<[Module], void>;
 
