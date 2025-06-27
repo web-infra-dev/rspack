@@ -242,6 +242,8 @@ skip = [
     { crate = "windows_x86_64_gnu", reason = "external dependency"},
     { crate = "windows_x86_64_gnullvm", reason = "external dependency"},
     { crate = "windows_x86_64_msvc", reason = "external dependency"},
+    { crate = "bitflags", reason = "external dependency" },
+    { crate = "windows-sys", reason = "external dependency" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
