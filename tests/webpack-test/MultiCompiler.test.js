@@ -624,7 +624,8 @@ describe("MultiCompiler", function () {
 		const watchCallbacksUndelayed = [];
 		let firstRun = true;
 		compiler.watchFileSystem = {
-			watch(
+			async watch(
+				symbol,
 				files,
 				directories,
 				missing,
@@ -635,7 +636,7 @@ describe("MultiCompiler", function () {
 			) {
 				watchCallbacks.push(callback);
 				watchCallbacksUndelayed.push(callbackUndelayed);
-				if (firstRun && files.has(path.join(__dirname, "fixtures", "a.js"))) {
+				if (firstRun && files.all.has(path.join(__dirname, "fixtures", "a.js"))) {
 					process.nextTick(() => {
 						callback(null, new Map(), new Map(), new Set(), new Set());
 					});

@@ -263,6 +263,9 @@ export function createHotIncrementalCase(name: string, src: string, dist: string
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
+export function createNativeWatcher(name: string, src: string, dist: string, temp: string): void;
+
+// @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -1174,6 +1177,8 @@ export interface ITestRunner {
 // @public (undocumented)
 export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
     // (undocumented)
+    nativeWatcher?: boolean;
+    // (undocumented)
     stepName: string;
     // (undocumented)
     tempDir: string;
@@ -1688,7 +1693,7 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>({ tempDir, name }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
+    static overrideOptions<T extends ECompilerType>({ tempDir, nativeWatcher }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
