@@ -25,7 +25,6 @@ globalThis.WasmSkips = {
 		/persist-build-inf/,
 		/single-file/
 	],
-	Defaults: [/browserslist/],
 	Configs: [
 		/swc-loader-incompatible-wasm-plugin/,
 		/swc-plugin/,

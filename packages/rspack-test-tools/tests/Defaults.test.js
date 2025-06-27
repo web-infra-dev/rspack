@@ -129,7 +129,6 @@ describeByWalk(
 		createDefaultsCase(name, src);
 	},
 	{
-		type: "file",
-		exclude: globalThis.WasmSkips?.Defaults || []
+		type: "file"
 	}
 );
