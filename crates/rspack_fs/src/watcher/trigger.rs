@@ -5,7 +5,7 @@ use rspack_paths::ArcPath;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind};
-use crate::watcher::manager::PathManager;
+use crate::watcher::path_manager::PathManager;
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///

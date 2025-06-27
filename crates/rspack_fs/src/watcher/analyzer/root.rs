@@ -3,7 +3,7 @@ use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
-use crate::watcher::manager::{All, PathAccessor};
+use crate::watcher::path_manager::{All, PathAccessor};
 
 pub struct WatcherRootAnalyzer<'a> {
   path_accessor: PathAccessor<'a>,

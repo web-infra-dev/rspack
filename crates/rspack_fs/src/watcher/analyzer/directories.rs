@@ -2,7 +2,7 @@ use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use super::{for_each, Analyzer, WatchPattern};
-use crate::watcher::manager::PathAccessor;
+use crate::watcher::path_manager::PathAccessor;
 
 /// `WatcherDirectoriesAnalyzer` analyzes the path register and determines
 ///

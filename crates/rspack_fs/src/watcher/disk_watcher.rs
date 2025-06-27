@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, Watcher};
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
@@ -15,8 +17,14 @@ pub struct DiskWatcher {
 
 impl DiskWatcher {
   /// Creates a new `DiskWatcher` with the given configuration and trigger.
-  pub fn new(follow_symlinks: bool, trigger: trigger::Trigger) -> Self {
-    let config = notify::Config::default().with_follow_symlinks(follow_symlinks);
+  pub fn new(follow_symlinks: bool, poll_interval: Option<u32>, trigger: trigger::Trigger) -> Self {
+    let config = match poll_interval {
+      Some(poll) => notify::Config::default()
+        .with_follow_symlinks(follow_symlinks)
+        .with_poll_interval(Duration::from_millis(u64::from(poll))),
+      None => notify::Config::default().with_follow_symlinks(follow_symlinks),
+    };
+
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
         Ok(event) => {

@@ -47,6 +47,7 @@ impl<'a> Iterator for All<'a> {
   }
 }
 
+/// `PathAccessor` provides access to the sets of files, directories, and missing paths.
 pub struct PathAccessor<'a> {
   files: &'a HashSet<ArcPath>,
   directories: &'a HashSet<ArcPath>,
@@ -54,6 +55,7 @@ pub struct PathAccessor<'a> {
 }
 
 impl<'a> PathAccessor<'a> {
+  /// Creates a new `PathAccessor` with references to the sets of files, directories, and missing paths.
   pub fn new(
     files: &'a HashSet<ArcPath>,
     directories: &'a HashSet<ArcPath>,
@@ -66,18 +68,22 @@ impl<'a> PathAccessor<'a> {
     }
   }
 
+  /// Returns references to the sets of files, directories, and missing paths.
   pub fn files(&self) -> &'a HashSet<ArcPath> {
     self.files
   }
 
+  /// Returns references to the set of directories.
   pub fn directories(&self) -> &'a HashSet<ArcPath> {
     self.directories
   }
 
+  /// Returns references to the set of missing paths.
   pub fn missing(&self) -> &'a HashSet<ArcPath> {
     self.missing
   }
 
+  /// Returns an iterator that combines all files, directories, and missing paths into a single sequence.
   pub fn all(&self) -> All<'a> {
     All::new(self.files, self.directories, self.missing)
   }

@@ -1,7 +1,7 @@
 mod analyzer;
 mod disk_watcher;
 mod executor;
-mod manager;
+mod path_manager;
 mod scanner;
 mod trigger;
 
@@ -10,8 +10,8 @@ use std::{collections::HashSet, sync::Arc};
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
-use manager::PathManager;
-pub use manager::{Ignored, PathUpdater};
+use path_manager::PathManager;
+pub use path_manager::{Ignored, PathUpdater};
 use rspack_error::Result;
 use rspack_paths::ArcPath;
 use scanner::Scanner;
@@ -71,7 +71,7 @@ impl FsWatcher {
 
     let path_manager = Arc::new(PathManager::new(ignored));
     let trigger = Trigger::new(Arc::clone(&path_manager), tx.clone());
-    let disk_watcher = DiskWatcher::new(options.follow_symlinks, trigger);
+    let disk_watcher = DiskWatcher::new(options.follow_symlinks, options.poll_interval, trigger);
     let executor = Executor::new(rx, options.aggregate_timeout);
     let scanner = Scanner::new(tx, Arc::clone(&path_manager));
 

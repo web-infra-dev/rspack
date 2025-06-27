@@ -1,6 +1,6 @@
 use rspack_paths::ArcPath;
 
-use crate::watcher::{manager::PathAccessor, WatchPattern};
+use crate::watcher::{path_manager::PathAccessor, WatchPattern};
 
 mod directories;
 mod root;

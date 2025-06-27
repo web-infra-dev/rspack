@@ -151,9 +151,9 @@ impl Executor {
 
     self.paused.store(false, Ordering::Relaxed);
     // abort the previous handlers if they exist
+    self.abort();
     // sleep 1ms to make sure the previous handlers are aborted
     tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
-    self.abort();
 
     self.run_execute_handler(event_handler);
   }
