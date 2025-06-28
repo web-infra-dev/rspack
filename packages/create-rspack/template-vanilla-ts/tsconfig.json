@@ -9,7 +9,6 @@
     /* modules */
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
 

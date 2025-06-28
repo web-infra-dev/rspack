@@ -899,3 +899,34 @@ export default {
 ```
 
 当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
+
+## experiments.inlineConst
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后才能使用。
+
+## experiments.inlineEnum
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+实验性功能 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 的开关，开启后才能使用。
+
+详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+
+## experiments.typeReexportsPresence
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
+
+详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)

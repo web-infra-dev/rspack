@@ -898,3 +898,34 @@ export default {
 
 When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
+
+## experiments.inlineConst
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+The switch for the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst). Must be enabled to use the feature.
+
+## experiments.inlineEnum
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+The switch for the experimental feature [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum). Must be enabled to use the feature.
+
+Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+
+## experiments.typeReexportsPresence
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+The switch for the experimental feature [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). Must be enabled to use the feature.
+
+Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.

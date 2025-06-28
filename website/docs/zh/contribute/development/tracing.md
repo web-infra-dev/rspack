@@ -23,7 +23,7 @@ RSPACK_PROFILE=ALL rsbuild build
 生成的 `rspack.pftrace` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析：
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-tracing.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
   alt="tracing"
 />
 

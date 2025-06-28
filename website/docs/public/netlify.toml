@@ -1,9 +1,14 @@
 # Redirect rspack.dev to rspack.rs
+[[redirects]]
+from = "https://rspack.dev/*"
+to = "https://rspack.rs/:splat"
+status = 301
+force = true
 
 # Redirect rspack.org to rspack.rs
 [[redirects]]
 from = "https://rspack.org/*"
-to = "https://rspack.dev/:splat"
+to = "https://rspack.rs/:splat"
 status = 301
 force = true
 
