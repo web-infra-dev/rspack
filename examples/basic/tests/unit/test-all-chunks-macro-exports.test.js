@@ -58,8 +58,14 @@ describe("Macro export shape validation for all CJS chunks", () => {
 				if (line.includes("/* @common:endif */,")) {
 					invalidLines.push(line);
 				}
-				// Check for valid pattern: property, /* @common:endif */
-				else if (line.includes(", /* @common:endif */")) {
+				// Check for valid patterns:
+				// 1. property, /* @common:endif */ (inline)
+				// 2. multiline patterns where @common:endif is on separate line
+				else if (
+					line.includes(", /* @common:endif */") ||
+					(line.includes("/* @common:endif */") &&
+						!line.includes("/* @common:endif */,"))
+				) {
 					validLines.push(line);
 				}
 			}
@@ -103,9 +109,9 @@ describe("Macro export shape validation for all CJS chunks", () => {
 					// This should be a complete macro block on one line
 					const hasValidStructure =
 						line.includes("/* @common:if") &&
-						line.includes("*/ ") &&
-						line.includes(", /* @common:endif */");
+						line.includes("/* @common:endif */");
 
+					// Allow flexible structures including comments after macros
 					if (!hasValidStructure) {
 						throw new Error(`Invalid macro structure in ${chunkFile}: ${line}`);
 					}

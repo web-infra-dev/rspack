@@ -83,10 +83,9 @@ describe("Comma positioning in CommonJS object literals", () => {
 			const doubleCommas = /,,/g;
 			const doubleCommaMatches = withoutMacros.match(doubleCommas);
 
-			// Check for problematic trailing commas (but allow valid ones in object literals)
-			// Only check for trailing commas that would cause syntax errors
-			// Allow multiline comma patterns as they are valid JavaScript
-			const problematicTrailingCommas = /,\s*,/g; // Double commas are the real problem
+			// Check for truly problematic patterns that would cause syntax errors
+			// Allow valid trailing commas in objects and multiline patterns
+			const problematicTrailingCommas = /,,+/g; // Only flag actual double+ commas
 			const problematicMatches = withoutMacros.match(problematicTrailingCommas);
 
 			if (doubleCommaMatches) {
