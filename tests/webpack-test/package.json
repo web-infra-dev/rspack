@@ -54,7 +54,7 @@
     "tapable": "2.2.2",
     "wast-loader": "^1.14.1",
     "watchpack": "^2.4.4",
-    "webpack-sources": "3.3.2",
+    "webpack-sources": "3.3.3",
     "toml": "^3.0.0"
   }
 }
