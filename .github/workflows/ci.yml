@@ -96,19 +96,36 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: false
 
+  check-codspeed:
+    name: Check Bench Result
+    needs: [test-linux]
+    runs-on: ubuntu-22.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Polling Comment
+        if: ${{ github.event_name == 'pull_request' }}
+        run: bash .github/actions/codspeed/check-comment.sh
+
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
-    needs: [test-linux, test-windows, test-mac, check-changed]
+    needs: [check-codspeed, test-linux, test-windows, test-mac, check-changed]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"

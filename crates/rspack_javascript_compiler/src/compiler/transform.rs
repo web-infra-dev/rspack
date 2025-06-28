@@ -328,6 +328,7 @@ impl<'a> JavaScriptTransformer<'a> {
     };
 
     let print_options = PrintOptions {
+      source_len: self.fm.byte_length(),
       source_map: self.cm.clone(),
       target,
       source_map_config,

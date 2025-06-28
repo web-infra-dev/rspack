@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
   get_dependency_used_by_exports_condition, visitors::DestructuringAssignmentProperty,
-  InlineConstDependencyCondition,
+  InlineValueDependencyCondition,
 };
 
 #[cacheable]
@@ -176,6 +176,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -282,7 +283,7 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let inline_const_condition = InlineConstDependencyCondition::new(self.id);
+    let inline_const_condition = InlineValueDependencyCondition::new(self.id);
     if let Some(used_by_exports_condition) =
       get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
     {
@@ -442,9 +443,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     if let Some(referenced_properties) = &dep.referenced_properties_in_destructuring {
       let mut prefixed_ids = ids.to_vec();
 
-      let module = module_graph
-        .get_module_by_dependency_id(&dep.id)
-        .expect("should have imported module");
+      let Some(module) = module_graph.get_module_by_dependency_id(&dep.id) else {
+        return;
+      };
 
       if ids.first().is_some_and(|id| id == "default") {
         let self_module = module_graph

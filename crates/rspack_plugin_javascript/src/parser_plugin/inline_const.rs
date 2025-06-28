@@ -89,12 +89,12 @@ fn to_evaluated_inlinable_value(
     && let num = num.to_js_string()
     && num.len() <= EvaluatedInlinableValue::SHORT_SIZE
   {
-    Some(EvaluatedInlinableValue::new_short_number(&num))
+    Some(EvaluatedInlinableValue::new_number(num.into()))
   } else if evaluated.is_string()
     && let str = evaluated.string()
     && str.len() <= EvaluatedInlinableValue::SHORT_SIZE
   {
-    Some(EvaluatedInlinableValue::new_short_string(str))
+    Some(EvaluatedInlinableValue::new_string(str.as_str().into()))
   } else if evaluated.is_null() {
     Some(EvaluatedInlinableValue::new_null())
   } else if evaluated.is_undefined() {
@@ -105,17 +105,17 @@ fn to_evaluated_inlinable_value(
 }
 
 #[derive(Clone)]
-pub struct InlineConstDependencyCondition {
+pub struct InlineValueDependencyCondition {
   dependency_id: DependencyId,
 }
 
-impl InlineConstDependencyCondition {
+impl InlineValueDependencyCondition {
   pub fn new(dependency_id: DependencyId) -> Self {
     Self { dependency_id }
   }
 }
 
-impl DependencyConditionFn for InlineConstDependencyCondition {
+impl DependencyConditionFn for InlineValueDependencyCondition {
   fn get_connection_state(
     &self,
     _conn: &ModuleGraphConnection,
@@ -127,12 +127,20 @@ impl DependencyConditionFn for InlineConstDependencyCondition {
     let module = mg
       .get_module_by_dependency_id(&self.dependency_id)
       .expect("should have target module");
-    if let Some(module) = module.as_normal_module()
-      && let Some(options) = module.get_parser_options()
-      && let Some(options) = options.get_javascript()
-      && options.inline_const != Some(true)
-    {
-      // bailout if the target module didn't enable inline const
+    let inline_const_enabled = module
+      .as_normal_module()
+      .and_then(|m| m.get_parser_options())
+      .and_then(|options| options.get_javascript())
+      .map(|options| options.inline_const == Some(true))
+      .unwrap_or_default();
+    let inline_enum_enabled = module
+      .build_info()
+      .collected_typescript_info
+      .as_ref()
+      .map(|info| !info.exported_enums.is_empty())
+      .unwrap_or_default();
+    if !inline_const_enabled && !inline_enum_enabled {
+      // bailout if the target module didn't enable inline const/enum
       return bailout;
     }
     let module = &module.identifier();

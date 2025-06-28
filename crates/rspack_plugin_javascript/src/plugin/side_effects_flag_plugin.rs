@@ -332,11 +332,14 @@ static PURE_COMMENTS: LazyLock<regex::Regex> =
   LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
 
 fn is_pure_call_expr(
-  call_expr: &CallExpr,
+  expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
   paren_spans: &mut Vec<Span>,
 ) -> bool {
+  let Expr::Call(call_expr) = expr else {
+    unreachable!();
+  };
   let callee = &call_expr.callee;
   let pure_flag = comments
     .and_then(|comments| {
@@ -356,7 +359,6 @@ fn is_pure_call_expr(
     })
     .unwrap_or(false);
   if !pure_flag {
-    let expr = Expr::Call(call_expr.clone());
     !expr.may_have_side_effects(ExprCtx {
       unresolved_ctxt,
       in_strict: false,
@@ -422,7 +424,7 @@ pub fn is_pure_expression<'a>(
     paren_spans: &mut Vec<Span>,
   ) -> bool {
     match expr {
-      Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments, paren_spans),
+      Expr::Call(_) => is_pure_call_expr(expr, unresolved_ctxt, comments, paren_spans),
       Expr::Paren(par) => {
         paren_spans.push(par.span());
         let mut cur = par.expr.as_ref();
@@ -675,6 +677,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         *module_identifier,
         module.get_side_effects_connection_state(
           &module_graph,
+          &compilation.module_graph_cache_artifact,
           &mut Default::default(),
           &mut Default::default(),
         ),

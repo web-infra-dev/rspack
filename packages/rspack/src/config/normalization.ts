@@ -12,6 +12,7 @@ import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
 import type { HttpUriPluginOptions } from "../builtin-plugin";
+import type WebpackError from "../lib/WebpackError";
 import type {
 	Amd,
 	AssetModuleFilename,
@@ -55,7 +56,6 @@ import type {
 	Incremental,
 	IncrementalPresets,
 	InfrastructureLogging,
-	JavascriptParserOptions,
 	LazyCompilationOptions,
 	LibraryOptions,
 	Loader,
@@ -95,17 +95,29 @@ export const getNormalizedRspackOptions = (
 	config: RspackOptions
 ): RspackOptionsNormalized => {
 	return {
-		ignoreWarnings:
-			config.ignoreWarnings !== undefined
-				? config.ignoreWarnings.map(ignore => {
-						if (typeof ignore === "function") {
-							return ignore;
+		ignoreWarnings: config.ignoreWarnings
+			? config.ignoreWarnings.map(ignore => {
+					if (typeof ignore === "function") return ignore;
+					const i = ignore instanceof RegExp ? { message: ignore } : ignore;
+					return (warning: WebpackError) => {
+						if (!i.message && !i.module && !i.file) return false;
+						if (i.message && !i.message.test(warning.message)) {
+							return false;
 						}
-						return (warning: Error) => {
-							return ignore.test(warning.message);
-						};
-					})
-				: undefined,
+						if (
+							i.module &&
+							(!warning.module ||
+								!i.module.test(warning.module.readableIdentifier()))
+						) {
+							return false;
+						}
+						if (i.file && (!warning.file || !i.file.test(warning.file))) {
+							return false;
+						}
+						return true;
+					};
+				})
+			: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
 		context: config.context,
@@ -630,11 +642,12 @@ export interface ExperimentsNormalized {
 	parallelLoader?: boolean;
 	useInputFileSystem?: false | RegExp[];
 	inlineConst?: boolean;
-	typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+	inlineEnum?: boolean;
+	typeReexportsPresence?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((
-	warning: Error,
+	warning: WebpackError,
 	compilation: Compilation
 ) => boolean)[];
 

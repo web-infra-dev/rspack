@@ -151,10 +151,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
 
     if let Some(additional_data) = &mut additional_data
-      && let Some(collected_ts_info) = additional_data.get_mut::<CollectedTypeScriptInfo>()
+      && let Some(collected_ts_info) = additional_data.remove::<CollectedTypeScriptInfo>()
     {
-      build_info.is_transpiled_typescript = true;
-      build_info.type_exports = std::mem::take(&mut collected_ts_info.type_exports);
+      build_info.collected_typescript_info = Some(collected_ts_info);
     }
 
     let default_with_diagnostics =

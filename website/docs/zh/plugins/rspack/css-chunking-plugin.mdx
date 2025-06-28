@@ -4,10 +4,20 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
 
-`CssChunkingPlugin` 是一个专为 CSS 模块代码分割设计的实验性插件（参考自 Next.js），确保样式的执行顺序与源代码导入顺序保持一致，避免样式错误。
+`CssChunkingPlugin` 是一个专为 CSS 代码分割设计的插件，它能够确保样式的加载顺序与源代码中的导入顺序保持一致，避免因 CSS 加载顺序错误而导致的 UI 问题。
 
-```js
-new rspack.experiments.CssChunkingPlugin(options);
+> 该插件由 Next.js 的 [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) 功能启发而来，感谢 Next.js 团队在这一领域的创新。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.experiments.CssChunkingPlugin({
+      // ...options
+    }),
+  ],
+};
 ```
 
 :::tip

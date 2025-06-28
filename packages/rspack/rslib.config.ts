@@ -13,10 +13,6 @@ const externalAlias = ({ request }: { request?: string }, callback) => {
 		}
 	}
 
-	if (/..\/package\.json/.test(request!)) {
-		return callback(null, "../package.json");
-	}
-
 	if (new RegExp(/^tinypool$/).test(request!)) {
 		return callback(null, "../compiled/tinypool/dist/index.js");
 	}
@@ -34,7 +30,7 @@ const commonLibConfig: LibConfig = {
 		}
 	},
 	output: {
-		externals: [externalAlias],
+		externals: ["@rspack/binding/package.json", externalAlias],
 		minify: {
 			js: true,
 			jsOptions: {

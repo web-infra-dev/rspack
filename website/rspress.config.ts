@@ -18,10 +18,10 @@ export default defineConfig({
   description:
     'Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, and lightning fast build speeds.',
   logo: {
-    light: 'https://assets.rspack.dev/rspack/navbar-logo-light.png',
-    dark: 'https://assets.rspack.dev/rspack/navbar-logo-dark.png',
+    light: 'https://assets.rspack.rs/rspack/navbar-logo-light.png',
+    dark: 'https://assets.rspack.rs/rspack/navbar-logo-dark.png',
   },
-  icon: 'https://assets.rspack.dev/rspack/favicon-128x128.png',
+  icon: 'https://assets.rspack.rs/rspack/favicon-128x128.png',
   lang: 'en',
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
@@ -148,13 +148,16 @@ export default defineConfig({
         if (routePath.endsWith('blog/announcing-1-3')) {
           return 'assets/rspack-og-image-v1-3.png';
         }
+        if (routePath.endsWith('blog/announcing-1-4')) {
+          return 'assets/rspack-og-image-v1-4.png';
+        }
         if (routePath.endsWith('blog/rspack-next-partner')) {
           return 'assets/next-rspack-og-image.png';
         }
         // default
         return 'rspack-og-image.png';
       };
-      return `<meta property="og:image" content="https://assets.rspack.dev/rspack/${getOgImage()}">`;
+      return `<meta property="og:image" content="https://assets.rspack.rs/rspack/${getOgImage()}">`;
     },
   ],
   builderConfig: {

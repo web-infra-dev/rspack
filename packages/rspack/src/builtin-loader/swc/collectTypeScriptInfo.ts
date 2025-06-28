@@ -1,9 +1,18 @@
-import * as z from "zod/v4";
-
 export type CollectTypeScriptInfoOptions = {
 	typeExports?: boolean;
+	exportedEnum?: boolean | "const-only";
 };
 
-export const ZodSwcCollectTypeScriptInfo = z.strictObject({
-	typeExports: z.boolean().optional()
-}) satisfies z.ZodType<CollectTypeScriptInfoOptions>;
+export function resolveCollectTypeScriptInfo(
+	options: CollectTypeScriptInfoOptions
+) {
+	return {
+		typeExports: options.typeExports,
+		exportedEnum:
+			options.exportedEnum === true
+				? "all"
+				: options.exportedEnum === false
+					? "none"
+					: "const-only"
+	};
+}

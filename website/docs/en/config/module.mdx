@@ -1,4 +1,4 @@
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
 import WebpackLicense from '@components/WebpackLicense';
 
@@ -444,6 +444,93 @@ export default {
 };
 ```
 
+### module.parser.javascript.typeReexportsPresence
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **Type:** `'no-tolerant' | 'tolerant' | 'tolerant-no-check'`
+- **Default:** `'no-tolerant'`
+
+Controls error tolerance for type re-exports, commonly seen in these two scenarios:
+
+```ts
+// case 1:
+export { TypeA } from './types';
+// case 2:
+import { TypeB } from './types';
+export { TypeB };
+```
+
+When re-exporting types, since `TypeA` and `TypeB` are types but used in value namespace (`export {}`), Rspack will report warnings:
+
+```txt
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeA' (reexported as 'TypeA') was not found in './types' (module has no exports)
+   ╭─[2:0]
+ 1 │ // case 1:
+ 2 │ export { TypeA } from "./types";
+   · ────────────────────────────────
+
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeB' (reexported as 'TypeB') was not found in './types' (module has no exports)
+   ╭─[5:0]
+ 3 │ // case 2:
+ 4 │ import { TypeB } from "./types";
+ 5 │ export { TypeB };
+   · ─────────────────
+```
+
+:::info Recommended with isolatedModules
+When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
+:::
+
+- `'no-tolerant'`: Default behavior, shows errors for type re-exports.
+- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
+- `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    typeReexportsPresence: true, // This is currently an experimental feature and requires explicit enabling
+  },
+  module: {
+    parser: {
+      javascript: {
+        typeReexportsPresence: 'tolerant',
+      },
+    },
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                },
+              },
+              rspackExperiments: {
+                collectTypeScriptInfo: {
+                  typeExports: true, // Must be enabled in "tolerant" mode
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+
+:::warning
+This is currently an experimental feature. You must enable [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) for this configuration to take effect.
+:::
+
 ### module.parser.javascript.worker
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
@@ -494,6 +581,41 @@ export default {
   },
 };
 ```
+
+### module.parser.javascript.inlineConst
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Performs cross-module inline optimization for constant exports in leaf modules of the module graph, commonly seen in scenarios like `constants.js`.
+
+Inline optimization is applied when the constant value is:
+
+- `null` or `undefined`
+- `boolean` values (`true` or `false`)
+- `number` with length \<= 6
+- `string` with length \<= 6
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    inlineConst: true, // This is currently an experimental feature and requires explicit enabling
+  },
+  module: {
+    parser: {
+      javascript: {
+        inlineConst: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+This is currently an experimental feature. You must enable [experiments.inlineConst](/config/experiments#experimentstypereexportspresence) for this configuration to take effect.
+:::
 
 ### module.parser["javascript/auto"]
 

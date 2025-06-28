@@ -90,9 +90,9 @@ ustr               = { package = "ustr-fxhash", version = "1.0.1" }
 xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-beta.8" }
+napi        = { version = "3.0.0-beta.9" }
 napi-build  = { version = "3.0.0-beta.0" }
-napi-derive = { version = "3.0.0-beta.8" }
+napi-derive = { version = "3.0.0-beta.9" }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17" }
@@ -102,9 +102,9 @@ rkyv      = { version = "=0.8.8" }
 pnp                 = { version = "0.9.0" }
 swc                 = { version = "=28.0.0" }
 swc_config          = { version = "=3.1.1" }
-swc_core            = { version = "=29.1.2", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_lexer      = { version = "=17.0.3" }
-swc_ecma_minifier   = { version = "=23.0.2", default-features = false }
+swc_core            = { version = "=29.2.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_lexer      = { version = "=17.0.5" }
+swc_ecma_minifier   = { version = "=23.0.3", default-features = false }
 swc_error_reporters = { version = "=15.0.0" }
 swc_html            = { version = "=23.0.0" }
 swc_html_minifier   = { version = "=23.0.0", default-features = false }

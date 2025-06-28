@@ -3802,6 +3802,9 @@ impl ExperimentsBuilder {
       rspack_future,
       parallel_code_splitting,
       cache,
+      inline_const: false,
+      inline_enum: false,
+      type_reexports_presence: false,
     })
   }
 }
