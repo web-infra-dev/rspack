@@ -10,7 +10,7 @@ use rspack_core::{
   ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
   GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
   ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
@@ -28,6 +28,7 @@ pub struct ESMExportSpecifierDependency {
   #[cacheable(with=AsPreset)]
   value: Atom, // export identifier
   inline: Option<EvaluatedInlinableValue>,
+  enum_value: Option<TSEnumValue>,
 }
 
 impl ESMExportSpecifierDependency {
@@ -35,6 +36,7 @@ impl ESMExportSpecifierDependency {
     name: Atom,
     value: Atom,
     inline: Option<EvaluatedInlinableValue>,
+    enum_value: Option<TSEnumValue>,
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -42,6 +44,7 @@ impl ESMExportSpecifierDependency {
       name,
       value,
       inline,
+      enum_value,
       range,
       source_map,
       id: DependencyId::new(),
@@ -77,7 +80,19 @@ impl Dependency for ESMExportSpecifierDependency {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.clone(),
-        inlinable: self.inline,
+        inlinable: self.inline.clone(),
+        exports: self.enum_value.as_ref().map(|enum_value| {
+          enum_value
+            .iter()
+            .map(|(enum_name, enum_value)| {
+              ExportNameOrSpec::ExportSpec(ExportSpec {
+                name: enum_name.clone(),
+                inlinable: enum_value.clone(),
+                ..Default::default()
+              })
+            })
+            .collect()
+        }),
         ..Default::default()
       })]),
       priority: Some(1),
@@ -93,6 +108,7 @@ impl Dependency for ESMExportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {
@@ -164,20 +180,45 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     // SIMPLIFIED: Use pre-computed ConsumeShared context from BuildMeta
     let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
 
+    // remove the enum decl if all the enum members are inlined
+    if let Some(enum_value) = &dep.enum_value {
+      let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
+        // if there are enum member need to keep origin/non-inlineable, then we need to keep the enum decl
+        if enum_member.is_none() {
+          return false;
+        }
+        let export_name = &[dep.name.clone(), enum_key.clone()];
+        let exports_info = module_graph.get_prefetched_exports_info(
+          &module.identifier(),
+          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+        );
+        let enum_member_used_name = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          *runtime,
+          export_name,
+        );
+        matches!(enum_member_used_name, Some(UsedName::Inlined(_)))
+      });
+      if all_enum_member_inlined {
+        return;
+      }
+    }
+
     // Get export usage information with proper prefetching
     let exports_info = module_graph.get_prefetched_exports_info(
       &module.identifier(),
       PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
     );
-
-    let used_name = ExportsInfoGetter::get_used_name(
+    let Some(used_name) = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),
       *runtime,
       std::slice::from_ref(&dep.name),
-    );
-
+    ) else {
+      return;
+    };
+    
     match used_name {
-      Some(UsedName::Normal(ref used_vec)) if !used_vec.is_empty() => {
+      UsedName::Normal(ref used_vec) if !used_vec.is_empty() => {
         let used_name_atom = used_vec[0].clone();
 
         // Add runtime requirements
@@ -202,7 +243,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
 
         init_fragments.push(Box::new(export_fragment));
       }
-      Some(UsedName::Inlined(_)) => {
+      UsedName::Inlined(_) => {
         // Export is inlined, add comment for clarity
         let comment_fragment = NormalInitFragment::new(
           format!("/* inlined ESM export '{}' */\n", dep.name),
@@ -213,32 +254,15 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         );
         init_fragments.push(comment_fragment.boxed());
       }
-      None => {
-        // Export is unused, add debug comment in development
-        if compilation.options.mode.is_development() {
-          let unused_fragment = NormalInitFragment::new(
-            format!("/* unused ESM export '{}' */\n", dep.name),
-            InitFragmentStage::StageConstants,
-            0,
-            InitFragmentKey::unique(),
-            None,
-          );
-          init_fragments.push(unused_fragment.boxed());
-        }
-      }
       _ => {
-        // Unexpected case, add warning fragment
-        let warning_fragment = NormalInitFragment::new(
-          format!(
-            "/* WARNING: unexpected export state for '{}' */\n",
-            dep.name
-          ),
-          InitFragmentStage::StageConstants,
-          0,
-          InitFragmentKey::unique(),
-          None,
-        );
-        init_fragments.push(warning_fragment.boxed());
+        // For normal case with simple value assignment
+        if let UsedName::Normal(vec) = used_name {
+          let used_name_atom = vec[0].clone();
+          init_fragments.push(Box::new(ESMExportInitFragment::new(
+            module.get_exports_argument(),
+            vec![(used_name_atom, dep.value.clone())],
+          )));
+        }
       }
     }
   }

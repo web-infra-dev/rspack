@@ -20,6 +20,9 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 								parser: {
 									syntax: "typescript"
 								}
+							},
+							rspackExperiments: {
+								collectTypeScriptInfo: {}
 							}
 						}
 					}
@@ -28,6 +31,6 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 		]
 	},
 	experiments: {
-		typeReexportsPresence: "tolerant-no-check"
+		typeReexportsPresence: true
 	}
 });

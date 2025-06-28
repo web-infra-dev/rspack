@@ -11,6 +11,7 @@ use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, Wr
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
+use rspack_tasks::{within_compiler_context, CompilerContext};
 use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
@@ -97,6 +98,7 @@ pub struct Compiler {
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
+  compiler_context: Arc<CompilerContext>,
 }
 
 impl Compiler {
@@ -113,6 +115,7 @@ impl Compiler {
     // no need to pass resolve_factory in rust api
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
+    compiler_context: Option<Arc<CompilerContext>>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -157,7 +160,7 @@ impl Compiler {
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
-
+    let compiler_context = compiler_context.unwrap_or(Arc::new(CompilerContext::new()));
     Self {
       id,
       compiler_path,
@@ -180,6 +183,7 @@ impl Compiler {
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
         false,
+        compiler_context.clone(),
       ),
       output_filesystem,
       intermediate_filesystem,
@@ -191,6 +195,7 @@ impl Compiler {
       old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
+      compiler_context,
     }
   }
 
@@ -202,9 +207,13 @@ impl Compiler {
     self.build().await?;
     Ok(())
   }
-
-  #[instrument("Compiler:build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
+    let compiler_context = self.compiler_context.clone();
+    within_compiler_context(compiler_context, self.build_inner()).await?;
+    Ok(())
+  }
+  #[instrument("Compiler:build", skip_all)]
+  async fn build_inner(&mut self) -> Result<()> {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
@@ -232,6 +241,7 @@ impl Compiler {
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
         false,
+        self.compiler_context.clone(),
       ),
     );
     match self.cache.before_compile(&mut self.compilation).await {

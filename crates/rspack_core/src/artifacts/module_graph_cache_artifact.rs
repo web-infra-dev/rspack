@@ -5,11 +5,13 @@ use std::sync::{
 
 pub use determine_export_assignments::DetermineExportAssignmentsKey;
 use determine_export_assignments::*;
+use get_exports_type::*;
 use get_mode::*;
+use get_side_effects_connection_state::*;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
-use crate::{DependencyId, ExportInfo, RuntimeKey};
+use crate::{ConnectionState, DependencyId, ExportInfo, ExportsType, RuntimeKey};
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
 /// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
@@ -21,17 +23,40 @@ pub struct ModuleGraphCacheArtifactInner {
   freezed: AtomicBool,
   get_mode_cache: GetModeCache,
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
+  get_exports_type_cache: GetExportsTypeCache,
+  get_side_effects_connection_state_cache: GetSideEffectsConnectionStateCache,
 }
 
 impl ModuleGraphCacheArtifactInner {
   pub fn freeze(&self) {
     self.get_mode_cache.freeze();
     self.determine_export_assignments_cache.freeze();
+    self.get_exports_type_cache.freeze();
+    self.get_side_effects_connection_state_cache.freeze();
     self.freezed.store(true, Ordering::Release);
   }
 
   pub fn unfreeze(&self) {
     self.freezed.store(false, Ordering::Release);
+  }
+
+  pub fn cached_get_exports_type<F: FnOnce() -> ExportsType>(
+    &self,
+    key: GetExportsTypeCacheKey,
+    f: F,
+  ) -> ExportsType {
+    if !self.freezed.load(Ordering::Acquire) {
+      return f();
+    }
+
+    match self.get_exports_type_cache.get(&key) {
+      Some(value) => value,
+      None => {
+        let value = f();
+        self.get_exports_type_cache.set(key, value);
+        value
+      }
+    }
   }
 
   pub fn cached_get_mode<F: FnOnce() -> ExportMode>(
@@ -71,6 +96,86 @@ impl ModuleGraphCacheArtifactInner {
           .set(key, value.clone());
         value
       }
+    }
+  }
+
+  pub fn cached_get_side_effects_connection_state<F: FnOnce() -> ConnectionState>(
+    &self,
+    key: GetSideEffectsConnectionStateCacheKey,
+    f: F,
+  ) -> ConnectionState {
+    if !self.freezed.load(Ordering::Acquire) {
+      return f();
+    }
+
+    match self.get_side_effects_connection_state_cache.get(&key) {
+      Some(value) => value,
+      None => {
+        let value = f();
+        self.get_side_effects_connection_state_cache.set(key, value);
+        value
+      }
+    }
+  }
+}
+
+pub(super) mod get_side_effects_connection_state {
+  use super::*;
+  use crate::{ConnectionState, ModuleIdentifier};
+  pub type GetSideEffectsConnectionStateCacheKey = ModuleIdentifier;
+
+  #[derive(Debug, Default)]
+  pub struct GetSideEffectsConnectionStateCache {
+    cache: RwLock<HashMap<GetSideEffectsConnectionStateCacheKey, ConnectionState>>,
+  }
+
+  impl GetSideEffectsConnectionStateCache {
+    pub fn freeze(&self) {
+      self.cache.write().expect("should get lock").clear();
+    }
+
+    pub fn get(&self, key: &GetSideEffectsConnectionStateCacheKey) -> Option<ConnectionState> {
+      let inner = self.cache.read().expect("should get lock");
+      inner.get(key).copied()
+    }
+
+    pub fn set(&self, key: GetSideEffectsConnectionStateCacheKey, value: ConnectionState) {
+      self
+        .cache
+        .write()
+        .expect("should get lock")
+        .insert(key, value);
+    }
+  }
+}
+
+pub(super) mod get_exports_type {
+  use super::*;
+  use crate::{ExportsType, ModuleIdentifier};
+
+  pub type GetExportsTypeCacheKey = (ModuleIdentifier, bool);
+
+  #[derive(Debug, Default)]
+  pub struct GetExportsTypeCache {
+    cache: RwLock<HashMap<GetExportsTypeCacheKey, ExportsType>>,
+  }
+
+  impl GetExportsTypeCache {
+    pub fn freeze(&self) {
+      self.cache.write().expect("should get lock").clear();
+    }
+
+    pub fn get(&self, key: &GetExportsTypeCacheKey) -> Option<ExportsType> {
+      let inner = self.cache.read().expect("should get lock");
+      inner.get(key).copied()
+    }
+
+    pub fn set(&self, key: GetExportsTypeCacheKey, value: ExportsType) {
+      self
+        .cache
+        .write()
+        .expect("should get lock")
+        .insert(key, value);
     }
   }
 }

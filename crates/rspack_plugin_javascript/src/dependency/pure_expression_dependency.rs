@@ -4,8 +4,8 @@ use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, ExportsInfoGetter, ModuleGraph,
-  ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedByExports,
+  ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
 };
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
@@ -79,6 +79,7 @@ impl Dependency for PureExpressionDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {

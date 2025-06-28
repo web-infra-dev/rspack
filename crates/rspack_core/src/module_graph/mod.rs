@@ -1017,13 +1017,10 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    let mgm = self
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have mgm");
     self
-      .loop_partials(|p| p.exports_info_map.get(&mgm.exports))
-      .expect("should have exports info")
-      .id()
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm")
+      .exports
   }
 
   pub fn get_prefetched_exports_info_optional<'b>(
@@ -1092,6 +1089,18 @@ impl<'a> ModuleGraph<'a> {
         |p| p.export_info_map.get_mut(id),
       )
       .expect("should have export info")
+  }
+
+  pub fn prepare_export_info_map(&mut self) {
+    let _ = self
+      .loop_partials_mut::<UkeyMap<ExportInfo, ExportInfoData>, UkeyMap<ExportInfo, ExportInfoData>>(
+        |_| false,
+        |p, search_result| {
+          let _ = std::mem::replace::<UkeyMap<ExportInfo, ExportInfoData>>(&mut p.export_info_map, search_result);
+        },
+        |p| Some(p.export_info_map.clone()),
+        |p| Some(&mut p.export_info_map),
+      );
   }
 
   pub fn set_export_info(&mut self, id: ExportInfo, info: ExportInfoData) {

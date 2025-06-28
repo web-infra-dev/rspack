@@ -29,6 +29,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_tasks::CompilerContext;
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
@@ -55,9 +56,9 @@ use crate::{
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats,
+  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -86,10 +87,10 @@ define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterCodeGeneration: Series(compilation: &mut Compilation));
-define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
+define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash),tracing=false);
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
-define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
@@ -260,6 +261,8 @@ pub struct Compilation {
   pub chunk_render_artifact: ChunkRenderArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
+  // artiface for caching module static info
+  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -294,6 +297,7 @@ pub struct Compilation {
   ///
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
+  pub compiler_context: Arc<CompilerContext>,
 }
 
 impl Compilation {
@@ -336,6 +340,7 @@ impl Compilation {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
+    compiler_context: Arc<CompilerContext>,
   ) -> Self {
     Self {
       id: CompilationId::new(),
@@ -380,6 +385,7 @@ impl Compilation {
       chunk_hashes_artifact: Default::default(),
       chunk_render_artifact: Default::default(),
       module_graph_cache_artifact: Default::default(),
+      module_static_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       cache,
@@ -409,6 +415,7 @@ impl Compilation {
       intermediate_filesystem,
       output_filesystem,
       is_rebuild,
+      compiler_context,
     }
   }
 
@@ -1472,6 +1479,12 @@ impl Compilation {
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.other_module_graph = Some(ModuleGraphPartial::default());
+    self.get_module_graph_mut().prepare_export_info_map();
+
+    if !self.options.mode.is_development() {
+      self.module_static_cache_artifact.freeze();
+    }
+
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
@@ -1860,6 +1873,9 @@ impl Compilation {
     self.after_seal(plugin_driver).await?;
     logger.time_end(start);
 
+    if !self.options.mode.is_development() {
+      self.module_static_cache_artifact.unfreeze();
+    }
     Ok(())
   }
 
@@ -2497,7 +2513,6 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(skip_all)]
   async fn process_chunk_hash(
     &self,
     chunk_ukey: ChunkUkey,

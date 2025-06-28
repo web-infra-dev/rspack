@@ -78,7 +78,7 @@ it("should respect side effects when inline constants", () => {
   expect(block.includes(`(/* inlined export .REMOVE_CONST */ true).toBe(true)`)).toBe(true);
 })
 
-it("should inline to re-export module when have side effects", () => {
+it("should not inline and link to re-export module when have side effects", () => {
   // START:F
   expect(reexportedSideEffects.REMOVE_CONST).toBe(true);
   // END:F

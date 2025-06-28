@@ -4,7 +4,10 @@ import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import type { ResolveRequest } from "../Resolver";
-import { resolvePluginImport } from "../builtin-loader";
+import {
+	resolveCollectTypeScriptInfo,
+	resolvePluginImport
+} from "../builtin-loader";
 import {
 	type FeatureOptions,
 	toFeatures
@@ -445,6 +448,11 @@ const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
 			if (rspackExperiments.import || rspackExperiments.pluginImport) {
 				rspackExperiments.import = resolvePluginImport(
 					rspackExperiments.import || rspackExperiments.pluginImport
+				);
+			}
+			if (rspackExperiments.collectTypeScriptInfo) {
+				rspackExperiments.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
+					rspackExperiments.collectTypeScriptInfo
 				);
 			}
 		}

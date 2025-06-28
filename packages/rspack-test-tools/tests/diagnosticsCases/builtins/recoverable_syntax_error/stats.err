@@ -1,14 +1,9 @@
 ERROR in ./index.tsx
   × Module build failed:
-  ├─▶   ×   x Expected a semicolon
+  ├─▶   ×   x Unexpected token. Did you mean `{'>'}` or `&gt;`?
   │     │    ,-[<TEST_TOOLS_ROOT>/tests/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx<LINE_COL>]
   │     │  1 | let c = <test>() => {}</test>;
-  │     │    :                       ^
-  │     │    `----
-  │     │   x Expression expected
-  │     │    ,-[<TEST_TOOLS_ROOT>/tests/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx<LINE_COL>]
-  │     │  1 | let c = <test>() => {}</test>;
-  │     │    :                        ^
+  │     │    :                   ^
   │     │    `----
   │     │
   │   

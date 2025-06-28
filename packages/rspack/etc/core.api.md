@@ -24,6 +24,7 @@ import { ContextModule } from '@rspack/binding';
 import { createReadStream } from 'fs';
 import { default as default_2 } from './util/hash';
 import { Dependency } from '@rspack/binding';
+import type { DependencyLocation } from '@rspack/binding';
 import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
@@ -33,7 +34,6 @@ import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { IncomingMessage } from 'http';
-import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
 import type { JsAfterTemplateExecutionData } from '@rspack/binding';
@@ -74,6 +74,7 @@ import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
+import { RawRslibPluginOptions } from '@rspack/binding';
 import { RawRstestPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
@@ -933,6 +934,12 @@ type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
 
 // @public (undocumented)
+type CollectTypeScriptInfoOptions = {
+    typeExports?: boolean;
+    exportedEnum?: boolean | "const-only";
+};
+
+// @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {
     // (undocumented)
     type: "commonjs";
@@ -1072,7 +1079,7 @@ export class Compilation {
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
         chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
-        processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
+        processWarnings: liteTapable.SyncWaterfallHook<[WebpackError_2[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
         stillValidModule: liteTapable.SyncHook<[Module], void>;
         statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[
@@ -1657,9 +1664,9 @@ export type CssChunkFilename = Filename;
 
 // @public (undocumented)
 const CssChunkingPlugin: {
-    new (options: CssChunkingPluginOptions): {
+    new (options?: CssChunkingPluginOptions | undefined): {
         name: binding.BuiltinPluginName;
-        _args: [options: CssChunkingPluginOptions];
+        _args: [options?: CssChunkingPluginOptions | undefined];
         affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): binding.BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -1668,6 +1675,10 @@ const CssChunkingPlugin: {
 
 // @public (undocumented)
 interface CssChunkingPluginOptions {
+    // (undocumented)
+    maxSize?: number;
+    // (undocumented)
+    minSize?: number;
     nextjs?: boolean;
     // (undocumented)
     strict?: boolean;
@@ -1804,9 +1815,6 @@ export type DefinePluginOptions = Record<string, CodeValue>;
 export type Dependencies = Name[];
 
 export { Dependency }
-
-// @public (undocumented)
-type DependencyLocation = any;
 
 // @public (undocumented)
 type DevMiddlewareContext<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = {
@@ -2476,7 +2484,8 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
-    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+    inlineEnum?: boolean;
+    typeReexportsPresence?: boolean;
 };
 
 // @public (undocumented)
@@ -2497,6 +2506,10 @@ interface Experiments_2 {
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
+    // (undocumented)
+    RslibPlugin: typeof RslibPlugin;
+    // (undocumented)
+    RstestPlugin: typeof RstestPlugin;
     // (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
@@ -2525,6 +2538,8 @@ export interface ExperimentsNormalized {
     // (undocumented)
     inlineConst?: boolean;
     // (undocumented)
+    inlineEnum?: boolean;
+    // (undocumented)
     layers?: boolean;
     // (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -2539,7 +2554,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     topLevelAwait?: boolean;
     // (undocumented)
-    typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+    typeReexportsPresence?: boolean;
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }
@@ -3215,10 +3230,14 @@ export type IgnorePluginOptions = {
 };
 
 // @public
-export type IgnoreWarnings = (RegExp | ((error: Error, compilation: Compilation) => boolean))[];
+export type IgnoreWarnings = (RegExp | {
+    file?: RegExp;
+    message?: RegExp;
+    module?: RegExp;
+} | ((warning: WebpackError_2, compilation: Compilation) => boolean))[];
 
 // @public (undocumented)
-export type IgnoreWarningsNormalized = ((warning: Error, compilation: Compilation) => boolean)[];
+export type IgnoreWarningsNormalized = ((warning: WebpackError_2, compilation: Compilation) => boolean)[];
 
 // @public
 export type Iife = boolean;
@@ -5665,7 +5684,7 @@ type PluginImportConfig = {
 };
 
 // @public (undocumented)
-type PluginImportOptions = PluginImportConfig[] | undefined;
+type PluginImportOptions = PluginImportConfig[];
 
 // @public (undocumented)
 export type Plugins = Plugin_2[];
@@ -6247,6 +6266,17 @@ type RsdoctorPluginOptions = {
 };
 
 // @public (undocumented)
+const RslibPlugin: {
+    new (rslib: RawRslibPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [rslib: RawRslibPluginOptions];
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 type Rspack = typeof rspack_2 & typeof rspackExports & {
     rspack: Rspack;
     webpack: Rspack;
@@ -6356,7 +6386,6 @@ declare namespace rspackExports {
         ProvidePlugin,
         DefinePlugin,
         ProgressPlugin,
-        RstestPlugin,
         EntryPlugin,
         DynamicEntryPlugin,
         ExternalsPlugin,
@@ -6782,7 +6811,7 @@ export type RspackSeverity = binding.JsRspackSeverity;
 export const rspackVersion: string;
 
 // @public (undocumented)
-export const RstestPlugin: {
+const RstestPlugin: {
     new (rstest: RawRstestPluginOptions): {
         name: BuiltinPluginName;
         _args: [rstest: RawRstestPluginOptions];
@@ -7680,6 +7709,7 @@ export type SwcLoaderOptions = Config_2 & {
     isModule?: boolean | "unknown";
     rspackExperiments?: {
         import?: PluginImportOptions;
+        collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     };
 };
 
@@ -9203,8 +9233,6 @@ export const WebpackError: ErrorConstructor;
 
 // @public (undocumented)
 class WebpackError_2 extends Error {
-    // (undocumented)
-    [inspect.custom](): string;
     // (undocumented)
     chunk?: Chunk;
     // (undocumented)
