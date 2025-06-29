@@ -127,13 +127,8 @@ fn get_tag_src(tag: &HtmlPluginTag) -> Option<String> {
 
   // Handle link tags that need SRI
   if tag.tag_name == "link" {
-    let Some(href) = get_tag_attribute(tag, "href") else {
-      return None;
-    };
-
-    let Some(rel) = get_tag_attribute(tag, "rel") else {
-      return None;
-    };
+    let href = get_tag_attribute(tag, "href")?;
+    let rel = get_tag_attribute(tag, "rel")?;
 
     // Only process link tags that load actual resources
     let needs_sri = rel == "stylesheet"
