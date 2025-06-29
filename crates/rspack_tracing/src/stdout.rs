@@ -14,7 +14,7 @@ impl Tracer for StdoutTracer {
     Some(
       fmt::layer()
         .json() // Use JSON format for structured logging for easier parsing and debugging
-        .with_file(true)
+        .with_file(false)
         // To keep track of the closing point of spans
         .with_span_events(FmtSpan::CLOSE)
         .with_writer(trace_writer.make_writer())
