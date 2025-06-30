@@ -78,7 +78,7 @@ export interface RspackError extends Error {
 	message: string;
 	details?: string;
 	module?: Module;
-	loc?: string;
+	loc?: DependencyLocation;
 	file?: string;
 	stack?: string;
 	hideStack?: boolean;

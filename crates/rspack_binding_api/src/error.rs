@@ -200,7 +200,7 @@ impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if self.message.starts_with("  \u{1b}[31m×\u{1b}[0m") || self.message.starts_with("  ×") {
-      write!(f, "{}: ", self.message)?;
+      write!(f, "{}", self.message)?;
       return Ok(());
     }
 
@@ -275,7 +275,7 @@ impl RspackError {
     self
   }
 
-  pub fn try_from_top_level_diagnostic(
+  pub fn try_from_diagnostic(
     compilation: &Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {

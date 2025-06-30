@@ -447,7 +447,7 @@ impl JsCompilation {
 
     compilation
       .get_errors_sorted()
-      .map(|d| RspackError::try_from_top_level_diagnostic(compilation, d))
+      .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
       .collect()
   }
 
@@ -457,7 +457,7 @@ impl JsCompilation {
 
     compilation
       .get_warnings_sorted()
-      .map(|d| RspackError::try_from_top_level_diagnostic(compilation, d))
+      .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
       .collect()
   }
 
