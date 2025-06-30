@@ -29,11 +29,12 @@ use serde::Serialize;
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate,
-  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset,
-  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo,
+  Compilation, CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
+  ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -69,6 +70,7 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -95,6 +97,7 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      collected_typescript_info: None,
       extras: Default::default(),
     }
   }
@@ -279,8 +282,15 @@ pub trait Module:
     self.build_info().module_argument
   }
 
-  fn get_exports_type(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
-    get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
+  fn get_exports_type(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    strict: bool,
+  ) -> ExportsType {
+    module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
+      get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
+    })
   }
 
   fn get_strict_esm_module(&self) -> bool {
@@ -369,6 +379,7 @@ pub trait Module:
   fn get_side_effects_connection_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {

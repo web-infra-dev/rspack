@@ -154,6 +154,8 @@ Rsdoctor
 rsdoctors
 rsfamily
 Rslib
+rslib
+rstest
 rspack
 Rspack
 rspackplugin

@@ -739,7 +739,6 @@ impl CodeSplitter {
     Ok(runtime)
   }
 
-  #[cfg(not(debug_assertions))]
   fn get_module_ordinal(&self, m: ModuleIdentifier) -> u64 {
     *self
       .module_ordinal
@@ -832,16 +831,7 @@ impl CodeSplitter {
             continue;
           }
 
-          let module = {
-            #[cfg(debug_assertions)]
-            {
-              target_module
-            }
-            #[cfg(not(debug_assertions))]
-            {
-              self.get_module_ordinal(target_module)
-            }
-          };
+          let module = self.get_module_ordinal(target_module);
           if ctx.module_ordinal.is_module_available(module) {
             // we already include this module
             continue;

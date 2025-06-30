@@ -6,10 +6,10 @@ use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, Compilation,
-  DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module, ModuleGraph,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType,
-  TemplateContext, TemplateReplaceSource,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, CollectedTypeScriptInfo,
+  Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem,
+  SourceType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -144,11 +144,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
-      additional_data,
+      mut additional_data,
       parse_meta,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
+
+    if let Some(additional_data) = &mut additional_data
+      && let Some(collected_ts_info) = additional_data.remove::<CollectedTypeScriptInfo>()
+    {
+      build_info.collected_typescript_info = Some(collected_ts_info);
+    }
 
     let default_with_diagnostics =
       |source: Arc<dyn Source>, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {

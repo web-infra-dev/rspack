@@ -117,6 +117,35 @@ async fn process_tag_group(
   Ok(())
 }
 
+// Get the `src` or `href` attribute of a tag if it is a script
+// or link tag that needs SRI.
+fn get_tag_src(tag: &HtmlPluginTag) -> Option<String> {
+  // Handle script tags with src attribute
+  if tag.tag_name == "script" {
+    return get_tag_attribute(tag, "src");
+  }
+
+  // Handle link tags that need SRI
+  if tag.tag_name == "link" {
+    let href = get_tag_attribute(tag, "href")?;
+    let rel = get_tag_attribute(tag, "rel")?;
+
+    // Only process link tags that load actual resources
+    let needs_sri = rel == "stylesheet"
+      || rel == "modulepreload"
+      || (rel == "preload" && {
+        let as_attr = get_tag_attribute(tag, "as");
+        as_attr.as_deref() == Some("script") || as_attr.as_deref() == Some("style")
+      });
+
+    if needs_sri {
+      return Some(href);
+    }
+  }
+
+  None
+}
+
 async fn process_tag(
   tag: &HtmlPluginTag,
   public_path: &str,
@@ -133,7 +162,7 @@ async fn process_tag(
     return Ok(None);
   }
 
-  let Some(tag_src) = get_tag_attribute(tag, "href").or(get_tag_attribute(tag, "src")) else {
+  let Some(tag_src) = get_tag_src(tag) else {
     return Ok(None);
   };
 

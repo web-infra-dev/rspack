@@ -326,7 +326,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 function validateSubresourceIntegrityPluginOptions(
 	options: SubresourceIntegrityPluginOptions
 ) {
-	validate(options, getPluginOptionsSchema());
+	validate(options, getPluginOptionsSchema);
 }
 
 function isErrorWithCode<T extends Error>(obj: T): boolean {
@@ -337,16 +337,37 @@ function isErrorWithCode<T extends Error>(obj: T): boolean {
 	);
 }
 
+/**
+ * Get the `src` or `href` attribute of a tag if it is a script
+ * or link tag that needs SRI.
+ */
 function getTagSrc(tag: HtmlTagObject): string | undefined {
-	if (!["script", "link"].includes(tag.tagName) || !tag.attributes) {
+	if (!tag.attributes) {
 		return undefined;
 	}
-	if (typeof tag.attributes.href === "string") {
-		return tag.attributes.href;
-	}
-	if (typeof tag.attributes.src === "string") {
+
+	// Handle script tags with src attribute
+	if (tag.tagName === "script" && typeof tag.attributes.src === "string") {
 		return tag.attributes.src;
 	}
+
+	// Handle link tags that need SRI
+	if (tag.tagName === "link" && typeof tag.attributes.href === "string") {
+		const rel = tag.attributes.rel;
+		if (typeof rel !== "string") {
+			return undefined;
+		}
+
+		// Only process link tags that load actual resources
+		const needsSRI =
+			rel === "stylesheet" ||
+			rel === "modulepreload" ||
+			(rel === "preload" &&
+				(tag.attributes.as === "script" || tag.attributes.as === "style"));
+
+		return needsSRI ? tag.attributes.href : undefined;
+	}
+
 	return undefined;
 }
 

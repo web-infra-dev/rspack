@@ -10,9 +10,9 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ErrorSpan, ExportProvided, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
   FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, TypeReexportPresenceMode,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -229,11 +229,13 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
   ids: &[Atom],
   module_graph: &ModuleGraph,
-  additional_msg: String,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  name: &Atom,
+  is_reexport: bool,
   should_error: bool,
 ) -> Option<Diagnostic> {
   let imported_module = module_graph.get_module_by_dependency_id(module_dependency.id())?;
-  if !imported_module.diagnostics().is_empty() {
+  if imported_module.first_error().is_some() {
     return None;
   }
   let parent_module_identifier = module_graph
@@ -242,8 +244,18 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type =
-    imported_module.get_exports_type(module_graph, parent_module.build_meta().strict_esm_module);
+  let exports_type = imported_module.get_exports_type(
+    module_graph,
+    module_graph_cache,
+    parent_module.build_meta().strict_esm_module,
+  );
+  let additional_msg = || {
+    if is_reexport {
+      format!("(reexported as '{name}')")
+    } else {
+      format!("(imported as '{name}')")
+    }
+  };
   let create_error = |message: String| {
     let (severity, title) = if should_error {
       (Severity::Error, "ESModulesLinkingError")
@@ -305,17 +317,22 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .and_then(|o| o.get_javascript())
         .and_then(|o| o.type_reexports_presence)
         .unwrap_or_default();
-      if !matches!(type_reexports_presence, TypeReexportPresenceMode::NoTolerant)
-        // TODO: Check the parent module is transpiled from typescript
+      // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/linker/linker.go#L3129-L3131
+      if !matches!(
+        type_reexports_presence,
+        TypeReexportPresenceMode::NoTolerant
+      ) && parent_module
+        .build_info()
+        .collected_typescript_info
+        .is_some()
         && ids.len() == 1
-        && let export_name = &ids[0]
         && matches!(
           ExportsInfoGetter::is_export_provided(
             &module_graph.get_prefetched_exports_info(
               parent_module_identifier,
-              PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([export_name]))
+              PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name]))
             ),
-            std::slice::from_ref(export_name)
+            std::slice::from_ref(name)
           ),
           Some(ExportProvided::Provided)
         )
@@ -326,8 +343,14 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         ) {
           return None;
         }
-        // TODO: check if the export is a type export
-        return None;
+        if find_type_exports_from_outgoings(
+          module_graph,
+          &imported_module_identifier,
+          &ids[0],
+          &mut IdentifierSet::default(),
+        ) {
+          return None;
+        }
       }
       let mut pos = 0;
       let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
@@ -366,7 +389,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
               .map(|id| format!("'{id}'"))
               .collect::<Vec<_>>()
               .join("."),
-            additional_msg,
+            additional_msg(),
             module_dependency.user_request(),
           );
           return Some(create_error(msg));
@@ -384,7 +407,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           .map(|id| format!("'{id}'"))
           .collect::<Vec<_>>()
           .join("."),
-        additional_msg,
+        additional_msg(),
         module_dependency.user_request()
       );
       return Some(create_error(msg));
@@ -400,7 +423,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
             .map(|id| format!("'{id}'"))
             .collect::<Vec<_>>()
             .join("."),
-          additional_msg,
+          additional_msg(),
         );
         return Some(create_error(msg));
       }
@@ -420,7 +443,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
             .map(|id| format!("'{id}'"))
             .collect::<Vec<_>>()
             .join("."),
-          additional_msg,
+          additional_msg(),
         );
         return Some(create_error(msg));
       }
@@ -428,6 +451,44 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     _ => {}
   }
   None
+}
+
+fn find_type_exports_from_outgoings(
+  mg: &ModuleGraph,
+  module_identifier: &ModuleIdentifier,
+  export_name: &Atom,
+  visited: &mut IdentifierSet,
+) -> bool {
+  let module = mg
+    .module_by_identifier(module_identifier)
+    .expect("should have module");
+  // bailout the check of this export chain if there is a module that not transpiled from
+  // typescript, we only support that the export chain is all transpiled typescript, if not
+  // the check will be very slow especially when big javascript npm package exists.
+  let Some(info) = &module.build_info().collected_typescript_info else {
+    return false;
+  };
+  if info.type_exports.contains(export_name) {
+    return true;
+  }
+  for connection in mg.get_outgoing_connections(module_identifier) {
+    if visited.contains(connection.module_identifier()) {
+      continue;
+    }
+    let dependency = mg
+      .dependency_by_id(&connection.dependency_id)
+      .expect("should have dependency");
+    if !matches!(
+      dependency.dependency_type(),
+      DependencyType::EsmImport | DependencyType::EsmExport
+    ) {
+      continue;
+    }
+    if find_type_exports_from_outgoings(mg, connection.module_identifier(), export_name, visited) {
+      return true;
+    }
+  }
+  false
 }
 
 #[cacheable_dyn]
@@ -463,6 +524,7 @@ impl Dependency for ESMImportSideEffectDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -470,7 +532,12 @@ impl Dependency for ESMImportSideEffectDependency {
       .module_identifier_by_dependency_id(&self.id)
       .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
     {
-      module.get_side_effects_connection_state(module_graph, module_chain, connection_state_cache)
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        module_chain,
+        connection_state_cache,
+      )
     } else {
       ConnectionState::Active(true)
     }
@@ -502,12 +569,13 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     conn: &rspack_core::ModuleGraphConnection,
     _runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
     if let Some(module) = module_graph.module_by_identifier(&id) {
       module.get_side_effects_connection_state(
         module_graph,
+        module_graph_cache,
         &mut IdentifierSet::default(),
         &mut IdentifierMap::default(),
       )

@@ -30,9 +30,10 @@ use rspack_core::{
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt,
+  split_readable_identifier, BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments,
+  ChunkRenderContext, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  CompilationId, ConcatenatedModuleIdent, ExportsArgument, IdentCollector, Module, RuntimeGlobals,
+  SourceType, SpanExt,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -1114,7 +1115,8 @@ impl JsPlugin {
         if ident_used {
           let context = compilation.options.context.clone();
           let readable_identifier = module.readable_identifier(&context).to_string();
-          let new_name = find_new_name(name, &all_used_names, None, &readable_identifier);
+          let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
+          let new_name = find_new_name(name, &all_used_names, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
             let span = identifier.id.span();

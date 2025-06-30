@@ -65,6 +65,7 @@ impl CommonJsExportRequireDependency {
   fn get_star_reexports(
     &self,
     mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
@@ -124,7 +125,7 @@ impl CommonJsExportRequireDependency {
     let is_namespace_import = matches!(
       mg.module_by_identifier(imported_module)
         .expect("Should get imported module")
-        .get_exports_type(mg, false),
+        .get_exports_type(mg, mg_cache, false),
       ExportsType::Namespace
     );
 
@@ -214,7 +215,7 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_exports(
     &self,
     mg: &ModuleGraph,
-    _mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCacheArtifact,
   ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
 
@@ -240,7 +241,9 @@ impl Dependency for CommonJsExportRequireDependency {
       })
     } else if self.names.is_empty() {
       let from = mg.connection_by_dependency_id(&self.id)?;
-      if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
+      if let Some(reexport_info) =
+        self.get_star_reexports(mg, mg_cache, None, from.module_identifier())
+      {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Names(
             reexport_info

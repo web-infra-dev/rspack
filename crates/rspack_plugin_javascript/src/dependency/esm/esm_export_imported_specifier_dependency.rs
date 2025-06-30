@@ -229,7 +229,8 @@ impl ESMExportImportedSpecifierDependency {
     if is_name_unused {
       return ExportMode::Unused(ExportModeUnused { name: "*".into() });
     }
-    let imported_exports_type = get_exports_type(module_graph, id, parent_module);
+    let imported_exports_type =
+      get_exports_type(module_graph, module_graph_cache, id, parent_module);
     let ids = self.get_ids(module_graph);
 
     // Special handling for reexporting the default export
@@ -1735,6 +1736,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -1799,12 +1801,15 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       .get_effective_export_presence(&**module)
     {
       // Enhanced linking error with additional context
+      // don't need to check the import specifier is existed or not when name is None (export *)
       if let Some(name) = &self.name
         && let Some(error) = esm_import_dependency_get_linking_error(
           self,
           ids,
           module_graph,
-          name.to_string(),
+          module_graph_cache,
+          name,
+          true,
           should_error,
         )
       {

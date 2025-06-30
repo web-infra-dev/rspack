@@ -105,9 +105,7 @@ export const applyRspackOptionsDefaults = (
 		css: options.experiments.css,
 		targetProperties,
 		mode: options.mode,
-		uniqueName: options.output.uniqueName,
-		inlineConst: options.experiments.inlineConst!,
-		typeReexportsPresence: options.experiments.typeReexportsPresence
+		uniqueName: options.output.uniqueName
 	});
 
 	applyOutputDefaults(options.output, {
@@ -260,11 +258,14 @@ const applyExperimentsDefaults = (
 	// Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
 	D(experiments, "useInputFileSystem", false);
 
-	// IGNORE(experiments.inlineConst): Rspack specific configuration for inline constants
+	// IGNORE(experiments.inlineConst): Rspack specific configuration for inline const
 	D(experiments, "inlineConst", false);
 
+	// IGNORE(experiments.inlineEnum): Rspack specific configuration for inline enum
+	D(experiments, "inlineEnum", false);
+
 	// IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
-	D(experiments, "typeReexportsPresence", "no-tolerant");
+	D(experiments, "typeReexportsPresence", false);
 };
 
 const applybundlerInfoDefaults = (
@@ -288,9 +289,7 @@ const applySnapshotDefaults = (
 ) => {};
 
 const applyJavascriptParserOptionsDefaults = (
-	parserOptions: JavascriptParserOptions,
-	inlineConst: boolean,
-	typeReexportsPresence: JavascriptParserOptions["typeReexportsPresence"]
+	parserOptions: JavascriptParserOptions
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
@@ -306,8 +305,8 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
-	D(parserOptions, "inlineConst", inlineConst);
-	D(parserOptions, "typeReexportsPresence", typeReexportsPresence);
+	D(parserOptions, "inlineConst", false);
+	D(parserOptions, "typeReexportsPresence", "no-tolerant");
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -323,17 +322,13 @@ const applyModuleDefaults = (
 		css,
 		targetProperties,
 		mode,
-		uniqueName,
-		inlineConst,
-		typeReexportsPresence
+		uniqueName
 	}: {
 		asyncWebAssembly: boolean;
 		css?: boolean;
 		targetProperties: any;
 		mode?: Mode;
 		uniqueName?: string;
-		inlineConst: boolean;
-		typeReexportsPresence: JavascriptParserOptions["typeReexportsPresence"];
 	}
 ) => {
 	assertNotNill(module.parser);
@@ -349,11 +344,7 @@ const applyModuleDefaults = (
 
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
-	applyJavascriptParserOptionsDefaults(
-		module.parser.javascript,
-		inlineConst,
-		typeReexportsPresence
-	);
+	applyJavascriptParserOptionsDefaults(module.parser.javascript);
 
 	F(module.parser, JSON_MODULE_TYPE, () => ({}));
 	assertNotNill(module.parser[JSON_MODULE_TYPE]);

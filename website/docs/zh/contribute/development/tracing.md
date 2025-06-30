@@ -20,9 +20,14 @@ RSPACK_PROFILE=ALL rsbuild build
 
 - 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。你可以查看我们如何在 [`@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224)获取更多信息。
 
-生成的 `rspack.pftrace` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析。
+生成的 `rspack.pftrace` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析：
 
-## Tracing Layer
+<img
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
+  alt="tracing"
+/>
+
+## Tracing layer
 
 Rspack 支持 `perfetto` 和 `logger` 两种 layer：
 
@@ -37,7 +42,7 @@ RSPACK_TRACE_LAYER=logger
 RSPACK_TRACE_LAYER=perfetto
 ```
 
-## Tracing Output
+## Tracing output
 
 可以指定 trace 的输出位置：
 
@@ -51,7 +56,7 @@ RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=log.txt rspack dev
 RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=rspack.pftrace rspack dev
 ```
 
-## Tracing Filter
+## Tracing filter
 
 通过 `RSPACK_PROFILE` 可以配置需要过滤的数据。Rspack 提供了两个预设的 `preset`：
 
@@ -60,7 +65,7 @@ RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=rspack.pftrace rspack dev
 
 除了预设外，其他字符串都会透传给 [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax)，支持更复杂的过滤策略：
 
-### Tracing Level Filter
+### Tracing level filter
 
 支持的 tracing 等级有：`TRACE`、`DEBUG`、`INFO`、`WARN` 和 `ERROR`。可以通过等级进行过滤：
 

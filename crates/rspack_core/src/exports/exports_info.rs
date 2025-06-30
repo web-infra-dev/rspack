@@ -143,7 +143,7 @@ impl ExportsInfo {
     }
 
     if let Some(redirect_to) = redirect_to {
-      let flag = redirect_to.set_unknown_exports_provided(
+      changed |= redirect_to.set_unknown_exports_provided(
         mg,
         can_mangle,
         exclude_exports,
@@ -151,9 +151,6 @@ impl ExportsInfo {
         target_module,
         priority,
       );
-      if flag {
-        changed = true;
-      }
     } else {
       let other_exports_info_data = other_exports_info.as_data_mut(mg);
       if !matches!(

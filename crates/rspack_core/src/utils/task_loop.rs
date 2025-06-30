@@ -147,7 +147,7 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
     let tx = self.task_result_sender.clone();
     let is_expected_shutdown = self.is_expected_shutdown.clone();
     self.background_task_count += 1;
-    tokio::spawn(task::unconstrained(
+    rspack_tasks::spawn_in_compiler_context(task::unconstrained(
       async move {
         let r = task.background_run().await;
         if !is_expected_shutdown.load(Ordering::Relaxed) {
@@ -173,6 +173,7 @@ pub async fn run_task_loop<Ctx: 'static>(
 #[cfg(test)]
 mod test {
   use rspack_error::miette::miette;
+  use rspack_tasks::within_compiler_context_for_testing;
 
   use super::*;
 
@@ -229,58 +230,61 @@ mod test {
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
   async fn test_run_task_loop() {
-    let mut context = Context {
-      call_sync_task_count: 0,
-      max_sync_task_call: 4,
-      sync_return_error: false,
-      async_return_error: false,
-    };
-    let res = run_task_loop(
-      &mut context,
-      vec![Box::new(AsyncTask {
+    within_compiler_context_for_testing(async {
+      let mut context = Context {
+        call_sync_task_count: 0,
+        max_sync_task_call: 4,
+        sync_return_error: false,
         async_return_error: false,
-      })],
-    )
-    .await;
-    assert!(res.is_ok(), "task loop should be run success");
-    assert_eq!(context.call_sync_task_count, 7);
+      };
+      let res = run_task_loop(
+        &mut context,
+        vec![Box::new(AsyncTask {
+          async_return_error: false,
+        })],
+      )
+      .await;
+      assert!(res.is_ok(), "task loop should be run success");
+      assert_eq!(context.call_sync_task_count, 7);
 
-    let mut context = Context {
-      call_sync_task_count: 0,
-      max_sync_task_call: 4,
-      sync_return_error: true,
-      async_return_error: false,
-    };
-    let res = run_task_loop(
-      &mut context,
-      vec![Box::new(AsyncTask {
+      let mut context = Context {
+        call_sync_task_count: 0,
+        max_sync_task_call: 4,
+        sync_return_error: true,
         async_return_error: false,
-      })],
-    )
-    .await;
-    assert!(
-      format!("{res:?}").contains("throw sync error"),
-      "should return sync error"
-    );
-    assert_eq!(context.call_sync_task_count, 0);
+      };
+      let res = run_task_loop(
+        &mut context,
+        vec![Box::new(AsyncTask {
+          async_return_error: false,
+        })],
+      )
+      .await;
+      assert!(
+        format!("{res:?}").contains("throw sync error"),
+        "should return sync error"
+      );
+      assert_eq!(context.call_sync_task_count, 0);
 
-    let mut context = Context {
-      call_sync_task_count: 0,
-      max_sync_task_call: 4,
-      sync_return_error: false,
-      async_return_error: true,
-    };
-    let res = run_task_loop(
-      &mut context,
-      vec![Box::new(AsyncTask {
-        async_return_error: false,
-      })],
-    )
+      let mut context = Context {
+        call_sync_task_count: 0,
+        max_sync_task_call: 4,
+        sync_return_error: false,
+        async_return_error: true,
+      };
+      let res = run_task_loop(
+        &mut context,
+        vec![Box::new(AsyncTask {
+          async_return_error: false,
+        })],
+      )
+      .await;
+      assert!(
+        format!("{res:?}").contains("throw async error"),
+        "should return async error"
+      );
+      assert_eq!(context.call_sync_task_count, 1);
+    })
     .await;
-    assert!(
-      format!("{res:?}").contains("throw async error"),
-      "should return async error"
-    );
-    assert_eq!(context.call_sync_task_count, 1);
   }
 }

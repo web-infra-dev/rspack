@@ -140,11 +140,13 @@ export interface DllReferencePluginOptionsContent {
 }
 
 const getDllReferencePluginOptionsSchema = memoize(() => {
-	const dllReferencePluginOptionsContentItem = z.object({
-		buildMeta: z.custom<JsBuildMeta>().optional(),
-		exports: z.array(z.string()).or(z.literal(true)).optional(),
-		id: z.string().or(numberOrInfinity).optional()
-	});
+	const dllReferencePluginOptionsContentItem = z
+		.object({
+			buildMeta: z.custom<JsBuildMeta>(),
+			exports: z.array(z.string()).or(z.literal(true)),
+			id: z.string().or(numberOrInfinity)
+		})
+		.partial();
 
 	const dllReferencePluginOptionsContent = z.record(
 		z.string(),
@@ -204,7 +206,7 @@ export class DllReferencePlugin {
 	private errors: WeakMap<CompilationParams, DllManifestError>;
 
 	constructor(options: DllReferencePluginOptions) {
-		validate(options, getDllReferencePluginOptionsSchema());
+		validate(options, getDllReferencePluginOptionsSchema);
 
 		this.options = options;
 		this.errors = new WeakMap();

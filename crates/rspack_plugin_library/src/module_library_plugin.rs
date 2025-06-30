@@ -80,7 +80,11 @@ async fn render_startup(
   let boxed_module = module_graph
     .module_by_identifier(module)
     .expect("should have build meta");
-  let exports_type = boxed_module.get_exports_type(&module_graph, boxed_module.build_info().strict);
+  let exports_type = boxed_module.get_exports_type(
+    &module_graph,
+    &compilation.module_graph_cache_artifact,
+    boxed_module.build_info().strict,
+  );
   for (_, export_info) in exports_info.exports() {
     if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
       continue;
