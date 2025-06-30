@@ -23,6 +23,7 @@ pub struct MockMethodDependency {
 pub enum MockMethod {
   Mock,
   Unmock,
+  Hoisted,
 }
 
 impl MockMethodDependency {
@@ -71,7 +72,6 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext { init_fragments, .. } = code_generatable_context;
-
     let dep = dep
       .as_any()
       .downcast_ref::<MockMethodDependency>()
@@ -81,18 +81,19 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     let hoist_flag = match dep.method {
       MockMethod::Mock => "MOCK",
       MockMethod::Unmock => "UNMOCK",
+      MockMethod::Hoisted => "HOISTED",
     };
 
     let mock_method = match dep.method {
-      MockMethod::Mock => "set_mock",
-      MockMethod::Unmock => "unmock",
+      MockMethod::Mock => "rstest_set_mock",
+      MockMethod::Unmock => "rstest_unmock",
+      MockMethod::Hoisted => "rstest_hoisted",
     };
 
     if dep.hoist {
-      // Placeholder of hoist target.
       let init = NormalInitFragment::new(
         format!("/* RSTEST:{hoist_flag}_PLACEHOLDER:{request} */;"),
-        InitFragmentStage::StageConstants,
+        InitFragmentStage::StageESMImports,
         0,
         InitFragmentKey::Const(format!("retest mock_hoist {request}")),
         None,
