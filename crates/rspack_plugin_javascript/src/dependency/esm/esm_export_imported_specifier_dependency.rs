@@ -1405,6 +1405,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       .export_presence_mode
       .get_effective_export_presence(&**module)
     {
+      // Enhanced linking error with additional context
       // don't need to check the import specifier is existed or not when name is None (export *)
       if let Some(name) = &self.name
         && let Some(error) = esm_import_dependency_get_linking_error(

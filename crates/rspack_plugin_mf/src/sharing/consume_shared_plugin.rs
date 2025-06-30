@@ -24,6 +24,7 @@ use rustc_hash::FxHashMap;
 use super::{
   consume_shared_module::ConsumeSharedModule,
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
+  share_usage_plugin::{ShareUsagePlugin, ShareUsagePluginOptions},
 };
 
 #[cacheable]
@@ -273,7 +274,7 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    add_diagnostic: &mut impl FnMut(Diagnostic),
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> Option<ConsumeVersion> {
     let mut required_version_warning = |details: &str| {
       add_diagnostic(Diagnostic::warn(self.name().into(), format!("No required version specified and unable to automatically determine one. {details} file: shared module {request}")))
@@ -898,7 +899,11 @@ impl Plugin for ConsumeSharedPlugin {
     "rspack.ConsumeSharedPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
+    // Always apply ShareUsagePlugin for share usage tracking
+    ShareUsagePlugin::new(ShareUsagePluginOptions::default())
+      .apply(PluginContext::with_context(ctx.context), options)?;
+
     ctx
       .context
       .compiler_hooks

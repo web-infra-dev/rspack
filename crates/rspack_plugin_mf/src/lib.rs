@@ -14,7 +14,6 @@ pub use sharing::{
   consume_shared_plugin::{
     ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
   },
-  export_usage_plugin::{SharedExportUsagePlugin, SharedExportUsagePluginOptions},
   provide_shared_plugin::{ProvideOptions, ProvideSharedPlugin, ProvideVersion},
   share_runtime_module::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,

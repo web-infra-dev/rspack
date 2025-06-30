@@ -12,7 +12,7 @@ use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_tasks::{within_compiler_context, CompilerContext};
-use rspack_util::node_path::NodePath;
+use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -212,7 +212,7 @@ impl Compiler {
     within_compiler_context(compiler_context, self.build_inner()).await?;
     Ok(())
   }
-  #[instrument("Compiler:build", skip_all)]
+  #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
@@ -264,7 +264,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument("Compiler:compile", skip_all)]
+  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
   async fn compile(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:

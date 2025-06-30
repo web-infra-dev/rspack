@@ -11,11 +11,26 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use serde::{Deserialize, Serialize};
 
-use super::export_usage_types::SimpleModuleExports;
+/// Simple module export data for easy consumption
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SimpleModuleExports {
+  /// Used exports
+  pub used_exports: Vec<String>,
+  /// Unused exports
+  pub unused_exports: Vec<String>,
+  /// Possibly unused exports
+  pub possibly_unused_exports: Vec<String>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShareUsageReport {
   pub consume_shared_modules: HashMap<String, SimpleModuleExports>,
+  pub metadata: ShareUsageMetadata,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShareUsageMetadata {
+  pub total_modules: usize,
 }
 
 #[derive(Debug)]
@@ -50,22 +65,14 @@ impl ShareUsagePlugin {
     let module_graph = compilation.get_module_graph();
 
     // Find all ConsumeShared modules and their fallbacks
-    // Also look for ProvideShared modules that might contain CommonJS modules
+    dbg!("🔍 ShareUsage: Starting analysis", module_graph.modules().len());
+    
     for module_id in module_graph.modules().keys() {
       if let Some(module) = module_graph.module_by_identifier(module_id) {
-        let module_type = module.module_type();
-        let module_id_str = module_id.to_string();
-        
-        // Debug: Print module information to understand what we're dealing with
-        if module_id_str.contains("legacy-utils") || module_id_str.contains("data-processor") || 
-           module_id_str.contains("consume shared") || module_type == &ModuleType::ConsumeShared ||
-           module_type == &ModuleType::ProvideShared {
-          println!("🔍 DEBUG: Module type: {:?}, ID: {}", module_type, module_id);
-        }
-        
-        if module_type == &ModuleType::ConsumeShared {
+        if module.module_type() == &ModuleType::ConsumeShared {
+          dbg!("🔍 Found ConsumeShared module", module_id);
           if let Some(share_key) = module.get_consume_shared_key() {
-            println!("🔍 DEBUG: Found ConsumeShared module with share_key: {}", share_key);
+            dbg!("🔍 ConsumeShared key", &share_key);
             // Find the fallback module directly
             if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
               println!("🔍 DEBUG: Found fallback module for {}: {}", share_key, fallback_id);
@@ -1009,8 +1016,13 @@ impl ShareUsagePlugin {
 async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
   let usage_data = self.analyze_consume_shared_usage(compilation);
 
+  let metadata = ShareUsageMetadata {
+    total_modules: usage_data.len(),
+  };
+
   let report = ShareUsageReport {
     consume_shared_modules: usage_data,
+    metadata,
   };
 
   let content = serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string());

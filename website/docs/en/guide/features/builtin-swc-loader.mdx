@@ -452,3 +452,63 @@ The above configuration will transform `import { Button } from 'antd';` to:
 import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
+
+### rspackExperiments.collectTypeScriptInfo
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+Collects information from TypeScript's AST for consumption by subsequent Rspack processes, providing better TypeScript development experience and smaller output bundle size.
+
+To ensure the accuracy of collected information, this configuration can only be used when `builtin:swc-loader` is the last normal loader.
+
+Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+
+#### rspackExperiments.collectTypeScriptInfo.typeExports
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Whether to collect type exports for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence), used to check type exports of submodules in `'tolerant'` mode.
+
+#### rspackExperiments.collectTypeScriptInfo.exportedEnum
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **Type:** `boolean | 'const-only'`
+- **Default:** `false`
+
+Whether to collect exported `enum`s. Using `'const-only'` will only collect exported `const enum`s, enabling Rspack to perform cross-module inline optimizations on the collected enums.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                },
+              },
+              rspackExperiments: {
+                collectTypeScriptInfo: {
+                  exportedEnum: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```

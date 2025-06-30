@@ -18,6 +18,9 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_tasks::{within_compiler_context_sync, CompilerContext, CURRENT_COMPILER_CONTEXT};
+use rspack_util::tracing_preset::{
+  TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
+};
 
 use crate::{
   fs_node::{NodeFileSystem, ThreadsafeNodeFS},
@@ -496,6 +499,12 @@ pub fn register_global_trace(
   #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
+  let filter = match filter.as_str() {
+    "OVERVIEW" => TRACING_OVERVIEW_PRESET,
+    "ALL" => TRACING_ALL_PRESET,
+    "BENCH" => TRACING_BENCH_TARGET,
+    _ => filter.as_str(),
+  };
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
     if let TraceState::Off = *state {
