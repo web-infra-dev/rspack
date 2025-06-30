@@ -173,7 +173,15 @@ impl FromNapiValue for RspackError {
     let stack: Option<String> = obj.get("stack").ok().flatten();
     let module: Option<ModuleObject> = obj.get("module").ok().flatten();
     let loc: Option<DependencyLocation> = obj.get("loc").ok().flatten();
-    let hide_stack: Option<bool> = obj.get("hideStack").ok().flatten();
+    let mut hide_stack: Option<bool> = obj.get("hideStack").ok().flatten();
+    if hide_stack.is_none() {
+      let literal = obj.get::<String>("hideStack").ok().flatten();
+      if literal == Some("true".to_string()) {
+        hide_stack = Some(true);
+      } else if literal == Some("false".to_string()) {
+        hide_stack = Some(false);
+      }
+    }
     let file: Option<String> = obj.get("file").ok().flatten();
     let error: Option<RspackError> = obj.get("error").ok().flatten();
 
@@ -212,9 +220,6 @@ impl std::fmt::Display for RspackError {
       }
     } else {
       write!(f, "{}", &self.message)?;
-      if let Some(details) = &self.details {
-        write!(f, "\n{details}")?;
-      }
       Ok(())
     }
   }
