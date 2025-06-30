@@ -24,9 +24,7 @@ const wasmConfig = process.env.WASM && {
 		"Incremental-webworker.test.js"
 	],
 	maxWorkers: 1,
-	maxConcurrency: 1,
-	detectOpenHandles: true,
-	forceExit: true
+	maxConcurrency: 1
 };
 
 /** @type {import('jest').Config} */
