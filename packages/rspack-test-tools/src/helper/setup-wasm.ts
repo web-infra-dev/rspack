@@ -15,22 +15,3 @@ expect.extend({
 	toMatchInlineSnapshot,
 	toMatchFileSnapshot
 });
-
-// @ts-ignore
-globalThis.WasmSkips = {
-	Normals: [/pnpm-workspace/],
-	Compilers: [
-		/swc-api/,
-		// Unknowntimeout (only in ci)
-		/persist-build-inf/,
-		/single-file/
-	],
-	Configs: [
-		/swc-loader-incompatible-wasm-plugin/,
-		/swc-plugin/,
-		/browserslist-config-env/,
-		/pnp-enable/,
-		// Unknown long string
-		/loader-raw-string/
-	]
-};

@@ -9,7 +9,6 @@ describeByWalk(
 	},
 	{
 		level: 1,
-		type: "file",
-		exclude: globalThis.WasmSkips?.Compilers || []
+		type: "file"
 	}
 );
