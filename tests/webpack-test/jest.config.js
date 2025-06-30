@@ -1,5 +1,19 @@
 const root = require("path").resolve(__dirname, "../");
 
+const wasmConfig = process.env.WASM && {
+	testPathIgnorePatterns: [
+		// Skip because they reply on snapshots
+		"<rootDir>/StatsTestCases.basictest.js",
+		// Skip temporarily and should investigate in the future
+		"<rootDir>/ConfigTestCases.basictest.js",
+		"<rootDir>/HotTestCasesWeb.test.js",
+		"<rootDir>/Watch.test.js",
+	],
+	maxWorkers: 1,
+	maxConcurrency: 1,
+	forceExit: true
+};
+
 module.exports = {
 	"forceExit": false,
 	"setupFiles": [
@@ -152,4 +166,5 @@ module.exports = {
 		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
 		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
 	],
+	...(wasmConfig || {})
 }

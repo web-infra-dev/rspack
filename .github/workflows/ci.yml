@@ -94,7 +94,7 @@ jobs:
       target: wasm32-wasip1-threads
       profile: "ci"
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test: false
+      test: true
 
   check-codspeed:
     name: Check Bench Result
@@ -118,14 +118,22 @@ jobs:
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
-    needs: [check-codspeed, test-linux, test-windows, test-mac, check-changed]
+    needs:
+      [
+        check-codspeed,
+        test-linux,
+        test-windows,
+        test-mac,
+        test-wasm,
+        check-changed
+      ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
