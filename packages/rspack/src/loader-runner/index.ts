@@ -570,11 +570,10 @@ export async function runLoaders(
 	};
 	loaderContext.rootContext = compiler.context;
 	loaderContext.emitError = function emitError(err) {
-		let error: RspackError;
 		if (!(err instanceof Error)) {
-			error = new NonErrorEmittedError(err);
+			err = new NonErrorEmittedError(err);
 		}
-		error = new ModuleError(err, {
+		const error = new ModuleError(err, {
 			from: stringifyLoaderObject(
 				loaderContext.loaders[loaderContext.loaderIndex]
 			)
@@ -586,11 +585,10 @@ export async function runLoaders(
 		});
 	};
 	loaderContext.emitWarning = function emitWarning(warn) {
-		let warning: RspackError;
 		if (!(warn instanceof Error)) {
-			warning = new NonErrorEmittedError(warn);
+			warn = new NonErrorEmittedError(warn);
 		}
-		warning = new ModuleWarning(warn, {
+		const warning = new ModuleWarning(warn, {
 			from: stringifyLoaderObject(
 				loaderContext.loaders[loaderContext.loaderIndex]
 			)
