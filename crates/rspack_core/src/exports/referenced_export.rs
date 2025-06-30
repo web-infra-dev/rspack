@@ -1,5 +1,6 @@
 use rspack_collections::UkeySet;
 use rspack_util::atom::Atom;
+use rustc_hash::FxHashSet;
 
 use crate::{ExportInfo, ExportInfoData, ExportInfoGetter, ModuleGraph, RuntimeSpec, UsageState};
 
@@ -71,7 +72,7 @@ pub fn collect_referenced_export_items<'a>(
   prefix: Vec<&'a Atom>,
   export_info: Option<&'a ExportInfoData>,
   default_points_to_self: bool,
-  already_visited: &mut UkeySet<ExportInfo>,
+  already_visited: &mut FxHashSet<ExportInfo>,
 ) {
   if let Some(export_info) = export_info {
     let used = ExportInfoGetter::get_used(export_info, runtime);
