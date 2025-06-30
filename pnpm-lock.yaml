@@ -2139,6 +2139,19 @@ packages:
       emnapi:
         optional: true
 
+  '@napi-rs/cli@3.0.0-alpha.91':
+    resolution: {integrity: sha512-y84TaF1AFQasCTMgeREEUT3fhHXFZXIeGp/S9YloiGxr1xTqhaN9Tt/VYhjnxJvnxLAhgge9Rsv4xrwrXVoaOw==}
+    engines: {node: '>= 16'}
+    hasBin: true
+    peerDependencies:
+      '@emnapi/runtime': ^1.1.0
+      emnapi: ^1.1.0
+    peerDependenciesMeta:
+      '@emnapi/runtime':
+        optional: true
+      emnapi:
+        optional: true
+
   '@napi-rs/cross-toolchain@0.0.19':
     resolution: {integrity: sha512-StHXqYANdTaMFqJJ3JXHqKQMylOzOJPcrOCd9Nt2NIGfvfaXK3SzpmNfkJimkOAYfTsfpfuRERsML0bUZCpHBQ==}
     peerDependencies:
@@ -7538,6 +7551,10 @@ packages:
     resolution: {integrity: sha512-lRfVq8fE8gz6QMBuDM6a+LO3IAzTi05H6gCVaUpir2E1Rwpo4ZUog45KpNXKC/Mn3Yb9UDuHumeFTo9iV/D9FQ==}
     engines: {node: '>=18'}
 
+  unicorn-magic@0.1.0:
+    resolution: {integrity: sha512-lRfVq8fE8gz6QMBuDM6a+LO3IAzTi05H6gCVaUpir2E1Rwpo4ZUog45KpNXKC/Mn3Yb9UDuHumeFTo9iV/D9FQ==}
+    engines: {node: '>=18'}
+
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
 
@@ -9397,6 +9414,34 @@ snapshots:
     optionalDependencies:
       '@emnapi/runtime': 1.4.5
       emnapi: 1.4.5
+    transitivePeerDependencies:
+      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
+      - '@napi-rs/cross-toolchain-arm64-target-armv7'
+      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
+      - '@napi-rs/cross-toolchain-x64-target-aarch64'
+      - '@napi-rs/cross-toolchain-x64-target-armv7'
+      - '@napi-rs/cross-toolchain-x64-target-x86_64'
+      - '@types/node'
+      - supports-color
+
+  '@napi-rs/cli@3.0.0-alpha.91(@emnapi/runtime@1.4.3)(@types/node@20.19.0)(emnapi@1.4.3)':
+    dependencies:
+      '@inquirer/prompts': 7.5.3(@types/node@20.19.0)
+      '@napi-rs/cross-toolchain': 0.0.19
+      '@napi-rs/wasm-tools': 0.0.3
+      '@octokit/rest': 22.0.0
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      colorette: 2.0.20
+      debug: 4.4.1
+      find-up: 7.0.0
+      js-yaml: 4.1.0
+      lodash-es: 4.17.21
+      semver: 7.7.2
+      typanion: 3.14.0
+      wasm-sjlj: 1.0.6
+    optionalDependencies:
+      '@emnapi/runtime': 1.4.3
+      emnapi: 1.4.3
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
