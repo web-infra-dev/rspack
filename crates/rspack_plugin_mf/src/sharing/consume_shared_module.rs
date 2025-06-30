@@ -8,9 +8,8 @@ use rspack_core::{
   rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  DependencyType, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  DependencyType, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -97,21 +96,6 @@ impl ConsumeSharedModule {
 
   pub fn get_share_key(&self) -> &str {
     &self.options.share_key
-  }
-
-  /// Copies metadata from the fallback module to make this ConsumeSharedModule act as a true proxy
-  pub fn copy_metadata_from_fallback(&mut self, module_graph: &mut ModuleGraph) -> Result<()> {
-    if let Some(fallback_id) = self.find_fallback_module_id(module_graph) {
-      // Copy build meta from fallback module
-      if let Some(fallback_module) = module_graph.module_by_identifier(&fallback_id) {
-        // Copy build meta information
-        self.build_meta = fallback_module.build_meta().clone();
-        self.build_info = fallback_module.build_info().clone();
-
-        // Export information will be copied during build process
-      }
-    }
-    Ok(())
   }
 
   /// Finds the fallback module identifier for this ConsumeShared module

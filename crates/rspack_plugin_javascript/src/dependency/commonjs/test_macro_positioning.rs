@@ -159,50 +159,32 @@ info = { name: "test" };
 
   #[test]
   fn test_macro_positioning_scenarios() {
-    println!("\n🔍 TESTING MACRO POSITIONING SCENARIOS");
-    println!("=====================================");
-
     let test_cases = create_test_cases();
     let mut passed = 0;
     let mut failed = 0;
 
     for test_case in test_cases {
-      println!("\n📝 Test: {}", test_case.name);
-      println!("   Source: {}", test_case.source_pattern);
-      println!("   Expected: {}", test_case.expected_output);
-      println!("   Description: {}", test_case.description);
-
       // Simulate logic without creating actual dependency
       let result = simulate_current_template_logic_simple(
         &test_case.base,
-        &test_case.names[0],
+        test_case.names[0],
         test_case.source_pattern,
         test_case.value_range_start.is_some(),
       );
 
       if result == test_case.expected_output {
-        println!("   ✅ PASS");
         passed += 1;
       } else {
-        println!("   ❌ FAIL");
-        println!("   Actual:   {}", result);
-        println!("   Expected: {}", test_case.expected_output);
         failed += 1;
       }
     }
 
-    println!("\n📊 TEST SUMMARY");
-    println!("================");
-    println!("✅ Passed: {}", passed);
-    println!("❌ Failed: {}", failed);
-    println!("📝 Total:  {}", passed + failed);
-
-    if failed > 0 {
-      println!("\n🚨 ISSUES IDENTIFIED:");
-      println!("1. module.exports.* assignments incorrectly dropping module.exports prefix");
-      println!("2. Variable assignments wrapping variable name instead of value");
-      println!("3. Need export context to distinguish assignment types");
-    }
+    // Assert that tests pass
+    assert!(
+      failed == 0,
+      "Expected all macro positioning tests to pass, but {failed} failed out of {}",
+      passed + failed
+    );
   }
 
   fn simulate_current_template_logic_simple(
@@ -227,8 +209,7 @@ info = { name: "test" };
           let rhs = parts[1].trim_end_matches(';'); // "value"
 
           format!(
-            "{} = /* @common:if [condition=\"treeShake.test.{}\"] */ {} /* @common:endif */;",
-            lhs, export_name, rhs
+            "{lhs} = /* @common:if [condition=\"treeShake.test.{export_name}\"] */ {rhs} /* @common:endif */;"
           )
         } else {
           source_pattern.to_string()
@@ -237,9 +218,7 @@ info = { name: "test" };
         // Bulk export property in object literal: "calculateSum,"
         let property_name = source_pattern.trim_end_matches(',');
         format!(
-          "/* @common:if [condition=\"treeShake.test.{}\"] */ {} /* @common:endif */,",
-          export_name,
-          property_name // Use the actual property name, not export_name
+          "/* @common:if [condition=\"treeShake.test.{export_name}\"] */ {property_name} /* @common:endif */,"
         )
       } else {
         // Variable assignment: "var = value"
@@ -249,8 +228,7 @@ info = { name: "test" };
           let rhs = parts[1].trim_end_matches(';'); // value
 
           format!(
-            "{} = /* @common:if [condition=\"treeShake.test.{}\"] */ {} /* @common:endif */;",
-            lhs, export_name, rhs
+            "{lhs} = /* @common:if [condition=\"treeShake.test.{export_name}\"] */ {rhs} /* @common:endif */;"
           )
         } else {
           source_pattern.to_string()
@@ -259,17 +237,13 @@ info = { name: "test" };
     } else {
       // Fallback logic for cases without value_range
       format!(
-        "/* @common:if [condition=\"treeShake.test.{}\"] */ {}.{} /* @common:endif */",
-        export_name, base_expression, export_name
+        "/* @common:if [condition=\"treeShake.test.{export_name}\"] */ {base_expression}.{export_name} /* @common:endif */"
       )
     }
   }
 
   #[test]
   fn test_actual_output_validation() {
-    println!("\n🔍 VALIDATING ACTUAL BUILD OUTPUT PATTERNS");
-    println!("==========================================");
-
     // These patterns are based on the actual working build output
     let working_patterns = vec![
             (
@@ -294,25 +268,21 @@ info = { name: "test" };
             )
         ];
 
-    println!("📊 VALIDATION RESULTS:");
+    // Validate that all patterns are properly structured
     for (pattern_type, example, status) in working_patterns {
-      println!("  {} - {}", pattern_type, status);
-      println!("    Example: {}", example);
-      println!();
+      assert!(
+        example.contains("@common:if"),
+        "Pattern {pattern_type} should contain macro syntax"
+      );
+      assert!(
+        status.starts_with("✅"),
+        "Pattern {pattern_type} should be marked as working"
+      );
     }
-
-    println!("🎉 SUMMARY: All CommonJS macro positioning issues have been resolved!");
-    println!("  - Individual exports: ✅ FIXED");
-    println!("  - Bulk exports: ✅ FIXED");
-    println!("  - Complex values: ✅ FIXED");
-    println!("  - ESM exports: ✅ Already working");
   }
 
   #[test]
   fn test_export_context_detection() {
-    println!("\n🔍 TESTING EXPORT CONTEXT DETECTION");
-    println!("====================================");
-
     let test_patterns = vec![
       (
         "exports.formatPath = formatPath;",
@@ -330,16 +300,12 @@ info = { name: "test" };
     ];
 
     for (pattern, expected_context) in test_patterns {
-      println!("Pattern: {} -> Expected: {:?}", pattern, expected_context);
-
       // This would be the logic to detect export context
       let detected_context = detect_export_context_from_pattern(pattern);
-
-      if detected_context == expected_context {
-        println!("  ✅ Correct context detection");
-      } else {
-        println!("  ❌ Wrong context: got {:?}", detected_context);
-      }
+      assert_eq!(
+        detected_context, expected_context,
+        "Export context detection failed for pattern: {pattern}"
+      );
     }
   }
 
@@ -370,61 +336,33 @@ info = { name: "test" };
 
   #[test]
   fn test_range_extraction_logic() {
-    println!("\n🔍 TESTING RANGE EXTRACTION LOGIC");
-    println!("==================================");
-
     // Test extracting original source text from ranges
     let source = "module.exports.formatPath = exports.formatPath;";
 
     // Simulate ranges as they would be detected by parser
-    let full_range = (0, source.len() as u32); // entire statement
+    let _full_range = (0, source.len() as u32); // entire statement
     let value_range = (29, 45); // "exports.formatPath"
     let property_range = (0, 28); // "module.exports.formatPath"
 
-    println!("Source: {}", source);
-    println!(
-      "Full range: {:?} -> '{}'",
-      full_range,
-      &source[full_range.0 as usize..full_range.1 as usize]
-    );
-    println!(
-      "Value range: {:?} -> '{}'",
-      value_range,
-      &source[value_range.0 as usize..value_range.1 as usize]
-    );
-    println!(
-      "Property range: {:?} -> '{}'",
-      property_range,
-      &source[property_range.0 as usize..property_range.1 as usize]
-    );
-
     // Expected transformation
     let expected = "module.exports.formatPath = /* @common:if [condition=\"treeShake.test.formatPath\"] */ exports.formatPath /* @common:endif */;";
-    println!("Expected: {}", expected);
 
     // The fix: we need to replace value_range with macro-wrapped content
     let value_text = &source[value_range.0 as usize..value_range.1 as usize];
     let property_text = &source[property_range.0 as usize..property_range.1 as usize];
 
     let corrected = format!(
-      "{} = /* @common:if [condition=\"treeShake.test.formatPath\"] */ {} /* @common:endif */;",
-      property_text, value_text
+      "{property_text} = /* @common:if [condition=\"treeShake.test.formatPath\"] */ {value_text} /* @common:endif */;"
     );
 
-    println!("Corrected: {}", corrected);
-
-    if corrected == expected {
-      println!("✅ Range extraction logic is correct");
-    } else {
-      println!("❌ Range extraction logic needs work");
-    }
+    assert_eq!(
+      corrected, expected,
+      "Range extraction logic should produce correct output"
+    );
   }
 
   #[test]
   fn test_template_source_access() {
-    println!("\n🔍 TESTING TEMPLATE SOURCE ACCESS");
-    println!("==================================");
-
     // The core issue: templates need access to original source text
     // to extract content from value_range and wrap it properly
 
@@ -450,27 +388,16 @@ info = { name: "test" };
         ];
 
     for (source, property_range, value_range, expected) in scenarios {
-      println!("\nScenario: {}", source);
-
       let property_text = &source[property_range.0..property_range.1];
       let value_text = &source[value_range.0..value_range.1];
 
-      println!("  Property: '{}'", property_text);
-      println!("  Value: '{}'", value_text);
+      let result =
+        format!("{property_text} = /* @common:if [...] */ {value_text} /* @common:endif */;");
 
-      let result = format!(
-        "{} = /* @common:if [...] */ {} /* @common:endif */;",
-        property_text, value_text
+      assert_eq!(
+        result, expected,
+        "Template logic should produce correct output for scenario: {source}"
       );
-
-      println!("  Result: {}", result);
-      println!("  Expected: {}", expected);
-
-      if result == expected {
-        println!("  ✅ Correct template logic");
-      } else {
-        println!("  ❌ Template logic needs fixing");
-      }
     }
   }
 }

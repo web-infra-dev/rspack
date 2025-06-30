@@ -2,6 +2,7 @@
 //! Ensures JavaScript syntax validity after macro processing
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod syntax_validation_tests {
 
   /// Validates JavaScript syntax patterns to ensure macros don't create invalid code
@@ -27,17 +28,17 @@ mod syntax_validation_tests {
     // Check for property access wrapping in object literals
     // This pattern matches macros wrapping property access expressions in object literals
     let property_access_pattern = r"/\*\s*@common:if[^*]*\*/\s*(module\.exports|exports)\.[\w\.]+\s*/\*\s*@common:endif\s*\*/\s*:";
-    
+
     if let Ok(regex) = regex::Regex::new(property_access_pattern) {
       if regex.is_match(code) {
         return false;
       }
     }
-    
+
     // Check for property access wrapping with comma
     // This pattern matches macros wrapping property access expressions followed by a comma
     let property_access_comma_pattern = r"/\*\s*@common:if[^*]*\*/\s*(module\.exports|exports)\.[\w\.]+\s*/\*\s*@common:endif\s*\*/\s*,";
-    
+
     if let Ok(regex) = regex::Regex::new(property_access_comma_pattern) {
       if regex.is_match(code) {
         return false;
@@ -65,8 +66,7 @@ mod syntax_validation_tests {
     for pattern in valid_patterns {
       assert!(
         validate_javascript_syntax(pattern),
-        "Pattern should be valid: {}",
-        pattern
+        "Pattern should be valid: {pattern}",
       );
     }
   }
@@ -88,8 +88,7 @@ mod syntax_validation_tests {
     for pattern in invalid_patterns {
       assert!(
         !validate_javascript_syntax(pattern),
-        "Pattern should be invalid: {}",
-        pattern
+        "Pattern should be invalid: {pattern}",
       );
     }
   }
@@ -107,8 +106,7 @@ mod syntax_validation_tests {
     for pattern in valid_object_patterns {
       assert!(
         validate_javascript_syntax(pattern),
-        "Object pattern should be valid: {}",
-        pattern
+        "Object pattern should be valid: {pattern}",
       );
     }
 
@@ -122,8 +120,7 @@ mod syntax_validation_tests {
     for pattern in invalid_object_patterns {
       assert!(
         !validate_javascript_syntax(pattern),
-        "Object pattern should be invalid: {}",
-        pattern
+        "Object pattern should be invalid: {pattern}",
       );
     }
   }
@@ -140,8 +137,7 @@ mod syntax_validation_tests {
     for pattern in valid_export_assignments {
       assert!(
         validate_javascript_syntax(pattern),
-        "Export assignment should be valid: {}",
-        pattern
+        "Export assignment should be valid: {pattern}",
       );
     }
   }
@@ -162,32 +158,27 @@ mod syntax_validation_tests {
 
         let macro_condition = "treeShake.test.formatPath";
         let result = format!(
-          "{} = /* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
-          var_name, macro_condition, value_part
+          "{var_name} = /* @common:if [condition=\"{macro_condition}\"] */ {value_part} /* @common:endif */"
         );
 
         // The result should be valid JavaScript syntax
         assert!(
           validate_javascript_syntax(&result),
-          "Template logic fix should produce valid syntax: {}",
-          result
+          "Template logic fix should produce valid syntax: {result}",
         );
 
         // Verify specific requirements
         assert!(
           !result.starts_with("/* @common:if"),
-          "Variable name should not be wrapped: {}",
-          result
+          "Variable name should not be wrapped: {result}",
         );
         assert!(
           result.contains("formatPath ="),
-          "Assignment should start with variable name: {}",
-          result
+          "Assignment should start with variable name: {result}",
         );
         assert!(
           result.contains("exports.formatPath /* @common:endif */"),
-          "Value should be wrapped: {}",
-          result
+          "Value should be wrapped: {result}",
         );
       }
     }
@@ -210,22 +201,16 @@ mod syntax_validation_tests {
           let var_part = &assignment[..equals_pos];
           let value_part = &assignment[equals_pos + 3..];
 
-          let result = format!(
-            "{} = /* @common:if */ {} /* @common:endif */",
-            var_part, value_part
-          );
+          let result = format!("{var_part} = /* @common:if */ {value_part} /* @common:endif */");
 
           assert!(
             validate_javascript_syntax(&result),
-            "Edge case should produce valid syntax: {} -> {}",
-            assignment,
-            result
+            "Edge case should produce valid syntax: {assignment} -> {result}",
           );
 
           assert_eq!(
             var_part, var_name,
-            "Variable extraction should be correct for: {}",
-            assignment
+            "Variable extraction should be correct for: {assignment}",
           );
         }
       }

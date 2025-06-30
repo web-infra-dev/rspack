@@ -85,8 +85,6 @@ pub struct CommonJsExportsDependency {
   source_map: Option<SharedSourceMap>,
   resource_identifier: Option<String>,
   context: ExportContext,
-  /// Whether this property has a trailing comma in the source
-  has_trailing_comma: Option<bool>,
   /// Whether this is the last property in an object literal
   is_last_property: Option<bool>,
 }
@@ -108,7 +106,7 @@ impl CommonJsExportsDependency {
     base: ExportsBase,
     names: Vec<Atom>,
     context: ExportContext,
-    has_trailing_comma: bool,
+    _has_trailing_comma: bool,
     is_last_property: bool,
   ) -> Self {
     let resource_identifier = Self::create_resource_identifier(&base, &names);
@@ -121,7 +119,6 @@ impl CommonJsExportsDependency {
       source_map: None,
       resource_identifier: Some(resource_identifier),
       context,
-      has_trailing_comma: Some(has_trailing_comma),
       is_last_property: Some(is_last_property),
     }
   }
@@ -144,7 +141,6 @@ impl CommonJsExportsDependency {
       source_map,
       resource_identifier: Some(resource_identifier),
       context,
-      has_trailing_comma: None,
       is_last_property: None,
     }
   }

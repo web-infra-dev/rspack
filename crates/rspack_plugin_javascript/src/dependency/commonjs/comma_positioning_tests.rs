@@ -128,7 +128,7 @@ mod comma_positioning_tests {
       assert!(!expected_pattern.ends_with("/* @common:endif */,"));
 
       // Verify it follows the correct pattern
-      let pattern_description = format!("Pattern for {property}: {expected_pattern}");
+      let _pattern_description = format!("Pattern for {property}: {expected_pattern}");
     }
   }
 
