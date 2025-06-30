@@ -67,7 +67,7 @@ module.exports = {
 		},
 		  Object {
 		  "index": 1,
-		  "message": "  × Error:\\n",
+		  "message": "  × \\n",
 		  "name": "Error",
 		  "stack": "Error: \\n    at <TEST_TOOLS_ROOT>/tests/errorCases/error-test-filter.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 		},

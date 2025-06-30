@@ -199,26 +199,18 @@ impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 // The error printing logic here is consistent with Webpack Stats.
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.message.starts_with("  \u{1b}[31m×\u{1b}[0m") || self.message.starts_with("  ×") {
-      write!(f, "{}", self.message)?;
-      return Ok(());
-    }
-
     if self.parent_error_name.as_deref() == Some("ModuleBuildError") {
       // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
       if let Some(stack) = &self.stack {
         if self.hide_stack != Some(true) {
           write!(f, "{stack}")
         } else {
-          write!(f, "{}: ", self.name)?;
           write!(f, "{}", self.message)
         }
       } else {
-        write!(f, "{}: ", self.name)?;
         write!(f, "{}", self.message)
       }
     } else {
-      write!(f, "{}: ", self.name)?;
       write!(f, "{}", &self.message)?;
       if let Some(details) = &self.details {
         write!(f, "\n{details}")?;

@@ -1,5 +1,6 @@
 WARNING in ./lib.js
-  ⚠ ModuleWarning: Failed to load (from: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-warning/my-loader.js)
+  ⚠ Module Warning (from <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-warning/my-loader.js):
+  │ Failed to load
   │     at xxx
   │     at xxx
   │     at xxx

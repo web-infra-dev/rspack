@@ -28,7 +28,6 @@ import {
 import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { cleanUp } from "../ErrorHelpers";
 import { NormalModule } from "../NormalModule";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
@@ -62,6 +61,8 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
+import ModuleError from "./ModuleError";
+import ModuleWarning from "./ModuleWarning";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -569,42 +570,32 @@ export async function runLoaders(
 	};
 	loaderContext.rootContext = compiler.context;
 	loaderContext.emitError = function emitError(err) {
-		let error = err;
-		if (!(error instanceof Error)) {
-			error = new NonErrorEmittedError(error);
+		let error: RspackError;
+		if (!(err instanceof Error)) {
+			error = new NonErrorEmittedError(err);
 		}
-		const name = error.name;
-		const message = error.message;
-		const stack = error.stack;
-		error.name = "ModuleError";
-		error.message = `${message} (from: ${stringifyLoaderObject(
-			loaderContext.loaders[loaderContext.loaderIndex]
-		)})`;
-		(error as RspackError).module = loaderContext._module;
-		(error as RspackError).details = stack
-			? cleanUp(stack, name, message)
-			: undefined;
+		error = new ModuleError(err, {
+			from: stringifyLoaderObject(
+				loaderContext.loaders[loaderContext.loaderIndex]
+			)
+		});
+		error.module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
 		});
 	};
 	loaderContext.emitWarning = function emitWarning(warn) {
-		let warning = warn;
-		if (!(warning instanceof Error)) {
-			warning = new NonErrorEmittedError(warning);
+		let warning: RspackError;
+		if (!(warn instanceof Error)) {
+			warning = new NonErrorEmittedError(warn);
 		}
-		const name = warning.name;
-		const message = warning.message;
-		const stack = warning.stack;
-		warning.name = "ModuleWarning";
-		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
-			loaderContext.loaders[loaderContext.loaderIndex]
-		)})`;
-		(warning as RspackError).module = loaderContext._module;
-		(warning as RspackError).details = stack
-			? cleanUp(stack, name, message)
-			: undefined;
+		warning = new ModuleWarning(warn, {
+			from: stringifyLoaderObject(
+				loaderContext.loaders[loaderContext.loaderIndex]
+			)
+		});
+		warning.module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
