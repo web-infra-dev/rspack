@@ -94,9 +94,7 @@ pub fn collect_referenced_export_items<'a>(
         .exports_info()
         .expect("should have exports info"),
     ) {
-      for export_info in exports_info.exports() {
-        let export_info = export_info.as_data(module_graph);
-
+      for export_info in exports_info.exports().values() {
         collect_referenced_export_items(
           module_graph,
           runtime,

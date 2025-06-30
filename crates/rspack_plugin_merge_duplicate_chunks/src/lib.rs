@@ -177,21 +177,21 @@ fn is_equally_used(
       return false;
     }
   } else {
-    let other_exports_info = info.other_exports_info().as_data(mg);
+    let other_exports_info = info.other_exports_info();
     if ExportInfoGetter::get_used(other_exports_info, Some(a))
       != ExportInfoGetter::get_used(other_exports_info, Some(b))
     {
       return false;
     }
   }
-  let side_effects_only_info = info.side_effects_only_info().as_data(mg);
+  let side_effects_only_info = info.side_effects_only_info();
   if ExportInfoGetter::get_used(side_effects_only_info, Some(a))
     != ExportInfoGetter::get_used(side_effects_only_info, Some(b))
   {
     return false;
   }
-  for export_info in info.exports() {
-    let export_info_data = export_info.as_data(mg);
+  for export_info in info.exports().values() {
+    let export_info_data = export_info;
     if ExportInfoGetter::get_used(export_info_data, Some(a))
       != ExportInfoGetter::get_used(export_info_data, Some(b))
     {

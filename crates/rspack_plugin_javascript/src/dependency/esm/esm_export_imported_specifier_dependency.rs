@@ -348,17 +348,11 @@ impl ESMExportImportedSpecifierDependency {
       .as_data(module_graph);
 
     let no_extra_exports = matches!(
-      imported_exports_info
-        .other_exports_info()
-        .as_data(module_graph)
-        .provided(),
+      imported_exports_info.other_exports_info().provided(),
       Some(ExportProvided::NotProvided)
     );
     let no_extra_imports = matches!(
-      ExportInfoGetter::get_used(
-        exports_info.other_exports_info().as_data(module_graph),
-        runtime
-      ),
+      ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime),
       UsageState::Unused
     );
 
@@ -395,12 +389,11 @@ impl ESMExportImportedSpecifierDependency {
     };
 
     if no_extra_imports {
-      for export_info in exports_info.exports() {
-        let export_info_data = export_info.as_data(module_graph);
-        let export_name = export_info_data.name().cloned().unwrap_or_default();
+      for export_info in exports_info.exports().values() {
+        let export_name = export_info.name().cloned().unwrap_or_default();
         if ignored_exports.contains(&export_name)
           || matches!(
-            ExportInfoGetter::get_used(export_info_data, runtime),
+            ExportInfoGetter::get_used(export_info, runtime),
             UsageState::Unused
           )
         {
@@ -437,15 +430,11 @@ impl ESMExportImportedSpecifierDependency {
         checked.insert(export_name);
       }
     } else if no_extra_exports {
-      for imported_export_info in imported_exports_info.exports() {
-        let imported_export_info_data = imported_export_info.as_data(module_graph);
-        let imported_export_info_name = imported_export_info_data
-          .name()
-          .cloned()
-          .unwrap_or_default();
+      for imported_export_info in imported_exports_info.exports().values() {
+        let imported_export_info_name = imported_export_info.name().cloned().unwrap_or_default();
         if ignored_exports.contains(&imported_export_info_name)
           || matches!(
-            imported_export_info_data.provided(),
+            imported_export_info.provided(),
             Some(ExportProvided::NotProvided)
           )
         {
@@ -454,9 +443,8 @@ impl ESMExportImportedSpecifierDependency {
         let export_info = exports_info
           .id()
           .get_read_only_export_info(module_graph, &imported_export_info_name);
-        let export_info_data = export_info.as_data(module_graph);
         if matches!(
-          ExportInfoGetter::get_used(export_info_data, runtime),
+          ExportInfoGetter::get_used(export_info.as_data(module_graph), runtime),
           UsageState::Unused
         ) {
           continue;
@@ -473,7 +461,7 @@ impl ESMExportImportedSpecifierDependency {
 
         exports.insert(imported_export_info_name.clone());
         if matches!(
-          imported_export_info_data.provided(),
+          imported_export_info.provided(),
           Some(ExportProvided::Provided)
         ) {
           continue;
@@ -1022,12 +1010,11 @@ impl ESMExportImportedSpecifierDependency {
       let exports_info = module_graph.get_exports_info(&imported_module.identifier());
       let mut conflicts: IndexMap<&str, Vec<&Atom>, BuildHasherDefault<FxHasher>> =
         IndexMap::default();
-      for export_info in exports_info.as_data(module_graph).exports() {
-        let export_info_data = export_info.as_data(module_graph);
-        if !matches!(export_info_data.provided(), Some(ExportProvided::Provided)) {
+      for export_info in exports_info.as_data(module_graph).exports().values() {
+        if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
           continue;
         }
-        let Some(name) = export_info_data.name() else {
+        let Some(name) = export_info.name() else {
           continue;
         };
         if name == "default" {
@@ -1058,7 +1045,7 @@ impl ESMExportImportedSpecifierDependency {
         ) else {
           continue;
         };
-        let Some(target) = get_terminal_binding(export_info_data, module_graph) else {
+        let Some(target) = get_terminal_binding(export_info, module_graph) else {
           continue;
         };
         let Some(conflicting_module) =
@@ -1358,15 +1345,15 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         create_exports_object_referenced()
       }
       ExportMode::ReexportNamedDefault(ExportModeReexportNamedDefault {
-        partial_namespace_export_info,
+        ref partial_namespace_export_info,
         ..
       })
       | ExportMode::ReexportNamespaceObject(ExportModeReexportNamespaceObject {
-        partial_namespace_export_info,
+        ref partial_namespace_export_info,
         ..
       })
       | ExportMode::ReexportFakeNamespaceObject(ExportModeFakeNamespaceObject {
-        partial_namespace_export_info,
+        ref partial_namespace_export_info,
         ..
       }) => {
         let mut referenced_exports = vec![];
@@ -1502,11 +1489,10 @@ fn determine_export_assignments(
       let exports_info = module_graph
         .get_exports_info(module_identifier)
         .as_data(module_graph);
-      for export_info in exports_info.exports() {
-        let export_info_data = export_info.as_data(module_graph);
+      for export_info in exports_info.exports().values() {
         // SAFETY: This is safe because a real export can't export empty string
-        let export_info_name = export_info_data.name().expect("export name is empty");
-        if matches!(export_info_data.provided(), Some(ExportProvided::Provided))
+        let export_info_name = export_info.name().expect("export name is empty");
+        if matches!(export_info.provided(), Some(ExportProvided::Provided))
           && export_info_name != "default"
           && !names.contains(export_info_name)
         {

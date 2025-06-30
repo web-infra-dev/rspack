@@ -469,7 +469,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   for (runtime, export, module_identifier) in runtime_info {
     let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
+      let export_info = module_graph
+        .get_exports_info(&module_identifier)
+        .get_export_info(&mut module_graph, &(export.as_str()).into());
       let info = export_info.as_data_mut(&mut module_graph);
       ExportInfoSetter::set_used(info, UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));

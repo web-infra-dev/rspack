@@ -413,6 +413,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       export_name: name.clone(),
       other_export_info: self.get_other_in_exports_info(exports_info),
       data: ExportInfoData::new(
+        *exports_info,
         Some(name.clone()),
         Some(self.get_other_in_exports_info(exports_info)),
       ),
@@ -538,14 +539,14 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::Default => IndexMap::new(),
         PrefetchExportsInfoMode::NamedExports(ref names) => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports_with_names() {
+          for (key, value) in exports_info.exports().iter() {
             if !names.contains(key) {
               continue;
             }
             exports.insert(
               key,
               PrefetchedExportInfoData {
-                inner: value.as_data(mg),
+                inner: value,
                 // exports_info: export_info_data.exports_info,
               },
             );
@@ -554,11 +555,11 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::AllExports => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports_with_names() {
+          for (key, value) in exports_info.exports().iter() {
             exports.insert(
               key,
               PrefetchedExportInfoData {
-                inner: value.as_data(mg),
+                inner: value,
                 // exports_info: export_info_data.exports_info,
               },
             );
@@ -569,7 +570,6 @@ impl ExportsInfoGetter {
           let mut exports = IndexMap::new();
           if let Some(name) = names.first() {
             if let Some(export_info) = exports_info.named_exports(name) {
-              let export_info = export_info.as_data(mg);
               if let Some(nested_exports_info) = export_info.exports_info() {
                 nested_exports.push((
                   nested_exports_info,
@@ -589,9 +589,7 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports_with_names() {
-            let export_info = value.as_data(mg);
-
+          for (key, export_info) in exports_info.exports().iter() {
             if names.first().is_some_and(|name| name == key) {
               if let Some(nested_exports_info) = export_info.exports_info() {
                 nested_exports.push((
@@ -613,9 +611,7 @@ impl ExportsInfoGetter {
         }
         PrefetchExportsInfoMode::Full => {
           let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports_with_names() {
-            let export_info = value.as_data(mg);
-
+          for (key, export_info) in exports_info.exports().iter() {
             if let Some(nested_exports_info) = export_info.exports_info() {
               nested_exports.push((nested_exports_info, PrefetchExportsInfoMode::Full));
             }
@@ -632,12 +628,12 @@ impl ExportsInfoGetter {
         }
       };
 
-      let other_exports_info_data = exports_info.other_exports_info().as_data(mg);
+      let other_exports_info_data = exports_info.other_exports_info();
       if let Some(other_exports) = other_exports_info_data.exports_info() {
         nested_exports.push((other_exports, PrefetchExportsInfoMode::Default));
       }
 
-      let side_effects_only_info_data = exports_info.side_effects_only_info().as_data(mg);
+      let side_effects_only_info_data = exports_info.side_effects_only_info();
       if let Some(side_exports) = side_effects_only_info_data.exports_info() {
         nested_exports.push((side_exports, PrefetchExportsInfoMode::Default));
       }
@@ -703,14 +699,14 @@ impl ExportsInfoGetter {
           if is_exports_info_used(&redirect, runtime, mg) {
             return true;
           }
-        } else if ExportInfoGetter::get_used(exports_info.other_exports_info().as_data(mg), runtime)
+        } else if ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime)
           != UsageState::Unused
         {
           return true;
         }
 
-        for (_, export_info) in exports_info.exports_with_names() {
-          if ExportInfoGetter::get_used(export_info.as_data(mg), runtime) != UsageState::Unused {
+        for export_info in exports_info.exports().values() {
+          if ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused {
             return true;
           }
         }
@@ -722,7 +718,7 @@ impl ExportsInfoGetter {
         true
       } else {
         !matches!(
-          ExportInfoGetter::get_used(id.as_data(mg).side_effects_only_info().as_data(mg), runtime),
+          ExportInfoGetter::get_used(id.as_data(mg).side_effects_only_info(), runtime),
           UsageState::Unused
         )
       };

@@ -15,8 +15,8 @@ use super::Storage;
 use crate::{
   cache::persistent::cacheable_context::CacheableContext, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, DependencyId, DependencyParents,
-  ExportInfoData, ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
-  ModuleGraphPartial, RayonConsumer,
+  ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleGraphPartial,
+  RayonConsumer,
 };
 
 const SCOPE: &str = "occasion_make_module_graph";
@@ -159,13 +159,9 @@ pub async fn recovery_module_graph(
         mg.add_block(Box::new(block));
       }
       // recovery exports/export info
-      let other_exports_info = ExportInfoData::new(None, None);
-      let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
-      let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+      let exports_info = ExportsInfoData::new();
       mgm.exports = exports_info.id();
       mg.set_exports_info(exports_info.id(), exports_info);
-      mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
-      mg.set_export_info(other_exports_info.id(), other_exports_info);
 
       mg.add_module_graph_module(mgm);
       mg.add_module(module);

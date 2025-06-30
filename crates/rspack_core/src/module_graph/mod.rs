@@ -17,8 +17,8 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportInfo, ExportInfoData,
-  ExportsInfo, ExportsInfoData, ModuleIdentifier,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportInfo, ExportsInfo,
+  ExportsInfoData, ModuleIdentifier,
 };
 
 // TODO Here request can be used Atom
@@ -85,7 +85,6 @@ pub struct ModuleGraphPartial {
 
   // Module's ExportsInfo is also a part of ModuleGraph
   exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
-  export_info_map: UkeyMap<ExportInfo, ExportInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
@@ -1070,44 +1069,6 @@ impl<'a> ModuleGraph<'a> {
       panic!("should have active partial");
     };
     active_partial.exports_info_map.insert(id, info);
-  }
-
-  pub fn get_export_info_by_id(&self, id: &ExportInfo) -> &ExportInfoData {
-    self
-      .loop_partials(|p| p.export_info_map.get(id))
-      .expect("should have export info")
-  }
-
-  pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfo) -> &mut ExportInfoData {
-    self
-      .loop_partials_mut(
-        |p| p.export_info_map.contains_key(id),
-        |p, search_result| {
-          p.export_info_map.insert(*id, search_result);
-        },
-        |p| p.export_info_map.get(id).cloned(),
-        |p| p.export_info_map.get_mut(id),
-      )
-      .expect("should have export info")
-  }
-
-  pub fn prepare_export_info_map(&mut self) {
-    let _ = self
-      .loop_partials_mut::<UkeyMap<ExportInfo, ExportInfoData>, UkeyMap<ExportInfo, ExportInfoData>>(
-        |_| false,
-        |p, search_result| {
-          let _ = std::mem::replace::<UkeyMap<ExportInfo, ExportInfoData>>(&mut p.export_info_map, search_result);
-        },
-        |p| Some(p.export_info_map.clone()),
-        |p| Some(&mut p.export_info_map),
-      );
-  }
-
-  pub fn set_export_info(&mut self, id: ExportInfo, info: ExportInfoData) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial.export_info_map.insert(id, info);
   }
 
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {

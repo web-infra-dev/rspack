@@ -246,8 +246,8 @@ fn mangle_exports_info(
         used_names.insert(name.to_string());
       }
       Manglable::CanMangle(name) => {
-        mangleable_export_names.insert(export_info.id, name.clone());
-        mangleable_exports.push(export_info.id);
+        mangleable_export_names.insert(export_info.id.clone(), name.clone());
+        mangleable_exports.push(export_info.id.clone());
       }
       Manglable::Mangled => {}
     }
@@ -286,7 +286,7 @@ fn mangle_exports_info(
         if size == used_names.len() {
           false
         } else {
-          export_info_used_name.insert(e, name);
+          export_info_used_name.insert(e.clone(), name);
           true
         }
       },

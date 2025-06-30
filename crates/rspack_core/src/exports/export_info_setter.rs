@@ -234,10 +234,7 @@ impl ExportInfoSetter {
     }
 
     info.set_exports_info_owned(true);
-    let other_exports_info = ExportInfoData::new(None, None);
-    let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
-    let new_exports_info =
-      ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+    let new_exports_info = ExportsInfoData::new();
     let new_exports_info_id = new_exports_info.id();
 
     let old_exports_info = info.exports_info();
@@ -245,8 +242,6 @@ impl ExportInfoSetter {
     info.set_exports_info(Some(new_exports_info_id));
 
     mg.set_exports_info(new_exports_info_id, new_exports_info);
-    mg.set_export_info(other_exports_info.id(), other_exports_info);
-    mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
 
     new_exports_info_id.set_has_provide_info(mg);
     if let Some(exports_info) = old_exports_info {
@@ -255,8 +250,7 @@ impl ExportInfoSetter {
     new_exports_info_id
   }
 
-  pub fn set_has_use_info(info: &ExportInfo, mg: &mut ModuleGraph) {
-    let info = info.as_data_mut(mg);
+  pub fn set_has_use_info(info: &mut ExportInfoData, nested_exports_info: &mut Vec<ExportsInfo>) {
     if !info.has_use_in_runtime_info() {
       info.set_has_use_in_runtime_info(true);
     }
@@ -266,7 +260,7 @@ impl ExportInfoSetter {
     if info.exports_info_owned()
       && let Some(exports_info) = info.exports_info()
     {
-      exports_info.set_has_use_info(mg);
+      nested_exports_info.push(exports_info);
     }
   }
 }

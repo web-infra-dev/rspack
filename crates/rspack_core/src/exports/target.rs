@@ -9,7 +9,7 @@ use crate::{
   PrefetchExportsInfoMode,
 };
 
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub enum TerminalBinding {
   ExportInfo(ExportInfo),
   ExportsInfo(ExportsInfo),

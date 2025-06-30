@@ -78,10 +78,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         == BuildMetaExportsType::Unset
       {
         let other_exports_info = exports_info.as_data(self.mg).other_exports_info();
-        if !matches!(
-          other_exports_info.as_data(self.mg).provided(),
-          Some(ExportProvided::Unknown)
-        ) {
+        if !matches!(other_exports_info.provided(), Some(ExportProvided::Unknown)) {
           exports_info.set_has_provide_info(self.mg);
           exports_info.set_unknown_exports_provided(self.mg, false, None, None, None, None);
           continue;
