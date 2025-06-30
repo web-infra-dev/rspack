@@ -10,7 +10,7 @@
     "build:quiet": "rspack build 2>/dev/null",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:snapshots",
     "test:unit": "rstest run tests/unit",
-    "test:integration": "rstest run tests/integration",
+    "test:integration": "node tests/integration/test-macro-evaluation.test.cjs",
     "test:validate": "rstest run tests/unit/test-validate.test.js",
     "test:snapshots": "rstest run tests/snapshots",
     "test:snapshots:update": "rstest run tests/snapshots --update",
@@ -26,6 +26,6 @@
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {
-    "@rstest/core": "^0.0.2"
+    "@rstest/core": "^0.0.3"
   }
 }

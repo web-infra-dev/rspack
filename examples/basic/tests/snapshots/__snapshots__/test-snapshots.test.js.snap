@@ -5,49 +5,49 @@ exports[`ConsumeShared Share Chunks Snapshots > CommonJS macro positioning snaps
   "cjs-modules_data-processor_js.js": {
     "macroPatterns": [
       {
-        "content": "exports.processArray = /* @common:if [condition="treeShake.cjs-data-processor.processArray"] */ processArray /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-data-processor.processArray"] */ exports.processArray = processArray /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 73,
         "potentialIssue": false,
       },
       {
-        "content": "exports.filterArray = /* @common:if [condition="treeShake.cjs-data-processor.filterArray"] */ filterArray /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-data-processor.filterArray"] */ exports.filterArray = filterArray /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 74,
         "potentialIssue": false,
       },
       {
-        "content": "exports.reduceArray = /* @common:if [condition="treeShake.cjs-data-processor.reduceArray"] */ reduceArray /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-data-processor.reduceArray"] */ exports.reduceArray = reduceArray /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 75,
         "potentialIssue": false,
       },
       {
-        "content": "exports.dataUtils = /* @common:if [condition="treeShake.cjs-data-processor.dataUtils"] */ dataUtils /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-data-processor.dataUtils"] */ exports.dataUtils = dataUtils /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 78,
         "potentialIssue": false,
       },
       {
-        "content": "exports.DataProcessor = /* @common:if [condition="treeShake.cjs-data-processor.DataProcessor"] */ DataProcessor /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-data-processor.DataProcessor"] */ exports.DataProcessor = DataProcessor /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 81,
         "potentialIssue": false,
       },
       {
-        "content": "exports.DEFAULT_OPTIONS = /* @common:if [condition="treeShake.cjs-data-processor.DEFAULT_OPTIONS"] */ {",
+        "content": "/* @common:if [condition="treeShake.cjs-data-processor.DEFAULT_OPTIONS"] */ exports.DEFAULT_OPTIONS = {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 84,
         "potentialIssue": false,
       },
       {
-        "content": "exports.createProcessor = /* @common:if [condition="treeShake.cjs-data-processor.createProcessor"] */ function (options) {",
+        "content": "/* @common:if [condition="treeShake.cjs-data-processor.createProcessor"] */ exports.createProcessor = function (options) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 91,
@@ -94,77 +94,77 @@ exports[`ConsumeShared Share Chunks Snapshots > CommonJS macro positioning snaps
   "cjs-modules_legacy-utils_js.js": {
     "macroPatterns": [
       {
-        "content": "exports.formatPath = /* @common:if [condition="treeShake.cjs-legacy-utils.formatPath"] */ function (filePath) {",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.formatPath"] */ exports.formatPath = function (filePath) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 32,
         "potentialIssue": false,
       },
       {
-        "content": "exports.readFileSync = /* @common:if [condition="treeShake.cjs-legacy-utils.readFileSync"] */ function (filePath) {",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.readFileSync"] */ exports.readFileSync = function (filePath) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 36,
         "potentialIssue": false,
       },
       {
-        "content": "exports.constants = /* @common:if [condition="treeShake.cjs-legacy-utils.constants"] */ {",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.constants"] */ exports.constants = {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 45,
         "potentialIssue": false,
       },
       {
-        "content": "exports.validateFile = /* @common:if [condition="treeShake.cjs-legacy-utils.validateFile"] */ function (filePath) {",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.validateFile"] */ exports.validateFile = function (filePath) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 52,
         "potentialIssue": false,
       },
       {
-        "content": "exports.FileManager = /* @common:if [condition="treeShake.cjs-legacy-utils.FileManager"] */ FileManager /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.FileManager"] */ exports.FileManager = FileManager /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 72,
         "potentialIssue": false,
       },
       {
-        "content": "module.exports.formatPath = /* @common:if [condition="treeShake.cjs-legacy-utils.formatPath"] */ exports.formatPath /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.formatPath"] */ module.exports.formatPath = exports.formatPath /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 94,
         "potentialIssue": false,
       },
       {
-        "content": "module.exports.readFileSync = /* @common:if [condition="treeShake.cjs-legacy-utils.readFileSync"] */ exports.readFileSync /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.readFileSync"] */ module.exports.readFileSync = exports.readFileSync /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 95,
         "potentialIssue": false,
       },
       {
-        "content": "module.exports.constants = /* @common:if [condition="treeShake.cjs-legacy-utils.constants"] */ exports.constants /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.constants"] */ module.exports.constants = exports.constants /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 96,
         "potentialIssue": false,
       },
       {
-        "content": "module.exports.validateFile = /* @common:if [condition="treeShake.cjs-legacy-utils.validateFile"] */ exports.validateFile /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.validateFile"] */ module.exports.validateFile = exports.validateFile /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 97,
         "potentialIssue": false,
       },
       {
-        "content": "module.exports.FileManager = /* @common:if [condition="treeShake.cjs-legacy-utils.FileManager"] */ exports.FileManager /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.FileManager"] */ module.exports.FileManager = exports.FileManager /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 98,
         "potentialIssue": false,
       },
       {
-        "content": "module.exports.getSelf = /* @common:if [condition="treeShake.cjs-legacy-utils.getSelf"] */ function () {",
+        "content": "/* @common:if [condition="treeShake.cjs-legacy-utils.getSelf"] */ module.exports.getSelf = function () {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 101,
@@ -177,63 +177,63 @@ exports[`ConsumeShared Share Chunks Snapshots > CommonJS macro positioning snaps
   "cjs-modules_pure-cjs-helper_js.js": {
     "macroPatterns": [
       {
-        "content": "exports.generateId = /* @common:if [condition="treeShake.cjs-pure-helper.generateId"] */ function() {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.generateId"] */ exports.generateId = function() {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 16,
         "potentialIssue": false,
       },
       {
-        "content": "exports.hashString = /* @common:if [condition="treeShake.cjs-pure-helper.hashString"] */ function(input) {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.hashString"] */ exports.hashString = function(input) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 20,
         "potentialIssue": false,
       },
       {
-        "content": "exports.validateInput = /* @common:if [condition="treeShake.cjs-pure-helper.validateInput"] */ function(input) {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.validateInput"] */ exports.validateInput = function(input) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 24,
         "potentialIssue": false,
       },
       {
-        "content": "exports.processData = /* @common:if [condition="treeShake.cjs-pure-helper.processData"] */ function(data) {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.processData"] */ exports.processData = function(data) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 28,
         "potentialIssue": false,
       },
       {
-        "content": "exports.helpers = /* @common:if [condition="treeShake.cjs-pure-helper.helpers"] */ {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.helpers"] */ exports.helpers = {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 40,
         "potentialIssue": false,
       },
       {
-        "content": "exports.CONSTANTS = /* @common:if [condition="treeShake.cjs-pure-helper.CONSTANTS"] */ {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.CONSTANTS"] */ exports.CONSTANTS = {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 47,
         "potentialIssue": false,
       },
       {
-        "content": "exports.DataValidator = /* @common:if [condition="treeShake.cjs-pure-helper.DataValidator"] */ DataValidator /* @common:endif */;",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.DataValidator"] */ exports.DataValidator = DataValidator /* @common:endif */;",
         "hasEndif": true,
         "hasEquals": true,
         "lineNumber": 76,
         "potentialIssue": false,
       },
       {
-        "content": "exports.createValidator = /* @common:if [condition="treeShake.cjs-pure-helper.createValidator"] */ function(options) {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.createValidator"] */ exports.createValidator = function(options) {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 79,
         "potentialIssue": false,
       },
       {
-        "content": "module.exports.info = /* @common:if [condition="treeShake.cjs-pure-helper.info"] */ {",
+        "content": "/* @common:if [condition="treeShake.cjs-pure-helper.info"] */ module.exports.info = {",
         "hasEndif": false,
         "hasEquals": true,
         "lineNumber": 84,
@@ -286,7 +286,7 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasWebpackRequire": true,
     "macroCount": 0,
     "preview": "(() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js":",
-    "size": 1237141,
+    "size": 1237127,
   },
   "remoteEntry.js": {
     "hasMacroComments": false,
@@ -294,7 +294,7 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasWebpackRequire": true,
     "macroCount": 0,
     "preview": "var basic_example; (() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/d",
-    "size": 271536,
+    "size": 271522,
   },
   "shared_api_js.js": {
     "hasMacroComments": true,
@@ -302,15 +302,15 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasWebpackRequire": true,
     "macroCount": 4,
     "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], { "./shared/api.js": /*!***********************!*\\ !*** ./shared/a",
-    "size": 5051,
+    "size": 4904,
   },
   "shared_components_js.js": {
     "hasMacroComments": true,
     "hasPureAnnotations": false,
     "hasWebpackRequire": true,
-    "macroCount": 4,
+    "macroCount": 6,
     "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], { "./shared/components.js": /*!******************************",
-    "size": 1908,
+    "size": 2795,
   },
   "shared_utils_js.js": {
     "hasMacroComments": true,
@@ -318,7 +318,7 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasWebpackRequire": true,
     "macroCount": 8,
     "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], { "./shared/config.js": /*!**************************!*\\ !*** ./",
-    "size": 5274,
+    "size": 5127,
   },
   "vendors-node_modules_pnpm_lodash-es_4_17_21_node_modules_lodash-es_lodash_js.js": {
     "hasMacroComments": true,
@@ -351,32 +351,32 @@ exports[`ConsumeShared Share Chunks Snapshots > export pattern analysis snapshot
 {
   "exports": [
     {
-      "content": "exports.generateId = /* @common:if [condition="treeShake.cjs-pure-helper.generateId"] */ function() {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.generateId"] */ exports.generateId = function() {",
       "hasMacro": true,
       "line": 16,
     },
     {
-      "content": "exports.hashString = /* @common:if [condition="treeShake.cjs-pure-helper.hashString"] */ function(input) {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.hashString"] */ exports.hashString = function(input) {",
       "hasMacro": true,
       "line": 20,
     },
     {
-      "content": "exports.validateInput = /* @common:if [condition="treeShake.cjs-pure-helper.validateInput"] */ function(input) {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.validateInput"] */ exports.validateInput = function(input) {",
       "hasMacro": true,
       "line": 24,
     },
     {
-      "content": "exports.processData = /* @common:if [condition="treeShake.cjs-pure-helper.processData"] */ function(data) {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.processData"] */ exports.processData = function(data) {",
       "hasMacro": true,
       "line": 28,
     },
     {
-      "content": "exports.helpers = /* @common:if [condition="treeShake.cjs-pure-helper.helpers"] */ {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.helpers"] */ exports.helpers = {",
       "hasMacro": true,
       "line": 40,
     },
     {
-      "content": "exports.CONSTANTS = /* @common:if [condition="treeShake.cjs-pure-helper.CONSTANTS"] */ {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.CONSTANTS"] */ exports.CONSTANTS = {",
       "hasMacro": true,
       "line": 47,
     },
@@ -386,12 +386,12 @@ exports[`ConsumeShared Share Chunks Snapshots > export pattern analysis snapshot
       "line": 72,
     },
     {
-      "content": "exports.DataValidator = /* @common:if [condition="treeShake.cjs-pure-helper.DataValidator"] */ DataValidator /* @common:endif */;",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.DataValidator"] */ exports.DataValidator = DataValidator /* @common:endif */;",
       "hasMacro": true,
       "line": 76,
     },
     {
-      "content": "exports.createValidator = /* @common:if [condition="treeShake.cjs-pure-helper.createValidator"] */ function(options) {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.createValidator"] */ exports.createValidator = function(options) {",
       "hasMacro": true,
       "line": 79,
     },
@@ -399,7 +399,7 @@ exports[`ConsumeShared Share Chunks Snapshots > export pattern analysis snapshot
   "mixedPatterns": true,
   "moduleExports": [
     {
-      "content": "module.exports.info = /* @common:if [condition="treeShake.cjs-pure-helper.info"] */ {",
+      "content": "/* @common:if [condition="treeShake.cjs-pure-helper.info"] */ module.exports.info = {",
       "hasMacro": true,
       "line": 84,
     },
@@ -418,6 +418,8 @@ exports[`ConsumeShared Share Chunks Snapshots > macro annotations extracted 1`] 
   "shared_components_js.js": [
     "/* @common:if [condition="treeShake.component-lib.Button"] */ /* ESM export specifier */ Button /* @common:endif */",
     "/* @common:if [condition="treeShake.component-lib.Modal"] */ /* ESM export specifier */ Modal /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.Tooltip"] */ /* ESM export specifier */ Tooltip /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.createAlert"] */ /* ESM export specifier */ createAlert /* @common:endif */",
     "/* @common:if [condition="treeShake.component-lib.createCard"] */ /* ESM export specifier */ createCard /* @common:endif */",
     "/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
   ],
@@ -649,9 +651,6 @@ const createApiClient = (baseUrl, headers) => {
   !*** ./shared/config.js ***!
   \\**************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* unused ESM export 'API_ENDPOINTS' */
-/* unused ESM export 'MAX_RETRIES' */
-/* unused ESM export 'getApiUrl' */
 __webpack_require__.d(__webpack_exports__, {
   EH: () => (/* ESM export specifier */ DEFAULT_TIMEOUT)
 });
@@ -682,7 +681,6 @@ const getApiUrl = (endpoint) => {
   !*** ./shared/nested-utils.js ***!
   \\********************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* unused ESM export 'sortBy' */
 __webpack_require__.d(__webpack_exports__, {
   I8: () => (/* ESM export specifier */ deepClone),
   Ox: () => (/* ESM export specifier */ generateId),
@@ -744,10 +742,14 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   Button: () => (/* @common:if [condition="treeShake.component-lib.Button"] */ /* ESM export specifier */ Button /* @common:endif */),
   Modal: () => (/* @common:if [condition="treeShake.component-lib.Modal"] */ /* ESM export specifier */ Modal /* @common:endif */),
+  Tooltip: () => (/* @common:if [condition="treeShake.component-lib.Tooltip"] */ /* ESM export specifier */ Tooltip /* @common:endif */),
+  createAlert: () => (/* @common:if [condition="treeShake.component-lib.createAlert"] */ /* ESM export specifier */ createAlert /* @common:endif */),
   createCard: () => (/* @common:if [condition="treeShake.component-lib.createCard"] */ /* ESM export specifier */ createCard /* @common:endif */),
   "default": () => (/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */)
 });
-// Shared component library
+// Shared component library - testing various export scenarios
+
+// Used export (imported in index.js)
 class Button {
   constructor(text, onClick) {
     this.element = document.createElement('button');
@@ -760,6 +762,7 @@ class Button {
   }
 }
 
+// Used export (imported in index.js)
 class Modal {
   constructor(title, content) {
     this.title = title;
@@ -778,6 +781,7 @@ class Modal {
   }
 }
 
+// Unused export (not imported anywhere)
 const createCard = (title, description) => {
   return {
     title,
@@ -788,10 +792,35 @@ const createCard = (title, description) => {
   };
 };
 
+// Additional unused exports for testing
+class Tooltip {
+  constructor(element, text) {
+    this.element = element;
+    this.text = text;
+  }
+  
+  show() {
+    console.log(\`Showing tooltip: \${this.text}\`);
+  }
+}
+
+const createAlert = (message, type = 'info') => {
+  return {
+    message,
+    type,
+    show() {
+      console.log(\`Alert (\${type}): \${message}\`);
+    }
+  };
+};
+
+// Default export (not imported but defined)
 /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
   Button,
   Modal,
-  createCard
+  createCard,
+  Tooltip,
+  createAlert
 });
 
 }),
@@ -807,9 +836,6 @@ exports[`ConsumeShared Share Chunks Snapshots > shared utilities chunk content 1
   !*** ./shared/config.js ***!
   \\**************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* unused ESM export 'API_ENDPOINTS' */
-/* unused ESM export 'MAX_RETRIES' */
-/* unused ESM export 'getApiUrl' */
 __webpack_require__.d(__webpack_exports__, {
   EH: () => (/* ESM export specifier */ DEFAULT_TIMEOUT)
 });
@@ -840,7 +866,6 @@ const getApiUrl = (endpoint) => {
   !*** ./shared/nested-utils.js ***!
   \\********************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-/* unused ESM export 'sortBy' */
 __webpack_require__.d(__webpack_exports__, {
   I8: () => (/* ESM export specifier */ deepClone),
   Ox: () => (/* ESM export specifier */ generateId),

@@ -656,10 +656,7 @@ describe("ConsumeShared Build Validation", () => {
 			}
 		};
 
-		const reportPath = path.join(process.cwd(), "test-report.json");
-		fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-		expect(fs.existsSync(reportPath)).toBe(true);
+		// Report generated for console output only
 
 		console.log("✅ Test report generated with actual usage data");
 		console.log(

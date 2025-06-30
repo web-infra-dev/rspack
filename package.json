@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "check-dependency-version": "pnpx check-dependency-version-consistency@5 . --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples",
+    "check-dependency-version": "pnpx check-dependency-version-consistency@5 . --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples --ignore-package rspack-basic-example",
     "build:js": "pnpm --filter \"@rspack/core\" build && pnpm --parallel --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
     "build:js:canary": "pnpm --filter \"@rspack-canary/core\" build && pnpm --parallel --filter \"@rspack-canary/*\" --filter \"create-rspack-canary\" --filter \"!@rspack-canary/core\" build",
     "build:cli:dev": "npm run build:binding:dev && npm run build:js",

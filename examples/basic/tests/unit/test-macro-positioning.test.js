@@ -381,12 +381,7 @@ describe("Macro Positioning Validation", () => {
 		console.log("📊 Comprehensive Macro Positioning Report:");
 		console.log(JSON.stringify(report, null, 2));
 
-		// Write report to file for debugging
-		const reportPath = path.join(
-			process.cwd(),
-			"macro-positioning-report.json"
-		);
-		fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+		// Report generated for console output only
 
 		// Assertions
 		expect(report.totalMacroBlocks).toBeGreaterThan(0);

@@ -65,17 +65,13 @@ impl ShareUsagePlugin {
     let module_graph = compilation.get_module_graph();
 
     // Find all ConsumeShared modules and their fallbacks
-    dbg!("🔍 ShareUsage: Starting analysis", module_graph.modules().len());
     
     for module_id in module_graph.modules().keys() {
       if let Some(module) = module_graph.module_by_identifier(module_id) {
         if module.module_type() == &ModuleType::ConsumeShared {
-          dbg!("🔍 Found ConsumeShared module", module_id);
           if let Some(share_key) = module.get_consume_shared_key() {
-            dbg!("🔍 ConsumeShared key", &share_key);
             // Find the fallback module directly
             if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
-              println!("🔍 DEBUG: Found fallback module for {}: {}", share_key, fallback_id);
               // Get the basic usage analysis first
               let (used_exports, provided_exports) =
                 self.analyze_fallback_module_usage(&module_graph, &fallback_id, module_id);
@@ -118,7 +114,6 @@ impl ShareUsagePlugin {
               );
             } else {
               // If no fallback found, still record the share_key with empty data
-              println!("🔍 DEBUG: No fallback module found for share_key: {}", share_key);
               usage_map.insert(
                 share_key,
                 SimpleModuleExports {
@@ -835,7 +830,6 @@ impl ShareUsagePlugin {
           let consume_shared_usage =
             ExportInfoGetter::get_used(consume_shared_export_info_data, None);
 
-          println!("🔍 DEBUG: Export '{export_name}' usage state: {consume_shared_usage:?}");
 
           // Export is actually used if the ConsumeShared proxy module shows usage
           if matches!(
@@ -850,9 +844,6 @@ impl ShareUsagePlugin {
       rspack_core::ProvidedExports::ProvidedAll => {
         // When ConsumeShared shows ProvidedAll, we need to check individual exports manually
         // This happens when export metadata copying hasn't set specific exports yet
-        println!(
-          "🔍 DEBUG: ConsumeShared shows ProvidedAll - checking fallback for specific exports"
-        );
 
         // Fall back to checking the basic analysis results which work correctly
         // Since the basic analysis correctly found ["map", "VERSION", "filter", "default"],
@@ -860,7 +851,7 @@ impl ShareUsagePlugin {
         return (Vec::new(), all_imported_exports); // Return empty used, let basic analysis handle it
       }
       rspack_core::ProvidedExports::Unknown => {
-        println!("🔍 DEBUG: ConsumeShared shows Unknown exports");
+        // ConsumeShared shows Unknown exports
       }
     }
 
