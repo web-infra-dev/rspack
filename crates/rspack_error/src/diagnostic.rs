@@ -154,7 +154,7 @@ impl Diagnostic {
   pub fn render_report(&self, colored: bool) -> crate::Result<String> {
     let mut buf = String::new();
     let raw_message = self.inner.to_string();
-    if raw_message.contains("\u{1b}[") {
+    if raw_message.starts_with("  \u{1b}[31m×\u{1b}[0m") || raw_message.starts_with("  ×") {
       return Ok(raw_message);
     }
 
