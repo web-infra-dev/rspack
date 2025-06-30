@@ -85,11 +85,18 @@ pub(crate) fn merge_loader_context(
   mut from: JsLoaderContext,
 ) -> Result<()> {
   if let Some(error) = from.error {
+    let details = if let Some(stack) = &error.stack
+      && error.hide_stack.unwrap_or(false)
+    {
+      Some(stack.to_string())
+    } else {
+      None
+    };
+
     return Err(
       CapturedLoaderError::new(
-        error.message,
-        error.stack,
-        error.hide_stack,
+        Box::new(error.with_parent_error_name("ModuleBuildError")),
+        details,
         from.file_dependencies,
         from.context_dependencies,
         from.missing_dependencies,

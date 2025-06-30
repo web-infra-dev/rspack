@@ -2,7 +2,7 @@ use napi::{bindgen_prelude::WeakReference, Either};
 use rspack_core::Compilation;
 use rspack_error::RspackSeverity;
 
-use crate::{JsCompilation, JsRspackError};
+use crate::{JsCompilation, RspackError};
 
 #[napi]
 pub struct Diagnostics {
@@ -54,21 +54,19 @@ impl Diagnostics {
   }
 
   #[napi]
-  pub fn values(&self) -> napi::Result<Vec<JsRspackError>> {
+  pub fn values(&self) -> napi::Result<Vec<RspackError>> {
     let compilation = self.as_ref()?;
 
     let diagnostics = compilation.diagnostics();
     diagnostics
       .iter()
       .filter(|diagnostic| diagnostic.severity() == self.severity)
-      .map(|diagnostic| {
-        JsRspackError::try_from_diagnostic(diagnostic, compilation.options.stats.colors)
-      })
-      .collect::<napi::Result<Vec<JsRspackError>>>()
+      .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
+      .collect::<napi::Result<Vec<RspackError>>>()
   }
 
   #[napi]
-  pub fn get(&self, index: f64) -> napi::Result<Either<JsRspackError, ()>> {
+  pub fn get(&self, index: f64) -> napi::Result<Either<RspackError, ()>> {
     if index < 0f64 || index.is_infinite() || index.abs() != index {
       return Ok(Either::B(()));
     }
@@ -81,8 +79,7 @@ impl Diagnostics {
       .nth(index as usize);
     Ok(match diagnostic {
       Some(diagnostic) => {
-        let colors = compilation.options.stats.colors;
-        let js_rspack_error = JsRspackError::try_from_diagnostic(diagnostic, colors)?;
+        let js_rspack_error = RspackError::try_from_diagnostic(compilation, diagnostic)?;
         Either::A(js_rspack_error)
       }
       None => Either::B(()),
@@ -90,7 +87,7 @@ impl Diagnostics {
   }
 
   #[napi]
-  pub fn set(&mut self, index: f64, error: JsRspackError) -> napi::Result<()> {
+  pub fn set(&mut self, index: f64, error: RspackError) -> napi::Result<()> {
     if index < 0f64 || index.is_infinite() || index.abs() != index {
       return Ok(());
     }
@@ -132,11 +129,10 @@ impl Diagnostics {
     &mut self,
     index: f64,
     delete_count: Option<f64>,
-    new_items: Option<Vec<JsRspackError>>,
-  ) -> napi::Result<Vec<JsRspackError>> {
+    new_items: Option<Vec<RspackError>>,
+  ) -> napi::Result<Vec<RspackError>> {
     let severity = self.severity;
     let compilation = self.as_mut()?;
-    let colors = compilation.options.stats.colors;
 
     let diagnostics = compilation.diagnostics_mut();
 
@@ -197,7 +193,7 @@ impl Diagnostics {
 
     removed
       .into_iter()
-      .map(|d| JsRspackError::try_from_diagnostic(&d, colors))
+      .map(|d| RspackError::try_from_diagnostic(compilation, &d))
       .collect::<napi::Result<Vec<_>>>()
   }
 }

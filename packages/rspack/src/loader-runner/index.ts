@@ -28,6 +28,7 @@ import {
 import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
+import { cleanUp } from "../ErrorHelpers";
 import { NormalModule } from "../NormalModule";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
@@ -39,7 +40,6 @@ import {
 } from "../config/adapterRuleUse";
 import { JavaScriptTracer } from "../trace";
 import {
-	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
 	stringifyLoaderObject,
@@ -573,13 +573,17 @@ export async function runLoaders(
 		if (!(error instanceof Error)) {
 			error = new NonErrorEmittedError(error);
 		}
+		const name = error.name;
+		const message = error.message;
+		const stack = error.stack;
 		error.name = "ModuleError";
-		error.message = `${error.message} (from: ${stringifyLoaderObject(
+		error.message = `${message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		error = concatErrorMsgAndStack(error);
-		(error as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		(error as RspackError).module = loaderContext._module;
+		(error as RspackError).details = stack
+			? cleanUp(stack, name, message)
+			: undefined;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
@@ -590,13 +594,17 @@ export async function runLoaders(
 		if (!(warning instanceof Error)) {
 			warning = new NonErrorEmittedError(warning);
 		}
+		const name = warning.name;
+		const message = warning.message;
+		const stack = warning.stack;
 		warning.name = "ModuleWarning";
 		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
-		warning = concatErrorMsgAndStack(warning);
-		(warning as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		(warning as RspackError).module = loaderContext._module;
+		(warning as RspackError).details = stack
+			? cleanUp(stack, name, message)
+			: undefined;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
@@ -1100,22 +1108,15 @@ export async function runLoaders(
 			LoaderObject.__to_binding(item)
 		);
 	} catch (e) {
-		const error = e as Error & { hideStack?: boolean | "true" };
-		context.__internal__error =
-			typeof e === "string"
-				? {
-						name: "ModuleBuildError",
-						message: e
-					}
-				: {
-						name: "ModuleBuildError",
-						message: error.message,
-						stack: typeof error.stack === "string" ? error.stack : undefined,
-						hideStack:
-							"hideStack" in error
-								? error.hideStack === true || error.hideStack === "true"
-								: undefined
-					};
+		if (typeof e !== "object" || e === null) {
+			const error = new Error(
+				`(Emitted value instead of an instance of Error) ${e}`
+			);
+			error.name = "NonErrorEmittedError";
+			context.__internal__error = error;
+		} else {
+			context.__internal__error = e as RspackError;
+		}
 	}
 	JavaScriptTracer.endAsync({
 		name: "run_js_loaders",
