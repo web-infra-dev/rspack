@@ -347,7 +347,11 @@ importers:
         specifier: 3.5.2
         version: 3.5.2(zod@3.25.58)
 
-  packages/rspack-browser: {}
+  packages/rspack-browser:
+    dependencies:
+      '@napi-rs/wasm-runtime':
+        specifier: ^0.2.11
+        version: 0.2.11
 
   packages/rspack-cli:
     dependencies:

@@ -3,6 +3,7 @@
   "version": "1.4.1",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,8 +13,10 @@
     }
   },
   "scripts": {
-    "build": "rslib build",
-    "dev": "rslib build -w"
+    "build": "pnpm run --filter @rspack/core build:browser"
+  },
+  "dependencies": {
+    "@napi-rs/wasm-runtime": "^0.2.11"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
