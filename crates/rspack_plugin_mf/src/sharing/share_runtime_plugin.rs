@@ -5,17 +5,25 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::ShareRuntimeModule;
+use crate::{
+  ShareRuntimeModule, ShareUsagePlugin, ShareUsagePluginOptions, SharedExportUsagePlugin,
+  SharedExportUsagePluginOptions,
+};
 
 #[plugin]
 #[derive(Debug)]
 pub struct ShareRuntimePlugin {
   enhanced: bool,
+  enable_export_usage_tracking: bool,
 }
 
 impl ShareRuntimePlugin {
   pub fn new(enhanced: bool) -> Self {
-    Self::new_inner(enhanced)
+    Self::new_inner(enhanced, false)
+  }
+
+  pub fn with_export_usage_tracking(enhanced: bool, enable_export_usage_tracking: bool) -> Self {
+    Self::new_inner(enhanced, enable_export_usage_tracking)
   }
 }
 
@@ -42,8 +50,18 @@ impl Plugin for ShareRuntimePlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
+    options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
+    // Apply SharedExportUsagePlugin if export usage tracking is enabled
+    if self.enable_export_usage_tracking {
+      SharedExportUsagePlugin::new(SharedExportUsagePluginOptions::default())
+        .apply(PluginContext::with_context(ctx.context), options)?;
+
+      // Also apply ShareUsagePlugin for ConsumeShared-specific analysis
+      ShareUsagePlugin::new(ShareUsagePluginOptions::default())
+        .apply(PluginContext::with_context(ctx.context), options)?;
+    }
+
     ctx
       .context
       .compilation_hooks

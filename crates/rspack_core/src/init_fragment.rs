@@ -699,3 +699,4 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
     &self.key
   }
 }
+

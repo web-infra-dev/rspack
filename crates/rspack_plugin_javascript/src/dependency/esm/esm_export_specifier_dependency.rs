@@ -8,7 +8,8 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
-  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
+  GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
+  ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
   SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use rustc_hash::FxHashSet;
@@ -25,7 +26,7 @@ pub struct ESMExportSpecifierDependency {
   #[cacheable(with=AsPreset)]
   name: Atom,
   #[cacheable(with=AsPreset)]
-  value: Atom, // id
+  value: Atom, // export identifier
   inline: Option<EvaluatedInlinableValue>,
   enum_value: Option<TSEnumValue>,
 }
@@ -49,6 +50,8 @@ impl ESMExportSpecifierDependency {
       id: DependencyId::new(),
     }
   }
+
+  // REMOVED: get_consume_shared_info() and find_consume_shared_recursive() - No longer needed, using BuildMeta directly
 }
 
 #[cacheable_dyn]
@@ -151,22 +154,31 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .expect(
         "ESMExportSpecifierDependencyTemplate should only be used for ESMExportSpecifierDependency",
       );
+
     let TemplateContext {
       init_fragments,
       compilation,
       module,
       runtime,
+      runtime_requirements,
       concatenation_scope,
       ..
     } = code_generatable_context;
+
+    // Handle concatenation scope for module concatenation optimization
     if let Some(scope) = concatenation_scope {
       scope.register_export(dep.name.clone(), dep.value.to_string());
       return;
     }
+
     let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
     let module = module_graph
-      .module_by_identifier(&module.identifier())
+      .module_by_identifier(&module_identifier)
       .expect("should have module graph module");
+
+    // SIMPLIFIED: Use pre-computed ConsumeShared context from BuildMeta
+    let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
 
     // remove the enum decl if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
@@ -192,6 +204,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       }
     }
 
+    // Get export usage information with proper prefetching
     let exports_info = module_graph.get_prefetched_exports_info(
       &module.identifier(),
       PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
@@ -203,16 +216,54 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     ) else {
       return;
     };
-    let used_name = match used_name {
-      UsedName::Normal(vec) => {
-        // only have one value for export specifier dependency
-        vec[0].clone()
+    
+    match used_name {
+      UsedName::Normal(ref used_vec) if !used_vec.is_empty() => {
+        let used_name_atom = used_vec[0].clone();
+
+        // Add runtime requirements
+        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+
+        // Generate export content with ConsumeShared macro integration
+        let export_content = if let Some(ref share_key) = consume_shared_info {
+          format!(
+            "/* @common:if [condition=\"treeShake.{}.{}\"] */ /* ESM export specifier */ {} /* @common:endif */",
+            share_key, dep.name, dep.value
+          )
+        } else {
+          format!("/* ESM export specifier */ {}", dep.value)
+        };
+
+        // Create export init fragment
+        let export_fragment = ESMExportInitFragment::new(
+          module.get_exports_argument(),
+          vec![(used_name_atom, export_content.into())],
+        );
+
+        init_fragments.push(Box::new(export_fragment));
       }
-      UsedName::Inlined(_) => return,
-    };
-    init_fragments.push(Box::new(ESMExportInitFragment::new(
-      module.get_exports_argument(),
-      vec![(used_name, dep.value.clone())],
-    )));
+      UsedName::Inlined(_) => {
+        // Export is inlined, add comment for clarity
+        let comment_fragment = NormalInitFragment::new(
+          format!("/* inlined ESM export '{}' */\n", dep.name),
+          InitFragmentStage::StageConstants,
+          0,
+          InitFragmentKey::unique(),
+          None,
+        );
+        init_fragments.push(comment_fragment.boxed());
+      }
+      _ => {
+        // For normal case with simple value assignment
+        if let UsedName::Normal(vec) = used_name {
+          let used_name_atom = vec[0].clone();
+          init_fragments.push(Box::new(ESMExportInitFragment::new(
+            module.get_exports_argument(),
+            vec![(used_name_atom, dep.value.clone())],
+          )));
+        }
+      }
+    }
   }
 }

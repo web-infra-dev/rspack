@@ -8,8 +8,8 @@ use rspack_core::{
   rspack_sources::BoxSource, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  DependencyType, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -92,6 +92,21 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  /// Finds the fallback module identifier for this ConsumeShared module
+  pub fn find_fallback_module_id(&self, module_graph: &ModuleGraph) -> Option<ModuleIdentifier> {
+    // Look through dependencies to find the fallback
+    for dep_id in self.get_dependencies() {
+      if let Some(dep) = module_graph.dependency_by_id(dep_id) {
+        if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
+          if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+            return Some(*fallback_id);
+          }
+        }
+      }
+    }
+    None
   }
 }
 
@@ -248,8 +263,12 @@ impl Module for ConsumeSharedModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.options.dyn_hash(&mut hasher);
-    module_update_hash(self, &mut hasher, compilation, runtime);
+    module_update_hash(self as &dyn Module, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
+  }
+
+  fn get_consume_shared_key(&self) -> Option<String> {
+    Some(self.options.share_key.clone())
   }
 }
 
