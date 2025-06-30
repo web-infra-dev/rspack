@@ -161,7 +161,7 @@ impl CommonJsExportsDependency {
     };
 
     if names.is_empty() {
-      format!("commonjs:{}", base_str)
+      format!("commonjs:{base_str}")
     } else {
       format!(
         "commonjs:{}[{}]",
@@ -624,7 +624,7 @@ impl CommonJsExportsDependencyTemplate {
         if let Some(ref share_key) = consume_shared_info {
           // FIXED: Module-level coordination to avoid range conflicts
           // Generate tree-shaking macro for ConsumeShared exports
-          let macro_condition = format!("treeShake.{}.{}", share_key, export_name);
+          let macro_condition = format!("treeShake.{share_key}.{export_name}");
 
           // ENHANCED: Use ExportContext for precise macro wrapping
           match dep.context {
@@ -643,7 +643,7 @@ impl CommonJsExportsDependencyTemplate {
               source.replace(
                 dep.range.start,
                 dep.range.start,
-                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                &format!("/* @common:if [condition=\"{macro_condition}\"] */ "),
                 None,
               );
               source.replace(end, end, " /* @common:endif */", None);
@@ -651,8 +651,7 @@ impl CommonJsExportsDependencyTemplate {
             ExportContext::VariableAssignment => {
               // For variable assignments (foo = exports.bar), wrap the exports reference
               let macro_export = format!(
-                "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
-                macro_condition, export_assignment
+                "/* @common:if [condition=\"{macro_condition}\"] */ {export_assignment} /* @common:endif */"
               );
               source.replace(dep.range.start, dep.range.end, &macro_export, None);
             }
@@ -662,7 +661,7 @@ impl CommonJsExportsDependencyTemplate {
               source.replace(
                 dep.range.start,
                 dep.range.start,
-                &format!("/* @common:if [condition=\"{}\"] */ ", macro_condition),
+                &format!("/* @common:if [condition=\"{macro_condition}\"] */ "),
                 None,
               );
               source.replace(dep.range.end, dep.range.end, " /* @common:endif */", None);
@@ -670,8 +669,7 @@ impl CommonJsExportsDependencyTemplate {
             ExportContext::DefineProperty => {
               // For defineProperty, wrap the export property
               let macro_export = format!(
-                "/* @common:if [condition=\"{}\"] */ {} /* @common:endif */",
-                macro_condition, export_assignment
+                "/* @common:if [condition=\"{macro_condition}\"] */ {export_assignment} /* @common:endif */"
               );
               source.replace(dep.range.start, dep.range.end, &macro_export, None);
             }
@@ -734,7 +732,7 @@ impl CommonJsExportsDependencyTemplate {
               base_expression,
               property_path,
               serde_json::to_string(export_name)
-                .map_err(|e| format!("Failed to serialize export name: {}", e))?
+                .map_err(|e| format!("Failed to serialize export name: {e}"))?
             ),
             None,
           );
@@ -753,7 +751,7 @@ impl CommonJsExportsDependencyTemplate {
               base_expression,
               property_path,
               serde_json::to_string(export_name)
-                .map_err(|e| format!("Failed to serialize export name: {}", e))?
+                .map_err(|e| format!("Failed to serialize export name: {e}"))?
             ),
             None,
           );
@@ -774,7 +772,7 @@ impl CommonJsExportsDependencyTemplate {
     init_fragments: &mut rspack_core::ModuleInitFragments,
     export_type: &str,
   ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let placeholder_var = format!("__webpack_{}_export__", export_type);
+    let placeholder_var = format!("__webpack_{export_type}_export__");
     source.replace(dep.range.start, dep.range.end, &placeholder_var, None);
 
     init_fragments.push(

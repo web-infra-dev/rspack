@@ -263,10 +263,8 @@ impl ShareUsagePlugin {
         // Default or side-effect imports like: import module from 'module' or import 'module'
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          if !request.is_empty() {
-            if !all_imported_exports.contains(&"default".to_string()) {
-              all_imported_exports.push("default".to_string());
-            }
+          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
+            all_imported_exports.push("default".to_string());
           }
         }
       }
@@ -355,10 +353,8 @@ impl ShareUsagePlugin {
         // CommonJS export require like: module.exports = require('module')
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          if !request.is_empty() {
-            if !all_imported_exports.contains(&"default".to_string()) {
-              all_imported_exports.push("default".to_string());
-            }
+          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
+            all_imported_exports.push("default".to_string());
           }
         }
       }
@@ -403,10 +399,8 @@ impl ShareUsagePlugin {
         // AMD-style requires/defines
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          if !request.is_empty() {
-            if !all_imported_exports.contains(&"default".to_string()) {
-              all_imported_exports.push("default".to_string());
-            }
+          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
+            all_imported_exports.push("default".to_string());
           }
         }
       }
@@ -416,10 +410,8 @@ impl ShareUsagePlugin {
         // Webpack require.ensure
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          if !request.is_empty() {
-            if !all_imported_exports.contains(&"default".to_string()) {
-              all_imported_exports.push("default".to_string());
-            }
+          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
+            all_imported_exports.push("default".to_string());
           }
         }
       }
@@ -427,10 +419,8 @@ impl ShareUsagePlugin {
         // require.resolve calls
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          if !request.is_empty() {
-            if !all_imported_exports.contains(&"__resolve".to_string()) {
-              all_imported_exports.push("__resolve".to_string());
-            }
+          if !request.is_empty() && !all_imported_exports.contains(&"__resolve".to_string()) {
+            all_imported_exports.push("__resolve".to_string());
           }
         }
       }
@@ -440,10 +430,8 @@ impl ShareUsagePlugin {
         // Module federation fallback dependencies
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          if !request.is_empty() {
-            if !all_imported_exports.contains(&"default".to_string()) {
-              all_imported_exports.push("default".to_string());
-            }
+          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
+            all_imported_exports.push("default".to_string());
           }
         }
       }
@@ -459,10 +447,8 @@ impl ShareUsagePlugin {
         // Worker and URL dependencies
         if let Some(module_dep) = dependency.as_module_dependency() {
           let request = module_dep.request();
-          if !request.is_empty() {
-            if !all_imported_exports.contains(&"default".to_string()) {
-              all_imported_exports.push("default".to_string());
-            }
+          if !request.is_empty() && !all_imported_exports.contains(&"default".to_string()) {
+            all_imported_exports.push("default".to_string());
           }
         }
       }
@@ -903,7 +889,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   let content = serde_json::to_string_pretty(&report)
-    .map_err(|e| Error::msg(format!("Failed to serialize share usage report: {}", e)))?;
+    .map_err(|e| Error::msg(format!("Failed to serialize share usage report: {e}")))?;
 
   let filename = &self.options.filename;
   compilation.assets_mut().insert(

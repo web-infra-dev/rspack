@@ -592,7 +592,7 @@ impl CommonJsExportsParserPlugin {
                     CommonJsExportsDependency::new_with_comma_info(
                       enhanced_range,
                       Some(assign_expr.right.span().into()),
-                      base.clone(),
+                      base,
                       vec![export_name.into()],
                       context,
                       has_trailing_comma,
@@ -630,7 +630,7 @@ impl CommonJsExportsParserPlugin {
                       CommonJsExportsDependency::new_with_comma_info(
                         enhanced_range,
                         Some(assign_expr.right.span().into()),
-                        base.clone(),
+                        base,
                         vec![export_name.into()],
                         context,
                         has_trailing_comma,
@@ -669,7 +669,7 @@ impl CommonJsExportsParserPlugin {
                       CommonJsExportsDependency::new_with_comma_info(
                         enhanced_range,
                         Some(assign_expr.right.span().into()),
-                        base.clone(),
+                        base,
                         vec![export_name.into()],
                         context,
                         has_trailing_comma,
@@ -842,7 +842,7 @@ impl CommonJsExportsParserPlugin {
                 .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
                   enhanced_range,
                   Some(assign_expr.right.span().into()),
-                  base.clone(),
+                  base,
                   vec![export_name.into()],
                   context,
                   has_trailing_comma,
@@ -880,7 +880,7 @@ impl CommonJsExportsParserPlugin {
                   .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
                     enhanced_range,
                     Some(assign_expr.right.span().into()),
-                    base.clone(),
+                    base,
                     vec![export_name.into()],
                     context,
                     has_trailing_comma,
@@ -919,7 +919,7 @@ impl CommonJsExportsParserPlugin {
                   .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
                     enhanced_range,
                     Some(assign_expr.right.span().into()),
-                    base.clone(),
+                    base,
                     vec![export_name.into()],
                     context,
                     has_trailing_comma,
@@ -989,7 +989,12 @@ impl CommonJsExportsParserPlugin {
 
         if trimmed.ends_with(',') {
           // Include the trailing comma in the range
-          let comma_pos = prop_end + before_brace.rfind(',').unwrap() as u32 + 1;
+          let comma_pos = prop_end
+            + before_brace
+              .rfind(',')
+              .expect("Comma should exist in trimmed string ending with comma")
+              as u32
+            + 1;
           (DependencyRange::new(prop_start, comma_pos), true)
         } else {
           // No trailing comma

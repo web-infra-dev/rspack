@@ -9,13 +9,13 @@ use async_trait::async_trait;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  ApplyContext, BoxDependency, BoxModule, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerOptions, CompilerThisCompilation, Context, DependencyCategory, DependencyType,
-  ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleCreateData, NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin,
-  PluginContext, PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, RuntimeGlobals,
+  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationFinishModules, CompilationParams, CompilerOptions, CompilerThisCompilation, Context,
+  DependencyCategory, DependencyType, ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleCreateData,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
+  PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType, ResolveResult,
+  Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -224,49 +224,6 @@ impl ConsumeSharedPlugin {
   fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
     let lock = self.matched_consumes.read().expect("should lock");
     lock.clone().expect("init_matched_consumes first")
-  }
-
-  /// Find ConsumeShared configuration for a dependency request
-  /// Leverages existing MatchedConsumes logic from factorize hook
-  fn find_consume_config(&self, dependency: &BoxDependency) -> Option<Arc<ConsumeOptions>> {
-    let dep = dependency
-      .as_module_dependency()
-      .expect("should be module dependency");
-
-    if matches!(
-      dep.dependency_type(),
-      DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
-    ) {
-      return None;
-    }
-
-    let request = dep.request();
-    let consumes = self.get_matched_consumes();
-
-    // Check unresolved patterns (exact matches)
-    if let Some(matched) = consumes.unresolved.get(request) {
-      return Some(matched.clone());
-    }
-
-    // Check prefixed patterns
-    for (prefix, options) in &consumes.prefixed {
-      if request.starts_with(prefix) {
-        let remainder = &request[prefix.len()..];
-        return Some(Arc::new(ConsumeOptions {
-          import: options.import.as_ref().map(|i| i.to_owned() + remainder),
-          import_resolved: options.import_resolved.clone(),
-          share_key: options.share_key.clone() + remainder,
-          share_scope: options.share_scope.clone(),
-          required_version: options.required_version.clone(),
-          package_name: options.package_name.clone(),
-          strict_version: options.strict_version,
-          singleton: options.singleton,
-          eager: options.eager,
-        }));
-      }
-    }
-
-    None
   }
 
   async fn get_required_version(

@@ -183,8 +183,7 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
     // Generate final replacement with ConsumeShared macro if applicable
     let final_replacement = if let Some(share_key) = consume_shared_info {
       format!(
-        "/* @common:if [condition=\"treeShake.{}.default\"] */ {} /* @common:endif */",
-        share_key, base_module_reference
+        "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {base_module_reference} /* @common:endif */"
       )
     } else {
       base_module_reference.to_string()

@@ -8,6 +8,7 @@ mod tests {
   }
 
   // Mock source text for testing
+  #[allow(dead_code)]
   const MOCK_SOURCE: &str = r#"
 // Individual exports patterns
 exports.formatPath = formatPath;
@@ -30,6 +31,7 @@ info = { name: "test" };
 "#;
 
   #[derive(Debug)]
+  #[allow(dead_code)]
   struct TestCase {
     name: &'static str,
     source_pattern: &'static str,

@@ -1,5 +1,7 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod comma_positioning_tests {
+  use cow_utils::CowUtils;
   use rspack_core::DependencyRange;
   use swc_core::atoms::Atom;
 
@@ -20,15 +22,12 @@ mod comma_positioning_tests {
     // We're testing the format generated in render_expression_export
     let macro_condition = "treeShake.cjs-module-exports.calculateSum";
     let expected_format = format!(
-      "/* @common:if [condition=\"{}\"] */ calculateSum, /* @common:endif */",
-      macro_condition
+      "/* @common:if [condition=\"{macro_condition}\"] */ calculateSum, /* @common:endif */"
     );
 
     // Verify the format has comma inside the macro block
     assert!(expected_format.contains("calculateSum, /* @common:endif */"));
     assert!(!expected_format.ends_with("/* @common:endif */,"));
-
-    println!("✅ First property format: {}", expected_format);
   }
 
   #[test]
@@ -45,15 +44,12 @@ mod comma_positioning_tests {
     // Simulate the macro generation for subsequent properties
     let macro_condition = "treeShake.cjs-module-exports.calculateAverage";
     let expected_format = format!(
-      "/* @common:if [condition=\"{}\"] */ calculateAverage, /* @common:endif */",
-      macro_condition
+      "/* @common:if [condition=\"{macro_condition}\"] */ calculateAverage, /* @common:endif */"
     );
 
     // Verify the format has comma inside the macro block
     assert!(expected_format.contains("calculateAverage, /* @common:endif */"));
     assert!(!expected_format.ends_with("/* @common:endif */,"));
-
-    println!("✅ Subsequent property format: {}", expected_format);
   }
 
   #[test]
@@ -73,15 +69,19 @@ mod comma_positioning_tests {
       } else {
         "/* @common:if [condition=\"test\"] */ prop3 /* @common:endif */"
       };
-      
+
       // Simulate macro removal
-      let without_macro = case.replace(pattern, "");
+      let without_macro = case.cow_replace(pattern, "").into_owned();
 
       // Should not have orphaned commas
-      assert!(!without_macro.contains(",,"), "Found double commas in: {}", without_macro);
-      assert!(!without_macro.starts_with(","), "String starts with comma: {}", without_macro);
-
-      println!("✅ After macro removal: '{}' -> '{}'", case, without_macro);
+      assert!(
+        !without_macro.contains(",,"),
+        "Found double commas in: {without_macro}"
+      );
+      assert!(
+        !without_macro.starts_with(","),
+        "String starts with comma: {without_macro}"
+      );
     }
   }
 
@@ -109,8 +109,6 @@ mod comma_positioning_tests {
       individual_context,
       ExportContext::IndividualAssignment
     ));
-
-    println!("✅ All ExportContext variants handle comma placement correctly");
   }
 
   #[test]
@@ -124,14 +122,13 @@ mod comma_positioning_tests {
 
     for (property, expected_pattern) in test_patterns {
       // Verify comma is inside macro block
-      assert!(expected_pattern.contains(&format!("{}, /* @common:endif */", property)));
+      assert!(expected_pattern.contains(&format!("{property}, /* @common:endif */")));
 
       // Verify it doesn't end with comma outside macro
       assert!(!expected_pattern.ends_with("/* @common:endif */,"));
 
       // Verify it follows the correct pattern
-      let pattern_description = format!("Pattern for {}: {}", property, expected_pattern);
-      println!("✅ {}", pattern_description);
+      let pattern_description = format!("Pattern for {property}: {expected_pattern}");
     }
   }
 
@@ -147,8 +144,6 @@ mod comma_positioning_tests {
     // Verify the macro format has comma inside
     assert!(macro_with_comma.contains("calculateSum, /* @common:endif */"));
     assert!(!macro_with_comma.ends_with("/* @common:endif */,"));
-
-    println!("✅ Template replacement result: {}", macro_with_comma);
   }
 
   #[test]
@@ -159,8 +154,7 @@ mod comma_positioning_tests {
 
     for prop in properties {
       let formatted = format!(
-        "/* @common:if [condition=\"treeShake.test.{}\"] */ {}, /* @common:endif */",
-        prop, prop
+        "/* @common:if [condition=\"treeShake.test.{prop}\"] */ {prop}, /* @common:endif */"
       );
       formatted_properties.push(formatted);
     }
@@ -170,7 +164,5 @@ mod comma_positioning_tests {
       assert!(prop_format.contains(", /* @common:endif */"));
       assert!(!prop_format.ends_with("/* @common:endif */,"));
     }
-
-    println!("✅ Multiple properties handle comma placement consistently");
   }
 }
