@@ -5,7 +5,6 @@ import {
   WASI as __WASI,
 } from '@napi-rs/wasm-runtime'
 import { memfs } from '@napi-rs/wasm-runtime/fs'
-import __wasmUrl from './rspack.wasm32-wasi.wasm?url'
 
 export const { fs: __fs, vol: __volume } = memfs()
 
@@ -17,6 +16,7 @@ const __wasi = new __WASI({
   },
 })
 
+const __wasmUrl = new URL('./rspack.wasm32-wasi.wasm', import.meta.url).href
 const __emnapiContext = __emnapiGetDefaultContext()
 
 const __sharedMemory = new WebAssembly.Memory({
