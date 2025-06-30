@@ -68,7 +68,12 @@ jobs:
     strategy:
       fail-fast: true # for better utilize ci runners
       matrix:
-        node: ${{ fromJSON(contains(inputs.target, 'linux') && github.ref_name == 'main' && '[16, 18, 20]' || '[18]' )}}
+        node: ${{ fromJSON(
+          inputs.target == 'wasm32-wasip1-threads'
+          && '[20]'
+          || (contains(inputs.target, 'linux') && github.ref_name == 'main'
+          && '[16, 18, 20]'
+          || '[18]') )}}
     name: Test Node ${{ matrix.node }}
     defaults:
       run:
@@ -128,9 +133,14 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
-      - name: Debug
-        if: always()
-        uses: ./.github/actions/debugger
+      ### WASM
+      - name: Test WASM
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        env:
+          NODE_NO_WARNINGS: 1
+          WASM: 1
+        run: pnpm run test:ci
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
