@@ -129,6 +129,26 @@ importers:
         specifier: workspace:*
         version: link:../../npm/win32-x64-msvc
 
+  examples/basic:
+    dependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+      fake-commonjs-lib:
+        specifier: file:./fake-node-module
+        version: link:fake-node-module
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
+      react:
+        specifier: ^19.1.0
+        version: 19.1.0
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.1.0(react@19.1.0)
+
+  examples/basic/fake-node-module: {}
+
   npm/darwin-arm64: {}
 
   npm/darwin-x64: {}
