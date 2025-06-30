@@ -4,9 +4,9 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportInfoGetter,
-  ExportProvided, ExportsInfoGetter, Inlinable, PrefetchExportsInfoMode, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedExports,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
+  ExportsInfoGetter, Inlinable, PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -82,9 +82,9 @@ impl ExportInfoDependency {
         let can_mangle = if let Some(export_info) =
           exports_info.get_read_only_export_info_recursive(export_name)
         {
-          ExportInfoGetter::can_mangle(export_info)
+          export_info.can_mangle()
         } else {
-          ExportInfoGetter::can_mangle(exports_info.other_exports_info())
+          exports_info.other_exports_info().can_mangle()
         };
         can_mangle.map(|v| v.to_string())
       }

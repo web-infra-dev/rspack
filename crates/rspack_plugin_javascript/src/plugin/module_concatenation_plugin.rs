@@ -13,9 +13,9 @@ use rspack_core::{
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
-  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
-  ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
+  ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
   ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, ProvidedExports,
   RuntimeCondition, RuntimeSpec, SourceType,
 };
@@ -857,8 +857,7 @@ impl ModuleConcatenationPlugin {
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
-            ExportInfoGetter::is_reexport(export_info)
-              && get_target(export_info, &module_graph).is_none()
+            export_info.is_reexport() && get_target(export_info, &module_graph).is_none()
           })
           .copied()
           .collect::<Vec<_>>();
@@ -870,11 +869,7 @@ impl ModuleConcatenationPlugin {
                 .name()
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
-              format!(
-                "{} : {}",
-                name,
-                ExportInfoGetter::get_used_info(export_info)
-              )
+              format!("{} : {}", name, export_info.get_used_info())
             })
             .collect::<Vec<String>>()
             .join(", ");
@@ -908,8 +903,8 @@ impl ModuleConcatenationPlugin {
               format!(
                 "{} : {} and {}",
                 name,
-                ExportInfoGetter::get_provided_info(export_info),
-                ExportInfoGetter::get_used_info(export_info),
+                export_info.get_provided_info(),
+                export_info.get_used_info(),
               )
             })
             .collect::<Vec<String>>()

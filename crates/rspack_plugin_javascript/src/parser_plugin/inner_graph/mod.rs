@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ExportInfoGetter,
-  ExportsInfo, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec,
-  UsageState, UsedByExports,
+  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ExportsInfo,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, UsageState,
+  UsedByExports,
 };
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
@@ -51,12 +51,12 @@ fn is_connection_active(
   ) -> bool {
     let exports_info = exports_info.as_data(mg);
     if let Some(export_info) = exports_info.named_exports(name) {
-      return ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused;
+      return export_info.get_used(runtime) != UsageState::Unused;
     }
     if let Some(redirect_to) = exports_info.redirect_to() {
       is_export_active(name, &redirect_to, mg, runtime)
     } else {
-      ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime) != UsageState::Unused
+      exports_info.other_exports_info().get_used(runtime) != UsageState::Unused
     }
   }
 

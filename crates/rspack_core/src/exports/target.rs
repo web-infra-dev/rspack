@@ -4,7 +4,7 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  DependencyId, ExportInfo, ExportInfoData, ExportInfoGetter, ExportsInfo, ExportsInfoGetter,
+  DependencyId, ExportInfo, ExportInfoData, ExportsInfo, ExportsInfoGetter,
   MaybeDynamicTargetExportInfo, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleIdentifier,
   PrefetchExportsInfoMode,
 };
@@ -80,7 +80,7 @@ pub(crate) fn find_target_from_export_info(
   if !export_info.target_is_set() || export_info.target().is_empty() {
     return FindTargetResult::NoTarget;
   }
-  let max_target = ExportInfoGetter::get_max_target(export_info);
+  let max_target = export_info.get_max_target();
   let raw_target = max_target.values().next();
   let Some(raw_target) = raw_target else {
     return FindTargetResult::NoTarget;
@@ -171,7 +171,7 @@ pub(crate) fn get_target_from_export_info(
   resolve_filter: ResolveFilterFnTy,
   already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
-  let max_target = ExportInfoGetter::get_max_target(export_info);
+  let max_target = export_info.get_max_target();
   let mut values = max_target
     .values()
     .map(|item| UnResolvedExportInfoTarget {

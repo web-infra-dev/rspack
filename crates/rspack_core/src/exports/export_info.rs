@@ -4,8 +4,8 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{
-  ExportInfoGetter, ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable,
-  ResolvedExportInfoTarget, ResolvedExportInfoTargetWithCircular, UsageState,
+  ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, ResolvedExportInfoTarget,
+  ResolvedExportInfoTargetWithCircular, UsageState,
 };
 use crate::{
   find_target_from_export_info, get_target_from_maybe_export_info, get_target_with_filter,
@@ -325,7 +325,7 @@ impl<'a> MaybeDynamicTargetExportInfo<'a> {
   }
 
   fn get_max_target(&self) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    ExportInfoGetter::get_max_target(self.to_data())
+    self.to_data().get_max_target()
   }
 
   pub fn find_target(

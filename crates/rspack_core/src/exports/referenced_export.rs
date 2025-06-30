@@ -1,8 +1,7 @@
-use rspack_collections::UkeySet;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
-use crate::{ExportInfo, ExportInfoData, ExportInfoGetter, ModuleGraph, RuntimeSpec, UsageState};
+use crate::{ExportInfo, ExportInfoData, ModuleGraph, RuntimeSpec, UsageState};
 
 /// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
 #[derive(Clone, Debug)]
@@ -75,7 +74,7 @@ pub fn collect_referenced_export_items<'a>(
   already_visited: &mut FxHashSet<ExportInfo>,
 ) {
   if let Some(export_info) = export_info {
-    let used = ExportInfoGetter::get_used(export_info, runtime);
+    let used = export_info.get_used(runtime);
     if used == UsageState::Unused {
       return;
     }

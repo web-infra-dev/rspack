@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
   incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
-  ExportInfoGetter, ExportsInfo, ModuleGraph, Plugin, PluginContext, RuntimeSpec,
+  ExportsInfo, ModuleGraph, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -178,23 +178,17 @@ fn is_equally_used(
     }
   } else {
     let other_exports_info = info.other_exports_info();
-    if ExportInfoGetter::get_used(other_exports_info, Some(a))
-      != ExportInfoGetter::get_used(other_exports_info, Some(b))
-    {
+    if other_exports_info.get_used(Some(a)) != other_exports_info.get_used(Some(b)) {
       return false;
     }
   }
   let side_effects_only_info = info.side_effects_only_info();
-  if ExportInfoGetter::get_used(side_effects_only_info, Some(a))
-    != ExportInfoGetter::get_used(side_effects_only_info, Some(b))
-  {
+  if side_effects_only_info.get_used(Some(a)) != side_effects_only_info.get_used(Some(b)) {
     return false;
   }
   for export_info in info.exports().values() {
     let export_info_data = export_info;
-    if ExportInfoGetter::get_used(export_info_data, Some(a))
-      != ExportInfoGetter::get_used(export_info_data, Some(b))
-    {
+    if export_info_data.get_used(Some(a)) != export_info_data.get_used(Some(b)) {
       return false;
     }
   }

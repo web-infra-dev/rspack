@@ -50,10 +50,10 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
-  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
-  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  DependencyId, DependencyType, ErrorSpan, ExportProvided, ExportsArgument, ExportsInfoGetter,
+  ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage,
+  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
   DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
@@ -1111,7 +1111,7 @@ impl Module for ConcatenatedModule {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
-      let used_name = ExportInfoGetter::get_used_name(export_info, None, runtime);
+      let used_name = export_info.get_used_name(None, runtime);
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
@@ -1140,7 +1140,7 @@ impl Module for ConcatenatedModule {
         exports_final_names.push((used_name.to_string(), final_name.name.clone()));
         format!(
           "/* {} */ {}",
-          if ExportInfoGetter::is_reexport(export_info) {
+          if export_info.is_reexport() {
             "reexport"
           } else {
             "binding"
@@ -1201,7 +1201,7 @@ impl Module for ConcatenatedModule {
 
     let exports_info =
       module_graph.get_prefetched_exports_info(&self.id(), PrefetchExportsInfoMode::Default);
-    let used = ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime);
+    let used = exports_info.other_exports_info().get_used(runtime);
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
     if used != UsageState::Unused {
       should_add_esm_flag = true
@@ -1316,9 +1316,7 @@ impl Module for ConcatenatedModule {
             continue;
           }
 
-          if let Some(UsedNameItem::Str(used_name)) =
-            ExportInfoGetter::get_used_name(export_info, None, runtime)
-          {
+          if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,

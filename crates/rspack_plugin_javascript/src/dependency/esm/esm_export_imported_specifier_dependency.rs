@@ -13,16 +13,16 @@ use rspack_core::{
   Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment,
-  ExportInfoGetter, ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar,
-  ExportModeFakeNamespaceObject, ExportModeNormalReexport, ExportModeReexportDynamicDefault,
-  ExportModeReexportNamedDefault, ExportModeReexportNamespaceObject, ExportModeReexportUndefined,
-  ExportModeUnused, ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo,
-  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
+  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
+  ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
+  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo, ExportsInfoGetter,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, StarReexportsInfo,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -352,7 +352,7 @@ impl ESMExportImportedSpecifierDependency {
       Some(ExportProvided::NotProvided)
     );
     let no_extra_imports = matches!(
-      ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime),
+      exports_info.other_exports_info().get_used(runtime),
       UsageState::Unused
     );
 
@@ -392,10 +392,7 @@ impl ESMExportImportedSpecifierDependency {
       for export_info in exports_info.exports().values() {
         let export_name = export_info.name().cloned().unwrap_or_default();
         if ignored_exports.contains(&export_name)
-          || matches!(
-            ExportInfoGetter::get_used(export_info, runtime),
-            UsageState::Unused
-          )
+          || matches!(export_info.get_used(runtime), UsageState::Unused)
         {
           continue;
         }
@@ -444,7 +441,7 @@ impl ESMExportImportedSpecifierDependency {
           .id()
           .get_read_only_export_info(module_graph, &imported_export_info_name);
         if matches!(
-          ExportInfoGetter::get_used(export_info.as_data(module_graph), runtime),
+          export_info.as_data(module_graph).get_used(runtime),
           UsageState::Unused
         ) {
           continue;

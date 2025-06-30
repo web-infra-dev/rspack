@@ -16,10 +16,10 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, ExportInfoGetter, GenerateContext, LocalIdentName, Module,
-  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
-  SourceType, TemplateContext, UsageState,
+  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
+  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  TemplateContext, UsageState,
 };
 use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
@@ -593,10 +593,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let exports_info =
             mg.get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
           let (ns_obj, left, right) = if self.es_module
-            && ExportInfoGetter::get_used(
-              exports_info.other_exports_info(),
-              generate_context.runtime,
-            ) != UsageState::Unused
+            && exports_info
+              .other_exports_info()
+              .get_used(generate_context.runtime)
+              != UsageState::Unused
           {
             (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
           } else {
@@ -711,7 +711,7 @@ fn get_used_exports<'a>(
         .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
 
       if let Some(export_info) = export_info {
-        ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused
+        export_info.get_used(runtime) != UsageState::Unused
       } else {
         true
       }
@@ -750,10 +750,7 @@ fn get_unused_local_ident(
           .map(|info| info.get_read_only_export_info(name));
 
         if let Some(export_info) = export_info {
-          matches!(
-            ExportInfoGetter::get_used(export_info, runtime),
-            UsageState::Unused
-          )
+          matches!(export_info.get_used(runtime), UsageState::Unused)
         } else {
           false
         }

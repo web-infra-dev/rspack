@@ -7,8 +7,7 @@ use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
-  ExportInfoData, ExportInfoGetter, ExportProvided, ExportsInfo, ProvidedExports, UsageState,
-  UsedName, UsedNameItem,
+  ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
 };
 use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsageKey, UsedExports};
 
@@ -255,7 +254,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   ) -> Vec<&ExportInfoData> {
     let mut list = vec![];
     for (_, export_info) in self.get_exports_in_exports_info(exports_info) {
-      let used = ExportInfoGetter::get_used(export_info, runtime);
+      let used = export_info.get_used(runtime);
       if matches!(used, UsageState::Unused) {
         continue;
       }
@@ -280,7 +279,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     if !matches!(
       other_export_info.provided(),
       Some(ExportProvided::NotProvided)
-    ) && ExportInfoGetter::get_used(other_export_info, runtime) != UsageState::Unused
+    ) && other_export_info.get_used(runtime) != UsageState::Unused
     {
       list.push(other_export_info);
     }
@@ -297,7 +296,10 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     runtime: Option<&RuntimeSpec>,
   ) -> UsedExports {
     if self.get_redirect_to_in_exports_info(exports_info).is_none() {
-      match ExportInfoGetter::get_used(self.get_other_in_exports_info(exports_info), runtime) {
+      match self
+        .get_other_in_exports_info(exports_info)
+        .get_used(runtime)
+      {
         UsageState::NoInfo => return UsedExports::Unknown,
         UsageState::Unknown | UsageState::OnlyPropertiesUsed | UsageState::Used => {
           return UsedExports::UsedNamespace(true);
@@ -308,7 +310,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
     let mut res = vec![];
     for (_, export_info) in self.get_exports_in_exports_info(exports_info) {
-      let used = ExportInfoGetter::get_used(export_info, runtime);
+      let used = export_info.get_used(runtime);
       match used {
         UsageState::NoInfo => return UsedExports::Unknown,
         UsageState::Unknown => return UsedExports::UsedNamespace(true),
@@ -331,8 +333,9 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
 
     if res.is_empty() {
-      let used =
-        ExportInfoGetter::get_used(self.get_side_effects_in_exports_info(exports_info), runtime);
+      let used = self
+        .get_side_effects_in_exports_info(exports_info)
+        .get_used(runtime);
       match used {
         UsageState::NoInfo => return UsedExports::Unknown,
         UsageState::Unused => return UsedExports::UsedNamespace(false),
@@ -435,7 +438,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       } else {
         export_info.name().dyn_hash(hasher);
       }
-      ExportInfoGetter::get_used(export_info, runtime).dyn_hash(hasher);
+      export_info.get_used(runtime).dyn_hash(hasher);
       export_info.provided().dyn_hash(hasher);
       export_info.terminal_binding().dyn_hash(hasher);
       export_info.inlinable().dyn_hash(hasher);
@@ -448,7 +451,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       let other_export_info = exports_info.other_exports_info.inner;
       let side_effects_only_info = exports_info.side_effects_only_info.inner;
       for export_info in exports_info.exports.values() {
-        if ExportInfoGetter::has_info(export_info.inner, other_export_info, runtime) {
+        if export_info.inner.has_info(other_export_info, runtime) {
           handle_export_info(export_info.inner, hasher, runtime);
         }
       }
@@ -699,14 +702,12 @@ impl ExportsInfoGetter {
           if is_exports_info_used(&redirect, runtime, mg) {
             return true;
           }
-        } else if ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime)
-          != UsageState::Unused
-        {
+        } else if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
           return true;
         }
 
         for export_info in exports_info.exports().values() {
-          if ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused {
+          if export_info.get_used(runtime) != UsageState::Unused {
             return true;
           }
         }
@@ -718,7 +719,7 @@ impl ExportsInfoGetter {
         true
       } else {
         !matches!(
-          ExportInfoGetter::get_used(id.as_data(mg).side_effects_only_info(), runtime),
+          id.as_data(mg).side_effects_only_info().get_used(runtime),
           UsageState::Unused
         )
       };
@@ -740,7 +741,7 @@ impl ExportsInfoGetter {
     }
 
     if !matches!(
-      ExportInfoGetter::get_used(info.side_effects_only_info(), runtime),
+      info.side_effects_only_info().get_used(runtime),
       UsageState::Unused
     ) {
       return true;
@@ -754,12 +755,12 @@ impl ExportsInfoGetter {
       if Self::is_used(&redirected, runtime) {
         return true;
       }
-    } else if ExportInfoGetter::get_used(info.other_exports_info(), runtime) != UsageState::Unused {
+    } else if info.other_exports_info().get_used(runtime) != UsageState::Unused {
       return true;
     }
 
     for (_, export_info) in info.exports() {
-      if ExportInfoGetter::get_used(export_info, runtime) != UsageState::Unused {
+      if export_info.get_used(runtime) != UsageState::Unused {
         return true;
       }
     }
@@ -841,11 +842,11 @@ impl ExportsInfoGetter {
     if names.len() == 1 {
       let value = &names[0];
       let info = info.get_read_only_export_info(value);
-      let used = ExportInfoGetter::get_used(info, runtime);
+      let used = info.get_used(runtime);
       return used;
     }
     if names.is_empty() {
-      return ExportInfoGetter::get_used(info.other_exports_info(), runtime);
+      return info.other_exports_info().get_used(runtime);
     }
     let info_data = info.get_read_only_export_info(&names[0]);
     if let Some(exports_info) = &info_data.exports_info()
@@ -854,7 +855,7 @@ impl ExportsInfoGetter {
       let redirected = info.redirect(*exports_info, true);
       return Self::get_used(&redirected, &names[1..], runtime);
     }
-    ExportInfoGetter::get_used(info_data, runtime)
+    info_data.get_used(runtime)
   }
 
   /// `Option<UsedName>` correspond to webpack `string | string[] | false`
@@ -883,14 +884,14 @@ impl ExportsInfoGetter {
         if names.len() == 1 {
           let name = &names[0];
           let info = info.get_read_only_export_info(name);
-          let used_name = ExportInfoGetter::get_used_name(info, Some(name), runtime);
+          let used_name = info.get_used_name(Some(name), runtime);
           return used_name.map(|name| match name {
             UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
             UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
           });
         }
         let export_info = info.get_read_only_export_info(&names[0]);
-        let first = ExportInfoGetter::get_used_name(export_info, Some(&names[0]), runtime)?;
+        let first = export_info.get_used_name(Some(&names[0]), runtime)?;
         let mut arr = match first {
           UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
           UsedNameItem::Str(first) => vec![first],
@@ -899,7 +900,7 @@ impl ExportsInfoGetter {
           return Some(UsedName::Normal(arr));
         }
         if let Some(exports_info) = &export_info.exports_info()
-          && ExportInfoGetter::get_used(export_info, runtime) == UsageState::OnlyPropertiesUsed
+          && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
         {
           let nested_exports_info = info.redirect(*exports_info, true);
           let nested = Self::get_used_name(
@@ -934,22 +935,15 @@ impl ExportsInfoGetter {
         runtime,
       ))));
     } else {
-      key.add(Either::Right(ExportInfoGetter::get_used(
-        info.other_exports_info(),
-        runtime,
-      )));
+      key.add(Either::Right(info.other_exports_info().get_used(runtime)));
     };
 
-    key.add(Either::Right(ExportInfoGetter::get_used(
-      info.side_effects_only_info(),
-      runtime,
-    )));
+    key.add(Either::Right(
+      info.side_effects_only_info().get_used(runtime),
+    ));
 
     for (_, export_info) in info.exports() {
-      key.add(Either::Right(ExportInfoGetter::get_used(
-        export_info,
-        runtime,
-      )));
+      key.add(Either::Right(export_info.get_used(runtime)));
     }
 
     key

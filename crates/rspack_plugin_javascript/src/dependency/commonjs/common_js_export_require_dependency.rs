@@ -6,12 +6,11 @@ use rspack_cacheable::{
 use rspack_core::{
   collect_referenced_export_items, module_raw, property_access, to_normal_comment,
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportInfoGetter,
-  ExportNameOrSpec, ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
-  PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
+  ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -113,7 +112,7 @@ impl CommonJsExportRequireDependency {
 
     let no_extra_imports = exports_info.as_ref().is_some_and(|data| {
       matches!(
-        ExportInfoGetter::get_used(data.other_exports_info(), runtime),
+        data.other_exports_info().get_used(runtime),
         UsageState::Unused
       )
     });
@@ -137,10 +136,7 @@ impl CommonJsExportRequireDependency {
       };
       for (_, export_info) in exports_info.exports() {
         let name = export_info.name();
-        if matches!(
-          ExportInfoGetter::get_used(export_info, runtime),
-          UsageState::Unused
-        ) {
+        if matches!(export_info.get_used(runtime), UsageState::Unused) {
           continue;
         }
         if let Some(name) = name {
@@ -175,7 +171,7 @@ impl CommonJsExportRequireDependency {
           }
           if let Some(exports_info) = &exports_info {
             let export_info = exports_info.get_read_only_export_info(name);
-            let used = ExportInfoGetter::get_used(export_info, runtime);
+            let used = export_info.get_used(runtime);
             if matches!(used, UsageState::Unused) {
               continue;
             }
@@ -322,7 +318,7 @@ impl Dependency for CommonJsExportRequireDependency {
 
     for name in &self.names {
       let export_info = exports_info.get_read_only_export_info(name);
-      let used = ExportInfoGetter::get_used(export_info, runtime);
+      let used = export_info.get_used(runtime);
       if matches!(used, UsageState::Unused) {
         return vec![ExtendedReferencedExport::Array(vec![])];
       }
@@ -337,7 +333,7 @@ impl Dependency for CommonJsExportRequireDependency {
     }
 
     if !matches!(
-      ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime),
+      exports_info.other_exports_info().get_used(runtime),
       UsageState::Unused
     ) {
       return get_full_result();
