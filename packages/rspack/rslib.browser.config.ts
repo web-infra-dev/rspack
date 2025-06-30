@@ -3,9 +3,9 @@ import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import path from "node:path";
 
 const fallbackNodeShims = path.resolve("./src/browser/fallbackNodeShims.ts");
-const browserEntry = path.resolve(
-	"../../crates/node_binding/rspack.wasi-browser.js"
-);
+
+const bindingDir = path.resolve("../../crates/node_binding");
+const browserEntry = path.join(bindingDir, "rspack.wasi-browser.js");
 
 export default defineConfig({
 	resolve: {
@@ -28,9 +28,23 @@ export default defineConfig({
 		}
 	],
 	output: {
+		cleanDistPath: true,
 		target: "web",
 		distPath: {
 			root: "../rspack-browser/dist"
+		},
+		externals: ["@napi-rs/wasm-runtime"],
+		copy: {
+			patterns: [
+				{
+					from: path.join(bindingDir, "wasi-worker-browser.mjs"),
+					to: "wasi-worker-browser.mjs"
+				},
+				{
+					from: path.join(bindingDir, "rspack.wasm32-wasi.wasm"),
+					to: "rspack.wasm32-wasi.wasm"
+				}
+			]
 		}
 	},
 	plugins: [pluginNodePolyfill()],
