@@ -5,11 +5,11 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, ExportInfoSetter, FactoryMeta, Logger, MaybeDynamicTargetExportInfo,
-  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
-  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
+  SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -838,11 +838,9 @@ fn do_optimize_connection(
     target_export,
   }) = need_move_target
   {
-    ExportInfoSetter::do_move_target(
-      export_info.as_data_mut(module_graph),
-      dependency,
-      target_export,
-    );
+    export_info
+      .as_data_mut(module_graph)
+      .do_move_target(dependency, target_export);
   }
   (dependency, target_module)
 }

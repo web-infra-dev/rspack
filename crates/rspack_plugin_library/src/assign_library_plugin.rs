@@ -8,10 +8,9 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoSetter,
-  ExportProvided, Filename, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  ModuleIdentifier, PathData, Plugin, PluginContext, PrefetchExportsInfoMode, RuntimeGlobals,
-  SourceType, UsageState,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportProvided, Filename,
+  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData,
+  Plugin, PluginContext, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -473,7 +472,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         .get_exports_info(&module_identifier)
         .get_export_info(&mut module_graph, &(export.as_str()).into());
       let info = export_info.as_data_mut(&mut module_graph);
-      ExportInfoSetter::set_used(info, UsageState::Used, Some(&runtime));
+      info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);

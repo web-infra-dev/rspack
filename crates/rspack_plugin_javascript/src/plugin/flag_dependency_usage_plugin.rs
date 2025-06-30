@@ -5,9 +5,9 @@ use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
 use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
   is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
-  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
-  ExportInfoSetter, ExportsInfo, ExtendedReferencedExport, GroupOptions, Inlinable,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
+  ExtendedReferencedExport, GroupOptions, Inlinable, ModuleIdentifier, Plugin, ReferencedExport,
+  RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -368,8 +368,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             if !last_one {
               let nested_info = export_info.exports_info();
               if let Some(nested_info) = nested_info {
-                let changed_flag = ExportInfoSetter::set_used_conditionally(
-                  export_info,
+                let changed_flag = export_info.set_used_conditionally(
                   Box::new(|used| used == &UsageState::Unused),
                   UsageState::OnlyPropertiesUsed,
                   runtime.as_ref(),
@@ -392,8 +391,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               }
             }
 
-            let changed_flag = ExportInfoSetter::set_used_conditionally(
-              export_info,
+            let changed_flag = export_info.set_used_conditionally(
               Box::new(|v| v != &UsageState::Used),
               UsageState::Used,
               runtime.as_ref(),

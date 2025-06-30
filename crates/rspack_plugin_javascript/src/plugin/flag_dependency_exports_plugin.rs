@@ -4,7 +4,7 @@ use rspack_core::{
   get_target,
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportInfoSetter, ExportNameOrSpec, ExportProvided, ExportsInfo,
+  DependenciesBlock, DependencyId, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoData,
   ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
 };
@@ -136,12 +136,10 @@ impl<'a> FlagDependencyExportsState<'a> {
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = &export_desc.hide_export {
       for name in hide_export.iter() {
-        ExportInfoSetter::unset_target(
-          exports_info
-            .get_export_info(self.mg, name)
-            .as_data_mut(self.mg),
-          &dep_id,
-        );
+        exports_info
+          .get_export_info(self.mg, name)
+          .as_data_mut(self.mg)
+          .unset_target(&dep_id);
       }
     }
     match exports {
@@ -270,8 +268,30 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
 
       if let Some(exports) = exports {
-        let nested_exports_info =
-          ExportInfoSetter::create_nested_exports_info(&export_info, self.mg);
+        let export_info_data = export_info.as_data_mut(self.mg);
+        let nested_exports_info = if export_info_data.exports_info_owned() {
+          export_info_data
+            .exports_info()
+            .expect("should have exports_info when exports_info is true")
+        } else {
+          let old_exports_info = export_info_data.exports_info();
+          let new_exports_info = ExportsInfoData::new();
+          let new_exports_info_id = new_exports_info.id();
+          export_info_data.set_exports_info(Some(new_exports_info_id.clone()));
+          export_info_data.set_exports_info_owned(true);
+          self
+            .mg
+            .set_exports_info(new_exports_info_id, new_exports_info);
+
+          new_exports_info_id.set_has_provide_info(self.mg);
+          if let Some(exports_info) = old_exports_info {
+            exports_info
+              .as_data_mut(self.mg)
+              .set_redirect_name_to(Some(new_exports_info_id));
+          }
+          new_exports_info_id
+        };
+
         let (merge_changed, merge_dependencies) = self.merge_exports(
           module_id,
           nested_exports_info,
@@ -288,7 +308,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       let export_info_data = export_info.as_data_mut(self.mg);
       if let Some(from) = from {
         changed |= if hidden {
-          ExportInfoSetter::unset_target(export_info_data, &dep_id)
+          export_info_data.unset_target(&dep_id)
         } else {
           let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
           let export_name = if let Some(from) = from_export {
@@ -296,8 +316,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           } else {
             Some(&fallback)
           };
-          ExportInfoSetter::set_target(
-            export_info_data,
+          export_info_data.set_target(
             Some(dep_id),
             Some(from.dependency_id),
             export_name,
@@ -332,7 +351,8 @@ impl<'a> FlagDependencyExportsState<'a> {
         changed |= export_info_data
           .exports_info()
           .expect("should have exports_info when exports_info_owned is true")
-          .set_redirect_name_to(self.mg, target_exports_info);
+          .as_data_mut(self.mg)
+          .set_redirect_name_to(target_exports_info);
       } else if export_info_data.exports_info() != target_exports_info {
         export_info_data.set_exports_info(target_exports_info);
         changed = true;

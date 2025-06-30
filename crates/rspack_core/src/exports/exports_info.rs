@@ -6,9 +6,7 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use super::{
-  ExportInfo, ExportInfoData, ExportInfoSetter, ExportProvided, UsageState, NEXT_EXPORTS_INFO_UKEY,
-};
+use super::{ExportInfo, ExportInfoData, ExportProvided, UsageState, NEXT_EXPORTS_INFO_UKEY};
 use crate::{DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
 #[cacheable]
@@ -37,10 +35,12 @@ impl ExportsInfo {
   pub fn reset_provide_info(&self, mg: &mut ModuleGraph) {
     let exports_info = self.as_data_mut(mg);
     for export_info in exports_info.exports_mut().values_mut() {
-      ExportInfoSetter::reset_provide_info(export_info);
+      export_info.reset_provide_info();
     }
-    ExportInfoSetter::reset_provide_info(exports_info.side_effects_only_info_mut());
-    ExportInfoSetter::reset_provide_info(exports_info.other_exports_info_mut());
+    exports_info
+      .side_effects_only_info_mut()
+      .reset_provide_info();
+    exports_info.other_exports_info_mut().reset_provide_info();
     if let Some(redirect_to) = exports_info.redirect_to() {
       redirect_to.reset_provide_info(mg);
     }
@@ -70,15 +70,6 @@ impl ExportsInfo {
         other_exports_info.set_can_mangle_provide(Some(true));
       }
     }
-  }
-
-  pub fn set_redirect_name_to(&self, mg: &mut ModuleGraph, id: Option<ExportsInfo>) -> bool {
-    let exports_info = self.as_data_mut(mg);
-    if exports_info.redirect_to() == id {
-      return false;
-    }
-    exports_info.set_redirect_to(id);
-    true
   }
 
   pub fn set_unknown_exports_provided(
@@ -122,13 +113,7 @@ impl ExportsInfo {
         let name = export_info
           .name()
           .map(|name| Nullable::Value(vec![name.clone()]));
-        ExportInfoSetter::set_target(
-          export_info,
-          Some(target_key),
-          target_module,
-          name.as_ref(),
-          priority,
-        );
+        export_info.set_target(Some(target_key), target_module, name.as_ref(), priority);
       }
     }
 
@@ -152,13 +137,7 @@ impl ExportsInfo {
       }
 
       if let Some(target_key) = target_key {
-        ExportInfoSetter::set_target(
-          other_exports_info_data,
-          Some(target_key),
-          target_module,
-          None,
-          priority,
-        );
+        other_exports_info_data.set_target(Some(target_key), target_module, None, priority);
       }
 
       if !can_mangle && other_exports_info_data.can_mangle_provide() != Some(false) {
@@ -200,17 +179,16 @@ impl ExportsInfo {
     let mut nested_exports_info = vec![];
     let exports_info = self.as_data_mut(mg);
     for export_info in exports_info.exports_mut().values_mut() {
-      ExportInfoSetter::set_has_use_info(export_info, &mut nested_exports_info);
+      export_info.set_has_use_info(&mut nested_exports_info);
     }
-    ExportInfoSetter::set_has_use_info(
-      exports_info.side_effects_only_info_mut(),
-      &mut nested_exports_info,
-    );
+    exports_info
+      .side_effects_only_info_mut()
+      .set_has_use_info(&mut nested_exports_info);
     if let Some(redirect) = exports_info.redirect_to() {
       redirect.set_has_use_info(mg);
     } else {
       let other_exports_info = exports_info.other_exports_info_mut();
-      ExportInfoSetter::set_has_use_info(other_exports_info, &mut nested_exports_info);
+      other_exports_info.set_has_use_info(&mut nested_exports_info);
       if other_exports_info.can_mangle_use().is_none() {
         other_exports_info.set_can_mangle_use(Some(true));
       }
@@ -225,7 +203,7 @@ impl ExportsInfo {
     let mut changed = false;
     let exports_info = self.as_data_mut(mg);
     for export_info in exports_info.exports_mut().values_mut() {
-      let flag = ExportInfoSetter::set_used_without_info(export_info, runtime);
+      let flag = export_info.set_used_without_info(runtime);
       changed |= flag;
     }
     if let Some(redirect_to) = exports_info.redirect_to() {
@@ -233,7 +211,7 @@ impl ExportsInfo {
       changed |= flag;
     } else {
       let other_exports_info = exports_info.other_exports_info_mut();
-      let flag = ExportInfoSetter::set_used(other_exports_info, UsageState::NoInfo, None);
+      let flag = other_exports_info.set_used(UsageState::NoInfo, None);
       changed |= flag;
       if other_exports_info.can_mangle_use() != Some(false) {
         other_exports_info.set_can_mangle_use(Some(false));
@@ -254,7 +232,7 @@ impl ExportsInfo {
       if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
         continue;
       }
-      changed |= ExportInfoSetter::set_used(export_info, UsageState::Used, runtime);
+      changed |= export_info.set_used(UsageState::Used, runtime);
     }
     changed
   }
@@ -267,7 +245,7 @@ impl ExportsInfo {
     let mut changed = false;
     let exports_info = self.as_data_mut(mg);
     for export_info in exports_info.exports_mut().values_mut() {
-      if ExportInfoSetter::set_used_in_unknown_way(export_info, runtime) {
+      if export_info.set_used_in_unknown_way(runtime) {
         changed = true;
       }
     }
@@ -277,8 +255,7 @@ impl ExportsInfo {
       }
     } else {
       let other_exports_info = exports_info.other_exports_info_mut();
-      if ExportInfoSetter::set_used_conditionally(
-        other_exports_info,
+      if other_exports_info.set_used_conditionally(
         Box::new(|value| value < &UsageState::Unknown),
         UsageState::Unknown,
         runtime,
@@ -299,12 +276,13 @@ impl ExportsInfo {
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
     let exports_info = self.as_data_mut(mg);
-    ExportInfoSetter::set_used_conditionally(
-      exports_info.side_effects_only_info_mut(),
-      Box::new(|value| value == &UsageState::Unused),
-      UsageState::Used,
-      runtime,
-    )
+    exports_info
+      .side_effects_only_info_mut()
+      .set_used_conditionally(
+        Box::new(|value| value == &UsageState::Unused),
+        UsageState::Used,
+        runtime,
+      )
   }
 }
 
