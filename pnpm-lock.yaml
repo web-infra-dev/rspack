@@ -150,8 +150,6 @@ importers:
 
   examples/basic/cjs-modules: {}
 
-  examples/basic/fake-node-module: {}
-
   npm/darwin-arm64: {}
 
   npm/darwin-x64: {}
