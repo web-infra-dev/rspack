@@ -3,7 +3,9 @@ const root = require("path").resolve(__dirname, "../");
 const wasmConfig = process.env.WASM && {
 	testPathIgnorePatterns: [
 		"<rootDir>/StatsTestCases.basictest.js",
-		"<rootDir>/ConfigTestCases.basictest.js"
+		"<rootDir>/ConfigTestCases.basictest.js",
+		"<rootDir>/HotTestCasesWeb.test.js",
+		"<rootDir>/Watch.test.js",
 	],
 	maxWorkers: 1,
 	maxConcurrency: 1,
