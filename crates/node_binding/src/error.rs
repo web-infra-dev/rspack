@@ -1,7 +1,4 @@
-use std::{
-  fmt::Display,
-  ptr::{self, NonNull},
-};
+use std::{fmt::Display, ptr};
 
 use napi::{
   bindgen_prelude::{FromNapiValue, Object, ToNapiValue},
@@ -202,6 +199,11 @@ impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 // The error printing logic here is consistent with Webpack Stats.
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if self.message.starts_with("  \u{1b}[31m×\u{1b}[0m") || self.message.starts_with("  ×") {
+      write!(f, "{}: ", self.message)?;
+      return Ok(());
+    }
+
     if self.parent_error_name.as_deref() == Some("ModuleBuildError") {
       // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
       if let Some(stack) = &self.stack {
@@ -277,20 +279,18 @@ impl RspackError {
     compilation: &Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
-    let message = diagnostic.message();
+    let colored = compilation.options.stats.colors;
+    let message = diagnostic
+      .render_report(colored)
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     let mut module = None;
     if let Some(module_identifier) = diagnostic.module_identifier() {
       if let Some(m) = compilation.module_by_identifier(&module_identifier) {
-        module =
-          Some(ModuleObject::with_ptr(
-            #[allow(clippy::unwrap_used)]
-            NonNull::new(
-              m.as_ref() as *const dyn rspack_core::Module as *mut dyn rspack_core::Module
-            )
-            .unwrap(),
-            compilation.compiler_id(),
-          ));
+        module = Some(ModuleObject::with_ref(
+          m.as_ref(),
+          compilation.compiler_id(),
+        ));
       }
     }
 
