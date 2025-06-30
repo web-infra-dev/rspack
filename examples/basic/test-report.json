@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-06-22T20:38:12.913Z",
+  "timestamp": "2025-06-29T01:54:03.352Z",
   "status": "PASSED",
   "environment": {
-    "nodeVersion": "v20.19.2",
+    "nodeVersion": "v20.19.3",
     "platform": "darwin",
     "cwd": "/Users/bytedance/RustroverProjects/rspack/examples/basic"
   },

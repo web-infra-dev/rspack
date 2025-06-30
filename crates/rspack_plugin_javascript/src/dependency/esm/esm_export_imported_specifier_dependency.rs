@@ -1799,17 +1799,15 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       .get_effective_export_presence(&**module)
     {
       // Enhanced linking error with additional context
-      if let Some(error) = esm_import_dependency_get_linking_error(
-        self,
-        ids,
-        module_graph,
-        self
-          .name
-          .as_ref()
-          .map(|name| format!("(reexported as '{name}')"))
-          .unwrap_or_default(),
-        should_error,
-      ) {
+      if let Some(name) = &self.name
+        && let Some(error) = esm_import_dependency_get_linking_error(
+          self,
+          ids,
+          module_graph,
+          name.to_string(),
+          should_error,
+        )
+      {
         diagnostics.push(error);
       }
 
