@@ -1,0 +1,26 @@
+{
+  "name": "@rspack/browser",
+  "version": "1.4.1",
+  "license": "MIT",
+  "description": "The fast Rust-based web bundler with webpack-compatible API",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build -w"
+  },
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack"
+  },
+  "packageManager": "pnpm@10.10.0"
+}

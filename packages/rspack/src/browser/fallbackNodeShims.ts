@@ -1,0 +1,1 @@
+throw "Not support browser";
