@@ -50,13 +50,13 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
-  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
-  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
-  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportMode, ExportProvided,
+  ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector,
+  InitFragment, InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module,
+  ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  ModuleLayer, ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
+  UsedNameItem, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -91,28 +91,37 @@ pub struct RootModuleContext {
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct RawBinding {
-  info_id: ModuleIdentifier,
-  raw_name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub raw_name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct SymbolBinding {
   /// corresponding to a ConcatenatedModuleInfo, ref https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L93-L100
-  info_id: ModuleIdentifier,
-  name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Binding {
   Raw(RawBinding),
   Symbol(SymbolBinding),
+}
+
+impl Binding {
+  pub fn identifier(&self) -> ModuleIdentifier {
+    match self {
+      Binding::Raw(raw_binding) => raw_binding.info_id,
+      Binding::Symbol(symbol_binding) => symbol_binding.info_id,
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -196,6 +205,7 @@ pub struct ConcatenatedModuleInfo {
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub import_map: ConcatenatedImportMap,
   pub namespace_object_name: Option<Atom>,
+  pub namespace_object_source: Option<String>,
   pub interop_namespace_object_used: bool,
   pub interop_namespace_object_name: Option<Atom>,
   pub interop_namespace_object2_used: bool,
@@ -205,6 +215,7 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
+  pub star_exports: IdentifierIndexMap<ExportMode>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
   pub public_path_auto_replace: Option<bool>,
@@ -222,6 +233,7 @@ pub struct ExternalModuleInfo {
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
   pub name: Option<Atom>,
+  pub runtime_requirements: RuntimeGlobals,
 }
 
 pub struct ConnectionWithRuntimeCondition<'a> {
@@ -356,6 +368,13 @@ impl ModuleInfo {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
+    }
+  }
+
+  pub fn get_runtime_requirements(&self) -> &RuntimeGlobals {
+    match self {
+      ModuleInfo::External(e) => &e.runtime_requirements,
+      ModuleInfo::Concatenated(c) => &c.runtime_requirements,
     }
   }
 }
@@ -1725,6 +1744,7 @@ impl ConcatenatedModule {
                 interop_default_access_used: false,
                 interop_default_access_name: None,
                 name: None,
+                runtime_requirements: Default::default(),
               };
               vac.insert(ModuleInfo::External(info));
               list.push((module_id, Some(e.runtime_condition)))
