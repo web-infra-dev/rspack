@@ -108,7 +108,6 @@ export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
 export { ProvidePlugin } from "./builtin-plugin";
 export { DefinePlugin } from "./builtin-plugin";
 export { ProgressPlugin } from "./builtin-plugin";
-export { RstestPlugin } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
@@ -210,6 +209,8 @@ import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
 import { RsdoctorPlugin } from "./builtin-plugin";
+import { RstestPlugin } from "./builtin-plugin";
+import { RslibPlugin } from "./builtin-plugin";
 import { CssChunkingPlugin } from "./builtin-plugin";
 
 interface Optimize {
@@ -352,6 +353,8 @@ interface Experiments {
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
+	RstestPlugin: typeof RstestPlugin;
+	RslibPlugin: typeof RslibPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
 	swc: {
@@ -384,6 +387,18 @@ export const experiments: Experiments = {
 	 * @internal
 	 */
 	RsdoctorPlugin,
+	/**
+	 * Note: This plugin is unstable yet
+	 *
+	 * @internal
+	 */
+	RstestPlugin,
+	/**
+	 * Note: This plugin is unstable yet
+	 *
+	 * @internal
+	 */
+	RslibPlugin,
 	SubresourceIntegrityPlugin,
 	lazyCompilationMiddleware,
 	swc: {

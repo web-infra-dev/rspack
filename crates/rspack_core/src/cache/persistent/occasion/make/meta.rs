@@ -1,10 +1,10 @@
-use std::sync::{atomic::Ordering::Relaxed, Arc};
+use std::sync::Arc;
 
 use rspack_cacheable::{cacheable, from_bytes, to_bytes};
 use rspack_error::Result;
+use rspack_tasks::{fetch_new_dependency_id, get_current_dependency_id, set_current_dependency_id};
 
 use super::Storage;
-use crate::DEPENDENCY_ID;
 
 const SCOPE: &str = "occasion_make_meta";
 
@@ -19,7 +19,7 @@ pub struct Meta {
 #[tracing::instrument("Cache::Occasion::Make::Meta::save", skip_all)]
 pub fn save_meta(storage: &Arc<dyn Storage>) {
   let meta = Meta {
-    next_dependencies_id: DEPENDENCY_ID.load(Relaxed),
+    next_dependencies_id: get_current_dependency_id(),
   };
   storage.set(
     SCOPE,
@@ -35,8 +35,8 @@ pub async fn recovery_meta(storage: &Arc<dyn Storage>) -> Result<()> {
   };
   let meta: Meta = from_bytes(&value, &()).expect("should from bytes success");
   // TODO make dependency id to string like module id
-  if DEPENDENCY_ID.load(Relaxed) < meta.next_dependencies_id {
-    DEPENDENCY_ID.store(meta.next_dependencies_id, Relaxed);
+  if fetch_new_dependency_id() < meta.next_dependencies_id {
+    set_current_dependency_id(meta.next_dependencies_id);
   }
   Ok(())
 }

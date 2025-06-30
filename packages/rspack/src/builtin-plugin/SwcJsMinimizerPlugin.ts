@@ -100,7 +100,8 @@ export interface JsFormatOptions {
 	 */
 	maxLineLen?: number | false;
 	/**
-	 * Currently noop.
+	 * When passed it must be a string and it will be prepended to the output literally.
+	 * The source map will adjust for this text. Can be used to insert a comment containing licensing information.
 	 */
 	preamble?: string;
 	/**

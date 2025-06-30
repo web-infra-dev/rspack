@@ -114,7 +114,15 @@ jobs:
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
       - name: Run rspack test
-        run: cargo test --workspace --exclude rspack_node -- --nocapture
+        run: |
+          cargo test --workspace \
+            --exclude rspack_binding_api \
+            --exclude rspack_node \
+            --exclude rspack_binding_builder \
+            --exclude rspack_binding_builder_macros \
+            --exclude rspack_binding_build \
+            --exclude rspack_napi \
+            -- --nocapture
 
   rust_test_miri:
     name: Rust test miri

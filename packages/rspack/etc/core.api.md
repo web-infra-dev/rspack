@@ -24,6 +24,7 @@ import { ContextModule } from '@rspack/binding';
 import { createReadStream } from 'fs';
 import { default as default_2 } from './util/hash';
 import { Dependency } from '@rspack/binding';
+import type { DependencyLocation } from '@rspack/binding';
 import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
@@ -33,7 +34,6 @@ import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { IncomingMessage } from 'http';
-import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
 import type { JsAfterTemplateExecutionData } from '@rspack/binding';
@@ -74,6 +74,7 @@ import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
+import { RawRslibPluginOptions } from '@rspack/binding';
 import { RawRstestPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
@@ -109,7 +110,7 @@ interface AdditionalData {
 type AffectedHooks = keyof Compiler["hooks"];
 
 // @public (undocumented)
-type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
+type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "es2025" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
 
 // @public
 export type Amd = false | Record<string, any>;
@@ -934,6 +935,12 @@ type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
 
 // @public (undocumented)
+type CollectTypeScriptInfoOptions = {
+    typeExports?: boolean;
+    exportedEnum?: boolean | "const-only";
+};
+
+// @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {
     // (undocumented)
     type: "commonjs";
@@ -1073,7 +1080,7 @@ export class Compilation {
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
         chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
-        processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
+        processWarnings: liteTapable.SyncWaterfallHook<[WebpackError_2[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
         stillValidModule: liteTapable.SyncHook<[Module], void>;
         statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[
@@ -1658,9 +1665,9 @@ export type CssChunkFilename = Filename;
 
 // @public (undocumented)
 const CssChunkingPlugin: {
-    new (options: CssChunkingPluginOptions): {
+    new (options?: CssChunkingPluginOptions | undefined): {
         name: binding.BuiltinPluginName;
-        _args: [options: CssChunkingPluginOptions];
+        _args: [options?: CssChunkingPluginOptions | undefined];
         affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): binding.BuiltinPlugin;
         apply(compiler: Compiler_2): void;
@@ -1669,6 +1676,10 @@ const CssChunkingPlugin: {
 
 // @public (undocumented)
 interface CssChunkingPluginOptions {
+    // (undocumented)
+    maxSize?: number;
+    // (undocumented)
+    minSize?: number;
     nextjs?: boolean;
     // (undocumented)
     strict?: boolean;
@@ -1807,9 +1818,6 @@ export type Dependencies = Name[];
 export { Dependency }
 
 // @public (undocumented)
-type DependencyLocation = any;
-
-// @public (undocumented)
 type DevMiddlewareContext<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = {
     state: boolean;
     stats: Stats | MultiStats | undefined;
@@ -1878,8 +1886,14 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     setupMiddlewares?: ((middlewares: DevServerMiddleware[], devServer: Server_4) => DevServerMiddleware[]) | undefined;
 };
 
-// @public
-export type DevTool = false | "eval" | "cheap-source-map" | "cheap-module-source-map" | "source-map" | "inline-cheap-source-map" | "inline-cheap-module-source-map" | "inline-source-map" | "inline-nosources-cheap-source-map" | "inline-nosources-cheap-module-source-map" | "inline-nosources-source-map" | "nosources-cheap-source-map" | "nosources-cheap-module-source-map" | "nosources-source-map" | "hidden-nosources-cheap-source-map" | "hidden-nosources-cheap-module-source-map" | "hidden-nosources-source-map" | "hidden-cheap-source-map" | "hidden-cheap-module-source-map" | "hidden-source-map" | "eval-cheap-source-map" | "eval-cheap-module-source-map" | "eval-source-map" | "eval-nosources-cheap-source-map" | "eval-nosources-cheap-module-source-map" | "eval-nosources-source-map";
+// @public (undocumented)
+export type DevTool = false | "eval" | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}`;
+
+// @public (undocumented)
+type DevToolCheap = "cheap-" | "cheap-module-" | "";
+
+// @public (undocumented)
+type DevToolDebugIds = "-debugids" | "";
 
 // @public
 export type DevtoolFallbackModuleFilenameTemplate = DevtoolModuleFilenameTemplate;
@@ -1889,6 +1903,12 @@ export type DevtoolModuleFilenameTemplate = string | ((info: any) => any);
 
 // @public
 export type DevtoolNamespace = string;
+
+// @public (undocumented)
+type DevToolNoSources = "nosources-" | "";
+
+// @public
+type DevToolPosition = "inline-" | "hidden-" | "eval-" | "";
 
 // @public (undocumented)
 interface Diagnostic {
@@ -2465,6 +2485,8 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
+    inlineEnum?: boolean;
+    typeReexportsPresence?: boolean;
 };
 
 // @public (undocumented)
@@ -2485,6 +2507,10 @@ interface Experiments_2 {
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
+    // (undocumented)
+    RslibPlugin: typeof RslibPlugin;
+    // (undocumented)
+    RstestPlugin: typeof RstestPlugin;
     // (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
@@ -2513,6 +2539,8 @@ export interface ExperimentsNormalized {
     // (undocumented)
     inlineConst?: boolean;
     // (undocumented)
+    inlineEnum?: boolean;
+    // (undocumented)
     layers?: boolean;
     // (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -2526,6 +2554,8 @@ export interface ExperimentsNormalized {
     rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
+    // (undocumented)
+    typeReexportsPresence?: boolean;
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }
@@ -2962,7 +2992,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 
 // @public
-export type HashFunction = "md4" | "xxhash64";
+export type HashFunction = "md4" | "xxhash64" | "sha256";
 
 // @public (undocumented)
 interface HashLike {
@@ -3201,10 +3231,14 @@ export type IgnorePluginOptions = {
 };
 
 // @public
-export type IgnoreWarnings = (RegExp | ((error: Error, compilation: Compilation) => boolean))[];
+export type IgnoreWarnings = (RegExp | {
+    file?: RegExp;
+    message?: RegExp;
+    module?: RegExp;
+} | ((warning: WebpackError_2, compilation: Compilation) => boolean))[];
 
 // @public (undocumented)
-export type IgnoreWarningsNormalized = ((warning: Error, compilation: Compilation) => boolean)[];
+export type IgnoreWarningsNormalized = ((warning: WebpackError_2, compilation: Compilation) => boolean)[];
 
 // @public
 export type Iife = boolean;
@@ -3438,6 +3472,7 @@ export type JavascriptParserOptions = {
     requireResolve?: boolean;
     importDynamic?: boolean;
     inlineConst?: boolean;
+    typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 };
 
 // @public (undocumented)
@@ -5650,7 +5685,7 @@ type PluginImportConfig = {
 };
 
 // @public (undocumented)
-type PluginImportOptions = PluginImportConfig[] | undefined;
+type PluginImportOptions = PluginImportConfig[];
 
 // @public (undocumented)
 export type Plugins = Plugin_2[];
@@ -6232,6 +6267,17 @@ type RsdoctorPluginOptions = {
 };
 
 // @public (undocumented)
+const RslibPlugin: {
+    new (rslib: RawRslibPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [rslib: RawRslibPluginOptions];
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 type Rspack = typeof rspack_2 & typeof rspackExports & {
     rspack: Rspack;
     webpack: Rspack;
@@ -6340,7 +6386,6 @@ declare namespace rspackExports {
         ProvidePlugin,
         DefinePlugin,
         ProgressPlugin,
-        RstestPlugin,
         EntryPlugin,
         DynamicEntryPlugin,
         ExternalsPlugin,
@@ -6766,7 +6811,7 @@ export type RspackSeverity = binding.JsRspackSeverity;
 export const rspackVersion: string;
 
 // @public (undocumented)
-export const RstestPlugin: {
+const RstestPlugin: {
     new (rstest: RawRstestPluginOptions): {
         name: BuiltinPluginName;
         _args: [rstest: RawRstestPluginOptions];
@@ -7664,6 +7709,7 @@ export type SwcLoaderOptions = Config_2 & {
     isModule?: boolean | "unknown";
     rspackExperiments?: {
         import?: PluginImportOptions;
+        collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     };
 };
 
@@ -9187,8 +9233,6 @@ export const WebpackError: ErrorConstructor;
 
 // @public (undocumented)
 class WebpackError_2 extends Error {
-    // (undocumented)
-    [inspect.custom](): string;
     // (undocumented)
     chunk?: Chunk;
     // (undocumented)

@@ -4,6 +4,8 @@ import { create } from "./base";
 
 export interface CssChunkingPluginOptions {
 	strict?: boolean;
+	minSize?: number;
+	maxSize?: number;
 	/**
 	 * This plugin is intended to be generic, but currently requires some special handling for Next.js.
 	 * A `next` option has been added to accommodate this.
@@ -15,11 +17,13 @@ export interface CssChunkingPluginOptions {
 export const CssChunkingPlugin = create(
 	binding.BuiltinPluginName.CssChunkingPlugin,
 	function (
-		options: CssChunkingPluginOptions
+		options: CssChunkingPluginOptions = {}
 	): binding.CssChunkingPluginOptions {
 		if (options.nextjs) {
 			return {
 				strict: options.strict,
+				minSize: options.minSize,
+				maxSize: options.maxSize,
 				exclude: /^pages\//
 			};
 		}

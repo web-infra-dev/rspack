@@ -41,6 +41,7 @@ Object {
       silent: true,
     },
     inlineConst: false,
+    inlineEnum: false,
     layers: false,
     lazyCompilation: false,
     parallelCodeSplitting: true,
@@ -53,6 +54,7 @@ Object {
       },
     },
     topLevelAwait: true,
+    typeReexportsPresence: false,
     useInputFileSystem: false,
   },
   externals: undefined,
@@ -197,6 +199,7 @@ Object {
         requireDynamic: true,
         requireResolve: true,
         strictExportPresence: false,
+        typeReexportsPresence: no-tolerant,
         url: true,
         worker: Array [
           ...,

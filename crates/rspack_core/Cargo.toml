@@ -50,6 +50,7 @@ rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
 rspack_sources = { workspace = true }
 rspack_storage = { workspace = true }
+rspack_tasks = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 scopeguard = { workspace = true }

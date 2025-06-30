@@ -4,13 +4,14 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  module_raw, process_export_info, property_access, to_normal_comment, AsContextDependency,
-  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportInfoGetter, ExportNameOrSpec,
-  ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, module_raw, property_access, to_normal_comment,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportInfoGetter,
+  ExportNameOrSpec, ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -64,6 +65,7 @@ impl CommonJsExportRequireDependency {
   fn get_star_reexports(
     &self,
     mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
@@ -79,7 +81,7 @@ impl CommonJsExportRequireDependency {
       };
       let nested = nested_exports_info
         .get_nested_exports_info(Some(ids))
-        .map(|data| data.id);
+        .map(|data| data.id());
 
       imported_exports_info =
         nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
@@ -99,13 +101,13 @@ impl CommonJsExportRequireDependency {
       };
       let nested = nested_exports_info
         .get_nested_exports_info(Some(&self.names))
-        .map(|data| data.id);
+        .map(|data| data.id());
       exports_info =
         nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
     };
 
     let no_extra_exports = imported_exports_info.as_ref().is_some_and(|data| {
-      let provided = ExportInfoGetter::provided(data.other_exports_info());
+      let provided = data.other_exports_info().provided();
       matches!(provided, Some(ExportProvided::NotProvided))
     });
 
@@ -123,7 +125,7 @@ impl CommonJsExportRequireDependency {
     let is_namespace_import = matches!(
       mg.module_by_identifier(imported_module)
         .expect("Should get imported module")
-        .get_exports_type(mg, false),
+        .get_exports_type(mg, mg_cache, false),
       ExportsType::Namespace
     );
 
@@ -134,7 +136,7 @@ impl CommonJsExportRequireDependency {
         unreachable!();
       };
       for (_, export_info) in exports_info.exports() {
-        let name = ExportInfoGetter::name(export_info);
+        let name = export_info.name();
         if matches!(
           ExportInfoGetter::get_used(export_info, runtime),
           UsageState::Unused
@@ -147,7 +149,7 @@ impl CommonJsExportRequireDependency {
           } else if let Some(imported_exports_info) = &imported_exports_info {
             let imported_export_info = imported_exports_info.get_read_only_export_info(name);
             if matches!(
-              ExportInfoGetter::provided(imported_export_info),
+              imported_export_info.provided(),
               Some(ExportProvided::NotProvided)
             ) {
               continue;
@@ -163,10 +165,10 @@ impl CommonJsExportRequireDependency {
         unreachable!();
       };
       for (_, imported_export_info) in imported_exports_info.exports() {
-        let name = ExportInfoGetter::name(imported_export_info);
+        let name = imported_export_info.name();
         if let Some(name) = name {
           if matches!(
-            ExportInfoGetter::provided(imported_export_info),
+            imported_export_info.provided(),
             Some(ExportProvided::NotProvided)
           ) {
             continue;
@@ -213,7 +215,7 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_exports(
     &self,
     mg: &ModuleGraph,
-    _mg_cache: &ModuleGraphCacheArtifact,
+    mg_cache: &ModuleGraphCacheArtifact,
   ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
 
@@ -239,7 +241,9 @@ impl Dependency for CommonJsExportRequireDependency {
       })
     } else if self.names.is_empty() {
       let from = mg.connection_by_dependency_id(&self.id)?;
-      if let Some(reexport_info) = self.get_star_reexports(mg, None, from.module_identifier()) {
+      if let Some(reexport_info) =
+        self.get_star_reexports(mg, mg_cache, None, from.module_identifier())
+      {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Names(
             reexport_info
@@ -326,7 +330,7 @@ impl Dependency for CommonJsExportRequireDependency {
         return get_full_result();
       }
 
-      match ExportInfoGetter::exports_info(export_info) {
+      match export_info.exports_info() {
         Some(v) => exports_info = exports_info.redirect(v, false),
         None => return get_full_result(),
       };
@@ -343,29 +347,28 @@ impl Dependency for CommonJsExportRequireDependency {
     for (_, export_info) in exports_info.exports() {
       let prefix = ids
         .iter()
-        .chain(if let Some(name) = ExportInfoGetter::name(export_info) {
+        .chain(if let Some(name) = export_info.name() {
           vec![name]
         } else {
           vec![]
         })
-        .map(|i| i.to_owned())
         .collect_vec();
-      process_export_info(
+      collect_referenced_export_items(
         mg,
         runtime,
         &mut referenced_exports,
         prefix,
-        Some(export_info.id()),
+        Some(export_info),
         false,
         &mut Default::default(),
       )
     }
 
     referenced_exports
-      .iter()
+      .into_iter()
       .map(|name| {
         ExtendedReferencedExport::Export(ReferencedExport {
-          name: name.to_owned(),
+          name: name.into_iter().map(|i| i.to_owned()).collect_vec(),
           can_mangle: false,
           can_inline: false,
         })
@@ -452,18 +455,29 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let used = ExportsInfoGetter::get_used_name(
-      &mg.get_prefetched_exports_info(
+    let used = if dep.names.is_empty() {
+      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+        &mg.get_exports_info(&module.identifier()),
+        mg,
+        *runtime,
+        false,
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithoutNames(&exports_info),
+        *runtime,
+        &dep.names,
+      )
+    } else {
+      let exports_info = mg.get_prefetched_exports_info(
         &module.identifier(),
-        if dep.names.is_empty() {
-          PrefetchExportsInfoMode::AllExports
-        } else {
-          PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
-        },
-      ),
-      *runtime,
-      &dep.names,
-    );
+        PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithNames(&exports_info),
+        *runtime,
+        &dep.names,
+      )
+    };
 
     let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -481,14 +495,14 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let require_expr = if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
       && let ids = dep.get_ids(mg)
       && let Some(used_imported) = ExportsInfoGetter::get_used_name(
-        &mg.get_prefetched_exports_info(
+        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &imported_module.identifier(),
           if ids.is_empty() {
             PrefetchExportsInfoMode::AllExports
           } else {
             PrefetchExportsInfoMode::NamedNestedExports(ids)
           },
-        ),
+        )),
         *runtime,
         ids,
       ) {

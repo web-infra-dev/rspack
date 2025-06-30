@@ -277,7 +277,7 @@ export default {
 <ApiMeta addedVersion="1.1.0-beta.0" />
 
 - **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
-- **默认值：** `'safe'`
+- **默认值：** `'advance-silent'`
 
 控制是否启用增量构建功能，该功能通过只重新构建变更的部分来显著加快重构建和热模块替换（HMR）的速度。提供两种配置方式：
 
@@ -333,11 +333,7 @@ export default {
 |   冷启动   |    ❌    |
 | 重构建/HMR |    ✅    |
 
-目前 Rspack 默认仅开启 `make` 和 `emitAssets` 阶段的增量，这也是之前 Rspack v1.0 的默认行为。随着该特性的进一步稳定，我们会默认开启更多阶段的增量，直到完全启用。
-
-:::tip
-该特性的 `'advance'` 和 `'advance-silent'` 选项属于实验性特性，可前往 [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106) 查看其相关进度，也可在此 issue 中反馈 bugs 以及任何与之相关的反馈信息。
-:::
+Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
 
 ## experiments.parallelCodeSplitting
 
@@ -903,3 +899,34 @@ export default {
 ```
 
 当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
+
+## experiments.inlineConst
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后才能使用。
+
+## experiments.inlineEnum
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+实验性功能 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 的开关，开启后才能使用。
+
+详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+
+## experiments.typeReexportsPresence
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
+
+详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)

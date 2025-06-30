@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.4.0-beta.0",
+  "version": "1.4.1",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -45,7 +45,8 @@
     "doc-coverage": "pnpm --filter \"@rspack/core\" doc-coverage",
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
-    "bench:ci": "cargo codspeed run && pnpm --filter bench run bench"
+    "bench:ci": "pnpm run bench:prepare && cargo codspeed run && pnpm --filter bench run bench",
+    "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -75,10 +76,10 @@
     "jest-cli": "29.7.0",
     "jest-environment-node": "29.7.0",
     "lint-staged": "^15.5.2",
-    "prettier": "3.5.3",
+    "prettier": "3.6.2",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
-    "ts-jest": "29.3.4",
+    "ts-jest": "29.4.0",
     "typescript": "^5.8.3",
     "webpack": "5.99.9",
     "zx": "8.5.5"

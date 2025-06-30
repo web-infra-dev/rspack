@@ -74,7 +74,7 @@ impl ModuleExecutor {
     self.stop_receiver = Some(stop_receiver);
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption
-    tokio::spawn(task::unconstrained(async move {
+    rspack_tasks::spawn_in_compiler_context(task::unconstrained(async move {
       let _ = run_task_loop(&mut ctx, vec![Box::new(CtrlTask { event_receiver })]).await;
 
       // ignore error, stop_receiver may be dropped if make stage occur error.

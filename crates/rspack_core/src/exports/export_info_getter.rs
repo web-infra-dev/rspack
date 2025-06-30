@@ -5,46 +5,13 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{
-  ExportInfoData, ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, UsageState,
-  UsedNameItem,
+  ExportInfoData, ExportInfoTargetValue, ExportProvided, Inlinable, UsageState, UsedNameItem,
 };
 use crate::{DependencyId, RuntimeSpec};
 
 pub struct ExportInfoGetter;
 
 impl ExportInfoGetter {
-  pub fn name(info: &ExportInfoData) -> Option<&Atom> {
-    info.name.as_ref()
-  }
-
-  pub fn provided(info: &ExportInfoData) -> Option<&ExportProvided> {
-    info.provided.as_ref()
-  }
-
-  pub fn can_mangle_provide(info: &ExportInfoData) -> Option<bool> {
-    info.can_mangle_provide
-  }
-
-  pub fn can_mangle_use(info: &ExportInfoData) -> Option<bool> {
-    info.can_mangle_use
-  }
-
-  pub fn terminal_binding(info: &ExportInfoData) -> bool {
-    info.terminal_binding
-  }
-
-  pub fn exports_info_owned(info: &ExportInfoData) -> bool {
-    info.exports_info_owned
-  }
-
-  pub fn exports_info(info: &ExportInfoData) -> Option<ExportsInfo> {
-    info.exports_info
-  }
-
-  pub fn inlinable(info: &ExportInfoData) -> &Inlinable {
-    &info.inlinable
-  }
-
   /// Webpack returns `false | string`, we use `Option<Atom>` to avoid declare a redundant enum
   /// type
   pub fn get_used_name(
@@ -52,15 +19,15 @@ impl ExportInfoGetter {
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
-    if let Inlinable::Inlined(inlined) = &info.inlinable {
-      return Some(UsedNameItem::Inlined(*inlined));
+    if let Inlinable::Inlined(inlined) = &info.inlinable() {
+      return Some(UsedNameItem::Inlined(inlined.clone()));
     }
-    if info.has_use_in_runtime_info {
-      if let Some(usage) = info.global_used {
+    if info.has_use_in_runtime_info() {
+      if let Some(usage) = info.global_used() {
         if matches!(usage, UsageState::Unused) {
           return None;
         }
-      } else if let Some(used_in_runtime) = info.used_in_runtime.as_ref() {
+      } else if let Some(used_in_runtime) = info.used_in_runtime() {
         if let Some(runtime) = runtime {
           if runtime
             .iter()
@@ -73,10 +40,10 @@ impl ExportInfoGetter {
         return None;
       }
     }
-    if let Some(used_name) = info.used_name.as_ref() {
+    if let Some(used_name) = info.used_name() {
       return Some(UsedNameItem::Str(used_name.clone()));
     }
-    if let Some(name) = info.name.as_ref() {
+    if let Some(name) = info.name() {
       Some(UsedNameItem::Str(name.clone()))
     } else {
       fallback_name.map(|n| UsedNameItem::Str(n.clone()))
@@ -84,13 +51,13 @@ impl ExportInfoGetter {
   }
 
   pub fn get_used(info: &ExportInfoData, runtime: Option<&RuntimeSpec>) -> UsageState {
-    if !info.has_use_in_runtime_info {
+    if !info.has_use_in_runtime_info() {
       return UsageState::NoInfo;
     }
-    if let Some(global_used) = info.global_used {
+    if let Some(global_used) = info.global_used() {
       return global_used;
     }
-    if let Some(used_in_runtime) = info.used_in_runtime.as_ref() {
+    if let Some(used_in_runtime) = info.used_in_runtime() {
       let mut max = UsageState::Unused;
       if let Some(runtime) = runtime {
         for item in runtime.iter() {
@@ -121,7 +88,7 @@ impl ExportInfoGetter {
   }
 
   pub fn get_provided_info(info: &ExportInfoData) -> &'static str {
-    match info.provided {
+    match info.provided() {
       Some(ExportProvided::NotProvided) => "not provided",
       Some(ExportProvided::Unknown) => "maybe provided (runtime-defined)",
       Some(ExportProvided::Provided) => "provided",
@@ -130,13 +97,13 @@ impl ExportInfoGetter {
   }
 
   pub fn get_rename_info(info: &ExportInfoData) -> Cow<str> {
-    match (&info.used_name, &info.name) {
+    match (info.used_name(), info.name()) {
       (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
       (Some(used), None) => return format!("renamed to {used}").into(),
       _ => {}
     }
 
-    match (Self::can_mangle_provide(info), Self::can_mangle_use(info)) {
+    match (info.can_mangle_provide(), info.can_mangle_use()) {
       (None, None) => "missing provision and use info prevents renaming",
       (None, Some(false)) => "usage prevents renaming (no provision info)",
       (None, Some(true)) => "missing provision info prevents renaming",
@@ -153,7 +120,7 @@ impl ExportInfoGetter {
   }
 
   pub fn get_used_info(info: &ExportInfoData) -> Cow<str> {
-    if let Some(global_used) = info.global_used {
+    if let Some(global_used) = info.global_used() {
       return match global_used {
         UsageState::Unused => "unused".into(),
         UsageState::NoInfo => "no usage info".into(),
@@ -161,7 +128,7 @@ impl ExportInfoGetter {
         UsageState::Used => "used".into(),
         UsageState::OnlyPropertiesUsed => "only properties used".into(),
       };
-    } else if let Some(used_in_runtime) = &info.used_in_runtime {
+    } else if let Some(used_in_runtime) = info.used_in_runtime() {
       let mut map = HashMap::default();
 
       for (runtime, used) in used_in_runtime.iter() {
@@ -193,7 +160,7 @@ impl ExportInfoGetter {
       }
     }
 
-    if info.has_use_in_runtime_info {
+    if info.has_use_in_runtime_info() {
       "unused".into()
     } else {
       "no usage info".into()
@@ -201,7 +168,7 @@ impl ExportInfoGetter {
   }
 
   pub fn is_reexport(info: &ExportInfoData) -> bool {
-    !info.terminal_binding && info.target_is_set && !info.target.is_empty()
+    !info.terminal_binding() && info.target_is_set() && !info.target().is_empty()
   }
 
   pub fn has_info(
@@ -209,18 +176,18 @@ impl ExportInfoGetter {
     base_info: &ExportInfoData,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    info.used_name.is_some()
-      || info.provided.is_some()
-      || info.terminal_binding
+    info.used_name().is_some()
+      || info.provided().is_some()
+      || info.terminal_binding()
       || (Self::get_used(info, runtime) != Self::get_used(base_info, runtime))
   }
 
   pub fn can_mangle(info: &ExportInfoData) -> Option<bool> {
-    match info.can_mangle_provide {
-      Some(true) => info.can_mangle_use,
+    match info.can_mangle_provide() {
+      Some(true) => info.can_mangle_use(),
       Some(false) => Some(false),
       None => {
-        if info.can_mangle_use == Some(false) {
+        if info.can_mangle_use() == Some(false) {
           Some(false)
         } else {
           None
@@ -230,26 +197,26 @@ impl ExportInfoGetter {
   }
 
   pub fn has_used_name(info: &ExportInfoData) -> bool {
-    info.used_name.is_some()
+    info.used_name().is_some()
   }
 
   pub fn get_max_target(
     info: &ExportInfoData,
   ) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    if info.target.len() <= 1 {
-      return Cow::Borrowed(&info.target);
+    if info.target().len() <= 1 {
+      return Cow::Borrowed(info.target());
     }
     let mut max_priority = u8::MIN;
     let mut min_priority = u8::MAX;
-    for value in info.target.values() {
+    for value in info.target().values() {
       max_priority = max_priority.max(value.priority);
       min_priority = min_priority.min(value.priority);
     }
     if max_priority == min_priority {
-      return Cow::Borrowed(&info.target);
+      return Cow::Borrowed(info.target());
     }
     let mut map = HashMap::default();
-    for (k, v) in info.target.iter() {
+    for (k, v) in info.target().iter() {
       if max_priority == v.priority {
         map.insert(*k, v.clone());
       }

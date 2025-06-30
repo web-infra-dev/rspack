@@ -1,1 +1,3 @@
-exports.REMOVE_CONST = true;
+const REMOVE_CONST = true;
+
+exports.REMOVE_CONST = REMOVE_CONST;

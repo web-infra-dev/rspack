@@ -5,11 +5,11 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
-  SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
-  SideEffectsOptimizeArtifact,
+  DependencyId, ExportInfoSetter, FactoryMeta, Logger, MaybeDynamicTargetExportInfo,
+  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
+  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -332,11 +332,14 @@ static PURE_COMMENTS: LazyLock<regex::Regex> =
   LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
 
 fn is_pure_call_expr(
-  call_expr: &CallExpr,
+  expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
   paren_spans: &mut Vec<Span>,
 ) -> bool {
+  let Expr::Call(call_expr) = expr else {
+    unreachable!();
+  };
   let callee = &call_expr.callee;
   let pure_flag = comments
     .and_then(|comments| {
@@ -356,7 +359,6 @@ fn is_pure_call_expr(
     })
     .unwrap_or(false);
   if !pure_flag {
-    let expr = Expr::Call(call_expr.clone());
     !expr.may_have_side_effects(ExprCtx {
       unresolved_ctxt,
       in_strict: false,
@@ -422,7 +424,7 @@ pub fn is_pure_expression<'a>(
     paren_spans: &mut Vec<Span>,
   ) -> bool {
     match expr {
-      Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments, paren_spans),
+      Expr::Call(_) => is_pure_call_expr(expr, unresolved_ctxt, comments, paren_spans),
       Expr::Paren(par) => {
         paren_spans.push(par.span());
         let mut cur = par.expr.as_ref();
@@ -675,6 +677,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         *module_identifier,
         module.get_side_effects_connection_state(
           &module_graph,
+          &compilation.module_graph_cache_artifact,
           &mut Default::default(),
           &mut Default::default(),
         ),
@@ -835,7 +838,11 @@ fn do_optimize_connection(
     target_export,
   }) = need_move_target
   {
-    export_info.do_move_target(module_graph, dependency, target_export);
+    ExportInfoSetter::do_move_target(
+      export_info.as_data_mut(module_graph),
+      dependency,
+      target_export,
+    );
   }
   (dependency, target_module)
 }
@@ -861,7 +868,7 @@ fn can_optimize_connection(
 
     let target = export_info.can_move_target(
       module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget, _| {
+      Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
     )?;
@@ -905,9 +912,9 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
-    let target = export_info.get_target_with_filter(
+    let target = export_info.get_target(
       module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget, _| {
+      Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
     )?;

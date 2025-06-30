@@ -6,9 +6,9 @@ use rspack_core::{
   module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -77,14 +77,14 @@ impl Dependency for CommonJsFullRequireDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call
       && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type(module_graph, false))
+        .map(|m| m.get_exports_type(module_graph, module_graph_cache, false))
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {
@@ -172,18 +172,31 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
-      && let used = ExportsInfoGetter::get_used_name(
-        &module_graph.get_prefetched_exports_info(
-          &imported_module.module_identifier,
-          if dep.names.is_empty() {
-            PrefetchExportsInfoMode::AllExports
-          } else {
-            PrefetchExportsInfoMode::NamedNestedExports(&dep.names)
-          },
-        ),
-        *runtime,
-        &dep.names,
-      )
+      && let used = {
+        if dep.names.is_empty() {
+          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+            &module_graph.get_exports_info(&imported_module.module_identifier),
+            &module_graph,
+            *runtime,
+            false,
+          );
+          ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithoutNames(&exports_info),
+            *runtime,
+            &dep.names,
+          )
+        } else {
+          let exports_info = module_graph.get_prefetched_exports_info(
+            &imported_module.module_identifier,
+            PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+          );
+          ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithNames(&exports_info),
+            *runtime,
+            &dep.names,
+          )
+        }
+      }
       && let Some(used) = used
     {
       let comment = to_normal_comment(&property_access(&dep.names, 0));

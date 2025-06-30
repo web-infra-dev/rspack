@@ -1,4 +1,7 @@
-const { RstestPlugin } = require("@rspack/core");
+const path = require("path");
+const {
+	experiments: { RstestPlugin }
+} = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
@@ -14,7 +17,10 @@ module.exports = [
 		},
 		plugins: [
 			new RstestPlugin({
-				injectModulePathName: true
+				injectModulePathName: true,
+				hoistMockModule: true,
+				importMetaPathName: true,
+				manualMockRoot: path.resolve(__dirname, "__mocks__")
 			})
 		]
 	},
@@ -30,7 +36,10 @@ module.exports = [
 		},
 		plugins: [
 			new RstestPlugin({
-				injectModulePathName: true
+				injectModulePathName: true,
+				hoistMockModule: true,
+				importMetaPathName: true,
+				manualMockRoot: path.resolve(__dirname, "__mocks__")
 			})
 		],
 		optimization: {

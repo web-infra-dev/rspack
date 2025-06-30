@@ -1,17 +1,15 @@
-use std::sync::atomic::{AtomicU32, Ordering::Relaxed};
-
 use rspack_cacheable::cacheable;
+use rspack_tasks::fetch_new_dependency_id;
 use serde::Serialize;
 
 #[cacheable(hashable)]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(u32);
 
-pub static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(0);
-
 impl DependencyId {
   pub fn new() -> Self {
-    Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
+    let id = fetch_new_dependency_id();
+    Self(id)
   }
 }
 

@@ -535,6 +535,7 @@ export declare enum BuiltinPluginName {
   SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   RstestPlugin = 'RstestPlugin',
+  RslibPlugin = 'RslibPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
@@ -552,6 +553,8 @@ export interface ContextInfo {
 
 export interface CssChunkingPluginOptions {
   strict?: boolean
+  minSize?: number
+  maxSize?: number
   exclude?: RegExp
 }
 
@@ -1891,6 +1894,8 @@ rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 inlineConst: boolean
+inlineEnum: boolean
+typeReexportsPresence: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2105,6 +2110,11 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   inlineConst?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  typeReexportsPresence?: string
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2462,12 +2472,19 @@ export interface RawRsdoctorPluginOptions {
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
 }
 
+export interface RawRslibPluginOptions {
+  interceptApiPlugin: boolean
+}
+
 export interface RawRspackFuture {
 
 }
 
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
+  importMetaPathName: boolean
+  hoistMockModule: boolean
+  manualMockRoot: string
 }
 
 export interface RawRuleSetCondition {

@@ -24,12 +24,31 @@ static IDENTIFIER_REGEXP: LazyLock<Regex> =
 pub fn to_identifier(v: &str) -> Cow<str> {
   // Avoid any unnecessary cost
   match IDENTIFIER_NAME_REPLACE_REGEX.replace_all(v, "_$1") {
-    Cow::Borrowed(_) => IDENTIFIER_REGEXP.replace_all(v, "_"),
-    Cow::Owned(id) => match IDENTIFIER_REGEXP.replace_all(&id, "_") {
+    Cow::Borrowed(_) => escape_identifier(v),
+    Cow::Owned(id) => match escape_identifier(&id) {
       Cow::Borrowed(_unchanged) => Cow::Owned(id),
       Cow::Owned(id) => Cow::Owned(id),
     },
   }
+}
+
+pub fn to_identifier_with_escaped(v: String) -> String {
+  if v.is_empty() {
+    return v;
+  }
+
+  if let Some(first_char) = v.chars().next() {
+    if first_char.is_ascii_alphabetic() || first_char == '$' || first_char == '_' {
+      return v;
+    }
+    format!("_{v}")
+  } else {
+    v
+  }
+}
+
+pub fn escape_identifier(v: &str) -> Cow<str> {
+  IDENTIFIER_REGEXP.replace_all(v, "_")
 }
 
 pub fn stringify_loaders_and_resource<'a>(

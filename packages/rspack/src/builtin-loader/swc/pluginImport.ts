@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 type RawStyleConfig = {
 	styleLibraryDirectory?: string;
 	custom?: string;
@@ -32,23 +30,7 @@ type PluginImportConfig = {
 	ignoreStyleComponent?: string[];
 };
 
-type PluginImportOptions = PluginImportConfig[] | undefined;
-
-export const ZodSwcPluginImportConfig = z
-	.strictObject({
-		libraryName: z.string(),
-		libraryDirectory: z.string().optional(),
-		customName: z.string().optional(),
-		customStyleName: z.string().optional(),
-		style: z.string().or(z.boolean()).optional(),
-		styleLibraryDirectory: z.string().optional(),
-		camelToDashComponentName: z.boolean().optional(),
-		transformToDefaultImport: z.boolean().optional(),
-		ignoreEsComponent: z.string().array().optional(),
-		ignoreStyleComponent: z.string().array().optional()
-	})
-	.array()
-	.optional() satisfies z.ZodType<PluginImportOptions>;
+type PluginImportOptions = PluginImportConfig[];
 
 function isObject(val: any): boolean {
 	return Object.prototype.toString.call(val) === "[object Object]";

@@ -1,10 +1,12 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+
+use crate::import_dependency::module_id_rstest;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -16,6 +18,7 @@ pub struct MockModuleIdDependency {
   optional: bool,
   factorize_info: FactorizeInfo,
   category: DependencyCategory,
+  pub suffix: Option<String>,
 }
 
 impl MockModuleIdDependency {
@@ -25,6 +28,7 @@ impl MockModuleIdDependency {
     weak: bool,
     optional: bool,
     category: DependencyCategory,
+    suffix: Option<String>,
   ) -> Self {
     Self {
       range,
@@ -34,6 +38,7 @@ impl MockModuleIdDependency {
       id: DependencyId::new(),
       factorize_info: Default::default(),
       category,
+      suffix,
     }
   }
 }
@@ -135,13 +140,16 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        dep.weak,
-      )
-      .as_str(),
+      &format!(
+        "{}{}",
+        module_id_rstest(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          dep.weak,
+        ),
+        dep.suffix.as_deref().unwrap_or("")
+      ),
       None,
     );
   }

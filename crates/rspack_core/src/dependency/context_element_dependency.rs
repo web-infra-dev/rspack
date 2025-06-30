@@ -82,7 +82,7 @@ impl Dependency for ContextElementDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
@@ -107,7 +107,7 @@ impl Dependency for ContextElementDependency {
         let exports_type = is_strict.and_then(|is_strict| {
           module_graph
             .get_module_by_dependency_id(&self.id)
-            .map(|m| m.get_exports_type(module_graph, is_strict))
+            .map(|m| m.get_exports_type(module_graph, module_graph_cache, is_strict))
         });
 
         if let Some(exports_type) = exports_type
