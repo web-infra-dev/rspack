@@ -19,7 +19,14 @@ export default defineConfig({
 			inspector: fallbackNodeShims
 		}
 	},
-	lib: [{ format: "esm", syntax: "es2021", dts: { build: true } }],
+	lib: [
+		{
+			format: "esm",
+			syntax: "es2021",
+			dts: { build: true },
+			autoExternal: false
+		}
+	],
 	output: {
 		target: "web",
 		distPath: {
