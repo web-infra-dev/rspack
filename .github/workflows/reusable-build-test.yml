@@ -134,7 +134,7 @@ jobs:
         run: pnpm run test:ci
 
       - name: Debugger
-        if: always()
+        if: false
         uses: ./.github/actions/debugger
 
       ### WASM
