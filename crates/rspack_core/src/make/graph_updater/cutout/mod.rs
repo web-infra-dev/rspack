@@ -8,6 +8,10 @@ use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
 use crate::{BuildDependency, FactorizeInfo};
 
+/// Cutout module graph.
+///
+/// This toolkit can remove useless module and dependency through `UpdateParam` and
+/// do some post-processing on module graph like clean up isolated module.
 #[derive(Debug, Default)]
 pub struct Cutout {
   fix_issuers: FixIssuers,
@@ -15,12 +19,20 @@ pub struct Cutout {
 }
 
 impl Cutout {
+  /// Cutout artifact, the first step to incrementally update MakeArtifact.
+  ///
+  /// This step will remove useless module and dependency through `UpdateParam` and return
+  /// the dependencyId and original module identifier of breaking point in the module graph.
+  /// If we have a module graph like "A -> B -> C -> D", and the modules to remove are C and D,
+  /// it will return the dependency of B->C.
   pub fn cutout_artifact(
     &mut self,
     artifact: &mut MakeArtifact,
     params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
+    // the entry dependencies after update module graph
     let mut next_entry_dependencies = HashSet::default();
+    // whether to clean up useless entry dependencies
     let mut clean_entry_dependencies = false;
     let mut force_build_modules = IdentifierSet::default();
     let mut force_build_deps = HashSet::default();
@@ -53,6 +65,7 @@ impl Cutout {
               force_build_modules.insert(module.identifier());
             }
           }
+          // only failed dependencies need to check
           for dep_id in &artifact.make_failed_dependencies {
             let dep = module_graph
               .dependency_by_id(dep_id)
@@ -138,6 +151,7 @@ impl Cutout {
       .collect()
   }
 
+  /// Fix artifact, the last step to incrementally update MakeArtifact.
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let Self {
       fix_issuers,

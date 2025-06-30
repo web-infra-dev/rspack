@@ -4,6 +4,10 @@ use rspack_error::Diagnosable;
 use super::MakeArtifact;
 use crate::{BuildMeta, Module, ModuleIdentifier};
 
+/// A toolkit for cutout to fix build meta
+///
+/// If a module rebuild failed, its build meta will be reset.
+/// This toolkit will restore build meta from successful build to keep importing state.
 #[derive(Debug, Default)]
 pub struct FixBuildMeta {
   origin_module_build_meta: IdentifierMap<BuildMeta>,
