@@ -8,7 +8,8 @@ const wasmConfig = process.env.WASM && {
 		"<rootDir>/Watch.test.js",
 	],
 	maxWorkers: 1,
-	maxConcurrency: 1
+	maxConcurrency: 1,
+	forceExit: true
 };
 
 module.exports = {
