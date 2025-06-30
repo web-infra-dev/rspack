@@ -10,17 +10,27 @@ use self::{cutout::Cutout, repair::repair};
 use super::{MakeArtifact, MakeArtifactState};
 use crate::{Compilation, DependencyId};
 
+/// The param to update module graph
 #[derive(Debug, Clone)]
 pub enum UpdateParam {
+  /// Build some entries, this param will only ensure that those entries are built,
+  /// but will not remove entries that are not in this lists.
   BuildEntry(HashSet<DependencyId>),
+  /// Build some entries and clean up the entries that not in this list.
   BuildEntryAndClean(HashSet<DependencyId>),
+  /// Build the module which module.need_build is true, i.e. modules where loader.cacheable is false
   CheckNeedBuild,
+  /// Build the module and dependency which depend on these modified file.
   ModifiedFiles(HashSet<ArcPath>),
+  /// Build the module and dependency which depend on these removed file.
   RemovedFiles(HashSet<ArcPath>),
+  /// Force build some dependencies.
   ForceBuildDeps(HashSet<DependencyId>),
+  /// Force build some modules.
   ForceBuildModules(IdentifierSet),
 }
 
+/// Update module graph through `UpdateParam`
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,

@@ -7,6 +7,12 @@ use crate::{
   ModuleGraphPartial, ModuleIdentifier,
 };
 
+/// Enum used to mark whether module graph has been built.
+///
+/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`,
+/// and inject the dependencies that need to be forced to build.
+/// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
+/// the previous MakeArtifact, so persistent cache will never recovery again.
 #[derive(Debug)]
 pub enum MakeArtifactState {
   Uninitialized(HashSet<DependencyId>),
@@ -19,26 +25,44 @@ impl Default for MakeArtifactState {
   }
 }
 
+/// Make Artifact, including all side effects of the make stage.
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
-  // temporary data, used by subsequent steps of make
-  // should be reset when rebuild
+  // temporary data, used by subsequent steps of make, should be reset when rebuild.
+  /// Make stage built modules.
+  ///
+  /// This field will contain all modules in the moduleGraph when cold start,
+  /// but incremental rebuild will only contain modules that need to be rebuilt and newly created.
   pub built_modules: IdentifierSet,
+  /// Make stage revoked modules.
+  ///
+  /// This field is empty on a cold start,
+  /// but incremental rebuild will contain modules that need to be rebuilt or removed.
   pub revoked_modules: IdentifierSet,
-  // Field to mark whether artifact has been initialized.
-  // Only Default::default() is Uninitialized, `update_module_graph` will set this field to Initialized
-  // Persistent cache will update MakeArtifact and set force_build_deps to this field when this is Uninitialized.
-  pub state: MakeArtifactState,
 
   // data
+  /// Field to mark whether artifact has been initialized.
+  ///
+  /// Only Default::default() is Uninitialized, `update_module_graph` will set this field to Initialized
+  /// Persistent cache will update MakeArtifact and set force_build_deps to this field when this is Uninitialized.
+  pub state: MakeArtifactState,
+  /// Module graph data
   pub module_graph_partial: ModuleGraphPartial,
+
   // statistical data, which can be regenerated from module_graph_partial and used as index.
+  /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
+  /// Factorize failed dependencies in module graph
   pub make_failed_dependencies: HashSet<DependencyId>,
+  /// Entry dependencies in the module graph
   pub entry_dependencies: HashSet<DependencyId>,
+  /// The files that current module graph depends on.
   pub file_dependencies: FileCounter,
+  /// The directory that current module graph depends on.
   pub context_dependencies: FileCounter,
+  /// The missing files that current module graph depends on.
   pub missing_dependencies: FileCounter,
+  /// The files which cache depends on.
   pub build_dependencies: FileCounter,
 }
 
@@ -58,6 +82,9 @@ impl MakeArtifact {
     &mut self.module_graph_partial
   }
 
+  /// revoke a module and return multiple parent ModuleIdentifier and DependencyId pair that can generate it.
+  ///
+  /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
     let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
     let module = mg
@@ -110,6 +137,10 @@ impl MakeArtifact {
     mg.revoke_module(module_identifier)
   }
 
+  /// revoke a dependency and return parent ModuleIdentifier and itself pair.
+  ///
+  /// If `force` is true, the dependency will be completely removed, and nothing will be returned.
+  /// This function will update index on MakeArtifact.
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
     let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
 
@@ -135,13 +166,6 @@ impl MakeArtifact {
       .iter()
       .filter_map(|dep_id| mg.revoke_dependency(dep_id, force))
       .collect()
-  }
-
-  pub fn reset_dependencies_incremental_info(&mut self) {
-    self.file_dependencies.reset_incremental_info();
-    self.context_dependencies.reset_incremental_info();
-    self.missing_dependencies.reset_incremental_info();
-    self.build_dependencies.reset_incremental_info();
   }
 
   pub fn diagnostics(&self) -> Vec<Diagnostic> {
@@ -176,5 +200,10 @@ impl MakeArtifact {
   pub fn reset_temporary_data(&mut self) {
     self.built_modules = Default::default();
     self.revoked_modules = Default::default();
+
+    self.file_dependencies.reset_incremental_info();
+    self.context_dependencies.reset_incremental_info();
+    self.missing_dependencies.reset_incremental_info();
+    self.build_dependencies.reset_incremental_info();
   }
 }

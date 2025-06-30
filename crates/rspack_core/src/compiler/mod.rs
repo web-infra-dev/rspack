@@ -316,9 +316,6 @@ impl Compiler {
 
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
-    if let Err(err) = self.cache.after_make(&self.compilation.make_artifact).await {
-      self.compilation.push_diagnostic(err.into());
-    }
     logger.time_end(start);
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;

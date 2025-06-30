@@ -102,7 +102,6 @@ impl MakeOccasion {
     artifact.context_dependencies = context_dep;
     artifact.missing_dependencies = missing_dep;
     artifact.build_dependencies = build_dep;
-    artifact.reset_dependencies_incremental_info();
 
     Ok(artifact)
   }

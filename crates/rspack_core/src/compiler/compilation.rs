@@ -41,7 +41,10 @@ use crate::{
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
-  make::{make, update_module_graph, ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam},
+  make::{
+    finish_make, make, update_module_graph, ExecuteModuleId, MakeArtifact, ModuleExecutor,
+    UpdateParam,
+  },
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
@@ -278,6 +281,7 @@ pub struct Compilation {
 
   import_var_map: IdentifierDashMap<ImportVarMap>,
 
+  // TODO move to MakeArtifact
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
 
@@ -919,7 +923,6 @@ impl Compilation {
 
   #[instrument("Compilation:make",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn make(&mut self) -> Result<()> {
-    self.make_artifact.reset_dependencies_incremental_info();
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1333,26 +1336,25 @@ impl Compilation {
 
   #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
     let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![UpdateParam::BuildEntryAndClean(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    self.make_artifact = finish_make(self, make_artifact).await?;
 
     let logger = self.get_logger("rspack.Compilation");
 
-    self.in_finish_make.store(false, Ordering::Release);
+    // sync assets to module graph from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await?;
+      self.module_executor = Some(module_executor);
+    }
+
+    if let Err(err) = self.cache.after_make(&self.make_artifact).await {
+      self.push_diagnostic(err.into());
+    }
+
+    // make finished, make artifact should be readonly thereafter.
 
     // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
@@ -1390,13 +1392,6 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
-
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await?;
-      self.module_executor = Some(module_executor);
-    }
 
     logger.time_end(start);
 

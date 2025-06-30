@@ -137,9 +137,6 @@ impl ModuleExecutor {
     for id in code_generated_modules {
       compilation.code_generated_modules.insert(id);
     }
-
-    // remove useless *_dependencies incremental info
-    self.make_artifact.reset_dependencies_incremental_info();
     Ok(())
   }
 
