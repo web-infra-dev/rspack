@@ -53,6 +53,8 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
+import ModuleError from "./ModuleError";
+import ModuleWarning from "./ModuleWarning";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
 import {
@@ -61,8 +63,6 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
-import ModuleError from "./ModuleError";
-import ModuleWarning from "./ModuleWarning";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
