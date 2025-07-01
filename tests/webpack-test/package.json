@@ -7,7 +7,7 @@
   "scripts": {
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest",
     "testu": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest -u --forceExit",
-    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --json --colors --forceExit | node scripts/test-metric.js",
+    "test:metric": "node --experimental-vm-modules --max-old-space-size=4096 --trace-deprecation  ../../node_modules/jest/bin/jest.js --json --colors --forceExit | node scripts/test-metric.js",
     "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096 --trace-deprecation\" jest --logHeapUsage --json"
   },
   "files": [

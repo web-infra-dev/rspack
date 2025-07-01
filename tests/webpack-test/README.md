@@ -22,8 +22,11 @@ When you find that we have passed some failed testcases which is skipped for now
 module.exports = () => {
     return true
 }
-
 ```
+
+## Wasm test
+See [@rspack/test-tools](../../packages/rspack-test-tools)
+
 
 or delete the `test.filter.js`
 
