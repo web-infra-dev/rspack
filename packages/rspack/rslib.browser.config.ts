@@ -31,6 +31,7 @@ export default defineConfig({
 		},
 		externals: [
 			"@napi-rs/wasm-runtime",
+			"@rspack/lite-tapable",
 			{
 				"@rspack/binding": "./rspack.wasi-browser.js"
 			}
