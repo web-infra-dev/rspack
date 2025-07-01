@@ -9,11 +9,15 @@ version           = "0.2.0"
 [lib]
 crate-type = ["cdylib"]
 
+
+[package.metadata.cargo-shear]
+# `napi-derive` uses absolute path to `napi`
+ignored = ["napi"]
+
 [features]
-plugin = ["rspack_binding_api/plugin"]
+plugin = ["rspack_binding_builder/plugin"]
 
 [dependencies]
-rspack_binding_api            = { workspace = true }
 rspack_binding_builder        = { workspace = true }
 rspack_binding_builder_macros = { workspace = true }
 

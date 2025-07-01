@@ -29,7 +29,7 @@ async function build() {
 			"build",
 			"--platform",
 			"--no-js",
-			"--no-dts-header"
+			"--no-dts-header",
 		];
 		let features = [];
 		let envs = { ...process.env };

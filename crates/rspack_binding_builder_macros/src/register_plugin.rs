@@ -42,6 +42,6 @@ impl RegisterPluginInput {
         }
     };
 
-    expanded.into()
+    expanded
   }
 }
