@@ -136,10 +136,14 @@ impl FixIssuers {
       let child_mid = module_graph
         .module_identifier_by_dependency_id(child_dep_id)
         .expect("should module exist");
-      let child_module_issuer = module_graph
-        .module_graph_module_by_identifier(child_mid)
-        .expect("should have module graph module")
-        .issuer();
+      let Some(child_mgm) = module_graph.module_graph_module_by_identifier(child_mid) else {
+        // peresistent cache recovery module graph will lose some module and mgm.
+        // TODO replace to .expect() after all modules are cacheable.
+        self.need_check_modules.insert(*child_mid);
+        continue;
+      };
+
+      let child_module_issuer = child_mgm.issuer();
       if let ModuleIssuer::Some(i) = child_module_issuer
         && i == module_identifier
       {
