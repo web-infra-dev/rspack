@@ -414,9 +414,10 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
 
 #[derive(Default)]
 enum TraceState {
+  Uninitialized, // uninitialized
   On(Box<dyn Tracer>),
   #[default]
-  Off,
+  Off, // initialized but turned off
 }
 
 #[cfg(target_family = "wasm")]
@@ -484,9 +485,11 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
 }
 
 thread_local! {
-  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Off) };
+  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Uninitialized) };
 }
 /**
+ * this is a process level tracing, which means it would be shared by all compilers in the same process
+ * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
  * Apache-2.0 licensed
@@ -507,7 +510,7 @@ pub fn register_global_trace(
   };
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
-    if let TraceState::Off = *state {
+    if let TraceState::Uninitialized = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "logger" => Box::new(StdoutTracer),
         "perfetto"=> Box::new(PerfettoTracer::default()),
@@ -537,13 +540,22 @@ pub fn register_global_trace(
 }
 
 #[napi]
+// only the first call would take effect, the following calls would be ignored
 pub fn cleanup_global_trace() {
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
-    if let TraceState::On(ref mut tracer) = *state {
-      tracer.teardown();
+    match *state {
+      TraceState::Uninitialized => {
+        panic!("Global trace is not initialized, please call register_global_trace first");
+      }
+      TraceState::Off => {
+        // do nothing, already cleaned up
+      }
+      TraceState::On(ref mut tracer) => {
+        tracer.teardown();
+        *state = TraceState::Off;
+      }
     }
-    *state = TraceState::Off;
   });
 }
 // sync Node.js event to Rust side
