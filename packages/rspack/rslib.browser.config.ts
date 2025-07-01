@@ -1,17 +1,14 @@
 import path from "node:path";
 import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import { defineConfig } from "@rslib/core";
-import * as rspack from "@rspack/core";
 
 const serviceShim = path.resolve("./src/browser/service.ts");
 
 const bindingDir = path.resolve("../../crates/node_binding");
-const browserEntry = path.join(bindingDir, "rspack.wasi-browser.js");
 
 export default defineConfig({
 	resolve: {
 		alias: {
-			"@rspack/binding": browserEntry,
 			"graceful-fs": "node:fs",
 			"./service": serviceShim
 			// "./moduleFederationDefaultRuntime.js": fallbackNodeShims,
@@ -35,17 +32,17 @@ export default defineConfig({
 		distPath: {
 			root: "../rspack-browser/dist"
 		},
-		externals: ["@napi-rs/wasm-runtime"],
+		externals: [
+			"@napi-rs/wasm-runtime",
+			{
+				"@rspack/binding": "./rspack.wasi-browser.js"
+			}
+		],
 		copy: {
 			patterns: [
-				{
-					from: path.join(bindingDir, "wasi-worker-browser.mjs"),
-					to: "wasi-worker-browser.mjs"
-				},
-				{
-					from: path.join(bindingDir, "rspack.wasm32-wasi.wasm"),
-					to: "rspack.wasm32-wasi.wasm"
-				}
+				path.join(bindingDir, "rspack.wasi-browser.js"),
+				path.join(bindingDir, "wasi-worker-browser.mjs"),
+				path.join(bindingDir, "rspack.wasm32-wasi.wasm")
 			]
 		}
 	},
