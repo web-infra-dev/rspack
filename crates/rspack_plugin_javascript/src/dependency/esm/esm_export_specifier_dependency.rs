@@ -225,14 +225,14 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
-        // Generate export content with ConsumeShared macro integration
+        // Generate export content with ConsumeShared macro integration when active
         let export_content = if let Some(ref share_key) = consume_shared_info {
           format!(
-            "/* @common:if [condition=\"treeShake.{}.{}\"] */ /* ESM export specifier */ {} /* @common:endif */",
+            "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
             share_key, dep.name, dep.value
           )
         } else {
-          format!("/* ESM export specifier */ {}", dep.value)
+          dep.value.to_string()
         };
 
         // Create export init fragment
