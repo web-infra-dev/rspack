@@ -103,13 +103,6 @@ impl ChunkDesc {
     }
   }
 
-  pub(crate) fn incomings(&self) -> &HashSet<AsyncDependenciesBlockIdentifier> {
-    match self {
-      ChunkDesc::Entry(entry) => &entry.incoming_blocks,
-      ChunkDesc::Chunk(chunk) => &chunk.incoming_blocks,
-    }
-  }
-
   pub(crate) fn chunk_modules_mut(&mut self) -> &mut IdentifierSet {
     match self {
       ChunkDesc::Entry(entry) => &mut entry.chunk_modules,
@@ -1712,6 +1705,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
         &mut roots,
         &mut chunk_parents,
         &mut chunk_children,
+        &chunks_by_block,
       );
     }
 
