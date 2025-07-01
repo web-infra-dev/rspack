@@ -220,7 +220,7 @@ async fn normal_module_factory_module(
   &self,
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
-  _module: &mut BoxModule,
+  module: &mut BoxModule,
 ) -> Result<()> {
   let resource = &create_data.resource_resolve_data.resource;
   let resource_data = &create_data.resource_resolve_data;
@@ -236,6 +236,16 @@ async fn normal_module_factory_module(
   {
     let match_provides = self.match_provides.read().await;
     if let Some(config) = match_provides.get(request) {
+      // Set the shared_key in the module's BuildMeta for tree-shaking
+      if request.contains("cjs-modules/") {
+        dbg!(
+          "ProvideSharedPlugin: Setting shared_key",
+          request,
+          &config.share_key
+        );
+      }
+      module.build_meta_mut().shared_key = Some(config.share_key.clone());
+
       self
         .provide_shared_module(
           request,
@@ -256,10 +266,15 @@ async fn normal_module_factory_module(
   for (prefix, config) in self.prefix_match_provides.read().await.iter() {
     if request.starts_with(prefix) {
       let remainder = &request[prefix.len()..];
+      let share_key = config.share_key.to_string() + remainder;
+
+      // Set the shared_key in the module's BuildMeta for tree-shaking
+      module.build_meta_mut().shared_key = Some(share_key.clone());
+
       self
         .provide_shared_module(
           request,
-          &(config.share_key.to_string() + remainder),
+          &share_key,
           &config.share_scope,
           config.version.as_ref(),
           config.eager,

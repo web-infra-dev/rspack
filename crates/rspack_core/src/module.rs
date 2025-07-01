@@ -211,6 +211,11 @@ pub struct BuildMeta {
   // This caches the result of ConsumeShared detection to avoid repeated module graph traversals
   #[serde(skip_serializing_if = "Option::is_none")]
   pub consume_shared_key: Option<String>,
+
+  // NEW: Module Federation shared context (for both consumed and provided shared modules)
+  // This marks any module that is part of Module Federation sharing with its share key
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub shared_key: Option<String>,
 }
 
 // webpack build info

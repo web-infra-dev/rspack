@@ -32,6 +32,8 @@ pub enum DependencyType {
   CjsFullRequire,
   // cjs exports
   CjsExports,
+  // consume shared exports (tree-shaking variant)
+  ConsumeSharedExports,
   // module.exports = require(), should bailout in old tree shaking
   CjsExportRequire,
   // cjs self reference
@@ -138,6 +140,7 @@ impl DependencyType {
       DependencyType::CjsRequire => "cjs require",
       DependencyType::CjsFullRequire => "cjs full require",
       DependencyType::CjsExports => "cjs exports",
+      DependencyType::ConsumeSharedExports => "consume shared exports",
       DependencyType::CjsExportRequire => "cjs export require",
       DependencyType::CjsSelfReference => "cjs self exports reference",
       DependencyType::AmdDefine => "amd define",

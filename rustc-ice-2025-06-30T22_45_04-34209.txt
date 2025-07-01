@@ -1,0 +1,26 @@
+thread 'rustc' panicked at /rustc/1bbd62e547ba5cc08ccb44c27def3d33195d2dd5/compiler/rustc_query_system/src/dep_graph/serialized.rs:284:21:
+Error: A dep graph node (mir_drops_elaborated_and_const_checked) does not have an unique index. Running a clean build on a nightly compiler with `-Z incremental-verify-ich` can help narrow down the issue for reporting. A clean build may also work around the issue.
+
+                     DepNode: DepKind { variant: 55 }(20e06d7ad616a202-e2c6e93c87a650a8)
+stack backtrace:
+   0:        0x112cd5158 - std::backtrace::Backtrace::create::haea595b7755a025c
+   1:        0x110e1fa78 - std[c0b9df658b0f8e9a]::panicking::update_hook::<alloc[bf7a8822943e5ff5]::boxed::Box<rustc_driver_impl[17544dcfce489415]::install_ice_hook::{closure#1}>>::{closure#0}
+   2:        0x112cf2bb0 - std::panicking::rust_panic_with_hook::h38d5e32ef763009a
+   3:        0x112cf27a4 - std::panicking::begin_panic_handler::{{closure}}::hfef89cb9f4490733
+   4:        0x112cedae4 - std::sys::backtrace::__rust_end_short_backtrace::h26a8ef659d3fc85b
+   5:        0x112cf246c - __rustc[9ea1f2a0e5b4e008]::rust_begin_unwind
+   6:        0x11592dcf4 - core::panicking::panic_fmt::h6685aea1cca932db
+   7:        0x11159c334 - rustc_incremental[4997d70d7e567d85]::persist::load::setup_dep_graph
+   8:        0x110e0a1f0 - rustc_interface[b0b7b7228c3d067d]::passes::create_and_enter_global_ctxt::<core[a02ba7a83bbdea23]::option::Option<rustc_interface[b0b7b7228c3d067d]::queries::Linker>, rustc_driver_impl[17544dcfce489415]::run_compiler::{closure#0}::{closure#2}>
+   9:        0x110e1c658 - rustc_interface[b0b7b7228c3d067d]::interface::run_compiler::<(), rustc_driver_impl[17544dcfce489415]::run_compiler::{closure#0}>::{closure#1}
+  10:        0x110e460e0 - <rayon_core[b2f4e4574d6c7d25]::job::StackJob<rayon_core[b2f4e4574d6c7d25]::latch::LatchRef<rayon_core[b2f4e4574d6c7d25]::latch::LockLatch>, <rayon_core[b2f4e4574d6c7d25]::registry::Registry>::in_worker_cold<<rayon_core[b2f4e4574d6c7d25]::thread_pool::ThreadPool>::install<rustc_interface[b0b7b7228c3d067d]::util::run_in_thread_pool_with_globals<rustc_interface[b0b7b7228c3d067d]::interface::run_compiler<(), rustc_driver_impl[17544dcfce489415]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#5}::{closure#0}::{closure#1}::{closure#0}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()> as rayon_core[b2f4e4574d6c7d25]::job::Job>::execute
+  11:        0x11593f3ac - <rayon_core[b2f4e4574d6c7d25]::registry::WorkerThread>::wait_until_cold
+  12:        0x11043df40 - <rayon_core[b2f4e4574d6c7d25]::registry::ThreadBuilder>::run
+  13:        0x110e0f044 - std[c0b9df658b0f8e9a]::sys::backtrace::__rust_begin_short_backtrace::<<rayon_core[b2f4e4574d6c7d25]::ThreadPoolBuilder>::build_scoped<rustc_interface[b0b7b7228c3d067d]::util::run_in_thread_pool_with_globals<rustc_interface[b0b7b7228c3d067d]::interface::run_compiler<(), rustc_driver_impl[17544dcfce489415]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#5}::{closure#0}::{closure#0}, rustc_interface[b0b7b7228c3d067d]::util::run_in_thread_pool_with_globals<rustc_interface[b0b7b7228c3d067d]::interface::run_compiler<(), rustc_driver_impl[17544dcfce489415]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#5}::{closure#0}::{closure#1}, ()>::{closure#0}::{closure#0}::{closure#0}, ()>
+  14:        0x110e2386c - <<std[c0b9df658b0f8e9a]::thread::Builder>::spawn_unchecked_<<rayon_core[b2f4e4574d6c7d25]::ThreadPoolBuilder>::build_scoped<rustc_interface[b0b7b7228c3d067d]::util::run_in_thread_pool_with_globals<rustc_interface[b0b7b7228c3d067d]::interface::run_compiler<(), rustc_driver_impl[17544dcfce489415]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#5}::{closure#0}::{closure#0}, rustc_interface[b0b7b7228c3d067d]::util::run_in_thread_pool_with_globals<rustc_interface[b0b7b7228c3d067d]::interface::run_compiler<(), rustc_driver_impl[17544dcfce489415]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#5}::{closure#0}::{closure#1}, ()>::{closure#0}::{closure#0}::{closure#0}, ()>::{closure#1} as core[a02ba7a83bbdea23]::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  15:        0x112cf5fdc - std::sys::pal::unix::thread::Thread::new::thread_start::h30c8061122b4adbb
+  16:        0x194cf2c0c - __pthread_cond_wait
+
+
+rustc version: 1.89.0-nightly (1bbd62e54 2025-05-29)
+platform: aarch64-apple-darwin

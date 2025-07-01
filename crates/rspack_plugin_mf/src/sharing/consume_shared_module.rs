@@ -40,6 +40,8 @@ pub struct ConsumeSharedModule {
 
 impl ConsumeSharedModule {
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
+    let share_key = options.share_key.clone(); // Clone before moving options
+
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
       &options.share_scope,
@@ -89,7 +91,10 @@ impl ConsumeSharedModule {
       options,
       factory_meta: None,
       build_info: Default::default(),
-      build_meta: Default::default(),
+      build_meta: BuildMeta {
+        shared_key: Some(share_key),
+        ..Default::default()
+      },
       source_map_kind: SourceMapKind::empty(),
     }
   }

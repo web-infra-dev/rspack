@@ -15,7 +15,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportContext, ExportsBase, ModuleDecoratorDependency,
+    ConsumeSharedExportsDependency, ExportsBase, ModuleDecoratorDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -263,6 +263,19 @@ impl JavascriptParser<'_> {
 
 pub struct CommonJsExportsParserPlugin;
 
+impl CommonJsExportsParserPlugin {
+  /// Detect if this module should use ConsumeSharedExportsDependency based on Module Federation context
+  fn detect_shared_module_key(parser: &JavascriptParser) -> Option<String> {
+    // During parsing, we only have access to the current module's BuildMeta, not the full module graph
+    // We'll check for direct shared module context first
+    ConsumeSharedExportsDependency::should_apply_to_module(
+      &parser.module_identifier.to_string(),
+      &parser.build_meta,
+      None, // ModuleGraph not available during parsing
+    )
+  }
+}
+
 impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn identifier(
     &self,
@@ -375,144 +388,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     if parser.is_esm {
       return None;
     }
+    let AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)) = &assign_expr.left else {
+      return None;
+    };
 
-    // Handle both member expressions (exports.foo = value) and identifier expressions (module.exports = { ... })
-    match &assign_expr.left {
-      AssignTarget::Simple(SimpleAssignTarget::Member(left_expr)) => {
-        // Handle member expressions: exports.foo = value, module.exports.foo = value
-        self.handle_member_assignment(parser, assign_expr, left_expr)
-      }
-      AssignTarget::Simple(SimpleAssignTarget::Ident(left_ident)) => {
-        // Handle identifier expressions: module.exports = { ... }, exports = { ... }
-        self.handle_identifier_assignment(parser, assign_expr, left_ident)
-      }
-      _ => None,
-    }
-  }
-
-  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
-    if parser.is_esm {
-      None
-    } else if let Callee::Expr(expr) = &call_expr.callee {
-      let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
-        let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
-        if let Some(remaining) =
-          get_member_expression_info(parser, &**expr, Some(is_module_exports_start))
-        {
-          // exports()
-          // module.exports()
-          // this()
-          if remaining.is_empty() {
-            parser.bailout();
-          }
-
-          // exports.a.b()
-          // module.exports.a.b()
-          // this.a.b()
-          parser
-            .dependencies
-            .push(Box::new(CommonJsSelfReferenceDependency::new(
-              expr.span().into(),
-              base,
-              remaining,
-              true,
-            )));
-          parser.walk_expr_or_spread(&call_expr.args);
-          Some(true)
-        } else {
-          None
-        }
-      };
-      // Object.defineProperty(exports, \"xxx\", { value: 1 });
-      // Object.defineProperty(module.exports, \"xxx\", { value: 1 });
-      // Object.defineProperty(this, \"xxx\", { value: 1 });
-      if expr_matcher::is_object_define_property(&**expr)
-        && parser.is_statement_level_expression(call_expr.span())
-        && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
-        && parser.is_exports_or_module_exports_or_this_expr(expr)
-        && let Some(arg2) = call_expr.args.get(2)
-      {
-        let Some(ExprOrSpread {
-          expr: box Expr::Lit(Lit::Str(str)),
-          ..
-        }) = call_expr.args.get(1)
-        else {
-          return None;
-        };
-
-        parser.enable();
-        // Object.defineProperty(exports, "__esModule", { value: true });
-        // Object.defineProperty(module.exports, "__esModule", { value: true });
-        // Object.defineProperty(this, "__esModule", { value: true });
-        if str.value == "__esModule" {
-          parser.check_namespace(
-            parser.statement_path.len() == 1,
-            get_value_of_property_description(arg2),
-          );
-        }
-
-        let base = if parser.is_exports_expr(&**expr) {
-          ExportsBase::DefinePropertyExports
-        } else if expr_matcher::is_module_exports(&**expr) {
-          ExportsBase::DefinePropertyModuleExports
-        } else if parser.is_top_level_this_expr(&**expr) {
-          ExportsBase::DefinePropertyThis
-        } else {
-          panic!("Unexpected expr type");
-        };
-        parser
-          .dependencies
-          .push(Box::new(CommonJsExportsDependency::new(
-            call_expr.span.into(),
-            Some(arg2.span().into()),
-            base,
-            vec![str.value.clone()],
-            ExportContext::DefineProperty,
-          )));
-
-        parser.walk_expression(&arg2.expr);
-        Some(true)
-      } else if parser.is_exports_member_expr_start(&**expr) {
-        // exports.x()
-        handle_remaining(parser, ExportsBase::Exports)
-      } else if is_module_exports_member_expr_start(&**expr) {
-        // module.exports.x()
-        parser.append_module_runtime();
-        handle_remaining(parser, ExportsBase::ModuleExports)
-      } else if parser.is_this_member_expr_start(&**expr) {
-        // this.x()
-        handle_remaining(parser, ExportsBase::This)
-      } else {
-        None
-      }
-    } else {
-      None
-    }
-  }
-
-  fn evaluate_typeof<'a>(
-    &self,
-    _parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
-    for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
-    (for_name == "module" || for_name == "exports").then(|| {
-      eval::evaluate_to_string(
-        "object".to_string(),
-        expr.span.real_lo(),
-        expr.span.real_hi(),
-      )
-    })
-  }
-}
-
-impl CommonJsExportsParserPlugin {
-  fn handle_member_assignment(
-    &self,
-    parser: &mut JavascriptParser,
-    assign_expr: &AssignExpr,
-    left_expr: &MemberExpr,
-  ) -> Option<bool> {
     let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
       let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
       let remaining = get_member_expression_info(parser, left_expr, Some(is_module_exports_start))?;
@@ -551,147 +430,7 @@ impl CommonJsExportsParserPlugin {
       }
 
       if remaining.is_empty() {
-        // Handle bulk assignments like module.exports = { ... }
-        if let Expr::Object(obj_lit) = &*assign_expr.right {
-          let total_exports = obj_lit.props.len();
-
-          // Get source text for enhanced parsing
-          let source_text = &parser.source_file.src;
-
-          // ENHANCED: Create dependencies with comma analysis
-          // Process each property in the object literal
-          for (prop_index, prop) in obj_lit.props.iter().enumerate() {
-            if let PropOrSpread::Prop(prop) = prop {
-              match &**prop {
-                Prop::Shorthand(ident) => {
-                  // Handle shorthand properties: { func1, func2 }
-                  let export_name = ident.sym.to_string();
-                  let context = if prop_index == 0 {
-                    ExportContext::ObjectLiteralPropertyFirst
-                  } else {
-                    ExportContext::ObjectLiteralPropertySubsequent
-                  };
-
-                  // Enhanced comma detection
-                  let is_last = prop_index == total_exports - 1;
-                  let next_prop_start = if !is_last {
-                    obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
-                  } else {
-                    None
-                  };
-
-                  let (enhanced_range, has_trailing_comma) =
-                    Self::calculate_property_range_with_comma(
-                      ident.span(),
-                      source_text,
-                      next_prop_start,
-                      is_last,
-                    );
-
-                  parser.dependencies.push(Box::new(
-                    CommonJsExportsDependency::new_with_comma_info(
-                      enhanced_range,
-                      Some(assign_expr.right.span().into()),
-                      base,
-                      vec![export_name.into()],
-                      context,
-                      has_trailing_comma,
-                      is_last,
-                    ),
-                  ));
-                }
-                Prop::KeyValue(key_value) => {
-                  // Handle key-value properties: { key: value }
-                  if let PropName::Ident(key_ident) = &key_value.key {
-                    let export_name = key_ident.sym.to_string();
-                    let context = if prop_index == 0 {
-                      ExportContext::ObjectLiteralPropertyFirst
-                    } else {
-                      ExportContext::ObjectLiteralPropertySubsequent
-                    };
-
-                    // Enhanced comma detection for key-value pairs
-                    let is_last = prop_index == total_exports - 1;
-                    let next_prop_start = if !is_last {
-                      obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
-                    } else {
-                      None
-                    };
-
-                    let (enhanced_range, has_trailing_comma) =
-                      Self::calculate_property_range_with_comma(
-                        key_value.span(),
-                        source_text,
-                        next_prop_start,
-                        is_last,
-                      );
-
-                    parser.dependencies.push(Box::new(
-                      CommonJsExportsDependency::new_with_comma_info(
-                        enhanced_range,
-                        Some(assign_expr.right.span().into()),
-                        base,
-                        vec![export_name.into()],
-                        context,
-                        has_trailing_comma,
-                        is_last,
-                      ),
-                    ));
-                  }
-                }
-                Prop::Method(method) => {
-                  // Handle method properties: { method() { ... } }
-                  if let PropName::Ident(method_ident) = &method.key {
-                    let export_name = method_ident.sym.to_string();
-                    let context = if prop_index == 0 {
-                      ExportContext::ObjectLiteralPropertyFirst
-                    } else {
-                      ExportContext::ObjectLiteralPropertySubsequent
-                    };
-
-                    // Enhanced comma detection for methods
-                    let is_last = prop_index == total_exports - 1;
-                    let next_prop_start = if !is_last {
-                      obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
-                    } else {
-                      None
-                    };
-
-                    let (enhanced_range, has_trailing_comma) =
-                      Self::calculate_property_range_with_comma(
-                        method.span(),
-                        source_text,
-                        next_prop_start,
-                        is_last,
-                      );
-
-                    parser.dependencies.push(Box::new(
-                      CommonJsExportsDependency::new_with_comma_info(
-                        enhanced_range,
-                        Some(assign_expr.right.span().into()),
-                        base,
-                        vec![export_name.into()],
-                        context,
-                        has_trailing_comma,
-                        is_last,
-                      ),
-                    ));
-                  }
-                }
-                _ => {
-                  // Handle other property types if needed
-                }
-              }
-            }
-          }
-
-          // Walk the right-hand side expression
-          parser.walk_expression(&assign_expr.right);
-          return Some(true);
-        } else {
-          // Non-object assignments like module.exports = someVariable
-          return None;
-        }
+        return None;
       }
 
       parser.enable();
@@ -713,15 +452,30 @@ impl CommonJsExportsParserPlugin {
       // exports.a = 1;
       // module.exports.a = 1;
       // this.a = 1;
-      parser
-        .dependencies
-        .push(Box::new(CommonJsExportsDependency::new(
-          assign_expr.span().into(), // Use full assignment span for macro wrapping
-          Some(assign_expr.right.span().into()), // Track value range for potential coordination
-          base,
-          remaining.to_owned(),
-          ExportContext::IndividualAssignment,
-        )));
+
+      // Check if we're in ConsumeShared OR ProvideShared context
+      let shared_key = Self::detect_shared_module_key(parser);
+
+      if let Some(shared_key) = shared_key {
+        parser
+          .dependencies
+          .push(Box::new(ConsumeSharedExportsDependency::new(
+            left_expr.span().into(),
+            None,
+            base,
+            remaining.to_owned(),
+            shared_key,
+          )));
+      } else {
+        parser
+          .dependencies
+          .push(Box::new(CommonJsExportsDependency::new(
+            left_expr.span().into(),
+            None,
+            base,
+            remaining.to_owned(),
+          )));
+      }
       parser.walk_expression(&assign_expr.right);
       Some(true)
     };
@@ -741,285 +495,132 @@ impl CommonJsExportsParserPlugin {
     }
   }
 
-  fn handle_identifier_assignment(
-    &self,
-    parser: &mut JavascriptParser,
-    assign_expr: &AssignExpr,
-    left_ident: &Ident,
-  ) -> Option<bool> {
-    // println!("🔍 DEBUG: handle_identifier_assignment called with ident: {}", left_ident.sym);
+  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
+    if parser.is_esm {
+      None
+    } else if let Callee::Expr(expr) = &call_expr.callee {
+      let handle_remaining = |parser: &mut JavascriptParser, base: ExportsBase| {
+        let is_module_exports_start = matches!(base, ExportsBase::ModuleExports);
+        if let Some(remaining) =
+          get_member_expression_info(parser, &**expr, Some(is_module_exports_start))
+        {
+          // exports()
+          // module.exports()
+          // this()
+          if remaining.is_empty() {
+            parser.bailout();
+          }
 
-    // Check if this is a module.exports assignment
-    if left_ident.sym == "module" {
-      // This would be "module = something" which is not a valid exports pattern
-      return None;
-    }
+          // exports.a.b()
+          // module.exports.a.b()
+          // this.a.b()
+          parser
+            .dependencies
+            .push(Box::new(CommonJsSelfReferenceDependency::new(
+              expr.span().into(),
+              base,
+              remaining,
+              true,
+            )));
+          parser.walk_expr_or_spread(&call_expr.args);
+          Some(true)
+        } else {
+          None
+        }
+      };
+      // Object.defineProperty(exports, "xxx", { value: 1 });
+      // Object.defineProperty(module.exports, "xxx", { value: 1 });
+      // Object.defineProperty(this, "xxx", { value: 1 });
+      if expr_matcher::is_object_define_property(&**expr)
+        && parser.is_statement_level_expression(call_expr.span())
+        && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
+        && parser.is_exports_or_module_exports_or_this_expr(expr)
+        && let Some(arg2) = call_expr.args.get(2)
+      {
+        let Some(ExprOrSpread {
+          expr: box Expr::Lit(Lit::Str(str)),
+          ..
+        }) = call_expr.args.get(1)
+        else {
+          return None;
+        };
 
-    // Check if this is an exports assignment (exports = { ... })
-    if left_ident.sym == "exports" && parser.is_unresolved_ident("exports") {
-      // Handle exports = { ... } pattern
-      return self.handle_bulk_exports_assignment(parser, assign_expr, ExportsBase::Exports);
-    }
+        parser.enable();
+        // Object.defineProperty(exports, "__esModule", { value: true });
+        // Object.defineProperty(module.exports, "__esModule", { value: true });
+        // Object.defineProperty(this, "__esModule", { value: true });
+        if str.value == "__esModule" {
+          parser.check_namespace(
+            parser.statement_path.len() == 1,
+            get_value_of_property_description(arg2),
+          );
+        }
 
-    // Check if this is a variable assignment to an exports reference (foo = exports.bar)
-    if let Expr::Member(member_expr) = &*assign_expr.right {
-      if let Some(base) = self.detect_exports_base(parser, member_expr) {
-        // This is a variable assignment pattern like: foo = exports.bar
-        let remaining = get_member_expression_info(
-          parser,
-          member_expr,
-          Some(matches!(base, ExportsBase::ModuleExports)),
-        )?;
+        let base = if parser.is_exports_expr(&**expr) {
+          ExportsBase::DefinePropertyExports
+        } else if expr_matcher::is_module_exports(&**expr) {
+          ExportsBase::DefinePropertyModuleExports
+        } else if parser.is_top_level_this_expr(&**expr) {
+          ExportsBase::DefinePropertyThis
+        } else {
+          panic!("Unexpected expr type");
+        };
+        // Check if we're in ConsumeShared OR ProvideShared context
+        let shared_key = Self::detect_shared_module_key(parser);
 
-        if !remaining.is_empty() {
-          // Create dependency with VariableAssignment context to wrap the right-hand side
+        if let Some(shared_key) = shared_key {
+          parser
+            .dependencies
+            .push(Box::new(ConsumeSharedExportsDependency::new(
+              call_expr.span.into(),
+              Some(arg2.span().into()),
+              base,
+              vec![str.value.clone()],
+              shared_key,
+            )));
+        } else {
           parser
             .dependencies
             .push(Box::new(CommonJsExportsDependency::new(
-              member_expr.span().into(), // Target the exports.foo part (right-hand side)
-              None,                      // No value range needed for variable assignments
+              call_expr.span.into(),
+              Some(arg2.span().into()),
               base,
-              remaining.to_owned(),
-              ExportContext::VariableAssignment,
+              vec![str.value.clone()],
             )));
-          return Some(true);
         }
+
+        parser.walk_expression(&arg2.expr);
+        Some(true)
+      } else if parser.is_exports_member_expr_start(&**expr) {
+        // exports.x()
+        handle_remaining(parser, ExportsBase::Exports)
+      } else if is_module_exports_member_expr_start(&**expr) {
+        // module.exports.x()
+        parser.append_module_runtime();
+        handle_remaining(parser, ExportsBase::ModuleExports)
+      } else if parser.is_this_member_expr_start(&**expr) {
+        // this.x()
+        handle_remaining(parser, ExportsBase::This)
+      } else {
+        None
       }
-    }
-
-    None
-  }
-
-  fn handle_bulk_exports_assignment(
-    &self,
-    parser: &mut JavascriptParser,
-    assign_expr: &AssignExpr,
-    base: ExportsBase,
-  ) -> Option<bool> {
-    // Handle patterns like:
-    // module.exports = { func1, func2, ... }
-    // exports = { func1, func2, ... }
-
-    if let Expr::Object(obj_lit) = &*assign_expr.right {
-      let total_exports = obj_lit.props.len();
-
-      parser.enable();
-
-      // Get source text for enhanced parsing
-      let source_text = &parser.source_file.src;
-
-      // ENHANCED: Use same comma analysis as module.exports path
-      // Process each property in the object literal
-      for (prop_index, prop) in obj_lit.props.iter().enumerate() {
-        if let PropOrSpread::Prop(prop) = prop {
-          match &**prop {
-            Prop::Shorthand(ident) => {
-              // Handle shorthand properties: { func1, func2 }
-              let export_name = ident.sym.to_string();
-              let context = if prop_index == 0 {
-                ExportContext::ObjectLiteralPropertyFirst
-              } else {
-                ExportContext::ObjectLiteralPropertySubsequent
-              };
-
-              // Enhanced comma detection
-              let is_last = prop_index == total_exports - 1;
-              let next_prop_start = if !is_last {
-                obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
-              } else {
-                None
-              };
-
-              let (enhanced_range, has_trailing_comma) = Self::calculate_property_range_with_comma(
-                ident.span(),
-                source_text,
-                next_prop_start,
-                is_last,
-              );
-
-              parser
-                .dependencies
-                .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
-                  enhanced_range,
-                  Some(assign_expr.right.span().into()),
-                  base,
-                  vec![export_name.into()],
-                  context,
-                  has_trailing_comma,
-                  is_last,
-                )));
-            }
-            Prop::KeyValue(key_value) => {
-              // Handle key-value properties: { key: value }
-              if let PropName::Ident(key_ident) = &key_value.key {
-                let export_name = key_ident.sym.to_string();
-                let context = if prop_index == 0 {
-                  ExportContext::ObjectLiteralPropertyFirst
-                } else {
-                  ExportContext::ObjectLiteralPropertySubsequent
-                };
-
-                // Enhanced comma detection for key-value pairs
-                let is_last = prop_index == total_exports - 1;
-                let next_prop_start = if !is_last {
-                  obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
-                } else {
-                  None
-                };
-
-                let (enhanced_range, has_trailing_comma) =
-                  Self::calculate_property_range_with_comma(
-                    key_value.span(),
-                    source_text,
-                    next_prop_start,
-                    is_last,
-                  );
-
-                parser
-                  .dependencies
-                  .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
-                    enhanced_range,
-                    Some(assign_expr.right.span().into()),
-                    base,
-                    vec![export_name.into()],
-                    context,
-                    has_trailing_comma,
-                    is_last,
-                  )));
-              }
-            }
-            Prop::Method(method) => {
-              // Handle method properties: { method() { ... } }
-              if let PropName::Ident(method_ident) = &method.key {
-                let export_name = method_ident.sym.to_string();
-                let context = if prop_index == 0 {
-                  ExportContext::ObjectLiteralPropertyFirst
-                } else {
-                  ExportContext::ObjectLiteralPropertySubsequent
-                };
-
-                // Enhanced comma detection for methods
-                let is_last = prop_index == total_exports - 1;
-                let next_prop_start = if !is_last {
-                  obj_lit.props.get(prop_index + 1).map(|p| p.span().lo.0 - 1)
-                } else {
-                  None
-                };
-
-                let (enhanced_range, has_trailing_comma) =
-                  Self::calculate_property_range_with_comma(
-                    method.span(),
-                    source_text,
-                    next_prop_start,
-                    is_last,
-                  );
-
-                parser
-                  .dependencies
-                  .push(Box::new(CommonJsExportsDependency::new_with_comma_info(
-                    enhanced_range,
-                    Some(assign_expr.right.span().into()),
-                    base,
-                    vec![export_name.into()],
-                    context,
-                    has_trailing_comma,
-                    is_last,
-                  )));
-              }
-            }
-            _ => {
-              // Handle other property types if needed
-            }
-          }
-        }
-      }
-
-      // Walk the right-hand side expression to handle nested expressions
-      parser.walk_expression(&assign_expr.right);
-
-      Some(true)
-    } else {
-      // Handle non-object assignments like: module.exports = someVariable
-      // In this case, we don't know the individual exports, so we can't create
-      // individual export dependencies. We'll just handle it as a single export.
-      None
-    }
-  }
-
-  fn detect_exports_base(
-    &self,
-    parser: &mut JavascriptParser,
-    member_expr: &MemberExpr,
-  ) -> Option<ExportsBase> {
-    // Check if this is exports.something or module.exports.something
-    if parser.is_exports_member_expr_start(member_expr) {
-      Some(ExportsBase::Exports)
-    } else if is_module_exports_member_expr_start(member_expr) {
-      Some(ExportsBase::ModuleExports)
-    } else if parser.is_this_member_expr_start(member_expr) {
-      Some(ExportsBase::This)
     } else {
       None
     }
   }
 
-  // REMOVED: create_export_dependency function - now using enhanced comma detection everywhere
-
-  // REMOVED: detect_consume_shared_context method due to architectural limitations
-  // ConsumeShared detection will be handled at template-time with BuildMeta caching
-
-  /// Calculate property range including trailing comma for precise replacement
-  fn calculate_property_range_with_comma(
-    property_span: swc_core::common::Span,
-    source_text: &str,
-    next_prop_start: Option<u32>,
-    is_last: bool,
-  ) -> (DependencyRange, bool) {
-    use rspack_core::DependencyRange;
-
-    let prop_start = property_span.lo.0 - 1;
-    let prop_end = property_span.hi.0 - 1;
-
-    if is_last {
-      // For the last property, check if there's a trailing comma before the closing brace
-      let search_slice = &source_text[prop_end as usize..];
-      if let Some(brace_pos) = search_slice.find('}') {
-        let before_brace = &search_slice[..brace_pos];
-        let trimmed = before_brace.trim();
-
-        if trimmed.ends_with(',') {
-          // Include the trailing comma in the range
-          let comma_pos = prop_end
-            + before_brace
-              .rfind(',')
-              .expect("Comma should exist in trimmed string ending with comma")
-              as u32
-            + 1;
-          (DependencyRange::new(prop_start, comma_pos), true)
-        } else {
-          // No trailing comma
-          (DependencyRange::new(prop_start, prop_end), false)
-        }
-      } else {
-        // Fallback: no closing brace found
-        (DependencyRange::new(prop_start, prop_end), false)
-      }
-    } else if let Some(next_start) = next_prop_start {
-      // Look for comma between this property and the next
-      let search_end = std::cmp::min(next_start, source_text.len() as u32);
-      let search_slice = &source_text[prop_end as usize..search_end as usize];
-
-      if let Some(comma_pos) = search_slice.find(',') {
-        // Include the comma in the range
-        let comma_end = prop_end + comma_pos as u32 + 1;
-        (DependencyRange::new(prop_start, comma_end), true)
-      } else {
-        // No comma found (shouldn't happen in valid JS, but handle gracefully)
-        (DependencyRange::new(prop_start, prop_end), false)
-      }
-    } else {
-      // Fallback: just the property span
-      (DependencyRange::new(prop_start, prop_end), false)
-    }
+  fn evaluate_typeof<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &'a UnaryExpr,
+    for_name: &str,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    (for_name == "module" || for_name == "exports").then(|| {
+      eval::evaluate_to_string(
+        "object".to_string(),
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      )
+    })
   }
 }

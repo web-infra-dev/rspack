@@ -794,6 +794,7 @@ impl From<JsBuildMeta> for BuildMeta {
       side_effect_free,
       exports_final_name,
       consume_shared_key: None,
+      shared_key: None,
     }
   }
 }
