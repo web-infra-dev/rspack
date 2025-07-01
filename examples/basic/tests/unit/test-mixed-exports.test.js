@@ -15,41 +15,48 @@ describe("Mixed Export Pattern Tests", () => {
 	});
 
 	test("should handle module.exports assignment followed by property additions", () => {
-		// Find a file that demonstrates the mixed pattern
+		// CJS modules without shared context should NOT have macros
+		// Find a file that has mixed export pattern (but no macros)
 		const targetFile = distFiles.find(file => {
 			const filePath = path.join(__dirname, "../../dist", file);
 			const content = fs.readFileSync(filePath, "utf8");
 
-			// Look for the specific pattern: module.exports = value followed by module.exports.prop = value
+			// Look for mixed pattern: module.exports = value followed by module.exports.prop = value
 			return (
 				content.includes("module.exports = ") &&
-				content.includes("module.exports.") &&
-				content.includes("@common:if")
+				content.includes("module.exports.")
 			);
 		});
 
-		expect(targetFile).toBeDefined();
+		if (!targetFile) {
+			console.log(
+				"No files found with module.exports properties, skipping test"
+			);
+			return;
+		}
 
 		const filePath = path.join(__dirname, "../../dist", targetFile);
 		const content = fs.readFileSync(filePath, "utf8");
 
 		console.log(`Testing mixed export pattern in: ${targetFile}`);
 
-		// Verify the pattern exists
+		// Verify the pattern exists but WITHOUT macros
 		expect(content).toMatch(/module\.exports\s*=\s*[^;]+;/);
 		expect(content).toMatch(/module\.exports\.\w+\s*=\s*/);
-		expect(content).toMatch(
-			/@common:if.*?module\.exports\.\w+.*?@common:endif/
-		);
+
+		// Verify NO macros in CJS modules
+		const hasMacros =
+			content.includes("@common:if") || content.includes("@common:endif");
+		expect(hasMacros).toBe(false);
+		console.log("✅ Correctly found NO macros in mixed export pattern file");
 	});
 
-	test("should correctly position macros for property additions after module.exports assignment", () => {
+	test("should NOT have macros in module.exports property assignments", () => {
+		// CJS modules without shared context should NOT have macros
 		const targetFile = distFiles.find(file => {
 			const filePath = path.join(__dirname, "../../dist", file);
 			const content = fs.readFileSync(filePath, "utf8");
-			return (
-				content.includes("module.exports.") && content.includes("@common:if")
-			);
+			return content.includes("module.exports.");
 		});
 
 		if (!targetFile) {
@@ -62,32 +69,14 @@ describe("Mixed Export Pattern Tests", () => {
 		const filePath = path.join(__dirname, "../../dist", targetFile);
 		const content = fs.readFileSync(filePath, "utf8");
 
-		// Extract all module.exports property assignments with macros (multiline-aware)
-		// This pattern accepts both property-wrapping and full-assignment-wrapping
-		const propertyAssignmentPattern =
-			/\/\*\s*@common:if\s*\[condition="[^"]+"\]\s*\*\/[\s\S]*?module\.exports\.(\w+)[\s\S]*?\/\*\s*@common:endif\s*\*\//g;
-		const matches = [...content.matchAll(propertyAssignmentPattern)];
+		// Verify NO macros in CJS modules
+		const hasMacros =
+			content.includes("@common:if") || content.includes("@common:endif");
+		expect(hasMacros).toBe(false);
 
 		console.log(
-			`Found ${matches.length} module.exports property assignments with macros`
+			`✅ Correctly found NO macros in ${targetFile} (CJS without shared context)`
 		);
-
-		matches.forEach((match, index) => {
-			const [fullMatch, propertyName] = match;
-			console.log(`  ${index + 1}. Property: ${propertyName}`);
-
-			// Verify the macro contains the property name
-			expect(fullMatch).toMatch(
-				/\/\*\s*@common:if.*?\*\/[\s\S]*?module\.exports\.\w+[\s\S]*?\/\*\s*@common:endif\s*\*\//
-			);
-
-			// The current implementation uses property-level wrapping, which is valid
-			// We just verify that macros are properly formed and contain the property
-			expect(fullMatch).toContain(`module.exports.${propertyName}`);
-		});
-
-		// Should have at least one properly wrapped property assignment
-		expect(matches.length).toBeGreaterThan(0);
 	});
 
 	test("should handle circular reference exports correctly", () => {

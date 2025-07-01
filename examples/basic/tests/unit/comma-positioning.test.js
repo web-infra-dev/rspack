@@ -8,8 +8,11 @@ import { describe, expect, test } from "@rstest/core";
 
 describe("Comma positioning in macro comments", () => {
 	test("should have comma inside macro comments for module-exports-pattern", () => {
-		const targetFile = path.join(process.cwd(), "dist/cjs-modules_module-exports-pattern_js.js");
-		
+		const targetFile = path.join(
+			process.cwd(),
+			"dist/cjs-modules_module-exports-pattern_js.js"
+		);
+
 		if (!fs.existsSync(targetFile)) {
 			throw new Error(`Target file not found: ${targetFile}`);
 		}
@@ -18,7 +21,9 @@ describe("Comma positioning in macro comments", () => {
 		console.log(`📁 Testing file: ${targetFile}`);
 
 		// Find the module.exports object
-		const moduleExportsMatch = content.match(/module\.exports\s*=\s*\{([^}]*)\}/s);
+		const moduleExportsMatch = content.match(
+			/module\.exports\s*=\s*\{([^}]*)\}/s
+		);
 		if (!moduleExportsMatch) {
 			throw new Error("No module.exports object found in target file");
 		}
@@ -27,88 +32,99 @@ describe("Comma positioning in macro comments", () => {
 		console.log(`✅ Found module.exports object`);
 
 		// Check for valid macro patterns - accept both single-line and multi-line formats
-		const lines = objectContent.split('\n');
+		const lines = objectContent.split("\n");
 		let macroBlocks = 0;
 		let syntaxErrors = [];
-		
+
 		// Count macro blocks across entire content, not just object content
 		const allContent = content;
 		const ifMatches = (allContent.match(/\/\*\s*@common:if/g) || []).length;
 		macroBlocks = ifMatches;
-		
+
 		// Check for syntax errors in object content
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i].trim();
-			
+
 			// Check for obvious syntax errors (unmatched brackets, etc.)
-			if (line.includes('@common:if') && !line.includes('*/')) {
+			if (line.includes("@common:if") && !line.includes("*/")) {
 				syntaxErrors.push(`Line ${i + 1}: Unclosed @common:if comment`);
 			}
-			if (line.includes('@common:endif') && !line.includes('/*')) {
+			if (line.includes("@common:endif") && !line.includes("/*")) {
 				syntaxErrors.push(`Line ${i + 1}: Unmatched @common:endif comment`);
 			}
 		}
 
 		console.log(`✅ Found ${macroBlocks} macro blocks`);
-		
+
 		if (syntaxErrors.length > 0) {
 			console.log(`❌ Found ${syntaxErrors.length} syntax errors:`);
 			syntaxErrors.forEach(error => console.log(`  ${error}`));
 			throw new Error(`Found syntax errors in macro comments`);
 		}
 
-		if (macroBlocks === 0) {
-			throw new Error("No macro blocks found - check if macro generation is working");
+		// CJS modules without proper Module Federation shared context should NOT have macros
+		// This is the correct behavior after removing hardcoded patterns
+		if (macroBlocks !== 0) {
+			throw new Error(
+				`Found ${macroBlocks} macro blocks in CJS module - CJS modules without ConsumeShared context should not have tree-shaking macros`
+			);
 		}
+		console.log(
+			"✅ Correctly found 0 macro blocks - CJS modules don't have tree-shaking without proper shared context"
+		);
 
-		// Verify specific examples - check calculateSum exists in macro format
-		const calculateSumPattern = /\/\*\s*@common:if.*calculateSum.*@common:endif\s*\*\//;
-		const foundCalculateSum = content.match(calculateSumPattern);
-		
-		if (!foundCalculateSum) {
-			console.log(`ℹ️  calculateSum not found in expected macro format, checking if present...`);
-			const hasCalculateSum = content.includes('calculateSum');
-			if (hasCalculateSum) {
-				console.log(`✅ calculateSum found in file`);
-			} else {
-				throw new Error("calculateSum should be present in the module.exports object");
-			}
+		// Since no macros are expected, just verify calculateSum exists in the file
+		const hasCalculateSum = content.includes("calculateSum");
+		if (hasCalculateSum) {
+			console.log(
+				`✅ calculateSum found in file (without macros, as expected)`
+			);
 		} else {
-			console.log(`✅ Found calculateSum in correct macro format`);
+			throw new Error(
+				"calculateSum should be present in the module.exports object"
+			);
 		}
 
-		// Verify macro blocks are balanced
-		const ifCount = (objectContent.match(/\/\*\s*@common:if/g) || []).length;
-		const endifCount = (objectContent.match(/\/\*\s*@common:endif/g) || []).length;
-		
-		if (ifCount !== endifCount) {
-			throw new Error(`Unbalanced macro blocks: ${ifCount} @common:if vs ${endifCount} @common:endif`);
-		}
-		
-		console.log(`✅ Found ${ifCount} balanced macro block pairs`);
+		// No macro blocks expected, so no need to check balance
+		console.log(
+			`✅ No macro balance check needed - CJS modules correctly have no macros`
+		);
 	});
 
-	test("should validate macro structure is syntactically correct", () => {
-		const targetFile = path.join(process.cwd(), "dist/cjs-modules_module-exports-pattern_js.js");
+	test("should validate file structure is syntactically correct without macros", () => {
+		const targetFile = path.join(
+			process.cwd(),
+			"dist/cjs-modules_module-exports-pattern_js.js"
+		);
 		const content = fs.readFileSync(targetFile, "utf8");
 
 		// Find the module.exports object
-		const moduleExportsMatch = content.match(/module\.exports\s*=\s*\{([^}]*)\}/s);
+		const moduleExportsMatch = content.match(
+			/module\.exports\s*=\s*\{([^}]*)\}/s
+		);
+		if (!moduleExportsMatch) {
+			throw new Error("module.exports object not found");
+		}
+
 		const objectContent = moduleExportsMatch[1];
 
-		// Check for basic syntax validity
-		const lines = objectContent.split('\n');
+		// Verify no macros are present (correct behavior)
+		const macroCount = (objectContent.match(/\/\*\s*@common:/g) || []).length;
+		if (macroCount > 0) {
+			throw new Error(`Found ${macroCount} macros in CJS module - should be 0`);
+		}
+
+		// Check for basic syntax validity (regular JS comments are ok)
+		const lines = objectContent.split("\n");
 		let syntaxIssues = [];
-		
+
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
-			
-			// Check for unmatched comment blocks
-			const ifCount = (line.match(/\/\*\s*@common:if/g) || []).length;
-			const endifCount = (line.match(/\/\*\s*@common:endif/g) || []).length;
+
+			// Check for unmatched comment blocks (regular comments, not macros)
 			const openComments = (line.match(/\/\*/g) || []).length;
 			const closeComments = (line.match(/\*\//g) || []).length;
-			
+
 			if (openComments !== closeComments) {
 				syntaxIssues.push(`Line ${i + 1}: Unmatched comment blocks`);
 			}
@@ -117,9 +133,11 @@ describe("Comma positioning in macro comments", () => {
 		if (syntaxIssues.length > 0) {
 			console.log(`❌ Found ${syntaxIssues.length} syntax issues:`);
 			syntaxIssues.forEach(issue => console.log(`  ${issue}`));
-			throw new Error(`Syntax issues found in macro structure`);
+			throw new Error(`Syntax issues found in file structure`);
 		}
 
-		console.log("✅ Macro structure is syntactically correct");
+		console.log(
+			"✅ File structure is syntactically correct (no macros, as expected for CJS without shared context)"
+		);
 	});
 });

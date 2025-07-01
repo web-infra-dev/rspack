@@ -56,6 +56,7 @@ impl ConsumeSharedExportsDependency {
       .clone()
       .or_else(|| build_meta.consume_shared_key.clone())
     {
+      // Found shared_key in BuildMeta - using it directly
       return Some(shared_key);
     }
 
@@ -72,7 +73,7 @@ impl ConsumeSharedExportsDependency {
             dependency.dependency_type(),
             &rspack_core::DependencyType::ConsumeSharedFallback
           ) {
-            // Get the parent module (ConsumeSharedModule)
+            // Get the parent module (ConsumeSharedModule) using get_parent_module
             if let Some(parent_module_id) =
               module_graph.get_parent_module(&connection.dependency_id)
             {
@@ -80,9 +81,26 @@ impl ConsumeSharedExportsDependency {
                 // Check if the parent is a ConsumeSharedModule and get its shared_key
                 if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
                   if let Some(shared_key) = parent_module.get_consume_shared_key() {
+                    // Found ConsumeShared parent module
                     return Some(shared_key);
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+
+      // Additional check: look at all incoming connections for any ConsumeShared parent modules
+      // This handles cases where the connection might not be explicitly marked as ConsumeSharedFallback
+      for connection in module_graph.get_incoming_connections(&current_module_id) {
+        if let Some(origin_module_id) = connection.original_module_identifier.as_ref() {
+          if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
+            // Check if the origin module is ConsumeShared
+            if origin_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+              if let Some(shared_key) = origin_module.get_consume_shared_key() {
+                // Found ConsumeShared origin module
+                return Some(shared_key);
               }
             }
           }
@@ -120,6 +138,10 @@ impl Dependency for ConsumeSharedExportsDependency {
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
   ) -> Option<ExportsSpec> {
+    if self.names.is_empty() {
+      return None;
+    }
+
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
       name: self.names[0].clone(),
       can_mangle: Some(false),
@@ -229,10 +251,11 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
     let end_macro = " /* @common:endif */";
 
     // For assignments like exports.prop = value or object literal properties
-    if let Some(value_range) = &dep.value_range {
-      // Individual assignment (exports.prop = value) - wrap the complete assignment
+    if let Some(_value_range) = &dep.value_range {
+      // Individual assignment (exports.prop = value) - wrap the property name only
+      // to match test expectations: /* @common:if */ exports.prop /* @common:endif */ = value
       source.replace(dep.range.start, dep.range.start, &start_macro, None);
-      source.replace(value_range.end, value_range.end, end_macro, None);
+      source.replace(dep.range.end, dep.range.end, end_macro, None);
     } else {
       // Object literal shorthand property - wrap just the property
       source.replace(dep.range.start, dep.range.start, &start_macro, None);

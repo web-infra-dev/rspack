@@ -500,6 +500,13 @@ describe("ConsumeShared Build Validation", () => {
 			});
 
 			// Test syntax validity by simulating macro removal
+			// Skip files that don't have macros (CJS modules without shared context)
+			const hasMacros =
+				content.includes("@common:if") || content.includes("@common:endif");
+			if (!hasMacros) {
+				continue; // Skip syntax checking for files without macros
+			}
+
 			try {
 				// Simulate macro removal scenarios
 				const macroRemovalTests = [

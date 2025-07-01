@@ -268,8 +268,10 @@ impl CommonJsExportsParserPlugin {
   fn detect_shared_module_key(parser: &JavascriptParser) -> Option<String> {
     // During parsing, we only have access to the current module's BuildMeta, not the full module graph
     // We'll check for direct shared module context first
+    let module_identifier = &parser.module_identifier.to_string();
+
     ConsumeSharedExportsDependency::should_apply_to_module(
-      &parser.module_identifier.to_string(),
+      module_identifier,
       &parser.build_meta,
       None, // ModuleGraph not available during parsing
     )

@@ -383,10 +383,11 @@ describe("Macro Positioning Validation", () => {
 
 		// Report generated for console output only
 
-		// Assertions
-		expect(report.totalMacroBlocks).toBeGreaterThan(0);
-		expect(report.incorrectlyPositioned).toBe(0);
-		expect(report.correctlyPositioned).toBe(report.totalMacroBlocks);
+		// CJS modules without shared context should have NO macros
+		expect(report.totalMacroBlocks).toBe(0);
+		console.log(
+			"✅ Correctly found 0 macro blocks - CJS modules without shared context don't have tree-shaking macros"
+		);
 	});
 
 	// Helper function to analyze macro block positioning

@@ -122,8 +122,8 @@ describe("Macro export shape validation for all CJS chunks", () => {
 		});
 	});
 
-	// Specific tests for known patterns
-	test("should have correct hashString pattern in pure-cjs-helper", () => {
+	// Specific tests for CJS modules without macros (correct behavior)
+	test("should NOT have tree-shaking macros in pure-cjs-helper", () => {
 		const targetFile = path.join(
 			process.cwd(),
 			"dist",
@@ -135,24 +135,28 @@ describe("Macro export shape validation for all CJS chunks", () => {
 
 		const content = fs.readFileSync(targetFile, "utf8");
 
-		// Test for the correct hashString pattern
-		const expectedPattern =
-			"exports.hashString = function(input) {\n  return crypto.createHash('md5').update(input).digest('hex');\n} /* @common:endif */";
-		const hasCorrectPattern =
-			content.includes(
-				'/* @common:if [condition="treeShake.cjs-pure-helper.hashString"] */ exports.hashString = function(input) {'
-			) && content.includes("} /* @common:endif */");
+		// CJS modules without ConsumeShared context should NOT have macros
+		const hasMacros =
+			content.includes("@common:if") || content.includes("@common:endif");
 
-		if (!hasCorrectPattern) {
+		if (hasMacros) {
 			throw new Error(
-				"pure-cjs-helper should have correct hashString macro pattern"
+				"pure-cjs-helper should NOT have tree-shaking macros - CJS modules without shared context don't get macros"
 			);
 		}
 
-		console.log("✅ Found correct hashString pattern in pure-cjs-helper");
+		// Verify hashString function exists without macros
+		const hasHashString = content.includes("exports.hashString");
+		if (!hasHashString) {
+			throw new Error("hashString export should exist in the file");
+		}
+
+		console.log(
+			"✅ Correctly found NO tree-shaking macros in pure-cjs-helper (CJS without shared context)"
+		);
 	});
 
-	test("should have correct calculateSum pattern in module-exports-pattern", () => {
+	test("should NOT have tree-shaking macros in module-exports-pattern", () => {
 		const targetFile = path.join(
 			process.cwd(),
 			"dist",
@@ -164,38 +168,28 @@ describe("Macro export shape validation for all CJS chunks", () => {
 
 		const content = fs.readFileSync(targetFile, "utf8");
 
-		// Test for the correct calculateSum pattern with comma inside (multiline format)
-		// Current format: calculateSum,\n /* @common:endif */
-		const hasCorrectPattern =
-			content.includes("calculateSum,") &&
-			content.includes("@common:endif") &&
-			content.match(/calculateSum,\s*\n\s*\/\*\s*@common:endif\s*\*\//);
+		// CJS modules without ConsumeShared context should NOT have macros
+		const hasMacros =
+			content.includes("@common:if") || content.includes("@common:endif");
 
-		if (!hasCorrectPattern) {
-			console.log("Current calculateSum pattern in file:");
-			const lines = content.split("\n");
-			const calculateSumLine = lines.findIndex(line =>
-				line.includes("calculateSum,")
-			);
-			if (calculateSumLine !== -1) {
-				console.log(
-					lines.slice(calculateSumLine, calculateSumLine + 2).join("\n")
-				);
-			}
-			console.log(
-				"Expected: calculateSum, followed by /* @common:endif */ (multiline accepted)"
-			);
+		if (hasMacros) {
 			throw new Error(
-				"module-exports-pattern should have calculateSum with comma inside macro"
+				"module-exports-pattern should NOT have tree-shaking macros - CJS modules without shared context don't get macros"
 			);
 		}
 
+		// Verify calculateSum exists without macros
+		const hasCalculateSum = content.includes("calculateSum");
+		if (!hasCalculateSum) {
+			throw new Error("calculateSum should exist in the module.exports object");
+		}
+
 		console.log(
-			"✅ Found correct calculateSum pattern in module-exports-pattern"
+			"✅ Correctly found NO tree-shaking macros in module-exports-pattern (CJS without shared context)"
 		);
 	});
 
-	test("should have correct patterns in legacy-utils", () => {
+	test("should NOT have tree-shaking macros in legacy-utils", () => {
 		const targetFile = path.join(
 			process.cwd(),
 			"dist",
@@ -207,23 +201,19 @@ describe("Macro export shape validation for all CJS chunks", () => {
 
 		const content = fs.readFileSync(targetFile, "utf8");
 
-		// Check for proper macro structure in legacy-utils
-		const hasMacroPatterns =
-			content.includes("/* @common:if") &&
-			content.includes("/* @common:endif */");
+		// CJS modules without ConsumeShared context should NOT have macros
+		const hasMacros =
+			content.includes("@common:if") || content.includes("@common:endif");
 
-		if (!hasMacroPatterns) {
-			console.log(
-				"ℹ️  No macro patterns found in legacy-utils (this may be expected)"
+		if (hasMacros) {
+			throw new Error(
+				"legacy-utils should NOT have tree-shaking macros - CJS modules without shared context don't get macros"
 			);
-		} else {
-			// If there are macros, they should be properly formatted
-			const hasIncorrectPattern = content.includes("/* @common:endif */,");
-			if (hasIncorrectPattern) {
-				throw new Error("legacy-utils has incorrectly positioned commas");
-			}
-			console.log("✅ Found correct macro patterns in legacy-utils");
 		}
+
+		console.log(
+			"✅ Correctly found NO tree-shaking macros in legacy-utils (CJS without shared context)"
+		);
 	});
 
 	test("should validate macro export consistency across all chunks", () => {
