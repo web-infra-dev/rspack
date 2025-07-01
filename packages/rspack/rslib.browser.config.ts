@@ -1,8 +1,9 @@
 import { defineConfig } from "@rslib/core";
+import * as rspack from "@rspack/core";
 import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import path from "node:path";
 
-const fallbackNodeShims = path.resolve("./src/browser/fallbackNodeShims.ts");
+const serviceShim = path.resolve("./src/browser/service.ts");
 
 const bindingDir = path.resolve("../../crates/node_binding");
 const browserEntry = path.join(bindingDir, "rspack.wasi-browser.js");
@@ -12,12 +13,12 @@ export default defineConfig({
 		alias: {
 			"@rspack/binding": browserEntry,
 			"graceful-fs": "node:fs",
-			"./moduleFederationDefaultRuntime.js": fallbackNodeShims,
-			"./service": fallbackNodeShims,
-			worker_threads: fallbackNodeShims,
-			async_hooks: fallbackNodeShims,
-			perf_hooks: fallbackNodeShims,
-			inspector: fallbackNodeShims
+			"./service": serviceShim
+			// "./moduleFederationDefaultRuntime.js": fallbackNodeShims,
+			// worker_threads: fallbackNodeShims,
+			// async_hooks: fallbackNodeShims,
+			// perf_hooks: fallbackNodeShims,
+			// inspector: fallbackNodeShims
 		}
 	},
 	lib: [
@@ -25,7 +26,12 @@ export default defineConfig({
 			format: "esm",
 			syntax: "es2021",
 			dts: { build: true },
-			autoExternal: false
+			autoExternal: false,
+			shims: {
+				esm: {
+					__dirname: true
+				}
+			}
 		}
 	],
 	output: {
@@ -54,6 +60,16 @@ export default defineConfig({
 		define: {
 			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
 			RSPACK_VERSION: JSON.stringify(require("./package.json").version)
+		}
+	},
+	tools: {
+		rspack: (config, { rspack }) => {
+			config.plugins.push(
+				new rspack.IgnorePlugin({
+					resourceRegExp:
+						/(moduleFederationDefaultRuntime|css-extract|worker_threads|async_hooks|perf_hooks|inspector)/
+				})
+			);
 		}
 	}
 });
