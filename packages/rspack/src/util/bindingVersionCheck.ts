@@ -75,6 +75,12 @@ let result: Error | undefined | null;
  * `@rspack/core`, `@rspack/binding`, `@rspack/binding-<platform>-<arch>-<abi>`
  */
 export const checkVersion = () => {
+	if (IS_BROWSER) {
+		// The Wasm binding and the core js runtime are bundled together in `@rspack/browser`,
+		// So the checkVersion is not needed.
+		return;
+	}
+
 	if (result !== undefined) {
 		return result;
 	}
