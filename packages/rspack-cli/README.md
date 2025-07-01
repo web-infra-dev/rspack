@@ -6,6 +6,10 @@
 
 Command-line interface for rspack.
 
+## Wasm test
+
+See [@rspack/test-tools](../rspack-test-tools) for details.
+
 ## Documentation
 
 See [https://rspack.rs](https://rspack.rs) for details.
