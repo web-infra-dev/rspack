@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::ShareRuntimeModule;
+use crate::{ShareRuntimeModule, ShareUsagePlugin, ShareUsagePluginOptions};
 
 #[plugin]
 #[derive(Debug)]
@@ -42,8 +42,12 @@ impl Plugin for ShareRuntimePlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
+    options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
+    // Always apply ShareUsagePlugin for share usage tracking
+    ShareUsagePlugin::new(ShareUsagePluginOptions::default())
+      .apply(PluginContext::with_context(ctx.context), options)?;
+
     ctx
       .context
       .compilation_hooks
