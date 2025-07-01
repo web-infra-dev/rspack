@@ -8,11 +8,11 @@ use rspack_core::{
   BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
+  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, TypeReexportPresenceMode,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -302,7 +302,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     );
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
-        ExportsInfoGetter::is_export_provided(&exports_info, ids),
+        exports_info.is_export_provided(ids),
         Some(ExportProvided::NotProvided)
       )
     {
@@ -326,13 +326,9 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .is_some()
         && ids.len() == 1
         && matches!(
-          ExportsInfoGetter::is_export_provided(
-            &module_graph.get_prefetched_exports_info(
-              parent_module_identifier,
-              PrefetchExportsInfoMode::Default
-            ),
-            std::slice::from_ref(name)
-          ),
+          module_graph
+            .get_prefetched_exports_info(parent_module_identifier, PrefetchExportsInfoMode::Default)
+            .is_export_provided(std::slice::from_ref(name)),
           Some(ExportProvided::Provided)
         )
       {
@@ -363,7 +359,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         pos += 1;
         let export_info = exports_info.get_read_only_export_info(id);
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-          let provided_exports = ExportsInfoGetter::get_provided_exports(exports_info);
+          let provided_exports = exports_info.get_provided_exports();
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()

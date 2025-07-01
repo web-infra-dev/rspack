@@ -419,6 +419,103 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       handle_export_info(other_export_info, hasher, runtime);
     }
   }
+
+  pub fn is_module_used(&self, runtime: Option<&RuntimeSpec>) -> bool {
+    if self.is_used(runtime) {
+      return true;
+    }
+
+    if !matches!(
+      self.side_effects_only_info().get_used(runtime),
+      UsageState::Unused
+    ) {
+      return true;
+    }
+    false
+  }
+
+  pub fn is_used(&self, runtime: Option<&RuntimeSpec>) -> bool {
+    if let Some(redirect) = self.redirect_to() {
+      let redirected = self.redirect(redirect, false);
+      if redirected.is_used(runtime) {
+        return true;
+      }
+    } else if self.other_exports_info().get_used(runtime) != UsageState::Unused {
+      return true;
+    }
+
+    for (_, export_info) in self.exports() {
+      if export_info.get_used(runtime) != UsageState::Unused {
+        return true;
+      }
+    }
+    false
+  }
+
+  pub fn is_export_provided(&self, names: &[Atom]) -> Option<ExportProvided> {
+    let name = names.first()?;
+    let info_data = self.get_read_only_export_info(name);
+    if let Some(nested_exports_info) = &info_data.exports_info()
+      && names.len() > 1
+    {
+      let redirected = self.redirect(*nested_exports_info, true);
+      return redirected.is_export_provided(&names[1..]);
+    }
+    let provided = info_data.provided()?;
+
+    match provided {
+      ExportProvided::Provided => {
+        if names.len() == 1 {
+          Some(ExportProvided::Provided)
+        } else {
+          None
+        }
+      }
+      _ => Some(provided),
+    }
+  }
+
+  pub fn get_used(&self, names: &[Atom], runtime: Option<&RuntimeSpec>) -> UsageState {
+    if names.len() == 1 {
+      let value = &names[0];
+      let info = self.get_read_only_export_info(value);
+      let used = info.get_used(runtime);
+      return used;
+    }
+    if names.is_empty() {
+      return self.other_exports_info().get_used(runtime);
+    }
+    let info_data = self.get_read_only_export_info(&names[0]);
+    if let Some(exports_info) = &info_data.exports_info()
+      && names.len() > 1
+    {
+      let redirected = self.redirect(*exports_info, true);
+      return redirected.get_used(&names[1..], runtime);
+    }
+    info_data.get_used(runtime)
+  }
+
+  pub fn get_usage_key(&self, runtime: Option<&RuntimeSpec>) -> UsageKey {
+    // only expand capacity when this has redirect_to
+    let mut key = UsageKey(Vec::with_capacity(self.exports().count() + 2));
+
+    if let Some(redirect_to) = self.redirect_to() {
+      let redirected = self.redirect(redirect_to, false);
+      key.add(Either::Left(Box::new(redirected.get_usage_key(runtime))));
+    } else {
+      key.add(Either::Right(self.other_exports_info().get_used(runtime)));
+    };
+
+    key.add(Either::Right(
+      self.side_effects_only_info().get_used(runtime),
+    ));
+
+    for (_, export_info) in self.exports() {
+      key.add(Either::Right(export_info.get_used(runtime)));
+    }
+
+    key
+  }
 }
 
 /**
@@ -535,8 +632,8 @@ impl ExportsInfoGetter {
   ) -> PrefetchedExportsInfoUsed<'a> {
     if full_data {
       let data = Self::prefetch(id, mg, PrefetchExportsInfoMode::Default);
-      let is_used = Self::is_used(&data, runtime);
-      let is_module_used = Self::is_module_used(&data, runtime);
+      let is_used = data.is_used(runtime);
+      let is_module_used = data.is_module_used(runtime);
       PrefetchedExportsInfoUsed {
         is_used,
         is_module_used,
@@ -583,132 +680,6 @@ impl ExportsInfoGetter {
     }
   }
 
-  pub fn is_module_used(
-    info: &PrefetchedExportsInfoWrapper,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    if Self::is_used(info, runtime) {
-      return true;
-    }
-
-    if !matches!(
-      info.side_effects_only_info().get_used(runtime),
-      UsageState::Unused
-    ) {
-      return true;
-    }
-    false
-  }
-
-  pub fn is_used(info: &PrefetchedExportsInfoWrapper, runtime: Option<&RuntimeSpec>) -> bool {
-    if let Some(redirect) = info.redirect_to() {
-      let redirected = info.redirect(redirect, false);
-      if Self::is_used(&redirected, runtime) {
-        return true;
-      }
-    } else if info.other_exports_info().get_used(runtime) != UsageState::Unused {
-      return true;
-    }
-
-    for (_, export_info) in info.exports() {
-      if export_info.get_used(runtime) != UsageState::Unused {
-        return true;
-      }
-    }
-    false
-  }
-
-  pub fn is_export_provided(
-    info: &PrefetchedExportsInfoWrapper,
-    names: &[Atom],
-  ) -> Option<ExportProvided> {
-    let name = names.first()?;
-    let info_data = info.get_read_only_export_info(name);
-    if let Some(nested_exports_info) = &info_data.exports_info()
-      && names.len() > 1
-    {
-      let redirected = info.redirect(*nested_exports_info, true);
-      return Self::is_export_provided(&redirected, &names[1..]);
-    }
-    let provided = info_data.provided()?;
-
-    match provided {
-      ExportProvided::Provided => {
-        if names.len() == 1 {
-          Some(ExportProvided::Provided)
-        } else {
-          None
-        }
-      }
-      _ => Some(provided),
-    }
-  }
-
-  pub fn get_provided_exports(info: &PrefetchedExportsInfoWrapper) -> ProvidedExports {
-    if info.redirect_to().is_none() {
-      match info.other_exports_info().provided() {
-        Some(ExportProvided::Unknown) => {
-          return ProvidedExports::ProvidedAll;
-        }
-        Some(ExportProvided::Provided) => {
-          return ProvidedExports::ProvidedAll;
-        }
-        None => {
-          return ProvidedExports::Unknown;
-        }
-        _ => {}
-      }
-    }
-    let mut ret = vec![];
-    for (_, export_info) in info.exports() {
-      match export_info.provided() {
-        Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name().cloned().unwrap_or("".into()));
-        }
-        _ => {}
-      }
-    }
-    if let Some(redirect) = info.redirect_to() {
-      let redirected = info.redirect(redirect, false);
-      let provided_exports = Self::get_provided_exports(&redirected);
-      let inner = match provided_exports {
-        ProvidedExports::Unknown => return ProvidedExports::Unknown,
-        ProvidedExports::ProvidedAll => return ProvidedExports::ProvidedAll,
-        ProvidedExports::ProvidedNames(arr) => arr,
-      };
-      for item in inner {
-        if !ret.contains(&item) {
-          ret.push(item);
-        }
-      }
-    }
-    ProvidedExports::ProvidedNames(ret)
-  }
-
-  pub fn get_used(
-    info: &PrefetchedExportsInfoWrapper,
-    names: &[Atom],
-    runtime: Option<&RuntimeSpec>,
-  ) -> UsageState {
-    if names.len() == 1 {
-      let value = &names[0];
-      let info = info.get_read_only_export_info(value);
-      let used = info.get_used(runtime);
-      return used;
-    }
-    if names.is_empty() {
-      return info.other_exports_info().get_used(runtime);
-    }
-    let info_data = info.get_read_only_export_info(&names[0]);
-    if let Some(exports_info) = &info_data.exports_info()
-      && names.len() > 1
-    {
-      let redirected = info.redirect(*exports_info, true);
-      return Self::get_used(&redirected, &names[1..], runtime);
-    }
-    info_data.get_used(runtime)
-  }
-
   /// `Option<UsedName>` correspond to webpack `string | string[] | false`
   pub fn get_used_name(
     info: GetUsedNameParam<'_>,
@@ -727,7 +698,7 @@ impl ExportsInfoGetter {
       }
       GetUsedNameParam::WithNames(info) => {
         if names.is_empty() {
-          if !Self::is_used(info, runtime) {
+          if !info.is_used(runtime) {
             return None;
           }
           return Some(UsedName::Normal(vec![]));
@@ -771,34 +742,6 @@ impl ExportsInfoGetter {
         Some(UsedName::Normal(arr))
       }
     }
-  }
-
-  pub fn get_usage_key(
-    info: &PrefetchedExportsInfoWrapper,
-    runtime: Option<&RuntimeSpec>,
-  ) -> UsageKey {
-    // only expand capacity when this has redirect_to
-    let mut key = UsageKey(Vec::with_capacity(info.exports().count() + 2));
-
-    if let Some(redirect_to) = info.redirect_to() {
-      let redirected = info.redirect(redirect_to, false);
-      key.add(Either::Left(Box::new(Self::get_usage_key(
-        &redirected,
-        runtime,
-      ))));
-    } else {
-      key.add(Either::Right(info.other_exports_info().get_used(runtime)));
-    };
-
-    key.add(Either::Right(
-      info.side_effects_only_info().get_used(runtime),
-    ));
-
-    for (_, export_info) in info.exports() {
-      key.add(Either::Right(export_info.get_used(runtime)));
-    }
-
-    key
   }
 }
 

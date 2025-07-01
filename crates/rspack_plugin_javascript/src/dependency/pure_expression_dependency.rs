@@ -3,7 +3,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, ExportsInfoGetter, ModuleGraph,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
 };
@@ -44,8 +44,7 @@ impl PureExpressionDependency {
           .get_prefetched_exports_info(&self.module_identifier, PrefetchExportsInfoMode::Default);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(id), cur_runtime)
-              != UsageState::Unused
+            exports_info.get_used(std::slice::from_ref(id), cur_runtime) != UsageState::Unused
           })
         })
       }

@@ -1103,7 +1103,7 @@ impl<'a> ModuleGraph<'a> {
     self.module_graph_module_by_identifier(id).and_then(|mgm| {
       let exports_info =
         ExportsInfoGetter::prefetch(&mgm.exports, self, PrefetchExportsInfoMode::Nested(names));
-      ExportsInfoGetter::is_export_provided(&exports_info, names)
+      exports_info.is_export_provided(names)
     })
   }
 

@@ -1066,9 +1066,7 @@ impl ModuleConcatenationPlugin {
         &module_graph,
         PrefetchExportsInfoMode::Default,
       );
-      let filtered_runtime = filter_runtime(Some(runtime), |r| {
-        ExportsInfoGetter::is_module_used(&exports_info_data, r)
-      });
+      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info_data.is_module_used(r));
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(runtime.clone()),
         RuntimeCondition::Boolean(false) => None,

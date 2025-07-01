@@ -167,8 +167,7 @@ impl ESMExportImportedSpecifierDependency {
     );
 
     let is_name_unused = if let Some(ref name) = name {
-      ExportsInfoGetter::get_used(&exports_info_data, std::slice::from_ref(name), runtime)
-        == UsageState::Unused
+      exports_info_data.get_used(std::slice::from_ref(name), runtime) == UsageState::Unused
     } else {
       !ExportsInfoGetter::prefetch_used_info_without_name(
         &exports_info,

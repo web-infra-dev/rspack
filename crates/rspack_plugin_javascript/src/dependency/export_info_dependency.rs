@@ -4,9 +4,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
-  ExportsInfoGetter, Inlinable, PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedExports,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided, Inlinable,
+  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -102,11 +101,11 @@ impl ExportInfoDependency {
         })
       }
       "used" => {
-        let used = ExportsInfoGetter::get_used(&exports_info, export_name, *runtime);
+        let used = exports_info.get_used(export_name, *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
-        let used_state = ExportsInfoGetter::get_used(&exports_info, export_name, *runtime);
+        let used_state = exports_info.get_used(export_name, *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",
@@ -118,16 +117,16 @@ impl ExportInfoDependency {
           .to_owned(),
         )
       }
-      "provideInfo" => {
-        ExportsInfoGetter::is_export_provided(&exports_info, export_name).map(|provided| {
+      "provideInfo" => exports_info
+        .is_export_provided(export_name)
+        .map(|provided| {
           (match provided {
             ExportProvided::Provided => "true",
             ExportProvided::NotProvided => "false",
             ExportProvided::Unknown => "null",
           })
           .to_owned()
-        })
-      }
+        }),
       _ => None,
     }
   }
