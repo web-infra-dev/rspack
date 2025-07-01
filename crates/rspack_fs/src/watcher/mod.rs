@@ -97,10 +97,10 @@ impl FsWatcher {
     Ok(())
   }
 
-  pub fn close(&mut self) -> Result<()> {
+  pub async fn close(&mut self) -> Result<()> {
     self.disk_watcher.close();
     self.scanner.close();
-    self.executor.close();
+    self.executor.close().await;
 
     Ok(())
   }

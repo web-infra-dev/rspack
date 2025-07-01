@@ -11,7 +11,7 @@ use tokio::sync::{
   Mutex,
 };
 
-use super::EventHandler;
+use super::{EventHandler, FsEventKind};
 use crate::watcher::FsEvent;
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
@@ -44,8 +44,8 @@ pub struct Executor {
   paused: Arc<AtomicBool>,
   aggregate_running: Arc<AtomicBool>,
   start_waiting: bool,
-  execute_handler: Option<ExecuteHandler>,
-  execute_aggregate_handler: Option<ExecuteAggregateHandler>,
+  execute_handle: Option<tokio::task::JoinHandle<()>>,
+  execute_aggregate_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
 const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
@@ -81,8 +81,8 @@ impl Executor {
       exec_aggregate_rx: Arc::new(Mutex::new(exec_aggregate_rx)),
       exec_rx: Arc::new(Mutex::new(exec_rx)),
       exec_tx,
-      execute_aggregate_handler: None,
-      execute_handler: None,
+      execute_aggregate_handle: None,
+      execute_handle: None,
       aggregate_timeout: aggregate_timeout.unwrap_or(DEFAULT_AGGREGATE_TIMEOUT),
     }
   }
@@ -95,24 +95,34 @@ impl Executor {
   }
 
   /// Abort all executor.
-  fn abort(&self) {
-    if let Some(execute_aggregate_handler) = &self.execute_aggregate_handler {
-      execute_aggregate_handler.abort();
+  async fn abort(&mut self) {
+    if let Some(execute_aggregate_handle) = &mut self.execute_aggregate_handle {
+      execute_aggregate_handle.abort();
+      // Wait for the aggregate executor to finish
+      // Awaiting a cancelled task might complete as usual if the task was already completed at the time it was cancelled, but most likely it will fail with a [cancelled] JoinError.
+      // So we use Err in this case.
+      if let Err(err) = execute_aggregate_handle.await {
+        debug_assert!(err.is_cancelled());
+      }
     }
-    if let Some(execute_handler) = &self.execute_handler {
-      execute_handler.abort();
+    if let Some(execute_handle) = &mut self.execute_handle {
+      execute_handle.abort();
+      // Wait for the executor to finish
+      if let Err(err) = execute_handle.await {
+        debug_assert!(err.is_cancelled());
+      }
     }
   }
 
   /// Abort all executor and close the receiver.
-  pub fn close(&self) {
-    self.abort();
+  pub async fn close(&mut self) {
+    self.abort().await;
   }
 
   /// Execute the watcher executor loop.
   pub async fn wait_for_execute(&mut self, event_handler: Box<dyn EventHandler + Send + Sync>) {
     if !self.start_waiting {
-      let files = Arc::clone(&self.files_data);
+      let files_data = Arc::clone(&self.files_data);
 
       let rx = Arc::clone(&self.rx);
       let exec_aggregate_tx = self.exec_aggregate_tx.clone();
@@ -124,14 +134,14 @@ impl Executor {
         while let Some(event) = rx.lock().await.recv().await {
           let path = event.path.to_string_lossy().to_string();
           match event.kind {
-            super::FsEventKind::Change => {
-              files.lock().await.changed.insert(path);
+            FsEventKind::Change => {
+              files_data.lock().await.changed.insert(path);
             }
-            super::FsEventKind::Remove => {
-              files.lock().await.deleted.insert(path);
+            FsEventKind::Remove => {
+              files_data.lock().await.deleted.insert(path);
             }
-            super::FsEventKind::Create => {
-              files.lock().await.changed.insert(path);
+            FsEventKind::Create => {
+              files_data.lock().await.changed.insert(path);
             }
           };
 
@@ -151,9 +161,7 @@ impl Executor {
 
     self.paused.store(false, Ordering::Relaxed);
     // abort the previous handlers if they exist
-    self.abort();
-    // sleep 1ms to make sure the previous handlers are aborted
-    tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+    self.abort().await;
 
     self.run_execute_handler(event_handler);
   }
@@ -161,7 +169,7 @@ impl Executor {
   fn run_execute_handler(&mut self, event_handler: Box<dyn EventHandler + Send + Sync>) {
     let event_handler = Arc::new(event_handler);
 
-    self.execute_aggregate_handler = Some(ExecuteAggregateHandler::new(
+    self.execute_aggregate_handle = Some(create_execute_aggregate_task(
       Arc::clone(&event_handler),
       Arc::clone(&self.exec_aggregate_rx),
       Arc::clone(&self.files_data),
@@ -169,108 +177,83 @@ impl Executor {
       Arc::clone(&self.aggregate_running),
     ));
 
-    self.execute_handler = Some(ExecuteHandler::new(
+    self.execute_handle = Some(create_execute_task(
       event_handler,
       Arc::clone(&self.exec_rx),
     ));
   }
 }
 
-struct ExecuteHandler {
-  task: tokio::task::JoinHandle<()>,
-}
-
-impl ExecuteHandler {
-  fn new(
-    event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-    exec_rx: ThreadSafetyReceiver<ExecEvent>,
-  ) -> Self {
-    let future = async move {
-      while let Some(event) = exec_rx.lock().await.recv().await {
-        match event {
-          ExecEvent::Execute(event) => {
-            let path = event.path.to_string_lossy().to_string();
-            match event.kind {
-              super::FsEventKind::Change | super::FsEventKind::Create => {
-                if event_handler.on_change(path).await.is_err() {
-                  break;
-                }
+fn create_execute_task(
+  event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
+  exec_rx: ThreadSafetyReceiver<ExecEvent>,
+) -> tokio::task::JoinHandle<()> {
+  let future = async move {
+    while let Some(event) = exec_rx.lock().await.recv().await {
+      match event {
+        ExecEvent::Execute(event) => {
+          let path = event.path.to_string_lossy().to_string();
+          match event.kind {
+            super::FsEventKind::Change | super::FsEventKind::Create => {
+              if event_handler.on_change(path).await.is_err() {
+                break;
               }
-              super::FsEventKind::Remove => {
-                if event_handler.on_delete(path).await.is_err() {
-                  break;
-                }
+            }
+            super::FsEventKind::Remove => {
+              if event_handler.on_delete(path).await.is_err() {
+                break;
               }
             }
           }
-          ExecEvent::Close => {
-            break;
-          }
         }
+        ExecEvent::Close => {
+          break;
+        }
+      }
+    }
+  };
+  tokio::spawn(future)
+}
+
+fn create_execute_aggregate_task(
+  event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
+  exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
+  files: ThreadSafety<FilesData>,
+  aggregate_timeout: u64,
+  running: Arc<AtomicBool>,
+) -> tokio::task::JoinHandle<()> {
+  let future = async move {
+    let aggregate_rx = {
+      // release the lock on exec_aggregate_rx
+      // and wait for the next event
+      let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
+      match exec_aggregate_rx_guard.recv().await {
+        Some(event) => event,
+        None => return,
       }
     };
 
-    Self {
-      task: tokio::spawn(future),
-    }
-  }
+    if let ExecAggregateEvent::Execute = aggregate_rx {
+      running.store(true, Ordering::Relaxed);
+      // Wait for the aggregate timeout before executing the handler
+      tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
-  fn abort(&self) {
-    self.task.abort();
-  }
-}
-
-struct ExecuteAggregateHandler {
-  task: tokio::task::JoinHandle<()>,
-}
-
-impl ExecuteAggregateHandler {
-  fn new(
-    event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
-    exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
-    files: ThreadSafety<FilesData>,
-    aggregate_timeout: u64,
-    running: Arc<AtomicBool>,
-  ) -> Self {
-    let future = async move {
-      let aggregate_rx = {
-        // release the lock on exec_aggregate_rx
-        // and wait for the next event
-        let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
-        match exec_aggregate_rx_guard.recv().await {
-          Some(event) => event,
-          None => return,
+      // Get the files to process
+      let files = {
+        let mut files = files.lock().await;
+        if files.is_empty() {
+          return;
         }
+        std::mem::take(&mut *files)
       };
 
-      if let ExecAggregateEvent::Execute = aggregate_rx {
-        running.store(true, Ordering::Relaxed);
-        // Wait for the aggregate timeout before executing the handler
-        tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
+      // Call the event handler with the changed and deleted files
+      let _ = event_handler
+        .on_event_handle(files.changed, files.deleted)
+        .await;
+      running.store(false, Ordering::Relaxed);
+    }
+  };
 
-        // Get the files to process
-        let files = {
-          let mut files = files.lock().await;
-          if files.is_empty() {
-            return;
-          }
-          std::mem::take(&mut *files)
-        };
-
-        // Call the event handler with the changed and deleted files
-        let _ = event_handler
-          .on_event_handle(files.changed, files.deleted)
-          .await;
-        running.store(false, Ordering::Relaxed);
-      }
-    };
-
-    let task = tokio::spawn(future);
-
-    Self { task }
-  }
-
-  fn abort(&self) {
-    self.task.abort();
-  }
+  tokio::spawn(future)
 }

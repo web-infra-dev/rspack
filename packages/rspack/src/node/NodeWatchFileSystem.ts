@@ -32,7 +32,6 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 	}
 
 	async watch(
-		_symbol: Symbol,
 		_files: WatcherIncrementalDependencies,
 		_directories: WatcherIncrementalDependencies,
 		_missing: WatcherIncrementalDependencies,

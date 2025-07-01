@@ -70,6 +70,8 @@ impl NativeWatcher {
   /// # Safety
   ///
   /// This function is unsafe because it uses `unsafe` to call the watcher asynchronously.
+  /// You must ensure that the watcher is not used in any other places before this function is finised.
+  /// Otherwise, it will cause undefined behavior.
   pub async unsafe fn watch(
     &mut self,
     files: (Vec<String>, Vec<String>),
@@ -118,10 +120,16 @@ impl NativeWatcher {
   }
 
   #[napi]
-  pub fn close(&mut self) -> napi::Result<()> {
+  /// # Safety
+  ///
+  /// This function is unsafe because it uses `unsafe` to call the watcher asynchronously.
+  /// You must ensure that the watcher is not used in any other places before this function is finished.
+  /// Otherwise, it will cause undefined behavior.
+  pub async unsafe fn close(&mut self) -> napi::Result<()> {
     self
       .watcher
       .close()
+      .await
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
     self.close = true;
     Ok(())

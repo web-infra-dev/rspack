@@ -1,7 +1,7 @@
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use super::{for_each, Analyzer, WatchPattern};
+use super::{Analyzer, WatchPattern};
 use crate::watcher::path_manager::PathAccessor;
 
 /// `WatcherDirectoriesAnalyzer` analyzes the path register and determines
@@ -29,7 +29,8 @@ impl<'a> WatcherDirectoriesAnalyzer<'a> {
   /// Finds all directories that should be watched individually (non-recursively).
   fn find_watch_directories(&self) -> HashSet<WatchPattern> {
     let mut patterns = HashSet::default();
-    for_each(&self.path_accessor, |path| {
+    let all = self.path_accessor.all();
+    for path in all {
       if let Some((dir, deep)) = self.find_exists_path(path) {
         // Insert the parent directory of the file
         patterns.insert(WatchPattern {
@@ -41,10 +42,12 @@ impl<'a> WatcherDirectoriesAnalyzer<'a> {
           },
         });
       }
-    });
+    }
+
     patterns
   }
 
+  /// Finds the deepest existing directory path and its depth.
   fn find_exists_path(&self, path: ArcPath) -> Option<(ArcPath, u32)> {
     let mut current = path;
     let mut deep = 0u32;

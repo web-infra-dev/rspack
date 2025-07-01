@@ -698,7 +698,6 @@ export interface WatcherIncrementalDependencies {
 
 export interface WatchFileSystem {
 	watch(
-		symbol: Symbol,
 		files: WatcherIncrementalDependencies,
 		directories: WatcherIncrementalDependencies,
 		missing: WatcherIncrementalDependencies,

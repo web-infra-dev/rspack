@@ -1,5 +1,3 @@
-use rspack_paths::ArcPath;
-
 use crate::watcher::{path_manager::PathAccessor, WatchPattern};
 
 mod directories;
@@ -24,13 +22,6 @@ pub(crate) trait Analyzer<'a> {
   /// # Returns
   /// A vector of [`WatchTarget`]s representing the paths and their watch modes.
   fn analyze(&'a self) -> Vec<WatchPattern>;
-}
-
-fn for_each<'a>(path_accessor: &PathAccessor<'a>, mut for_each: impl FnMut(ArcPath)) {
-  let all = path_accessor.all();
-  for p in all {
-    for_each(p);
-  }
 }
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]

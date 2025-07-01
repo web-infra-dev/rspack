@@ -8,10 +8,9 @@ import type {
 } from "./util/fs";
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
-	#inners: Map<Symbol, binding.NativeWatcher> = new Map();
+	#inner: binding.NativeWatcher | undefined;
 
 	async watch(
-		symbol: Symbol,
 		files: WatcherIncrementalDependencies,
 		directories: WatcherIncrementalDependencies,
 		missing: WatcherIncrementalDependencies,
@@ -53,7 +52,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			throw new Error("Invalid arguments: 'callbackUndelayed'");
 		}
 
-		const nativeWatcher = this.getNativeWatcher(symbol, options);
+		const nativeWatcher = this.getNativeWatcher(options);
 
 		await nativeWatcher.watch(
 			[Array.from(files.added), Array.from(files.removed)],
@@ -78,7 +77,6 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		return {
 			close: () => {
 				nativeWatcher.close();
-				this.#inners.delete(symbol);
 			},
 
 			pause: () => {
@@ -98,13 +96,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		};
 	}
 
-	getNativeWatcher(
-		symbol: Symbol,
-		options: Watchpack.WatchOptions
-	): binding.NativeWatcher {
-		const watcher = this.#inners.get(symbol);
-		if (watcher) {
-			return watcher;
+	getNativeWatcher(options: Watchpack.WatchOptions): binding.NativeWatcher {
+		if (this.#inner) {
+			return this.#inner;
 		}
 
 		const ignoredCallback = options.ignored
@@ -129,7 +123,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			ignored: ignoredCallback
 		};
 		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
-		this.#inners.set(symbol, nativeWatcher);
+		this.#inner = nativeWatcher;
 		return nativeWatcher;
 	}
 }

@@ -41,7 +41,6 @@ export class Watching {
 	#closed: boolean;
 	#collectedChangedFiles?: Set<string>;
 	#collectedRemovedFiles?: Set<string>;
-	#symbol: Symbol = Symbol("Watching#symbol");
 	suspended: boolean;
 
 	constructor(
@@ -87,7 +86,6 @@ export class Watching {
 		this.pausedWatcher = undefined;
 		// SAFETY: `watchFileSystem` is expected to be initialized.
 		this.watcher = await this.compiler.watchFileSystem!.watch(
-			this.#symbol,
 			files,
 			dirs,
 			missing,
