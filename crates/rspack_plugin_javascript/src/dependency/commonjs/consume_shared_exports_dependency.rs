@@ -56,13 +56,6 @@ impl ConsumeSharedExportsDependency {
       .clone()
       .or_else(|| build_meta.consume_shared_key.clone())
     {
-      if module_identifier.contains("cjs-modules/") {
-        dbg!(
-          "ConsumeSharedExportsDependency::should_apply_to_module [direct]",
-          module_identifier,
-          &shared_key
-        );
-      }
       return Some(shared_key);
     }
 
@@ -87,14 +80,6 @@ impl ConsumeSharedExportsDependency {
                 // Check if the parent is a ConsumeSharedModule and get its shared_key
                 if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
                   if let Some(shared_key) = parent_module.get_consume_shared_key() {
-                    if module_identifier.contains("cjs-modules/") {
-                      dbg!(
-                        "ConsumeSharedExportsDependency::should_apply_to_module [fallback]",
-                        module_identifier,
-                        &shared_key,
-                        parent_module_id
-                      );
-                    }
                     return Some(shared_key);
                   }
                 }
@@ -107,16 +92,6 @@ impl ConsumeSharedExportsDependency {
 
     // No fallback - only apply tree-shaking when proper Module Federation shared context is detected
     // This ensures we don't hardcode any patterns and only work with legitimate shared modules
-
-    // Debug output for cases where no shared key is found
-    if module_identifier.contains("cjs-modules/") {
-      dbg!(
-        "ConsumeSharedExportsDependency::should_apply_to_module [no match]",
-        module_identifier,
-        &build_meta.shared_key,
-        &build_meta.consume_shared_key
-      );
-    }
 
     None
   }

@@ -237,13 +237,6 @@ async fn normal_module_factory_module(
     let match_provides = self.match_provides.read().await;
     if let Some(config) = match_provides.get(request) {
       // Set the shared_key in the module's BuildMeta for tree-shaking
-      if request.contains("cjs-modules/") {
-        dbg!(
-          "ProvideSharedPlugin: Setting shared_key",
-          request,
-          &config.share_key
-        );
-      }
       module.build_meta_mut().shared_key = Some(config.share_key.clone());
 
       self
