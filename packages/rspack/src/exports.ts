@@ -297,10 +297,10 @@ export type { CircularDependencyRspackPluginOptions } from "./builtin-plugin";
 export type { CopyRspackPluginOptions } from "./builtin-plugin";
 export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
 export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
-export type {
-	CssExtractRspackLoaderOptions,
-	CssExtractRspackPluginOptions
-} from "./builtin-plugin";
+// export type {
+// 	CssExtractRspackLoaderOptions,
+// 	CssExtractRspackPluginOptions
+// } from "./builtin-plugin";
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
 export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
@@ -309,7 +309,7 @@ export { CopyRspackPlugin } from "./builtin-plugin";
 export { SourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
-export { CssExtractRspackPlugin } from "./builtin-plugin";
+// export { CssExtractRspackPlugin } from "./builtin-plugin";
 export { ContextReplacementPlugin } from "./builtin-plugin";
 
 ///// Rspack Postfixed Internal Loaders /////
