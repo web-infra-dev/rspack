@@ -129,7 +129,7 @@ jobs:
 
       ### x86_64-pc-windows-msvc
       - name: Test x86_64-pc-windows-msvc
-        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 10
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
