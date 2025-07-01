@@ -1053,13 +1053,14 @@ impl ESMExportImportedSpecifierDependency {
         if conflicting_module.identifier() == imported_module.identifier() {
           continue;
         }
-        let Some(conflicting_export_info) =
-          module_graph.get_read_only_export_info(&conflicting_module.identifier(), name.to_owned())
+        let Some(conflicting_export_info) = module_graph
+          .get_exports_info(&conflicting_module.identifier())
+          .as_data(module_graph)
+          .named_exports(name)
         else {
           continue;
         };
-        let Some(conflicting_target) =
-          get_terminal_binding(conflicting_export_info.as_data(module_graph), module_graph)
+        let Some(conflicting_target) = get_terminal_binding(conflicting_export_info, module_graph)
         else {
           continue;
         };

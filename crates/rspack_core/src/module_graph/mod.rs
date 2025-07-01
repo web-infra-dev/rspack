@@ -1085,12 +1085,6 @@ impl<'a> ModuleGraph<'a> {
     &mgm.optimization_bailout
   }
 
-  pub fn get_read_only_export_info(&self, id: &ModuleIdentifier, name: Atom) -> Option<ExportInfo> {
-    self
-      .module_graph_module_by_identifier(id)
-      .map(|mgm| mgm.exports.get_read_only_export_info(self, &name))
-  }
-
   pub fn get_condition_state(
     &self,
     connection: &ModuleGraphConnection,

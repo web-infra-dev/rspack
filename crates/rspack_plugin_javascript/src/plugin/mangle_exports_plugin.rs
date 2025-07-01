@@ -269,7 +269,7 @@ fn mangle_exports_info(
       mangleable_exports,
       |e| {
         mangleable_export_names
-          .get(&e)
+          .get(e)
           .expect("should have name")
           .to_string()
       },
