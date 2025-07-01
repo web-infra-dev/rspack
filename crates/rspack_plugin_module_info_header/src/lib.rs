@@ -60,8 +60,9 @@ fn print_exports_info_to_source<F>(
     }
   }
   let mut show_other_exports = false;
-  if !already_printed.contains(&other_exports_info.id()) {
-    already_printed.insert(other_exports_info.id());
+  let other_exports_info_id = other_exports_info.id();
+  if !already_printed.contains(&other_exports_info_id) {
+    already_printed.insert(other_exports_info_id);
     show_other_exports = true;
   } else {
     already_printed_exports += 1;

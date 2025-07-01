@@ -258,21 +258,6 @@ impl ExportsInfo {
     }
     changed
   }
-
-  pub fn set_used_for_side_effects_only(
-    &self,
-    mg: &mut ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    let exports_info = self.as_data_mut(mg);
-    exports_info
-      .side_effects_only_info_mut()
-      .set_used_conditionally(
-        Box::new(|value| value == &UsageState::Unused),
-        UsageState::Used,
-        runtime,
-      )
-  }
 }
 
 #[derive(Debug, Clone)]

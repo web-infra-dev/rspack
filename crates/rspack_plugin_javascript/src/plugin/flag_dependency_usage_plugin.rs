@@ -422,8 +422,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       {
         return;
       }
-      let changed_flag =
-        mgm_exports_info.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
+      let changed_flag = mgm_exports_info
+        .as_data_mut(&mut module_graph)
+        .set_used_for_side_effects_only(runtime.as_ref());
       if changed_flag {
         batch.push((module_id, runtime));
       }
