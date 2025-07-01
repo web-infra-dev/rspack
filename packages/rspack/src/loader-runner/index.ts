@@ -569,11 +569,12 @@ export async function runLoaders(
 		);
 	};
 	loaderContext.rootContext = compiler.context;
-	loaderContext.emitError = function emitError(err) {
-		if (!(err instanceof Error)) {
-			err = new NonErrorEmittedError(err);
+	loaderContext.emitError = function emitError(e) {
+		if (!(e instanceof Error)) {
+			// biome-ignore lint/style/noParameterAssign: based on webpack's logic
+			e = new NonErrorEmittedError(e);
 		}
-		const error = new ModuleError(err, {
+		const error = new ModuleError(e, {
 			from: stringifyLoaderObject(
 				loaderContext.loaders[loaderContext.loaderIndex]
 			)
@@ -584,11 +585,12 @@ export async function runLoaders(
 			severity: JsRspackSeverity.Error
 		});
 	};
-	loaderContext.emitWarning = function emitWarning(warn) {
-		if (!(warn instanceof Error)) {
-			warn = new NonErrorEmittedError(warn);
+	loaderContext.emitWarning = function emitWarning(e) {
+		if (!(e instanceof Error)) {
+			// biome-ignore lint/style/noParameterAssign: based on webpack's logic
+			e = new NonErrorEmittedError(e);
 		}
-		const warning = new ModuleWarning(warn, {
+		const warning = new ModuleWarning(e, {
 			from: stringifyLoaderObject(
 				loaderContext.loaders[loaderContext.loaderIndex]
 			)
