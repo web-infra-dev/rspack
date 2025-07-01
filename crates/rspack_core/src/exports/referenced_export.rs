@@ -74,21 +74,21 @@ pub fn collect_referenced_export_items<'a>(
   already_visited: &mut FxHashSet<ExportInfo>,
 ) {
   if let Some(export_info) = export_info {
+    let export_info_id = export_info.id();
     let used = export_info.get_used(runtime);
     if used == UsageState::Unused {
       return;
     }
-    if already_visited.contains(&export_info.id()) {
+    if already_visited.contains(&export_info_id) {
       referenced_export.push(prefix);
       return;
     }
-    already_visited.insert(export_info.id());
     // FIXME: more branch
     if used != UsageState::OnlyPropertiesUsed {
-      already_visited.remove(&export_info.id());
       referenced_export.push(prefix);
       return;
     }
+    already_visited.insert(export_info_id);
     if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
       &export_info
         .exports_info()

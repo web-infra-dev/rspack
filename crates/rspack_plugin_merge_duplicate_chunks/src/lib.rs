@@ -171,7 +171,7 @@ fn is_equally_used(
   a: &RuntimeSpec,
   b: &RuntimeSpec,
 ) -> bool {
-  let info = mg.get_exports_info_by_id(exports_info);
+  let info = exports_info.as_data(mg);
   if let Some(redirect_to) = &info.redirect_to() {
     if is_equally_used(redirect_to, mg, a, b) {
       return false;

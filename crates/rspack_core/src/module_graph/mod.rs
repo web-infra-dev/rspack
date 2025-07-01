@@ -17,8 +17,8 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportInfo, ExportsInfo,
-  ExportsInfoData, ModuleIdentifier,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfo, ExportsInfoData,
+  ModuleIdentifier,
 };
 
 // TODO Here request can be used Atom
@@ -814,12 +814,6 @@ impl<'a> ModuleGraph<'a> {
         |p| p.module_graph_modules.get_mut(identifier),
       )?
       .as_mut()
-  }
-
-  /// refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L582-L585
-  pub fn get_export_info(&mut self, module_id: ModuleIdentifier, export_name: &Atom) -> ExportInfo {
-    let exports_info = self.get_exports_info(&module_id);
-    exports_info.get_export_info(self, export_name)
   }
 
   pub fn get_ordered_outgoing_connections(

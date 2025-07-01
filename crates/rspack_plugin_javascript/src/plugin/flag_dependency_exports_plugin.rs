@@ -268,7 +268,6 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
 
       if let Some(exports) = exports {
-        let export_info_data = export_info.as_data_mut(self.mg);
         let nested_exports_info = if export_info_data.exports_info_owned() {
           export_info_data
             .exports_info()
