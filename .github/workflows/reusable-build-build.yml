@@ -192,10 +192,3 @@ jobs:
             crates/node_binding/*.node
             crates/node_binding/*.d.ts
             crates/node_binding/rspack.wasm32-wasi.wasm
-
-      - name: Upload Timing
-        uses: ./.github/actions/artifact/upload
-        with:
-          name: timings-${{ inputs.target }}
-          path: |
-            target/cargo-timings/cargo-timing.html
