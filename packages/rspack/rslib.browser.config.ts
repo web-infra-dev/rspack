@@ -1,7 +1,7 @@
+import path from "node:path";
+import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import { defineConfig } from "@rslib/core";
 import * as rspack from "@rspack/core";
-import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
-import path from "node:path";
 
 const serviceShim = path.resolve("./src/browser/service.ts");
 
@@ -26,12 +26,7 @@ export default defineConfig({
 			format: "esm",
 			syntax: "es2021",
 			dts: { build: true },
-			autoExternal: false,
-			shims: {
-				esm: {
-					__dirname: true
-				}
-			}
+			autoExternal: false
 		}
 	],
 	output: {
@@ -67,7 +62,7 @@ export default defineConfig({
 			config.plugins.push(
 				new rspack.IgnorePlugin({
 					resourceRegExp:
-						/(moduleFederationDefaultRuntime|css-extract|worker_threads|async_hooks|perf_hooks|inspector)/
+						/(moduleFederationDefaultRuntime|worker_threads|async_hooks|perf_hooks|inspector)/
 				})
 			);
 		}
