@@ -225,68 +225,68 @@ export const optimize: Optimize = {
 	SplitChunksPlugin
 };
 
-import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
+// import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 
-export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
-import { ModuleFederationPluginV1 } from "./container/ModuleFederationPluginV1";
+// export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
+// import { ModuleFederationPluginV1 } from "./container/ModuleFederationPluginV1";
 
-export type { ModuleFederationPluginV1Options } from "./container/ModuleFederationPluginV1";
-import { ContainerPlugin } from "./container/ContainerPlugin";
-import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
+// export type { ModuleFederationPluginV1Options } from "./container/ModuleFederationPluginV1";
+// import { ContainerPlugin } from "./container/ContainerPlugin";
+// import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 
-export type {
-	ContainerPluginOptions,
-	Exposes,
-	ExposesConfig,
-	ExposesItem,
-	ExposesItems,
-	ExposesObject
-} from "./container/ContainerPlugin";
-export type {
-	ContainerReferencePluginOptions,
-	Remotes,
-	RemotesConfig,
-	RemotesItem,
-	RemotesItems,
-	RemotesObject
-} from "./container/ContainerReferencePlugin";
-export const container = {
-	ContainerPlugin,
-	ContainerReferencePlugin,
-	ModuleFederationPlugin,
-	ModuleFederationPluginV1
-};
+// export type {
+// 	ContainerPluginOptions,
+// 	Exposes,
+// 	ExposesConfig,
+// 	ExposesItem,
+// 	ExposesItems,
+// 	ExposesObject
+// } from "./container/ContainerPlugin";
+// export type {
+// 	ContainerReferencePluginOptions,
+// 	Remotes,
+// 	RemotesConfig,
+// 	RemotesItem,
+// 	RemotesItems,
+// 	RemotesObject
+// } from "./container/ContainerReferencePlugin";
+// export const container = {
+// 	ContainerPlugin,
+// 	ContainerReferencePlugin,
+// 	ModuleFederationPlugin,
+// 	ModuleFederationPluginV1
+// };
 
-import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
-import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
-import { SharePlugin } from "./sharing/SharePlugin";
+// import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
+// import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
+// import { SharePlugin } from "./sharing/SharePlugin";
 
-export type {
-	Consumes,
-	ConsumesConfig,
-	ConsumeSharedPluginOptions,
-	ConsumesItem,
-	ConsumesObject
-} from "./sharing/ConsumeSharedPlugin";
-export type {
-	Provides,
-	ProvidesConfig,
-	ProvideSharedPluginOptions,
-	ProvidesItem,
-	ProvidesObject
-} from "./sharing/ProvideSharedPlugin";
-export type {
-	Shared,
-	SharedConfig,
-	SharedItem,
-	SharedObject,
-	SharePluginOptions
-} from "./sharing/SharePlugin";
-export const sharing = {
-	ProvideSharedPlugin,
-	ConsumeSharedPlugin,
-	SharePlugin
-};
+// export type {
+// 	Consumes,
+// 	ConsumesConfig,
+// 	ConsumeSharedPluginOptions,
+// 	ConsumesItem,
+// 	ConsumesObject
+// } from "./sharing/ConsumeSharedPlugin";
+// export type {
+// 	Provides,
+// 	ProvidesConfig,
+// 	ProvideSharedPluginOptions,
+// 	ProvidesItem,
+// 	ProvidesObject
+// } from "./sharing/ProvideSharedPlugin";
+// export type {
+// 	Shared,
+// 	SharedConfig,
+// 	SharedItem,
+// 	SharedObject,
+// 	SharePluginOptions
+// } from "./sharing/SharePlugin";
+// export const sharing = {
+// 	ProvideSharedPlugin,
+// 	ConsumeSharedPlugin,
+// 	SharePlugin
+// };
 
 ///// Rspack Postfixed Internal Plugins /////
 export type { RsdoctorPluginData, RsdoctorPluginHooks } from "./builtin-plugin";

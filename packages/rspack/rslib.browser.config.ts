@@ -2,20 +2,12 @@ import path from "node:path";
 import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import { defineConfig } from "@rslib/core";
 
-const serviceShim = path.resolve("./src/browser/service.ts");
-
 const bindingDir = path.resolve("../../crates/node_binding");
 
 export default defineConfig({
 	resolve: {
 		alias: {
-			"graceful-fs": "node:fs",
-			"./service": serviceShim
-			// "./moduleFederationDefaultRuntime.js": fallbackNodeShims,
-			// worker_threads: fallbackNodeShims,
-			// async_hooks: fallbackNodeShims,
-			// perf_hooks: fallbackNodeShims,
-			// inspector: fallbackNodeShims
+			"graceful-fs": "node:fs"
 		}
 	},
 	lib: [
@@ -23,7 +15,12 @@ export default defineConfig({
 			format: "esm",
 			syntax: "es2021",
 			dts: { build: true },
-			autoExternal: false
+			autoExternal: false,
+			source: {
+				entry: {
+					index: "./src/browser/index.ts"
+				}
+			}
 		}
 	],
 	output: {
@@ -60,7 +57,15 @@ export default defineConfig({
 				new rspack.IgnorePlugin({
 					resourceRegExp:
 						/(moduleFederationDefaultRuntime|worker_threads|async_hooks|perf_hooks|inspector)/
-				})
+				}),
+				new rspack.NormalModuleReplacementPlugin(
+					/src\/loader-runner\/service\.ts/,
+					path.resolve("./src/browser/service.ts")
+				),
+				new rspack.NormalModuleReplacementPlugin(
+					/src\/index\.ts/,
+					path.resolve("./src/browser/index.ts")
+				)
 			);
 		}
 	}
