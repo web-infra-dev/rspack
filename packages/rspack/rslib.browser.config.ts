@@ -38,13 +38,19 @@ export default defineConfig({
 		],
 		copy: {
 			patterns: [
-				path.join(bindingDir, "rspack.wasi-browser.js"),
-				path.join(bindingDir, "wasi-worker-browser.mjs"),
-				path.join(bindingDir, "rspack.wasm32-wasi.wasm")
+				path.resolve(bindingDir, "rspack.wasi-browser.js"),
+				path.resolve(bindingDir, "wasi-worker-browser.mjs"),
+				path.resolve(bindingDir, "rspack.wasm32-wasi.wasm")
 			]
 		}
 	},
-	plugins: [pluginNodePolyfill()],
+	plugins: [
+		pluginNodePolyfill({
+			overrides: {
+				fs: path.resolve("./src/browser/fs")
+			}
+		})
+	],
 	source: {
 		tsconfigPath: "./tsconfig.browser.json",
 		define: {
