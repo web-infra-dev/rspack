@@ -950,6 +950,12 @@ export class Compilation {
     // (undocumented)
     [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<Compilation, NormalModuleCompilationHooks>;
     constructor(compiler: Compiler, inner: JsCompilation);
+    // (undocumented)
+    get __internal__addedContextDependencies(): string[];
+    // (undocumented)
+    get __internal__addedFileDependencies(): string[];
+    // (undocumented)
+    get __internal__addedMissingDependencies(): string[];
     // @internal
     __internal__deleteAssetSource(filename: string): void;
     // @internal
@@ -964,6 +970,12 @@ export class Compilation {
     __internal__pushDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
     // @internal
     __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
+    // (undocumented)
+    get __internal__removedContextDependencies(): string[];
+    // (undocumented)
+    get __internal__removedFileDependencies(): string[];
+    // (undocumented)
+    get __internal__removedMissingDependencies(): string[];
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // (undocumented)
@@ -971,12 +983,6 @@ export class Compilation {
     set __internal__shutdown(shutdown: boolean);
     // @internal
     __internal_getInner(): binding.JsCompilation;
-    // (undocumented)
-    get addedContextDependencies(): string[];
-    // (undocumented)
-    get addedFileDependencies(): string[];
-    // (undocumented)
-    get addedMissingDependencies(): string[];
     // (undocumented)
     addEntry(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, optionsOrName: EntryOptions | string, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
     // (undocumented)
@@ -1172,12 +1178,6 @@ export class Compilation {
     static PROCESS_ASSETS_STAGE_SUMMARIZE: number;
     // (undocumented)
     rebuildModule(module: Module, f: (err: Error | null, module: Module | null) => void): void;
-    // (undocumented)
-    get removedContextDependencies(): string[];
-    // (undocumented)
-    get removedFileDependencies(): string[];
-    // (undocumented)
-    get removedMissingDependencies(): string[];
     // (undocumented)
     renameAsset(filename: string, newFilename: string): void;
     // (undocumented)

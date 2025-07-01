@@ -886,27 +886,27 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		d => this.#inner.addFileDependencies(d)
 	);
 
-	get addedFileDependencies() {
+	get __internal__addedFileDependencies() {
 		return this.#inner.dependencies().addedFileDependencies;
 	}
 
-	get removedFileDependencies() {
+	get __internal__removedFileDependencies() {
 		return this.#inner.dependencies().removedFileDependencies;
 	}
 
-	get addedContextDependencies() {
+	get __internal__addedContextDependencies() {
 		return this.#inner.dependencies().addedContextDependencies;
 	}
 
-	get removedContextDependencies() {
+	get __internal__removedContextDependencies() {
 		return this.#inner.dependencies().removedContextDependencies;
 	}
 
-	get addedMissingDependencies() {
+	get __internal__addedMissingDependencies() {
 		return this.#inner.dependencies().addedMissingDependencies;
 	}
 
-	get removedMissingDependencies() {
+	get __internal__removedMissingDependencies() {
 		return this.#inner.dependencies().removedMissingDependencies;
 	}
 

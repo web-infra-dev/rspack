@@ -368,20 +368,20 @@ export class Watching {
 		this.callbacks = [];
 		const fileWatchDependencies: WatcherIncrementalDependencies = {
 			all: new Set([...compilation.fileDependencies]),
-			added: new Set(compilation.addedFileDependencies),
-			removed: new Set(compilation.removedFileDependencies)
+			added: new Set(compilation.__internal__addedFileDependencies),
+			removed: new Set(compilation.__internal__removedFileDependencies)
 		};
 
 		const contextWatchDependencies: WatcherIncrementalDependencies = {
 			all: new Set([...compilation.contextDependencies]),
-			added: new Set(compilation.addedContextDependencies),
-			removed: new Set(compilation.removedContextDependencies)
+			added: new Set(compilation.__internal__addedContextDependencies),
+			removed: new Set(compilation.__internal__removedContextDependencies)
 		};
 
 		const missingWatchDependencies: WatcherIncrementalDependencies = {
 			all: new Set([...compilation.missingDependencies]),
-			added: new Set(compilation.addedMissingDependencies),
-			removed: new Set(compilation.removedMissingDependencies)
+			added: new Set(compilation.__internal__addedMissingDependencies),
+			removed: new Set(compilation.__internal__removedMissingDependencies)
 		};
 
 		this.compiler.hooks.done.callAsync(stats, err => {
