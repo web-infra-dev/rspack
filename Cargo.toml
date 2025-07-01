@@ -234,7 +234,7 @@ strip         = "debuginfo"
 codegen-units = 1
 debug         = false
 # Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
-lto       = "fat"
+lto       = "thin"
 opt-level = 3
 panic     = "abort"
 strip     = true
