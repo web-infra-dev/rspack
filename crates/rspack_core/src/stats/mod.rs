@@ -231,6 +231,13 @@ impl Stats<'_> {
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
     let module_graph_cache = &self.compilation.module_graph_cache_artifact;
+    let mut concatenated_modules = IdentifierSet::default();
+    for (_, m) in module_graph.modules() {
+      let Some(m) = m.as_concatenated_module() else {
+        continue;
+      };
+      concatenated_modules.extend(m.get_modules().iter().map(|inner_module| inner_module.id));
+    }
 
     let executor_module_graph = self
       .compilation
@@ -248,6 +255,7 @@ impl Stats<'_> {
           module_graph_cache,
           module,
           false,
+          concatenated_modules.contains(&module.identifier()),
           None,
           options,
         )
@@ -274,6 +282,7 @@ impl Stats<'_> {
             &executor_module_graph_cache,
             module,
             true,
+            false,
             None,
             options,
           )
@@ -355,6 +364,7 @@ impl Stats<'_> {
                 &module_graph,
                 module_graph_cache,
                 m,
+                false,
                 false,
                 Some(&root_modules),
                 options,
@@ -764,6 +774,7 @@ impl Stats<'_> {
     module_graph_cache: &'a ModuleGraphCacheArtifact,
     module: &'a BoxModule,
     executed: bool,
+    concatenated: bool,
     root_modules: Option<&IdentifierSet>,
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
@@ -852,7 +863,7 @@ impl Stats<'_> {
 
     // module$visible
     if stats.built || stats.code_generated || options.cached_modules {
-      let orphan = if executed {
+      let orphan = if executed || concatenated {
         true
       } else {
         self
@@ -1119,6 +1130,7 @@ impl Stats<'_> {
               module_graph_cache,
               module,
               executed,
+              true,
               root_modules,
               options,
             )
