@@ -142,7 +142,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
       if let Some(ident) = ident {
         let exports_info = module_graph
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
         let provided_exports = match ExportsInfoGetter::get_provided_exports(&exports_info) {
           ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),

@@ -1,23 +1,21 @@
 use std::sync::Arc;
 
 use either::Either;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_util::{atom::Atom, ext::DynHash};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
 };
-use crate::{MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsageKey, UsedExports};
+use crate::{
+  ExportsInfoData, MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsageKey, UsedExports,
+};
 
 #[derive(Debug, Clone)]
 pub enum PrefetchExportsInfoMode<'a> {
-  Default,                           // prefetch without exports
-  NamedExports(HashSet<&'a Atom>),   // prefetch with named exports but no nested exports
-  AllExports,                        // prefetch with all exports but no nested exports
-  NamedNestedExports(&'a [Atom]),    // prefetch with named exports and its nested chain
-  NamedNestedAllExports(&'a [Atom]), // prefetch with named nested exports and all exports on its chain
+  Default,            // prefetch with all export items
+  Nested(&'a [Atom]), // prefetch with all export items and all the export items on its chain
   Full, // prefetch with all related data, this should only be used in hash calculation
 }
 
@@ -32,7 +30,7 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  exports: Arc<HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>>,
+  exports: Arc<HashMap<ExportsInfo, &'a ExportsInfoData>>,
   /**
    * The entry of the current exports info
    */
@@ -53,17 +51,10 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       entry,
       mode: if nested {
         match self.mode {
-          PrefetchExportsInfoMode::Default
-          | PrefetchExportsInfoMode::AllExports
-          | PrefetchExportsInfoMode::NamedExports(_) => {
+          PrefetchExportsInfoMode::Default => {
             panic!("should not redirect to nested");
           }
-          PrefetchExportsInfoMode::NamedNestedExports(names) => {
-            PrefetchExportsInfoMode::NamedNestedExports(&names[1..])
-          }
-          PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
-            PrefetchExportsInfoMode::NamedNestedAllExports(&names[1..])
-          }
+          PrefetchExportsInfoMode::Nested(names) => PrefetchExportsInfoMode::Nested(&names[1..]),
           PrefetchExportsInfoMode::Full => PrefetchExportsInfoMode::Full,
         }
       } else {
@@ -74,7 +65,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   /**
    * Get the data of the current exports info
    */
-  pub fn data(&self) -> &PrefetchedExportsInfoData<'a> {
+  pub fn data(&self) -> &ExportsInfoData {
     self
       .exports
       .get(&self.entry)
@@ -83,7 +74,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
   pub fn other_exports_info(&self) -> &ExportInfoData {
     if let Some(redirect) = self.get_redirect_to_in_exports_info(&self.entry) {
-      return self.get_other_in_exports_info(redirect);
+      return self.get_other_in_exports_info(&redirect);
     }
     self.get_other_in_exports_info(&self.entry)
   }
@@ -92,7 +83,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     self.get_side_effects_in_exports_info(&self.entry)
   }
 
-  pub fn redirect_to(&self) -> Option<&ExportsInfo> {
+  pub fn redirect_to(&self) -> Option<ExportsInfo> {
     self.get_redirect_to_in_exports_info(&self.entry)
   }
 
@@ -105,7 +96,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       .exports
       .get(exports_info)
       .expect("should have nested exports info");
-    data.other_exports_info.inner
+    data.other_exports_info()
   }
 
   fn get_side_effects_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
@@ -113,15 +104,15 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       .exports
       .get(exports_info)
       .expect("should have nested exports info");
-    data.side_effects_only_info.inner
+    data.side_effects_only_info()
   }
 
-  fn get_redirect_to_in_exports_info(&self, exports_info: &ExportsInfo) -> Option<&ExportsInfo> {
+  fn get_redirect_to_in_exports_info(&self, exports_info: &ExportsInfo) -> Option<ExportsInfo> {
     let data = self
       .exports
       .get(exports_info)
       .expect("should have nested exports info");
-    data.redirect_to.as_ref()
+    data.redirect_to()
   }
 
   fn get_exports_in_exports_info(
@@ -132,7 +123,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       .exports
       .get(exports_info)
       .expect("should have nested exports info");
-    data.exports.iter().map(|(key, data)| (*key, data.inner))
+    data.exports().iter()
   }
 
   fn get_named_export_in_exports_info(
@@ -144,35 +135,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       .exports
       .get(exports_info)
       .expect("should have nested exports info");
-
-    match &self.mode {
-      PrefetchExportsInfoMode::Default => {
-        panic!("should not get named export when mode is Default");
-      }
-      PrefetchExportsInfoMode::AllExports
-      | PrefetchExportsInfoMode::NamedNestedAllExports(_)
-      | PrefetchExportsInfoMode::Full => data.exports.get(name).map(|data| data.inner),
-      PrefetchExportsInfoMode::NamedExports(names) => {
-        if names.contains(name) {
-          data.exports.get(name).map(|data| data.inner)
-        } else {
-          panic!(
-            "should not get named export '{}' which is not prefetched by '{:?}'",
-            name, self.mode
-          )
-        }
-      }
-      PrefetchExportsInfoMode::NamedNestedExports(names) => {
-        if name == &names[0] {
-          data.exports.get(name).map(|data| data.inner)
-        } else {
-          panic!(
-            "should not get named nested export '{}' which is not prefetched by '{:?}'",
-            name, self.mode
-          )
-        }
-      }
-    }
+    data.exports().get(name)
   }
 
   pub fn get_read_only_export_info(&self, name: &Atom) -> &ExportInfoData {
@@ -188,7 +151,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       return export_info;
     }
     if let Some(redirect) = self.get_redirect_to_in_exports_info(exports_info) {
-      return self.get_read_only_export_info_impl(redirect, name);
+      return self.get_read_only_export_info_impl(&redirect, name);
     }
     self.get_other_in_exports_info(exports_info)
   }
@@ -199,7 +162,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       .exports
       .get(&exports_info)
       .expect("should have nested exports info");
-    data.exports.get(&name).map(|data| data.inner)
+    data.exports().get(&name)
   }
 
   fn get_read_only_export_info_recursive_impl(
@@ -220,12 +183,9 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     })
   }
 
-  pub fn get_nested_exports_info(
-    &self,
-    name: Option<&[Atom]>,
-  ) -> Option<&PrefetchedExportsInfoData> {
+  pub fn get_nested_exports_info(&self, name: Option<&[Atom]>) -> Option<&ExportsInfoData> {
     let exports_info = self.get_nested_exports_info_impl(name)?;
-    self.exports.get(&exports_info)
+    self.exports.get(&exports_info).copied()
   }
 
   fn get_nested_exports_info_impl(&self, name: Option<&[Atom]>) -> Option<ExportsInfo> {
@@ -264,7 +224,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       list.push(export_info);
     }
     if let Some(redirect) = self.get_redirect_to_in_exports_info(exports_info) {
-      for export_info in self.get_relevant_exports_impl(redirect, runtime) {
+      for export_info in self.get_relevant_exports_impl(&redirect, runtime) {
         let name = export_info.name();
         if self
           .get_named_export_in_exports_info(exports_info, name.unwrap_or(&"".into()))
@@ -324,7 +284,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
 
     if let Some(redirect) = self.get_redirect_to_in_exports_info(exports_info) {
-      let inner = self.get_used_exports_impl(redirect, runtime);
+      let inner = self.get_used_exports_impl(&redirect, runtime);
       match inner {
         UsedExports::UsedNames(v) => res.extend(v),
         UsedExports::Unknown | UsedExports::UsedNamespace(true) => return inner,
@@ -375,7 +335,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       }
     }
     if let Some(exports_info) = self.get_redirect_to_in_exports_info(exports_info) {
-      let provided_exports = self.get_provided_exports_impl(exports_info);
+      let provided_exports = self.get_provided_exports_impl(&exports_info);
       let inner = match provided_exports {
         ProvidedExports::Unknown => return ProvidedExports::Unknown,
         ProvidedExports::ProvidedAll => return ProvidedExports::ProvidedAll,
@@ -409,7 +369,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       return MaybeDynamicTargetExportInfo::Static(export_info);
     }
     if let Some(redirect) = self.get_redirect_to_in_exports_info(exports_info) {
-      return self.get_export_info_without_mut_module_graph_impl(redirect, name);
+      return self.get_export_info_without_mut_module_graph_impl(&redirect, name);
     }
 
     MaybeDynamicTargetExportInfo::Dynamic {
@@ -445,42 +405,20 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
 
     let mut exports = self.exports.values().collect_vec();
-    exports.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+    exports.sort_unstable_by_key(|a| a.id());
 
     for exports_info in exports {
-      let other_export_info = exports_info.other_exports_info.inner;
-      let side_effects_only_info = exports_info.side_effects_only_info.inner;
-      for export_info in exports_info.exports.values() {
-        if export_info.inner.has_info(other_export_info, runtime) {
-          handle_export_info(export_info.inner, hasher, runtime);
+      let other_export_info = exports_info.other_exports_info();
+      let side_effects_only_info = exports_info.side_effects_only_info();
+      for export_info in exports_info.exports().values() {
+        if export_info.has_info(other_export_info, runtime) {
+          handle_export_info(export_info, hasher, runtime);
         }
       }
       handle_export_info(side_effects_only_info, hasher, runtime);
       handle_export_info(other_export_info, hasher, runtime);
     }
   }
-}
-
-#[derive(Debug, Clone)]
-pub struct PrefetchedExportsInfoData<'a> {
-  exports: IndexMap<&'a Atom, PrefetchedExportInfoData<'a>>,
-  other_exports_info: PrefetchedExportInfoData<'a>,
-
-  side_effects_only_info: PrefetchedExportInfoData<'a>,
-  redirect_to: Option<ExportsInfo>,
-  id: ExportsInfo,
-}
-
-impl<'a> PrefetchedExportsInfoData<'a> {
-  pub fn id(&self) -> ExportsInfo {
-    self.id
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct PrefetchedExportInfoData<'a> {
-  inner: &'a ExportInfoData,
-  // pub exports_info: Option<ExportsInfo>,
 }
 
 /**
@@ -529,7 +467,7 @@ impl ExportsInfoGetter {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
       mg: &'a ModuleGraph,
-      res: &mut HashMap<ExportsInfo, PrefetchedExportsInfoData<'a>>,
+      res: &mut HashMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
       if res.contains_key(id) {
@@ -538,106 +476,34 @@ impl ExportsInfoGetter {
 
       let exports_info = id.as_data(mg);
       let mut nested_exports = vec![];
-      let exports = match mode {
-        PrefetchExportsInfoMode::Default => IndexMap::new(),
-        PrefetchExportsInfoMode::NamedExports(ref names) => {
-          let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports().iter() {
-            if !names.contains(key) {
-              continue;
-            }
-            exports.insert(
-              key,
-              PrefetchedExportInfoData {
-                inner: value,
-                // exports_info: export_info_data.exports_info,
-              },
-            );
-          }
-          exports
-        }
-        PrefetchExportsInfoMode::AllExports => {
-          let mut exports = IndexMap::new();
-          for (key, value) in exports_info.exports().iter() {
-            exports.insert(
-              key,
-              PrefetchedExportInfoData {
-                inner: value,
-                // exports_info: export_info_data.exports_info,
-              },
-            );
-          }
-          exports
-        }
-        PrefetchExportsInfoMode::NamedNestedExports(names) => {
-          let mut exports = IndexMap::new();
-          if let Some(name) = names.first() {
-            if let Some(export_info) = exports_info.named_exports(name) {
-              if let Some(nested_exports_info) = export_info.exports_info() {
-                nested_exports.push((
-                  nested_exports_info,
-                  PrefetchExportsInfoMode::NamedNestedExports(&names[1..]),
-                ));
-              }
-              exports.insert(
-                name,
-                PrefetchedExportInfoData {
-                  inner: export_info,
-                  // exports_info: export_info_data.exports_info,
-                },
-              );
-            }
-          }
-          exports
-        }
-        PrefetchExportsInfoMode::NamedNestedAllExports(names) => {
-          let mut exports = IndexMap::new();
+      match mode {
+        PrefetchExportsInfoMode::Default => {}
+        PrefetchExportsInfoMode::Nested(names) => {
           for (key, export_info) in exports_info.exports().iter() {
             if names.first().is_some_and(|name| name == key) {
               if let Some(nested_exports_info) = export_info.exports_info() {
                 nested_exports.push((
                   nested_exports_info,
-                  PrefetchExportsInfoMode::NamedNestedAllExports(&names[1..]),
+                  PrefetchExportsInfoMode::Nested(&names[1..]),
                 ));
               }
             }
-
-            exports.insert(
-              key,
-              PrefetchedExportInfoData {
-                inner: export_info,
-                // exports_info: export_info_data.exports_info,
-              },
-            );
           }
-          exports
         }
         PrefetchExportsInfoMode::Full => {
-          let mut exports = IndexMap::new();
-          for (key, export_info) in exports_info.exports().iter() {
+          for export_info in exports_info.exports().values() {
             if let Some(nested_exports_info) = export_info.exports_info() {
               nested_exports.push((nested_exports_info, PrefetchExportsInfoMode::Full));
             }
-
-            exports.insert(
-              key,
-              PrefetchedExportInfoData {
-                inner: export_info,
-                // exports_info: export_info_data.exports_info,
-              },
-            );
           }
-          exports
         }
-      };
+      }
 
-      let other_exports_info_data = exports_info.other_exports_info();
-      if let Some(other_exports) = other_exports_info_data.exports_info() {
+      if let Some(other_exports) = exports_info.other_exports_info().exports_info() {
         nested_exports.push((other_exports, PrefetchExportsInfoMode::Default));
       }
 
-      let side_effects_only_info_data = exports_info.side_effects_only_info();
-      if let Some(side_exports) = side_effects_only_info_data.exports_info() {
+      if let Some(side_exports) = exports_info.side_effects_only_info().exports_info() {
         nested_exports.push((side_exports, PrefetchExportsInfoMode::Default));
       }
 
@@ -645,22 +511,7 @@ impl ExportsInfoGetter {
         nested_exports.push((redirect_to, mode.clone()));
       }
 
-      res.insert(
-        *id,
-        PrefetchedExportsInfoData {
-          exports,
-          other_exports_info: PrefetchedExportInfoData {
-            inner: other_exports_info_data,
-            // exports_info: other_exports_info_data.exports_info,
-          },
-          side_effects_only_info: PrefetchedExportInfoData {
-            inner: side_effects_only_info_data,
-            // exports_info: side_effects_only_info_data.exports_info,
-          },
-          redirect_to: exports_info.redirect_to(),
-          id: *id,
-        },
-      );
+      res.insert(*id, exports_info);
 
       for (nested_exports_info, nested_mode) in nested_exports {
         prefetch_exports(&nested_exports_info, mg, res, nested_mode);
@@ -683,7 +534,7 @@ impl ExportsInfoGetter {
     full_data: bool,
   ) -> PrefetchedExportsInfoUsed<'a> {
     if full_data {
-      let data = Self::prefetch(id, mg, PrefetchExportsInfoMode::AllExports);
+      let data = Self::prefetch(id, mg, PrefetchExportsInfoMode::Default);
       let is_used = Self::is_used(&data, runtime);
       let is_module_used = Self::is_module_used(&data, runtime);
       PrefetchedExportsInfoUsed {
@@ -750,8 +601,8 @@ impl ExportsInfoGetter {
   }
 
   pub fn is_used(info: &PrefetchedExportsInfoWrapper, runtime: Option<&RuntimeSpec>) -> bool {
-    if let Some(redirect) = &info.data().redirect_to {
-      let redirected = info.redirect(*redirect, false);
+    if let Some(redirect) = info.redirect_to() {
+      let redirected = info.redirect(redirect, false);
       if Self::is_used(&redirected, runtime) {
         return true;
       }
@@ -818,7 +669,7 @@ impl ExportsInfoGetter {
       }
     }
     if let Some(redirect) = info.redirect_to() {
-      let redirected = info.redirect(*redirect, false);
+      let redirected = info.redirect(redirect, false);
       let provided_exports = Self::get_provided_exports(&redirected);
       let inner = match provided_exports {
         ProvidedExports::Unknown => return ProvidedExports::Unknown,
@@ -902,7 +753,8 @@ impl ExportsInfoGetter {
         if let Some(exports_info) = &export_info.exports_info()
           && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
         {
-          let nested_exports_info = info.redirect(*exports_info, true);
+          let nested_exports_info: PrefetchedExportsInfoWrapper<'_> =
+            info.redirect(*exports_info, true);
           let nested = Self::get_used_name(
             GetUsedNameParam::WithNames(&nested_exports_info),
             runtime,
@@ -928,8 +780,8 @@ impl ExportsInfoGetter {
     // only expand capacity when this has redirect_to
     let mut key = UsageKey(Vec::with_capacity(info.exports().count() + 2));
 
-    if let Some(redirect_to) = &info.data().redirect_to {
-      let redirected = info.redirect(*redirect_to, false);
+    if let Some(redirect_to) = info.redirect_to() {
+      let redirected = info.redirect(redirect_to, false);
       key.add(Either::Left(Box::new(Self::get_usage_key(
         &redirected,
         runtime,

@@ -1102,8 +1102,8 @@ impl Module for ConcatenatedModule {
       .expect("should have box module");
     let strict_esm_module = root_module.build_meta().strict_esm_module;
 
-    let exports_info = module_graph
-      .get_prefetched_exports_info(&root_module_id, PrefetchExportsInfoMode::AllExports);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&root_module_id, PrefetchExportsInfoMode::Default);
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for (_, export_info) in exports_info.exports() {
@@ -1310,7 +1310,7 @@ impl Module for ConcatenatedModule {
 
         let mut ns_obj = Vec::new();
         let exports_info = module_graph
-          .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::AllExports);
+          .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::Default);
         for (_, export_info) in exports_info.exports() {
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             continue;
@@ -2378,10 +2378,8 @@ impl ConcatenatedModule {
       }
     }
 
-    let exports_info = mg.get_prefetched_exports_info(
-      &info.id(),
-      PrefetchExportsInfoMode::NamedNestedExports(&export_name),
-    );
+    let exports_info =
+      mg.get_prefetched_exports_info(&info.id(), PrefetchExportsInfoMode::Nested(&export_name));
     // webpack use `get_exports_info` here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase, so we use `get_export_info_without_mut_module_graph` instead.`
     let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);

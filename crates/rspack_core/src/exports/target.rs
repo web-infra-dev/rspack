@@ -62,13 +62,9 @@ pub fn get_terminal_binding(
   let Some(export) = target.export else {
     return Some(TerminalBinding::ExportsInfo(exports_info));
   };
-  ExportsInfoGetter::prefetch(
-    &exports_info,
-    mg,
-    PrefetchExportsInfoMode::NamedNestedExports(&export),
-  )
-  .get_read_only_export_info_recursive(&export)
-  .map(|data| TerminalBinding::ExportInfo(data.id()))
+  ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Nested(&export))
+    .get_read_only_export_info_recursive(&export)
+    .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
 
 pub(crate) fn find_target_from_export_info(
@@ -98,10 +94,8 @@ pub(crate) fn find_target_from_export_info(
       return FindTargetResult::ValidTarget(target);
     }
     let name = &target.export.as_ref().expect("should have export")[0];
-    let exports_info = mg.get_prefetched_exports_info(
-      &target.module,
-      PrefetchExportsInfoMode::NamedExports(HashSet::from_iter([name])),
-    );
+    let exports_info =
+      mg.get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
     let export_info_hash_key = export_info.as_hash_key();
     if visited.contains(&export_info_hash_key) {
@@ -266,10 +260,8 @@ fn resolve_target(
         return Some(ResolvedExportInfoTargetWithCircular::Target(target));
       };
 
-      let exports_info = mg.get_prefetched_exports_info(
-        &target.module,
-        PrefetchExportsInfoMode::NamedExports(HashSet::from_iter([name])),
-      );
+      let exports_info =
+        mg.get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
       let maybe_export_info = exports_info.get_export_info_without_mut_module_graph(name);
       let maybe_export_info_hash_key = maybe_export_info.as_hash_key();
       if already_visited.contains(&maybe_export_info_hash_key) {

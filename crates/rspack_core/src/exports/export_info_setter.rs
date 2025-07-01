@@ -220,7 +220,7 @@ impl ExportInfoData {
     }
 
     self.set_exports_info_owned(true);
-    let new_exports_info = ExportsInfoData::new();
+    let new_exports_info = ExportsInfoData::default();
     let new_exports_info_id = new_exports_info.id();
 
     self.set_exports_info_owned(true);

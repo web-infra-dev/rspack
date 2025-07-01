@@ -14,7 +14,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
-use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{
   common::{comments, comments::Comments, Span, Spanned, SyntaxContext, GLOBALS},
@@ -858,10 +857,8 @@ fn can_optimize_connection(
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &original_module,
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name])),
-    );
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
     let target = export_info.can_move_target(
@@ -906,7 +903,7 @@ fn can_optimize_connection(
   {
     let exports_info = module_graph.get_prefetched_exports_info(
       connection.module_identifier(),
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&ids[0]])),
+      PrefetchExportsInfoMode::Default,
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 

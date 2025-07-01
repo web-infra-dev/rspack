@@ -8,7 +8,6 @@ use rspack_core::{
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
 };
 use rspack_util::ext::DynHash;
-use rustc_hash::FxHashSet;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -41,11 +40,8 @@ impl PureExpressionDependency {
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
         let module_graph = compilation.get_module_graph();
-        let names = set.iter().collect::<FxHashSet<_>>();
-        let exports_info = module_graph.get_prefetched_exports_info(
-          &self.module_identifier,
-          PrefetchExportsInfoMode::NamedExports(names),
-        );
+        let exports_info = module_graph
+          .get_prefetched_exports_info(&self.module_identifier, PrefetchExportsInfoMode::Default);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
             ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(id), cur_runtime)

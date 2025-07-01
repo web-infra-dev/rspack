@@ -69,10 +69,8 @@ impl CommonJsExportRequireDependency {
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
     let ids = self.get_ids(mg);
-    let mut imported_exports_info = Some(mg.get_prefetched_exports_info(
-      imported_module,
-      PrefetchExportsInfoMode::NamedNestedAllExports(ids),
-    ));
+    let mut imported_exports_info =
+      Some(mg.get_prefetched_exports_info(imported_module, PrefetchExportsInfoMode::Nested(ids)));
 
     if !ids.is_empty() {
       let Some(nested_exports_info) = &imported_exports_info else {
@@ -83,14 +81,14 @@ impl CommonJsExportRequireDependency {
         .map(|data| data.id());
 
       imported_exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
+        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
     }
 
     let mut exports_info = Some(
       mg.get_prefetched_exports_info(
         mg.get_parent_module(&self.id)
           .expect("Should get parent module"),
-        PrefetchExportsInfoMode::NamedNestedAllExports(&self.names),
+        PrefetchExportsInfoMode::Nested(&self.names),
       ),
     );
 
@@ -102,7 +100,7 @@ impl CommonJsExportRequireDependency {
         .get_nested_exports_info(Some(&self.names))
         .map(|data| data.id());
       exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
+        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
     };
 
     let no_extra_exports = imported_exports_info.as_ref().is_some_and(|data| {
@@ -313,7 +311,7 @@ impl Dependency for CommonJsExportRequireDependency {
     let mut exports_info = mg.get_prefetched_exports_info(
       mg.get_parent_module(&self.id)
         .expect("Can not get parent module"),
-      PrefetchExportsInfoMode::NamedNestedAllExports(&self.names),
+      PrefetchExportsInfoMode::Nested(&self.names),
     );
 
     for name in &self.names {
@@ -466,7 +464,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     } else {
       let exports_info = mg.get_prefetched_exports_info(
         &module.identifier(),
-        PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+        PrefetchExportsInfoMode::Nested(&dep.names),
       );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&exports_info),
@@ -494,9 +492,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &imported_module.identifier(),
           if ids.is_empty() {
-            PrefetchExportsInfoMode::AllExports
+            PrefetchExportsInfoMode::Default
           } else {
-            PrefetchExportsInfoMode::NamedNestedExports(ids)
+            PrefetchExportsInfoMode::Nested(ids)
           },
         )),
         *runtime,

@@ -105,7 +105,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::AllExports);
+          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::Default);
         let export_list = {
           if !can_mangle(&exports_info_data) {
             return None;

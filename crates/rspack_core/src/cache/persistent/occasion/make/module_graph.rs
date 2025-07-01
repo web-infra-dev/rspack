@@ -159,7 +159,7 @@ pub async fn recovery_module_graph(
         mg.add_block(Box::new(block));
       }
       // recovery exports/export info
-      let exports_info = ExportsInfoData::new();
+      let exports_info = ExportsInfoData::default();
       mgm.exports = exports_info.id();
       mg.set_exports_info(exports_info.id(), exports_info);
 

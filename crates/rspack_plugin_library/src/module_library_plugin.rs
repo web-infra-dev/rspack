@@ -76,7 +76,7 @@ async fn render_startup(
     ));
   }
   let exports_info =
-    module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::AllExports);
+    module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
   let boxed_module = module_graph
     .module_by_identifier(module)
     .expect("should have build meta");

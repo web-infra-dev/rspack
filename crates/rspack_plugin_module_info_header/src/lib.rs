@@ -98,11 +98,8 @@ fn print_exports_info_to_source<F>(
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
     if let Some(exports_info) = &export_info.exports_info() {
-      let exports_info = ExportsInfoGetter::prefetch(
-        exports_info,
-        module_graph,
-        PrefetchExportsInfoMode::AllExports,
-      );
+      let exports_info =
+        ExportsInfoGetter::prefetch(exports_info, module_graph, PrefetchExportsInfoMode::Default);
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
@@ -245,7 +242,7 @@ async fn render_js_module_package(
     let module_graph = compilation.get_module_graph();
 
     let exports_info = module_graph
-      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {
       let request_shortener = |id: &ModuleIdentifier| {

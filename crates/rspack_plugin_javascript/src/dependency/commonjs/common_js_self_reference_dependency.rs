@@ -158,7 +158,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       } else {
         let exports_info = module_graph.get_prefetched_exports_info(
           &module.identifier(),
-          PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+          PrefetchExportsInfoMode::Nested(&dep.names),
         );
         ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),

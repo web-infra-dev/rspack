@@ -852,7 +852,7 @@ impl ModuleConcatenationPlugin {
         }
 
         let exports_info =
-          module_graph.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::AllExports);
+          module_graph.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
           .iter()
@@ -991,7 +991,7 @@ impl ModuleConcatenationPlugin {
         let exports_info_data = ExportsInfoGetter::prefetch(
           &exports_info,
           &module_graph,
-          PrefetchExportsInfoMode::AllExports,
+          PrefetchExportsInfoMode::Default,
         );
         let provided_names = matches!(
           exports_info_data.get_provided_exports(),
@@ -1064,7 +1064,7 @@ impl ModuleConcatenationPlugin {
       let exports_info_data = ExportsInfoGetter::prefetch(
         &exports_info,
         &module_graph,
-        PrefetchExportsInfoMode::AllExports,
+        PrefetchExportsInfoMode::Default,
       );
       let filtered_runtime = filter_runtime(Some(runtime), |r| {
         ExportsInfoGetter::is_module_used(&exports_info_data, r)

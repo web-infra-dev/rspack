@@ -693,15 +693,8 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
-  let exports_names = exports
-    .iter()
-    .map(|(name, _)| Atom::from(name.as_str()))
-    .collect::<Vec<_>>();
-
-  let exports_info = mg.get_prefetched_exports_info_optional(
-    &identifier,
-    PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter(exports_names.iter())),
-  );
+  let exports_info =
+    mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
 
   exports
     .iter()
@@ -736,10 +729,8 @@ fn get_unused_local_ident(
     .iter()
     .map(|(name, _)| Atom::from(name.as_str()))
     .collect::<Vec<_>>();
-  let exports_info = mg.get_prefetched_exports_info_optional(
-    &identifier,
-    PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter(exports_names.iter())),
-  );
+  let exports_info =
+    mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports_names

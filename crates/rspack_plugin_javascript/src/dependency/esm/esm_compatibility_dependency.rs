@@ -4,7 +4,6 @@ use rspack_core::{
   InitFragmentStage, ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource, UsageState,
 };
-use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 // Mark module `__esModule`.
@@ -54,10 +53,8 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     let name = Atom::from("__esModule");
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &module.identifier(),
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&name])),
-    );
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let used = exports_info
       .get_read_only_export_info(&name)
       .get_used(*runtime);

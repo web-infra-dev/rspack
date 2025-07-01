@@ -275,9 +275,9 @@ impl<'a> FlagDependencyExportsState<'a> {
             .expect("should have exports_info when exports_info is true")
         } else {
           let old_exports_info = export_info_data.exports_info();
-          let new_exports_info = ExportsInfoData::new();
+          let new_exports_info = ExportsInfoData::default();
           let new_exports_info_id = new_exports_info.id();
-          export_info_data.set_exports_info(Some(new_exports_info_id.clone()));
+          export_info_data.set_exports_info(Some(new_exports_info_id));
           export_info_data.set_exports_info_owned(true);
           self
             .mg
@@ -334,7 +334,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         let target_module_exports_info = self.mg.get_prefetched_exports_info(
           &target.module,
           if let Some(names) = &target.export {
-            PrefetchExportsInfoMode::NamedNestedExports(names)
+            PrefetchExportsInfoMode::Nested(names)
           } else {
             PrefetchExportsInfoMode::Default
           },

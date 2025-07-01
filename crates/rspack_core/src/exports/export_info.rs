@@ -182,7 +182,7 @@ impl ExportInfoData {
 
   pub fn id(&self) -> ExportInfo {
     ExportInfo {
-      exports_info: self.belongs_to.clone(),
+      exports_info: self.belongs_to,
       export_name: if let Some(name) = &self.name {
         if name == "*side effects only*" {
           ExportName::SideEffects

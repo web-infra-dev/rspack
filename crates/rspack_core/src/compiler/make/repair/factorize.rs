@@ -115,7 +115,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       create_data.context_dependencies,
       create_data.missing_dependencies,
     );
-    let exports_info = ExportsInfoData::new();
+    let exports_info = ExportsInfoData::default();
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,

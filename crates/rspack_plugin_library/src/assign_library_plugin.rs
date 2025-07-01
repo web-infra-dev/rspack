@@ -265,7 +265,7 @@ async fn render_startup(
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
     let exports_info =
-      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::AllExports);
+      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
     let mut provided = vec![];
     for (_, export_info) in exports_info.exports() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {

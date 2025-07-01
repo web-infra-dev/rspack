@@ -304,28 +304,26 @@ pub struct ExportsInfoData {
   id: ExportsInfo,
 }
 
-impl ExportsInfoData {
-  pub fn new() -> Self {
+impl Default for ExportsInfoData {
+  fn default() -> Self {
     let id = ExportsInfo::new();
     Self {
       exports: BTreeMap::default(),
-      other_exports_info: ExportInfoData::new(id.clone(), None, None),
-      side_effects_only_info: ExportInfoData::new(
-        id.clone(),
-        Some("*side effects only*".into()),
-        None,
-      ),
+      other_exports_info: ExportInfoData::new(id, None, None),
+      side_effects_only_info: ExportInfoData::new(id, Some("*side effects only*".into()), None),
       redirect_to: None,
       id,
     }
   }
+}
 
+impl ExportsInfoData {
   pub fn id(&self) -> ExportsInfo {
     self.id
   }
 
   pub fn redirect_to(&self) -> Option<ExportsInfo> {
-    self.redirect_to.clone()
+    self.redirect_to
   }
 
   pub fn other_exports_info(&self) -> &ExportInfoData {

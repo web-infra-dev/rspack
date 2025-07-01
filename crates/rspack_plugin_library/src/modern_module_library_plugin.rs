@@ -173,7 +173,7 @@ async fn render_startup(
     .map(|d: &CodeGenerationExportsFinalNames| d.inner())
   {
     let exports_info =
-      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::AllExports);
+      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
     for (_, export_info) in exports_info.exports() {
       let info_name = export_info.name().expect("should have name");
       let used_name = export_info

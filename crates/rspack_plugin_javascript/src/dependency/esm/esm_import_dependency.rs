@@ -18,7 +18,6 @@ use rspack_error::{
   miette::{MietteDiagnostic, Severity},
   Diagnostic, DiagnosticExt, TraceableError,
 };
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -299,7 +298,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     let imported_module_identifier = imported_module.identifier();
     let exports_info = module_graph.get_prefetched_exports_info(
       &imported_module_identifier,
-      PrefetchExportsInfoMode::NamedNestedExports(ids),
+      PrefetchExportsInfoMode::Nested(ids),
     );
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
@@ -330,7 +329,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           ExportsInfoGetter::is_export_provided(
             &module_graph.get_prefetched_exports_info(
               parent_module_identifier,
-              PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name]))
+              PrefetchExportsInfoMode::Default
             ),
             std::slice::from_ref(name)
           ),
@@ -355,7 +354,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       let mut pos = 0;
       let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
         &imported_module_identifier,
-        PrefetchExportsInfoMode::NamedNestedAllExports(ids),
+        PrefetchExportsInfoMode::Nested(ids),
       ));
       while pos < ids.len()
         && let Some(exports_info) = &maybe_exports_info

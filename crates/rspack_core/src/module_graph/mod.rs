@@ -1107,11 +1107,8 @@ impl<'a> ModuleGraph<'a> {
     names: &[Atom],
   ) -> Option<ExportProvided> {
     self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info = ExportsInfoGetter::prefetch(
-        &mgm.exports,
-        self,
-        PrefetchExportsInfoMode::NamedNestedExports(names),
-      );
+      let exports_info =
+        ExportsInfoGetter::prefetch(&mgm.exports, self, PrefetchExportsInfoMode::Nested(names));
       ExportsInfoGetter::is_export_provided(&exports_info, names)
     })
   }

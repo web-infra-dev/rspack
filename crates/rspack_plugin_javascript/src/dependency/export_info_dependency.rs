@@ -54,7 +54,7 @@ impl ExportInfoDependency {
 
     if export_name.is_empty() && prop == "usedExports" {
       let exports_info = module_graph
-        .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::AllExports);
+        .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
       let used_exports = exports_info.get_used_exports(*runtime);
       return Some(match used_exports {
         UsedExports::Unknown => "null".to_owned(),
@@ -74,7 +74,7 @@ impl ExportInfoDependency {
 
     let exports_info = module_graph.get_prefetched_exports_info(
       &module_identifier,
-      PrefetchExportsInfoMode::NamedNestedExports(export_name),
+      PrefetchExportsInfoMode::Nested(export_name),
     );
 
     match prop.to_string().as_str() {
