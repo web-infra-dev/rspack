@@ -50,6 +50,10 @@ export default defineConfig({
 	},
 	plugins: [pluginNodePolyfill()],
 	source: {
-		tsconfigPath: "./tsconfig.browser.json"
+		tsconfigPath: "./tsconfig.browser.json",
+		define: {
+			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
+			RSPACK_VERSION: JSON.stringify(require("./package.json").version)
+		}
 	}
 });

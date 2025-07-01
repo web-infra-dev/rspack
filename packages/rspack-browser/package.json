@@ -1,6 +1,7 @@
 {
   "name": "@rspack/browser",
   "version": "1.4.1",
+  "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "type": "module",
