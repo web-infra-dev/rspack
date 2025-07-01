@@ -8,9 +8,9 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, ModuleType, NormalInitFragment, PathInfo,
-  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  UsedName,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, ModuleType,
+  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -410,10 +410,10 @@ pub fn import_statement(
       let dep_type = dep.dependency_type();
       // Include ESM imports and CommonJS requires but exclude __webpack_require__ calls themselves
       let is_relevant_import = matches!(
-        dep_type.as_str(), 
+        dep_type.as_str(),
         "esm import" | "esm import specifier" | "cjs require"
       ) && import_var != "__webpack_require__";
-      
+
       // Only apply PURE annotation if this is a relevant import AND descends from ConsumeShared
       if is_relevant_import {
         // Check if the current module or any ancestor is ConsumeShared
@@ -765,7 +765,7 @@ fn is_consume_shared_descendant_recursive(
         if origin_module.module_type() == &ModuleType::ConsumeShared {
           return true;
         }
-        
+
         // Recursively check this module's incoming connections
         if is_consume_shared_descendant_recursive(
           module_graph,

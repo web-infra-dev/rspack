@@ -3,32 +3,32 @@ console.log("Hello Rspack with Module Federation");
 // Import existing modules
 import "./lib";
 import {
-	namedExport,
-	functionExport,
 	cjsExport,
-	moduleExport,
 	definedExport,
+	functionExport,
+	moduleExport,
+	namedExport,
 	default as testExportsDefault
 } from "./test-exports";
 
+import { VERSION, filter, map, uniq } from "lodash-es";
 // Import external shared dependencies
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { VERSION, map, filter, uniq } from "lodash-es";
 
+import { createApiClient } from "./shared/api.js";
+import { Button } from "./shared/components.js";
 // Eager shared imports - loaded immediately and shared across federated modules
 // Only import specific exports to enable better tree-shaking analysis
-import { formatDate, capitalize } from "./shared/utils.js";
-import { Button } from "./shared/components.js";
-import { createApiClient } from "./shared/api.js";
+import { capitalize, formatDate } from "./shared/utils.js";
 
+import { createApiClient as dynamicCreateApiClient } from "./shared/api.js";
+import { Button as DynamicButton, Modal } from "./shared/components.js";
 // Static imports for previously dynamic modules
 import {
-	formatDate as dynamicFormatDate,
-	capitalize as dynamicCapitalize
+	capitalize as dynamicCapitalize,
+	formatDate as dynamicFormatDate
 } from "./shared/utils.js";
-import { Button as DynamicButton, Modal } from "./shared/components.js";
-import { createApiClient as dynamicCreateApiClient } from "./shared/api.js";
 
 // CJS Test Package Usage Examples - Different import patterns for testing Module Federation
 // Pattern 1: Direct require from alias
