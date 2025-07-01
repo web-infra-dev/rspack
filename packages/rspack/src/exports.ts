@@ -231,7 +231,7 @@ export const optimize: Optimize = {
 	SplitChunksPlugin
 };
 
-import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
+// import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
 
@@ -242,32 +242,32 @@ export type { ModuleFederationPluginV1Options } from "./container/ModuleFederati
 import { ContainerPlugin } from "./container/ContainerPlugin";
 import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 
-export type {
-	ContainerPluginOptions,
-	Exposes,
-	ExposesConfig,
-	ExposesItem,
-	ExposesItems,
-	ExposesObject
-} from "./container/ContainerPlugin";
-export type {
-	ContainerReferencePluginOptions,
-	Remotes,
-	RemotesConfig,
-	RemotesItem,
-	RemotesItems,
-	RemotesObject
-} from "./container/ContainerReferencePlugin";
-export const container = {
-	ContainerPlugin,
-	ContainerReferencePlugin,
-	ModuleFederationPlugin,
-	ModuleFederationPluginV1
-};
+// export type {
+// 	ContainerPluginOptions,
+// 	Exposes,
+// 	ExposesConfig,
+// 	ExposesItem,
+// 	ExposesItems,
+// 	ExposesObject
+// } from "./container/ContainerPlugin";
+// export type {
+// 	ContainerReferencePluginOptions,
+// 	Remotes,
+// 	RemotesConfig,
+// 	RemotesItem,
+// 	RemotesItems,
+// 	RemotesObject
+// } from "./container/ContainerReferencePlugin";
+// export const container = {
+// 	ContainerPlugin,
+// 	ContainerReferencePlugin,
+// 	ModuleFederationPlugin,
+// 	ModuleFederationPluginV1
+// };
 
-import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
-import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
-import { SharePlugin } from "./sharing/SharePlugin";
+// import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
+// import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
+// import { SharePlugin } from "./sharing/SharePlugin";
 
 export type {
 	ConsumeSharedPluginOptions,
