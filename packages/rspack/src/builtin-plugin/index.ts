@@ -43,6 +43,7 @@ export * from "./LimitChunkCountPlugin";
 export * from "./MangleExportsPlugin";
 export * from "./MergeDuplicateChunksPlugin";
 export * from "./ModuleChunkFormatPlugin";
+export * from "./EsmLibraryPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./NamedChunkIdsPlugin";
 export * from "./NamedModuleIdsPlugin";

@@ -540,7 +540,13 @@ async fn render_manifest(
     .old_cache
     .chunk_render_occasion
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
-      let source = if is_hot_update {
+      let source = if let Some(source) = JsPlugin::get_compilation_hooks(compilation.id())
+        .render_chunk_content
+        .call(compilation, chunk_ukey, &mut asset_info)
+        .await?
+      {
+        source.source
+      } else if is_hot_update {
         self
           .render_chunk(compilation, chunk_ukey, &output_path)
           .await?
