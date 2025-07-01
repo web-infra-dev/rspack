@@ -7,8 +7,18 @@ const CORE_VERSION = RSPACK_VERSION;
  * `@rspack/core`, Binding version
  */
 export const checkVersion = () => {
+	if (IS_BROWSER) {
+		// The Wasm binding and the core js runtime are bundled together in `@rspack/browser`,
+		// So the checkVersion is not needed.
+		return;
+	}
+
 	if (CORE_VERSION === binding.EXPECTED_RSPACK_CORE_VERSION) {
 		return null;
+	}
+
+	if (result !== undefined) {
+		return result;
 	}
 
 	// In canary version, version bump is done after binding is built.
