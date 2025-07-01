@@ -14,7 +14,7 @@
     "binding.d.ts"
   ],
   "scripts": {
-    "build:dev": "node scripts/build.js -- --timings",
+    "build:dev": "node scripts/build.js",
     "build:debug": "node scripts/build.js --profile release-debug",
     "build:ci": "node scripts/build.js --profile ci",
     "build:profiling": "node scripts/build.js --profile profiling",
