@@ -51,6 +51,7 @@
     "browserslist-load-config": "^1.0.0",
     "enhanced-resolve": "5.18.2",
     "graceful-fs": "^4.2.11",
+    "memfs": "^4.17.2",
     "prebundle": "^1.3.4",
     "tinypool": "^1.1.1",
     "tsx": "^4.20.3",
