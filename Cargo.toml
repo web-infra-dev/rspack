@@ -242,7 +242,7 @@ strip     = true
 [profile.codspeed]
 debug    = "full"
 inherits = "release"
-lto      = "off"
+lto      = "thin"
 strip    = "none"
 
 [profile.release.package]
