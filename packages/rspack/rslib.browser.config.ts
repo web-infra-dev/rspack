@@ -11,6 +11,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@rspack/binding": browserEntry,
+			"graceful-fs": "node:fs",
 			"./moduleFederationDefaultRuntime.js": fallbackNodeShims,
 			"./service": fallbackNodeShims,
 			worker_threads: fallbackNodeShims,

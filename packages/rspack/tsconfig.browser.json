@@ -1,6 +1,16 @@
 {
-  "extends": "./tsconfig.build.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../rspack-browser/dist"
+    "outDir": "../rspack-browser/dist",
+    "rootDir": "src",
+    "resolveJsonModule": true,
+    "emitDeclarationOnly": true,
+    "sourceMap": false,
+    "declarationMap": false
+  },
+  "include": ["src", "src/**/*.json"],
+  "exclude": ["src/config/schema.check.js", "src/container/default.runtime.js"],
+  "ts-node": {
+    "transpileOnly": true
   }
 }
