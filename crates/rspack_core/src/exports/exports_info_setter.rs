@@ -1,4 +1,4 @@
-use crate::{ExportsInfo, ExportsInfoData};
+use crate::{ExportsInfo, ExportsInfoData, RuntimeSpec, UsageState};
 
 impl ExportsInfoData {
   pub fn set_redirect_name_to(&mut self, id: Option<ExportsInfo>) -> bool {
@@ -7,5 +7,13 @@ impl ExportsInfoData {
     }
     self.set_redirect_to(id);
     true
+  }
+
+  pub fn set_used_for_side_effects_only(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
+    self.side_effects_only_info_mut().set_used_conditionally(
+      Box::new(|value| value == &UsageState::Unused),
+      UsageState::Used,
+      runtime,
+    )
   }
 }

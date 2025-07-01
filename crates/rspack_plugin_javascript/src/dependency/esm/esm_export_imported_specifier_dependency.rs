@@ -322,17 +322,24 @@ impl ESMExportImportedSpecifierDependency {
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
     let exports_info = exports_info
+      .map(|exports_info_id| {
+        ExportsInfoGetter::prefetch(
+          &exports_info_id,
+          module_graph,
+          PrefetchExportsInfoMode::Default,
+        )
+      })
       .unwrap_or_else(|| {
         // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
-        let parent_module = module_graph
-          .get_parent_module(&self.id)
-          .expect("should have parent module");
-        module_graph.get_exports_info(parent_module)
-      })
-      .as_data(module_graph);
+        module_graph.get_prefetched_exports_info(
+          module_graph
+            .get_parent_module(&self.id)
+            .expect("should have parent module"),
+          PrefetchExportsInfoMode::Default,
+        )
+      });
     let imported_exports_info = module_graph
-      .get_exports_info(imported_module_identifier)
-      .as_data(module_graph);
+      .get_prefetched_exports_info(imported_module_identifier, PrefetchExportsInfoMode::Default);
 
     let no_extra_exports = matches!(
       imported_exports_info.other_exports_info().provided(),
@@ -376,7 +383,7 @@ impl ESMExportImportedSpecifierDependency {
     };
 
     if no_extra_imports {
-      for export_info in exports_info.exports().values() {
+      for (_name, export_info) in exports_info.exports() {
         let export_name = export_info.name().cloned().unwrap_or_default();
         if ignored_exports.contains(&export_name)
           || matches!(export_info.get_used(runtime), UsageState::Unused)
@@ -384,12 +391,9 @@ impl ESMExportImportedSpecifierDependency {
           continue;
         }
 
-        let imported_export_info = imported_exports_info
-          .id()
-          .get_read_only_export_info(module_graph, &export_name);
-        let imported_export_info_data = imported_export_info.as_data(module_graph);
+        let imported_export_info = imported_exports_info.get_read_only_export_info(&export_name);
         if matches!(
-          imported_export_info_data.provided(),
+          imported_export_info.provided(),
           Some(ExportProvided::NotProvided)
         ) {
           continue;
@@ -406,7 +410,7 @@ impl ESMExportImportedSpecifierDependency {
 
         exports.insert(export_name.clone());
         if matches!(
-          imported_export_info_data.provided(),
+          imported_export_info.provided(),
           Some(ExportProvided::Provided)
         ) {
           continue;
@@ -414,7 +418,7 @@ impl ESMExportImportedSpecifierDependency {
         checked.insert(export_name);
       }
     } else if no_extra_exports {
-      for imported_export_info in imported_exports_info.exports().values() {
+      for (_name, imported_export_info) in imported_exports_info.exports() {
         let imported_export_info_name = imported_export_info.name().cloned().unwrap_or_default();
         if ignored_exports.contains(&imported_export_info_name)
           || matches!(
@@ -424,13 +428,8 @@ impl ESMExportImportedSpecifierDependency {
         {
           continue;
         }
-        let export_info = exports_info
-          .id()
-          .get_read_only_export_info(module_graph, &imported_export_info_name);
-        if matches!(
-          export_info.as_data(module_graph).get_used(runtime),
-          UsageState::Unused
-        ) {
+        let export_info = exports_info.get_read_only_export_info(&imported_export_info_name);
+        if matches!(export_info.get_used(runtime), UsageState::Unused) {
           continue;
         }
         if let Some(hidden) = hidden.as_mut()
@@ -974,10 +973,13 @@ impl ESMExportImportedSpecifierDependency {
           ..potential_conflicts.dependency_indices[potential_conflicts.dependency_index]],
       );
       let imported_module = module_graph.get_module_by_dependency_id(&self.id)?;
-      let exports_info = module_graph.get_exports_info(&imported_module.identifier());
+      let exports_info = module_graph.get_prefetched_exports_info(
+        &imported_module.identifier(),
+        PrefetchExportsInfoMode::Default,
+      );
       let mut conflicts: IndexMap<&str, Vec<&Atom>, BuildHasherDefault<FxHasher>> =
         IndexMap::default();
-      for export_info in exports_info.as_data(module_graph).exports().values() {
+      for (_name, export_info) in exports_info.exports() {
         if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
           continue;
         }
@@ -1023,11 +1025,11 @@ impl ESMExportImportedSpecifierDependency {
         if conflicting_module.identifier() == imported_module.identifier() {
           continue;
         }
-        let Some(conflicting_export_info) = module_graph
-          .get_exports_info(&conflicting_module.identifier())
-          .as_data(module_graph)
-          .named_exports(name)
-        else {
+        let exports_info = module_graph.get_prefetched_exports_info(
+          &conflicting_module.identifier(),
+          PrefetchExportsInfoMode::Default,
+        );
+        let Some(conflicting_export_info) = exports_info.data().named_exports(name) else {
           continue;
         };
         let Some(conflicting_target) = get_terminal_binding(conflicting_export_info, module_graph)
@@ -1455,9 +1457,8 @@ fn determine_export_assignments(
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
       let exports_info = module_graph
-        .get_exports_info(module_identifier)
-        .as_data(module_graph);
-      for export_info in exports_info.exports().values() {
+        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+      for (_name, export_info) in exports_info.exports() {
         // SAFETY: This is safe because a real export can't export empty string
         let export_info_name = export_info.name().expect("export name is empty");
         if matches!(export_info.provided(), Some(ExportProvided::Provided))

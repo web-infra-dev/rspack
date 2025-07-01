@@ -148,17 +148,6 @@ impl ExportsInfo {
     changed
   }
 
-  pub fn get_read_only_export_info(&self, mg: &ModuleGraph, name: &Atom) -> ExportInfo {
-    let exports_info = self.as_data(mg);
-    if let Some(export_info) = exports_info.named_exports(name) {
-      return export_info.id();
-    }
-    if let Some(redirect_to) = exports_info.redirect_to() {
-      return redirect_to.get_read_only_export_info(mg, name);
-    }
-    exports_info.other_exports_info().id()
-  }
-
   pub fn get_export_info(&self, mg: &mut ModuleGraph, name: &Atom) -> ExportInfo {
     let exports_info = self.as_data_mut(mg);
     if let Some(export_info) = exports_info.named_exports(name) {
