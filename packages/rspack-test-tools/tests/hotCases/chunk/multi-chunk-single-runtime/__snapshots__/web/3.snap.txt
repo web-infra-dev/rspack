@@ -30,7 +30,7 @@
 ### a.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./file.js
+
 
 #### Changed Runtime Modules
 
@@ -56,7 +56,7 @@ module.exports = 4;
 ### b.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./file.js
+
 
 #### Changed Runtime Modules
 
@@ -82,7 +82,7 @@ module.exports = 4;
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./file.js
+
 
 #### Changed Runtime Modules
 
