@@ -60,7 +60,7 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasWebpackRequire": true,
     "macroCount": 0,
     "preview": "(() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js":",
-    "size": 1247313,
+    "size": 1247425,
   },
   "remoteEntry.js": {
     "hasMacroComments": false,
@@ -68,7 +68,7 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasWebpackRequire": true,
     "macroCount": 0,
     "preview": "var basic_example; (() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/d",
-    "size": 273486,
+    "size": 273502,
   },
   "shared_api_js.js": {
     "hasMacroComments": true,
