@@ -136,10 +136,14 @@ impl FixIssuers {
       let child_mid = module_graph
         .module_identifier_by_dependency_id(child_dep_id)
         .expect("should module exist");
-      let child_module_issuer = module_graph
-        .module_graph_module_by_identifier(child_mid)
-        .expect("should have module graph module")
-        .issuer();
+      let Some(child_mgm) = module_graph.module_graph_module_by_identifier(child_mid) else {
+        // peresistent cache recovery module graph will lose some module and mgm.
+        // TODO replace to .expect() after all modules are cacheable.
+        self.need_check_modules.insert(*child_mid);
+        continue;
+      };
+
+      let child_module_issuer = child_mgm.issuer();
       if let ModuleIssuer::Some(i) = child_module_issuer
         && i == module_identifier
       {
@@ -222,35 +226,46 @@ impl FixIssuers {
     let mut revoke_module = IdentifierSet::default();
     let mut need_check_available_modules = IdentifierMap::default();
     loop {
-      let Some((mid, parents)) = queue.pop_front() else {
+      let Some((mid, mut parents)) = queue.pop_front() else {
         break;
       };
+
+      // remove revoke_module from parents
+      parents.retain(|item| {
+        let Some(parent_mid) = item else {
+          return true;
+        };
+        !revoke_module.contains(parent_mid)
+      });
       let Some(first_parent) = parents.first() else {
         // no first parent, isolated module.
         // revoke current module and add child module whose issuer is current module to queue.
+        let mut child_modules = IdentifierMap::default();
         for child_con in module_graph.get_outgoing_connections(&mid) {
+          let child_mid = child_con.module_identifier();
+          if child_modules.contains_key(child_mid) {
+            continue;
+          }
+
           let child_mgm = module_graph
-            .module_graph_module_by_identifier(child_con.module_identifier())
+            .module_graph_module_by_identifier(child_mid)
             .expect("should mgm exist");
           if matches!(child_mgm.issuer(), ModuleIssuer::Some(x) if x == &mid) {
             let child_module_parents = child_mgm
               .incoming_connections()
               .iter()
-              .filter_map(|dep_id| {
+              .map(|dep_id| {
                 let conn = module_graph
                   .connection_by_dependency_id(dep_id)
                   .expect("should have connection");
-                // mid will be revoked, filter those parents
-                if conn.original_module_identifier != Some(mid) {
-                  Some(conn.original_module_identifier)
-                } else {
-                  None
-                }
+                conn.original_module_identifier
               })
               .collect();
-            queue.push_back((child_mgm.module_identifier, child_module_parents));
+            child_modules.insert(*child_mid, child_module_parents);
           }
         }
+        // add child modules to queue
+        queue.extend(child_modules);
         revoke_module.insert(mid);
         continue;
       };
@@ -263,6 +278,21 @@ impl FixIssuers {
       });
       need_check_available_modules.insert(mid, parents);
     }
+
+    // make sure return value does not contain any module in revoke_module.
+    need_check_available_modules.retain(|k, v| {
+      if revoke_module.contains(k) {
+        return false;
+      }
+
+      v.retain(|mid| {
+        let Some(mid) = mid else {
+          return true;
+        };
+        !revoke_module.contains(mid)
+      });
+      true
+    });
     for mid in revoke_module {
       artifact.revoke_module(&mid);
     }

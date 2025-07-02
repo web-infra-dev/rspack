@@ -5,16 +5,15 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, ExportInfoSetter, FactoryMeta, Logger, MaybeDynamicTargetExportInfo,
-  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
-  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
+  SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
-use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{
   common::{comments, comments::Comments, Span, Spanned, SyntaxContext, GLOBALS},
@@ -838,11 +837,9 @@ fn do_optimize_connection(
     target_export,
   }) = need_move_target
   {
-    ExportInfoSetter::do_move_target(
-      export_info.as_data_mut(module_graph),
-      dependency,
-      target_export,
-    );
+    export_info
+      .as_data_mut(module_graph)
+      .do_move_target(dependency, target_export);
   }
   (dependency, target_module)
 }
@@ -860,10 +857,8 @@ fn can_optimize_connection(
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &original_module,
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name])),
-    );
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
     let target = export_info.can_move_target(
@@ -908,7 +903,7 @@ fn can_optimize_connection(
   {
     let exports_info = module_graph.get_prefetched_exports_info(
       connection.module_identifier(),
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&ids[0]])),
+      PrefetchExportsInfoMode::Default,
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 

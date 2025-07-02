@@ -8,17 +8,16 @@ use rspack_core::{
   BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
+  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, TypeReexportPresenceMode,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
   Diagnostic, DiagnosticExt, TraceableError,
 };
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -299,11 +298,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     let imported_module_identifier = imported_module.identifier();
     let exports_info = module_graph.get_prefetched_exports_info(
       &imported_module_identifier,
-      PrefetchExportsInfoMode::NamedNestedExports(ids),
+      PrefetchExportsInfoMode::Nested(ids),
     );
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
-        ExportsInfoGetter::is_export_provided(&exports_info, ids),
+        exports_info.is_export_provided(ids),
         Some(ExportProvided::NotProvided)
       )
     {
@@ -327,13 +326,9 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .is_some()
         && ids.len() == 1
         && matches!(
-          ExportsInfoGetter::is_export_provided(
-            &module_graph.get_prefetched_exports_info(
-              parent_module_identifier,
-              PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name]))
-            ),
-            std::slice::from_ref(name)
-          ),
+          module_graph
+            .get_prefetched_exports_info(parent_module_identifier, PrefetchExportsInfoMode::Default)
+            .is_export_provided(std::slice::from_ref(name)),
           Some(ExportProvided::Provided)
         )
       {
@@ -355,7 +350,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       let mut pos = 0;
       let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
         &imported_module_identifier,
-        PrefetchExportsInfoMode::NamedNestedAllExports(ids),
+        PrefetchExportsInfoMode::Nested(ids),
       ));
       while pos < ids.len()
         && let Some(exports_info) = &maybe_exports_info
@@ -364,7 +359,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         pos += 1;
         let export_info = exports_info.get_read_only_export_info(id);
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-          let provided_exports = ExportsInfoGetter::get_provided_exports(exports_info);
+          let provided_exports = exports_info.get_provided_exports();
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()

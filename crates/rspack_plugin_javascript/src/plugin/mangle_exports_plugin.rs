@@ -5,8 +5,8 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
-  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfo, ExportInfoGetter, ExportProvided,
-  ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PluginContext, PrefetchExportsInfoMode,
+  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfo, ExportProvided, ExportsInfo,
+  ExportsInfoGetter, ModuleGraph, Plugin, PluginContext, PrefetchExportsInfoMode,
   PrefetchedExportsInfoWrapper, UsageState,
 };
 use rspack_error::Result;
@@ -20,12 +20,12 @@ use crate::utils::mangle_exports::{
 };
 
 fn can_mangle(exports_info: &PrefetchedExportsInfoWrapper<'_>) -> bool {
-  if ExportInfoGetter::get_used(exports_info.other_exports_info(), None) != UsageState::Unused {
+  if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
     return false;
   }
   let mut has_something_to_mangle = false;
   for (_, export_info) in exports_info.exports() {
-    if ExportInfoGetter::can_mangle(export_info) == Some(true) {
+    if export_info.can_mangle() == Some(true) {
       has_something_to_mangle = true;
     }
   }
@@ -105,7 +105,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::AllExports);
+          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::Default);
         let export_list = {
           if !can_mangle(&exports_info_data) {
             return None;
@@ -129,12 +129,12 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
           export_list
             .iter()
             .map(|export_info_data| {
-              let can_mangle = if !ExportInfoGetter::has_used_name(export_info_data) {
+              let can_mangle = if !export_info_data.has_used_name() {
                 let name = export_info_data
                   .name()
                   .expect("the name of export_info inserted in exports_info can not be `None`")
                   .clone();
-                let can_not_mangle = ExportInfoGetter::can_mangle(export_info_data) != Some(true)
+                let can_not_mangle = export_info_data.can_mangle() != Some(true)
                   || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
                   || (deterministic
                     && name.len() == 2
@@ -152,7 +152,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
               };
 
               let nested_exports_info = if export_info_data.exports_info_owned() {
-                let used = ExportInfoGetter::get_used(export_info_data, None);
+                let used = export_info_data.get_used(None);
                 if used == UsageState::OnlyPropertiesUsed || used == UsageState::Unused {
                   export_info_data.exports_info()
                 } else {
@@ -246,8 +246,8 @@ fn mangle_exports_info(
         used_names.insert(name.to_string());
       }
       Manglable::CanMangle(name) => {
-        mangleable_export_names.insert(export_info.id, name.clone());
-        mangleable_exports.push(export_info.id);
+        mangleable_export_names.insert(export_info.id.clone(), name.clone());
+        mangleable_exports.push(export_info.id.clone());
       }
       Manglable::Mangled => {}
     }
@@ -269,7 +269,7 @@ fn mangle_exports_info(
       mangleable_exports,
       |e| {
         mangleable_export_names
-          .get(&e)
+          .get(e)
           .expect("should have name")
           .to_string()
       },
@@ -286,7 +286,7 @@ fn mangle_exports_info(
         if size == used_names.len() {
           false
         } else {
-          export_info_used_name.insert(e, name);
+          export_info_used_name.insert(e.clone(), name);
           true
         }
       },
@@ -306,7 +306,7 @@ fn mangle_exports_info(
     let mut unused_exports = Vec::new();
 
     for export_info in mangleable_exports {
-      let used = ExportInfoGetter::get_used(export_info.as_data(mg), None);
+      let used = export_info.as_data(mg).get_used(None);
       if used == UsageState::Unused {
         unused_exports.push(export_info);
       } else {

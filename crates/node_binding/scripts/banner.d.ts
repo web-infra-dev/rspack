@@ -10,6 +10,8 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export type CustomPluginName = string;
+
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;

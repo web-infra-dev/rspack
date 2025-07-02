@@ -188,7 +188,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
         } else {
           let exports_info = module_graph.get_prefetched_exports_info(
             &imported_module.module_identifier,
-            PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+            PrefetchExportsInfoMode::Nested(&dep.names),
           );
           ExportsInfoGetter::get_used_name(
             GetUsedNameParam::WithNames(&exports_info),

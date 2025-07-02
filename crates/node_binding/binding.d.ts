@@ -10,6 +10,8 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export type CustomPluginName = string;
+
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
@@ -451,7 +453,7 @@ export declare class Sources {
 }
 
 export interface BuiltinPlugin {
-  name: BuiltinPluginName
+  name: BuiltinPluginName | CustomPluginName
   options: unknown
   canInherentFromParent?: boolean
 }
@@ -2610,6 +2612,8 @@ export interface RealDependencyLocation {
 }
 
 /**
+ * this is a process level tracing, which means it would be shared by all compilers in the same process
+ * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
  * Apache-2.0 licensed
