@@ -34,9 +34,6 @@ importers:
       '@microsoft/api-extractor-model':
         specifier: 7.30.6
         version: 7.30.6(@types/node@20.19.0)
-      '@octokit/rest':
-        specifier: ^22.0.0
-        version: 22.0.0
       '@rspack/cli':
         specifier: workspace:*
         version: link:packages/rspack-cli
