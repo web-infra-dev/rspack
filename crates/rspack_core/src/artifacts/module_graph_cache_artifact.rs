@@ -150,32 +150,26 @@ pub(super) mod get_side_effects_connection_state {
 }
 
 pub(super) mod get_exports_type {
-  use super::*;
   use crate::{ExportsType, ModuleIdentifier};
 
   pub type GetExportsTypeCacheKey = (ModuleIdentifier, bool);
 
   #[derive(Debug, Default)]
   pub struct GetExportsTypeCache {
-    cache: RwLock<HashMap<GetExportsTypeCacheKey, ExportsType>>,
+    cache: dashmap::DashMap<GetExportsTypeCacheKey, ExportsType>,
   }
 
   impl GetExportsTypeCache {
     pub fn freeze(&self) {
-      self.cache.write().expect("should get lock").clear();
+      self.cache.clear();
     }
 
     pub fn get(&self, key: &GetExportsTypeCacheKey) -> Option<ExportsType> {
-      let inner = self.cache.read().expect("should get lock");
-      inner.get(key).copied()
+      self.cache.get(key).map(|x| *x)
     }
 
     pub fn set(&self, key: GetExportsTypeCacheKey, value: ExportsType) {
-      self
-        .cache
-        .write()
-        .expect("should get lock")
-        .insert(key, value);
+      self.cache.insert(key, value);
     }
   }
 }
