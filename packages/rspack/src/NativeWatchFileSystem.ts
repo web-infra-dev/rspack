@@ -1,4 +1,5 @@
 import * as binding from "@rspack/binding";
+import globToRegExp from "glob-to-regexp";
 import type Watchpack from "watchpack";
 import type {
 	FileSystemInfoEntry,
@@ -6,6 +7,52 @@ import type {
 	Watcher,
 	WatcherIncrementalDependencies
 } from "./util/fs";
+
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/watchpack/blob/332b55016b7c32dab4134f793ca71a5141bd10c1/lib/watchpack.js#L33-L57
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/watchpack/blob/main/LICENSE
+ */
+const stringToRegexp = (ignored: string) => {
+	if (ignored.length === 0) {
+		return;
+	}
+	const { source } = globToRegExp(ignored, { globstar: true, extended: true });
+	return `${source.slice(0, -1)}(?:$|\\/)`;
+};
+
+const ignoredToFunction = (ignored: Watchpack.WatchOptions["ignored"]) => {
+	if (Array.isArray(ignored)) {
+		const stringRegexps = ignored.map(i => stringToRegexp(i)).filter(Boolean);
+		if (stringRegexps.length === 0) {
+			return () => false;
+		}
+		const regexp = new RegExp(stringRegexps.join("|"));
+		return (item: string) => regexp.test(item.replace(/\\/g, "/"));
+	}
+	if (typeof ignored === "string") {
+		const stringRegexp = stringToRegexp(ignored);
+		if (!stringRegexp) {
+			return () => false;
+		}
+		const regexp = new RegExp(stringRegexp);
+		return (item: string) => regexp.test(item.replace(/\\/g, "/"));
+	}
+	if (ignored instanceof RegExp) {
+		return (item: string) => ignored.test(item.replace(/\\/g, "/"));
+	}
+	if (typeof ignored === "function") {
+		return (item: string) => ignored(item);
+	}
+	if (ignored) {
+		throw new Error(`Invalid option for 'ignored': ${ignored}`);
+	}
+	return undefined;
+};
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
@@ -101,26 +148,11 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			return this.#inner;
 		}
 
-		const ignoredCallback = options.ignored
-			? async (path: string): Promise<boolean> => {
-					const ignored = options.ignored;
-					if (Array.isArray(ignored)) {
-						return ignored.some(item => path.includes(item));
-					}
-					if (typeof ignored === "string") {
-						return path.includes(ignored);
-					}
-					if (ignored instanceof RegExp) {
-						return ignored.test(path);
-					}
-					return false;
-				}
-			: undefined;
 		const nativeWatcherOptions: binding.NativeWatcherOptions = {
 			followSymlinks: options.followSymlinks,
 			aggregateTimeout: options.aggregateTimeout,
 			pollInterval: typeof options.poll === "boolean" ? 0 : options.poll,
-			ignored: ignoredCallback
+			ignored: ignoredToFunction(options.ignored)
 		};
 		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
 		this.#inner = nativeWatcher;

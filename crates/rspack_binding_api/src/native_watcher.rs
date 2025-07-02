@@ -1,13 +1,13 @@
 use std::boxed::Box;
 
 use async_trait::async_trait;
-use napi::bindgen_prelude::{FnArgs, Promise};
+use napi::bindgen_prelude::FnArgs;
 use napi_derive::*;
 use rspack_fs::{FsWatcher, FsWatcherOptions, Ignored, PathUpdater};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 struct SafetyIgnored {
-  f: ThreadsafeFunction<String, Promise<bool>>,
+  f: ThreadsafeFunction<String, bool>,
 }
 
 #[async_trait]
@@ -15,7 +15,7 @@ impl Ignored for SafetyIgnored {
   async fn ignore(&self, path: &str) -> bool {
     self
       .f
-      .call_with_promise(path.to_string())
+      .call_with_sync(path.to_string())
       .await
       .unwrap_or_default()
   }
@@ -32,9 +32,9 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "(path: string) => Promise<boolean>")]
+  #[napi(ts_type = "(path: string) => boolean")]
   /// A function that will be called with the path of a file or directory that is ignored.
-  pub ignored: Option<ThreadsafeFunction<String, Promise<bool>>>,
+  pub ignored: Option<ThreadsafeFunction<String, bool>>,
 }
 
 #[napi]
