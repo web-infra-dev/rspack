@@ -1,8 +1,8 @@
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   ApplyContext, ChunkGraph, Compilation, CompilerEmit, CompilerOptions, Context, EntryDependency,
-  ExportsInfoGetter, Filename, LibIdentOptions, PathData, Plugin, PluginContext,
-  PrefetchExportsInfoMode, ProvidedExports, SourceType,
+  Filename, LibIdentOptions, PathData, Plugin, PluginContext, PrefetchExportsInfoMode,
+  ProvidedExports, SourceType,
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -142,9 +142,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
       if let Some(ident) = ident {
         let exports_info = module_graph
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
-        let provided_exports = match ExportsInfoGetter::get_provided_exports(&exports_info) {
+        let provided_exports = match exports_info.get_provided_exports() {
           ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),
           ProvidedExports::ProvidedAll => Some(DllManifestContentItemExports::True),
           _ => None,

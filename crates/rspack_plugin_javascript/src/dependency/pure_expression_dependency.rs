@@ -3,12 +3,11 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, ExportsInfoGetter, ModuleGraph,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
 };
 use rspack_util::ext::DynHash;
-use rustc_hash::FxHashSet;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -41,15 +40,11 @@ impl PureExpressionDependency {
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
         let module_graph = compilation.get_module_graph();
-        let names = set.iter().collect::<FxHashSet<_>>();
-        let exports_info = module_graph.get_prefetched_exports_info(
-          &self.module_identifier,
-          PrefetchExportsInfoMode::NamedExports(names),
-        );
+        let exports_info = module_graph
+          .get_prefetched_exports_info(&self.module_identifier, PrefetchExportsInfoMode::Default);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            ExportsInfoGetter::get_used(&exports_info, std::slice::from_ref(id), cur_runtime)
-              != UsageState::Unused
+            exports_info.get_used(std::slice::from_ref(id), cur_runtime) != UsageState::Unused
           })
         })
       }

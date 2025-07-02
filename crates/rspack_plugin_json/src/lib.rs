@@ -15,8 +15,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportInfoGetter,
-  ExportsInfoGetter, GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfoGetter,
+  GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
   UsageState, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
@@ -182,12 +182,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .as_ref()
           .expect("should have json data");
         let exports_info = module_graph
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if matches!(
-              ExportInfoGetter::get_used(exports_info.other_exports_info(), *runtime),
+              exports_info.other_exports_info().get_used(*runtime),
               UsageState::Unused
             ) =>
           {
@@ -280,7 +280,7 @@ fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  if ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime) != UsageState::Unused {
+  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
     return data;
   }
 
@@ -294,7 +294,7 @@ fn create_object_for_exports_info(
       let mut used_pair = vec![];
       for (key, value) in obj.iter_mut() {
         let export_info = exports_info.get_read_only_export_info(&key.into());
-        let used = ExportInfoGetter::get_used(export_info, runtime);
+        let used = export_info.get_used(runtime);
         if used == UsageState::Unused {
           continue;
         }
@@ -304,14 +304,14 @@ fn create_object_for_exports_info(
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
           let exports_info =
-            ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
+            ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Default);
           create_object_for_exports_info(temp, &exports_info, runtime, mg)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
-        let UsedNameItem::Str(used_name) =
-          ExportInfoGetter::get_used_name(export_info, Some(&(key.into())), runtime)
-            .expect("should have used name")
+        let UsedNameItem::Str(used_name) = export_info
+          .get_used_name(Some(&(key.into())), runtime)
+          .expect("should have used name")
         else {
           continue;
         };
@@ -331,7 +331,7 @@ fn create_object_for_exports_info(
         .enumerate()
         .map(|(i, item)| {
           let export_info = exports_info.get_read_only_export_info(&itoa!(i).into());
-          let used = ExportInfoGetter::get_used(export_info, runtime);
+          let used = export_info.get_used(runtime);
           if used == UsageState::Unused {
             return None;
           }
@@ -340,7 +340,7 @@ fn create_object_for_exports_info(
             && let Some(exports_info) = export_info.exports_info()
           {
             let exports_info =
-              ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::AllExports);
+              ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Default);
             Some(create_object_for_exports_info(
               item,
               &exports_info,
@@ -352,10 +352,9 @@ fn create_object_for_exports_info(
           }
         })
         .collect::<Vec<_>>();
-      let arr_length_used = ExportInfoGetter::get_used(
-        exports_info.get_read_only_export_info(&"length".into()),
-        runtime,
-      );
+      let arr_length_used = exports_info
+        .get_read_only_export_info(&"length".into())
+        .get_used(runtime);
       let array_length_when_used = match arr_length_used {
         UsageState::Unused => None,
         _ => Some(original_len),

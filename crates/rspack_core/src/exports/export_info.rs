@@ -1,45 +1,59 @@
-use std::{
-  borrow::Cow,
-  hash::Hash,
-  sync::{atomic::Ordering::Relaxed, Arc},
-};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
-use rspack_collections::{impl_item_ukey, Ukey};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
-use serde::Serialize;
 
 use super::{
-  ExportInfoGetter, ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable,
-  ResolvedExportInfoTarget, ResolvedExportInfoTargetWithCircular, UsageState,
-  NEXT_EXPORT_INFO_UKEY,
+  ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, ResolvedExportInfoTarget,
+  ResolvedExportInfoTargetWithCircular, UsageState,
 };
 use crate::{
   find_target_from_export_info, get_target_from_maybe_export_info, get_target_with_filter,
   DependencyId, FindTargetResult, ModuleGraph, ModuleIdentifier, ResolveFilterFnTy,
 };
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct ExportInfo(Ukey);
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub enum ExportName {
+  Other,
+  SideEffects,
+  Named(Atom),
+}
 
-impl_item_ukey!(ExportInfo);
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub struct ExportInfo {
+  exports_info: ExportsInfo,
+  export_name: ExportName,
+}
 
 impl ExportInfo {
-  fn new() -> Self {
-    Self(NEXT_EXPORT_INFO_UKEY.fetch_add(1, Relaxed).into())
-  }
-
   pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
-    mg.get_export_info_by_id(self)
+    let exports_info = self.exports_info.as_data(mg);
+    let export_info = match &self.export_name {
+      ExportName::Other => exports_info.other_exports_info(),
+      ExportName::SideEffects => exports_info.side_effects_only_info(),
+      ExportName::Named(name) => exports_info
+        .named_exports(name)
+        .expect("should have named export"),
+    };
+    export_info
   }
 
   pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
-    mg.get_export_info_mut_by_id(self)
+    let exports_info = self.exports_info.as_data_mut(mg);
+    let export_info = match &self.export_name {
+      ExportName::Other => exports_info.other_exports_info_mut(),
+      ExportName::SideEffects => exports_info.side_effects_only_info_mut(),
+      ExportName::Named(name) => exports_info
+        .named_exports_mut(name)
+        .expect("should have named export"),
+    };
+    export_info
   }
 }
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoData {
+  belongs_to: ExportsInfo,
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
   name: Option<Atom>,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
@@ -53,7 +67,6 @@ pub struct ExportInfoData {
   // only specific export info can be inlined, so other_export_info.inlinable is always NoByProvide
   inlinable: Inlinable,
   terminal_binding: bool,
-  id: ExportInfo,
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
   has_use_in_runtime_info: bool,
@@ -62,7 +75,11 @@ pub struct ExportInfoData {
 }
 
 impl ExportInfoData {
-  pub fn new(name: Option<Atom>, init_from: Option<&ExportInfoData>) -> Self {
+  pub fn new(
+    belongs_to: ExportsInfo,
+    name: Option<Atom>,
+    init_from: Option<&ExportInfoData>,
+  ) -> Self {
     let used_name = init_from.and_then(|init_from| init_from.used_name.clone());
     let global_used = init_from.and_then(|init_from| init_from.global_used);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
@@ -105,6 +122,7 @@ impl ExportInfoData {
       })
       .unwrap_or_default();
     Self {
+      belongs_to,
       name,
       used_name,
       used_in_runtime,
@@ -113,7 +131,6 @@ impl ExportInfoData {
       can_mangle_provide,
       terminal_binding,
       target_is_set: init_from.map(|init| init.target_is_set).unwrap_or_default(),
-      id: ExportInfo::new(),
       exports_info: None,
       exports_info_owned: false,
       has_use_in_runtime_info,
@@ -164,7 +181,18 @@ impl ExportInfoData {
   }
 
   pub fn id(&self) -> ExportInfo {
-    self.id
+    ExportInfo {
+      exports_info: self.belongs_to,
+      export_name: if let Some(name) = &self.name {
+        if name == "*side effects only*" {
+          ExportName::SideEffects
+        } else {
+          ExportName::Named(name.clone())
+        }
+      } else {
+        ExportName::Other
+      },
+    }
   }
 
   pub fn exports_info(&self) -> Option<ExportsInfo> {
@@ -297,7 +325,7 @@ impl<'a> MaybeDynamicTargetExportInfo<'a> {
   }
 
   fn get_max_target(&self) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    ExportInfoGetter::get_max_target(self.to_data())
+    self.to_data().get_max_target()
   }
 
   pub fn find_target(
