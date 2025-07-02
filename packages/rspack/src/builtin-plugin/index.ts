@@ -10,7 +10,7 @@ export * from "./CircularDependencyRspackPlugin";
 export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./CopyRspackPlugin";
-export * from "./css-extract/index";
+// export * from "./css-extract/index";
 export * from "./CssModulesPlugin";
 export * from "./DataUriPlugin";
 export * from "./DefinePlugin";

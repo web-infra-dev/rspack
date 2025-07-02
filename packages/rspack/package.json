@@ -23,6 +23,7 @@
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build && npm run prepare-container-runtime",
+    "build:browser": "rslib build -c rslib.browser.config.ts",
     "dev": "rslib build --watch",
     "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
@@ -46,6 +47,7 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
+    "@rsbuild/plugin-node-polyfill": "^1.3.0",
     "@rslib/core": "0.10.0",
     "@swc/core": "1.12.0",
     "@swc/types": "0.1.22",
@@ -54,6 +56,7 @@
     "browserslist-load-config": "^1.0.0",
     "enhanced-resolve": "5.18.1",
     "graceful-fs": "^4.2.11",
+    "memfs": "^4.17.2",
     "prebundle": "^1.3.3",
     "tinypool": "^1.1.0",
     "tsx": "^4.20.3",
