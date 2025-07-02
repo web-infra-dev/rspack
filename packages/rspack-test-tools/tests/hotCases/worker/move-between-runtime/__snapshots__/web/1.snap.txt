@@ -15,8 +15,8 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: shared.LAST_HASH.hot-update.js, size: 1344
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 1077
+- Update: shared.LAST_HASH.hot-update.js, size: 1360
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 1093
 - Update: workerB_js.LAST_HASH.hot-update.js, size: 576
 
 ## Manifest
@@ -93,7 +93,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM import */var _moduleS__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleS */ "./moduleS.js");
+/* ESM import */var _moduleS__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__(/*! ./moduleS */ "./moduleS.js");
 /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (1);
 
 
@@ -166,7 +166,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */ "./module.js");
+/* ESM import */var _module__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__(/*! ./module */ "./module.js");
 /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (1);
 
 

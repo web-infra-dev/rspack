@@ -3,11 +3,11 @@
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
+/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__("./shared.js");
 /* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-1.js");
+/* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = /* #__PURE__ */ __webpack_require__("./i-1.js");
 /* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_1__WEBPACK_IMPORTED_MODULE_1__);
-/* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./i-2.js");
+/* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_2__ = /* #__PURE__ */ __webpack_require__("./i-2.js");
 /* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_i_2__WEBPACK_IMPORTED_MODULE_2__);
 
 
@@ -30,11 +30,11 @@ console.log("i-1");
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
+/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__("./shared.js");
 /* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-1.js");
+/* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = /* #__PURE__ */ __webpack_require__("./i-1.js");
 /* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_1__WEBPACK_IMPORTED_MODULE_1__);
-/* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./i-2.js");
+/* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_2__ = /* #__PURE__ */ __webpack_require__("./i-2.js");
 /* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_i_2__WEBPACK_IMPORTED_MODULE_2__);
 
 
@@ -61,9 +61,9 @@ console.log("i-1");
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
+/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__("./shared.js");
 /* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-1.js");
+/* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = /* #__PURE__ */ __webpack_require__("./i-1.js");
 /* ESM import */var _i_1__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_1__WEBPACK_IMPORTED_MODULE_1__);
 
 
@@ -95,9 +95,9 @@ console.log("i-2");
 }),
 "./index2.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
+/* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__("./shared.js");
 /* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-2.js");
+/* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_1__ = /* #__PURE__ */ __webpack_require__("./i-2.js");
 /* ESM import */var _i_2__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_2__WEBPACK_IMPORTED_MODULE_1__);
 
 

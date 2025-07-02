@@ -25,7 +25,7 @@ const b = 3;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _bar_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
+/* ESM import */var _bar_js__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__("./bar.js");
 
 
 (0,_bar_js__WEBPACK_IMPORTED_MODULE_0__.b)();
