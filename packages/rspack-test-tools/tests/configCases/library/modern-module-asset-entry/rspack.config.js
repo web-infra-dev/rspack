@@ -47,12 +47,14 @@ module.exports = {
 						const jsContent = assets[js].source().toString();
 
 						const preseveImport =
-							/import\simg_namespaceObject\sfrom ['"]\.\/static\/img\/img\.png['"]/.test(
+							/import\s_0_img_namespaceObject\sfrom ['"]\.\/static\/img\/img\.png['"]/.test(
 								jsContent
 							);
 						assert(preseveImport);
 						const hasExports =
-							/export\s{\simg_namespaceObject\sas\sdefault\s}/.test(jsContent);
+							/export\s{\s_0_img_namespaceObject\sas\sdefault\s}/.test(
+								jsContent
+							);
 						assert(hasExports);
 					});
 				});

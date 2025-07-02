@@ -4,15 +4,15 @@
 "./index.js": (function () {
 
 ;// CONCATENATED MODULE: ./answer.js
-const answer = 103330;
+const _0_answer = 103330;
 
 ;// CONCATENATED MODULE: ./index.js
 
-answer;
+_0_answer;
 
-function index_answer() {}
+function _1_answer() {}
 
-index_answer();
+_1_answer();
 
 function test() {}
 

@@ -6,8 +6,8 @@ const sourceDir = path.resolve(__dirname, "../../../../configCases/rstest/module
 it("Insert module path names with concatenateModules", () => {
 	const content = fs.readFileSync(path.resolve(__dirname, "modulePathName.js"), "utf-8");
 	// __dirname and __filename renamed after concatenation
-	expect(content).toContain(`const foo_filename = ${JSON.stringify(path.resolve(sourceDir, "./foo.js"))}`);
-	expect(content).toContain(`const foo_dirname = ${JSON.stringify(path.resolve(sourceDir, "."))}`);
+	expect(content).toContain(`const _0_foo_filename = ${JSON.stringify(path.resolve(sourceDir, "./foo.js"))}`);
+	expect(content).toContain(`const _0_foo_dirname = ${JSON.stringify(path.resolve(sourceDir, "."))}`);
 
 	expect(content).toContain(`const metaFile1 = ${JSON.stringify(path.resolve(sourceDir, "./foo.js"))}`)
 	expect(content).toContain(`const metaDir1 = ${JSON.stringify(path.resolve(sourceDir, "."))}`)

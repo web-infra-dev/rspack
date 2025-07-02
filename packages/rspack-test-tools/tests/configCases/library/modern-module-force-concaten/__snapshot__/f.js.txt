@@ -67,8 +67,8 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 /************************************************************************/
 
 // EXTERNAL MODULE: ./f/bar.cjs
-var bar = __webpack_require__(441);
-var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
+var _0_bar = __webpack_require__(441);
+var _0_bar_default = /*#__PURE__*/__webpack_require__.n(_0_bar);
 ;// CONCATENATED MODULE: ./f/foo.js
 const foo = 'foo'
 
@@ -76,7 +76,7 @@ const foo = 'foo'
 
 
 
-const value = foo + (bar_default())
+const value = foo + (_0_bar_default())
 
 
 
