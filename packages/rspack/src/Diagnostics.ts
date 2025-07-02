@@ -151,6 +151,9 @@ export function createDiagnosticArray(
 		): U[] {
 			return adm.values().map(callbackfn, thisArg);
 		},
+		slice(start?: number, end?: number): RspackError[] {
+			return adm.values().slice(start, end);
+		},
 
 		// reduce
 		reduce(

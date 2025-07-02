@@ -23,6 +23,8 @@ export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
 export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
 
+export const RUST_ERROR_SYMBOL: unique symbol;
+
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
 	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
@@ -2725,6 +2727,8 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
+
+export declare function renderReport(diagnostic: any, colored?: bool): string
 
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function

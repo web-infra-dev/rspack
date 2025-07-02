@@ -89,6 +89,21 @@ impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
   }
 }
 
+impl From<Arc<miette::Error>> for Diagnostic {
+  fn from(value: Arc<miette::Error>) -> Self {
+    Self {
+      inner: value,
+      details: None,
+      module_identifier: None,
+      loc: None,
+      file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
+    }
+  }
+}
+
 impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
     Self {
@@ -153,11 +168,6 @@ impl Diagnostic {
 impl Diagnostic {
   pub fn render_report(&self, colored: bool) -> crate::Result<String> {
     let mut buf = String::new();
-    let raw_message = self.inner.to_string();
-    if raw_message.starts_with("  \u{1b}[31m×\u{1b}[0m") || raw_message.starts_with("  ×") {
-      return Ok(raw_message);
-    }
-
     let theme = if colored {
       GraphicalTheme::unicode()
     } else {
@@ -169,6 +179,10 @@ impl Diagnostic {
       .with_width(usize::MAX);
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
+  }
+
+  pub fn as_miette_error(&self) -> &Arc<miette::Error> {
+    &self.inner
   }
 
   pub fn message(&self) -> String {

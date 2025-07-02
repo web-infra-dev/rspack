@@ -534,6 +534,10 @@ impl ModuleObject {
       }
     });
   }
+
+  pub fn identifier(&self) -> &ModuleIdentifier {
+    &self.identifier
+  }
 }
 
 impl ToNapiValue for ModuleObject {

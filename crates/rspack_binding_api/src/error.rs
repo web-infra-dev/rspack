@@ -1,19 +1,19 @@
 use std::{fmt::Display, ptr};
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, Object, ToNapiValue},
+  bindgen_prelude::{External, FromNapiValue, JsObjectValue, Object, ToNapiValue},
   sys::{self, napi_env, napi_value},
-  Env, JsValue, Status,
+  Env, JsValue, Property, PropertyAttributes, Status, Unknown,
 };
 use napi_derive::napi;
-use rspack_core::{diagnostics::ModuleBuildError, Compilation};
+use rspack_core::Compilation;
 use rspack_error::{
   miette::{self, Severity},
   Diagnostic, DiagnosticExt, Error, Result, RspackSeverity,
 };
 use rspack_napi::napi::check_status;
 
-use crate::{DependencyLocation, ModuleObject};
+use crate::{define_symbols, DependencyLocation, ModuleObject};
 
 pub enum ErrorCode {
   Napi(napi::Status),
@@ -71,6 +71,10 @@ impl From<JsRspackSeverity> for miette::Severity {
   }
 }
 
+define_symbols! {
+  RUST_ERROR_SYMBOL => "RUST_ERROR_SYMBOL"
+}
+
 #[derive(Debug)]
 pub struct RspackError {
   pub name: String,
@@ -86,6 +90,7 @@ pub struct RspackError {
   pub severity: Option<Severity>,
   // Only used for display on the Rust side; the name of the parent error in the error chain, used to determine rendering logic.
   pub parent_error_name: Option<String>,
+  pub rust_diagnostic: Option<Diagnostic>,
 }
 
 impl napi::bindgen_prelude::TypeName for RspackError {
@@ -113,6 +118,7 @@ impl ToNapiValue for RspackError {
       hide_stack,
       file,
       error,
+      rust_diagnostic,
       ..
     } = val;
 
@@ -146,6 +152,16 @@ impl ToNapiValue for RspackError {
     }
     if let Some(error) = error {
       obj.set("error", *error)?;
+    }
+    if let Some(rust_diagnostic) = rust_diagnostic {
+      RUST_ERROR_SYMBOL.with(|symbol| {
+        let napi_val = ToNapiValue::to_napi_value(env, External::new(rust_diagnostic))?;
+        let unknown = Unknown::from_napi_value(env, napi_val)?;
+        obj.define_properties(&[Property::new()
+          .with_name(&env_wrapper, symbol.get())?
+          .with_value(&unknown)
+          .with_property_attributes(PropertyAttributes::Configurable)])
+      })?;
     }
     ToNapiValue::to_napi_value(env, obj)
   }
@@ -184,6 +200,20 @@ impl FromNapiValue for RspackError {
     }
     let file: Option<String> = obj.get("file").ok().flatten();
     let error: Option<RspackError> = obj.get("error").ok().flatten();
+    let rust_diagnostic = RUST_ERROR_SYMBOL.with(|once_cell| {
+      #[allow(clippy::unwrap_used)]
+      let napi_val = ToNapiValue::to_napi_value(env, once_cell.get().unwrap())?;
+      let symbol = Unknown::from_napi_value(env, napi_val)?;
+      if let Ok(unknown) = obj.get_property::<Unknown, Unknown>(symbol) {
+        if unknown.get_type()? != napi::ValueType::External {
+          return Ok(None);
+        }
+        let external =
+          <&External<Diagnostic> as FromNapiValue>::from_napi_value(env, unknown.raw())?;
+        return Ok::<_, napi::Error>(Some(external.as_ref().clone()));
+      }
+      Ok(None)
+    })?;
 
     let val = Self {
       severity: None,
@@ -197,6 +227,7 @@ impl FromNapiValue for RspackError {
       file,
       error: error.map(Box::new),
       parent_error_name: None,
+      rust_diagnostic,
     };
     Ok(val)
   }
@@ -237,6 +268,7 @@ impl miette::Diagnostic for RspackError {
   }
 }
 
+// for error chain
 impl From<&dyn miette::Diagnostic> for RspackError {
   fn from(value: &dyn miette::Diagnostic) -> Self {
     let mut name = "Error".to_string();
@@ -262,6 +294,7 @@ impl From<&dyn miette::Diagnostic> for RspackError {
       file: None,
       error: None,
       parent_error_name: None,
+      rust_diagnostic: None,
     }
   }
 }
@@ -276,9 +309,8 @@ impl RspackError {
     compilation: &Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
-    let colored = compilation.options.stats.colors;
     let message = diagnostic
-      .render_report(colored)
+      .render_report(false)
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     let mut module = None;
@@ -308,6 +340,7 @@ impl RspackError {
       hide_stack: diagnostic.hide_stack(),
       error: error.map(Box::new),
       parent_error_name: None,
+      rust_diagnostic: Some(diagnostic.clone()),
     })
   }
 
@@ -321,24 +354,17 @@ impl RspackError {
     let stack = self.stack.clone();
     let hide_stack = self.hide_stack;
 
-    let diagnostic = if self.name == "ModuleBuildError" {
-      let source = if let Some(error) = self.error {
-        miette::Error::new(error.with_parent_error_name("ModuleBuildError"))
-      } else {
-        miette::Error::new(miette::MietteDiagnostic::new(self.message))
-      };
-      Diagnostic::from(ModuleBuildError::new(source).boxed())
+    if let Some(rust_diagnostic) = self.rust_diagnostic {
+      rust_diagnostic
     } else {
       Diagnostic::from(self.boxed())
-    };
-
-    diagnostic
-      .with_details(details)
-      .with_file(file.map(Into::into))
-      .with_loc(loc)
-      .with_module_identifier(module)
-      .with_stack(stack)
-      .with_hide_stack(hide_stack)
+        .with_details(details)
+        .with_file(file.map(Into::into))
+        .with_loc(loc)
+        .with_module_identifier(module)
+        .with_stack(stack)
+        .with_hide_stack(hide_stack)
+    }
   }
 }
 
@@ -380,4 +406,14 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
       )
     })
   }
+}
+
+#[napi(ts_args_type = "diagnostic: any, colored?: bool")]
+pub fn render_report(
+  diagnostic: &External<Diagnostic>,
+  colored: Option<bool>,
+) -> napi::Result<String> {
+  diagnostic
+    .render_report(colored.unwrap_or(false))
+    .map_err(|e| napi::Error::from_reason(e.to_string()))
 }
