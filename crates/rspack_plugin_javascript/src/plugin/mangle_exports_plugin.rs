@@ -163,7 +163,6 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
 
               ExportInfoCache {
                 id: export_info_data.id(),
-                deterministic,
                 exports_info: nested_exports_info,
                 can_mangle,
               }
