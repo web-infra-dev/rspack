@@ -272,7 +272,7 @@ impl CommonJsExportsParserPlugin {
 
     ConsumeSharedExportsDependency::should_apply_to_module(
       module_identifier,
-      &parser.build_meta,
+      parser.build_meta,
       None, // ModuleGraph not available during parsing
     )
   }
