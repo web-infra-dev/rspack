@@ -131,9 +131,10 @@ thread_local! {
 
 #[js_function(1)]
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
-  let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
-  let revoked_modules = external.take();
-  ModuleObject::cleanup_by_module_identifiers(&revoked_modules);
+  let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
+  let compiler_id = external.0;
+  let revoked_modules = external.1.take();
+  ModuleObject::cleanup_by_module_identifiers(&compiler_id, &revoked_modules);
   Ok(())
 }
 
@@ -173,7 +174,7 @@ impl JsCompiler {
 
       let tsfn = env
         .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
-        .build_threadsafe_function::<External<Vec<ModuleIdentifier>>>()
+        .build_threadsafe_function::<External<(CompilerId, Vec<ModuleIdentifier>)>>()
         .weak::<true>()
         .callee_handled::<false>()
         .max_queue_size::<1>()

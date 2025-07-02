@@ -3,15 +3,16 @@ use derive_more::Debug;
 use napi::{bindgen_prelude::External, threadsafe_function::ThreadsafeFunction, Status};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ApplyContext, CompilationRevokedModules, CompilerOptions, ModuleIdentifier, PluginContext,
+  ApplyContext, CompilationRevokedModules, CompilerId, CompilerOptions, ModuleIdentifier,
+  PluginContext,
 };
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_hook::{plugin, plugin_hook};
 
 pub type CleanupRevokedModulesTsFn = ThreadsafeFunction<
-  External<Vec<ModuleIdentifier>>,
+  External<(CompilerId, Vec<ModuleIdentifier>)>,
   (),
-  External<Vec<ModuleIdentifier>>,
+  External<(CompilerId, Vec<ModuleIdentifier>)>,
   Status,
   false,
   true,
@@ -53,13 +54,20 @@ impl rspack_core::Plugin for JsCleanupPlugin {
 }
 
 #[plugin_hook(CompilationRevokedModules for JsCleanupPlugin)]
-async fn revoked_modules(&self, revoked_modules: &IdentifierSet) -> rspack_error::Result<()> {
-  self
-    .cleanup_revoked_modules
-    .call_async(External::new(
-      revoked_modules.iter().cloned().collect::<Vec<_>>(),
-    ))
-    .await
-    .to_rspack_result()?;
+async fn revoked_modules(
+  &self,
+  compilation: &rspack_core::Compilation,
+  revoked_modules: &IdentifierSet,
+) -> rspack_error::Result<()> {
+  if !revoked_modules.is_empty() {
+    self
+      .cleanup_revoked_modules
+      .call_async(External::new((
+        compilation.compiler_id(),
+        revoked_modules.iter().cloned().collect::<Vec<_>>(),
+      )))
+      .await
+      .to_rspack_result()?;
+  }
   Ok(())
 }

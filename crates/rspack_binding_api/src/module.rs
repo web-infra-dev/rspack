@@ -498,11 +498,14 @@ impl ModuleObject {
     });
   }
 
-  pub fn cleanup_by_module_identifiers(revoked_modules: &[ModuleIdentifier]) {
+  pub fn cleanup_by_module_identifiers(
+    compiler_id: &CompilerId,
+    revoked_modules: &[ModuleIdentifier],
+  ) {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       for module_identifier in revoked_modules {
-        for (_, refs) in refs_by_compiler_id.iter_mut() {
+        if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
           if let Some(r) = refs.remove(module_identifier) {
             match r {
               Either5::A(mut normal_module) => normal_module.module.ptr = None,
