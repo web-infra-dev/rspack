@@ -62,13 +62,13 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 const foo = 'foo'
 
 // EXTERNAL MODULE: ./e/bar.cjs
-var bar = __webpack_require__(997);
-var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
+var _1_bar = __webpack_require__(997);
+var _1_bar_default = /*#__PURE__*/__webpack_require__.n(_1_bar);
 ;// CONCATENATED MODULE: ./e/index.js
 
 
 
 
 
-var __webpack_exports__bar = (bar_default());
+var __webpack_exports__bar = (_1_bar_default());
 export { foo, __webpack_exports__bar as bar };

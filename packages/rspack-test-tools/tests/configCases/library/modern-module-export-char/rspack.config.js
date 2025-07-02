@@ -30,7 +30,7 @@ module.exports = {
 				compilation.hooks.afterProcessAssets.tap("testcase", assets => {
 					const bundle = Object.values(assets)[0]._value;
 					expect(bundle)
-						.toContain(`var __webpack_exports__cjsInterop = (foo_default());
+						.toContain(`var __webpack_exports__cjsInterop = (_1_foo_default());
 export { external_module as defaultImport, namedImport, __webpack_exports__cjsInterop as cjsInterop };`);
 					expect(bundle).toContain(
 						'import external_module, { namedImport } from "external-module";'

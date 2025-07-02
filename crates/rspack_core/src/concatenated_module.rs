@@ -731,11 +731,12 @@ impl Module for ConcatenatedModule {
     let module_graph = compilation.get_module_graph();
     let mut import_stmts = IndexMap::<(String, Option<String>), ImportSpec>::default();
 
-    let (escaped_names, escaped_identifiers) = module_to_info_map
+    let (escaped_names, escaped_identifiers, conflict_names) = module_to_info_map
       .par_values()
       .map(|info| {
         let mut escaped_names: HashMap<String, String> = HashMap::default();
         let mut escaped_identifiers: HashMap<String, Vec<String>> = HashMap::default();
+        let mut conflict_names: HashMap<String, usize> = HashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           module_graph
             .module_by_identifier(&info.id())
@@ -750,6 +751,14 @@ impl Module for ConcatenatedModule {
           ModuleInfo::Concatenated(info) => {
             for (id, _) in info.binding_to_ref.iter() {
               escaped_names.insert(id.0.to_string(), escape_name(id.0.as_str()));
+              match conflict_names.entry(id.0.to_string()) {
+                Entry::Occupied(mut entry) => {
+                  entry.insert(entry.get() + 1);
+                }
+                Entry::Vacant(entry) => {
+                  entry.insert(1);
+                }
+              };
             }
 
             if let Some(import_map) = &info.import_map {
@@ -760,247 +769,318 @@ impl Module for ConcatenatedModule {
                 );
                 for atom in imported_atoms {
                   escaped_names.insert(atom.to_string(), escape_name(atom.as_str()));
+                  match conflict_names.entry(atom.to_string()) {
+                    Entry::Occupied(mut entry) => {
+                      entry.insert(entry.get() + 1);
+                    }
+                    Entry::Vacant(entry) => {
+                      entry.insert(1);
+                    }
+                  };
                 }
               }
             }
           }
           ModuleInfo::External(_) => (),
         }
-        (escaped_names, escaped_identifiers)
+        (escaped_names, escaped_identifiers, conflict_names)
       })
       .reduce(
-        || (HashMap::default(), HashMap::default()),
+        || (HashMap::default(), HashMap::default(), HashMap::default()),
         |mut a, b| {
           a.0.extend(b.0);
           a.1.extend(b.1);
+          for (name, count) in b.2 {
+            match a.2.entry(name) {
+              Entry::Occupied(mut entry) => {
+                entry.insert(entry.get() + count);
+              }
+              Entry::Vacant(entry) => {
+                entry.insert(count);
+              }
+            };
+          }
           a
         },
       );
 
     for info in module_to_info_map.values_mut() {
-      // Get used names in the scope
-
       let module = module_graph
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
       let readable_identifier =
         get_cached_readable_identifier(module, &compilation.module_static_cache_artifact, &context);
-      let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
-      let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
-      match info {
-        // Handle concatenated type
-        ModuleInfo::Concatenated(info) => {
-          // Iterate over variables in moduleScope
-          for (id, refs) in info.binding_to_ref.iter() {
-            let name = &id.0;
-            let ctxt = id.1;
-            if ctxt != info.module_ctxt {
+      if let ModuleInfo::Concatenated(info) = info
+        && let Some(import_map) = &info.import_map
+      {
+        // Iterate over imported symbols
+        for ((source, attr), imported_atoms) in import_map.iter() {
+          let entry = import_stmts.entry((source.clone(), attr.clone()));
+          let total_imported_atoms = entry.or_default();
+
+          for atom in imported_atoms {
+            // already import this symbol
+            if let Some(internal_atom) = total_imported_atoms.atoms.get(atom) {
+              info
+                .internal_names
+                .insert(atom.clone(), internal_atom.clone());
+              // if the imported symbol is exported, we rename the export as well
+              if let Some(raw_export_map) = info.raw_export_map.as_mut()
+                && raw_export_map.contains_key(atom)
+              {
+                raw_export_map.insert(atom.clone(), internal_atom.to_string());
+              }
               continue;
             }
-            // Check if the name is already used
-            if all_used_names.contains(name) {
-              // Find a new name and update references
-              let new_name = find_new_name(
-                escaped_names
+
+            let new_name = if all_used_names.contains(atom) {
+              let new_name = if atom == "default" {
+                find_new_name(
+                  "",
+                  "",
+                  &all_used_names,
+                  escaped_identifiers
+                    .get(source)
+                    .expect("should have escaped identifier"),
+                )
+              } else {
+                find_new_name(
+                  "",
+                  escaped_names
+                    .get(atom.as_str())
+                    .expect("should have escaped name"),
+                  &all_used_names,
+                  escaped_identifiers
+                    .get(&readable_identifier)
+                    .expect("should have escaped identifier"),
+                )
+              };
+              all_used_names.insert(new_name.clone());
+              // if the imported symbol is exported, we rename the export as well
+              if let Some(raw_export_map) = info.raw_export_map.as_mut()
+                && raw_export_map.contains_key(atom)
+              {
+                raw_export_map.insert(atom.clone(), new_name.to_string());
+              }
+              new_name
+            } else {
+              all_used_names.insert(atom.clone());
+              atom.clone()
+            };
+
+            info.internal_names.insert(atom.clone(), new_name.clone());
+
+            if atom == "default" {
+              total_imported_atoms.default_import = Some(new_name.clone());
+            } else {
+              total_imported_atoms
+                .atoms
+                .insert(atom.clone(), new_name.clone());
+            }
+          }
+        }
+      }
+    }
+
+    let (module_used_names, module_top_level_declarations, module_public_path_auto_replace) =
+      module_to_info_map
+        .par_values_mut()
+        .enumerate()
+        .map(|(module_index, info)| {
+          let mut module_used_names = HashSet::default();
+          let mut module_top_level_declarations = HashSet::default();
+          let mut module_public_path_auto_replace = false;
+          let module = module_graph
+            .module_by_identifier(&info.id())
+            .expect("should have module identifier");
+          let readable_identifier = get_cached_readable_identifier(
+            module,
+            &compilation.module_static_cache_artifact,
+            &context,
+          );
+          let prefix = format!("_{module_index}_");
+          let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
+          let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
+          match info {
+            // Handle concatenated type
+            ModuleInfo::Concatenated(info) => {
+              // Iterate over variables in moduleScope
+              for (id, refs) in info.binding_to_ref.iter() {
+                let name = &id.0;
+                let ctxt = id.1;
+                if ctxt != info.module_ctxt {
+                  continue;
+                }
+                // Check if the name is already used
+
+                let new_name = if all_used_names.contains(name) || module_used_names.contains(name)
+                {
+                  // Find a new name and update references
+                  find_new_name(
+                    &prefix,
+                    escaped_names
+                      .get(name.as_str())
+                      .expect("should have escaped name"),
+                    &module_used_names,
+                    escaped_identifiers
+                      .get(&readable_identifier)
+                      .expect("should have escaped identifier"),
+                  )
+                } else if *conflict_names
                   .get(name.as_str())
-                  .expect("should have escaped name"),
-                &all_used_names,
+                  .expect("should have conflict name")
+                  > 1
+                {
+                  Atom::from(format!("{prefix}{name}"))
+                } else {
+                  name.clone()
+                };
+
+                module_used_names.insert(new_name.clone());
+                info.internal_names.insert(name.clone(), new_name.clone());
+                module_top_level_declarations.insert(new_name.clone());
+
+                if new_name != *name {
+                  // Update source
+                  let source = info.source.as_mut().expect("should have source");
+
+                  for identifier in refs {
+                    let span = identifier.id.span();
+                    let low = span.real_lo();
+                    let high = span.real_hi();
+                    if identifier.shorthand {
+                      source.insert(high, &format!(": {new_name}"), None);
+                      continue;
+                    }
+
+                    source.replace(low, high, &new_name, None);
+                  }
+                }
+              }
+
+              // Handle the name passed through by namespace_export_symbol
+              if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
+                if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+                  && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+                {
+                  let name = Atom::from(
+                    namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string(),
+                  );
+                  module_used_names.insert(name.clone());
+                  info
+                    .internal_names
+                    .insert(namespace_export_symbol.clone(), name.clone());
+                  module_top_level_declarations.insert(name.clone());
+                }
+              }
+
+              // Handle namespaceObjectName for concatenated type
+              let namespace_object_name =
+                if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
+                  info.internal_names.get(namespace_export_symbol).cloned()
+                } else {
+                  Some(find_new_name(
+                    &prefix,
+                    "namespaceObject",
+                    &module_used_names,
+                    escaped_identifiers
+                      .get(&readable_identifier)
+                      .expect("should have escaped identifier"),
+                  ))
+                };
+              if let Some(namespace_object_name) = namespace_object_name {
+                module_used_names.insert(namespace_object_name.clone());
+                info.namespace_object_name = Some(namespace_object_name.clone());
+                module_top_level_declarations.insert(namespace_object_name);
+              }
+
+              // Handle publicPathAutoReplace for perf
+              if let Some(info_auto) = info.public_path_auto_replace {
+                module_public_path_auto_replace = module_public_path_auto_replace || info_auto;
+              }
+            }
+
+            // Handle external type
+            ModuleInfo::External(info) => {
+              let external_name: Atom = find_new_name(
+                &prefix,
+                "",
+                &module_used_names,
                 escaped_identifiers
                   .get(&readable_identifier)
                   .expect("should have escaped identifier"),
               );
-              all_used_names.insert(new_name.clone());
-              info.internal_names.insert(name.clone(), new_name.clone());
-              top_level_declarations.insert(new_name.clone());
-
-              // Update source
-              let source = info.source.as_mut().expect("should have source");
-
-              for identifier in refs {
-                let span = identifier.id.span();
-                let low = span.real_lo();
-                let high = span.real_hi();
-                if identifier.shorthand {
-                  source.insert(high, &format!(": {new_name}"), None);
-                  continue;
-                }
-
-                source.replace(low, high, &new_name, None);
-              }
-            } else {
-              // Handle the case when the name is not already used
-              all_used_names.insert(name.clone());
-              info.internal_names.insert(name.clone(), name.clone());
-              top_level_declarations.insert(name.clone());
+              module_used_names.insert(external_name.clone());
+              info.name = Some(external_name.clone());
+              module_top_level_declarations.insert(external_name.clone());
             }
           }
-
-          // Iterate over imported symbols
-          if let Some(import_map) = &info.import_map {
-            for ((source, attr), imported_atoms) in import_map.iter() {
-              let entry = import_stmts.entry((source.clone(), attr.clone()));
-              let total_imported_atoms = entry.or_default();
-
-              for atom in imported_atoms {
-                // already import this symbol
-                if let Some(internal_atom) = total_imported_atoms.atoms.get(atom) {
-                  info
-                    .internal_names
-                    .insert(atom.clone(), internal_atom.clone());
-                  // if the imported symbol is exported, we rename the export as well
-                  if let Some(raw_export_map) = info.raw_export_map.as_mut()
-                    && raw_export_map.contains_key(atom)
-                  {
-                    raw_export_map.insert(atom.clone(), internal_atom.to_string());
-                  }
-                  continue;
-                }
-
-                let new_name = if all_used_names.contains(atom) {
-                  let new_name = if atom == "default" {
-                    find_new_name(
-                      "",
-                      &all_used_names,
-                      escaped_identifiers
-                        .get(source)
-                        .expect("should have escaped identifier"),
-                    )
-                  } else {
-                    find_new_name(
-                      escaped_names
-                        .get(atom.as_str())
-                        .expect("should have escaped name"),
-                      &all_used_names,
-                      escaped_identifiers
-                        .get(&readable_identifier)
-                        .expect("should have escaped identifier"),
-                    )
-                  };
-                  all_used_names.insert(new_name.clone());
-                  // if the imported symbol is exported, we rename the export as well
-                  if let Some(raw_export_map) = info.raw_export_map.as_mut()
-                    && raw_export_map.contains_key(atom)
-                  {
-                    raw_export_map.insert(atom.clone(), new_name.to_string());
-                  }
-                  new_name
-                } else {
-                  all_used_names.insert(atom.clone());
-                  atom.clone()
-                };
-
-                info.internal_names.insert(atom.clone(), new_name.clone());
-
-                if atom == "default" {
-                  total_imported_atoms.default_import = Some(new_name.clone());
-                } else {
-                  total_imported_atoms
-                    .atoms
-                    .insert(atom.clone(), new_name.clone());
-                }
-              }
-            }
+          // Handle additional logic based on module build meta
+          if exports_type != BuildMetaExportsType::Namespace {
+            let external_name_interop: Atom = find_new_name(
+              &prefix,
+              "namespaceObject",
+              &module_used_names,
+              escaped_identifiers
+                .get(&readable_identifier)
+                .expect("should have escaped identifier"),
+            );
+            module_used_names.insert(external_name_interop.clone());
+            info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
+            module_top_level_declarations.insert(external_name_interop.clone());
           }
 
-          // Handle the name passed through by namespace_export_symbol
-          if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
-            if namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
-              && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
-            {
-              let name =
-                Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-              all_used_names.insert(name.clone());
-              info
-                .internal_names
-                .insert(namespace_export_symbol.clone(), name.clone());
-              top_level_declarations.insert(name.clone());
-            }
+          if exports_type == BuildMetaExportsType::Default
+            && !matches!(default_object, BuildMetaDefaultObject::Redirect)
+          {
+            let external_name_interop: Atom = find_new_name(
+              &prefix,
+              "namespaceObject2",
+              &module_used_names,
+              escaped_identifiers
+                .get(&readable_identifier)
+                .expect("should have escaped identifier"),
+            );
+            module_used_names.insert(external_name_interop.clone());
+            info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
+            module_top_level_declarations.insert(external_name_interop.clone());
           }
 
-          // Handle namespaceObjectName for concatenated type
-          let namespace_object_name =
-            if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
-              info.internal_names.get(namespace_export_symbol).cloned()
-            } else {
-              Some(find_new_name(
-                "namespaceObject",
-                &all_used_names,
-                escaped_identifiers
-                  .get(&readable_identifier)
-                  .expect("should have escaped identifier"),
-              ))
-            };
-          if let Some(namespace_object_name) = namespace_object_name {
-            all_used_names.insert(namespace_object_name.clone());
-            info.namespace_object_name = Some(namespace_object_name.clone());
-            top_level_declarations.insert(namespace_object_name);
+          if matches!(
+            exports_type,
+            BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
+          ) {
+            let external_name_interop: Atom = find_new_name(
+              &prefix,
+              "default",
+              &module_used_names,
+              escaped_identifiers
+                .get(&readable_identifier)
+                .expect("should have escaped identifier"),
+            );
+            module_used_names.insert(external_name_interop.clone());
+            info.set_interop_default_access_name(Some(external_name_interop.clone()));
+            module_top_level_declarations.insert(external_name_interop.clone());
           }
-
-          // Handle publicPathAutoReplace for perf
-          if let Some(info_auto) = info.public_path_auto_replace {
-            public_path_auto_replace = public_path_auto_replace || info_auto;
-          }
-        }
-
-        // Handle external type
-        ModuleInfo::External(info) => {
-          let external_name: Atom = find_new_name(
-            "",
-            &all_used_names,
-            escaped_identifiers
-              .get(&readable_identifier)
-              .expect("should have escaped identifier"),
-          );
-          all_used_names.insert(external_name.clone());
-          info.name = Some(external_name.clone());
-          top_level_declarations.insert(external_name.clone());
-        }
-      }
-      // Handle additional logic based on module build meta
-      if exports_type != BuildMetaExportsType::Namespace {
-        let external_name_interop: Atom = find_new_name(
-          "namespaceObject",
-          &all_used_names,
-          escaped_identifiers
-            .get(&readable_identifier)
-            .expect("should have escaped identifier"),
+          (
+            module_used_names,
+            module_top_level_declarations,
+            module_public_path_auto_replace,
+          )
+        })
+        .reduce(
+          || (HashSet::default(), HashSet::default(), false),
+          |mut a, b| {
+            a.0.extend(b.0);
+            a.1.extend(b.1);
+            a.2 = a.2 || b.2;
+            a
+          },
         );
-        all_used_names.insert(external_name_interop.clone());
-        info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
-        top_level_declarations.insert(external_name_interop.clone());
-      }
 
-      if exports_type == BuildMetaExportsType::Default
-        && !matches!(default_object, BuildMetaDefaultObject::Redirect)
-      {
-        let external_name_interop: Atom = find_new_name(
-          "namespaceObject2",
-          &all_used_names,
-          escaped_identifiers
-            .get(&readable_identifier)
-            .expect("should have escaped identifier"),
-        );
-        all_used_names.insert(external_name_interop.clone());
-        info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
-        top_level_declarations.insert(external_name_interop.clone());
-      }
-
-      if matches!(
-        exports_type,
-        BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
-      ) {
-        let external_name_interop: Atom = find_new_name(
-          "default",
-          &all_used_names,
-          escaped_identifiers
-            .get(&readable_identifier)
-            .expect("should have escaped identifier"),
-        );
-        all_used_names.insert(external_name_interop.clone());
-        info.set_interop_default_access_name(Some(external_name_interop.clone()));
-        top_level_declarations.insert(external_name_interop.clone());
-      }
-    }
+    all_used_names.extend(module_used_names);
+    top_level_declarations.extend(module_top_level_declarations);
+    public_path_auto_replace |= module_public_path_auto_replace;
 
     // Find and replace references to modules
     // Splitting read and write to avoid violating rustc borrow rules
@@ -2641,7 +2721,12 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
     .collect()
 }
 
-pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {
+pub fn find_new_name(
+  prefix: &str,
+  old_name: &str,
+  used_names: &HashSet<Atom>,
+  extra_info: &Vec<String>,
+) -> Atom {
   let mut name = old_name.to_string();
 
   for info_part in extra_info {
@@ -2656,14 +2741,18 @@ pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Ve
         format!("_{name}")
       }
     );
-    let name_ident = Atom::from(to_identifier_with_escaped(name.clone()));
+    let name_ident = Atom::from(format!(
+      "{prefix}{}",
+      to_identifier_with_escaped(name.clone())
+    ));
     if !used_names.contains(&name_ident) {
       return name_ident;
     }
   }
 
   let mut i = 0;
-  let name_with_number_ident = to_identifier_with_escaped(format!("{name}_"));
+  let name_with_number_ident =
+    format!("{prefix}{}", to_identifier_with_escaped(format!("{name}_")));
   let mut name_with_number = format!("{}{}", name_with_number_ident, itoa!(i)).into();
   while used_names.contains(&name_with_number) {
     i += 1;

@@ -29,5 +29,5 @@ __webpack_require__.p = "";
 /************************************************************************/
 
 ;// CONCATENATED MODULE: ./h/file.png
-const file_namespaceObject = __webpack_require__.p + "fc90103f80b6abc6.png";
-export { file_namespaceObject as default };
+const _0_file_namespaceObject = __webpack_require__.p + "fc90103f80b6abc6.png";
+export { _0_file_namespaceObject as default };
