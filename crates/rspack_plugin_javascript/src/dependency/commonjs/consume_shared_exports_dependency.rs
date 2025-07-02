@@ -400,13 +400,13 @@ mod tests {
     // Test that we can create dependency ranges and verify basic structure
     let range = DependencyRange::new(0, 10);
     let value_range = Some(DependencyRange::new(15, 25));
-    let names = vec![Atom::from("calculateSum")];
+    let names = [Atom::from("calculateSum")];
     let shared_key = "my-shared-lib".to_string();
 
     assert_eq!(range.start, 0);
     assert_eq!(range.end, 10);
     assert!(value_range.is_some());
-    assert_eq!(value_range.unwrap().start, 15);
+    assert_eq!(value_range.as_ref().unwrap().start, 15);
     assert_eq!(names[0], Atom::from("calculateSum"));
     assert_eq!(shared_key, "my-shared-lib");
 
@@ -483,7 +483,7 @@ mod tests {
   #[test]
   fn test_nested_export_paths() {
     // Test nested export paths like utils.math.calculate
-    let names = vec![
+    let names = [
       Atom::from("utils"),
       Atom::from("math"),
       Atom::from("calculate"),
