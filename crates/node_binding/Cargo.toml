@@ -15,10 +15,14 @@ plugin        = ["rspack_binding_api/plugin"]
 sftrace-setup = ["rspack_binding_api/sftrace-setup"]
 
 [package.metadata.cargo-shear]
-# Adding napi-derive as a dependency to workaround an issue where `dts` will no longer work without it.
-ignored = ["napi-derive"]
+ignored = [
+  # Add napi-derive as a dependency to workaround an issue where `dts` will no longer work without it.
+  "napi-derive",
+  "parking_lot",
+]
 
 [dependencies]
+parking_lot        = { version = "0.12.3", features = ["nightly"] }
 rspack_binding_api = { workspace = true }
 
 napi-derive = { workspace = true, features = ["compat-mode"] }

@@ -4697,6 +4697,7 @@ name = "rspack_node"
 version = "0.2.0"
 dependencies = [
  "napi-derive",
+ "parking_lot",
  "rspack_binding_api",
  "rspack_binding_build",
 ]
