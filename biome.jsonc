@@ -14,6 +14,7 @@
 		"ignore": [
 			"packages/rspack/src/config/schema.check.js",
 			"packages/**/etc/**/*",
+			"packages/binding-builder-cli/scripts/banner.d.ts",
 			"crates/**/*",
 			"tests/**/*",
 			"packages/rspack-test-tools/template/**/*",
@@ -63,6 +64,7 @@
 			"packages/rspack-test-tools/template",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
 			"packages/rspack/module.d.ts",
+			"packages/binding-builder-cli/scripts/banner.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"

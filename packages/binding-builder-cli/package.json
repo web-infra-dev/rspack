@@ -1,0 +1,31 @@
+{
+  "name": "@rspack/binding-builder-cli",
+  "version": "1.4.2",
+  "description": "CLI for rspack binding builder",
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/binding-builder-cli"
+  },
+  "license": "MIT",
+  "bin": {
+    "rspack-builder": "./bin.js"
+  },
+  "files": [
+    "bin.js",
+    "scripts"
+  ],
+  "dependencies": {
+    "@napi-rs/cli": "3.0.0-alpha.88",
+    "debug": "^4.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

@@ -11,17 +11,17 @@
     "binding.d.ts"
   ],
   "scripts": {
-    "build:dev": "node scripts/build.js",
-    "build:debug": "node scripts/build.js --profile release-debug",
-    "build:ci": "node scripts/build.js --profile ci",
-    "build:profiling": "node scripts/build.js --profile profiling",
+    "build:dev": "rspack-builder",
+    "build:debug": "rspack-builder --profile release-debug",
+    "build:ci": "rspack-builder --profile ci",
+    "build:profiling": "rspack-builder --profile profiling",
     "build:release": "node scripts/build.js --profile release"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.88",
+    "@rspack/binding-builder-cli": "workspace:*",
     "@napi-rs/wasm-runtime": "^0.2.11",
     "emnapi": "^1.4.3",
     "typescript": "^5.8.3",
