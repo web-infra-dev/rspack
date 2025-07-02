@@ -600,5 +600,6 @@ pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;
+  error::export_symbols(exports, env)?;
   Ok(())
 }

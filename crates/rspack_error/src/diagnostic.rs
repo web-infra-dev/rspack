@@ -60,10 +60,21 @@ impl fmt::Display for RspackSeverity {
   }
 }
 
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+pub struct SourcePosition {
+  pub line: usize,
+  pub column: usize,
+}
+
 #[cacheable(with=Unsupported)]
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
   inner: Arc<miette::Error>,
+
+  // The following fields are only used to restore Diagnostic for Rspack.
+  // If the current Diagnostic originates from Rust, these fields will be None.
+  details: Option<String>,
   module_identifier: Option<Identifier>,
   loc: Option<DependencyLocation>,
   file: Option<Utf8PathBuf>,
@@ -78,10 +89,26 @@ impl From<Box<dyn miette::Diagnostic + Send + Sync>> for Diagnostic {
   }
 }
 
+impl From<Arc<miette::Error>> for Diagnostic {
+  fn from(value: Arc<miette::Error>) -> Self {
+    Self {
+      inner: value,
+      details: None,
+      module_identifier: None,
+      loc: None,
+      file: None,
+      hide_stack: None,
+      chunk: None,
+      stack: None,
+    }
+  }
+}
+
 impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
     Self {
       inner: Arc::new(value),
+      details: None,
       module_identifier: None,
       loc: None,
       file: None,
@@ -109,6 +136,7 @@ impl Diagnostic {
           .with_severity(miette::Severity::Warning),
       )
       .into(),
+      details: None,
       module_identifier: None,
       loc: None,
       file: None,
@@ -126,6 +154,7 @@ impl Diagnostic {
           .with_severity(miette::Severity::Error),
       )
       .into(),
+      details: None,
       module_identifier: None,
       loc: None,
       file: None,
@@ -139,16 +168,21 @@ impl Diagnostic {
 impl Diagnostic {
   pub fn render_report(&self, colored: bool) -> crate::Result<String> {
     let mut buf = String::new();
+    let theme = if colored {
+      GraphicalTheme::unicode()
+    } else {
+      GraphicalTheme::unicode_nocolor()
+    };
     let h = GraphicalReportHandler::new()
-      .with_theme(if colored {
-        GraphicalTheme::unicode()
-      } else {
-        GraphicalTheme::unicode_nocolor()
-      })
+      .with_theme(theme)
       .with_context_lines(2)
       .with_width(usize::MAX);
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
+  }
+
+  pub fn as_miette_error(&self) -> &Arc<miette::Error> {
+    &self.inner
   }
 
   pub fn message(&self) -> String {
@@ -214,13 +248,12 @@ impl Diagnostic {
   }
 
   pub fn details(&self) -> Option<String> {
-    let hide_stack = self.hide_stack.unwrap_or_default();
-    if hide_stack {
-      // TODO: generate detail content for typed error
-      self.stack()
-    } else {
-      None
-    }
+    self.details.clone()
+  }
+
+  pub fn with_details(mut self, details: Option<String>) -> Self {
+    self.details = details;
+    self
   }
 }
 
