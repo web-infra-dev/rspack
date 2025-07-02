@@ -47,6 +47,19 @@ impl From<JsFactoryMeta> for FactoryMeta {
   }
 }
 
+// ## Clarify Access Methods for napi Module to Rust Module
+// Primary access: Query compilation.module_graph using module_identifier
+// Fallback for unregistered modules: Access via raw pointer when modules aren't yet stored in compilation.module_graph (e.g., during loader execution phase)
+//
+// ## Clarify napi Module Lifecycle
+// Created when accessed via JavaScript API
+// Lifecycle ends upon triggering revoked_modules hook
+//
+// ## Behavior When napi Module Lifecycle Ends
+// When JavaScript API accesses napi module properties after lifecycle termination:
+// module_identifier query in compilation.module_graph returns undefined
+// Raw pointer stored in napi module becomes None
+// Throw an Error to the JavaScript side
 #[napi]
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
