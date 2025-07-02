@@ -1,22 +1,29 @@
 use std::collections::{hash_map::Entry, VecDeque};
 
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rayon::prelude::*;
+use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
 use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
   is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
-  UsageState,
+  ExtendedReferencedExport, GroupOptions, Inlinable, ModuleIdentifier, Plugin, ReferencedExport,
+  RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{queue::Queue, swc::join_atom};
+use rspack_util::swc::join_atom;
 use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
+}
+
+#[derive(Debug, Clone)]
+enum ProcessModuleReferencedExports {
+  Map(HashMap<String, ExtendedReferencedExport>),
+  ExtendRef(Vec<ExtendedReferencedExport>),
 }
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
@@ -42,9 +49,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .exports_info_module_map
         .insert(mgm.exports, mgm.module_identifier);
     }
-    let mut q = Queue::new();
+    let mut batch = Vec::new();
+
     let mg = &mut module_graph;
-    // debug_exports_info!(mg);
     for exports_info in self.exports_info_module_map.keys() {
       exports_info.set_has_use_info(mg);
     }
@@ -62,43 +69,65 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         global_runtime.get_or_insert_default().extend(runtime);
       }
       for &dep in entry.dependencies.iter() {
-        self.process_entry_dependency(dep, runtime.clone(), &mut q);
+        self.process_entry_dependency(dep, runtime.clone(), &mut batch);
       }
       for &dep in entry.include_dependencies.iter() {
-        self.process_entry_dependency(dep, runtime.clone(), &mut q);
+        self.process_entry_dependency(dep, runtime.clone(), &mut batch);
       }
     }
     for dep in self.compilation.global_entry.dependencies.clone() {
-      self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
+      self.process_entry_dependency(dep, global_runtime.clone(), &mut batch);
     }
     for dep in self.compilation.global_entry.include_dependencies.clone() {
-      self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
+      self.process_entry_dependency(dep, global_runtime.clone(), &mut batch);
     }
     self.compilation.entries = entries;
 
-    while let Some((module_id, runtime)) = q.dequeue() {
-      self.process_module(
-        ModuleOrAsyncDependenciesBlock::Module(module_id),
-        runtime,
-        false,
-        &mut q,
-      );
+    while !batch.is_empty() {
+      let modules = std::mem::take(&mut batch);
+      let module_graph = self.compilation.get_module_graph();
+      let module_graph_cache = &self.compilation.module_graph_cache_artifact;
+      let mut module_referenced_exports = modules
+        .into_par_iter()
+        .map(|(module_id, runtime)| {
+          self.collect_module_referenced_exports(
+            ModuleOrAsyncDependenciesBlock::Module(module_id),
+            runtime,
+            false,
+          )
+        })
+        .collect::<Vec<_>>();
+
+      for referenced_exports in module_referenced_exports {
+        for (module_id, referenced_exports, runtime, force_side_effects) in referenced_exports {
+          let normalized_refs = match referenced_exports {
+            ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
+            ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
+          };
+          self.process_referenced_module(
+            module_id,
+            normalized_refs,
+            runtime.clone(),
+            force_side_effects,
+            &mut batch,
+          );
+        }
+      }
     }
   }
 
-  fn process_module(
-    &mut self,
+  fn collect_module_referenced_exports(
+    &self,
     block_id: ModuleOrAsyncDependenciesBlock,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
-    q: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
-  ) {
-    #[derive(Debug, Clone)]
-    enum ProcessModuleReferencedExports {
-      Map(HashMap<String, ExtendedReferencedExport>),
-      ExtendRef(Vec<ExtendedReferencedExport>),
-    }
-
+  ) -> Vec<(
+    Identifier,
+    ProcessModuleReferencedExports,
+    Option<RuntimeSpec>,
+    bool,
+  )> {
+    let mut res = Vec::new();
     let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
     let mut queue = VecDeque::new();
     queue.push_back(block_id);
@@ -128,12 +157,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           && let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
         {
           let runtime = RuntimeSpec::from_entry_options(options);
-          self.process_module(
+          res.extend(self.collect_module_referenced_exports(
             ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(block_id),
             runtime,
             true,
-            q,
-          )
+          ));
         } else {
           queue.push_back(ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(
             block_id,
@@ -142,6 +170,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
       for dep_id in dep_id_list.into_iter() {
         let module_graph = self.compilation.get_module_graph();
+        let module_graph_cache = &self.compilation.module_graph_cache_artifact;
         let connection = module_graph.connection_by_dependency_id(&dep_id);
 
         let connection = if let Some(connection) = connection {
@@ -149,19 +178,19 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        let active_state = connection.active_state(&module_graph, runtime.as_ref());
+        let active_state =
+          connection.active_state(&module_graph, runtime.as_ref(), module_graph_cache);
 
         match active_state {
           ConnectionState::Active(false) => {
             continue;
           }
           ConnectionState::TransitiveOnly => {
-            self.process_module(
+            res.extend(self.collect_module_referenced_exports(
               ModuleOrAsyncDependenciesBlock::Module(*connection.module_identifier()),
               runtime.clone(),
               false,
-              q,
-            );
+            ));
             continue;
           }
           _ => {}
@@ -172,7 +201,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .expect("should have dep");
 
         let referenced_exports = if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(&module_graph, runtime.as_ref())
+          md.get_referenced_exports(&module_graph, module_graph_cache, runtime.as_ref())
         } else if dep.as_context_dependency().is_some() {
           vec![ExtendedReferencedExport::Array(vec![])]
         } else {
@@ -233,6 +262,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                         occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
                           name: std::mem::take(&mut export.name),
                           can_mangle: export.can_mangle && old_item.can_mangle,
+                          can_inline: export.can_inline && old_item.can_inline,
                         }));
                       }
                     }
@@ -252,33 +282,30 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
     }
 
-    for (module_id, referenced_exports) in map {
-      let normalized_refs = match referenced_exports {
-        ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
-        ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
-      };
-      self.process_referenced_module(
+    res.extend(map.into_iter().map(|(module_id, referenced_exports)| {
+      (
         module_id,
-        normalized_refs,
+        referenced_exports,
         runtime.clone(),
         force_side_effects,
-        q,
-      );
-    }
+      )
+    }));
+
+    res
   }
 
   fn process_entry_dependency(
     &mut self,
     dep: DependencyId,
     runtime: Option<RuntimeSpec>,
-    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
+    batch: &mut Vec<(Identifier, Option<RuntimeSpec>)>,
   ) {
     if let Some(module) = self
       .compilation
       .get_module_graph()
       .module_graph_module_by_dependency_id(&dep)
     {
-      self.process_referenced_module(module.module_identifier, vec![], runtime, true, queue);
+      self.process_referenced_module(module.module_identifier, vec![], runtime, true, batch);
     }
   }
 
@@ -288,7 +315,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     used_exports: Vec<ExtendedReferencedExport>,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
-    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
+    batch: &mut Vec<(Identifier, Option<RuntimeSpec>)>,
   ) {
     let mut module_graph = self.compilation.get_module_graph_mut();
     let mgm = module_graph
@@ -306,36 +333,42 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       if need_insert {
         let flag = mgm_exports_info.set_used_without_info(&mut module_graph, runtime.as_ref());
         if flag {
-          queue.enqueue((module_id, None));
+          batch.push((module_id, None));
         }
         return;
       }
 
       for used_export_info in used_exports {
-        let (can_mangle, used_exports) = match used_export_info {
-          ExtendedReferencedExport::Array(used_exports) => (true, used_exports),
-          ExtendedReferencedExport::Export(export) => (export.can_mangle, export.name),
+        let (used_exports, can_mangle, can_inline) = match used_export_info {
+          ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
+          ExtendedReferencedExport::Export(export) => {
+            (export.name, export.can_mangle, export.can_inline)
+          }
         };
         if used_exports.is_empty() {
           let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
 
           if flag {
-            queue.enqueue((module_id, runtime.clone()));
+            batch.push((module_id, runtime.clone()));
           }
         } else {
           let mut current_exports_info = mgm_exports_info;
           let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
-            let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
+            let export_info = current_exports_info
+              .get_export_info(&mut module_graph, &used_export)
+              .as_data_mut(&mut module_graph);
             if !can_mangle {
-              export_info.set_can_mangle_use(&mut module_graph, Some(false));
+              export_info.set_can_mangle_use(Some(false));
+            }
+            if !can_inline {
+              export_info.set_inlinable(Inlinable::NoByUse);
             }
             let last_one = i == len - 1;
             if !last_one {
-              let nested_info = export_info.get_nested_exports_info(&module_graph);
+              let nested_info = export_info.exports_info();
               if let Some(nested_info) = nested_info {
                 let changed_flag = export_info.set_used_conditionally(
-                  &mut module_graph,
                   Box::new(|used| used == &UsageState::Unused),
                   UsageState::OnlyPropertiesUsed,
                   runtime.as_ref(),
@@ -350,7 +383,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                       .cloned()
                   };
                   if let Some(current_module) = current_module {
-                    queue.enqueue((current_module, runtime.clone()));
+                    batch.push((current_module, runtime.clone()));
                   }
                 }
                 current_exports_info = nested_info;
@@ -359,7 +392,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             }
 
             let changed_flag = export_info.set_used_conditionally(
-              &mut module_graph,
               Box::new(|v| v != &UsageState::Used),
               UsageState::Used,
               runtime.as_ref(),
@@ -374,7 +406,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                   .cloned()
               };
               if let Some(current_module) = current_module {
-                queue.enqueue((current_module, runtime.clone()));
+                batch.push((current_module, runtime.clone()));
               }
             }
             break;
@@ -390,10 +422,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       {
         return;
       }
-      let changed_flag =
-        mgm_exports_info.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
+      let changed_flag = mgm_exports_info
+        .as_data_mut(&mut module_graph)
+        .set_used_for_side_effects_only(runtime.as_ref());
       if changed_flag {
-        queue.enqueue((module_id, runtime));
+        batch.push((module_id, runtime));
       }
     }
   }

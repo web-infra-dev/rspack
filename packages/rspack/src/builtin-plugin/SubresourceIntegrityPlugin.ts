@@ -3,15 +3,16 @@ import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import {
 	BuiltinPluginName,
-	type JsRspackError,
 	type RawIntegrityData,
-	type RawSubresourceIntegrityPluginOptions
+	type RawSubresourceIntegrityPluginOptions,
+	type RspackError
 } from "@rspack/binding";
 import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
-import { z } from "zod";
+import * as z from "zod/v4";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { CrossOriginLoading } from "../config/types";
+import { memoize } from "../util/memoize";
 import { validate } from "../util/validate";
 import { create } from "./base";
 
@@ -67,15 +68,18 @@ export type SubresourceIntegrityPluginOptions = {
 	enabled?: "auto" | boolean;
 };
 
-const hashFunctionSchema = z.enum(["sha256", "sha384", "sha512"]);
-const pluginOptionsSchema = z.object({
-	hashFuncNames: z
-		.tuple([hashFunctionSchema])
-		.rest(hashFunctionSchema)
-		.optional(),
-	htmlPlugin: z.string().or(z.literal(false)).optional(),
-	enabled: z.literal("auto").or(z.boolean()).optional()
-}) satisfies z.ZodType<SubresourceIntegrityPluginOptions>;
+const getPluginOptionsSchema = memoize(() => {
+	const hashFunctionSchema = z.enum(["sha256", "sha384", "sha512"]);
+
+	return z.object({
+		hashFuncNames: z
+			.tuple([hashFunctionSchema])
+			.rest(hashFunctionSchema)
+			.optional(),
+		htmlPlugin: z.string().or(z.literal(false)).optional(),
+		enabled: z.literal("auto").or(z.boolean()).optional()
+	}) satisfies z.ZodType<SubresourceIntegrityPluginOptions>;
+});
 
 export type NativeSubresourceIntegrityPluginOptions = Omit<
 	RawSubresourceIntegrityPluginOptions,
@@ -230,9 +234,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 		if (!this.isEnabled(compiler)) {
 			if (this.validateError) {
 				compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-					compilation.errors.push(
-						this.validateError as unknown as JsRspackError
-					);
+					compilation.errors.push(this.validateError as unknown as RspackError);
 				});
 			}
 			return;
@@ -322,7 +324,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 function validateSubresourceIntegrityPluginOptions(
 	options: SubresourceIntegrityPluginOptions
 ) {
-	validate(options, pluginOptionsSchema);
+	validate(options, getPluginOptionsSchema);
 }
 
 function isErrorWithCode<T extends Error>(obj: T): boolean {
@@ -333,16 +335,37 @@ function isErrorWithCode<T extends Error>(obj: T): boolean {
 	);
 }
 
+/**
+ * Get the `src` or `href` attribute of a tag if it is a script
+ * or link tag that needs SRI.
+ */
 function getTagSrc(tag: HtmlTagObject): string | undefined {
-	if (!["script", "link"].includes(tag.tagName) || !tag.attributes) {
+	if (!tag.attributes) {
 		return undefined;
 	}
-	if (typeof tag.attributes.href === "string") {
-		return tag.attributes.href;
-	}
-	if (typeof tag.attributes.src === "string") {
+
+	// Handle script tags with src attribute
+	if (tag.tagName === "script" && typeof tag.attributes.src === "string") {
 		return tag.attributes.src;
 	}
+
+	// Handle link tags that need SRI
+	if (tag.tagName === "link" && typeof tag.attributes.href === "string") {
+		const rel = tag.attributes.rel;
+		if (typeof rel !== "string") {
+			return undefined;
+		}
+
+		// Only process link tags that load actual resources
+		const needsSRI =
+			rel === "stylesheet" ||
+			rel === "modulepreload" ||
+			(rel === "preload" &&
+				(tag.attributes.as === "script" || tag.attributes.as === "style"));
+
+		return needsSRI ? tag.attributes.href : undefined;
+	}
+
 	return undefined;
 }
 

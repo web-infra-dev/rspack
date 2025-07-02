@@ -224,7 +224,7 @@ export class Compilation {
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
 		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
 		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
-		processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
+		processWarnings: liteTapable.SyncWaterfallHook<[WebpackError[]]>;
 		succeedModule: liteTapable.SyncHook<[Module], void>;
 		stillValidModule: liteTapable.SyncHook<[Module], void>;
 
@@ -782,22 +782,25 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						);
 					}
 				}
-				let trace: string[] | undefined;
-				switch (type) {
-					case LogType.warn:
-					case LogType.error:
-					case LogType.trace:
-						trace = cutOffLoaderExecution(new Error("Trace").stack!)
-							.split("\n")
-							.slice(3);
-						break;
-				}
+
 				const logEntry: LogEntry = {
 					time: Date.now(),
 					type,
 					args,
-					trace
+					get trace() {
+						switch (type) {
+							case LogType.warn:
+							case LogType.error:
+							case LogType.trace:
+								return cutOffLoaderExecution(new Error("Trace").stack!)
+									.split("\n")
+									.slice(3);
+							default:
+								return undefined;
+						}
+					}
 				};
+
 				if (this.hooks.log.call(logName, logEntry) === undefined) {
 					if (logEntry.type === LogType.profileEnd) {
 						if (typeof console.profileEnd === "function") {

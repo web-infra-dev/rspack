@@ -15,7 +15,7 @@ root
 
 ## Contributing
 
-This website is built with [Rspress](https://rspress.dev), the document content can be written using markdown or mdx syntax. You can refer to the [Rspress Website](https://rspress.dev) for detailed usage.
+This website is built with [Rspress](https://rspress.rs), the document content can be written using markdown or mdx syntax. You can refer to the [Rspress Website](https://rspress.rs) for detailed usage.
 
 The source code of Rspress can be found in [this folder](https://github.com/web-infra-dev/rspress).
 
@@ -31,7 +31,7 @@ If you have any problems using the Rspress, please create a new issue at [Rspres
 
 For images you use in the document, it's better to upload them to the [rspack-contrib/rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) repository, so the size of the current repository doesn't get too big.
 
-After you upload the images there, they will be automatically deployed under the <https://assets.rspack.dev/>.
+After you upload the images there, they will be automatically deployed under the <https://assets.rspack.rs/>.
 
 ### Install dependencies
 

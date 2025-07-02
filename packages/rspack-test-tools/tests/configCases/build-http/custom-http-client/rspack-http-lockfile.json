@@ -1,16 +1,16 @@
 {
   "version": 1,
   "entries": {
-    "http://test.rspack.dev/regex-module.js": {
-      "resolved": "http://test.rspack.dev/regex-module.js",
-      "integrity": "sha512-ZVAn+yi08gqdf+C4r9GnMG6VjHh/C78Dxz/hcLWnWi8n6GRQuyCmKQpMzm2hULI29yr8uu+jTaCfmP9ReNLzIQ==",
+    "http://test.rspack.rs/allowed-module.js": {
+      "resolved": "http://test.rspack.rs/allowed-module.js",
+      "integrity": "sha512-dR8lAM8R5IZDjP7VAvxO3eKJWcudeivg/hP1+duuc6SsL/wdeuMS9dn6tVYwphfzP5b23AuSDjowigl64q/wMw==",
       "content_type": "application/javascript",
       "valid_until": 0,
       "etag": null
     },
-    "http://test.rspack.dev/allowed-module.js": {
-      "resolved": "http://test.rspack.dev/allowed-module.js",
-      "integrity": "sha512-dR8lAM8R5IZDjP7VAvxO3eKJWcudeivg/hP1+duuc6SsL/wdeuMS9dn6tVYwphfzP5b23AuSDjowigl64q/wMw==",
+    "http://test.rspack.rs/regex-module.js": {
+      "resolved": "http://test.rspack.rs/regex-module.js",
+      "integrity": "sha512-ZVAn+yi08gqdf+C4r9GnMG6VjHh/C78Dxz/hcLWnWi8n6GRQuyCmKQpMzm2hULI29yr8uu+jTaCfmP9ReNLzIQ==",
       "content_type": "application/javascript",
       "valid_until": 0,
       "etag": null

@@ -22,12 +22,12 @@ pub struct DllEntryDependency {
 }
 
 impl DllEntryDependency {
-  pub fn new(dll_entry_plugin_optinos: &DllEntryPluginOptions) -> Self {
+  pub fn new(dll_entry_plugin_options: &DllEntryPluginOptions) -> Self {
     let DllEntryPluginOptions {
       context,
       entries,
       name,
-    } = dll_entry_plugin_optinos.clone();
+    } = dll_entry_plugin_options.clone();
 
     Self {
       context,

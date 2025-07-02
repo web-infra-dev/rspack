@@ -12,6 +12,7 @@ import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
 import type { HttpUriPluginOptions } from "../builtin-plugin";
+import type WebpackError from "../lib/WebpackError";
 import type {
 	Amd,
 	AssetModuleFilename,
@@ -94,17 +95,29 @@ export const getNormalizedRspackOptions = (
 	config: RspackOptions
 ): RspackOptionsNormalized => {
 	return {
-		ignoreWarnings:
-			config.ignoreWarnings !== undefined
-				? config.ignoreWarnings.map(ignore => {
-						if (typeof ignore === "function") {
-							return ignore;
+		ignoreWarnings: config.ignoreWarnings
+			? config.ignoreWarnings.map(ignore => {
+					if (typeof ignore === "function") return ignore;
+					const i = ignore instanceof RegExp ? { message: ignore } : ignore;
+					return (warning: WebpackError) => {
+						if (!i.message && !i.module && !i.file) return false;
+						if (i.message && !i.message.test(warning.message)) {
+							return false;
 						}
-						return (warning: Error) => {
-							return ignore.test(warning.message);
-						};
-					})
-				: undefined,
+						if (
+							i.module &&
+							(!warning.module ||
+								!i.module.test(warning.module.readableIdentifier()))
+						) {
+							return false;
+						}
+						if (i.file && (!warning.file || !i.file.test(warning.file))) {
+							return false;
+						}
+						return true;
+					};
+				})
+			: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
 		context: config.context,
@@ -354,7 +367,8 @@ export const getNormalizedRspackOptions = (
 			),
 			parallelCodeSplitting: experiments.parallelCodeSplitting,
 			buildHttp: experiments.buildHttp,
-			parallelLoader: experiments.parallelLoader
+			parallelLoader: experiments.parallelLoader,
+			useInputFileSystem: experiments.useInputFileSystem
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -440,30 +454,28 @@ const getNormalizedIncrementalOptions = (
 	incremental: IncrementalPresets | Incremental
 ): false | Incremental => {
 	if (incremental === false || incremental === "none") return false;
-	if (incremental === "safe") return { make: true, emitAssets: true };
-	const advanceSilent = {
-		silent: true,
-		make: true,
-		inferAsyncModules: true,
-		providedExports: true,
-		dependenciesDiagnostics: true,
-		sideEffects: true,
-		buildChunkGraph: true,
-		moduleIds: true,
-		chunkIds: true,
-		modulesHashes: true,
-		modulesCodegen: true,
-		modulesRuntimeRequirements: true,
-		chunksRuntimeRequirements: true,
-		chunksHashes: true,
-		chunksRender: true,
-		emitAssets: true
-	};
-	if (incremental === true || incremental === "advance-silent")
-		return advanceSilent;
+	if (incremental === "safe")
+		return {
+			silent: true,
+			make: true,
+			inferAsyncModules: false,
+			providedExports: false,
+			dependenciesDiagnostics: false,
+			sideEffects: false,
+			buildChunkGraph: false,
+			moduleIds: false,
+			chunkIds: false,
+			modulesHashes: false,
+			modulesCodegen: false,
+			modulesRuntimeRequirements: false,
+			chunksRuntimeRequirements: false,
+			chunksHashes: false,
+			chunksRender: false,
+			emitAssets: true
+		};
+	if (incremental === true || incremental === "advance-silent") return {};
 	if (incremental === "advance") {
-		advanceSilent.silent = false;
-		return advanceSilent;
+		return { silent: false };
 	}
 	return incremental;
 };
@@ -628,10 +640,14 @@ export interface ExperimentsNormalized {
 	rspackFuture?: RspackFutureOptions;
 	buildHttp?: HttpUriPluginOptions;
 	parallelLoader?: boolean;
+	useInputFileSystem?: false | RegExp[];
+	inlineConst?: boolean;
+	inlineEnum?: boolean;
+	typeReexportsPresence?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((
-	warning: Error,
+	warning: WebpackError,
 	compilation: Compilation
 ) => boolean)[];
 

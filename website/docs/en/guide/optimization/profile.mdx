@@ -4,7 +4,7 @@ This chapter introduces some common performance bottlenecks and performance prof
 
 ## Analysis with Rsdoctor
 
-[Rsdoctor](https://rsdoctor.dev/) is a build analyzer that can visually display the build process, such as compilation time, code changes before and after compilation, module reference relationships, duplicate modules, etc.
+[Rsdoctor](https://rsdoctor.rs/) is a build analyzer that can visually display the build process, such as compilation time, code changes before and after compilation, module reference relationships, duplicate modules, etc.
 
 Please refer to [Use Rsdoctor](/guide/optimization/use-rsdoctor) for more information.
 
@@ -37,8 +37,6 @@ If you need to use some Babel plugins for custom transformations, configure babe
 ### postcss-loader
 
 [postcss-loader](https://github.com/postcss/postcss-loader) compiles CSS code based on PostCSS, which is often used with PostCSS plugins to downgrade CSS syntax, add vendor prefixes, etc. You can replace PostCSS with the faster Lightning CSS by using Rspack's built-in [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader).
-
-If your project uses the PostCSS plugin for Tailwind CSS v3, you may need to wait for the release of Tailwind CSS v4, which is based on Rust and Lightning CSS and will provide significant performance improvements. For more details, see [Open-sourcing our progress on Tailwind CSS v4.0](https://tailwindcss.com/blog/tailwindcss-v4-alpha).
 
 ### terser-webpack-plugin
 

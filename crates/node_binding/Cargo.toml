@@ -11,108 +11,17 @@ version           = "0.2.0"
 crate-type = ["cdylib"]
 
 [features]
-plugin = ["rspack_loader_swc/plugin"]
+plugin        = ["rspack_binding_api/plugin"]
+sftrace-setup = ["rspack_binding_api/sftrace-setup"]
+
+[package.metadata.cargo-shear]
+# Adding napi-derive as a dependency to workaround an issue where `dts` will no longer work without it.
+ignored = ["napi-derive"]
 
 [dependencies]
-anyhow                   = { workspace = true }
-ropey                    = { workspace = true }
-rspack_allocator         = { workspace = true }
-rspack_collections       = { workspace = true }
-rspack_core              = { workspace = true, features = ["napi"] }
-rspack_error             = { workspace = true }
-rspack_fs                = { workspace = true }
-rspack_hash              = { workspace = true }
-rspack_hook              = { workspace = true }
-rspack_napi              = { workspace = true }
-rspack_paths             = { workspace = true }
-rspack_plugin_html       = { workspace = true }
-rspack_plugin_javascript = { workspace = true }
-rspack_plugin_rsdoctor   = { workspace = true }
-rspack_plugin_rstest     = { workspace = true }
-rspack_plugin_runtime    = { workspace = true }
-rspack_util              = { workspace = true }
+rspack_binding_api = { workspace = true }
 
-rspack_tracing = { workspace = true }
-
-async-trait        = { workspace = true }
-cow-utils          = { workspace = true }
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true }
-
-napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
 
-color-backtrace = "0.7.0"
-
-derive_more                            = { workspace = true, features = ["debug"] }
-futures                                = { workspace = true }
-glob                                   = { workspace = true }
-heck                                   = { workspace = true }
-once_cell                              = { workspace = true }
-rspack_browserslist                    = { workspace = true }
-rspack_cacheable                       = { workspace = true }
-rspack_ids                             = { workspace = true }
-rspack_javascript_compiler             = { workspace = true }
-rspack_loader_lightningcss             = { workspace = true }
-rspack_loader_preact_refresh           = { workspace = true }
-rspack_loader_react_refresh            = { workspace = true }
-rspack_loader_runner                   = { workspace = true }
-rspack_loader_swc                      = { workspace = true }
-rspack_loader_testing                  = { workspace = true }
-rspack_macros                          = { workspace = true }
-rspack_napi_macros                     = { workspace = true }
-rspack_plugin_asset                    = { workspace = true }
-rspack_plugin_banner                   = { workspace = true }
-rspack_plugin_circular_dependencies    = { workspace = true }
-rspack_plugin_context_replacement      = { workspace = true }
-rspack_plugin_copy                     = { workspace = true }
-rspack_plugin_css                      = { workspace = true }
-rspack_plugin_css_chunking             = { workspace = true }
-rspack_plugin_devtool                  = { workspace = true }
-rspack_plugin_dll                      = { workspace = true }
-rspack_plugin_dynamic_entry            = { workspace = true }
-rspack_plugin_ensure_chunk_conditions  = { workspace = true }
-rspack_plugin_entry                    = { workspace = true }
-rspack_plugin_externals                = { workspace = true }
-rspack_plugin_extract_css              = { workspace = true }
-rspack_plugin_hmr                      = { workspace = true }
-rspack_plugin_ignore                   = { workspace = true }
-rspack_plugin_json                     = { workspace = true }
-rspack_plugin_lazy_compilation         = { workspace = true }
-rspack_plugin_library                  = { workspace = true }
-rspack_plugin_lightning_css_minimizer  = { workspace = true }
-rspack_plugin_limit_chunk_count        = { workspace = true }
-rspack_plugin_merge_duplicate_chunks   = { workspace = true }
-rspack_plugin_mf                       = { workspace = true }
-rspack_plugin_module_info_header       = { workspace = true }
-rspack_plugin_no_emit_on_errors        = { workspace = true }
-rspack_plugin_progress                 = { workspace = true }
-rspack_plugin_real_content_hash        = { workspace = true }
-rspack_plugin_remove_duplicate_modules = { workspace = true }
-rspack_plugin_remove_empty_chunks      = { workspace = true }
-rspack_plugin_runtime_chunk            = { workspace = true }
-rspack_plugin_schemes                  = { workspace = true }
-rspack_plugin_size_limits              = { workspace = true }
-rspack_plugin_split_chunks             = { workspace = true }
-rspack_plugin_sri                      = { workspace = true }
-rspack_plugin_swc_js_minimizer         = { workspace = true }
-rspack_plugin_warn_sensitive_module    = { workspace = true }
-rspack_plugin_wasm                     = { workspace = true }
-rspack_plugin_web_worker_template      = { workspace = true }
-rspack_plugin_worker                   = { workspace = true }
-rspack_regex                           = { workspace = true }
-rustc-hash                             = { workspace = true }
-serde                                  = { workspace = true }
-serde_json                             = { workspace = true }
-swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
-ustr                                   = { workspace = true }
-
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["parking_lot"] }
-
-rspack_tracing = { workspace = true }
-
-
 [build-dependencies]
-napi-build = { workspace = true }
+rspack_binding_build = { workspace = true }

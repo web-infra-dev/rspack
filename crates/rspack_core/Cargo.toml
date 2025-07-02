@@ -42,6 +42,7 @@ rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
 rspack_loader_runner = { workspace = true }
+rspack_location = { workspace = true }
 rspack_macros = { workspace = true }
 rspack_napi = { workspace = true, optional = true }
 rspack_paths = { workspace = true }
@@ -49,6 +50,7 @@ rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
 rspack_sources = { workspace = true }
 rspack_storage = { workspace = true }
+rspack_tasks = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 scopeguard = { workspace = true }

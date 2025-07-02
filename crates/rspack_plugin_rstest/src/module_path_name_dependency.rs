@@ -2,8 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyTemplate,
   DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  NormalInitFragment, TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::json_stringify;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq)]
@@ -40,7 +41,7 @@ pub struct ModulePathNameDependencyTemplate;
 
 impl ModulePathNameDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::Rstest)
+    DependencyTemplateType::Dependency(DependencyType::RstestModulePath)
   }
 }
 
@@ -60,7 +61,6 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
     let m = module.as_normal_module();
     if let Some(m) = m {
       let resource_path = &m.resource_resolved_data().resource_path;
-      let context = &m.get_context();
 
       let dep = dep
         .as_any()
@@ -70,7 +70,10 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
       if dep.r#type == NameType::FileName {
         if let Some(resource_path) = resource_path {
           let init = NormalInitFragment::new(
-            format!("const __filename = '{}';\n", resource_path),
+            format!(
+              "const __filename = {};\n",
+              json_stringify(&resource_path.as_std_path())
+            ),
             InitFragmentStage::StageConstants,
             0,
             InitFragmentKey::Const(format!("retest __filename {}", m.id())),
@@ -80,16 +83,23 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
           init_fragments.push(init.boxed());
         }
       } else if dep.r#type == NameType::DirName {
-        if let Some(context) = context {
-          let init = NormalInitFragment::new(
-            format!("const __dirname = '{}';\n", context),
-            InitFragmentStage::StageConstants,
-            0,
-            InitFragmentKey::Const(format!("retest __dirname {}", m.id())),
-            None,
-          );
+        if let Some(resource_path) = resource_path {
+          if let Some(parent_path) = resource_path.parent() {
+            // If the parent path is None, we use an empty string
+            // to avoid issues with the path being undefined.
+            let init = NormalInitFragment::new(
+              format!(
+                "const __dirname = {};\n",
+                json_stringify(parent_path.as_std_path())
+              ),
+              InitFragmentStage::StageConstants,
+              0,
+              InitFragmentKey::Const(format!("retest __dirname {}", m.id())),
+              None,
+            );
 
-          init_fragments.push(init.boxed());
+            init_fragments.push(init.boxed());
+          }
         }
       }
     }

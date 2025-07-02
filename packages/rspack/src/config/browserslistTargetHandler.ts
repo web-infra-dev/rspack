@@ -8,78 +8,11 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import path from "node:path";
 import type {
 	ApiTargetProperties,
 	EcmaTargetProperties,
 	PlatformTargetProperties
 } from "./target";
-
-// [[C:]/path/to/config][:env]
-const inputRx = /^(?:((?:[A-Z]:)?[/\\].*?))?(?::(.+?))?$/i;
-
-type BrowserslistHandlerConfig = {
-	configPath?: string;
-	env?: string;
-	query?: string;
-};
-
-/**
- * @param input input string
- * @param context the context directory
- * @returns config
- */
-const parse = (
-	input: string | null | undefined,
-	context: string
-): BrowserslistHandlerConfig => {
-	if (!input) {
-		return {};
-	}
-
-	if (path.isAbsolute(input)) {
-		const [, configPath, env] = inputRx.exec(input) || [];
-		return { configPath, env };
-	}
-
-	const browserslist = require("browserslist");
-
-	const config = browserslist.findConfig(context);
-
-	if (config && Object.keys(config).includes(input)) {
-		return { env: input };
-	}
-
-	return { query: input };
-};
-
-/**
- * @param input input string
- * @param context the context directory
- * @returns selected browsers
- */
-export const load = (
-	input: string | null | undefined,
-	context: string
-): string[] | undefined => {
-	const browserslist = require("browserslist");
-	const { configPath, env, query } = parse(input, context);
-
-	// if a query is specified, then use it, else
-	// if a path to a config is specified then load it, else
-	// find a nearest config
-	const config = query
-		? query
-		: configPath
-			? browserslist.loadConfig({
-					config: configPath,
-					env
-				})
-			: browserslist.loadConfig({ path: context, env });
-
-	if (!config) return;
-	return browserslist(config);
-};
 
 /**
  * @param browsers supported browsers list

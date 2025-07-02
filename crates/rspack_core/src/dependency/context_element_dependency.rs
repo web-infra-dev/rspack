@@ -12,7 +12,8 @@ use crate::{
   create_exports_object_referenced, AsContextDependency, AsDependencyCodeGeneration, Context,
   ContextMode, ContextNameSpaceObject, ContextOptions, ContextTypePrefix, Dependency,
   DependencyCategory, DependencyId, DependencyType, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, ModuleDependency, ModuleGraph, ModuleLayer, ReferencedExport, RuntimeSpec,
+  ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  ReferencedExport, RuntimeSpec,
 };
 
 #[cacheable]
@@ -81,6 +82,7 @@ impl Dependency for ContextElementDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
@@ -105,7 +107,7 @@ impl Dependency for ContextElementDependency {
         let exports_type = is_strict.and_then(|is_strict| {
           module_graph
             .get_module_by_dependency_id(&self.id)
-            .map(|m| m.get_exports_type(module_graph, is_strict))
+            .map(|m| m.get_exports_type(module_graph, module_graph_cache, is_strict))
         });
 
         if let Some(exports_type) = exports_type
@@ -121,7 +123,11 @@ impl Dependency for ContextElementDependency {
       referenced_exports
         .iter()
         .map(|export| {
-          ExtendedReferencedExport::Export(ReferencedExport::new(vec![export.clone()], false))
+          ExtendedReferencedExport::Export(ReferencedExport::new(
+            vec![export.clone()],
+            false,
+            false,
+          ))
         })
         .collect_vec()
     } else {

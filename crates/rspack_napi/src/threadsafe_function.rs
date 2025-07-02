@@ -8,7 +8,7 @@ use napi::{
   bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue},
   sys::{self, napi_env},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env, JsValue, Unknown, ValueType,
+  Env, JsValue, Status, Unknown, ValueType,
 };
 use oneshot::Receiver;
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
@@ -20,7 +20,7 @@ type ErrorResolver = dyn FnOnce(Env);
 static ERROR_RESOLVER: OnceLock<JsCallback<Box<ErrorResolver>>> = OnceLock::new();
 
 pub struct ThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
-  inner: Arc<RawThreadsafeFunction<T, Unknown<'static>, T, false, true>>,
+  inner: Arc<RawThreadsafeFunction<T, Unknown<'static>, T, Status, false, true>>,
   env: napi_env,
   _data: PhantomData<R>,
 }
@@ -47,7 +47,7 @@ unsafe impl<T: 'static + JsValuesTupleIntoVec, R> Send for ThreadsafeFunction<T,
 impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<T, R> {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
     let inner = unsafe {
-      <RawThreadsafeFunction<T, Unknown, T, false, true> as FromNapiValue>::from_napi_value(
+      <RawThreadsafeFunction<T, Unknown, T, Status, false, true> as FromNapiValue>::from_napi_value(
         env, napi_val,
       )
     }?;

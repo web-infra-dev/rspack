@@ -38,6 +38,7 @@ export type {
 	StatsError,
 	StatsModule
 } from "./Stats";
+export { StatsErrorCode } from "./stats/statsFactoryUtils";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
 export {
@@ -107,7 +108,6 @@ export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
 export { ProvidePlugin } from "./builtin-plugin";
 export { DefinePlugin } from "./builtin-plugin";
 export { ProgressPlugin } from "./builtin-plugin";
-export { RstestPlugin } from "./builtin-plugin";
 export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
@@ -209,6 +209,8 @@ import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
 import { RsdoctorPlugin } from "./builtin-plugin";
+import { RstestPlugin } from "./builtin-plugin";
+import { RslibPlugin } from "./builtin-plugin";
 import { CssChunkingPlugin } from "./builtin-plugin";
 
 interface Optimize {
@@ -330,30 +332,40 @@ export type {
 export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
-import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
+import {
+	cleanupGlobalTrace,
+	registerGlobalTrace,
+	syncTraceEvent
+} from "@rspack/binding";
+import { createNativePlugin } from "./builtin-plugin";
 import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
-import { minify, transform } from "./swc";
+import { minify, minifySync, transform, transformSync } from "./swc";
 
 interface Experiments {
 	globalTrace: {
 		register: (
 			filter: string,
-			layer: "chrome" | "logger",
+			layer: "logger" | "perfetto",
 			output: string
 		) => Promise<void>;
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
+	RstestPlugin: typeof RstestPlugin;
+	RslibPlugin: typeof RslibPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
 	swc: {
 		transform: typeof transform;
 		minify: typeof minify;
+		transformSync: typeof transformSync;
+		minifySync: typeof minifySync;
 	};
 	CssChunkingPlugin: typeof CssChunkingPlugin;
+	createNativePlugin: typeof createNativePlugin;
 }
 
 export const experiments: Experiments = {
@@ -365,10 +377,9 @@ export const experiments: Experiments = {
 			JavaScriptTracer.initCpuProfiler();
 		},
 		async cleanup() {
-			// make sure run cleanupGlobalTrace first so we can safely append Node.js trace to it otherwise it will overlap
-			cleanupGlobalTrace();
-
 			await JavaScriptTracer.cleanupJavaScriptTrace();
+			await syncTraceEvent(JavaScriptTracer.events);
+			cleanupGlobalTrace();
 		}
 	},
 	RemoveDuplicateModulesPlugin,
@@ -378,11 +389,26 @@ export const experiments: Experiments = {
 	 * @internal
 	 */
 	RsdoctorPlugin,
+	/**
+	 * Note: This plugin is unstable yet
+	 *
+	 * @internal
+	 */
+	RstestPlugin,
+	/**
+	 * Note: This plugin is unstable yet
+	 *
+	 * @internal
+	 */
+	RslibPlugin,
 	SubresourceIntegrityPlugin,
 	lazyCompilationMiddleware,
 	swc: {
 		minify,
-		transform
+		transform,
+		minifySync,
+		transformSync
 	},
-	CssChunkingPlugin
+	CssChunkingPlugin,
+	createNativePlugin
 };

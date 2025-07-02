@@ -218,9 +218,9 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> Stri
         )
       })
       .join(",");
-    format!("{{ {} }}[chunkId]", content)
+    format!("{{ {content} }}[chunkId]")
   };
-  format!("if ({}) return {};", condition, filename)
+  format!("if ({condition}) return {filename};")
 }
 
 fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {

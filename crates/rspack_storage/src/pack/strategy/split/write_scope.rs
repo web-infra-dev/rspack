@@ -407,9 +407,9 @@ mod tests {
     assert_eq!(contents.len(), end);
     assert_eq!(
       *contents
-        .get(format!("{:0>4}_key", start).as_bytes())
+        .get(format!("{start:0>4}_key").as_bytes())
         .expect("should have key"),
-      format!("{:0>4}_val", start).as_bytes()
+      format!("{start:0>4}_val").as_bytes()
     );
     assert_eq!(
       *contents
@@ -439,9 +439,9 @@ mod tests {
     assert_eq!(contents.len(), pre_item_count + end - start);
     assert_eq!(
       *contents
-        .get(format!("{:0>20}_key", start).as_bytes())
+        .get(format!("{start:0>20}_key").as_bytes())
         .expect("should have key"),
-      format!("{:0>20}_val", start).as_bytes()
+      format!("{start:0>20}_val").as_bytes()
     );
     assert_eq!(
       *contents

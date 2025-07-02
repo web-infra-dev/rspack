@@ -1,13 +1,40 @@
 const path = require("node:path");
-
 const root = path.resolve(__dirname, "../../");
+
+const setupFilesAfterEnv = [
+	"@rspack/test-tools/setup-expect",
+	"@rspack/test-tools/setup-env"
+];
+
+/** @type {import('jest').Config} */
+const wasmConfig = process.env.WASM && {
+	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
+	testPathIgnorePatterns: [
+		// Skip because they reply on snapshots
+		"Diagnostics.test.js",
+		"Error.test.js",
+		"StatsAPI.test.js",
+		"StatsOutput.test.js",
+		// Skip temporarily and should investigate in the future
+		"Defaults.test.js",
+		"Cache.test.js",
+		"Compiler.test.js",
+		"Serial.test.js",
+		"Incremental-node.test.js",
+		"Incremental-watch-webpack.test.js",
+		"Incremental-watch.test.js",
+		"Incremental-web.test.js",
+		"Incremental-webworker.test.js"
+	],
+	maxWorkers: 1,
+	maxConcurrency: 1,
+	forceExit: true
+};
+
 /** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
-	setupFilesAfterEnv: [
-		"@rspack/test-tools/setup-expect",
-		"@rspack/test-tools/setup-env"
-	],
+	setupFilesAfterEnv,
 	reporters: [
 		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
 		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
@@ -43,7 +70,8 @@ const config = {
 					]
 				: undefined,
 		printLogger: process.argv.includes("--verbose")
-	}
+	},
+	...(wasmConfig || {})
 };
 
 module.exports = config;

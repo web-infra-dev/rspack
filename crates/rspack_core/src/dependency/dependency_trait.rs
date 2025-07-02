@@ -4,15 +4,17 @@ use dyn_clone::{clone_trait_object, DynClone};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
+use rspack_location::DependencyLocation;
 use rspack_util::{atom::Atom, ext::AsAny};
 
 use super::{
   dependency_template::AsDependencyCodeGeneration, module_dependency::*, DependencyCategory,
-  DependencyId, DependencyLocation, DependencyRange, DependencyType, ExportsSpec,
+  DependencyId, DependencyRange, DependencyType, ExportsSpec,
 };
 use crate::{
   create_exports_object_referenced, AsContextDependency, ConnectionState, Context,
-  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleLayer, RuntimeSpec, UsedByExports,
+  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  RuntimeSpec, UsedByExports,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -57,7 +59,11 @@ pub trait Dependency:
     None
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+  fn get_exports(
+    &self,
+    _mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<ExportsSpec> {
     None
   }
 
@@ -66,6 +72,7 @@ pub trait Dependency:
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -95,13 +102,18 @@ pub trait Dependency:
     None
   }
 
-  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+  fn get_diagnostics(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<Vec<Diagnostic>> {
     None
   }
 
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     create_exports_object_referenced()

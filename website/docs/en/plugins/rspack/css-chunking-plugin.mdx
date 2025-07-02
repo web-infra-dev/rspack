@@ -1,0 +1,116 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '@components/WebpackLicense';
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CssChunkingPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
+
+`CssChunkingPlugin` is a plugin specifically designed for CSS code splitting. It ensures that the loading order of styles matches the import order in your source code, avoiding UI issues caused by incorrect CSS order.
+
+> This plugin is inspired by Next.js's [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) feature, thanks to the Next.js team for their innovation.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.experiments.CssChunkingPlugin({
+      // ...options
+    }),
+  ],
+};
+```
+
+:::tip
+After enabling CssChunkingPlugin, SplitChunksPlugin will no longer process CSS modules.
+This means that options like `optimization.splitChunks` will no longer handle CSS modules, and all CSS module code splitting logic will be handled entirely by CssChunkingPlugin.
+:::
+
+## Options
+
+### strict
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Whether to strictly preserve the import order of CSS modules.
+
+### minSize
+
+The minimum size (in bytes) for a generated chunk.
+
+### maxSize
+
+The maximum size (in bytes) for a generated chunk. Chunks larger than maxSize will be split into smaller parts, each with a size of at least minSize.
+
+## Mode comparison
+
+### Normal mode (strict: false, default)
+
+```js
+new rspack.experiments.CssChunkingPlugin({
+  strict: false,
+});
+```
+
+- If CSS modules are imported in different orders throughout the project, they are considered to have no dependencies between them.
+- Allow merging independent CSS modules into the same chunk to reduce the number of chunks.
+
+### Strict mode (strict: true)
+
+```js
+new rspack.experiments.CssChunkingPlugin({
+  strict: true,
+});
+```
+
+- Strictly ensures that the execution order of CSS modules matches the import order in the source code.
+
+### Example
+
+`a.css` and `b.css` are imported in `foo.js` and `bar.js` with different sequences:
+
+```js
+// foo.js
+import './a.css';
+import './b.css';
+
+// bar.js
+import './b.css';
+import './a.css';
+```
+
+Regular Mode (strict: false): Considers `a.css` and `b.css` to have no dependency relationship and doesn't enforce execution order, thus merging them into the same chunk.
+
+Strict Mode (strict: true): Strictly maintains execution order consistent with import sequence, therefore packaging `a.css` and `b.css` into separate chunks
+
+## Differences from SplitChunksPlugin
+
+`SplitChunksPlugin` does not consider the import order of modules when splitting code.
+For JavaScript modules, this is not an issue because execution order is determined at runtime via function calls.
+
+However, for CSS modules, the execution order is entirely determined by their order in the output files and cannot be controlled at runtime. If the order changes, it may cause style issues.
+
+For example, importing the following CSS modules:
+
+```js
+import './a.css';
+import './b.css';
+import './c.css';
+```
+
+`SplitChunksPlugin` may split them into the following chunks to satisfy `maxSize` or other constraints:
+
+```
+chunk-1: b.css
+chunk-2: a.css, c.css  // may be split due to large size
+```
+
+This results in the execution order being b.css → a.css → c.css, which violates the original import order and may cause style errors.
+
+`CssChunkingPlugin` first splits all CSS modules, then determines which can be merged based on the import order in the source code. Modules that cannot be merged are split into separate chunks to ensure style correctness.
+
+:::tip
+Because CssChunkingPlugin prioritizes preserving style execution order, it may split more chunks than SplitChunksPlugin.
+:::

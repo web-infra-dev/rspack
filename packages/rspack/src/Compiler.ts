@@ -19,6 +19,7 @@ import type { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import {
+	ThreadsafeInputNodeFS,
 	ThreadsafeIntermediateNodeFS,
 	ThreadsafeOutputNodeFS
 } from "./FileSystem";
@@ -440,13 +441,6 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 
-		const instanceBinding: typeof binding = require("@rspack/binding");
-		let isRuntimeShutdown = false;
-		if (isRuntimeShutdown) {
-			instanceBinding.startAsyncRuntime();
-			isRuntimeShutdown = false;
-		}
-
 		const finalCallback = (err: Error | null, stats?: Stats) => {
 			this.idle = true;
 			this.cache.beginIdle();
@@ -459,10 +453,6 @@ class Compiler {
 				callback(err, stats);
 			}
 			this.hooks.afterDone.call(stats!);
-
-			instanceBinding.shutdownAsyncRuntime();
-			instanceBinding.cleanupGlobalTrace();
-			isRuntimeShutdown = true;
 		};
 
 		const onCompiled = (
@@ -836,6 +826,12 @@ class Compiler {
 
 		this.#registers = this.#createHooksRegisters();
 
+		const inputFileSystem =
+			this.inputFileSystem &&
+			ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
+				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
+				: undefined;
+
 		this.#instance = new instanceBinding.JsCompiler(
 			this.compilerPath,
 			rawOptions,
@@ -845,6 +841,7 @@ class Compiler {
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
 				: undefined,
+			inputFileSystem,
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 

@@ -8,11 +8,12 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { z } from "zod";
+import * as z from "zod/v4";
 import type { Compiler } from "../Compiler";
 import { LibManifestPlugin } from "../builtin-plugin";
 import { DllEntryPlugin } from "../builtin-plugin/DllEntryPlugin";
 import { FlagAllModulesAsUsedPlugin } from "../builtin-plugin/FlagAllModulesAsUsedPlugin";
+import { memoize } from "../util/memoize";
 import { validate } from "../util/validate";
 
 export type DllPluginOptions = {
@@ -48,20 +49,23 @@ export type DllPluginOptions = {
 	type?: string;
 };
 
-const dllPluginOptions = z.object({
-	context: z.string().optional(),
-	entryOnly: z.boolean().optional(),
-	format: z.boolean().optional(),
-	name: z.string().optional(),
-	path: z.string(),
-	type: z.string().optional()
-}) satisfies z.ZodType<DllPluginOptions>;
+const getDllPluginOptionsSchema = memoize(
+	() =>
+		z.object({
+			context: z.string().optional(),
+			entryOnly: z.boolean().optional(),
+			format: z.boolean().optional(),
+			name: z.string().optional(),
+			path: z.string(),
+			type: z.string().optional()
+		}) satisfies z.ZodType<DllPluginOptions>
+);
 
 export class DllPlugin {
 	private options: DllPluginOptions;
 
 	constructor(options: DllPluginOptions) {
-		validate(options, dllPluginOptions);
+		validate(options, getDllPluginOptionsSchema);
 		this.options = {
 			...options,
 			entryOnly: options.entryOnly !== false

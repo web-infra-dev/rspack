@@ -1,14 +1,18 @@
 <picture>
-  <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner.png">
+  <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
 </picture>
 
 # @rspack/cli
 
 Command-line interface for rspack.
 
+## Wasm test
+
+See [@rspack/test-tools](../rspack-test-tools) for details.
+
 ## Documentation
 
-See [https://rspack.dev](https://rspack.dev) for details.
+See [https://rspack.rs](https://rspack.rs) for details.
 
 ## License
 

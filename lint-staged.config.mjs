@@ -8,5 +8,5 @@ export default {
 		// ignore staged file list; execute x without extra args
 		() => "pnpm run x ae ci"
 	],
-	"package.json": "pnpm run check-dependency-version"
+	"package.json": () => "pnpm run check-dependency-version"
 };

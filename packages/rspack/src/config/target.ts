@@ -1,3 +1,4 @@
+import binding from "@rspack/binding";
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3b/lib/config/target.js
@@ -12,13 +13,17 @@ import * as browserslistTargetHandler from "./browserslistTargetHandler";
 
 const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
 
+const hasBrowserslistConfig = (context: string) => {
+	const { findConfig } = require("browserslist-load-config");
+	return Boolean(findConfig(context));
+};
+
 /**
  * @param context the context directory
  * @returns default target
  */
 export const getDefaultTarget = (context: string): "browserslist" | "web" => {
-	const browsers = getBrowserslistTargetHandler().load(null, context);
-	return browsers ? "browserslist" : "web";
+	return hasBrowserslistConfig(context) ? "browserslist" : "web";
 };
 
 export type PlatformTargetProperties = {
@@ -135,18 +140,17 @@ const TARGETS: Array<
 		"Resolve features from browserslist. Will resolve browserslist config automatically. Only browser or node queries are supported (electron is not supported). Examples: 'browserslist:modern' to use 'modern' environment from browserslist config",
 		/^browserslist(?::(.+))?$/,
 		(rest, context) => {
-			const browserslistTargetHandler = getBrowserslistTargetHandler();
-			const browsers = browserslistTargetHandler.load(
-				rest ? rest.trim() : null,
-				context
-			);
-			if (!browsers) {
+			const inlineQuery = rest ? rest.trim() : null;
+			const browsers = binding.loadBrowserslist(inlineQuery, context);
+
+			if (!browsers || (!inlineQuery && !hasBrowserslistConfig(context))) {
 				throw new Error(`No browserslist config found to handle the 'browserslist' target.
 See https://github.com/browserslist/browserslist#queries for possible ways to provide a config.
 The recommended way is to add a 'browserslist' key to your package.json and list supported browsers (resp. node.js versions).
 You can also more options via the 'target' option: 'browserslist' / 'browserslist:env' / 'browserslist:query' / 'browserslist:path-to-config' / 'browserslist:path-to-config:env'`);
 			}
 
+			const browserslistTargetHandler = getBrowserslistTargetHandler();
 			return browserslistTargetHandler.resolve(browsers);
 		}
 	],

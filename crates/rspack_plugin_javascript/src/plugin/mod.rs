@@ -30,9 +30,10 @@ use rspack_core::{
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt,
+  split_readable_identifier, BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments,
+  ChunkRenderContext, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  CompilationId, ConcatenatedModuleIdent, ExportsArgument, IdentCollector, Module, RuntimeGlobals,
+  SourceType, SpanExt,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -309,18 +310,18 @@ impl JsPlugin {
           }
           if allow_inline_startup && {
             let module_graph = compilation.get_module_graph();
+            let module_graph_cache = &compilation.module_graph_cache_artifact;
             module_graph
               .get_incoming_connections_by_origin_module(module)
               .iter()
               .any(|(origin_module, connections)| {
                 if let Some(origin_module) = origin_module {
-                  connections
-                    .iter()
-                    .any(|c| c.is_target_active(&module_graph, Some(chunk.runtime())))
-                    && compilation
-                      .chunk_graph
-                      .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
-                      .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
+                  connections.iter().any(|c| {
+                    c.is_target_active(&module_graph, Some(chunk.runtime()), module_graph_cache)
+                  }) && compilation
+                    .chunk_graph
+                    .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
+                    .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
                 } else {
                   false
                 }
@@ -1114,7 +1115,8 @@ impl JsPlugin {
         if ident_used {
           let context = compilation.options.context.clone();
           let readable_identifier = module.readable_identifier(&context).to_string();
-          let new_name = find_new_name(name, &all_used_names, None, &readable_identifier);
+          let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
+          let new_name = find_new_name(name, &all_used_names, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
             let span = identifier.id.span();
@@ -1122,7 +1124,7 @@ impl JsPlugin {
             let high = span.real_hi();
 
             if identifier.shorthand {
-              replace_source.insert(high, &format!(": {}", new_name), None);
+              replace_source.insert(high, &format!(": {new_name}"), None);
               continue;
             }
 

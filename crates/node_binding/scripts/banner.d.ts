@@ -10,9 +10,31 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export type CustomPluginName = string;
+
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
+
+export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
+export const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL: unique symbol;
+export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
+export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
+export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
+export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
+
+export const RUST_ERROR_SYMBOL: unique symbol;
+
+interface KnownBuildInfo {
+	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
+	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
+	[BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
+	[BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL]: string[],
+	[BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL]: string[],
+	[COMMIT_CUSTOM_FIELDS_SYMBOL](): void;
+}
+
+export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
 export interface Module {
 	[MODULE_IDENTIFIER_SYMBOL]: string;
@@ -23,8 +45,7 @@ export interface Module {
 	set factoryMeta(factoryMeta: JsFactoryMeta);
 	get useSourceMap(): boolean;
 	get useSimpleSourceMap(): boolean;
-	get _readableIdentifier(): string;
-	buildInfo: Record<string, any>;
+	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
 }
 
@@ -40,7 +61,7 @@ export interface NormalModule extends Module {
 	readonly request: string;
 	readonly userRequest: string;
 	readonly rawRequest: string;
-	readonly resourceResolveData: JsResourceData | undefined;
+	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
 	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
@@ -55,6 +76,20 @@ export interface ContextModule extends Module {
 export interface ExternalModule extends Module {
 	readonly userRequest: string;
 }
+
+export interface RspackError extends Error {
+	name: string;
+	message: string;
+	details?: string;
+	module?: Module;
+	loc?: DependencyLocation;
+	file?: string;
+	stack?: string;
+	hideStack?: boolean;
+	error?: Error;
+}
+
+export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

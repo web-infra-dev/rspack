@@ -117,7 +117,9 @@ pub enum DependencyType {
   DllEntry,
   DelegatedSource,
   ExtractCSS,
-  Rstest,
+  RstestModulePath,
+  RstestMockModuleId,
+  RstestHoistMock,
 }
 
 impl DependencyType {
@@ -191,7 +193,9 @@ impl DependencyType {
       DependencyType::ModuleDecorator => "module decorator",
       DependencyType::DelegatedSource => "delegated source",
       DependencyType::ExtractCSS => "extract css",
-      DependencyType::Rstest => "rstest",
+      DependencyType::RstestModulePath => "rstest module path",
+      DependencyType::RstestMockModuleId => "rstest mock module id",
+      DependencyType::RstestHoistMock => "rstest hoist mock",
     }
   }
 }

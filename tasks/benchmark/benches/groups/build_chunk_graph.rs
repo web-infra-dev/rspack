@@ -10,6 +10,7 @@ use rspack_core::{
   Compilation, Compiler, Experiments, Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+use rspack_tasks::{within_compiler_context_for_testing_sync, CURRENT_COMPILER_CONTEXT};
 use tokio::runtime::Builder;
 
 static NUM_MODULES: usize = 10000;
@@ -42,9 +43,7 @@ function Navbar({ show }) {
 export default Navbar";
 
   ctx.push((
-    format!("/src/leaves/Component-{}.js", index)
-      .as_str()
-      .into(),
+    format!("/src/leaves/Component-{index}.js").as_str().into(),
     code.to_string(),
   ));
 }
@@ -66,20 +65,18 @@ fn gen_dynamic_module(
 
   for i in index..index + 10 {
     static_imports.push(format!(
-      "import Comp{} from '/src/leaves/Component-{}.js'",
-      i, i,
+      "import Comp{i} from '/src/leaves/Component-{i}.js'"
     ));
     gen_static_leaf_module(i, ctx);
-    access.push(format!("Comp{}", i));
+    access.push(format!("Comp{i}"));
   }
 
   let depth = index / 10;
   for random in random_table[depth].iter() {
     reuse.push(format!(
-      "import Comp{} from '/src/leaves/Component-{}.js'",
-      random, random,
+      "import Comp{random} from '/src/leaves/Component-{random}.js'"
     ));
-    access.push(format!("Comp{}", random));
+    access.push(format!("Comp{random}"));
   }
 
   if gen_dynamic_module(num, index + 10, random_table, ctx) {
@@ -95,11 +92,15 @@ fn gen_dynamic_module(
     depth
   );
 
-  ctx.push((format!("/src/dynamic-{}.js", depth).as_str().into(), code));
+  ctx.push((format!("/src/dynamic-{depth}.js").as_str().into(), code));
   true
 }
-
 pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
+  within_compiler_context_for_testing_sync(|| {
+    build_chunk_graph_benchmark_inner(c);
+  })
+}
+pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   let rt = Builder::new_multi_thread()
     .build()
     .expect("should not fail to build tokio runtime");
@@ -109,7 +110,6 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
   let random_table =
     serde_json::from_str::<Vec<Vec<usize>>>(include_str!("../build_chunk_graph/random_table.json"))
       .expect("should not fail to parse random table json");
-
   let mut compiler = Compiler::builder()
     .context("/")
     .entry("main", "/src/dynamic-0.js")
@@ -121,6 +121,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     .unwrap();
 
   let compiler_id = compiler.id();
+  let compiler_context = CURRENT_COMPILER_CONTEXT.get();
 
   fast_set(
     &mut compiler.compilation,
@@ -142,6 +143,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
       compiler.intermediate_filesystem.clone(),
       compiler.output_filesystem.clone(),
       false,
+      compiler_context,
     ),
   );
 
@@ -195,7 +197,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
 
   assert!(compiler.compilation.get_errors().next().is_none());
 
-  c.bench_function("build_chunk_graph", |b| {
+  c.bench_function("rust@build_chunk_graph", |b| {
     b.iter_with_setup_wrapper(|runner| {
       reset_chunk_graph_state(&mut compiler.compilation);
       runner.run(|| {
@@ -205,7 +207,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     });
   });
 
-  c.bench_function("build_chunk_graph_parallel", |b| {
+  c.bench_function("rust@build_chunk_graph_parallel", |b| {
     b.iter_with_setup_wrapper(|runner| {
       reset_chunk_graph_state(&mut compiler.compilation);
       runner.run(|| {

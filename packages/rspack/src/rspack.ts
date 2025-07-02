@@ -26,7 +26,7 @@ import {
 	applyRspackOptionsDefaults,
 	getNormalizedRspackOptions
 } from "./config";
-import { rspackOptions } from "./config/zod";
+import { getRspackOptionsSchema } from "./config/zod";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import { asArray, isNil } from "./util";
@@ -105,7 +105,7 @@ function rspack(
 ) {
 	try {
 		for (const o of asArray(options)) {
-			validate(o, rspackOptions);
+			validate(o, getRspackOptionsSchema);
 		}
 	} catch (e) {
 		if (e instanceof Error && callback) {

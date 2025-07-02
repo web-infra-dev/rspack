@@ -9,7 +9,7 @@
  */
 
 import * as liteTapable from "@rspack/lite-tapable";
-import type { Compiler, RspackOptions, Stats } from ".";
+import type { CompilationParams, Compiler, RspackOptions, Stats } from ".";
 import MultiStats from "./MultiStats";
 import MultiWatching from "./MultiWatching";
 import type { WatchOptions } from "./config";
@@ -56,6 +56,10 @@ export class MultiCompiler {
 		invalid: liteTapable.MultiHook<
 			liteTapable.SyncHook<[string | null, number]>
 		>;
+		beforeCompile: liteTapable.MultiHook<
+			liteTapable.AsyncSeriesHook<[CompilationParams]>
+		>;
+		shutdown: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[]>>;
 		run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
 		watchClose: liteTapable.SyncHook<[]>;
 		watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
@@ -65,6 +69,7 @@ export class MultiCompiler {
 	};
 	_options: MultiCompilerOptions;
 	running: boolean;
+	watching?: MultiWatching;
 
 	constructor(
 		compilers: Compiler[] | Record<string, Compiler>,
@@ -91,6 +96,12 @@ export class MultiCompiler {
 			watchClose: new liteTapable.SyncHook([]),
 			watchRun: new liteTapable.MultiHook(
 				normalizedCompilers.map(c => c.hooks.watchRun)
+			),
+			beforeCompile: new liteTapable.MultiHook(
+				normalizedCompilers.map(c => c.hooks.beforeCompile)
+			),
+			shutdown: new liteTapable.MultiHook(
+				normalizedCompilers.map(c => c.hooks.shutdown)
 			),
 			infrastructureLog: new liteTapable.MultiHook(
 				normalizedCompilers.map(c => c.hooks.infrastructureLog)
@@ -509,10 +520,12 @@ export class MultiCompiler {
 				},
 				handler
 			);
-			return new MultiWatching(watchings, this);
+			this.watching = new MultiWatching(watchings, this);
+			return this.watching;
 		}
 
-		return new MultiWatching([], this);
+		this.watching = new MultiWatching([], this);
+		return this.watching;
 	}
 
 	/**

@@ -7,6 +7,7 @@ use swc_core::{
 
 use super::{
   esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
+  inline_const::{InlinableConstData, INLINABLE_CONST_TAG},
   InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
   JS_DEFAULT_KEYWORD,
 };
@@ -91,9 +92,23 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         Some(parser.source_map.clone()),
       )) as BoxDependency
     } else {
+      let inlinable = parser
+        .get_tag_data(export_name, INLINABLE_CONST_TAG)
+        .map(InlinableConstData::downcast)
+        .map(|data| data.value);
+      let enum_value = parser
+        .build_info
+        .collected_typescript_info
+        .as_ref()
+        .and_then(|info| info.exported_enums.get(export_name).cloned());
+      if enum_value.is_some() && !parser.compiler_options.experiments.inline_enum {
+        parser.errors.push(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
+      }
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         local_id.clone(),
+        inlinable,
+        enum_value,
         statement.span().into(),
         Some(parser.source_map.clone()),
       ))

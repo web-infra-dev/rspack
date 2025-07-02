@@ -16,20 +16,20 @@ loader_swc            = ["rspack_loader_swc"]
 loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
 
 [dependencies]
-bitflags        = { workspace = true }
-browserslist-rs = { workspace = true }
-enum-tag        = { workspace = true }
-indexmap        = { workspace = true, features = ["rayon"] }
-regex           = { workspace = true }
-rspack_core     = { workspace = true }
-rspack_error    = { workspace = true }
-rspack_fs       = { workspace = true }
-rspack_hash     = { workspace = true }
-rspack_ids      = { workspace = true }
-rspack_paths    = { workspace = true }
-rspack_regex    = { workspace = true }
-rustc-hash      = { workspace = true }
-serde_json      = { workspace = true }
+bitflags            = { workspace = true }
+enum-tag            = { workspace = true }
+indexmap            = { workspace = true, features = ["rayon"] }
+regex               = { workspace = true }
+rspack_browserslist = { workspace = true }
+rspack_core         = { workspace = true }
+rspack_error        = { workspace = true }
+rspack_fs           = { workspace = true }
+rspack_hash         = { workspace = true }
+rspack_ids          = { workspace = true }
+rspack_paths        = { workspace = true }
+rspack_regex        = { workspace = true }
+rustc-hash          = { workspace = true }
+serde_json          = { workspace = true }
 
 # Plugins
 rspack_plugin_asset                   = { workspace = true }
@@ -51,12 +51,13 @@ rspack_plugin_schemes                 = { workspace = true }
 rspack_plugin_swc_js_minimizer        = { workspace = true }
 rspack_plugin_wasm                    = { workspace = true }
 rspack_plugin_worker                  = { workspace = true }
-
+rspack_tasks                          = { workspace = true }
 # Loaders
 rspack_loader_lightningcss   = { workspace = true, optional = true }
 rspack_loader_preact_refresh = { workspace = true, optional = true }
 rspack_loader_react_refresh  = { workspace = true, optional = true }
 rspack_loader_swc            = { workspace = true, optional = true }
+
 
 [dev-dependencies]
 insta = { workspace = true, features = ["filters"] }

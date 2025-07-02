@@ -1,13 +1,10 @@
-mod clean_isolated_module;
 mod fix_build_meta;
 mod fix_issuers;
 
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
-use self::{
-  clean_isolated_module::CleanIsolatedModule, fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers,
-};
+use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, MakeParam};
 use crate::{BuildDependency, FactorizeInfo};
 
@@ -15,7 +12,6 @@ use crate::{BuildDependency, FactorizeInfo};
 pub struct Cutout {
   fix_issuers: FixIssuers,
   fix_build_meta: FixBuildMeta,
-  clean_isolated_module: CleanIsolatedModule,
 }
 
 impl Cutout {
@@ -49,36 +45,12 @@ impl Cutout {
             }
           }));
         }
-        MakeParam::ModifiedFiles(files) => {
+        MakeParam::ModifiedFiles(files) | MakeParam::RemovedFiles(files) => {
           for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
               // add module id
               force_build_modules.insert(module.identifier());
-            }
-          }
-          for dep_id in &artifact.make_failed_dependencies {
-            let dep = module_graph
-              .dependency_by_id(dep_id)
-              .expect("should have dependency");
-            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-            if info.depends_on(&files) {
-              force_build_deps.insert(*dep_id);
-            }
-          }
-        }
-        MakeParam::RemovedFiles(files) => {
-          for module in module_graph.modules().values() {
-            // check has dependencies modified
-            if module.depends_on(&files) {
-              // add module id
-              force_build_modules.insert(module.identifier());
-              // process parent module id
-              for connect in module_graph.get_incoming_connections(&module.identifier()) {
-                if let Some(original_module_identifier) = connect.original_module_identifier {
-                  force_build_modules.insert(original_module_identifier);
-                }
-              }
             }
           }
           for dep_id in &artifact.make_failed_dependencies {
@@ -107,9 +79,6 @@ impl Cutout {
       self
         .fix_build_meta
         .analyze_force_build_module(artifact, module_identifier);
-      self
-        .clean_isolated_module
-        .analyze_force_build_module(artifact, module_identifier);
     }
 
     let mut build_deps = HashSet::default();
@@ -132,9 +101,9 @@ impl Cutout {
       for dep_id in entry_dependencies.difference(&next_entry_dependencies) {
         // connection may have been deleted by revoke module
         if let Some(con) = module_graph.connection_by_dependency_id(dep_id) {
-          // need clean_isolated_module to check whether the module is still used by other deps
+          // need check if issuer still works
           self
-            .clean_isolated_module
+            .fix_issuers
             .add_need_check_module(*con.module_identifier());
         }
         remove_entry_dependencies.push(*dep_id);
@@ -173,10 +142,8 @@ impl Cutout {
     let Self {
       fix_issuers,
       fix_build_meta,
-      clean_isolated_module,
     } = self;
     fix_issuers.fix_artifact(artifact);
     fix_build_meta.fix_artifact(artifact);
-    clean_isolated_module.fix_artifact(artifact);
   }
 }

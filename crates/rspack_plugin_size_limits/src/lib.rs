@@ -112,7 +112,7 @@ impl SizeLimitsPlugin {
           format_size(*size),
           files
             .iter()
-            .map(|file| format!("      {}", file))
+            .map(|file| format!("      {file}"))
             .collect::<Vec<_>>()
             .join("\n")
         )
@@ -212,7 +212,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
       if !has_async_chunk {
         let title = String::from("no async chunks warning");
-        let message = String::from("Rspack performance recommendations:\nYou can limit the size of your bundles by using import() to lazy load some parts of your application.\nFor more info visit https://www.rspack.dev/guide/optimization/code-splitting");
+        let message = String::from("Rspack performance recommendations:\nYou can limit the size of your bundles by using import() to lazy load some parts of your application.\nFor more info visit https://rspack.rs/guide/optimization/code-splitting");
 
         Self::add_diagnostic(hints, title, message, &mut diagnostics);
       }

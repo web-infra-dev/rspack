@@ -293,7 +293,7 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   for file in contain_unresolved_files {
     compilation.push_diagnostic(Diagnostic::error(
       "SubresourceIntegrity".to_string(),
-      format!("Asset {} contains unresolved integrity placeholders", file),
+      format!("Asset {file} contains unresolved integrity placeholders"),
     ));
   }
   Ok(())

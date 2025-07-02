@@ -6,7 +6,7 @@ import { Stability } from '@components/ApiMeta.tsx';
 
 ## 使用 Rsdoctor 分析
 
-[Rsdoctor](https://rsdoctor.dev/) 是一个针对 Rspack 的构建分析工具，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。
+[Rsdoctor](https://rsdoctor.rs/) 是一个针对 Rspack 的构建分析工具，可以直观地展示构建过程，例如编译时间、编译前后的代码变化、模块引用关系、重复模块等。
 
 请参考 [使用 Rsdoctor](/guide/optimization/use-rsdoctor) 了解更多。
 
@@ -39,8 +39,6 @@ RSPACK_PROFILE=ALL rspack build
 ### postcss-loader
 
 [postcss-loader](https://github.com/postcss/postcss-loader) 基于 PostCSS 来编译 CSS 代码，通常会配合 PostCSS 插件进行 CSS 语法降级、添加浏览器前缀等，可以将 PostCSS 替换为更快的 Lightning CSS，使用 Rspack 内置的 [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) 即可。
-
-如果项目里使用了 Tailwind CSS v3 的 PostCSS 插件，则需要等待 Tailwind CSS v4 版本发布，该版本基于 Rust 和 Lightning CSS 实现，性能会有显著提升，详见 [Open-sourcing our progress on Tailwind CSS v4.0](https://tailwindcss.com/blog/tailwindcss-v4-alpha)。
 
 ### terser-webpack-plugin
 

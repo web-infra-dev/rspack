@@ -2,7 +2,7 @@
 
 //! Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build.
 //!
-//! For guide level documentation, please refer to the [Rspack Guide](https://rspack.dev/guide/start/introduction).
+//! For guide level documentation, please refer to the [Rspack Guide](https://rspack.rs/guide/start/introduction).
 //!
 //! ## Example
 //!
@@ -17,20 +17,25 @@
 //!
 //! ```
 //! use std::path::PathBuf;
+//!
 //! use rspack::builder::{Builder, CompilerBuilder};
 //! use rspack_core::Compiler;
 //!
 //! #[tokio::main]
 //! async fn main() {
-//! # let context = PathBuf::from(env!("CARGO_MANIFEST_DIR").to_string()).join("tests/fixtures/basic");
-//!   let compiler = Compiler::builder()
-//!     .context(context)
-//!     .entry("main", "./src/index.js")
-//!     .build()
-//!     .unwrap();
+//!   use rspack_tasks::within_compiler_context_for_testing_sync;
+//!   within_compiler_context_for_testing_sync(|| {
+//!     let context =
+//!       PathBuf::from(env!("CARGO_MANIFEST_DIR").to_string()).join("tests/fixtures/basic");
+//!     let compiler = Compiler::builder()
+//!       .context(context)
+//!       .entry("main", "./src/index.js")
+//!       .build()
+//!       .unwrap();
 //!
-//!   let errors: Vec<_> = compiler.compilation.get_errors().collect();
-//!   assert!(errors.is_empty());
+//!     let errors: Vec<_> = compiler.compilation.get_errors().collect();
+//!     assert!(errors.is_empty());
+//!   })
 //! }
 //! ```
 //!

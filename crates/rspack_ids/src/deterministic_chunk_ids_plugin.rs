@@ -1,4 +1,5 @@
-use rspack_collections::DatabaseItem;
+use rayon::prelude::*;
+use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, CompilationChunkIds, CompilerOptions, Plugin,
   PluginContext,
@@ -42,6 +43,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = compilation.get_module_graph();
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
   let context = self
     .context
     .clone()
@@ -59,9 +61,30 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
 
+  let chunk_names = chunks
+    .par_iter()
+    .map(|chunk| {
+      (
+        chunk.ukey(),
+        get_full_chunk_name(
+          chunk,
+          chunk_graph,
+          &module_graph,
+          module_graph_cache,
+          &context,
+        ),
+      )
+    })
+    .collect::<UkeyMap<_, _>>();
+
   assign_deterministic_ids(
     chunks,
-    |chunk| get_full_chunk_name(chunk, chunk_graph, &module_graph, &context),
+    |chunk| {
+      chunk_names
+        .get(&chunk.ukey())
+        .expect("should have generated full chunk name")
+        .to_string()
+    },
     |a, b| {
       compare_chunks_natural(
         chunk_graph,

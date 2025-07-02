@@ -4,7 +4,7 @@ use rspack_cacheable::{
 };
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
 use serde::Deserialize;
-use swc_config::config_types::BoolConfig;
+use swc_config::{file_pattern::FilePattern, types::BoolConfig};
 use swc_core::base::config::{
   Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
   SourceMapsConfig,
@@ -14,11 +14,33 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
+  pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
+}
+
+#[derive(Default, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RawCollectTypeScriptInfoOptions {
+  pub type_exports: Option<bool>,
+  pub exported_enum: Option<String>,
 }
 
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
+  pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
+}
+
+#[derive(Default, Debug)]
+pub(crate) struct CollectTypeScriptInfoOptions {
+  pub(crate) type_exports: Option<bool>,
+  pub(crate) exported_enum: Option<CollectingEnumKind>,
+}
+
+#[derive(Default, Debug)]
+pub(crate) enum CollectingEnumKind {
+  All,
+  #[default]
+  ConstOnly,
 }
 
 impl From<RawRspackExperiments> for RspackExperiments {
@@ -27,6 +49,20 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
+      collect_typescript_info: value.collect_type_script_info.map(|v| v.into()),
+    }
+  }
+}
+
+impl From<RawCollectTypeScriptInfoOptions> for CollectTypeScriptInfoOptions {
+  fn from(value: RawCollectTypeScriptInfoOptions) -> Self {
+    Self {
+      type_exports: value.type_exports,
+      exported_enum: value.exported_enum.and_then(|v| match v.as_str() {
+        "const-only" => Some(CollectingEnumKind::ConstOnly),
+        "all" => Some(CollectingEnumKind::All),
+        _ => None,
+      }),
     }
   }
 }
@@ -75,6 +111,9 @@ pub struct SwcLoaderJsOptions {
   pub schema: Option<String>,
 
   #[serde(default)]
+  pub source_map_ignore_list: Option<FilePattern>,
+
+  #[serde(default)]
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
@@ -118,6 +157,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       is_module,
       schema,
       rspack_experiments,
+      source_map_ignore_list,
     } = option;
     let mut source_maps: Option<SourceMapsConfig> = source_maps;
     if source_maps.is_none() && source_map.is_some() {
@@ -145,6 +185,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           error,
           is_module,
           schema,
+          source_map_ignore_list,
         },
         ..Default::default()
       },

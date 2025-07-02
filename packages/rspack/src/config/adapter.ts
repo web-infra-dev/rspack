@@ -579,7 +579,9 @@ function getRawJavascriptParserOptions(
 		requireAsExpression: parser.requireAsExpression,
 		requireDynamic: parser.requireDynamic,
 		requireResolve: parser.requireResolve,
-		importDynamic: parser.importDynamic
+		importDynamic: parser.importDynamic,
+		inlineConst: parser.inlineConst,
+		typeReexportsPresence: parser.typeReexportsPresence
 	};
 }
 

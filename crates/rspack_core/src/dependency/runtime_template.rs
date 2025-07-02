@@ -6,10 +6,11 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, Environment, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleId,
-  ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext,
+  DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
+  FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
+  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -121,7 +122,12 @@ pub fn export_from_import(
     return missing_module(request);
   };
 
-  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(
+    &compilation.get_module_graph(),
+    &compilation.module_graph_cache_artifact,
+    id,
+    &module.identifier(),
+  );
 
   let mut exclude_default_export_name = None;
   if default_interop {
@@ -208,18 +214,35 @@ pub fn export_from_import(
     .as_deref()
     .unwrap_or(export_name);
   if !export_name.is_empty() {
-    let exports_info = compilation
-      .get_module_graph()
-      .get_exports_info(&module_identifier);
-    let Some(used_name) =
-      exports_info.get_used_name(&compilation.get_module_graph(), *runtime, export_name)
-    else {
-      return format!(
-        "{} undefined",
-        to_normal_comment(&property_access(export_name, 0))
-      );
+    let used_name = match ExportsInfoGetter::get_used_name(
+      GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
+        &module_identifier,
+        PrefetchExportsInfoMode::Nested(export_name),
+      )),
+      *runtime,
+      export_name,
+    ) {
+      Some(UsedName::Normal(used_name)) => used_name,
+      Some(UsedName::Inlined(inlined)) => {
+        return format!(
+          "{} {}",
+          to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(export_name, 0)
+          )),
+          inlined.render()
+        )
+      }
+      None => {
+        return format!(
+          "{} undefined",
+          to_normal_comment(&format!(
+            "unused export {}",
+            property_access(export_name, 0)
+          ))
+        )
+      }
     };
-    let used_name = used_name.as_ref();
     let comment = if used_name != export_name {
       to_normal_comment(&property_access(export_name, 0))
     } else {
@@ -246,6 +269,7 @@ pub fn export_from_import(
 
 pub fn get_exports_type(
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   id: &DependencyId,
   parent_module: &ModuleIdentifier,
 ) -> ExportsType {
@@ -253,11 +277,12 @@ pub fn get_exports_type(
     .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_esm_module();
-  get_exports_type_with_strict(module_graph, id, strict)
+  get_exports_type_with_strict(module_graph, module_graph_cache, id, strict)
 }
 
 pub fn get_exports_type_with_strict(
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   id: &DependencyId,
   strict: bool,
 ) -> ExportsType {
@@ -267,7 +292,7 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type(module_graph, strict)
+    .get_exports_type(module_graph, module_graph_cache, strict)
 }
 
 // information content of the comment
@@ -380,7 +405,12 @@ pub fn import_statement(
     RuntimeGlobals::REQUIRE
   );
 
-  let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
+  let exports_type = get_exports_type(
+    &compilation.get_module_graph(),
+    &compilation.module_graph_cache_artifact,
+    id,
+    &module.identifier(),
+  );
   if matches!(exports_type, ExportsType::Dynamic) {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
     return (
@@ -419,6 +449,7 @@ pub fn module_namespace_promise(
   let promise = block_promise(block, runtime_requirements, compilation, message);
   let exports_type = get_exports_type(
     &compilation.get_module_graph(),
+    &compilation.module_graph_cache_artifact,
     dep_id,
     &module.identifier(),
   );
@@ -670,7 +701,7 @@ fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
 }
 
-fn missing_module_promise(request: &str) -> String {
+pub fn missing_module_promise(request: &str) -> String {
   format!(
     "Promise.resolve().then({})",
     throw_missing_module_error_function(request)
@@ -692,7 +723,7 @@ pub fn throw_missing_module_error_block(request: &str) -> String {
   )
 }
 
-fn weak_error(request: &str) -> String {
+pub fn weak_error(request: &str) -> String {
   format!("var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
 }
 

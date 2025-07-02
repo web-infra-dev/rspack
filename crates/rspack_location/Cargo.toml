@@ -1,0 +1,11 @@
+[package]
+description       = "rspack location"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_location"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
+
+[dependencies]
+itoa             = { workspace = true }
+rspack_cacheable = { workspace = true }

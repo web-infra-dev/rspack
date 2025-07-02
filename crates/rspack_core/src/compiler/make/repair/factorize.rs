@@ -7,9 +7,9 @@ use super::{add::AddTask, MakeTaskContext};
 use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportInfoData,
-  ExportsInfoData, FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, ModuleLayer, ModuleProfile, Resolve, ResolverFactory,
+  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportsInfoData,
+  FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  ModuleLayer, ModuleProfile, Resolve, ResolverFactory,
 };
 
 #[derive(Debug)]
@@ -94,8 +94,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
         }
         create_data.diagnostics.insert(
           0,
-          Into::<Diagnostic>::into(e)
-            .with_loc(create_data.dependencies[0].loc().map(|loc| loc.to_string())),
+          Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc()),
         );
         None
       }
@@ -116,30 +115,16 @@ impl Task<MakeTaskContext> for FactorizeTask {
       create_data.context_dependencies,
       create_data.missing_dependencies,
     );
-    let other_exports_info = ExportInfoData::new(None, None);
-    let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
-    let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+    let exports_info = ExportsInfoData::default();
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,
       dependencies: create_data.dependencies,
       current_profile: self.current_profile,
-      exports_info_related: ExportsInfoRelated {
-        exports_info,
-        other_exports_info,
-        side_effects_info: side_effects_only_info,
-      },
+      exports_info_related: exports_info,
       factorize_info,
     })])
   }
-}
-
-/// a struct temporarily used creating ExportsInfo
-#[derive(Debug)]
-pub struct ExportsInfoRelated {
-  pub exports_info: ExportsInfoData,
-  pub other_exports_info: ExportInfoData,
-  pub side_effects_info: ExportInfoData,
 }
 
 #[derive(Debug)]
@@ -150,7 +135,7 @@ pub struct FactorizeResultTask {
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
-  pub exports_info_related: ExportsInfoRelated,
+  pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
 }
 
@@ -218,22 +203,10 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     };
     let module_identifier = module.identifier();
-    let mut mgm =
-      ModuleGraphModule::new(module.identifier(), exports_info_related.exports_info.id());
+    let mut mgm = ModuleGraphModule::new(module.identifier(), exports_info_related.id());
     mgm.set_issuer_if_unset(original_module_identifier);
 
-    module_graph.set_exports_info(
-      exports_info_related.exports_info.id(),
-      exports_info_related.exports_info,
-    );
-    module_graph.set_export_info(
-      exports_info_related.side_effects_info.id(),
-      exports_info_related.side_effects_info,
-    );
-    module_graph.set_export_info(
-      exports_info_related.other_exports_info.id(),
-      exports_info_related.other_exports_info,
-    );
+    module_graph.set_exports_info(exports_info_related.id(), exports_info_related);
     tracing::trace!("Module created: {}", &module_identifier);
 
     Ok(vec![Box::new(AddTask {

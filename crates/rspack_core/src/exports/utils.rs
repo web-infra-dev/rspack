@@ -1,20 +1,14 @@
-use std::{
-  hash::Hash,
-  sync::{atomic::AtomicU32, Arc},
-};
+use std::{borrow::Cow, hash::Hash, sync::atomic::AtomicU32};
 
 use either::Either;
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_util::atom::Atom;
+use rspack_util::{atom::Atom, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{
-  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
-};
+use crate::DependencyId;
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -38,23 +32,89 @@ pub enum UsedExports {
   UsedNames(Vec<Atom>),
 }
 
-#[derive(Debug, Clone)]
-pub enum UsedName {
-  Normal(Vec<Atom>),
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+enum EvaluatedInlinableValueInner {
+  Null,
+  Undefined,
+  Boolean(bool),
+  Number(#[cacheable(with=AsPreset)] Atom),
+  String(#[cacheable(with=AsPreset)] Atom),
 }
 
-impl UsedName {
-  pub fn to_used_name_vec(self) -> Vec<Atom> {
-    match self {
-      UsedName::Normal(vec) => vec,
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct EvaluatedInlinableValue(EvaluatedInlinableValueInner);
+
+impl EvaluatedInlinableValue {
+  pub const SHORT_SIZE: usize = 6;
+
+  pub fn new_null() -> Self {
+    Self(EvaluatedInlinableValueInner::Null)
+  }
+
+  pub fn new_undefined() -> Self {
+    Self(EvaluatedInlinableValueInner::Undefined)
+  }
+
+  pub fn new_boolean(v: bool) -> Self {
+    Self(EvaluatedInlinableValueInner::Boolean(v))
+  }
+
+  pub fn new_number(v: Atom) -> Self {
+    Self(EvaluatedInlinableValueInner::Number(v))
+  }
+
+  pub fn new_string(v: Atom) -> Self {
+    Self(EvaluatedInlinableValueInner::String(v))
+  }
+
+  pub fn render(&self) -> Cow<str> {
+    match &self.0 {
+      EvaluatedInlinableValueInner::Null => "null".into(),
+      EvaluatedInlinableValueInner::Undefined => "undefined".into(),
+      EvaluatedInlinableValueInner::Boolean(v) => if *v { "true" } else { "false" }.into(),
+      EvaluatedInlinableValueInner::Number(v) => v.as_str().into(),
+      EvaluatedInlinableValueInner::String(v) => json_stringify(v.as_str()).into(),
     }
   }
 }
 
-impl AsRef<[Atom]> for UsedName {
-  fn as_ref(&self) -> &[Atom] {
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum Inlinable {
+  NoByProvide,
+  NoByUse,
+  Inlined(EvaluatedInlinableValue),
+}
+
+impl Inlinable {
+  pub fn can_inline(&self) -> bool {
+    matches!(self, Inlinable::Inlined(_))
+  }
+}
+
+#[derive(Debug, Clone)]
+pub enum UsedNameItem {
+  Str(Atom),
+  Inlined(EvaluatedInlinableValue),
+}
+
+#[derive(Debug, Clone)]
+pub enum UsedName {
+  Normal(Vec<Atom>),
+  Inlined(EvaluatedInlinableValue),
+}
+
+impl UsedName {
+  pub fn is_inlined(&self) -> bool {
+    matches!(self, UsedName::Inlined(_))
+  }
+
+  pub fn inlined(&self) -> Option<&EvaluatedInlinableValue> {
     match self {
-      UsedName::Normal(vec) => vec,
+      UsedName::Inlined(inlined) => Some(inlined),
+      _ => None,
     }
   }
 }
@@ -69,26 +129,6 @@ pub enum ExportProvided {
   Unknown,
 }
 
-#[derive(Clone, Debug)]
-pub struct ResolvedExportInfoTarget {
-  pub module: ModuleIdentifier,
-  pub export: Option<Vec<Atom>>,
-  /// using dependency id to retrieve Connection
-  pub dependency: DependencyId,
-}
-
-#[derive(Clone, Debug)]
-pub enum FindTargetRetEnum {
-  Undefined,
-  False,
-  Value(FindTargetRetValue),
-}
-#[derive(Clone, Debug)]
-pub struct FindTargetRetValue {
-  pub module: ModuleIdentifier,
-  pub export: Option<Vec<Atom>>,
-}
-
 #[derive(Debug, Hash, PartialEq, Eq, Default)]
 pub struct UsageKey(pub Vec<Either<Box<UsageKey>, UsageState>>);
 
@@ -96,18 +136,6 @@ impl UsageKey {
   pub fn add(&mut self, value: Either<Box<UsageKey>, UsageState>) {
     self.0.push(value);
   }
-}
-
-#[derive(Debug, Clone)]
-pub struct UnResolvedExportInfoTarget {
-  pub dependency: Option<DependencyId>,
-  pub export: Option<Vec<Atom>>,
-}
-
-#[derive(Debug)]
-pub enum ResolvedExportInfoTargetWithCircular {
-  Target(ResolvedExportInfoTarget),
-  Circular,
 }
 
 pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
@@ -127,111 +155,4 @@ pub enum UsageState {
 pub enum UsedByExports {
   Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
   Bool(bool),
-}
-
-#[derive(Clone)]
-struct UsedByExportsDependencyCondition {
-  dependency_id: DependencyId,
-  used_by_exports: HashSet<Atom>,
-}
-
-impl DependencyConditionFn for UsedByExportsDependencyCondition {
-  fn get_connection_state(
-    &self,
-    _conn: &ModuleGraphConnection,
-    runtime: Option<&RuntimeSpec>,
-    mg: &ModuleGraph,
-  ) -> ConnectionState {
-    let module_identifier = mg
-      .get_parent_module(&self.dependency_id)
-      .expect("should have parent module");
-    let exports_info = mg.get_exports_info(module_identifier);
-    for export_name in self.used_by_exports.iter() {
-      if exports_info.get_used(mg, &[export_name.clone()], runtime) != UsageState::Unused {
-        return ConnectionState::Active(true);
-      }
-    }
-    ConnectionState::Active(false)
-  }
-}
-
-// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338
-pub fn get_dependency_used_by_exports_condition(
-  dependency_id: DependencyId,
-  used_by_exports: Option<&UsedByExports>,
-) -> Option<DependencyCondition> {
-  match used_by_exports {
-    Some(UsedByExports::Set(used_by_exports)) => Some(DependencyCondition::Fn(Arc::new(
-      UsedByExportsDependencyCondition {
-        dependency_id,
-        used_by_exports: used_by_exports.clone(),
-      },
-    ))),
-    Some(UsedByExports::Bool(bool)) => {
-      if *bool {
-        None
-      } else {
-        Some(DependencyCondition::False)
-      }
-    }
-    None => None,
-  }
-}
-
-/// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
-#[derive(Clone, Debug)]
-pub enum ExtendedReferencedExport {
-  Array(Vec<Atom>),
-  Export(ReferencedExport),
-}
-
-pub fn is_no_exports_referenced(exports: &[ExtendedReferencedExport]) -> bool {
-  exports.is_empty()
-}
-
-pub fn is_exports_object_referenced(exports: &[ExtendedReferencedExport]) -> bool {
-  matches!(exports[..], [ExtendedReferencedExport::Array(ref arr)] if arr.is_empty())
-}
-
-pub fn create_no_exports_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![]
-}
-
-pub fn create_exports_object_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![ExtendedReferencedExport::Array(vec![])]
-}
-
-impl From<Vec<Atom>> for ExtendedReferencedExport {
-  fn from(value: Vec<Atom>) -> Self {
-    ExtendedReferencedExport::Array(value)
-  }
-}
-impl From<ReferencedExport> for ExtendedReferencedExport {
-  fn from(value: ReferencedExport) -> Self {
-    ExtendedReferencedExport::Export(value)
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct ReferencedExport {
-  pub name: Vec<Atom>,
-  pub can_mangle: bool,
-}
-
-impl ReferencedExport {
-  pub fn new(_name: Vec<Atom>, _can_mangle: bool) -> Self {
-    Self {
-      name: _name,
-      can_mangle: _can_mangle,
-    }
-  }
-}
-
-impl Default for ReferencedExport {
-  fn default() -> Self {
-    Self {
-      name: vec![],
-      can_mangle: true,
-    }
-  }
 }

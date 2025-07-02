@@ -26,7 +26,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::asset_condition::AssetConditions;
-use swc_config::config_types::BoolOrDataConfig;
+use swc_config::types::BoolOrDataConfig;
 use swc_core::{
   base::config::JsMinifyFormatOptions,
   common::comments::{CommentKind, SingleThreadedComments},
@@ -219,7 +219,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           ..Default::default()
           };
         let extract_comments_option = options.extract_comments.as_ref().map(|extract_comments| {
-          let comments_filename = format!("{}.LICENSE.txt", filename);
+          let comments_filename = format!("{filename}.LICENSE.txt");
           let banner = match &extract_comments.banner {
             OptionWrapper::Default => {
               let dir = Path::new(filename).parent().expect("should has parent");

@@ -1,0 +1,69 @@
+name: Release Debug
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        required: true
+        type: string
+        description: "Commit SHA"
+  workflow_run:
+    workflows: ["Release Full(OTP)", "Release Full"]
+    types:
+      - completed
+permissions:
+  # To publish packages with provenance
+  id-token: write
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
+
+jobs:
+  build:
+    name: Build All Debug Bindings
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/reusable-build-all.yml
+    with:
+      ref: ${{inputs.commit || github.event.workflow_run.head_sha }}
+      profile: debug
+
+  release:
+    name: Release Debug
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 1
+          ref: ${{inputs.commit || github.event.workflow_run.head_sha }}
+
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4.1.7
+        with:
+          path: artifacts
+
+      - name: Clean artifacts
+        run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
+
+      - name: Move artifacts
+        run: node scripts/build-npm.cjs
+
+      - name: Show binding packages
+        run: ls -R npm
+
+      - name: Resolve dependencies for bindings
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Release Debug
+        run: |
+          pnpm run build:js
+          ./x version debug
+          ./x publish stable --tag latest
+        env:
+          NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}

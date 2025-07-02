@@ -7,24 +7,25 @@ import WebpackLicense from '@components/WebpackLicense';
 目标环境与兼容性：该选项用于配置 Rspack 输出产物的目标环境和 Rspack runtime 代码的 ECMAScript 版本。
 
 - **类型：** `string | string[]`
+- **默认值：** 如果当前项目中存在 `browserslist` 配置，则为 `browserslist`，否则为 `web`。
 
 ## string
 
 现在支持的字符串格式有：
 
-| 选项                         | 描述                                                                                                                                                                          |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `'web'`                      | 编译为浏览器环境可用（默认值）                                                                                                                                                |
-| `'webworker'`                | 编译为 Web Worker                                                                                                                                                             |
-| `'browserslist'`             | 根据配置的 browserslist 完成 ECMAScript 特性的推断（如果 browserslist 存在，则默认开启）                                                                                      |
-| `'node[[X].Y]'`              | 编译为 Node.js 环境可用                                                                                                                                                       |
-| `'async-node[[X].Y]'`        | 编译为类 Node.js 环境可用（使用 fs 和 vm 异步加载分块）                                                                                                                       |
-| `'es[X]'`                    | 编译 Rspack runtime 为对应的 ECMAScript 版本，当前支持 `es3`、`es5`、`es2015`、`es2016`、`es2017`、`es2018`、`es2019`、`es2020`、`es2021`、`es2022`（默认使用 es5 ）          |
-| `'electron[[X].Y]-main'`     | 编译 Electron 的主进程                                                                                                                                                        |
-| `'electron[[X].Y]-renderer'` | 编译 Electron 的渲染器进程，该 target 下会使用 array-push 作为 chunkFormat，jsonp 作为 chunkLoading，为 CommonJS 和 Electron 内置模块提供 NodeTargetPlugin 和 ExternalsPlugin |
-| `'electron[[X].Y]-preload'`  | 编译 Electron 的预加载脚本                                                                                                                                                    |
-| `'nwjs[[X].Y]'`              | 编译为 NW.js 环境可用                                                                                                                                                         |
-| `'node-webkit[[X].Y]'`       | 编译为 node-webkit 环境可用                                                                                                                                                   |
+| 选项                         | 描述                                                                                                                                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'web'`                      | 编译为浏览器环境可用（默认值）                                                                                                                                                                     |
+| `'webworker'`                | 编译为 Web Worker                                                                                                                                                                                  |
+| `'browserslist'`             | 根据配置的 browserslist 完成 ECMAScript 特性的推断（如果 browserslist 存在，则默认开启）                                                                                                           |
+| `'node[[X].Y]'`              | 编译为 Node.js 环境可用                                                                                                                                                                            |
+| `'async-node[[X].Y]'`        | 编译为类 Node.js 环境可用（使用 fs 和 vm 异步加载分块）                                                                                                                                            |
+| `'es[X]'`                    | 编译 Rspack runtime 为对应的 ECMAScript 版本，当前支持 `es3`、`es5`、`es2015`、`es2016`、`es2017`、`es2018`、`es2019`、`es2020`、`es2021`、`es2022`、`es2023`、`es2024`、`es2025`（默认使用 es5 ） |
+| `'electron[[X].Y]-main'`     | 编译 Electron 的主进程                                                                                                                                                                             |
+| `'electron[[X].Y]-renderer'` | 编译 Electron 的渲染器进程，该 target 下会使用 array-push 作为 chunkFormat，jsonp 作为 chunkLoading，为 CommonJS 和 Electron 内置模块提供 NodeTargetPlugin 和 ExternalsPlugin                      |
+| `'electron[[X].Y]-preload'`  | 编译 Electron 的预加载脚本                                                                                                                                                                         |
+| `'nwjs[[X].Y]'`              | 编译为 NW.js 环境可用                                                                                                                                                                              |
+| `'node-webkit[[X].Y]'`       | 编译为 node-webkit 环境可用                                                                                                                                                                        |
 
 :::tip esX 生效范围
 
@@ -63,10 +64,10 @@ export default {
 
 ## browserslist
 
-如果一个项目有 browserslist 配置，那么 Rspack 将会使用它：
+如果当前项目存在 browserslist 配置，那么 Rspack 将会使用它：
 
-- 确定可用于运行时代码的 ES 特性。
-- 推断环境（例如：`last 2 node versions` 等价于 `target: node`，并会进行一些 [`output.environment`](/config/output#outputenvironment) 设置).
+- 确定可用于 **Rspack 的运行时代码** 的 ES 特性（这不会影响用户代码的转译结果）。
+- 推断目标环境（例如：`last 2 node versions` 等价于 `target: node`，并会进行一些 [`output.environment`](/config/output#outputenvironment) 设置).
 
 :::tip 什么是 Browserslist
 [Browserslist](https://browsersl.ist/) 可以指定 web 应用能够在哪些浏览器中正常运行，它提供了统一的配置格式，并且已经成为了前端社区中的标准。Browserslist 被 Autoprefixer, Babel, ESLint, PostCSS，SWC 和 webpack 等库所使用。
@@ -74,7 +75,7 @@ export default {
 
 支持的 browserslist 值：
 
-- `browserslist` - 使用自动解析的 browserslist 配置和环境（从最近的 `package.json` 或 `BROWSERSLIST` 环境变量中获取，具体请查阅 [browserslist 文档](https://github.com/browserslist/browserslist#queries)）
+- `browserslist` - 使用自动解析的 browserslist 配置和环境（从最近的 `.browserslistrc` 文件， `package.json` 的 `browserslist` 字段，或 `BROWSERSLIST` 环境变量中获取，具体请查阅 [browserslist 文档](https://github.com/browserslist/browserslist#queries)）
 - `browserslist:modern` - 使用自动解析的 browserslist 配置中的 `modern` 环境
 - `browserslist:last 2 versions` - 使用显式 browserslist 查询（配置将被忽略）
 - `browserslist:/path/to/config` - 明确指定 browserslist 配置路径

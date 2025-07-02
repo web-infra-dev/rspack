@@ -16,7 +16,8 @@ use serde::{Serialize, Serializer};
 use crate::{
   for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
-  ModuleIdsArtifact, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  ModuleIdsArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  RuntimeSpecSet,
 };
 
 #[cacheable]
@@ -294,8 +295,10 @@ impl ChunkGraph {
       .hash(&mut hasher);
     let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();
+    let mg_cache = &compilation.module_graph_cache_artifact;
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
+    let mut hash_modules = vec![];
     for connection in mg
       .get_outgoing_deps_in_order(&module.identifier())
       .filter_map(|c| mg.connection_by_dependency_id(c))
@@ -304,7 +307,7 @@ impl ChunkGraph {
       if visited_modules.contains(module_identifier) {
         continue;
       }
-      let active_state = connection.active_state(&mg, runtime);
+      let active_state = connection.active_state(&mg, runtime, mg_cache);
       if active_state.is_false() {
         continue;
       }
@@ -313,7 +316,7 @@ impl ChunkGraph {
         runtime,
         |runtime| {
           let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
-          let active_state = connection.active_state(&mg, runtime.as_ref());
+          let active_state = connection.active_state(&mg, runtime.as_ref(), mg_cache);
           active_state.hash(&mut hasher);
         },
         true,
@@ -322,10 +325,17 @@ impl ChunkGraph {
         .module_by_identifier(module_identifier)
         .expect("should have module")
         .as_ref();
-      module.get_exports_type(&mg, strict).hash(&mut hasher);
-      self
-        .get_module_graph_hash_without_connections(module, compilation, runtime)
+      module
+        .get_exports_type(&mg, &compilation.module_graph_cache_artifact, strict)
         .hash(&mut hasher);
+      hash_modules.push(module);
+    }
+    let hash_results = hash_modules
+      .into_iter()
+      .map(|module| self.get_module_graph_hash_without_connections(module, compilation, runtime))
+      .collect::<Vec<_>>();
+    for hash_result in hash_results {
+      hash_result.hash(&mut hasher);
     }
     hasher.finish()
   }
@@ -343,8 +353,9 @@ impl ChunkGraph {
     Self::get_module_id(&compilation.module_ids_artifact, module_identifier).dyn_hash(&mut hasher);
     module.source_types(&module_graph).dyn_hash(&mut hasher);
     ModuleGraph::is_async(compilation, &module_identifier).dyn_hash(&mut hasher);
-    mg.get_exports_info(&module_identifier)
-      .update_hash(&mg, &mut hasher, compilation, runtime);
+    let exports_info =
+      mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Full);
+    exports_info.update_hash(&mut hasher, runtime);
     hasher.finish()
   }
 }

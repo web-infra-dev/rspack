@@ -7,7 +7,7 @@ _March 28, 2025_
 
 # Announcing Rspack 1.3
 
-![Rspack 1.3](https://assets.rspack.dev/rspack/rspack-banner-v1-3.png)
+![Rspack 1.3](https://assets.rspack.rs/rspack/rspack-banner-v1-3.png)
 
 ---
 
@@ -161,7 +161,7 @@ Rspack now defaults to using [mimalloc](https://github.com/microsoft/mimalloc) v
 Rspack 1.3 also implemented an internal mechanism to clean the outdated cache: `maxGenerations`. This controls how many compilations would cache survive if it's not being used by the compiler. Rspack sets the default to `1`. This means that the cache will be purged if it's not being used in the next compilation.
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-3-memory-improve-max-generations.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-3-memory-improve-max-generations.png"
   width="760"
   alt="Max generations"
 />
@@ -169,7 +169,7 @@ Rspack 1.3 also implemented an internal mechanism to clean the outdated cache: `
 ## Rstack updates
 
 <img
-  src="https://assets.rspack.dev/rstack/rstack-overview.png"
+  src="https://assets.rspack.rs/rstack/rstack-overview.png"
   width="760"
   alt="Rstack"
 />
@@ -186,13 +186,13 @@ Rsdoctor 1.0 introduces significant enhancements:
 - Rewrote data processing logic using Rust, achieving 20%+ improvement in analysis speed.
 - New module search capabilities for analyzing dependencies and module sizes.
 
-> Read the [Rsdoctor 1.0 release blog](https://rsdoctor.dev/zh/blog/release/release-note-1_0) for more.
+> Read the [Rsdoctor 1.0 release blog](https://rsdoctor.rs/zh/blog/release/release-note-1_0) for more.
 
 ### Rsbuild 1.3
 
 Rsbuild 1.3 has been released alongside Rspack 1.3, notable features including:
 
-- Support importing compiled CSS files as strings by using the [?inline](https://rsbuild.dev/guide/basic/css-usage#inline) query parameter:
+- Support importing compiled CSS files as strings by using the [?inline](https://rsbuild.rs/guide/basic/css-usage#inline) query parameter:
 
 ```js
 import inlineCss from './style.css?inline';
@@ -200,7 +200,7 @@ import inlineCss from './style.css?inline';
 console.log(inlineCss); // Output the compiled CSS file content
 ```
 
-- Support importing raw CSS files and static assets as strings by using the [?raw](https://rsbuild.dev/guide/basic/css-usage#raw) query parameter:
+- Support importing raw CSS files and static assets as strings by using the [?raw](https://rsbuild.rs/guide/basic/css-usage#raw) query parameter:
 
 ```js
 import rawSvg from './logo.svg?raw';

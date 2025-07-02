@@ -9,71 +9,26 @@ use crate::Compilation;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AvailableModules {
-  #[cfg(debug_assertions)]
-  available_modules: rspack_collections::IdentifierSet,
-
-  #[cfg(not(debug_assertions))]
   available_modules: num_bigint::BigUint,
 }
 
 impl AvailableModules {
   pub fn union(&self, other: &Self) -> Self {
-    #[cfg(debug_assertions)]
-    {
-      Self {
-        available_modules: self
-          .available_modules
-          .iter()
-          .chain(&other.available_modules)
-          .copied()
-          .collect(),
-      }
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-      Self {
-        available_modules: &self.available_modules | &other.available_modules,
-      }
+    Self {
+      available_modules: &self.available_modules | &other.available_modules,
     }
   }
 
   pub fn intersect(&self, other: &Self) -> Self {
-    #[cfg(debug_assertions)]
-    {
-      Self {
-        available_modules: self
-          .available_modules
-          .intersection(&other.available_modules)
-          .copied()
-          .collect(),
-      }
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-      Self {
-        available_modules: &self.available_modules & &other.available_modules,
-      }
+    Self {
+      available_modules: &self.available_modules & &other.available_modules,
     }
   }
 
-  #[cfg(debug_assertions)]
-  pub fn is_module_available(&self, module: crate::ModuleIdentifier) -> bool {
-    self.available_modules.contains(&module)
-  }
-
-  #[cfg(not(debug_assertions))]
   pub fn is_module_available(&self, module: u64) -> bool {
     self.available_modules.bit(module)
   }
 
-  #[cfg(debug_assertions)]
-  pub fn add(&mut self, module: crate::ModuleIdentifier) {
-    self.available_modules.insert(module);
-  }
-
-  #[cfg(not(debug_assertions))]
   pub fn add(&mut self, module: u64) {
     self.available_modules.set_bit(module, true);
   }
@@ -89,17 +44,28 @@ pub fn remove_available_modules(
   chunk_parents: &mut [Vec<usize>],
   chunk_children: &mut [Vec<usize>],
 ) {
-  let mut chunk_incomings: Vec<usize> = chunk_parents.iter().map(|parents| parents.len()).collect();
+  let mut chunk_incomings: Vec<HashSet<usize>> = chunk_parents
+    .iter()
+    .map(|parents| parents.iter().copied().collect())
+    .collect();
   let mut pending = HashSet::<usize>::default();
   let module_graph = compilation.get_module_graph();
+
+  let mut entry_with_depend_on = HashSet::<usize>::default();
 
   let mut stack = roots
     .iter()
     .filter(|root| {
-      let is_entry_without_depend_on = chunk_incomings[**root] == 0 && matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(box EntryChunkDesc{initial, ..}) if *initial);
+      let is_entry = matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(box EntryChunkDesc{initial, ..}) if *initial);
+      let is_entry_without_depend_on = is_entry && chunk_incomings[**root].is_empty();
       if is_entry_without_depend_on {
         pending.insert(**root);
       }
+
+      if is_entry && !chunk_incomings[**root].is_empty() {
+        entry_with_depend_on.insert(**root);
+      }
+
       is_entry_without_depend_on
     })
     .map(|root| (AvailableModules::default(), *root, false))
@@ -111,14 +77,12 @@ pub fn remove_available_modules(
     while let Some((parent_available_modules, chunk_index, force_continue)) = stack.pop() {
       let (_, chunk) = &mut chunks[chunk_index];
 
-      if chunk_incomings[chunk_index] >= 1 {
-        chunk_incomings[chunk_index] -= 1;
-      }
-
       let curr_parents_modules = if let Some(curr) = &mut available_modules[chunk_index] {
         // if already calculated
         let res = if force_continue {
           Cow::Borrowed(curr)
+        } else if entry_with_depend_on.contains(&chunk_index) {
+          Cow::Owned(curr.union(&parent_available_modules))
         } else {
           Cow::Owned(curr.intersect(&parent_available_modules))
         };
@@ -138,20 +102,21 @@ pub fn remove_available_modules(
       };
 
       // we have incomings that are not calculated, wait till we calculated
-      if chunk_incomings[chunk_index] != 0 {
+      if !chunk_incomings[chunk_index].is_empty() && !force_continue {
         pending.insert(chunk_index);
         continue;
       }
 
       // if we reach here, means all incomings have calculated (if no cycle)
       //, we can continue calculate children
-      pending.remove(&chunk_index);
 
       let curr_chunk_modules = chunk.chunk_desc.chunk_modules_ordinal();
       let child_available = curr_parents_modules.union(curr_chunk_modules);
 
       for child in &chunk_children[chunk_index] {
         let child_chunk = &mut chunks[*child].1.chunk_desc;
+
+        chunk_incomings[*child].remove(&chunk_index);
 
         if matches!(
           &child_chunk,
@@ -193,16 +158,10 @@ pub fn remove_available_modules(
     };
 
     chunk.chunk_modules_mut().retain(|module_identifier| {
-      let module = {
-        #[cfg(debug_assertions)]
-        {
-          *module_identifier
-        }
-        #[cfg(not(debug_assertions))]
-        {
-          ordinal_by_modules.get(module_identifier).copied().unwrap()
-        }
-      };
+      let module = ordinal_by_modules
+        .get(module_identifier)
+        .copied()
+        .expect("should have module ordinal");
 
       let in_parent = available.is_module_available(module);
 
@@ -216,7 +175,13 @@ pub fn remove_available_modules(
       !in_parent
     });
 
-    if removed.is_empty() {
+    if let ChunkDesc::Entry(box entry_chunk) = chunk {
+      entry_chunk.entry_modules.retain(|m| {
+        !available.is_module_available(*ordinal_by_modules.get(m).expect("should have module"))
+      });
+    }
+
+    if removed.is_empty() || entry_with_depend_on.contains(&chunk_index) {
       continue;
     }
 

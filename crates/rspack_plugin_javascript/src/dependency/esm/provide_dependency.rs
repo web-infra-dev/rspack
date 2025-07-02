@@ -6,9 +6,10 @@ use rspack_cacheable::{
 use rspack_core::{
   create_exports_object_referenced, module_raw, AsContextDependency, Compilation, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
-  FactorizeInfo, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
-  NormalInitFragment, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
+  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
   UsedName,
 };
 use rspack_util::ext::DynHash;
@@ -70,6 +71,7 @@ impl Dependency for ProvideDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.ids.is_empty() {
@@ -173,8 +175,31 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       // not find connection, maybe because it's not resolved in make phase, and `bail` is false
       return;
     };
-    let exports_info = module_graph.get_exports_info(con.module_identifier());
-    let used_name = exports_info.get_used_name(&module_graph, *runtime, &dep.ids.clone());
+
+    let used_name = if dep.ids.is_empty() {
+      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+        &module_graph.get_exports_info(con.module_identifier()),
+        &module_graph,
+        *runtime,
+        false,
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithoutNames(&exports_info),
+        *runtime,
+        &dep.ids,
+      )
+    } else {
+      let exports_info = module_graph.get_prefetched_exports_info(
+        con.module_identifier(),
+        PrefetchExportsInfoMode::Nested(&dep.ids),
+      );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithNames(&exports_info),
+        *runtime,
+        &dep.ids,
+      )
+    };
+
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* provided dependency */ var {} = {}{};\n",

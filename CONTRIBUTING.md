@@ -4,7 +4,7 @@ Thank you for your interest in contributing to Rspack! There are many ways to co
 
 ## About the dev guide
 
-Before starting your contribution, please take a moment and read the [dev guide](https://rspack.dev/contribute/).
+Before starting your contribution, please take a moment and read the [dev guide](https://rspack.rs/contribute/).
 
 The development guide is a set of guidelines and instructions that help contributors understand how to work on Rspack.
 It covers everything from setting up the development environment to coding style and testing guidelines.

@@ -1,14 +1,23 @@
-use rspack_core::{Dependency, SpanExt};
+use rspack_core::{ConstDependency, Dependency, RuntimeGlobals, SpanExt};
 use swc_core::{
   common::Spanned,
-  ecma::ast::{Expr, ExprOrSpread, MetaPropKind, NewExpr},
+  ecma::ast::{Expr, ExprOrSpread, MemberExpr, MetaPropKind, NewExpr},
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::URLDependency, parser_plugin::inner_graph::plugin::InnerGraphPlugin,
-  visitors::JavascriptParser,
+  visitors::JavascriptParser, webpack_comment::try_extract_webpack_magic_comment,
 };
+
+pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
+  let chain = parser.extract_member_expression_chain(expr);
+  chain.object.as_meta_prop().is_some_and(|meta| {
+    meta.kind == MetaPropKind::ImportMeta
+      && chain.members.len() == 1
+      && chain.members.first().is_some_and(|member| member == "url")
+  })
+}
 
 pub fn get_url_request(
   parser: &mut JavascriptParser,
@@ -23,18 +32,12 @@ pub fn get_url_request(
       spread: None,
       expr: box Expr::Member(arg2),
     }) = args.get(1)
+    && is_meta_url(parser, arg2)
   {
-    let chain = parser.extract_member_expression_chain(arg2);
-    if let Some(meta) = chain.object.as_meta_prop()
-      && matches!(meta.kind, MetaPropKind::ImportMeta)
-      && chain.members.len() == 1
-      && matches!(chain.members.first(), Some(member) if member == "url")
-    {
-      return parser
-        .evaluate_expression(arg1)
-        .as_string()
-        .map(|req| (req, arg1.span().real_lo(), arg2.span().real_hi()));
-    }
+    return parser
+      .evaluate_expression(arg1)
+      .as_string()
+      .map(|req| (req, arg1.span().real_lo(), arg2.span().real_hi()));
   }
   None
 }
@@ -54,9 +57,46 @@ impl JavascriptParserPlugin for URLPlugin {
     expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == "URL"
-      && let Some((request, start, end)) = get_url_request(parser, expr)
+    if for_name != "URL" {
+      return None;
+    }
+
+    let args = expr.args.as_ref()?;
+    let arg = args.first()?;
+    let magic_comment_options = try_extract_webpack_magic_comment(
+      parser.source_file,
+      &parser.comments,
+      expr.span,
+      arg.span(),
+      &mut parser.warning_diagnostics,
+    );
+    if magic_comment_options
+      .get_webpack_ignore()
+      .unwrap_or_default()
     {
+      if args.len() != 2 {
+        return None;
+      }
+      let arg2 = args.get(1)?;
+      if let ExprOrSpread {
+        spread: None,
+        expr: box Expr::Member(arg2),
+      } = arg2
+        && !is_meta_url(parser, arg2)
+      {
+        return None;
+      }
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          arg2.span().into(),
+          RuntimeGlobals::BASE_URI.name().into(),
+          Some(RuntimeGlobals::BASE_URI),
+        )));
+      return Some(true);
+    }
+
+    if let Some((request, start, end)) = get_url_request(parser, expr) {
       let dep = URLDependency::new(
         request.into(),
         expr.span.into(),
@@ -77,9 +117,9 @@ impl JavascriptParserPlugin for URLPlugin {
           }
         }),
       );
-      Some(true)
-    } else {
-      None
+      return Some(true);
     }
+
+    None
   }
 }

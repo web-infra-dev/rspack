@@ -6,8 +6,8 @@ use rspack_core::{
   create_exports_object_referenced, module_namespace_promise, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraph, ReferencedExport, TemplateContext,
-  TemplateReplaceSource,
+  ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -17,6 +17,7 @@ pub fn create_import_dependency_referenced_exports(
   dependency_id: &DependencyId,
   referenced_exports: &Option<Vec<Atom>>,
   mg: &ModuleGraph,
+  mg_cache: &ModuleGraphCacheArtifact,
 ) -> Vec<ExtendedReferencedExport> {
   if let Some(referenced_exports) = referenced_exports {
     let mut refs = vec![];
@@ -35,7 +36,7 @@ pub fn create_import_dependency_referenced_exports(
         else {
           return create_exports_object_referenced();
         };
-        let exports_type = imported_module.get_exports_type(mg, strict);
+        let exports_type = imported_module.get_exports_type(mg, mg_cache, strict);
         if matches!(
           exports_type,
           ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
@@ -45,6 +46,7 @@ pub fn create_import_dependency_referenced_exports(
       }
       refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
         vec![referenced_export.clone()],
+        false,
         false,
       )));
     }
@@ -121,9 +123,15 @@ impl Dependency for ImportDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &rspack_core::ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
-    create_import_dependency_referenced_exports(&self.id, &self.referenced_exports, module_graph)
+    create_import_dependency_referenced_exports(
+      &self.id,
+      &self.referenced_exports,
+      module_graph,
+      module_graph_cache,
+    )
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

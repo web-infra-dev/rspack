@@ -1,5 +1,5 @@
-import type { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { createErrorMap, fromZodError } from "zod-validation-error/v4";
+import type { z } from "zod/v4";
 
 export class ValidationError extends Error {
 	constructor(message: string) {
@@ -10,18 +10,26 @@ export class ValidationError extends Error {
 
 export function validate<T extends z.ZodType>(
 	opts: any,
-	schema: T,
+	createSchema: () => T,
 	options: {
 		output?: boolean;
 		strategy?: "strict" | "loose-unrecognized-keys" | "loose-silent" | "loose";
 	} = {}
 ): string | null {
+	const strategy =
+		options.strategy ?? process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+
+	// Skip schema validation if the strategy is `loose-silent`
+	if (strategy === "loose-silent") {
+		return null;
+	}
+
+	const schema =
+		typeof createSchema === "function" ? createSchema() : createSchema;
 	const res = schema.safeParse(opts);
+
 	if (!res.success) {
-		const strategy =
-			options.strategy ?? process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
 		const output = options.output ?? true;
-		if (strategy === "loose-silent") return null;
 
 		let friendlyErr: ValidationError;
 		const originalIssues = res.error.issues;
@@ -38,18 +46,22 @@ export function validate<T extends z.ZodType>(
 				issue => issue.code === "unrecognized_keys"
 			);
 			if (unrecognizedKeys.length > 0) {
-				res.error.issues = unrecognizedKeys;
-				friendlyErr = toValidationError(res.error);
+				friendlyErr = toValidationError({
+					...res.error,
+					issues: unrecognizedKeys
+				});
 				if (output) {
 					console.error(friendlyErr.message);
 				}
-				res.error.issues = originalIssues;
 			}
-			res.error.issues = originalIssues.filter(
+			const issuesWithoutUnrecognizedKeys = originalIssues.filter(
 				issue => issue.code !== "unrecognized_keys"
 			);
-			if (res.error.issues.length > 0) {
-				throw toValidationError(res.error);
+			if (issuesWithoutUnrecognizedKeys.length > 0) {
+				throw toValidationError({
+					...res.error,
+					issues: issuesWithoutUnrecognizedKeys
+				});
 			}
 			return output || !friendlyErr! ? null : friendlyErr.message;
 		}
@@ -70,26 +82,27 @@ export function validate<T extends z.ZodType>(
 }
 
 function toValidationError(error: z.ZodError): ValidationError {
-	const issueSeparator = "$issue$";
-	const prefixSeparator = "$prefix$";
+	// Instead of using `z.config({ customError: createErrorMap() })` to customize the error message,
+	// we use `createErrorMap` to customize the error message.
+	// This gives us fine-grained control over the error messages.
+	const customErrorMap = createErrorMap();
+	const separator = "\n- ";
 	const validationErr = fromZodError(error, {
 		prefix:
 			"Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.",
-		prefixSeparator,
-		issueSeparator
+		prefixSeparator: separator,
+		issueSeparator: separator,
+		error: customErrorMap
 	});
-	// The output validationErr.message looks like
-	// `Configuration error$prefix$xxxx error$issue$yyy error$issue$zzz error`
-	const [prefix, reason] = validationErr.message.split(prefixSeparator);
-	const reasonItem = reason.split(issueSeparator);
-	const message = `${prefix}\n${reasonItem.map(item => `- ${item}`).join("\n")}`;
-	const friendlyErr = new ValidationError(message);
-	return friendlyErr;
+	return new ValidationError(validationErr.message);
 }
 
-export function isValidate<T extends z.ZodType>(opts: any, schema: T) {
+export function isValidate<T extends z.ZodType>(
+	opts: any,
+	createSchema: () => T
+) {
 	try {
-		validate(opts, schema);
+		validate(opts, createSchema);
 		return true;
 	} catch {
 		return false;

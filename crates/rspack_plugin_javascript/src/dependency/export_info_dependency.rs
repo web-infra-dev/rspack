@@ -4,8 +4,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided, Inlinable,
+  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -52,9 +52,9 @@ impl ExportInfoDependency {
     let module_identifier = module.identifier();
 
     if export_name.is_empty() && prop == "usedExports" {
-      let used_exports = module_graph
-        .get_exports_info(&module_identifier)
-        .get_used_exports(&module_graph, *runtime);
+      let exports_info = module_graph
+        .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
+      let used_exports = exports_info.get_used_exports(*runtime);
       return Some(match used_exports {
         UsedExports::Unknown => "null".to_owned(),
         UsedExports::UsedNamespace(value) => value.to_string(),
@@ -71,27 +71,41 @@ impl ExportInfoDependency {
       });
     }
 
-    let exports_info = module_graph.get_exports_info(&module_identifier);
+    let exports_info = module_graph.get_prefetched_exports_info(
+      &module_identifier,
+      PrefetchExportsInfoMode::Nested(export_name),
+    );
 
     match prop.to_string().as_str() {
       "canMangle" => {
         let can_mangle = if let Some(export_info) =
-          exports_info.get_read_only_export_info_recursive(&module_graph, export_name)
+          exports_info.get_read_only_export_info_recursive(export_name)
         {
-          export_info.can_mangle(&module_graph)
+          export_info.can_mangle()
         } else {
-          exports_info
-            .other_exports_info(&module_graph)
-            .can_mangle(&module_graph)
+          exports_info.other_exports_info().can_mangle()
         };
         can_mangle.map(|v| v.to_string())
       }
+      "inlinable" => {
+        let inlinable = if let Some(export_info) =
+          exports_info.get_read_only_export_info_recursive(export_name)
+        {
+          export_info.inlinable()
+        } else {
+          exports_info.other_exports_info().inlinable()
+        };
+        Some(match inlinable {
+          Inlinable::Inlined(inlined) => format!("inlined {}", inlined.render()),
+          _ => "no inline".to_string(),
+        })
+      }
       "used" => {
-        let used = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
+        let used = exports_info.get_used(export_name, *runtime);
         Some((!matches!(used, UsageState::Unused)).to_string())
       }
       "useInfo" => {
-        let used_state = exports_info.get_used(&module_graph, &export_name.clone(), *runtime);
+        let used_state = exports_info.get_used(export_name, *runtime);
         Some(
           (match used_state {
             UsageState::Used => "true",
@@ -104,7 +118,7 @@ impl ExportInfoDependency {
         )
       }
       "provideInfo" => exports_info
-        .is_export_provided(&module_graph, export_name)
+        .is_export_provided(export_name)
         .map(|provided| {
           (match provided {
             ExportProvided::Provided => "true",

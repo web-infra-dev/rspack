@@ -6,6 +6,7 @@ pub mod asset_condition;
 pub mod atom;
 pub mod comparators;
 pub mod diff_mode;
+pub mod env;
 pub mod ext;
 pub mod fx_hash;
 pub mod identifier;
@@ -18,6 +19,7 @@ pub mod size;
 pub mod source_map;
 pub mod swc;
 pub mod test;
+pub mod tracing_preset;
 
 use std::future::Future;
 

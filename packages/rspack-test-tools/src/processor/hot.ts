@@ -117,6 +117,8 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			target: this._hotOptions.target,
 			experiments: {
 				css: true,
+				// test incremental: "safe" here, we test default incremental in Incremental-*.test.js
+				incremental: "safe",
 				rspackFuture: {
 					bundlerInfo: {
 						force: false

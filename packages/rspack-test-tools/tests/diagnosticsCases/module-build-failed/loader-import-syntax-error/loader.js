@@ -1,11 +1,11 @@
 /** @type {import('@rspack/test-tools').PitchLoaderDefinitionFunction} */
-module.exports = async function () {
+module.exports = async function (content) {
 	try {
-		const result = await this.importModule("./syntax-error.js");
-
-		// here should be unreachable
-		expect(result).toBe(Symbol('unreachable'));
+		await this.importModule("./syntax-error.js");
 	} catch (e) {
 		expect(e).toBeDefined()
+		return content;
 	}
+	// here should be unreachable
+	throw new Error("unreachable");
 };
