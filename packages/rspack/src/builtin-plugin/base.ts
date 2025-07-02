@@ -1,4 +1,4 @@
-import type * as binding from "@rspack/binding";
+import * as binding from "@rspack/binding";
 
 import type { Compiler, RspackPluginInstance } from "..";
 
@@ -24,7 +24,7 @@ export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 	abstract raw(compiler: Compiler): binding.BuiltinPlugin | undefined;
-	abstract name: binding.BuiltinPluginName;
+	abstract name: binding.BuiltinPluginName | CustomPluginName;
 
 	affectedHooks?: AffectedHooks;
 	apply(compiler: Compiler) {
@@ -37,7 +37,7 @@ export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 }
 
 export function createBuiltinPlugin<R>(
-	name: binding.BuiltinPluginName,
+	name: binding.BuiltinPluginName | CustomPluginName,
 	options: R
 ): binding.BuiltinPlugin {
 	return {
@@ -46,8 +46,10 @@ export function createBuiltinPlugin<R>(
 	};
 }
 
+type CustomPluginName = string;
+
 export function create<T extends any[], R>(
-	name: binding.BuiltinPluginName,
+	name: binding.BuiltinPluginName | CustomPluginName,
 	resolve: (this: Compiler, ...args: T) => R,
 	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reserved.
 	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.
@@ -73,4 +75,33 @@ export function create<T extends any[], R>(
 	Object.defineProperty(Plugin, "name", { value: name });
 
 	return Plugin;
+}
+
+const INTERNAL_PLUGIN_NAMES = Object.keys(binding.BuiltinPluginName);
+
+/**
+ * Create a wrapper class for builtin plugin.
+ *
+ * @example
+ * ```js
+ * const MyPlugin = createNativePlugin("MyPlugin", (options) => {
+ * 	return options;
+ * });
+ *
+ * new MyPlugin({
+ * 	foo: "bar"
+ * }).apply(compiler);
+ * ```
+ */
+export function createNativePlugin<T extends any[], R>(
+	name: CustomPluginName,
+	resolve: (this: Compiler, ...args: T) => R,
+	affectedHooks?: AffectedHooks
+) {
+	if (INTERNAL_PLUGIN_NAMES.includes(name)) {
+		throw new Error(
+			`Cannot register native plugin with name '${name}', it conflicts with internal plugin names.`
+		);
+	}
+	return create(name, resolve, affectedHooks);
 }
