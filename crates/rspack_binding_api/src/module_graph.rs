@@ -90,7 +90,7 @@ impl JsModuleGraph {
       }
     };
     let exports_info = module_graph
-      .get_prefetched_exports_info(&js_module.identifier, PrefetchExportsInfoMode::AllExports);
+      .get_prefetched_exports_info(&js_module.identifier, PrefetchExportsInfoMode::Default);
     let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
       rspack_core::UsedExports::Unknown => None,
