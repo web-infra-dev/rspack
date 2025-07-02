@@ -63,8 +63,7 @@ export default defineConfig({
 		rspack: (config, { rspack }) => {
 			config.plugins.push(
 				new rspack.IgnorePlugin({
-					resourceRegExp:
-						/(moduleFederationDefaultRuntime|worker_threads|async_hooks|perf_hooks|inspector)/
+					resourceRegExp: /(moduleFederationDefaultRuntime|inspector)/
 				}),
 				new rspack.NormalModuleReplacementPlugin(
 					/src\/loader-runner\/service\.ts/,
