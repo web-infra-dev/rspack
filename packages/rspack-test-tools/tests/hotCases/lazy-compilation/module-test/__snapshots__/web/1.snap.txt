@@ -10,7 +10,7 @@
 - Bundle: moduleB_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 64
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: moduleA_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1559
+- Update: moduleA_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1392
 
 ## Manifest
 
@@ -64,7 +64,7 @@ self["webpackHotUpdate"]("moduleA_js_lazy-compilation-proxy", {
   \*********************************************************************************************************************/
 (function (module, __unused_webpack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2Flazy-compilation-using-");
-var data = "<TEST_TOOLS_ROOT>/dist/helper/loaders/hot-update.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use%5B0%5D!<TEST_TOOLS_ROOT>/tests/hotCases/lazy-compilation/module-test/moduleA.js"
+var data = "0"
         module.exports = __webpack_require__.e(/*! import() */ "moduleA_js").then(__webpack_require__.bind(__webpack_require__, /*! ./moduleA.js */ "./moduleA.js"));
         if (module.hot) {
           module.hot.accept();

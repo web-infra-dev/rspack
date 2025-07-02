@@ -68,11 +68,16 @@ export class SnapshotProcessor<
 		const snapshotFileFilter =
 			this._snapshotOptions.snapshotFileFilter ||
 			((file: string) => file.endsWith(".js") && !file.includes("runtime.js"));
+
 		const fileContents = Object.entries(compilation.assets)
 			.filter(([file]) => snapshotFileFilter(file))
 			.map(([file, source]) => {
 				const tag = path.extname(file).slice(1) || "txt";
-				const content = this.serializeEachFile(source.source().toString());
+				let content = this.serializeEachFile(source.source().toString());
+				const testConfig = context.getTestConfig();
+				if (testConfig.snapshotContent) {
+					content = testConfig.snapshotContent(content);
+				}
 
 				return `\`\`\`${tag} title=${file}\n${content}\n\`\`\``;
 			});

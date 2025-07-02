@@ -226,7 +226,12 @@ export class HotSnapshotProcessor<
 			}
 		}
 
-		const replaceContent = (str: string) => {
+		const replaceContent = (rawStr: string) => {
+			let str = rawStr;
+			const replaceContentConfig = context.getTestConfig().snapshotContent;
+			if (replaceContentConfig) {
+				str = replaceContentConfig(str);
+			}
 			return normalizePlaceholder(
 				Object.entries(hashes)
 					.reduce((str, [raw, replacement]) => {
