@@ -47,11 +47,23 @@ impl From<JsFactoryMeta> for FactoryMeta {
   }
 }
 
+// ## Clarify Access Methods for napi Module to Rust Module
+// Primary access: Query compilation.module_graph using module_identifier
+// Fallback for unregistered modules: Access via raw pointer when modules aren't yet stored in compilation.module_graph (e.g., during loader execution phase)
+//
+// ## Clarify napi Module Lifecycle
+// Created when accessed via JavaScript API
+// Lifecycle ends upon triggering revoked_modules hook
+//
+// ## Behavior When napi Module Lifecycle Ends
+// When JavaScript API accesses napi module properties after lifecycle termination:
+// module_identifier query in compilation.module_graph returns undefined
+// Raw pointer stored in napi module becomes None
+// Throw an Error to the JavaScript side
 #[napi]
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
-  // TODO: Replace with Option<Box<dyn Module>> in the future for better ownership and safety
-  module: Option<NonNull<dyn rspack_core::Module>>,
+  ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
   compiler_reference: WeakReference<JsCompiler>,
   pub(crate) build_info_ref: Option<WeakRef>,
@@ -253,11 +265,11 @@ impl Module {
         let compilation = &this.compiler.compilation;
         if let Some(module) = compilation.module_by_identifier(&self.identifier) {
           Ok((compilation, module.as_ref()))
-        } else if let Some(module) = self.module {
+        } else if let Some(ptr) = self.ptr {
           // SAFETY:
           // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
           // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-          Ok((compilation, unsafe { module.as_ref() }))
+          Ok((compilation, unsafe { ptr.as_ref() }))
         } else {
           Err(napi::Error::from_reason(format!(
             "Unable to access module with id = {} now. The module have been removed on the Rust side.",
@@ -273,12 +285,12 @@ impl Module {
   }
 
   pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {
-    match self.module.as_mut() {
-      Some(module) => {
+    match self.ptr.as_mut() {
+      Some(ptr) => {
         // SAFETY:
         // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
         // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-        Ok(unsafe { module.as_mut() })
+        Ok(unsafe { ptr.as_mut() })
       }
       None => Err(napi::Error::from_reason(format!(
         "Unable to modify module with id = {}. Currently, you can only modify the module in the loader in Rspack.",
@@ -465,7 +477,7 @@ thread_local! {
 pub struct ModuleObject {
   type_id: TypeId,
   identifier: ModuleIdentifier,
-  module: Option<NonNull<dyn rspack_core::Module>>,
+  ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
 }
 
@@ -476,7 +488,7 @@ impl ModuleObject {
     Self {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
-      module: None,
+      ptr: None,
       compiler_id,
     }
   }
@@ -487,7 +499,7 @@ impl ModuleObject {
     Self {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
-      module: Some(module_ptr),
+      ptr: Some(module_ptr),
       compiler_id,
     }
   }
@@ -499,19 +511,26 @@ impl ModuleObject {
     });
   }
 
-  pub fn cleanup_by_module_identifiers(revoked_modules: &[ModuleIdentifier]) {
+  pub fn cleanup_by_module_identifiers(
+    compiler_id: &CompilerId,
+    revoked_modules: &[ModuleIdentifier],
+  ) {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       for module_identifier in revoked_modules {
-        for (_, refs) in refs_by_compiler_id.iter_mut() {
-          refs.remove(module_identifier);
+        if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
+          if let Some(r) = refs.remove(module_identifier) {
+            match r {
+              Either5::A(mut normal_module) => normal_module.module.ptr = None,
+              Either5::B(mut concatenated_module) => concatenated_module.module.ptr = None,
+              Either5::C(mut context_module) => context_module.module.ptr = None,
+              Either5::D(mut external_module) => external_module.module.ptr = None,
+              Either5::E(mut module) => module.ptr = None,
+            }
+          }
         }
       }
     });
-  }
-
-  pub fn take(&mut self) -> Option<NonNull<dyn rspack_core::Module>> {
-    self.module
   }
 }
 
@@ -538,7 +557,7 @@ impl ToNapiValue for ModuleObject {
             Either5::D(external_module) => &mut external_module.module,
             Either5::E(module) => &mut **module,
           };
-          instance.module = val.module;
+          instance.ptr = val.ptr;
           match instance_ref {
             Either5::A(r) => ToNapiValue::to_napi_value(env, r),
             Either5::B(r) => ToNapiValue::to_napi_value(env, r),
@@ -556,7 +575,7 @@ impl ToNapiValue for ModuleObject {
               let js_module = Module {
                 identifier: val.identifier,
                 compiler_id: val.compiler_id,
-                module: val.module,
+                ptr: val.ptr,
                 compiler_reference,
                 build_info_ref: Default::default(),
               };
@@ -607,31 +626,31 @@ impl FromNapiValue for ModuleObject {
       Either5::A(normal_module) => Self {
         type_id: TypeId::of::<rspack_core::NormalModule>(),
         identifier: normal_module.module.identifier,
-        module: normal_module.module.module.take(),
+        ptr: normal_module.module.ptr,
         compiler_id: normal_module.module.compiler_id,
       },
       Either5::B(concatenated_module) => Self {
         type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
         identifier: concatenated_module.module.identifier,
-        module: concatenated_module.module.module.take(),
+        ptr: concatenated_module.module.ptr,
         compiler_id: concatenated_module.module.compiler_id,
       },
       Either5::C(context_module) => Self {
         type_id: TypeId::of::<rspack_core::ContextModule>(),
         identifier: context_module.module.identifier,
-        module: context_module.module.module.take(),
+        ptr: context_module.module.ptr,
         compiler_id: context_module.module.compiler_id,
       },
       Either5::D(external_module) => Self {
-        type_id: TypeId::of::<rspack_core::ContextModule>(),
+        type_id: TypeId::of::<rspack_core::ExternalModule>(),
         identifier: external_module.module.identifier,
-        module: external_module.module.module.take(),
+        ptr: external_module.module.ptr,
         compiler_id: external_module.module.compiler_id,
       },
       Either5::E(module) => Self {
         type_id: TypeId::of::<dyn rspack_core::Module>(),
         identifier: module.identifier,
-        module: module.module.take(),
+        ptr: module.ptr,
         compiler_id: module.compiler_id,
       },
     })
