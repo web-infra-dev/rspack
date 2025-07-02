@@ -18,6 +18,7 @@ type PartialChromeEvent = MakeOptional<ChromeEvent, "ts" | "ph">;
 // this is a tracer for nodejs
 // FIXME: currently we only support chrome layer and do nothing for logger layer
 export class JavaScriptTracer {
+	static state: "uninitialized" | "on" | "off" = "uninitialized";
 	// baseline time, we use offset time for tracing to align with rust side time
 	static startTime: bigint;
 	static events: ChromeEvent[];
@@ -28,12 +29,19 @@ export class JavaScriptTracer {
 	static session: import("node:inspector").Session;
 	// plugin counter for different channel in trace viewer, choose 100 to avoid conflict with known tracks
 	private static counter = 10000;
+	/**
+	 * only first call take effects, subsequent calls will be ignored
+	 * @param layer tracing layer
+	 * @param output tracing output file path
+	 */
 	static async initJavaScriptTrace(layer: string, output: string) {
-		const { Session } = await import("node:inspector");
+		//FIXME:  workaround for Node.js 16 crash bug, remove it when drop support for Node.js 16
+		const { Session } = require("node:inspector");
 		this.session = new Session();
 		this.layer = layer;
 		this.output = output;
 		this.events = [];
+		this.state = "on";
 		this.startTime = process.hrtime.bigint(); // use microseconds
 	}
 	static uuid() {
@@ -47,12 +55,17 @@ export class JavaScriptTracer {
 		}
 	}
 	/**
-	 *
+	 * only first call take effects, subsequent calls will be ignored
 	 * @param isEnd true means we are at the end of tracing,and can append ']' to close the json
 	 * @returns
 	 */
 	static async cleanupJavaScriptTrace() {
-		if (!this.layer) {
+		if (this.state === "uninitialized") {
+			throw new Error(
+				"JavaScriptTracer is not initialized, please call initJavaScriptTrace first"
+			);
+		}
+		if (!this.layer || this.state === "off") {
 			return;
 		}
 		const profileHandler = (
@@ -101,7 +114,7 @@ export class JavaScriptTracer {
 				});
 			}
 		};
-		return new Promise<void>((resolve, reject) => {
+		await new Promise<void>((resolve, reject) => {
 			this.session.post("Profiler.stop", (err, params) => {
 				if (err) {
 					reject(err);
@@ -115,6 +128,7 @@ export class JavaScriptTracer {
 				}
 			});
 		});
+		this.state = "off";
 	}
 	// get elapsed time since start(nanoseconds same as rust side timestamp)
 	static getTs() {

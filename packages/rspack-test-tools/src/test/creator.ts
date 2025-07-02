@@ -71,9 +71,9 @@ export class BasicCaseCreator<T extends ECompilerType> {
 
 		const run = this.shouldRun(name);
 		const tester = this.createTester(name, src, dist, temp, testConfig);
-		const concurrent =
-			testConfig.concurrent ?? this._options.concurrent ?? false;
-
+		const concurrent = process.env.WASM
+			? false
+			: testConfig.concurrent || this._options.concurrent;
 		if (this._options.describe) {
 			if (run) {
 				if (concurrent) {

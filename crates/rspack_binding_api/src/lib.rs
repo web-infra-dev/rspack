@@ -121,7 +121,7 @@ pub use swc::*;
 use swc_core::common::util::take::Take;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
-  layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+  layer::SubscriberExt, reload, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 pub use utils::*;
 
@@ -414,9 +414,10 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
 
 #[derive(Default)]
 enum TraceState {
-  On(Box<dyn Tracer>),
+  Uninitialized,                                            // uninitialized
+  On(Box<dyn Tracer>, reload::Handle<EnvFilter, Registry>), // initialized and turned on
   #[default]
-  Off,
+  Off,                                          // initialized but turned off
 }
 
 #[cfg(target_family = "wasm")]
@@ -484,9 +485,11 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
 }
 
 thread_local! {
-  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Off) };
+  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Uninitialized) };
 }
 /**
+ * this is a process level tracing, which means it would be shared by all compilers in the same process
+ * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
  * Apache-2.0 licensed
@@ -507,7 +510,7 @@ pub fn register_global_trace(
   };
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
-    if let TraceState::Off = *state {
+    if let TraceState::Uninitialized = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "logger" => Box::new(StdoutTracer),
         "perfetto"=> Box::new(PerfettoTracer::default()),
@@ -520,30 +523,42 @@ pub fn register_global_trace(
         // SAFETY: we know that trace_var is `Ok(String)` now,
         // for the second unwrap, if we can't parse the directive, then the tracing result would be
         // unexpected, then panic is reasonable
-        let filter = EnvFilter::builder()
+        let (filter,reload_handle) = reload::Layer::new(EnvFilter::builder()
           .with_default_directive(LevelFilter::INFO.into())
           .with_regex(true)
           .parse(filter)
-          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
+          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives")
+      );
         tracing_subscriber::registry()
           .with(<_ as Layer<Registry>>::with_filter(layer, filter))
           .init();
-      }
-      let new_state = TraceState::On(tracer);
-      *state = new_state;
+        let new_state = TraceState::On(tracer, reload_handle);
+        *state = new_state;
+      };
     }
     Ok(())
   })
 }
 
 #[napi]
+// only the first call would take effect, the following calls would be ignored
 pub fn cleanup_global_trace() {
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
-    if let TraceState::On(ref mut tracer) = *state {
-      tracer.teardown();
+    match *state {
+      TraceState::Uninitialized => {
+        panic!("Global trace is not initialized, please call register_global_trace first");
+      }
+      TraceState::Off => {
+        // do nothing, already cleaned up
+      }
+      TraceState::On(ref mut tracer, ref mut reload_handle) => {
+        tracer.teardown();
+        // turn off the tracing event
+        let _ = reload_handle.modify(|filter| *filter = EnvFilter::new("off"));
+        *state = TraceState::Off;
+      }
     }
-    *state = TraceState::Off;
   });
 }
 // sync Node.js event to Rust side
@@ -552,7 +567,7 @@ pub fn sync_trace_event(events: Vec<RawTraceEvent>) {
   use std::borrow::BorrowMut;
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
-    if let TraceState::On(tracer) = &mut **state.borrow_mut() {
+    if let TraceState::On(tracer, _) = &mut **state.borrow_mut() {
       tracer.sync_trace(
         events
           .into_iter()
