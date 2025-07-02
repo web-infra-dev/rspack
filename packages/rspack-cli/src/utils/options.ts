@@ -63,8 +63,8 @@ export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
 				describe: "devtool",
 				alias: "d",
 				coerce: arg => {
-					if (arg === "true") return "eval"; // --devtool true 等价于 "eval"
-					if (arg === "false") return false; // --devtool false 表示禁用
+					if (arg === "true") return "eval"; // --devtool true equal to "eval"
+					if (arg === "false") return false; // --devtool false disabled
 					return arg;
 				}
 			}
