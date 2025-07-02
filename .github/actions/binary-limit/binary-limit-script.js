@@ -61,7 +61,7 @@ async function commentToPullRequest(github, context, comment) {
 			owner: context.repo.owner,
 			repo: context.repo.repo,
 			comment_id: prevComment.id,
-			body: `${SIZE_LIMIT_HEADING}\nBase binary size: ${comment} bytes\nupdate: ${new Date()}`
+			body: `${SIZE_LIMIT_HEADING}\n${comment}`
 		});
 		return;
 	}
@@ -70,7 +70,7 @@ async function commentToPullRequest(github, context, comment) {
 		owner: context.repo.owner,
 		repo: context.repo.repo,
 		issue_number: context.payload.number,
-		body: `${SIZE_LIMIT_HEADING}\nBase binary size: ${comment} bytes`
+		body: `${SIZE_LIMIT_HEADING}\n${comment}`
 	});
 }
 
