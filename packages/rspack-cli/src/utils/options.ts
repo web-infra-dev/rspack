@@ -58,10 +58,15 @@ export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
 				describe: "env passed to config function"
 			},
 			devtool: {
-				type: "boolean",
-				default: false,
+				type: "string",
+				default: "eval",
 				describe: "devtool",
-				alias: "d"
+				alias: "d",
+				coerce: arg => {
+					if (arg === "true") return "eval"; // --devtool true 等价于 "eval"
+					if (arg === "false") return false; // --devtool false 表示禁用
+					return arg;
+				}
 			}
 		})
 		.alias({ v: "version", h: "help" });
