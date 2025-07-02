@@ -4,7 +4,8 @@ use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkGroupOrderKey,
-  ChunkUkey, Compilation, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  ChunkUkey, Compilation, CrossOriginLoading, PublicPath, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
