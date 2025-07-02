@@ -46,16 +46,16 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.8.11"
+version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
+checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
 dependencies = [
  "cfg-if",
- "getrandom 0.2.15",
+ "getrandom 0.3.2",
  "once_cell",
  "serde",
  "version_check",
- "zerocopy 0.7.35",
+ "zerocopy 0.8.25",
 ]
 
 [[package]]
@@ -374,15 +374,42 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50fd5174866dc2fa2ddc96e8fb800852d37f064f32a45c7b7c2f8fa2c64c77fa"
 
 [[package]]
+name = "browserslist-data"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f42db7dd1800856ac32d4a08c2915de9a9a2a72ce1fdd86189daed368729fd4"
+dependencies = [
+ "ahash 0.8.12",
+ "chrono",
+]
+
+[[package]]
 name = "browserslist-rs"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f95aff901882c66e4b642f3f788ceee152ef44f8a5ef12cb1ddee5479c483be"
 dependencies = [
- "ahash 0.8.11",
+ "ahash 0.8.12",
  "chrono",
  "either",
  "indexmap 2.7.1",
+ "itertools 0.13.0",
+ "nom 7.1.3",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "browserslist-rs"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8dd48a6ca358df4f7000e3fb5f08738b1b91a0e5d5f862e2f77b2b14647547f5"
+dependencies = [
+ "ahash 0.8.12",
+ "browserslist-data",
+ "chrono",
+ "either",
  "itertools 0.13.0",
  "nom 7.1.3",
  "serde",
@@ -1820,7 +1847,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
- "ahash 0.8.11",
+ "ahash 0.8.12",
 ]
 
 [[package]]
@@ -1829,7 +1856,7 @@ version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
- "ahash 0.8.11",
+ "ahash 0.8.12",
  "allocator-api2",
 ]
 
@@ -2469,7 +2496,7 @@ version = "1.0.0-alpha.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a296273515b1036d06fce6c1d6bfc11347083458e1765ae4a70d6288cdb15521"
 dependencies = [
- "ahash 0.8.11",
+ "ahash 0.8.12",
  "bitflags 2.9.1",
  "const-str",
  "cssparser",
@@ -3446,7 +3473,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7ef56d3bd1b2cb104e716ec6babbca1df3b59754d4e3e99426163572e6bc0cc"
 dependencies = [
  "anyhow",
- "browserslist-rs",
+ "browserslist-rs 0.18.1",
  "dashmap 5.5.3",
  "from_variant",
  "once_cell",
@@ -4147,7 +4174,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "browserslist-rs",
+ "browserslist-rs 0.19.0",
  "color-backtrace",
  "cow-utils",
  "derive_more 1.0.0",
@@ -4267,7 +4294,7 @@ dependencies = [
 name = "rspack_browserslist"
 version = "0.2.0"
 dependencies = [
- "browserslist-rs",
+ "browserslist-rs 0.19.0",
  "lightningcss",
  "regex",
 ]
