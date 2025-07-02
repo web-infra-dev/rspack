@@ -291,6 +291,30 @@ Array [
         111,
         110,
         10,
+        47,
+        47,
+        32,
+        35,
+        95,
+        95,
+        78,
+        79,
+        95,
+        83,
+        73,
+        68,
+        69,
+        95,
+        69,
+        70,
+        70,
+        69,
+        67,
+        84,
+        83,
+        95,
+        95,
+        10,
         102,
         117,
         110,
@@ -1052,6 +1076,7 @@ module.exports = "This is hook"
 var __webpack_module_cache__ = {};
 
 // The require function
+// #__NO_SIDE_EFFECTS__
 function __webpack_require__(moduleId) {
 
 // Check if module is in cache

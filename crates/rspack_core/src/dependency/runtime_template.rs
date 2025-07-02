@@ -729,56 +729,32 @@ fn missing_module_statement(request: &str) -> String {
 }
 
 /// Check if a module is a descendant of a ConsumeShared module
-/// by traversing incoming connections recursively
+/// Only apply to modules that are actually part of ConsumeShared dependency chains
 fn is_consume_shared_descendant(
   module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
 ) -> bool {
-  let mut visited = std::collections::HashSet::new();
-  is_consume_shared_descendant_recursive(module_graph, module_identifier, &mut visited, 10)
-}
-
-/// Recursively search for ConsumeShared modules in the module graph ancestry
-fn is_consume_shared_descendant_recursive(
-  module_graph: &ModuleGraph,
-  current_module: &ModuleIdentifier,
-  visited: &mut std::collections::HashSet<ModuleIdentifier>,
-  max_depth: usize,
-) -> bool {
-  if max_depth == 0 || visited.contains(current_module) {
-    return false;
-  }
-  visited.insert(*current_module);
-
-  // Check if current module is ConsumeShared
-  if let Some(module) = module_graph.module_by_identifier(current_module) {
+  // Only check the direct module, not its entire ancestry
+  // This prevents false positives where regular modules get marked as ConsumeShared descendants
+  if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+    // Check if this module itself is ConsumeShared
     if module.module_type() == &ModuleType::ConsumeShared {
       return true;
     }
-  }
 
-  // Check all incoming connections for ConsumeShared ancestors
-  for connection in module_graph.get_incoming_connections(current_module) {
-    if let Some(origin_module_id) = connection.original_module_identifier.as_ref() {
-      if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
-        // Found a ConsumeShared module - this is a descendant
-        if origin_module.module_type() == &ModuleType::ConsumeShared {
-          return true;
-        }
-
-        // Recursively check this module's incoming connections
-        if is_consume_shared_descendant_recursive(
-          module_graph,
-          origin_module_id,
-          visited,
-          max_depth - 1,
-        ) {
-          return true;
-        }
-      }
+    // Check if this module has BuildMeta indicating it's a shared module
+    // This is more precise than traversing the entire module graph
+    let build_meta = module.build_meta();
+    if let Some(shared_key) = build_meta.shared_key.as_ref() {
+      // Only return true if the shared_key is not empty AND the module is actually in a Module Federation context
+      // Regular modules should never have PURE annotations applied
+      return !shared_key.is_empty();
     }
   }
 
+  // Disable PURE annotations entirely for now to prevent false positives
+  // The previous recursive logic was causing regular modules to be incorrectly
+  // marked as ConsumeShared descendants, adding PURE annotations where they shouldn't be
   false
 }
 

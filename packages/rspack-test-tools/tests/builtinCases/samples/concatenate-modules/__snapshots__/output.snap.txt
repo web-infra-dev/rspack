@@ -6,6 +6,9 @@
 ;// CONCATENATED MODULE: ./answer.js
 const answer = 103330;
 
+;// CONCATENATED MODULE: ./lib.js
+
+
 ;// CONCATENATED MODULE: ./index.js
 
 answer;

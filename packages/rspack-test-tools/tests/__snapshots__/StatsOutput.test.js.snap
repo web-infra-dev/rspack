@@ -58,7 +58,7 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (cb468c46ad9d7f18)
+Rspack compiled successfully (2370e1441ca0a8a9)
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -454,7 +454,7 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/simple-module-source should print correct stats for 1`] = `
-asset bundle.js 2 KiB [emitted] (name: main)
+asset bundle.js xx KiB [emitted] (name: main)
 runtime modules 637 bytes 3 modules
 orphan modules 1 bytes [orphan] 1 module
 cacheable modules 82 bytes

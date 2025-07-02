@@ -1,6 +1,30 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  ccc: () => (/* reexport safe */ _c_js__WEBPACK_IMPORTED_MODULE_0__.ccc)
+});
+/* ESM import */var _b_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./b.js");
+/* ESM import */var _c_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./c.js");
+
+
+const a = 3;
+
+_b_js__WEBPACK_IMPORTED_MODULE_1__.d;
+
+
+
+}),
+"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  d: () => (d)
+});
+const d = 3;
+const c = 100;
+
+
+}),
 "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   ccc: () => (ccc)
@@ -10,7 +34,7 @@ const ccc = 30;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./c.js");
+/* ESM import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 
 
 _a_js__WEBPACK_IMPORTED_MODULE_0__.ccc;

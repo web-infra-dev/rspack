@@ -11,9 +11,20 @@ const b = 103330;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./answer.js");
+/* ESM import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
-_lib__WEBPACK_IMPORTED_MODULE_0__.a;
+_lib__WEBPACK_IMPORTED_MODULE_0__.Lib.a;
+
+
+}),
+"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  Lib: () => (/* reexport module object */ _answer__WEBPACK_IMPORTED_MODULE_0__)
+});
+/* ESM import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./answer.js");
+
+
+
 
 
 }),
