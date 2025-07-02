@@ -510,11 +510,13 @@ exports[`StatsTestCases should print correct stats for errors-space-error 1`] = 
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
-  │ stack3
+  × Module Error (from Xdir/errors-xxx.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
+  × Module Error (from Xdir/errors-xxx.js):loader error2
+
+2 errors have detailed information that is not shown.
+Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -522,11 +524,13 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
-  │ stack3
+  × Module Error (from Xdir/errors-xxx.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
+  × Module Error (from Xdir/errors-xxx.js):loader error2
+
+2 errors have detailed information that is not shown.
+Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -534,11 +538,13 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
-  │ stack3
+  × Module Error (from Xdir/errors-xxx.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
+  × Module Error (from Xdir/errors-xxx.js):loader error2
+
+2 errors have detailed information that is not shown.
+Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -546,11 +552,13 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
-  │ stack3
+  × Module Error (from Xdir/errors-xxx.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
+  × Module Error (from Xdir/errors-xxx.js):loader error2
+
+1 error has detailed information that is not shown.
+Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -558,11 +566,13 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
-  │ stack3
+  × Module Error (from Xdir/errors-xxx.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
+  × Module Error (from Xdir/errors-xxx.js):loader error2
+
+1 error has detailed information that is not shown.
+Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X.23
 
@@ -570,11 +580,10 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
-  │ stack3
+  × Module Error (from Xdir/errors-xxx.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × stack1stack2
+  × Module Error (from Xdir/errors-xxx.js):loader error2
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;

@@ -39,7 +39,6 @@ import {
 } from "../config/adapterRuleUse";
 import { JavaScriptTracer } from "../trace";
 import {
-	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
 	stringifyLoaderObject,
@@ -54,6 +53,8 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
+import ModuleError from "./ModuleError";
+import ModuleWarning from "./ModuleWarning";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
 import {
@@ -568,35 +569,33 @@ export async function runLoaders(
 		);
 	};
 	loaderContext.rootContext = compiler.context;
-	loaderContext.emitError = function emitError(err) {
-		let error = err;
-		if (!(error instanceof Error)) {
-			error = new NonErrorEmittedError(error);
+	loaderContext.emitError = function emitError(e) {
+		if (!(e instanceof Error)) {
+			// biome-ignore lint/style/noParameterAssign: based on webpack's logic
+			e = new NonErrorEmittedError(e);
 		}
-		error.name = "ModuleError";
-		error.message = `${error.message} (from: ${stringifyLoaderObject(
-			loaderContext.loaders[loaderContext.loaderIndex]
-		)})`;
-		error = concatErrorMsgAndStack(error);
-		(error as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		const error = new ModuleError(e, {
+			from: stringifyLoaderObject(
+				loaderContext.loaders[loaderContext.loaderIndex]
+			)
+		});
+		error.module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
 		});
 	};
-	loaderContext.emitWarning = function emitWarning(warn) {
-		let warning = warn;
-		if (!(warning instanceof Error)) {
-			warning = new NonErrorEmittedError(warning);
+	loaderContext.emitWarning = function emitWarning(e) {
+		if (!(e instanceof Error)) {
+			// biome-ignore lint/style/noParameterAssign: based on webpack's logic
+			e = new NonErrorEmittedError(e);
 		}
-		warning.name = "ModuleWarning";
-		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
-			loaderContext.loaders[loaderContext.loaderIndex]
-		)})`;
-		warning = concatErrorMsgAndStack(warning);
-		(warning as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		const warning = new ModuleWarning(e, {
+			from: stringifyLoaderObject(
+				loaderContext.loaders[loaderContext.loaderIndex]
+			)
+		});
+		warning.module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
@@ -1100,22 +1099,15 @@ export async function runLoaders(
 			LoaderObject.__to_binding(item)
 		);
 	} catch (e) {
-		const error = e as Error & { hideStack?: boolean | "true" };
-		context.__internal__error =
-			typeof e === "string"
-				? {
-						name: "ModuleBuildError",
-						message: e
-					}
-				: {
-						name: "ModuleBuildError",
-						message: error.message,
-						stack: typeof error.stack === "string" ? error.stack : undefined,
-						hideStack:
-							"hideStack" in error
-								? error.hideStack === true || error.hideStack === "true"
-								: undefined
-					};
+		if (typeof e !== "object" || e === null) {
+			const error = new Error(
+				`(Emitted value instead of an instance of Error) ${e}`
+			);
+			error.name = "NonErrorEmittedError";
+			context.__internal__error = error;
+		} else {
+			context.__internal__error = e as RspackError;
+		}
 	}
 	JavaScriptTracer.endAsync({
 		name: "run_js_loaders",
