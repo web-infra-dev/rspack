@@ -63,6 +63,7 @@
     "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "7.52.8",
     "@microsoft/api-extractor-model": "7.30.6",
+    "@octokit/rest": "^22.0.0",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
