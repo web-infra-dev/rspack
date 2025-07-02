@@ -40,7 +40,7 @@ pub struct NativeWatcherOptions {
 #[napi]
 pub struct NativeWatcher {
   watcher: FsWatcher,
-  close: bool,
+  closed: bool,
 }
 
 #[napi]
@@ -53,7 +53,7 @@ impl NativeWatcher {
 
     let watcher = FsWatcher::new(
       FsWatcherOptions {
-        follow_symlinks: options.follow_symlinks.unwrap_or(true),
+        follow_symlinks: options.follow_symlinks.unwrap_or(false),
         poll_interval: options.poll_interval,
         aggregate_timeout: options.aggregate_timeout,
       },
@@ -62,7 +62,7 @@ impl NativeWatcher {
 
     Self {
       watcher,
-      close: false,
+      closed: false,
     }
   }
 
@@ -83,9 +83,9 @@ impl NativeWatcher {
     callback: JsCallback,
     #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: JsCallbackUndelayed,
   ) -> napi::Result<()> {
-    if self.close {
+    if self.closed {
       return Err(napi::Error::from_reason(
-        "Watcher has been closed, cannot watch again.",
+        "The native watcher has been closed, cannot watch again.",
       ));
     }
     let js_event_handler = JsEventHandler::new(callback, callback_undelayed);
@@ -131,7 +131,7 @@ impl NativeWatcher {
       .close()
       .await
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    self.close = true;
+    self.closed = true;
     Ok(())
   }
 
