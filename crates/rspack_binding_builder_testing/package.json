@@ -15,7 +15,7 @@
     "build:debug": "rspack-builder --profile release-debug",
     "build:ci": "rspack-builder --profile ci",
     "build:profiling": "rspack-builder --profile profiling",
-    "build:release": "node scripts/build.js --profile release"
+    "build:release": "rspack-builder --profile release"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

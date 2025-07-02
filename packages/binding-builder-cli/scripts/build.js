@@ -375,7 +375,7 @@ async function build() {
 		console.log("Build completed successfully");
 
 		// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
-		const dts = path.resolve(buildOptions.cwd, "binding.d.ts");
+		const dts = path.resolve(buildOptions.cwd, buildOptions.dts);
 		let dtsContent = readFileSync(dts, "utf8");
 
 		const headers = [readFileSync(path.resolve(__dirname, "banner.d.ts"))];
