@@ -6,6 +6,8 @@ import type { Module } from "./Module";
 import { toJsRuntimeSpec } from "./util/runtime";
 
 Object.defineProperty(ChunkGraph.prototype, "getOrderedChunkModulesIterable", {
+	enumerable: true,
+	configurable: true,
 	value(
 		this: ChunkGraph,
 		chunk: Chunk,
@@ -18,6 +20,8 @@ Object.defineProperty(ChunkGraph.prototype, "getOrderedChunkModulesIterable", {
 });
 
 Object.defineProperty(ChunkGraph.prototype, "getModuleHash", {
+	enumerable: true,
+	configurable: true,
 	value(this: ChunkGraph, module: Module, runtime: RuntimeSpec): string | null {
 		return this._getModuleHash(module, toJsRuntimeSpec(runtime));
 	}

@@ -526,7 +526,7 @@ pub struct RegisterJsTaps {
     Promise<JsContextModuleFactoryAfterResolveResult>,
   >,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
   pub register_javascript_modules_chunk_hash_taps: RegisterFunction<ChunkWrapper, Buffer>,
   // html plugin

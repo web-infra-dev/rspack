@@ -67,8 +67,13 @@ impl ChunkGraph {
     )
   }
 
-  #[napi(ts_return_type = "Module[]")]
-  pub fn get_chunk_entry_modules(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
+  #[napi(ts_return_type = "Iterable<Module>")]
+  pub fn get_chunk_modules_iterable(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
+    self.get_chunk_modules(chunk)
+  }
+
+  #[napi(ts_return_type = "Iterable<Module>")]
+  pub fn get_chunk_entry_modules_iterable(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     let modules = compilation
