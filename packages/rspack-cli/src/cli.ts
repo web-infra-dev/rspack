@@ -172,6 +172,11 @@ export class RspackCLI {
 			if (typeof item.devtool === "undefined") {
 				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
+			// user parameters always has highest priority than default devtool and config devtool
+			if (typeof options.devtool !== "undefined") {
+				item.devtool = options.devtool as RspackOptions["devtool"];
+			}
+
 			if (isServe) {
 				const installed = (item.plugins ||= []).find(
 					item => item instanceof rspackCore.ProgressPlugin
