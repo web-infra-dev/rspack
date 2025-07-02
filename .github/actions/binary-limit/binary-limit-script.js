@@ -13,10 +13,6 @@ module.exports = async function action({ github, context }) {
 	let baseSize = 0;
 	let baseCommit = null;
 
-	const headSize = fs.statSync(
-		"./crates/node_binding/rspack.linux-x64-gnu.node"
-	).size;
-
 	for (const commit of commits.data) {
 		console.log(commit.sha);
 		try {
@@ -33,17 +29,18 @@ module.exports = async function action({ github, context }) {
 	}
 
 	if (!baseCommit) {
-		console.log(
-			`No base binary size found within ${commits.data.length} commits`
-		);
-		return;
+		const error = `No base binary size found within ${commits.data.length} commits`;
+		console.log(error);
+		throw new Error(error);
 	}
 
-	await commentToPullRequest(
-		github,
-		context,
-		`testing ${baseSize} vs ${headSize}`
-	);
+	const headSize = fs.statSync(
+		"./crates/node_binding/rspack.linux-x64-gnu.node"
+	).size;
+
+	const comment = compareBinarySize(headSize, baseSize, baseCommit);
+
+	await commentToPullRequest(github, context, comment);
 };
 
 async function commentToPullRequest(github, context, comment) {
@@ -87,3 +84,30 @@ const SIZE_LIMIT_HEADING = "## 📦 Binary Size-limit";
 
 const DATA_URL_BASE =
 	"https://raw.githubusercontent.com/web-infra-dev/rspack-ecosystem-benchmark/data";
+
+function compareBinarySize(headSize, baseSize, baseCommit) {
+	const message = baseCommit.commit.message.split("\n")[0];
+	const author = baseCommit.commit.author.name;
+
+	const info = `> Comparing binary size with Commit: [${message} by ${author}](${baseCommit.html_url})\n\n`;
+
+	const diff = headSize - baseSize;
+	const percentage = (Math.abs(diff / baseSize) * 100).toFixed(2);
+	if (diff > 0) {
+		return `${info}❌ Size increased by ${toHumanReadable(diff)} from ${toHumanReadable(baseSize)} to ${toHumanReadable(headSize)} (⬆️${percentage}%)`;
+	}
+	if (diff < 0) {
+		return `${info}🎉 Size decreased by ${toHumanReadable(-diff)} from ${toHumanReadable(baseSize)} to ${toHumanReadable(headSize)} (⬇️${percentage}%)`;
+	}
+	return `${info}🙈 Size remains the same at ${toHumanReadable(headSize)}`;
+}
+
+function toHumanReadable(size) {
+	if (size < 1024) {
+		return `${size}bytes`;
+	}
+	if (size < 1024 * 1024) {
+		return `${(size / 1024).toFixed(2)}KB`;
+	}
+	return `${(size / 1024 / 1024).toFixed(2)}MB`;
+}
