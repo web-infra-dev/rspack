@@ -1,4 +1,5 @@
-// @ts-check
+const fs = require("node:fs");
+
 /**
  * @param {import("@octokit/rest")} github
  */
@@ -12,12 +13,16 @@ module.exports = async function action({ github, context }) {
 	let baseSize = 0;
 	let baseCommit = null;
 
+	const headSize = fs.statSync(
+		"./crates/node_binding/rspack.linux-x64-gnu.node"
+	).size;
+
 	for (const commit of commits.data) {
 		console.log(commit.sha);
 		try {
-			baseCommit = commit;
 			const data = await fetchDataBySha(commit.sha);
 			if (data?.size) {
+				baseCommit = commit;
 				baseSize = data.size;
 				console.log(`Commit ${commit.sha} has binary size: ${data.size}`);
 				break;
@@ -34,27 +39,48 @@ module.exports = async function action({ github, context }) {
 		return;
 	}
 
-	await commentToPullRequest(github, context, `testing ${baseSize}`);
+	await commentToPullRequest(
+		github,
+		context,
+		`testing ${baseSize} vs ${headSize}`
+	);
 };
 
 async function commentToPullRequest(github, context, comment) {
-	console.log(context);
+	const { data: comments } = await github.rest.issues.listComments({
+		owner: context.repo.owner,
+		repo: context.repo.repo,
+		issue_number: context.payload.number
+	});
+
+	const prevComment = comments.filter(
+		comment =>
+			comment.user.login === "github-actions[bot]" &&
+			comment.body.startsWith(SIZE_LIMIT_HEADING)
+	)[0];
+
+	if (prevComment) {
+		await github.rest.issues.updateComment({
+			owner: context.repo.owner,
+			repo: context.repo.repo,
+			comment_id: prevComment.id,
+			body: `${SIZE_LIMIT_HEADING}\nBase binary size: ${comment} bytes\nupdate: ${new Date()}`
+		});
+		return;
+	}
 
 	await github.rest.issues.createComment({
 		owner: context.repo.owner,
 		repo: context.repo.repo,
 		issue_number: context.payload.number,
-		body: `${SIZE_LIMIT_HEADING}\n Base binary size: ${comment} bytes`
+		body: `${SIZE_LIMIT_HEADING}\nBase binary size: ${comment} bytes`
 	});
 }
 
 function fetchDataBySha(sha) {
-	console.log(
-		`trying ${DATA_URL_BASE}/commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`
-	);
-	return fetch(
-		`${DATA_URL_BASE}/commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`
-	).then(res => res.json());
+	const dataUrl = `${DATA_URL_BASE}/commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`;
+	console.log("fetching", dataUrl, "...");
+	return fetch(dataUrl).then(res => res.json());
 }
 
 const SIZE_LIMIT_HEADING = "## 📦 Binary Size-limit";
