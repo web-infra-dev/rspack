@@ -400,11 +400,24 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  // Disable PURE annotations for webpack require calls to prevent false positives
-  // The previous logic was too aggressive and was adding PURE annotations to regular
-  // dynamic imports and other webpack require calls that shouldn't have them.
-  // This was causing test failures in hotCases and other scenarios.
-  let is_pure = false;
+  let is_pure = compilation
+    .get_module_graph()
+    .dependency_by_id(id)
+    .is_some_and(|dep| {
+      // Check dependency type and ConsumeShared ancestry
+      let dep_type = dep.dependency_type();
+      let is_relevant_import = matches!(
+        dep_type.as_str(),
+        "esm import" | "esm import specifier" | "cjs require"
+      ) && import_var != "__webpack_require__";
+
+      if is_relevant_import {
+        let module_graph = compilation.get_module_graph();
+        is_consume_shared_descendant(&module_graph, &module.identifier())
+      } else {
+        false
+      }
+    });
 
   let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
 
@@ -734,9 +747,6 @@ fn is_consume_shared_descendant(
     }
   }
 
-  // Disable PURE annotations entirely for now to prevent false positives
-  // The previous recursive logic was causing regular modules to be incorrectly
-  // marked as ConsumeShared descendants, adding PURE annotations where they shouldn't be
   false
 }
 
