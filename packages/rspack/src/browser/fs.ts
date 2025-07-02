@@ -4,8 +4,7 @@ import type { IFs, Volume } from "memfs";
 export const fs: IFs = __fs;
 export const volume: Volume = __volume;
 
-const readFileSync = fs.readFileSync;
-const readdirSync = fs.readdirSync;
+const { readFileSync, readdirSync, lstat, existsSync, readdir, watch } = fs;
 
 export default fs;
-export { readFileSync, readdirSync };
+export { readFileSync, readdirSync, lstat, existsSync, readdir, watch };
