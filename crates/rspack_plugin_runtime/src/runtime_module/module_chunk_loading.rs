@@ -10,7 +10,7 @@ use rspack_core::{
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
-  get_chunk_runtime_requirements,
+  get_chunk_runtime_requirements, is_neutral_platform,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
 };
@@ -104,6 +104,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
+    let is_neutral_platform = is_neutral_platform(compilation);
+
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
     let with_external_install_chunk =
       runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
@@ -111,7 +113,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-      && compilation.options.output.environment.supports_document()
+      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Prefetch,
@@ -119,7 +121,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-      && compilation.options.output.environment.supports_document()
+      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Preload,
@@ -258,6 +260,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_link_prefetch": &res.code,
             "_js_matcher": &js_matcher,
+            "_is_neutral_platform": is_neutral_platform,
           })),
         )?;
 
@@ -320,6 +323,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
             "_link_preload": &res.code,
+            "_is_neutral_platform": is_neutral_platform,
           })),
         )?;
 

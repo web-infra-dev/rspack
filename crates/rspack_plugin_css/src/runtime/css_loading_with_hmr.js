@@ -2,7 +2,7 @@ var oldTags = [];
 var newTags = [];
 var applyHandler = function (options) {
 	return {
-		dispose: function () {},
+		dispose: function () { },
 		apply: function () {
 			var moduleIds = [];
 			newTags.forEach(function (info) {
@@ -15,8 +15,8 @@ var applyHandler = function (options) {
 			while (newTags.length) {
 				var info = newTags.pop();
 				var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[0]);
-				chunkModuleIds.forEach(function(id) {
-				    moduleIds.push(id)
+				chunkModuleIds.forEach(function (id) {
+					moduleIds.push(id)
 				});
 			}
 			return moduleIds;
@@ -36,6 +36,7 @@ __webpack_require__.hmrC.css = function (
 	applyHandlers,
 	updatedModulesList
 ) {
+	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
 	chunkIds.forEach(function (chunkId) {
 		var filename = __webpack_require__.k(chunkId);
@@ -70,11 +71,11 @@ __webpack_require__.hmrC.css = function (
 									if (link.parentNode) link.parentNode.removeChild(link);
 									return resolve();
 								}
-							} catch (e) {}
+							} catch (e) { }
 							var factories = {};
 							loadCssChunkData(factories, link, chunkId);
-							Object.keys(factories).forEach(function(id) {
-							    (updatedModulesList.push(id));
+							Object.keys(factories).forEach(function (id) {
+								(updatedModulesList.push(id));
 							});
 							link.sheet.disabled = true;
 							oldTags.push(oldTag);
