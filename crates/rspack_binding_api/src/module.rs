@@ -474,6 +474,7 @@ thread_local! {
 // ModuleObject maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
 //
 // This means that when transferring a Module from Rust to JS, you must use ModuleObject instead.
+#[derive(Debug)]
 pub struct ModuleObject {
   type_id: TypeId,
   identifier: ModuleIdentifier,
@@ -482,6 +483,7 @@ pub struct ModuleObject {
 }
 
 unsafe impl Send for ModuleObject {}
+unsafe impl Sync for ModuleObject {}
 
 impl ModuleObject {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
@@ -531,6 +533,10 @@ impl ModuleObject {
         }
       }
     });
+  }
+
+  pub fn identifier(&self) -> &ModuleIdentifier {
+    &self.identifier
   }
 }
 

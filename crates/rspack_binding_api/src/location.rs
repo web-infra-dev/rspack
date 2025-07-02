@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use napi::bindgen_prelude::{FromNapiValue, ToNapiValue};
 
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SourcePosition {
   pub line: u32,
   pub column: Option<u32>,
@@ -27,8 +27,20 @@ impl From<rspack_core::SourcePosition> for SourcePosition {
   }
 }
 
+impl From<&SourcePosition> for rspack_core::SourcePosition {
+  fn from(value: &SourcePosition) -> Self {
+    Self {
+      line: value.line as usize,
+      column: value
+        .column
+        .map(|c| c as usize)
+        .unwrap_or(value.line as usize),
+    }
+  }
+}
+
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RealDependencyLocation {
   pub start: SourcePosition,
   pub end: Option<SourcePosition>,
@@ -52,8 +64,17 @@ impl From<rspack_core::RealDependencyLocation> for RealDependencyLocation {
   }
 }
 
+impl From<&RealDependencyLocation> for rspack_core::RealDependencyLocation {
+  fn from(value: &RealDependencyLocation) -> Self {
+    Self {
+      start: (&value.start).into(),
+      end: value.end.as_ref().map(Into::into),
+    }
+  }
+}
+
 #[napi(object)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SyntheticDependencyLocation {
   pub name: String,
 }
@@ -72,7 +93,15 @@ impl From<rspack_core::SyntheticDependencyLocation> for SyntheticDependencyLocat
   }
 }
 
-#[derive(Debug)]
+impl From<&SyntheticDependencyLocation> for rspack_core::SyntheticDependencyLocation {
+  fn from(value: &SyntheticDependencyLocation) -> Self {
+    Self {
+      name: value.name.to_string(),
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
 pub enum DependencyLocation {
   Real(RealDependencyLocation),
   Synthetic(SyntheticDependencyLocation),
@@ -132,6 +161,19 @@ impl From<rspack_core::DependencyLocation> for DependencyLocation {
       }
       rspack_core::DependencyLocation::Synthetic(synthetic_dependency_location) => {
         DependencyLocation::Synthetic(synthetic_dependency_location.into())
+      }
+    }
+  }
+}
+
+impl From<&DependencyLocation> for rspack_core::DependencyLocation {
+  fn from(value: &DependencyLocation) -> Self {
+    match value {
+      DependencyLocation::Real(real_dependency_location) => {
+        rspack_core::DependencyLocation::Real(real_dependency_location.into())
+      }
+      DependencyLocation::Synthetic(synthetic_dependency_location) => {
+        rspack_core::DependencyLocation::Synthetic(synthetic_dependency_location.into())
       }
     }
   }
