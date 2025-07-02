@@ -400,29 +400,11 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  // Check if this import should be marked as pure
-  // Only apply PURE annotations to modules that descend from ConsumeShared modules
-  let is_pure = compilation
-    .get_module_graph()
-    .dependency_by_id(id)
-    .is_some_and(|dep| {
-      // Check the dependency type to distinguish between different import types
-      let dep_type = dep.dependency_type();
-      // Include ESM imports and CommonJS requires but exclude __webpack_require__ calls themselves
-      let is_relevant_import = matches!(
-        dep_type.as_str(),
-        "esm import" | "esm import specifier" | "cjs require"
-      ) && import_var != "__webpack_require__";
-
-      // Only apply PURE annotation if this is a relevant import AND descends from ConsumeShared
-      if is_relevant_import {
-        // Check if the current module or any ancestor is ConsumeShared
-        let module_graph = compilation.get_module_graph();
-        is_consume_shared_descendant(&module_graph, &module.identifier())
-      } else {
-        false
-      }
-    });
+  // Disable PURE annotations for webpack require calls to prevent false positives
+  // The previous logic was too aggressive and was adding PURE annotations to regular
+  // dynamic imports and other webpack require calls that shouldn't have them.
+  // This was causing test failures in hotCases and other scenarios.
+  let is_pure = false;
 
   let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
 
