@@ -2728,8 +2728,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
-export declare function renderReport(diagnostic: any, colored?: bool): string
-
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean

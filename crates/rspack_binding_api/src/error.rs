@@ -407,13 +407,3 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
     })
   }
 }
-
-#[napi(ts_args_type = "diagnostic: any, colored?: bool")]
-pub fn render_report(
-  diagnostic: &External<Diagnostic>,
-  colored: Option<bool>,
-) -> napi::Result<String> {
-  diagnostic
-    .render_report(colored.unwrap_or(false))
-    .map_err(|e| napi::Error::from_reason(e.to_string()))
-}
