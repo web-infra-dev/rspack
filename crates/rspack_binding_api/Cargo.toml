@@ -1,15 +1,19 @@
 [package]
-description       = "node binding"
-edition.workspace = true
-license           = "MIT"
-name              = "rspack_binding_api"
-publish           = false
-repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+authors.workspace       = true
+categories.workspace    = true
+description             = "Rspack shared binding api"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_binding_api"
+publish                 = false
+repository.workspace    = true
+version                 = "0.2.0"
 
 [features]
-plugin = ["rspack_loader_swc/plugin"]
-sftrace-setup = [ "dep:sftrace-setup", "rspack_allocator/sftrace-setup" ]
+plugin        = ["rspack_loader_swc/plugin"]
+sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
 anyhow                   = { workspace = true }
