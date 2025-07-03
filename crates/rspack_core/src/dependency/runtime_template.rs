@@ -741,9 +741,8 @@ fn is_consume_shared_descendant(
       return !shared_key.is_empty();
     }
 
-    // For now, be more permissive with PURE annotations to match expected behavior
-    // TODO: Implement more precise ConsumeShared detection logic
-    return true;
+    // Return false if module doesn't match ConsumeShared criteria
+    return false;
   }
 
   false
