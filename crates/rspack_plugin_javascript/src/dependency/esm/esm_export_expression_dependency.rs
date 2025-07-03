@@ -13,8 +13,6 @@ use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
 
-// REMOVED: get_consume_shared_info() - No longer needed, using BuildMeta directly
-
 #[cacheable]
 #[derive(Debug, Clone)]
 pub enum DeclarationId {
@@ -230,7 +228,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);
           if supports_const {
-            // SIMPLIFIED: Use pre-computed ConsumeShared context from BuildMeta
             let default_export_value = if let Some(consume_shared_key) =
               &module.build_meta().consume_shared_key
             {

@@ -54,14 +54,10 @@ pub struct ESMExportImportedSpecifierDependency {
   pub other_star_exports: Option<Vec<DependencyId>>,
   range: DependencyRange,
   attributes: Option<ImportAttributes>,
-  /// Cached resource identifier for module graph optimization
   resource_identifier: String,
-  /// Export presence mode for validation behavior
   export_presence_mode: ExportPresenceMode,
-  /// Source map for precise error location
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  /// Factorization information for module loading
   factorize_info: FactorizeInfo,
 }
 
@@ -129,9 +125,6 @@ impl ESMExportImportedSpecifierDependency {
       .unwrap_or_else(|| self.ids.as_slice())
   }
 
-  // REMOVED: get_consume_shared_info() and find_consume_shared_recursive() - No longer needed, using BuildMeta directly
-
-  /// Enhanced mode calculation with module graph caching
   fn get_mode(
     &self,
     module_graph: &ModuleGraph,
