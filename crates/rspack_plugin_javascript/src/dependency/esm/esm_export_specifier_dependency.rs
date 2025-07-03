@@ -203,11 +203,8 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       }
     }
 
-    // Get export usage information with proper prefetching
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &module.identifier(),
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
-    );
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let Some(used_name) = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),
       *runtime,
