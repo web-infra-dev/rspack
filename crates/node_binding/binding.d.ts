@@ -93,7 +93,6 @@ export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLoc
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
-
 export declare class ExternalObject<T> {
   readonly '': {
     readonly '': unique symbol

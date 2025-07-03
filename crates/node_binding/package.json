@@ -29,6 +29,7 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@rspack/binding-builder-cli": "workspace:*",
+    "@napi-rs/cli": "3.0.0-alpha.88",
     "@napi-rs/wasm-runtime": "^0.2.11",
     "emnapi": "^1.4.3",
     "typescript": "^5.8.3",
