@@ -28,6 +28,8 @@ concurrency:
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
   issues: write
+  # Allow commenting on pull requests for `size-limit.yml`
+  pull-requests: write
 
 jobs:
   check-changed:
@@ -137,6 +139,12 @@ jobs:
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
+
+  size-limit:
+    name: Binary Size Limit
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/size-limit.yml
 
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:
