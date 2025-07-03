@@ -18,7 +18,7 @@ use rspack_core::{
   StaticExportsDependency, StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::{fx_hash::FxHashSet, itoa};
+use rspack_util::itoa;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -201,11 +201,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 .expect("should be wasm import dependency");
 
               let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
-              let name = Atom::from(dep.name());
               let Some(UsedName::Normal(used_name)) = ExportsInfoGetter::get_used_name(
                 GetUsedNameParam::WithNames(&module_graph.get_prefetched_exports_info(
                   &mgm.module_identifier,
-                  PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&name])),
+                  PrefetchExportsInfoMode::Default,
                 )),
                 *runtime,
                 &[dep.name().into()],

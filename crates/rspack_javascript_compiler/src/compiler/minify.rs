@@ -184,6 +184,7 @@ impl JavaScriptCompiler {
           );
 
           let print_options = PrintOptions {
+            source_len: fm.byte_length(),
             source_map: self.cm.clone(),
             target,
             source_map_config: SourceMapConfig {

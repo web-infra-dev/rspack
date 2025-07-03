@@ -15,7 +15,7 @@ Adds a banner to the top or bottom of each generated chunk.
 ```ts
 type BannerFunction = (args: {
   hash: string;
-  chunk: JsChunk;
+  chunk: Chunk;
   filename: string;
 }) => string;
 type BannerContent = string | BannerFunction;

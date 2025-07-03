@@ -8,8 +8,8 @@ use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
-  Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, ExportsInfoGetter, Module, ModuleGraph,
-  ModuleIdentifier, PrefetchExportsInfoMode, UsageKey,
+  Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
+  PrefetchExportsInfoMode, UsageKey,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxDashMap;
@@ -99,12 +99,12 @@ impl Combinator {
     module_graph: &ModuleGraph,
     chunk_by_ukey: &ChunkByUkey,
   ) -> Vec<UkeySet<ChunkUkey>> {
-    let exports_info = module_graph
-      .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::AllExports);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, UkeySet<ChunkUkey>> = Default::default();
     for chunk_ukey in module_chunks {
       let chunk = chunk_by_ukey.expect_get(&chunk_ukey);
-      let usage_key = ExportsInfoGetter::get_usage_key(&exports_info, Some(chunk.runtime()));
+      let usage_key = exports_info.get_usage_key(Some(chunk.runtime()));
 
       grouped_by_used_exports
         .entry(usage_key)

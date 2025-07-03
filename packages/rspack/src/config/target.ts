@@ -150,6 +150,12 @@ The recommended way is to add a 'browserslist' key to your package.json and list
 You can also more options via the 'target' option: 'browserslist' / 'browserslist:env' / 'browserslist:query' / 'browserslist:path-to-config' / 'browserslist:path-to-config:env'`);
 			}
 
+			if (Array.isArray(browsers) && browsers.length === 0) {
+				throw new Error(
+					"Rspack cannot parse the browserslist query. This may happen when the query contains version requirements that exceed the supported range in the browserslist-rs database. Check your browserslist configuration for invalid version numbers."
+				);
+			}
+
 			const browserslistTargetHandler = getBrowserslistTargetHandler();
 			return browserslistTargetHandler.resolve(browsers);
 		}

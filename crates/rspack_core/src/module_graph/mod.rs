@@ -17,8 +17,8 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportInfo, ExportInfoData,
-  ExportsInfo, ExportsInfoData, ModuleIdentifier,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfo, ExportsInfoData,
+  ModuleIdentifier,
 };
 
 // TODO Here request can be used Atom
@@ -85,7 +85,6 @@ pub struct ModuleGraphPartial {
 
   // Module's ExportsInfo is also a part of ModuleGraph
   exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
-  export_info_map: UkeyMap<ExportInfo, ExportInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
@@ -817,12 +816,6 @@ impl<'a> ModuleGraph<'a> {
       .as_mut()
   }
 
-  /// refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L582-L585
-  pub fn get_export_info(&mut self, module_id: ModuleIdentifier, export_name: &Atom) -> ExportInfo {
-    let exports_info = self.get_exports_info(&module_id);
-    exports_info.get_export_info(self, export_name)
-  }
-
   pub fn get_ordered_outgoing_connections(
     &self,
     module_identifier: &ModuleIdentifier,
@@ -1017,13 +1010,10 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    let mgm = self
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have mgm");
     self
-      .loop_partials(|p| p.exports_info_map.get(&mgm.exports))
-      .expect("should have exports info")
-      .id()
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm")
+      .exports
   }
 
   pub fn get_prefetched_exports_info_optional<'b>(
@@ -1075,32 +1065,6 @@ impl<'a> ModuleGraph<'a> {
     active_partial.exports_info_map.insert(id, info);
   }
 
-  pub fn get_export_info_by_id(&self, id: &ExportInfo) -> &ExportInfoData {
-    self
-      .loop_partials(|p| p.export_info_map.get(id))
-      .expect("should have export info")
-  }
-
-  pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfo) -> &mut ExportInfoData {
-    self
-      .loop_partials_mut(
-        |p| p.export_info_map.contains_key(id),
-        |p, search_result| {
-          p.export_info_map.insert(*id, search_result);
-        },
-        |p| p.export_info_map.get(id).cloned(),
-        |p| p.export_info_map.get_mut(id),
-      )
-      .expect("should have export info")
-  }
-
-  pub fn set_export_info(&mut self, id: ExportInfo, info: ExportInfoData) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial.export_info_map.insert(id, info);
-  }
-
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
     let mgm = self
       .module_graph_module_by_identifier_mut(id)
@@ -1113,12 +1077,6 @@ impl<'a> ModuleGraph<'a> {
       .module_graph_module_by_identifier(id)
       .expect("should have module graph module");
     &mgm.optimization_bailout
-  }
-
-  pub fn get_read_only_export_info(&self, id: &ModuleIdentifier, name: Atom) -> Option<ExportInfo> {
-    self
-      .module_graph_module_by_identifier(id)
-      .map(|mgm| mgm.exports.get_read_only_export_info(self, &name))
   }
 
   pub fn get_condition_state(
@@ -1143,12 +1101,9 @@ impl<'a> ModuleGraph<'a> {
     names: &[Atom],
   ) -> Option<ExportProvided> {
     self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info = ExportsInfoGetter::prefetch(
-        &mgm.exports,
-        self,
-        PrefetchExportsInfoMode::NamedNestedExports(names),
-      );
-      ExportsInfoGetter::is_export_provided(&exports_info, names)
+      let exports_info =
+        ExportsInfoGetter::prefetch(&mgm.exports, self, PrefetchExportsInfoMode::Nested(names));
+      exports_info.is_export_provided(names)
     })
   }
 

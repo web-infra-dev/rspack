@@ -29,11 +29,12 @@ use serde::Serialize;
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate,
-  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, CompilationAsset,
-  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
-  ContextModule, DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo,
+  Compilation, CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
+  ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -69,6 +70,7 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -95,6 +97,7 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      collected_typescript_info: None,
       extras: Default::default(),
     }
   }
@@ -376,6 +379,7 @@ pub trait Module:
   fn get_side_effects_connection_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -384,6 +388,10 @@ pub trait Module:
 
   fn need_build(&self) -> bool {
     !self.build_info().cacheable
+      || self
+        .diagnostics()
+        .iter()
+        .any(|item| matches!(item.severity(), rspack_error::RspackSeverity::Error))
   }
 
   fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
@@ -447,10 +455,8 @@ fn get_exports_type_impl(
         }
 
         let name = Atom::from("__esModule");
-        let exports_info = mg.get_prefetched_exports_info_optional(
-          &identifier,
-          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter([&name])),
-        );
+        let exports_info =
+          mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
         if let Some(export_info) = exports_info
           .as_ref()
           .map(|info| info.get_read_only_export_info(&name))

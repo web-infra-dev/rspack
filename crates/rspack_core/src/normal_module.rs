@@ -39,9 +39,10 @@ use crate::{
   BoxDependencyTemplate, BoxLoader, BoxModule, BoxModuleDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope,
   ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, GenerateContext,
-  GeneratorOptions, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType,
+  GeneratorOptions, LibIdentOptions, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[cacheable]
@@ -422,8 +423,10 @@ impl Module for NormalModule {
     .await;
     let (mut loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
-      Err(mut r) => {
-        let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
+      Err(r) => {
+        let diagnostic = if r.is::<CapturedLoaderError>() {
+          #[allow(clippy::unwrap_used)]
+          let mut captured_error = r.downcast::<CapturedLoaderError>().unwrap();
           self.build_info.cacheable = captured_error.cacheable;
           self.build_info.file_dependencies = captured_error
             .take_file_dependencies()
@@ -446,19 +449,10 @@ impl Module for NormalModule {
             .map(Into::into)
             .collect();
 
-          let stack = captured_error.take_stack();
           Diagnostic::from(
-            ModuleBuildError(error!(if captured_error.hide_stack.unwrap_or_default() {
-              captured_error.take_message()
-            } else {
-              stack
-                .clone()
-                .unwrap_or_else(|| captured_error.take_message())
-            }))
-            .boxed(),
+            ModuleBuildError::new(rspack_error::Error::new_boxed(captured_error.source)).boxed(),
           )
-          .with_stack(stack)
-          .with_hide_stack(captured_error.hide_stack)
+          .with_details(captured_error.details)
         } else {
           self.build_info.cacheable = false;
           if let Some(file_path) = &self.resource_data.resource_path {
@@ -472,7 +466,7 @@ impl Module for NormalModule {
           let node_error = r.downcast_ref::<NodeError>();
           let stack = node_error.and_then(|e| e.stack.clone());
           let hide_stack = node_error.and_then(|e| e.hide_stack);
-          let e = ModuleBuildError(r).boxed();
+          let e = ModuleBuildError::new(r).boxed();
           Diagnostic::from(e)
             .with_stack(stack)
             .with_hide_stack(hide_stack)
@@ -762,45 +756,49 @@ impl Module for NormalModule {
   fn get_side_effects_connection_state(
     &self,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    if let Some(state) = connection_state_cache.get(&self.id) {
-      return *state;
-    }
-
-    if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
-      return ConnectionState::Active(!side_effect_free);
-    }
-    if Some(true) == self.build_meta().side_effect_free {
-      // use module chain instead of is_evaluating_side_effects to mut module graph
-      if module_chain.contains(&self.identifier()) {
-        return ConnectionState::CircularConnection;
+    module_graph_cache.cached_get_side_effects_connection_state(self.id(), || {
+      if let Some(state) = connection_state_cache.get(&self.id) {
+        return *state;
       }
-      module_chain.insert(self.identifier());
-      let mut current = ConnectionState::Active(false);
-      for dependency_id in self.get_dependencies().iter() {
-        if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-          let state = dependency.get_module_evaluation_side_effects_state(
-            module_graph,
-            module_chain,
-            connection_state_cache,
-          );
-          if matches!(state, ConnectionState::Active(true)) {
-            // TODO add optimization bailout
-            module_chain.remove(&self.identifier());
-            connection_state_cache.insert(self.id, ConnectionState::Active(true));
-            return ConnectionState::Active(true);
-          } else if !matches!(state, ConnectionState::CircularConnection) {
-            current = current + state;
+
+      if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
+        return ConnectionState::Active(!side_effect_free);
+      }
+      if Some(true) == self.build_meta().side_effect_free {
+        // use module chain instead of is_evaluating_side_effects to mut module graph
+        if module_chain.contains(&self.identifier()) {
+          return ConnectionState::CircularConnection;
+        }
+        module_chain.insert(self.identifier());
+        let mut current = ConnectionState::Active(false);
+        for dependency_id in self.get_dependencies().iter() {
+          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
+            let state = dependency.get_module_evaluation_side_effects_state(
+              module_graph,
+              module_graph_cache,
+              module_chain,
+              connection_state_cache,
+            );
+            if matches!(state, ConnectionState::Active(true)) {
+              // TODO add optimization bailout
+              module_chain.remove(&self.identifier());
+              connection_state_cache.insert(self.id, ConnectionState::Active(true));
+              return ConnectionState::Active(true);
+            } else if !matches!(state, ConnectionState::CircularConnection) {
+              current = current + state;
+            }
           }
         }
+        module_chain.remove(&self.identifier());
+        connection_state_cache.insert(self.id, current);
+        return current;
       }
-      module_chain.remove(&self.identifier());
-      connection_state_cache.insert(self.id, current);
-      return current;
-    }
-    ConnectionState::Active(true)
+      ConnectionState::Active(true)
+    })
   }
 
   fn get_concatenation_bailout_reason(

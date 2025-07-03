@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
   get_dependency_used_by_exports_condition, visitors::DestructuringAssignmentProperty,
-  InlineConstDependencyCondition,
+  InlineValueDependencyCondition,
 };
 
 #[cacheable]
@@ -176,6 +176,7 @@ impl Dependency for ESMImportSpecifierDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -206,7 +207,8 @@ impl Dependency for ESMImportSpecifierDependency {
         self.get_ids(module_graph),
         module_graph,
         module_graph_cache,
-        format!("(imported as '{}')", self.name),
+        &self.name,
+        false,
         should_error,
       )
     {
@@ -281,7 +283,7 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let inline_const_condition = InlineConstDependencyCondition::new(self.id);
+    let inline_const_condition = InlineValueDependencyCondition::new(self.id);
     if let Some(used_by_exports_condition) =
       get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
     {
@@ -367,7 +369,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         } else {
           let exports_info = module_graph.get_prefetched_exports_info(
             con.module_identifier(),
-            PrefetchExportsInfoMode::NamedNestedExports(ids),
+            PrefetchExportsInfoMode::Nested(ids),
           );
           ExportsInfoGetter::get_used_name(
             GetUsedNameParam::WithNames(&exports_info),
@@ -441,9 +443,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     if let Some(referenced_properties) = &dep.referenced_properties_in_destructuring {
       let mut prefixed_ids = ids.to_vec();
 
-      let module = module_graph
-        .get_module_by_dependency_id(&dep.id)
-        .expect("should have imported module");
+      let Some(module) = module_graph.get_module_by_dependency_id(&dep.id) else {
+        return;
+      };
 
       if ids.first().is_some_and(|id| id == "default") {
         let self_module = module_graph
@@ -472,7 +474,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         let Some(new_name) = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&module_graph.get_prefetched_exports_info(
             &module.identifier(),
-            PrefetchExportsInfoMode::NamedNestedExports(&concated_ids),
+            PrefetchExportsInfoMode::Nested(&concated_ids),
           )),
           code_generatable_context.runtime,
           &concated_ids,

@@ -28,6 +28,8 @@ fn is_global_css(name_for_condition: &Option<Box<str>>) -> bool {
 #[derive(Debug)]
 pub struct CssChunkingPluginOptions {
   pub strict: bool,
+  pub min_size: Option<f64>,
+  pub max_size: Option<f64>,
   pub exclude: Option<RspackRegex>,
 }
 
@@ -36,12 +38,20 @@ pub struct CssChunkingPluginOptions {
 pub struct CssChunkingPlugin {
   once: AtomicBool,
   strict: bool,
+  min_size: f64,
+  max_size: f64,
   exclude: Option<RspackRegex>,
 }
 
 impl CssChunkingPlugin {
   pub fn new(options: CssChunkingPluginOptions) -> Self {
-    Self::new_inner(AtomicBool::new(false), options.strict, options.exclude)
+    Self::new_inner(
+      AtomicBool::new(false),
+      options.strict,
+      options.min_size.unwrap_or(MIN_CSS_CHUNK_SIZE),
+      options.max_size.unwrap_or(MAX_CSS_CHUNK_SIZE),
+      options.exclude,
+    )
   }
 }
 
@@ -277,7 +287,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
       // Try every potential module
       'outer: for (next_module_identifier, size, _) in ordered_potential_next_modules {
-        if current_size + size > MAX_CSS_CHUNK_SIZE {
+        if current_size + size > self.max_size {
           // Chunk would be too large
           continue;
         }
@@ -301,7 +311,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               None => {
                 // New chunk group, can add it, but should we?
                 // We only add that if below min size
-                if current_size < MIN_CSS_CHUNK_SIZE {
+                if current_size < self.min_size {
                   continue;
                 } else {
                   continue 'outer;

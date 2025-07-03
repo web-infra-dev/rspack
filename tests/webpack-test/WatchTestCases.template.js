@@ -70,7 +70,7 @@ const describeCases = config => {
 		});
 		beforeAll(() => {
 			let dest = path.join(__dirname, "js");
-			if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+			if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
 			dest = path.join(__dirname, "js", config.name + "-src");
 			if (!fs.existsSync(dest)) fs.mkdirSync(dest);
 		});

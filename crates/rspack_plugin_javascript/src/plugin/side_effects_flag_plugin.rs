@@ -5,16 +5,15 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, ExportInfoSetter, FactoryMeta, Logger, MaybeDynamicTargetExportInfo,
-  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
-  ResolvedExportInfoTarget, SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
+  SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
-use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{
   common::{comments, comments::Comments, Span, Spanned, SyntaxContext, GLOBALS},
@@ -332,11 +331,14 @@ static PURE_COMMENTS: LazyLock<regex::Regex> =
   LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
 
 fn is_pure_call_expr(
-  call_expr: &CallExpr,
+  expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
   paren_spans: &mut Vec<Span>,
 ) -> bool {
+  let Expr::Call(call_expr) = expr else {
+    unreachable!();
+  };
   let callee = &call_expr.callee;
   let pure_flag = comments
     .and_then(|comments| {
@@ -356,7 +358,6 @@ fn is_pure_call_expr(
     })
     .unwrap_or(false);
   if !pure_flag {
-    let expr = Expr::Call(call_expr.clone());
     !expr.may_have_side_effects(ExprCtx {
       unresolved_ctxt,
       in_strict: false,
@@ -422,7 +423,7 @@ pub fn is_pure_expression<'a>(
     paren_spans: &mut Vec<Span>,
   ) -> bool {
     match expr {
-      Expr::Call(call) => is_pure_call_expr(call, unresolved_ctxt, comments, paren_spans),
+      Expr::Call(_) => is_pure_call_expr(expr, unresolved_ctxt, comments, paren_spans),
       Expr::Paren(par) => {
         paren_spans.push(par.span());
         let mut cur = par.expr.as_ref();
@@ -675,6 +676,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         *module_identifier,
         module.get_side_effects_connection_state(
           &module_graph,
+          &compilation.module_graph_cache_artifact,
           &mut Default::default(),
           &mut Default::default(),
         ),
@@ -835,11 +837,9 @@ fn do_optimize_connection(
     target_export,
   }) = need_move_target
   {
-    ExportInfoSetter::do_move_target(
-      export_info.as_data_mut(module_graph),
-      dependency,
-      target_export,
-    );
+    export_info
+      .as_data_mut(module_graph)
+      .do_move_target(dependency, target_export);
   }
   (dependency, target_module)
 }
@@ -857,10 +857,8 @@ fn can_optimize_connection(
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &original_module,
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([name])),
-    );
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
     let target = export_info.can_move_target(
@@ -905,7 +903,7 @@ fn can_optimize_connection(
   {
     let exports_info = module_graph.get_prefetched_exports_info(
       connection.module_identifier(),
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&ids[0]])),
+      PrefetchExportsInfoMode::Default,
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 

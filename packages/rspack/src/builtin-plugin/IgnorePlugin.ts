@@ -38,7 +38,7 @@ const getIgnorePluginOptionsSchema = memoize(
 export const IgnorePlugin = create(
 	BuiltinPluginName.IgnorePlugin,
 	(options: IgnorePluginOptions): RawIgnorePluginOptions => {
-		validate(options, getIgnorePluginOptionsSchema());
+		validate(options, getIgnorePluginOptionsSchema);
 
 		return options;
 	}

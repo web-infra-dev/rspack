@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 
+mod collect_ts_info;
 mod options;
 mod plugin;
 mod transformer;
@@ -10,7 +11,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{Mode, RunnerContext};
+use rspack_core::{AdditionalData, Mode, RunnerContext};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -19,6 +20,8 @@ use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
   common::FileName,
 };
+
+use crate::collect_ts_info::collect_typescript_info;
 
 #[cacheable]
 #[derive(Debug)]
@@ -85,6 +88,9 @@ impl SwcLoader {
     let filename = FileName::Real(resource_path.into_std_path_buf());
 
     let source = content.into_string_lossy();
+    let is_typescript =
+      matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
+    let mut collected_ts_info = None;
 
     let TransformOutput {
       code,
@@ -95,6 +101,25 @@ impl SwcLoader {
       Some(filename),
       swc_options,
       Some(loader_context.context.module_source_map_kind),
+      |program| {
+        if !is_typescript {
+          return;
+        }
+        let Some(options) = &self
+          .options_with_additional
+          .rspack_experiments
+          .collect_typescript_info
+        else {
+          return;
+        };
+        if loader_context.loader_index != 0 {
+          loader_context.emit_diagnostic(
+            miette::miette! { severity = miette::Severity::Warning, "To ensure the accuracy of the collected TypeScript information, `rspackExperiments.collectTypeScriptInfo` can only be used when `builtin:swc-loader` is employed as the last normal loader. For now `rspackExperiments.collectTypeScriptInfo` is overridden to disabled. If you want to suppress this warning, either turn off `rspackExperiments.collectTypeScriptInfo` in the configuration or place `builtin:swc-loader` as the first element in the `use` array." }.into(),
+          );
+          return;
+        }
+        collected_ts_info = Some(collect_typescript_info(program, options));
+      },
       |_| transformer::transform(&self.options_with_additional.rspack_experiments),
     )?;
 
@@ -104,7 +129,14 @@ impl SwcLoader {
       );
     }
 
-    loader_context.finish_with((code, map));
+    let mut finish = (code, map, None);
+    if let Some(collected_ts_info) = collected_ts_info {
+      let mut additional_data = AdditionalData::new();
+      additional_data.insert(collected_ts_info);
+      finish.2 = Some(additional_data);
+    }
+
+    loader_context.finish_with(finish);
 
     Ok(())
   }

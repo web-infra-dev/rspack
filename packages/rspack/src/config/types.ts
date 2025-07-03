@@ -6,6 +6,7 @@ import type { Module } from "../Module";
 import type ModuleGraph from "../ModuleGraph";
 import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { Chunk } from "../exports";
+import type WebpackError from "../lib/WebpackError";
 import type { ResolveCallback } from "./adapterRuleUse";
 import type { DevServerOptions } from "./devServer";
 
@@ -2708,15 +2709,20 @@ export type Experiments = {
 	 */
 	useInputFileSystem?: UseInputFileSystem;
 	/**
-	 * Enable inline constants
+	 * Enable inline const feature
 	 * @default false
 	 */
 	inlineConst?: boolean;
 	/**
-	 * Enable inline constants
+	 * Enable inline enum feature
 	 * @default false
 	 */
-	typeReexportsPresence?: JavascriptParserOptions["typeReexportsPresence"];
+	inlineEnum?: boolean;
+	/**
+	 * Enable type reexports presence feature
+	 * @default false
+	 */
+	typeReexportsPresence?: boolean;
 };
 //#endregion
 
@@ -2770,11 +2776,25 @@ export type { Middleware as DevServerMiddleware } from "./devServer";
 
 //#region IgnoreWarnings
 /**
- * An array of either regular expressions or functions that determine if a warning should be ignored.
+ * Ignore specific warnings.
  */
 export type IgnoreWarnings = (
 	| RegExp
-	| ((error: Error, compilation: Compilation) => boolean)
+	| {
+			/**
+			 * A RegExp to select the origin file for the warning.
+			 */
+			file?: RegExp;
+			/**
+			 * A RegExp to select the warning message.
+			 */
+			message?: RegExp;
+			/**
+			 * A RegExp to select the origin module for the warning.
+			 */
+			module?: RegExp;
+	  }
+	| ((warning: WebpackError, compilation: Compilation) => boolean)
 )[];
 //#endregion
 

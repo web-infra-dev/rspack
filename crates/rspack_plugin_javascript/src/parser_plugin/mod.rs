@@ -54,7 +54,7 @@ pub(crate) use self::{
   import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin},
   import_parser_plugin::ImportParserPlugin,
   initialize_evaluating::InitializeEvaluating,
-  inline_const::{InlineConstDependencyCondition, InlineConstPlugin},
+  inline_const::{InlineConstPlugin, InlineValueDependencyCondition},
   inner_graph::{get_dependency_used_by_exports_condition, plugin::*, state::InnerGraphState},
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,
   node_stuff_plugin::NodeStuffPlugin,

@@ -59,6 +59,7 @@ impl JavaScriptCompiler {
     filename: Option<FileName>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
+    inspect_parsed_ast: impl FnOnce(&Program),
     before_pass: impl FnOnce(&Program) -> P + 'a,
   ) -> Result<TransformOutput, Error>
   where
@@ -70,7 +71,7 @@ impl JavaScriptCompiler {
       .new_source_file(filename.unwrap_or(FileName::Anon).into(), source.into());
     let javascript_transformer = JavaScriptTransformer::new(self.cm.clone(), fm, self, options)?;
 
-    javascript_transformer.transform(before_pass, module_source_map_kind)
+    javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
   }
 }
 
@@ -291,6 +292,7 @@ impl<'a> JavaScriptTransformer<'a> {
 
   fn transform<P>(
     self,
+    inspect_parsed_ast: impl FnOnce(&Program),
     before_pass: impl FnOnce(&Program) -> P + 'a,
     module_source_map_kind: Option<SourceMapKind>,
   ) -> Result<TransformOutput, Error>
@@ -316,6 +318,8 @@ impl<'a> JavaScriptTransformer<'a> {
       .input_source_map(&built_input.input_source_map)
       .to_rspack_result_from_anyhow()?;
 
+    inspect_parsed_ast(&built_input.program);
+
     let (program, diagnostics) = self.transform_with_built_input(built_input)?;
     let format_opt = JsMinifyFormatOptions {
       inline_script: false,
@@ -324,6 +328,7 @@ impl<'a> JavaScriptTransformer<'a> {
     };
 
     let print_options = PrintOptions {
+      source_len: self.fm.byte_length(),
       source_map: self.cm.clone(),
       target,
       source_map_config,

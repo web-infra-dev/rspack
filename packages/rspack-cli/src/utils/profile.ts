@@ -6,25 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { rspack } from "@rspack/core";
-
-const overviewTraceFilter = "info";
-const allTraceFilter = "trace";
 const defaultRustTraceLayer = "perfetto";
-
-enum TracePreset {
-	OVERVIEW = "OVERVIEW", // contains overview trace events
-	ALL = "ALL" // contains all trace events
-}
-
-function resolveLayer(value: string): string {
-	if (value === TracePreset.OVERVIEW) {
-		return overviewTraceFilter;
-	}
-	if (value === TracePreset.ALL) {
-		return allTraceFilter;
-	}
-	return value;
-}
 
 export async function applyProfile(
 	filterValue: string,
@@ -60,11 +42,9 @@ export async function applyProfile(
 		traceOutput = path.resolve(defaultOutputDir, traceOutput);
 	}
 
-	const filter = resolveLayer(filterValue);
-
 	await ensureFileDir(traceOutput);
 	await rspack.experiments.globalTrace.register(
-		filter,
+		filterValue,
 		traceLayer,
 		traceOutput
 	);

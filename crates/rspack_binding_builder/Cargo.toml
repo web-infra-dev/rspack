@@ -1,0 +1,17 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+description             = "Rspack node builder"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_binding_builder"
+repository.workspace    = true
+version                 = "0.2.0"
+
+[features]
+plugin = ["rspack_binding_api/plugin"]
+
+[dependencies]
+rspack_binding_api = { workspace = true }

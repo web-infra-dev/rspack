@@ -1,0 +1,1 @@
+it("should use createNativePlugin", () => {});

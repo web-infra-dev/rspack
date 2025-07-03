@@ -2,7 +2,7 @@
 
 [`tracing`](https://crates.io/crates/tracing) is used to record the internal processes of Rspack compilation, which can be used for performance analysis as well as narrow down the location of a bug.
 
-## Enabling Tracing
+## Enabling tracing
 
 Tracing can be enabled in two ways:
 
@@ -20,9 +20,14 @@ RSPACK_PROFILE=ALL rsbuild build
 
 - If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check how we implement [`RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
 
-The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/).
+The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/):
 
-## Tracing Layer
+<img
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
+  alt="tracing"
+/>
+
+## Tracing layer
 
 Rspack supports two types of layers: `perfetto` and `logger`:
 
@@ -37,7 +42,7 @@ RSPACK_TRACE_LAYER=logger
 RSPACK_TRACE_LAYER=perfetto
 ```
 
-## Tracing Output
+## Tracing output
 
 You can specify the output location for traces:
 
@@ -51,7 +56,7 @@ RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=./log.txt rspack dev
 RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=./perfetto.pftrace rspack dev
 ```
 
-## Tracing Filter
+## Tracing filter
 
 You can configure the data to be filtered through `RSPACK_PROFILE`. Rspack provides two preset options:
 
@@ -60,7 +65,7 @@ You can configure the data to be filtered through `RSPACK_PROFILE`. Rspack provi
 
 Apart from the presets, other strings will be passed directly to [Env Filter](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax), supporting more complex filtering strategies:
 
-### Tracing Level Filter
+### Tracing level filter
 
 The supported tracing levels are: `TRACE`, `DEBUG`, `INFO`, `WARN`, and `ERROR`. You can filter by level:
 
@@ -71,14 +76,14 @@ RSPACK_PROFILE=trace
 RSPACK_PROFILE=info
 ```
 
-### Module Level Filtering
+### Module level filtering
 
 ```sh
 # View rspack_resolver logs and output to terminal
 RSPACK_TRACE_LAYER=logger RSPACK_PROFILE=rspack_resolver
 ```
 
-### Mixed Filtering
+### Mixed filtering
 
 EnvFilter supports mixed use of multiple filtering conditions to implement more complex filtering strategies:
 
