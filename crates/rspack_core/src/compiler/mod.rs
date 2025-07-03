@@ -14,6 +14,7 @@ use rspack_sources::BoxSource;
 use rspack_tasks::{within_compiler_context, CompilerContext};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
+use swc_core::ecma::transforms::base::feature;
 use tracing::instrument;
 
 pub use self::{
@@ -326,6 +327,12 @@ impl Compiler {
     }
     logger.time_end(start);
     let start = logger.time("seal compilation");
+    #[cfg(feature = "debug_tool")]
+    {
+      use rspack_util::debug_tool::wait_for;
+      wait_for("seal compilation");
+    }
+
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
 

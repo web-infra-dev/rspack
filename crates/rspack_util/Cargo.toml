@@ -29,3 +29,6 @@ swc_config = { workspace = true }
 swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
 
 rspack_regex = { workspace = true }
+
+[features]
+debug_tool = [] # only used for local debug and  should not be enabled in production release

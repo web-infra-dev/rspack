@@ -12,6 +12,7 @@ repository.workspace    = true
 version                 = "0.2.0"
 
 [features]
+debug_tool    = ["rspack_core/debug_tool"]
 plugin        = ["rspack_loader_swc/plugin"]
 sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 

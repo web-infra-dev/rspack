@@ -85,5 +85,6 @@ pretty_assertions = { version = "1.4.1" }
 workspace = true
 
 [features]
-default = []
-napi    = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
+debug_tool = ["rspack_util/debug_tool"]
+default    = []
+napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
