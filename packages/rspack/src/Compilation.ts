@@ -62,6 +62,8 @@ import { JsSource } from "./util/source";
 import "./Chunk";
 // patch Chunks
 import "./Chunks";
+// patch ChunkGraph
+import "./ChunkGraph";
 // patch CodeGenerationResults
 import "./CodeGenerationResults";
 import { createDiagnosticArray } from "./Diagnostics";

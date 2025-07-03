@@ -109,6 +109,59 @@ export declare class AsyncDependenciesBlock {
   get blocks(): AsyncDependenciesBlock[]
 }
 
+export declare class Chunk {
+  get name(): string | undefined
+  get id(): string | undefined
+  get ids(): Array<string>
+  get idNameHints(): Array<string>
+  get filenameTemplate(): string | undefined
+  get cssFilenameTemplate(): string | undefined
+  get _files(): Array<string>
+  get _runtime(): Array<string>
+  get hash(): string | undefined
+  get contentHash(): Record<string, string>
+  get renderedHash(): string | undefined
+  get chunkReason(): string | undefined
+  get _auxiliaryFiles(): Array<string>
+  isOnlyInitial(): boolean
+  canBeInitial(): boolean
+  hasRuntime(): boolean
+  getAllAsyncChunks(): Chunk[]
+  getAllInitialChunks(): Chunk[]
+  getAllReferencedChunks(): Chunk[]
+  get _groupsIterable(): ChunkGroup[]
+  getEntryOptions(): EntryOptionsDTO | undefined
+}
+
+export declare class ChunkGraph {
+  hasChunkEntryDependentChunks(chunk: Chunk): boolean
+  getChunkModules(chunk: Chunk): Module[]
+  getChunkModulesIterable(chunk: Chunk): Iterable<Module>
+  getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module>
+  getNumberOfEntryModules(chunk: Chunk): number
+  getChunkEntryDependentChunksIterable(chunk: Chunk): Chunk[]
+  getChunkModulesIterableBySourceType(chunk: Chunk, sourceType: string): Module[]
+  getModuleChunks(module: Module): Chunk[]
+  getModuleId(module: Module): string | number | null
+  _getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
+  getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): ChunkGroup | null
+}
+
+export declare class ChunkGroup {
+  get chunks(): Chunk[]
+  get index(): number | undefined
+  get name(): string | undefined
+  get origins(): Array<JsChunkGroupOrigin>
+  get childrenIterable(): ChunkGroup[]
+  isInitial(): boolean
+  getParents(): ChunkGroup[]
+  getRuntimeChunk(): Chunk
+  getEntrypointChunk(): Chunk
+  getFiles(): Array<string>
+  getModulePreOrderIndex(module: Module): number | null
+  getModulePostOrderIndex(module: Module): number | null
+}
+
 export declare class Chunks {
   get size(): number
   _values(): Chunk[]
