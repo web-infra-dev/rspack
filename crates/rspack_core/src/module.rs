@@ -421,7 +421,7 @@ fn get_exports_type_impl(
   strict: bool,
 ) -> ExportsType {
   let export_type = &build_meta.exports_type;
-  let default_object: &BuildMetaDefaultObject = &build_meta.default_object;
+  let default_object = &build_meta.default_object;
   match export_type {
     BuildMetaExportsType::Flagged => {
       if strict {

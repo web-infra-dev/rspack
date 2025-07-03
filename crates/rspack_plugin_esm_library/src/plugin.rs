@@ -8,7 +8,7 @@ use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
-  ConcatenatedModuleInfo, ConcatenationScope, ExportInfoGetter, ExportProvided, ExportsInfoGetter,
+  ConcatenatedModuleInfo, ConcatenationScope, ExportProvided, ExportsInfoGetter,
   ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition,
   RuntimeGlobals,
 };
@@ -116,10 +116,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let other_export_info = exports_info
-        .as_data(&module_graph)
-        .other_exports_info()
-        .as_data(&module_graph);
+      let other_export_info = exports_info.as_data(&module_graph).other_exports_info();
       if matches!(other_export_info.provided(), Some(ExportProvided::Unknown)) {
         logger.debug(format!("module {module_identifier} has unknown exports",));
         should_scope_hoisting = false;
@@ -137,9 +134,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           break;
         }
 
-        if ExportInfoGetter::is_reexport(export_info)
-          && get_target(export_info, &module_graph).is_none()
-        {
+        if export_info.is_reexport() && get_target(export_info, &module_graph).is_none() {
           logger.debug(format!(
             "module {module_identifier} has re-export that is not provided",
           ));

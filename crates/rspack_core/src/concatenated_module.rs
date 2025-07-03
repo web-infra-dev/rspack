@@ -50,13 +50,13 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportMode, ExportProvided,
-  ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector,
-  InitFragment, InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module,
-  ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
-  ModuleLayer, ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
-  UsedNameItem, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  DependencyId, DependencyType, ErrorSpan, ExportMode, ExportProvided, ExportsArgument,
+  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
+  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
+  DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;

@@ -5,12 +5,11 @@ use rspack_core::{
   find_new_name, get_js_chunk_filename_template, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
   to_normal_comment, BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments,
-  ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModuleIdent, ExportInfoGetter,
-  ExportProvided, ExportsInfoGetter, ExportsType, ExternalInterop, FindTargetResult,
-  GetUsedNameParam, IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, PathData, PrefetchExportsInfoMode, Ref,
-  RuntimeGlobals, SourceType, SymbolRef, UsageState, UsedName, UsedNameItem,
-  NAMESPACE_OBJECT_EXPORT,
+  ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModuleIdent, ExportProvided,
+  ExportsInfoGetter, ExportsType, ExternalInterop, FindTargetResult, GetUsedNameParam,
+  IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleInfo, PathData, PrefetchExportsInfoMode, Ref, RuntimeGlobals, SourceType,
+  SymbolRef, UsageState, UsedName, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
@@ -148,26 +147,17 @@ impl EsmLibraryPlugin {
 
           let mut ns_obj = Vec::new();
           let exports_info = module_graph.get_exports_info(module_info_id);
-          for export_info in exports_info.as_data(&module_graph).exports() {
-            if matches!(
-              export_info.as_data(&module_graph).provided(),
-              Some(ExportProvided::NotProvided)
-            ) {
+          for (_name, export_info) in exports_info.as_data(&module_graph).exports() {
+            if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
               continue;
             }
 
-            if let Some(UsedNameItem::Str(used_name)) =
-              ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, None)
-            {
+            if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, None) {
               let final_name = Self::get_binding(
                 &compilation.get_module_graph(),
                 &compilation.module_graph_cache_artifact,
                 module_info_id,
-                vec![export_info
-                  .as_data(&module_graph)
-                  .name()
-                  .cloned()
-                  .unwrap_or("".into())],
+                vec![export_info.name().cloned().unwrap_or("".into())],
                 concate_modules_map,
                 &mut needed_namespace_objects,
                 false,
@@ -681,8 +671,7 @@ impl EsmLibraryPlugin {
             .get_exports_info(exported_module)
             .as_data(&module_graph);
 
-          for export in exports_info.exports() {
-            let export = export.as_data(&module_graph);
+          for (_, export) in exports_info.exports() {
             if matches!(export.global_used(), Some(UsageState::Unused)) {
               continue;
             }
@@ -1165,10 +1154,8 @@ impl EsmLibraryPlugin {
       }
     }
 
-    let exports_info = mg.get_prefetched_exports_info(
-      &info.id(),
-      PrefetchExportsInfoMode::NamedNestedExports(&export_name),
-    );
+    let exports_info =
+      mg.get_prefetched_exports_info(&info.id(), PrefetchExportsInfoMode::Nested(&export_name));
 
     let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
     let export_info_hash_key = export_info.as_hash_key();

@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsModuleDependency, ChunkGraph, ChunkUkey, Compilation, DependencyTemplate, ExportInfoGetter,
-  ModuleIdentifier, RuntimeGlobals, UsageState, missing_module_promise,
+  missing_module_promise, AsModuleDependency, ChunkGraph, ChunkUkey, Compilation,
+  DependencyTemplate, ModuleIdentifier, RuntimeGlobals, UsageState,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -146,7 +146,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       let all_exports = ref_exports_info.get_relevant_exports(None);
       all_exports
         .iter()
-        .filter(|export| !matches!(ExportInfoGetter::get_used(export, None), UsageState::Unused))
+        .filter(|export| !matches!(export.get_used(None), UsageState::Unused))
         .filter_map(|export| export.name())
         .map(|ref_export| {
           format!(
