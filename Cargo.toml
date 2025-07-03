@@ -471,3 +471,9 @@ rest_pat_in_fully_bound_structs = "warn"
 verbose_file_reads              = "warn"
 # https://github.com/rustwasm/wasm-bindgen/issues/3944
 #mem_forget                      = "warn"
+
+[patch.crates-io]
+wasmer                    = { git = "https://github.com/hardfist/wasmer", package = "wasmer", branch = "disable-sys2", default-features = false }
+wasmer-cache              = { git = "https://github.com/hardfist/wasmer", package = "wasmer-cache", branch = "disable-sys2" }
+wasmer-compiler-cranelift = { git = "https://github.com/hardfist/wasmer", package = "wasmer-compiler-cranelift", branch = "disable-sys2", default-features = false }
+wasmer-wasix              = { git = "https://github.com/hardfist/wasmer", package = "wasmer-wasix", branch = "disable-sys2", default-features = false }
