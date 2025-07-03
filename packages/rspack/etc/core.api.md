@@ -59,7 +59,6 @@ import type { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
-import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger } from './logging/Logger';
 import { Module } from '@rspack/binding';
@@ -3923,7 +3922,7 @@ type KnownStatsFactoryContext = {
     makePathsRelative?: ((arg0: string) => string) | undefined;
     compilation?: Compilation | undefined;
     cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
-    cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+    cachedGetWarnings?: ((arg0: Compilation) => JsStatsError[]) | undefined;
     getStatsCompilation: (compilation: Compilation) => JsStatsCompilation;
     getInner: (compilation: Compilation) => JsStats;
 };
