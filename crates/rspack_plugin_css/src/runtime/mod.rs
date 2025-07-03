@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkGroupOrderKey,

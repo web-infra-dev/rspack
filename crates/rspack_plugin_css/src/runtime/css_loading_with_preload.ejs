@@ -4,14 +4,14 @@
     if (typeof document === 'undefined') return;
 
     var link = document.createElement('link');
-    __CHARSET_PLACEHOLDER__
+    <%- __CHARSET_PLACEHOLDER__ %> 
     if (<%- SCRIPT_NONCE %>) {
       link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
     }
     link.rel = "preload";
     link.as = "style";
     link.href = <%- PUBLIC_PATH %> + <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
-    __CROSS_ORIGIN_PLACEHOLDER__
+    <%- __CROSS_ORIGIN_PLACEHOLDER__ %> 
     document.head.appendChild(link);
   }
 };
