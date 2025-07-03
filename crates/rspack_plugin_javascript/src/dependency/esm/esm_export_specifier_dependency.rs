@@ -12,7 +12,6 @@ use rspack_core::{
   ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
   SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
