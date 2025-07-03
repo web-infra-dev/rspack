@@ -163,12 +163,18 @@ importers:
 
   packages/binding-builder-cli:
     dependencies:
+      '@emnapi/core':
+        specifier: ^1.4.3
+        version: 1.4.3
       '@napi-rs/cli':
         specifier: 3.0.0-alpha.88
         version: 3.0.0-alpha.88(@emnapi/runtime@1.4.3)(@types/node@20.19.0)(emnapi@1.4.3)
       debug:
         specifier: ^4.4.1
         version: 4.4.1
+      emnapi:
+        specifier: ^1.4.3
+        version: 1.4.3
     devDependencies:
       '@types/node':
         specifier: ^20.19.0

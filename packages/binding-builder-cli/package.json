@@ -19,6 +19,8 @@
   ],
   "dependencies": {
     "@napi-rs/cli": "3.0.0-alpha.88",
+    "emnapi": "^1.4.3",
+    "@emnapi/core": "^1.4.3",
     "debug": "^4.4.1"
   },
   "devDependencies": {
