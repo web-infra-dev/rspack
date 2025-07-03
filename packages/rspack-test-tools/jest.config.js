@@ -1,6 +1,8 @@
 const path = require("node:path");
 const root = path.resolve(__dirname, "../../");
 
+const isWasm = Boolean(process.env.WASM);
+
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-expect",
 	"@rspack/test-tools/setup-env"
@@ -24,7 +26,8 @@ const wasmConfig = process.env.WASM && {
 		"Incremental-watch-webpack.test.js",
 		"Incremental-watch.test.js",
 		"Incremental-web.test.js",
-		"Incremental-webworker.test.js"
+		"Incremental-webworker.test.js",
+		isWasm ? undefined : 'NativeWatcher.test.js',
 	],
 	maxWorkers: 1,
 	maxConcurrency: 1,
@@ -64,10 +67,10 @@ const config = {
 		testFilter:
 			process.argv.includes("--test") || process.argv.includes("-t")
 				? process.argv[
-						(process.argv.includes("-t")
-							? process.argv.indexOf("-t")
-							: process.argv.indexOf("--test")) + 1
-					]
+				(process.argv.includes("-t")
+					? process.argv.indexOf("-t")
+					: process.argv.indexOf("--test")) + 1
+				]
 				: undefined,
 		printLogger: process.argv.includes("--verbose")
 	},
