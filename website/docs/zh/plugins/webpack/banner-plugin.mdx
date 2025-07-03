@@ -15,7 +15,7 @@ new rspack.BannerPlugin(options);
 ```ts
 type BannerFunction = (args: {
   hash: string;
-  chunk: JsChunk;
+  chunk: Chunk;
   filename: string;
 }) => string;
 type BannerContent = string | BannerFunction;
