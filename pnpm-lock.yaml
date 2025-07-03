@@ -11,9 +11,9 @@ patchedDependencies:
   rollup-plugin-dts:
     hash: bc3f29f4636a594eb84c5e3f2d8cbd29c2e6b845f376603b718fb2d41bee6de8
     path: patches/rollup-plugin-dts.patch
-  webpack-sources@3.3.2:
-    hash: 488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e
-    path: patches/webpack-sources@3.3.2.patch
+  webpack-sources@3.3.3:
+    hash: b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee
+    path: patches/webpack-sources@3.3.3.patch
 
 importers:
 
@@ -335,8 +335,8 @@ importers:
         specifier: ^2.4.4
         version: 2.4.4
       webpack-sources:
-        specifier: 3.3.2
-        version: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
+        specifier: 3.3.3
+        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
       zod:
         specifier: ^3.25.58
         version: 3.25.58
@@ -480,8 +480,8 @@ importers:
         specifier: 6.0.1
         version: 6.0.1
       webpack-sources:
-        specifier: 3.3.2
-        version: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
+        specifier: 3.3.3
+        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -836,8 +836,8 @@ importers:
         specifier: ^2.4.4
         version: 2.4.4
       webpack-sources:
-        specifier: 3.3.2
-        version: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
+        specifier: 3.3.3
+        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
     devDependencies:
       '@babel/preset-react':
         specifier: ^7.27.1
@@ -7785,8 +7785,8 @@ packages:
     resolution: {integrity: sha512-hXXvrjtx2PLYx4qruKl+kyRSLc52V+cCvMxRjmKwoA+CBbbF5GfIBtR6kCvl0fYGqTUPKB+1ktVmTHqMOzgCBg==}
     engines: {node: '>=18.0.0'}
 
-  webpack-sources@3.3.2:
-    resolution: {integrity: sha512-ykKKus8lqlgXX/1WjudpIEjqsafjOTcOJqxnAbMLAu/KCsDCJ6GBtvscewvTkrn24HsnvFwrSCbenFrhtcCsAA==}
+  webpack-sources@3.3.3:
+    resolution: {integrity: sha512-yd1RBzSGanHkitROoPFd6qsrxt+oFhg/129YzheDGqeustzX0vTZJZsSsQjVQC4yzBQ56K55XU8gaNCtIzOnTg==}
     engines: {node: '>=10.13.0'}
 
   webpack@5.99.9:
@@ -15894,7 +15894,7 @@ snapshots:
       flat: 5.0.2
       wildcard: 2.0.1
 
-  webpack-sources@3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e): {}
+  webpack-sources@3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee): {}
 
   webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)):
     dependencies:
@@ -15921,7 +15921,7 @@ snapshots:
       tapable: 2.2.2
       terser-webpack-plugin: 5.3.14(@swc/core@1.12.0(@swc/helpers@0.5.17))(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       watchpack: 2.4.4
-      webpack-sources: 3.3.2(patch_hash=488e04e10706980da34067f6ad8c408b1eb45e65c49685929419ebb9abf9b96e)
+      webpack-sources: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
