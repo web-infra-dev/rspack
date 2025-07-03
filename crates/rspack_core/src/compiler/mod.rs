@@ -328,8 +328,8 @@ impl Compiler {
     let start = logger.time("seal compilation");
     #[cfg(feature = "debug_tool")]
     {
-      use rspack_util::debug_tool::wait_for;
-      wait_for("seal compilation");
+      use rspack_util::debug_tool::wait_for_signal;
+      wait_for_signal("seal compilation");
     }
 
     self.compilation.seal(self.plugin_driver.clone()).await?;
