@@ -172,11 +172,10 @@ fn pretty_type_error(return_value: Unknown, error: napi::Error) -> rspack_error:
         _ => "unknown",
       };
       format!(
-        "TypeError: Expected return a '{}' value, but received `{}`",
-        expected_type, return_value_type_str
+        "TypeError: Expected return a '{expected_type}' value, but received `{return_value_type_str}`"
       )
     }
-    Err(_) => format!("TypeError: Expected return a '{}' value", expected_type),
+    Err(_) => format!("TypeError: Expected return a '{expected_type}' value"),
   };
   rspack_error::error!(reason)
 }
