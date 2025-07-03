@@ -3,9 +3,9 @@ import type * as binding from "@rspack/binding";
 import type { JsOriginRecord } from "@rspack/binding";
 import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
+import type WebpackError from "../lib/WebpackError";
 import { compareIds, compareSelect } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
-import WebpackError from "../lib/WebpackError";
 
 export type KnownStatsChunkGroup = {
 	name?: string;

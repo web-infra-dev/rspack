@@ -22,6 +22,8 @@ import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { DeadlockRiskError } from "../RspackError";
 import type { StatsOptions } from "../config";
+import formatLocation from "../formatLocation";
+import type WebpackError from "../lib/WebpackError";
 import {
 	LogType,
 	type LogTypeEnum,
@@ -66,8 +68,6 @@ import {
 	sortByField,
 	spaceLimited
 } from "./statsFactoryUtils";
-import WebpackError from "../lib/WebpackError";
-import formatLocation from "../formatLocation";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
@@ -705,6 +705,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context.cachedGetErrors = compilation => {
 					return (
 						map.get(compilation) ||
+						// biome-ignore lint/style/noCommaOperator: based on webpack's logic
 						(errors => (map.set(compilation, errors), errors))(
 							compilation.getErrors()
 						)
@@ -716,6 +717,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context.cachedGetWarnings = compilation => {
 					return (
 						map.get(compilation) ||
+						// biome-ignore lint/style/noCommaOperator: based on webpack's logic
 						(warnings => (map.set(compilation, warnings), warnings))(
 							compilation.getWarnings()
 						)

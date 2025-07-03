@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { renderReport, RUST_ERROR_SYMBOL } from "@rspack/binding";
+import { RUST_ERROR_SYMBOL, renderReport } from "@rspack/binding";
 import type { Compiler } from "../Compiler";
 import { formatSize } from "../util/SizeFormatHelpers";
 import { compareIds } from "../util/comparators";

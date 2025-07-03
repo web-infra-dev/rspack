@@ -11,9 +11,9 @@ import type { JsStats, JsStatsCompilation } from "@rspack/binding";
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
+import type WebpackError from "../lib/WebpackError";
 import { type Comparator, concatComparators } from "../util/comparators";
 import { type GroupConfig, smartGrouping } from "../util/smartGrouping";
-import WebpackError from "../lib/WebpackError";
 
 export type KnownStatsFactoryContext = {
 	type: string;
