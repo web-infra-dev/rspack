@@ -113,6 +113,14 @@ swc_core                               = { workspace = true, default-features = 
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
 ustr                                   = { workspace = true }
 
+[package.metadata.cargo-shear]
+ignored = ["parking_lot"]
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+# Pin parking_lot version to the same version within the workspace
+# Explicitly adding features `nightly` to turn on wasm atomic support
+parking_lot = { version = "=0.12.3", features = ["nightly"] }
+
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_tracing = { workspace = true }
 sftrace-setup  = { workspace = true, optional = true }
