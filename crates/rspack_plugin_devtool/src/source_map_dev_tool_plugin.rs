@@ -644,10 +644,7 @@ impl SourceMapDevToolPlugin {
     .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
-    mapped_assets
-      .into_iter()
-      .map(|r| r.to_rspack_result())
-      .collect::<Result<Vec<_>>>()
+    mapped_assets.into_iter().collect::<Result<Vec<_>>>()
   }
 }
 
