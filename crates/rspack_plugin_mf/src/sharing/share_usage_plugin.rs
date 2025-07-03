@@ -137,9 +137,7 @@ impl ShareUsagePlugin {
     fallback_id: &ModuleIdentifier,
     consume_shared_id: &ModuleIdentifier,
   ) -> (Vec<String>, Vec<String>) {
-    use rspack_core::{
-      ExportInfoGetter, ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState,
-    };
+    use rspack_core::{ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState};
 
     let mut used_exports = Vec::new();
     let mut provided_exports = Vec::new();
@@ -150,7 +148,7 @@ impl ShareUsagePlugin {
     let fallback_prefetched = ExportsInfoGetter::prefetch(
       &fallback_exports_info,
       module_graph,
-      PrefetchExportsInfoMode::AllExports,
+      PrefetchExportsInfoMode::Default,
     );
 
     // Get what exports the fallback module provides
@@ -164,7 +162,7 @@ impl ShareUsagePlugin {
           let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
           let fallback_export_info_data =
             fallback_prefetched.get_read_only_export_info(&export_atom);
-          let fallback_usage = ExportInfoGetter::get_used(fallback_export_info_data, None);
+          let fallback_usage = fallback_export_info_data.get_used(None);
 
           // Export is used if the fallback module shows usage
           if matches!(
@@ -800,7 +798,7 @@ impl ShareUsagePlugin {
     _fallback_id: &ModuleIdentifier,
     consume_shared_id: &ModuleIdentifier,
   ) -> (Vec<String>, Vec<String>) {
-    use rspack_core::{ExportInfoGetter, ExportsInfoGetter, PrefetchExportsInfoMode, UsageState};
+    use rspack_core::{ExportsInfoGetter, PrefetchExportsInfoMode, UsageState};
 
     let mut actually_used_exports = Vec::new();
     let mut all_imported_exports = Vec::new();
@@ -811,7 +809,7 @@ impl ShareUsagePlugin {
     let consume_shared_prefetched = ExportsInfoGetter::prefetch(
       &consume_shared_exports_info,
       module_graph,
-      PrefetchExportsInfoMode::AllExports,
+      PrefetchExportsInfoMode::Default,
     );
 
     // Get provided exports from the consume shared module (these were copied from fallback)
@@ -823,8 +821,7 @@ impl ShareUsagePlugin {
           let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
           let consume_shared_export_info_data =
             consume_shared_prefetched.get_read_only_export_info(&export_atom);
-          let consume_shared_usage =
-            ExportInfoGetter::get_used(consume_shared_export_info_data, None);
+          let consume_shared_usage = consume_shared_export_info_data.get_used(None);
 
           // Export is actually used if the ConsumeShared proxy module shows usage
           if matches!(
@@ -896,7 +893,7 @@ impl ShareUsagePlugin {
     let consume_shared_prefetched = ExportsInfoGetter::prefetch(
       &consume_shared_exports_info,
       module_graph,
-      PrefetchExportsInfoMode::AllExports,
+      PrefetchExportsInfoMode::Default,
     );
 
     let consume_shared_provided = consume_shared_prefetched.get_provided_exports();
@@ -911,7 +908,7 @@ impl ShareUsagePlugin {
           // This indicates it was likely imported but not used
           let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
           let export_info_data = consume_shared_prefetched.get_read_only_export_info(&export_atom);
-          let usage_state = ExportInfoGetter::get_used(export_info_data, None);
+          let usage_state = export_info_data.get_used(None);
 
           // If the export is provided but not used, and it's not already in our lists,
           // it's likely an unused import
