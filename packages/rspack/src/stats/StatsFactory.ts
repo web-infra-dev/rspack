@@ -7,7 +7,11 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type { JsStats, JsStatsCompilation } from "@rspack/binding";
+import type {
+	JsStats,
+	JsStatsCompilation,
+	JsStatsError
+} from "@rspack/binding";
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
@@ -23,8 +27,8 @@ export type KnownStatsFactoryContext = {
 	// compilationFileToChunks?: Map<string, Chunk[]> | undefined;
 	// compilationAuxiliaryFileToChunks?: Map<string, Chunk[]> | undefined;
 	// runtime?: RuntimeSpec | undefined;
-	cachedGetErrors?: ((arg0: Compilation) => WebpackError[]) | undefined;
-	cachedGetWarnings?: ((arg0: Compilation) => WebpackError[]) | undefined;
+	cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
+	cachedGetWarnings?: ((arg0: Compilation) => JsStatsError[]) | undefined;
 	getStatsCompilation: (compilation: Compilation) => JsStatsCompilation;
 	getInner: (compilation: Compilation) => JsStats;
 };

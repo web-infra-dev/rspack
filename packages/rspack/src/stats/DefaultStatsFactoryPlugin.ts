@@ -13,8 +13,8 @@ import type {
 	// ExternalObject,
 	JsOriginRecord,
 	JsStatsAssetInfo,
-	JsStatsModule,
-	Module
+	JsStatsError,
+	JsStatsModule
 } from "@rspack/binding";
 import { RUST_ERROR_SYMBOL } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
@@ -611,7 +611,7 @@ const EXTRACT_ERROR: Record<
 	string,
 	(
 		object: StatsError,
-		error: WebpackError,
+		error: JsStatsError,
 		context: KnownStatsFactoryContext,
 		options: StatsOptions,
 		factory: StatsFactory
