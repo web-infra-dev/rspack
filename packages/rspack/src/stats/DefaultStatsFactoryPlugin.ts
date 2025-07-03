@@ -13,8 +13,7 @@ import type {
 	JsOriginRecord,
 	JsStatsAssetInfo,
 	JsStatsError,
-	JsStatsModule,
-	JsStatsWarning
+	JsStatsModule
 } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
@@ -609,7 +608,7 @@ const EXTRACT_ERROR: Record<
 	string,
 	(
 		object: StatsError,
-		error: JsStatsError | JsStatsWarning,
+		error: JsStatsError,
 		context: KnownStatsFactoryContext,
 		options: StatsOptions,
 		factory: StatsFactory
