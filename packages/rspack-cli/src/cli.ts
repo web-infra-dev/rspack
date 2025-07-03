@@ -174,7 +174,9 @@ export class RspackCLI {
 			}
 			// user parameters always has highest priority than default devtool and config devtool
 			if (typeof options.devtool !== "undefined") {
-				item.devtool = options.devtool as RspackOptions["devtool"];
+				item.devtool = isBuild
+					? item.devtool
+					: (options.devtool as RspackOptions["devtool"]);
 			}
 
 			if (isServe) {
