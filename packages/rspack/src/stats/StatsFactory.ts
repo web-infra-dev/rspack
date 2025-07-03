@@ -7,28 +7,24 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type {
-	JsStats,
-	JsStatsCompilation,
-	JsStatsError,
-	JsStatsWarning
-} from "@rspack/binding";
+import type { JsStats, JsStatsCompilation } from "@rspack/binding";
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
 import { type Comparator, concatComparators } from "../util/comparators";
 import { type GroupConfig, smartGrouping } from "../util/smartGrouping";
+import WebpackError from "../lib/WebpackError";
 
 export type KnownStatsFactoryContext = {
 	type: string;
 	makePathsRelative?: ((arg0: string) => string) | undefined;
-	compilation?: Compilation | undefined;
+	compilation: Compilation;
 	// rootModules?: Set<Module> | undefined;
 	// compilationFileToChunks?: Map<string, Chunk[]> | undefined;
 	// compilationAuxiliaryFileToChunks?: Map<string, Chunk[]> | undefined;
 	// runtime?: RuntimeSpec | undefined;
-	cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
-	cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+	cachedGetErrors?: ((arg0: Compilation) => WebpackError[]) | undefined;
+	cachedGetWarnings?: ((arg0: Compilation) => WebpackError[]) | undefined;
 	getStatsCompilation: (compilation: Compilation) => JsStatsCompilation;
 	getInner: (compilation: Compilation) => JsStats;
 };

@@ -5,6 +5,7 @@ import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
 import { compareIds, compareSelect } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
+import WebpackError from "../lib/WebpackError";
 
 export type KnownStatsChunkGroup = {
 	name?: string;
@@ -338,8 +339,8 @@ export type SimpleExtractors = {
 	>;
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	chunkOrigin: ExtractorsByOption<JsOriginRecord, StatsChunkOrigin>;
-	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
+	error: ExtractorsByOption<WebpackError, StatsError>;
+	warning: ExtractorsByOption<WebpackError, StatsError>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem

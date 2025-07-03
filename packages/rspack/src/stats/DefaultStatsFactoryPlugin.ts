@@ -10,12 +10,13 @@
 import * as util from "node:util";
 
 import type {
+	// ExternalObject,
 	JsOriginRecord,
 	JsStatsAssetInfo,
-	JsStatsError,
 	JsStatsModule,
-	JsStatsWarning
+	Module
 } from "@rspack/binding";
+import { RUST_ERROR_SYMBOL } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
@@ -63,9 +64,10 @@ import {
 	moduleGroup,
 	resolveStatsMillisecond,
 	sortByField,
-	spaceLimited,
-	warningFromStatsWarning
+	spaceLimited
 } from "./statsFactoryUtils";
+import WebpackError from "../lib/WebpackError";
+import formatLocation from "../formatLocation";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
@@ -609,51 +611,70 @@ const EXTRACT_ERROR: Record<
 	string,
 	(
 		object: StatsError,
-		error: JsStatsError | JsStatsWarning,
+		error: WebpackError,
 		context: KnownStatsFactoryContext,
 		options: StatsOptions,
 		factory: StatsFactory
 	) => void
 > = {
 	_: (object, error) => {
+		if (RUST_ERROR_SYMBOL in error) {
+			Object.defineProperty(object, RUST_ERROR_SYMBOL, {
+				enumerable: false,
+				configurable: true,
+				writable: false,
+				value: error[RUST_ERROR_SYMBOL]
+			});
+		}
+
 		object.message = error.message;
 		// `error.code` is rspack-specific
-		if (error.code) {
-			object.code = error.code;
+		if (error.name) {
+			object.code = error.name;
 		}
-		if (error.chunkName) {
-			object.chunkName = error.chunkName;
-		}
-		if (error.chunkEntry) {
-			object.chunkEntry = error.chunkEntry;
-		}
-		if (error.chunkInitial) {
-			object.chunkInitial = error.chunkInitial;
+		if (error.chunk) {
+			object.chunkName = error.chunk.name;
+			object.chunkEntry = error.chunk.hasRuntime();
+			object.chunkInitial = error.chunk.canBeInitial();
 		}
 		if (error.file) {
 			object.file = error.file;
 		}
-		if (error.moduleDescriptor) {
-			object.moduleIdentifier = error.moduleDescriptor.identifier;
-			object.moduleName = error.moduleDescriptor.name;
+		if (error.module) {
+			object.moduleIdentifier = error.module.identifier();
+			object.moduleName = error.module.readableIdentifier();
 		}
-		if ("loc" in error) {
-			object.loc = error.loc;
+		if (error.loc) {
+			object.loc = formatLocation(error.loc);
 		}
 	},
-	ids: (object, error) => {
-		if (error.chunkId) {
-			object.chunkId = error.chunkId;
+	ids: (object, error, { compilation: { chunkGraph } }) => {
+		if (error.chunk) {
+			object.chunkId = error.chunk.id;
 		}
-		if (error.moduleDescriptor) {
-			object.moduleId = error.moduleDescriptor.id;
+		if (error.module) {
+			object.moduleId = chunkGraph.getModuleId(error.module);
 		}
 	},
 	moduleTrace: (object, error, context, _, factory) => {
-		const { type } = context;
+		const {
+			type,
+			compilation: { moduleGraph }
+		} = context;
+		const visitedModules = new Set<Module>();
+		const moduleTrace = [];
+		let current = error.module;
+		while (current) {
+			if (visitedModules.has(current)) break; // circular (technically impossible, but how knows)
+			visitedModules.add(current);
+			const origin = moduleGraph.getIssuer(current);
+			if (!origin) break;
+			moduleTrace.push({ origin, module: current });
+			current = origin;
+		}
 		object.moduleTrace = factory.create(
 			`${type}.moduleTrace`,
-			error.moduleTrace,
+			moduleTrace,
 			context
 		) as StatsModuleTraceItem[];
 	},
@@ -673,8 +694,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			context: KnownStatsFactoryContext,
 			options: StatsOptions
 		) => {
-			const statsCompilation = context.getStatsCompilation(compilation);
-
 			if (!context.makePathsRelative) {
 				context.makePathsRelative = makePathsRelative.bindContextCache(
 					compilation.compiler.context,
@@ -683,27 +702,25 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetErrors) {
 				const map = new WeakMap();
-				context.cachedGetErrors = compilation =>
-					map.get(compilation) ||
-					// eslint-disable-next-line no-sequences
-					(errors => {
-						map.set(compilation, errors);
-						return errors;
-					})(statsCompilation.errors);
+				context.cachedGetErrors = compilation => {
+					return (
+						map.get(compilation) ||
+						(errors => (map.set(compilation, errors), errors))(
+							compilation.getErrors()
+						)
+					);
+				};
 			}
 			if (!context.cachedGetWarnings) {
 				const map = new WeakMap();
-				context.cachedGetWarnings = compilation =>
-					map.get(compilation) ||
-					// eslint-disable-next-line no-sequences
-					(warnings => {
-						map.set(compilation, warnings);
-						return warnings;
-					})(
-						compilation.hooks.processWarnings.call(
-							statsCompilation.warnings.map(warningFromStatsWarning)
+				context.cachedGetWarnings = compilation => {
+					return (
+						map.get(compilation) ||
+						(warnings => (map.set(compilation, warnings), warnings))(
+							compilation.getWarnings()
 						)
 					);
+				};
 			}
 			if (compilation.name) {
 				object.name = compilation.name;
