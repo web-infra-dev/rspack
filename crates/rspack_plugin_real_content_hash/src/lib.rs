@@ -293,7 +293,6 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       ))
     })?;
     if let Some(new_name) = new_name {
-      // compilation.rename_asset(&name, new_name);
       rename_tasks.push((name, new_name));
     }
   }
