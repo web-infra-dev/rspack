@@ -9,7 +9,7 @@ use rspack_error::{
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
   },
-  Result,
+  Diagnostic, Result,
 };
 use rustc_hash::FxHashMap as HashMap;
 
@@ -1350,4 +1350,76 @@ impl Stats<'_> {
 
     Ok(stats)
   }
+}
+
+pub fn create_stats_errors<'a>(
+  compilation: &'a Compilation,
+  module_graph: &'a ModuleGraph<'a>,
+  diagnostics: &'a mut Vec<Diagnostic>,
+  colored: bool,
+) -> Vec<StatsError<'a>> {
+  let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
+    d.labels()
+      .and_then(|mut l| l.next())
+      .map(|l| l.offset())
+      .unwrap_or_default()
+  };
+  diagnostics.sort_by(
+    |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
+      std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
+      other => other,
+    },
+  );
+
+  diagnostics
+    .par_iter()
+    .map(|d| {
+      let module_identifier = d.module_identifier();
+      let (module_name, module_id) = module_identifier
+        .as_ref()
+        .and_then(|identifier| {
+          Some(get_stats_module_name_and_id(
+            compilation.module_by_identifier(identifier)?,
+            compilation,
+          ))
+        })
+        .unzip();
+
+      let chunk = d
+        .chunk()
+        .map(ChunkUkey::from)
+        .map(|key| compilation.chunk_by_ukey.expect_get(&key));
+
+      let module_trace = get_module_trace(
+        module_identifier,
+        module_graph,
+        compilation,
+        &compilation.options,
+      );
+
+      let code = d.code().map(|code| code.to_string());
+
+      let mut diagnostic_displayer = DiagnosticDisplayer::new(colored);
+      StatsError {
+        name: d.code().map(|c| c.to_string()),
+        message: diagnostic_displayer
+          .emit_diagnostic(d)
+          .expect("should print diagnostics"),
+        code,
+        module_identifier,
+        module_name,
+        module_id: module_id.flatten(),
+        loc: d.loc().map(|loc| loc.to_string()),
+        file: d.file(),
+
+        chunk_name: chunk.and_then(|c| c.name()),
+        chunk_entry: chunk.map(|c| c.has_runtime(&compilation.chunk_group_by_ukey)),
+        chunk_initial: chunk.map(|c| c.can_be_initial(&compilation.chunk_group_by_ukey)),
+        chunk_id: chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+        details: d.details(),
+        stack: d.stack(),
+        module_trace,
+      }
+    })
+    .collect::<Vec<_>>()
 }

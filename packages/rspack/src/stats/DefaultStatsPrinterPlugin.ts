@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { RUST_ERROR_SYMBOL, renderReport } from "@rspack/binding";
 import type { Compiler } from "../Compiler";
 import { formatSize } from "../util/SizeFormatHelpers";
 import { compareIds } from "../util/comparators";
@@ -618,12 +617,8 @@ const SIMPLE_PRINTERS: Record<
 			: `${bold(moduleName)}`;
 	},
 	"error.loc": (loc, { green }) => green(loc),
-	"error.message": (message, { bold, formatError, error, colored }) => {
-		if (RUST_ERROR_SYMBOL in error) {
-			return renderReport(error[RUST_ERROR_SYMBOL], !!colored);
-		}
-		return message.includes("\u001b[") ? message : bold(formatError(message));
-	},
+	"error.message": (message, { bold, formatError }) =>
+		message.includes("\u001b[") ? message : bold(formatError(message)),
 	// "error.details": (details, { formatError }) => formatError(details),
 	// "error.stack": stack => stack,
 	"error.moduleTrace": moduleTrace => undefined,
@@ -1369,7 +1364,6 @@ export class DefaultStatsPrinterPlugin {
 							for (const color of Object.keys(AVAILABLE_COLORS)) {
 								let start: string | undefined;
 								if (options.colors) {
-									context.colored = true;
 									if (
 										typeof options.colors === "object" &&
 										typeof options.colors[color] === "string"

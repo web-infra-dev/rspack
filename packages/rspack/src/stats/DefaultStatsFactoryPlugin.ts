@@ -10,7 +10,6 @@
 import * as util from "node:util";
 
 import type {
-	// ExternalObject,
 	JsOriginRecord,
 	JsStatsAssetInfo,
 	JsStatsError,
@@ -22,8 +21,6 @@ import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { DeadlockRiskError } from "../RspackError";
 import type { StatsOptions } from "../config";
-import formatLocation from "../formatLocation";
-import type WebpackError from "../lib/WebpackError";
 import {
 	LogType,
 	type LogTypeEnum,
@@ -629,52 +626,42 @@ const EXTRACT_ERROR: Record<
 
 		object.message = error.message;
 		// `error.code` is rspack-specific
-		if (error.name) {
-			object.code = error.name;
+		if (error.code) {
+			object.code = error.code;
 		}
-		if (error.chunk) {
-			object.chunkName = error.chunk.name;
-			object.chunkEntry = error.chunk.hasRuntime();
-			object.chunkInitial = error.chunk.canBeInitial();
+		if (error.chunkName) {
+			object.chunkName = error.chunkName;
+		}
+		if (error.chunkEntry) {
+			object.chunkEntry = error.chunkEntry;
+		}
+		if (error.chunkInitial) {
+			object.chunkInitial = error.chunkInitial;
 		}
 		if (error.file) {
 			object.file = error.file;
 		}
-		if (error.module) {
-			object.moduleIdentifier = error.module.identifier();
-			object.moduleName = error.module.readableIdentifier();
+		if (error.moduleDescriptor) {
+			object.moduleIdentifier = error.moduleDescriptor.identifier;
+			object.moduleName = error.moduleDescriptor.name;
 		}
-		if (error.loc) {
-			object.loc = formatLocation(error.loc);
+		if ("loc" in error) {
+			object.loc = error.loc;
 		}
 	},
-	ids: (object, error, { compilation: { chunkGraph } }) => {
-		if (error.chunk) {
-			object.chunkId = error.chunk.id;
+	ids: (object, error) => {
+		if (error.chunkId) {
+			object.chunkId = error.chunkId;
 		}
-		if (error.module) {
-			object.moduleId = chunkGraph.getModuleId(error.module);
+		if (error.moduleDescriptor) {
+			object.moduleId = error.moduleDescriptor.id;
 		}
 	},
 	moduleTrace: (object, error, context, _, factory) => {
-		const {
-			type,
-			compilation: { moduleGraph }
-		} = context;
-		const visitedModules = new Set<Module>();
-		const moduleTrace = [];
-		let current = error.module;
-		while (current) {
-			if (visitedModules.has(current)) break; // circular (technically impossible, but how knows)
-			visitedModules.add(current);
-			const origin = moduleGraph.getIssuer(current);
-			if (!origin) break;
-			moduleTrace.push({ origin, module: current });
-			current = origin;
-		}
+		const { type } = context;
 		object.moduleTrace = factory.create(
 			`${type}.moduleTrace`,
-			moduleTrace,
+			error.moduleTrace,
 			context
 		) as StatsModuleTraceItem[];
 	},
@@ -694,6 +681,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			context: KnownStatsFactoryContext,
 			options: StatsOptions
 		) => {
+			const statsCompilation = context.getStatsCompilation(compilation);
 			if (!context.makePathsRelative) {
 				context.makePathsRelative = makePathsRelative.bindContextCache(
 					compilation.compiler.context,
@@ -702,15 +690,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetErrors) {
 				const map = new WeakMap();
-				context.cachedGetErrors = compilation => {
-					return (
-						map.get(compilation) ||
-						// biome-ignore lint/style/noCommaOperator: based on webpack's logic
-						(errors => (map.set(compilation, errors), errors))(
-							compilation.getErrors()
-						)
-					);
-				};
+				context.cachedGetErrors = compilation =>
+					map.get(compilation) ||
+					(errors => {
+						map.set(compilation, errors);
+						return errors;
+					})(statsCompilation.errors);
 			}
 			if (!context.cachedGetWarnings) {
 				const map = new WeakMap();
@@ -719,7 +704,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						map.get(compilation) ||
 						// biome-ignore lint/style/noCommaOperator: based on webpack's logic
 						(warnings => (map.set(compilation, warnings), warnings))(
-							compilation.getWarnings()
+							compilation
+								.__internal_getInner()
+								.createStatsErrors(compilation.getWarnings())
 						)
 					);
 				};

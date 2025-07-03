@@ -15,7 +15,6 @@ import type {
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
 import type { Compilation } from "../Compilation";
-import type WebpackError from "../lib/WebpackError";
 import { type Comparator, concatComparators } from "../util/comparators";
 import { type GroupConfig, smartGrouping } from "../util/smartGrouping";
 

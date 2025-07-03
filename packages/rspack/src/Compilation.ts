@@ -977,11 +977,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	getWarnings(): WebpackError[] {
-		return this.warnings;
+		return this.hooks.processWarnings.call(this.warnings.slice());
 	}
 
 	getErrors(): WebpackError[] {
-		return this.errors;
+		return this.errors.slice();
 	}
 
 	/**

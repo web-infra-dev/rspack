@@ -317,6 +317,7 @@ export declare class JsCompilation {
   addEntry(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   get codeGenerationResults(): CodeGenerationResults
+  createStatsErrors(warnings: Array<RspackError>, colored?: boolean | undefined | null): JsStatsError[]
 }
 
 export declare class JsCompiler {
@@ -2714,8 +2715,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
-
-export declare function renderReport(diagnostic: any, colored?: boolean): string
 
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
