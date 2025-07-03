@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -72,6 +72,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
+    "@rspack/binding-testing": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.2",
     "@rspack/plugin-react-refresh": "^1.4.3",
     "@rspack/test-tools": "workspace:*",

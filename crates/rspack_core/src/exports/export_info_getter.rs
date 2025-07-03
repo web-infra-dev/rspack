@@ -9,25 +9,21 @@ use super::{
 };
 use crate::{DependencyId, RuntimeSpec};
 
-pub struct ExportInfoGetter;
-
-impl ExportInfoGetter {
-  /// Webpack returns `false | string`, we use `Option<Atom>` to avoid declare a redundant enum
-  /// type
+impl ExportInfoData {
   pub fn get_used_name(
-    info: &ExportInfoData,
+    &self,
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
-    if let Inlinable::Inlined(inlined) = &info.inlinable() {
+    if let Inlinable::Inlined(inlined) = &self.inlinable() {
       return Some(UsedNameItem::Inlined(inlined.clone()));
     }
-    if info.has_use_in_runtime_info() {
-      if let Some(usage) = info.global_used() {
+    if self.has_use_in_runtime_info() {
+      if let Some(usage) = self.global_used() {
         if matches!(usage, UsageState::Unused) {
           return None;
         }
-      } else if let Some(used_in_runtime) = info.used_in_runtime() {
+      } else if let Some(used_in_runtime) = self.used_in_runtime() {
         if let Some(runtime) = runtime {
           if runtime
             .iter()
@@ -40,24 +36,24 @@ impl ExportInfoGetter {
         return None;
       }
     }
-    if let Some(used_name) = info.used_name() {
+    if let Some(used_name) = self.used_name() {
       return Some(UsedNameItem::Str(used_name.clone()));
     }
-    if let Some(name) = info.name() {
+    if let Some(name) = self.name() {
       Some(UsedNameItem::Str(name.clone()))
     } else {
       fallback_name.map(|n| UsedNameItem::Str(n.clone()))
     }
   }
 
-  pub fn get_used(info: &ExportInfoData, runtime: Option<&RuntimeSpec>) -> UsageState {
-    if !info.has_use_in_runtime_info() {
+  pub fn get_used(&self, runtime: Option<&RuntimeSpec>) -> UsageState {
+    if !self.has_use_in_runtime_info() {
       return UsageState::NoInfo;
     }
-    if let Some(global_used) = info.global_used() {
+    if let Some(global_used) = self.global_used() {
       return global_used;
     }
-    if let Some(used_in_runtime) = info.used_in_runtime() {
+    if let Some(used_in_runtime) = self.used_in_runtime() {
       let mut max = UsageState::Unused;
       if let Some(runtime) = runtime {
         for item in runtime.iter() {
@@ -87,8 +83,8 @@ impl ExportInfoGetter {
     }
   }
 
-  pub fn get_provided_info(info: &ExportInfoData) -> &'static str {
-    match info.provided() {
+  pub fn get_provided_info(&self) -> &'static str {
+    match self.provided() {
       Some(ExportProvided::NotProvided) => "not provided",
       Some(ExportProvided::Unknown) => "maybe provided (runtime-defined)",
       Some(ExportProvided::Provided) => "provided",
@@ -96,14 +92,14 @@ impl ExportInfoGetter {
     }
   }
 
-  pub fn get_rename_info(info: &ExportInfoData) -> Cow<str> {
-    match (info.used_name(), info.name()) {
+  pub fn get_rename_info(&self) -> Cow<str> {
+    match (self.used_name(), self.name()) {
       (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
       (Some(used), None) => return format!("renamed to {used}").into(),
       _ => {}
     }
 
-    match (info.can_mangle_provide(), info.can_mangle_use()) {
+    match (self.can_mangle_provide(), self.can_mangle_use()) {
       (None, None) => "missing provision and use info prevents renaming",
       (None, Some(false)) => "usage prevents renaming (no provision info)",
       (None, Some(true)) => "missing provision info prevents renaming",
@@ -119,8 +115,8 @@ impl ExportInfoGetter {
     .into()
   }
 
-  pub fn get_used_info(info: &ExportInfoData) -> Cow<str> {
-    if let Some(global_used) = info.global_used() {
+  pub fn get_used_info(&self) -> Cow<str> {
+    if let Some(global_used) = self.global_used() {
       return match global_used {
         UsageState::Unused => "unused".into(),
         UsageState::NoInfo => "no usage info".into(),
@@ -128,7 +124,7 @@ impl ExportInfoGetter {
         UsageState::Used => "used".into(),
         UsageState::OnlyPropertiesUsed => "only properties used".into(),
       };
-    } else if let Some(used_in_runtime) = info.used_in_runtime() {
+    } else if let Some(used_in_runtime) = self.used_in_runtime() {
       let mut map = HashMap::default();
 
       for (runtime, used) in used_in_runtime.iter() {
@@ -160,34 +156,30 @@ impl ExportInfoGetter {
       }
     }
 
-    if info.has_use_in_runtime_info() {
+    if self.has_use_in_runtime_info() {
       "unused".into()
     } else {
       "no usage info".into()
     }
   }
 
-  pub fn is_reexport(info: &ExportInfoData) -> bool {
-    !info.terminal_binding() && info.target_is_set() && !info.target().is_empty()
+  pub fn is_reexport(&self) -> bool {
+    !self.terminal_binding() && self.target_is_set() && !self.target().is_empty()
   }
 
-  pub fn has_info(
-    info: &ExportInfoData,
-    base_info: &ExportInfoData,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    info.used_name().is_some()
-      || info.provided().is_some()
-      || info.terminal_binding()
-      || (Self::get_used(info, runtime) != Self::get_used(base_info, runtime))
+  pub fn has_info(&self, base_info: &ExportInfoData, runtime: Option<&RuntimeSpec>) -> bool {
+    self.used_name().is_some()
+      || self.provided().is_some()
+      || self.terminal_binding()
+      || (self.get_used(runtime) != base_info.get_used(runtime))
   }
 
-  pub fn can_mangle(info: &ExportInfoData) -> Option<bool> {
-    match info.can_mangle_provide() {
-      Some(true) => info.can_mangle_use(),
+  pub fn can_mangle(&self) -> Option<bool> {
+    match self.can_mangle_provide() {
+      Some(true) => self.can_mangle_use(),
       Some(false) => Some(false),
       None => {
-        if info.can_mangle_use() == Some(false) {
+        if self.can_mangle_use() == Some(false) {
           Some(false)
         } else {
           None
@@ -196,27 +188,25 @@ impl ExportInfoGetter {
     }
   }
 
-  pub fn has_used_name(info: &ExportInfoData) -> bool {
-    info.used_name().is_some()
+  pub fn has_used_name(&self) -> bool {
+    self.used_name().is_some()
   }
 
-  pub fn get_max_target(
-    info: &ExportInfoData,
-  ) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    if info.target().len() <= 1 {
-      return Cow::Borrowed(info.target());
+  pub fn get_max_target(&self) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    if self.target().len() <= 1 {
+      return Cow::Borrowed(self.target());
     }
     let mut max_priority = u8::MIN;
     let mut min_priority = u8::MAX;
-    for value in info.target().values() {
+    for value in self.target().values() {
       max_priority = max_priority.max(value.priority);
       min_priority = min_priority.min(value.priority);
     }
     if max_priority == min_priority {
-      return Cow::Borrowed(info.target());
+      return Cow::Borrowed(self.target());
     }
     let mut map = HashMap::default();
-    for (k, v) in info.target().iter() {
+    for (k, v) in self.target().iter() {
       if max_priority == v.priority {
         map.insert(*k, v.clone());
       }

@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -82,7 +82,7 @@
     "ts-jest": "29.4.0",
     "typescript": "^5.8.3",
     "webpack": "5.99.9",
-    "zx": "8.5.5"
+    "zx": "8.6.1"
   },
   "packageManager": "pnpm@10.10.0",
   "pnpm": {

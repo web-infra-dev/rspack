@@ -35,7 +35,8 @@ export class JavaScriptTracer {
 	 * @param output tracing output file path
 	 */
 	static async initJavaScriptTrace(layer: string, output: string) {
-		const { Session } = await import("node:inspector");
+		//FIXME:  workaround for Node.js 16 crash bug, remove it when drop support for Node.js 16
+		const { Session } = require("node:inspector");
 		this.session = new Session();
 		this.layer = layer;
 		this.output = output;

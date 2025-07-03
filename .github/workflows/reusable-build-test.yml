@@ -71,8 +71,7 @@ jobs:
         node: ${{ fromJSON(
           inputs.target == 'wasm32-wasip1-threads'
           && '[20]'
-          || (contains(inputs.target, 'linux') && github.ref_name == 'main'
-          && '[16, 18, 20]'
+          || (contains(inputs.target, 'linux') && '[16, 18, 20]'
           || '[18]') )}}
     name: Test Node ${{ matrix.node }}
     defaults:

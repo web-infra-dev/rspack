@@ -191,7 +191,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     } else {
       let exports_info = module_graph.get_prefetched_exports_info(
         con.module_identifier(),
-        PrefetchExportsInfoMode::NamedNestedExports(&dep.ids),
+        PrefetchExportsInfoMode::Nested(&dep.ids),
       );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&exports_info),

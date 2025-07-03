@@ -190,7 +190,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         let export_name = &[dep.name.clone(), enum_key.clone()];
         let exports_info = module_graph.get_prefetched_exports_info(
           &module.identifier(),
-          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+          PrefetchExportsInfoMode::Nested(export_name),
         );
         let enum_member_used_name = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),

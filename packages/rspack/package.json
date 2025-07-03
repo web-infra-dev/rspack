@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -22,9 +22,10 @@
   },
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
-    "build": "rslib build && npm run prepare-container-runtime",
+    "build": "rslib build && npm run prepare-container-runtime && npm run codmod",
     "dev": "rslib build --watch",
     "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
+    "codmod": "node ./scripts/codmod/index.js",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
@@ -46,6 +47,7 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
+    "@ast-grep/napi": "^0.37.0",
     "@rslib/core": "0.10.0",
     "@swc/core": "1.12.0",
     "@swc/types": "0.1.22",

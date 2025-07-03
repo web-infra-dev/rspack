@@ -121,7 +121,7 @@ pub use swc::*;
 use swc_core::common::util::take::Take;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
-  layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+  layer::SubscriberExt, reload, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 pub use utils::*;
 
@@ -131,9 +131,10 @@ thread_local! {
 
 #[js_function(1)]
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
-  let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
-  let revoked_modules = external.take();
-  ModuleObject::cleanup_by_module_identifiers(&revoked_modules);
+  let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
+  let compiler_id = external.0;
+  let revoked_modules = external.1.take();
+  ModuleObject::cleanup_by_module_identifiers(&compiler_id, &revoked_modules);
   Ok(())
 }
 
@@ -173,7 +174,7 @@ impl JsCompiler {
 
       let tsfn = env
         .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
-        .build_threadsafe_function::<External<Vec<ModuleIdentifier>>>()
+        .build_threadsafe_function::<External<(CompilerId, Vec<ModuleIdentifier>)>>()
         .weak::<true>()
         .callee_handled::<false>()
         .max_queue_size::<1>()
@@ -414,10 +415,10 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
 
 #[derive(Default)]
 enum TraceState {
-  Uninitialized, // uninitialized
-  On(Box<dyn Tracer>),
+  Uninitialized,                                            // uninitialized
+  On(Box<dyn Tracer>, reload::Handle<EnvFilter, Registry>), // initialized and turned on
   #[default]
-  Off, // initialized but turned off
+  Off,                                          // initialized but turned off
 }
 
 #[cfg(target_family = "wasm")]
@@ -523,17 +524,18 @@ pub fn register_global_trace(
         // SAFETY: we know that trace_var is `Ok(String)` now,
         // for the second unwrap, if we can't parse the directive, then the tracing result would be
         // unexpected, then panic is reasonable
-        let filter = EnvFilter::builder()
+        let (filter,reload_handle) = reload::Layer::new(EnvFilter::builder()
           .with_default_directive(LevelFilter::INFO.into())
           .with_regex(true)
           .parse(filter)
-          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
+          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives")
+      );
         tracing_subscriber::registry()
           .with(<_ as Layer<Registry>>::with_filter(layer, filter))
           .init();
-      }
-      let new_state = TraceState::On(tracer);
-      *state = new_state;
+        let new_state = TraceState::On(tracer, reload_handle);
+        *state = new_state;
+      };
     }
     Ok(())
   })
@@ -551,8 +553,10 @@ pub fn cleanup_global_trace() {
       TraceState::Off => {
         // do nothing, already cleaned up
       }
-      TraceState::On(ref mut tracer) => {
+      TraceState::On(ref mut tracer, ref mut reload_handle) => {
         tracer.teardown();
+        // turn off the tracing event
+        let _ = reload_handle.modify(|filter| *filter = EnvFilter::new("off"));
         *state = TraceState::Off;
       }
     }
@@ -564,7 +568,7 @@ pub fn sync_trace_event(events: Vec<RawTraceEvent>) {
   use std::borrow::BorrowMut;
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
-    if let TraceState::On(tracer) = &mut **state.borrow_mut() {
+    if let TraceState::On(tracer, _) = &mut **state.borrow_mut() {
       tracer.sync_trace(
         events
           .into_iter()
@@ -596,5 +600,6 @@ pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;
+  error::export_symbols(exports, env)?;
   Ok(())
 }
