@@ -106,9 +106,9 @@ impl JsExportsInfo {
     let exports_info = ExportsInfoGetter::prefetch(
       &self.exports_info,
       &module_graph,
-      PrefetchExportsInfoMode::NamedNestedExports(&names),
+      PrefetchExportsInfoMode::Nested(&names),
     );
-    let used = ExportsInfoGetter::get_used(&exports_info, &names, runtime.as_ref());
+    let used = exports_info.get_used(&names, runtime.as_ref());
     Ok(used as u32)
   }
 }

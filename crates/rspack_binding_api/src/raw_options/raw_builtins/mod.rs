@@ -23,7 +23,7 @@ use std::cell::RefCell;
 
 use napi::{
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
-  Env, Unknown,
+  Either, Env, Unknown,
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -223,23 +223,22 @@ pub enum BuiltinPluginName {
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
   CssChunkingPlugin,
-  // Custom(String),
 }
 
 pub type CustomPluginBuilder =
   for<'a> fn(env: Env, options: Unknown<'a>) -> napi::Result<BoxPlugin>;
 
 thread_local! {
-  static CUSTOMED_PLUGINS_CTOR: RefCell<HashMap<String, CustomPluginBuilder>> = RefCell::new(HashMap::default());
+  static CUSTOMED_PLUGINS_CTOR: RefCell<HashMap<CustomPluginName, CustomPluginBuilder>> = RefCell::new(HashMap::default());
 }
 
 #[doc(hidden)]
 #[allow(clippy::result_unit_err)]
 pub fn register_custom_plugin(
-  name: &'static str,
+  name: String,
   plugin_builder: CustomPluginBuilder,
 ) -> std::result::Result<(), ()> {
-  CUSTOMED_PLUGINS_CTOR.with_borrow_mut(|ctors| match ctors.entry(name.to_string()) {
+  CUSTOMED_PLUGINS_CTOR.with_borrow_mut(|ctors| match ctors.entry(name) {
     std::collections::hash_map::Entry::Occupied(_) => Err(()),
     std::collections::hash_map::Entry::Vacant(vacant_entry) => {
       vacant_entry.insert(plugin_builder);
@@ -248,9 +247,11 @@ pub fn register_custom_plugin(
   })
 }
 
+type CustomPluginName = String;
+
 #[napi(object)]
 pub struct BuiltinPlugin<'a> {
-  pub name: BuiltinPluginName,
+  pub name: Either<BuiltinPluginName, CustomPluginName>,
   pub options: Unknown<'a>,
   pub can_inherent_from_parent: Option<bool>,
 }
@@ -262,7 +263,20 @@ impl<'a> BuiltinPlugin<'a> {
     compiler_object: &mut Object,
     plugins: &mut Vec<BoxPlugin>,
   ) -> napi::Result<()> {
-    match self.name {
+    let name = match self.name {
+      Either::A(name) => name,
+      Either::B(name) => {
+        CUSTOMED_PLUGINS_CTOR.with_borrow(|ctors| {
+          let ctor = ctors.get(&name).ok_or_else(|| {
+            napi::Error::from_reason(format!("Expected plugin installed '{name}'"))
+          })?;
+          plugins.push(ctor(env, self.options)?);
+          Ok::<_, napi::Error>(())
+        })?;
+        return Ok(());
+      }
+    };
+    match name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
         let plugin = DefinePlugin::new(
@@ -762,15 +776,7 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<CssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
-      } // BuiltinPluginName::Custom(ref name) => {
-        //   CUSTOMED_PLUGINS_CTOR.with_borrow(|ctors| {
-        //     let ctor = ctors.get(name).ok_or_else(|| {
-        //       napi::Error::from_reason(format!("Expected plugin installed '{name}'"))
-        //     })?;
-        //     plugins.push(ctor(env, self.options)?);
-        //     Ok::<_, napi::Error>(())
-        //   })?;
-        // }
+      }
     }
     Ok(())
   }

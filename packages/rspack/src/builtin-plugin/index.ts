@@ -1,4 +1,4 @@
-export { RspackBuiltinPlugin } from "./base";
+export { RspackBuiltinPlugin, createNativePlugin } from "./base";
 
 export * from "./APIPlugin";
 export * from "./ArrayPushCallbackChunkFormatPlugin";

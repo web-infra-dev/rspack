@@ -451,10 +451,8 @@ fn get_exports_type_impl(
         }
 
         let name = Atom::from("__esModule");
-        let exports_info = mg.get_prefetched_exports_info_optional(
-          &identifier,
-          PrefetchExportsInfoMode::NamedExports(HashSet::from_iter([&name])),
-        );
+        let exports_info =
+          mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
         if let Some(export_info) = exports_info
           .as_ref()
           .map(|info| info.get_read_only_export_info(&name))

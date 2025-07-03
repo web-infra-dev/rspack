@@ -50,10 +50,10 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
-  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
-  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  DependencyId, DependencyType, ErrorSpan, ExportProvided, ExportsArgument, ExportsInfoGetter,
+  ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage,
+  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
   DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
@@ -1102,8 +1102,8 @@ impl Module for ConcatenatedModule {
       .expect("should have box module");
     let strict_esm_module = root_module.build_meta().strict_esm_module;
 
-    let exports_info = module_graph
-      .get_prefetched_exports_info(&root_module_id, PrefetchExportsInfoMode::AllExports);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&root_module_id, PrefetchExportsInfoMode::Default);
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for (_, export_info) in exports_info.exports() {
@@ -1111,7 +1111,7 @@ impl Module for ConcatenatedModule {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
-      let used_name = ExportInfoGetter::get_used_name(export_info, None, runtime);
+      let used_name = export_info.get_used_name(None, runtime);
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
@@ -1140,7 +1140,7 @@ impl Module for ConcatenatedModule {
         exports_final_names.push((used_name.to_string(), final_name.name.clone()));
         format!(
           "/* {} */ {}",
-          if ExportInfoGetter::is_reexport(export_info) {
+          if export_info.is_reexport() {
             "reexport"
           } else {
             "binding"
@@ -1201,7 +1201,7 @@ impl Module for ConcatenatedModule {
 
     let exports_info =
       module_graph.get_prefetched_exports_info(&self.id(), PrefetchExportsInfoMode::Default);
-    let used = ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime);
+    let used = exports_info.other_exports_info().get_used(runtime);
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
     if used != UsageState::Unused {
       should_add_esm_flag = true
@@ -1310,15 +1310,13 @@ impl Module for ConcatenatedModule {
 
         let mut ns_obj = Vec::new();
         let exports_info = module_graph
-          .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::AllExports);
+          .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::Default);
         for (_, export_info) in exports_info.exports() {
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             continue;
           }
 
-          if let Some(UsedNameItem::Str(used_name)) =
-            ExportInfoGetter::get_used_name(export_info, None, runtime)
-          {
+          if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
@@ -2380,10 +2378,8 @@ impl ConcatenatedModule {
       }
     }
 
-    let exports_info = mg.get_prefetched_exports_info(
-      &info.id(),
-      PrefetchExportsInfoMode::NamedNestedExports(&export_name),
-    );
+    let exports_info =
+      mg.get_prefetched_exports_info(&info.id(), PrefetchExportsInfoMode::Nested(&export_name));
     // webpack use `get_exports_info` here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase, so we use `get_export_info_without_mut_module_graph` instead.`
     let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);

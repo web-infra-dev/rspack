@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import {
 	BuiltinPluginName,
-	type JsRspackError,
 	type RawIntegrityData,
-	type RawSubresourceIntegrityPluginOptions
+	type RawSubresourceIntegrityPluginOptions,
+	type RspackError
 } from "@rspack/binding";
 import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
 import * as z from "zod/v4";
@@ -234,9 +234,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 		if (!this.isEnabled(compiler)) {
 			if (this.validateError) {
 				compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-					compilation.errors.push(
-						this.validateError as unknown as JsRspackError
-					);
+					compilation.errors.push(this.validateError as unknown as RspackError);
 				});
 			}
 			return;
