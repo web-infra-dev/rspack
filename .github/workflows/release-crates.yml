@@ -1,0 +1,48 @@
+name: Release Crates
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        type: boolean
+        description: "DryRun release"
+        required: true
+        default: false
+
+permissions:
+  contents: write
+  # To publish packages with provenance
+  id-token: write
+
+jobs:
+  rust_tests:
+    name: Run Rust Tests
+    uses: ./.github/workflows/reusable-rust-test.yml
+    with:
+      save-cache: true
+
+  release_crates:
+    name: Release Crates
+    runs-on: ubuntu-latest
+    needs: [rust_tests]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: release
+
+      - name: Install cargo-workspaces
+        run: cargo install cargo-workspaces --locked
+
+      - name: Publish Crates
+        run: |
+          ./x crate-publish ${{ inputs.dry_run && '--dry-run' || '' }} --token $CARGO_REGISTRY_TOKEN
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

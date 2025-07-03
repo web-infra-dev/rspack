@@ -247,6 +247,59 @@ program
 	});
 
 program
+	.command("crate-version")
+	.argument("<version>", "version")
+	.description("update crate version with cargo-workspaces")
+	.action(async version => {
+		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`;
+
+		const args = [
+			"workspaces",
+			"version",
+			"--exact", // Use exact version `=`
+			"--allow-branch",
+			"release-crates/*", // Specify which branches to allow from
+			"--no-git-push", // Do not push generated commit and tags to git remote
+			"--tag-prefix",
+			"crates@", // Customize tag prefix (can be empty)
+			"--force",
+			"rspack*", // Always include targeted crates matched by glob even when there are no changes
+			"--no-individual-tags", // Do not tag individual versions for crates
+			"--yes", // Skip confirmation prompt
+			"custom",
+			version // Increment versions by custom value (BUMP + CUSTOM args)
+		];
+
+		await $`cargo ${args}`;
+	});
+
+program
+	.command("crate-publish")
+	.description("publish crate with cargo-workspaces")
+	.option("--token <token>", "The token to use for accessing the registry")
+	.option("--dry-run", "Runs in dry-run mode")
+	.action(async options => {
+		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`;
+
+		const args = [
+			"workspaces",
+			"publish",
+			"--publish-as-is", // Publish crates from the current commit without versioning
+			"--locked" // Assert that `Cargo.lock` will remain unchanged
+		];
+
+		if (options.token) {
+			args.push("--token", options.token); // The token to use for accessing the registry
+		}
+
+		if (options.dryRun) {
+			args.push("--dry-run"); // Runs in dry-run mode
+		}
+
+		await $`cargo ${args}`;
+	});
+
+program
 	.command("version")
 	.argument("<bump_version>", "bump version to (major|minor|patch|snapshot)")
 	.option("--pre <string>", "pre-release tag")
