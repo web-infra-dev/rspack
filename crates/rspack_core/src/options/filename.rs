@@ -272,13 +272,18 @@ fn render_template(
   if let Some(hash) = options.hash {
     for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
       t = t.map(|t| {
-        t.replace_all_with_len(key, |len| {
-          let hash = &hash[..hash_len(hash, len)];
+        t.replace_all_with_len(key, |len, need_base64| {
+          let content: Cow<str> = if need_base64 {
+            rspack_base64::encode_to_string(hash).into()
+          } else {
+            hash.into()
+          };
+          let content = content.map(|s| s[..hash_len(s, len)].into());
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
-            asset_info.set_full_hash(hash.to_owned());
+            asset_info.set_full_hash(content.to_string());
           }
-          hash
+          content
         })
       });
     }
@@ -297,13 +302,18 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      t.replace_all_with_len(CONTENT_HASH_PLACEHOLDER, |len| {
-        let hash: &str = &content_hash[..hash_len(content_hash, len)];
+      t.replace_all_with_len(CONTENT_HASH_PLACEHOLDER, |len, need_base64| {
+        let content: Cow<str> = if need_base64 {
+          rspack_base64::encode_to_string(content_hash).into()
+        } else {
+          content_hash.into()
+        };
+        let content = content.map(|s| s[..hash_len(s, len)].into());
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
-          asset_info.set_content_hash(hash.to_owned());
+          asset_info.set_content_hash(content.to_string());
         }
-        hash
+        content
       })
     });
   }
@@ -315,13 +325,18 @@ fn render_template(
   }
   if let Some(hash) = options.chunk_hash {
     t = t.map(|t| {
-      t.replace_all_with_len(CHUNK_HASH_PLACEHOLDER, |len| {
-        let hash: &str = &hash[..hash_len(hash, len)];
+      t.replace_all_with_len(CHUNK_HASH_PLACEHOLDER, |len, need_base64| {
+        let content: Cow<str> = if need_base64 {
+          rspack_base64::encode_to_string(hash).into()
+        } else {
+          hash.into()
+        };
+        let content = content.map(|s| s[..hash_len(s, len)].into());
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
-          asset_info.set_chunk_hash(hash.to_owned());
+          asset_info.set_chunk_hash(content.to_string());
         }
-        hash
+        content
       })
     });
   }
