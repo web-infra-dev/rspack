@@ -4241,6 +4241,7 @@ dependencies = [
  "napi",
  "napi-derive",
  "once_cell",
+ "parking_lot",
  "ropey",
  "rspack_allocator",
  "rspack_browserslist",

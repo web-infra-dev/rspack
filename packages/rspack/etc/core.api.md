@@ -17,6 +17,9 @@ import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
 import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
+import { Chunk } from '@rspack/binding';
+import { ChunkGraph } from '@rspack/binding';
+import { ChunkGroup } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '..';
 import { ConcatenatedModule } from '@rspack/binding';
 import { Configuration as Configuration_2 } from '..';
@@ -42,9 +45,6 @@ import type { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import type { JsBeforeEmitData } from '@rspack/binding';
 import type { JsBuildMeta } from '@rspack/binding';
-import { JsChunk } from '@rspack/binding';
-import type { JsChunkGraph } from '@rspack/binding';
-import type { JsChunkGroup } from '@rspack/binding';
 import type { JsCompilation } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -372,7 +372,7 @@ type BannerContent = string | BannerFunction;
 // @public (undocumented)
 type BannerFunction = (args: {
     hash: string;
-    chunk: JsChunk;
+    chunk: Chunk;
     filename: string;
 }) => string;
 
@@ -633,62 +633,7 @@ type ChokidarWatchOptions = {
     [key: string]: any;
 };
 
-// @public (undocumented)
-export class Chunk {
-    constructor(binding: JsChunk);
-    // (undocumented)
-    static __from_binding(binding: JsChunk): Chunk;
-    // (undocumented)
-    static __to_binding(chunk: Chunk): JsChunk;
-    // (undocumented)
-    readonly auxiliaryFiles: ReadonlySet<string>;
-    // (undocumented)
-    canBeInitial(): boolean;
-    // (undocumented)
-    readonly chunkReason?: string;
-    // (undocumented)
-    readonly contentHash: Readonly<Record<string, string>>;
-    // (undocumented)
-    readonly cssFilenameTemplate?: string;
-    // (undocumented)
-    readonly filenameTemplate?: string;
-    // (undocumented)
-    readonly files: ReadonlySet<string>;
-    // (undocumented)
-    getAllAsyncChunks(): ReadonlySet<Chunk>;
-    // (undocumented)
-    getAllInitialChunks(): ReadonlySet<Chunk>;
-    // (undocumented)
-    getAllReferencedChunks(): ReadonlySet<Chunk>;
-    // (undocumented)
-    getChunkMaps(realHash: boolean): {
-        hash: Record<string | number, string>;
-        contentHash: Record<string | number, Record<string, string>>;
-        name: Record<string | number, string>;
-    };
-    // (undocumented)
-    getEntryOptions(): Readonly<EntryOptions> | undefined;
-    // (undocumented)
-    get groupsIterable(): ReadonlySet<ChunkGroup>;
-    // (undocumented)
-    readonly hash?: string;
-    // (undocumented)
-    hasRuntime(): boolean;
-    // (undocumented)
-    readonly id?: string;
-    // (undocumented)
-    readonly idNameHints: ReadonlyArray<string>;
-    // (undocumented)
-    readonly ids: ReadonlyArray<string>;
-    // (undocumented)
-    isOnlyInitial(): boolean;
-    // (undocumented)
-    readonly name?: string;
-    // (undocumented)
-    readonly renderedHash?: string;
-    // (undocumented)
-    readonly runtime: ReadonlySet<string>;
-}
+export { Chunk }
 
 // @public
 export type ChunkFilename = Filename;
@@ -696,84 +641,7 @@ export type ChunkFilename = Filename;
 // @public
 export type ChunkFormat = string | false;
 
-// @public (undocumented)
-class ChunkGraph {
-    constructor(binding: JsChunkGraph);
-    // (undocumented)
-    static __from_binding(binding: JsChunkGraph): ChunkGraph;
-    // (undocumented)
-    getBlockChunkGroup(depBlock: AsyncDependenciesBlock): ChunkGroup | null;
-    // (undocumented)
-    getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk>;
-    // (undocumented)
-    getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module>;
-    // (undocumented)
-    getChunkModules(chunk: Chunk): ReadonlyArray<Module>;
-    // (undocumented)
-    getChunkModulesIterable(chunk: Chunk): Iterable<Module>;
-    // (undocumented)
-    getChunkModulesIterableBySourceType(chunk: Chunk, sourceType: string): Iterable<Module>;
-    // (undocumented)
-    getModuleChunks(module: Module): Chunk[];
-    // (undocumented)
-    getModuleChunksIterable(module: Module): Iterable<Chunk>;
-    // (undocumented)
-    getModuleHash(module: Module, runtime: RuntimeSpec): string | null;
-    // (undocumented)
-    getModuleId(module: Module): string | number | null;
-    // (undocumented)
-    getNumberOfEntryModules(chunk: Chunk): number;
-    // (undocumented)
-    getOrderedChunkModulesIterable(chunk: Chunk, compareFn: (a: Module, b: Module) => number): Iterable<Module>;
-    // (undocumented)
-    hasChunkEntryDependentChunks(chunk: Chunk): boolean;
-}
-
-// @public (undocumented)
-export class ChunkGroup {
-    protected constructor(inner: JsChunkGroup);
-    // (undocumented)
-    static __from_binding(binding: JsChunkGroup): ChunkGroup;
-    // (undocumented)
-    readonly childrenIterable: Set<ChunkGroup>;
-    // (undocumented)
-    readonly chunks: ReadonlyArray<Chunk>;
-    // (undocumented)
-    getFiles(): ReadonlyArray<string>;
-    // (undocumented)
-    getModulePostOrderIndex(module: Module): number | null;
-    // (undocumented)
-    getModulePreOrderIndex(module: Module): number | null;
-    // (undocumented)
-    getParents(): ReadonlyArray<ChunkGroup>;
-    // (undocumented)
-    readonly index?: number;
-    // (undocumented)
-    isInitial(): boolean;
-    // (undocumented)
-    readonly name?: string;
-    // (undocumented)
-    readonly origins: ReadonlyArray<ChunkGroupOrigin>;
-}
-
-// @public (undocumented)
-interface ChunkGroupOrigin {
-    // (undocumented)
-    loc?: {
-        start: {
-            line: number;
-            column: number;
-        };
-        end?: {
-            line: number;
-            column: number;
-        };
-    } | string;
-    // (undocumented)
-    module?: Module;
-    // (undocumented)
-    request?: string;
-}
+export { ChunkGroup }
 
 // @public
 export type ChunkLoading = false | ChunkLoadingType;
@@ -1137,8 +1005,8 @@ export class Compilation {
     get modules(): ReadonlySet<Module>;
     // (undocumented)
     name?: string;
-    get namedChunkGroups(): ReadonlyMap<string, Readonly<ChunkGroup>>;
-    get namedChunks(): ReadonlyMap<string, Readonly<Chunk>>;
+    get namedChunkGroups(): ReadonlyMap<string, Readonly<binding.ChunkGroup>>;
+    get namedChunks(): ReadonlyMap<string, Readonly<binding.Chunk>>;
     // (undocumented)
     needAdditionalPass: boolean;
     // (undocumented)
@@ -2280,15 +2148,7 @@ type EntryPluginType = typeof OriginEntryPlugin & {
 };
 
 // @public (undocumented)
-class Entrypoint extends ChunkGroup {
-    protected constructor(binding: JsChunkGroup);
-    // (undocumented)
-    static __from_binding(binding: JsChunkGroup): Entrypoint;
-    // (undocumented)
-    getEntrypointChunk(): Readonly<Chunk | null>;
-    // (undocumented)
-    getRuntimeChunk(): Readonly<Chunk | null>;
-}
+type Entrypoint = ChunkGroup;
 
 // @public
 export type EntryRuntime = false | string;

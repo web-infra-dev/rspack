@@ -1,6 +1,7 @@
 [package]
 authors.workspace       = true
 categories.workspace    = true
+description             = "Rspack tracing perfetto"
 documentation.workspace = true
 edition.workspace       = true
 homepage.workspace      = true

@@ -1,15 +1,19 @@
 [package]
-description       = "node binding"
-edition.workspace = true
-license           = "MIT"
-name              = "rspack_binding_api"
-publish           = false
-repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+authors.workspace       = true
+categories.workspace    = true
+description             = "Rspack shared binding API"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_binding_api"
+publish                 = false
+repository.workspace    = true
+version                 = "0.2.0"
 
 [features]
-plugin = ["rspack_loader_swc/plugin"]
-sftrace-setup = [ "dep:sftrace-setup", "rspack_allocator/sftrace-setup" ]
+plugin        = ["rspack_loader_swc/plugin"]
+sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
 anyhow                   = { workspace = true }
@@ -106,10 +110,17 @@ rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
+tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing", "parking_lot"] }
 ustr                                   = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["parking_lot"]
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+# Pin parking_lot version to the same version within the workspace
+# Explicitly adding features `nightly` to turn on wasm atomic support
+parking_lot = { version = "=0.12.3", features = ["nightly"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_tracing = { workspace = true }
 sftrace-setup  = { workspace = true, optional = true }
-tokio          = { workspace = true, features = ["parking_lot"] }

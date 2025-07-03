@@ -48,7 +48,11 @@ __webpack_require__.f.css = function (chunkId, promises, fetchPriority) {
 						}
 					}
 				};
-				var link = loadStylesheet(chunkId, url, loadingEnded, undefined, fetchPriority);
+				if (typeof document !== 'undefined') {
+					loadStylesheet(chunkId, url, loadingEnded, undefined, fetchPriority);
+				} else {
+					loadingEnded({ type: 'load' });
+				}
 			} else installedChunks[chunkId] = 0;
 		}
 	}
