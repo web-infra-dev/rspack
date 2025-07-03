@@ -11,7 +11,7 @@ use napi::{
   Env, JsValue, Status, Unknown, ValueType,
 };
 use oneshot::Receiver;
-use rspack_error::{miette::IntoDiagnostic, Error, Result};
+use rspack_error::{Error, Result};
 
 use crate::{JsCallback, NapiErrorToRspackErrorExt};
 
@@ -83,7 +83,12 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
         move |r: napi::Result<Unknown>, env| {
           let r = match r {
             Err(err) => Err(err.to_rspack_error(&env)),
-            Ok(o) => unsafe { D::from_napi_value(env.raw(), o.raw()) }.into_diagnostic(),
+            Ok(o) => {
+              let raw_env = env.raw();
+              let return_value = o.raw();
+              unsafe { D::from_napi_value(raw_env, return_value) }
+                .map_err(|e| pretty_type_error(o, e))
+            }
           };
           tx.send(r)
             .unwrap_or_else(|_| panic!("failed to send tsfn value"));
@@ -136,4 +141,42 @@ impl<T: 'static + JsValuesTupleIntoVec, R> TypeName for ThreadsafeFunction<T, R>
   fn value_type() -> napi::ValueType {
     ValueType::Function
   }
+}
+
+fn pretty_type_error(return_value: Unknown, error: napi::Error) -> rspack_error::Error {
+  let expected_type = match error.status {
+    Status::ObjectExpected => "object",
+    Status::StringExpected => "string",
+    Status::FunctionExpected => "function",
+    Status::NumberExpected => "number",
+    Status::BooleanExpected => "boolean",
+    Status::ArrayExpected => "Array",
+    Status::BigintExpected => "bigint",
+    Status::DateExpected => "Date",
+    Status::ArrayBufferExpected => "ArrayBuffer",
+    _ => return rspack_error::error!("{}", error),
+  };
+  let reason = match return_value.get_type() {
+    Ok(return_value_type) => {
+      let return_value_type_str = match return_value_type {
+        ValueType::Undefined => "undefined",
+        ValueType::Null => "null",
+        ValueType::Boolean => "boolean",
+        ValueType::Number => "number",
+        ValueType::String => "string",
+        ValueType::Symbol => "symbol",
+        ValueType::Object => "object",
+        ValueType::Function => "function",
+        ValueType::External => "external",
+        ValueType::BigInt => "bigint",
+        _ => "unknown",
+      };
+      format!(
+        "TypeError: Expected return a '{}' value, but received `{}`",
+        expected_type, return_value_type_str
+      )
+    }
+    Err(_) => format!("TypeError: Expected return a '{}' value", expected_type),
+  };
+  rspack_error::error!(reason)
 }
