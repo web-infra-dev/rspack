@@ -268,11 +268,20 @@ async fn additional_chunk_runtime_requirements(
   {
     let info = info_map.get(m).expect("should have this info map");
     runtime_requirements.extend(*info.get_runtime_requirements());
+
+    if info.get_interop_default_access_used() {
+      runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+    }
+
+    if info.get_interop_namespace_object2_used() || info.get_interop_namespace_object_used() {
+      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    }
   }
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) && !runtime_requirements.is_empty() {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }
+
   Ok(())
 }
 
