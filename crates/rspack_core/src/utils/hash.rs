@@ -102,24 +102,31 @@ fn replace_all_placeholder_impl<'a>(
         (start_offset, None, false)
       } else {
         let matched = &rest[1..end];
-        let mut configs = matched.rsplit(':');
-        let len = if let Some(len) = configs.next() {
-          match len.parse::<usize>() {
-            Ok(len) => Some(len),
+        let mut configs = matched.split(':');
+        let mut len = None;
+        let mut need_base64 = false;
+        if let Some(digest_or_len) = configs.next() {
+          match digest_or_len.parse::<usize>() {
+            Ok(l) => len = Some(l),
+            Err(_) => {
+              if digest_or_len == "base64" {
+                need_base64 = true;
+              } else {
+                continue;
+              }
+            }
+          }
+        };
+        if need_base64 && let Some(l) = configs.next() {
+          match l.parse::<usize>() {
+            Ok(l) => len = Some(l),
             Err(_) => continue,
           }
-        } else {
-          None
-        };
-        let need_base64 = if let Some(base64) = configs.next() {
-          if base64 == "base64" {
-            true
-          } else {
-            continue;
-          }
-        } else {
-          false
-        };
+        }
+        if len.is_none() {
+          // must have len, can't use base64 digest without a specific len
+          continue;
+        }
         (start_offset + end, len, need_base64)
       }
     } else {
