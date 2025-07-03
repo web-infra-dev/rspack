@@ -286,7 +286,7 @@ dependencies = [
  "bitflags 2.9.1",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "log",
  "prettyplease",
  "proc-macro2",
@@ -7833,7 +7833,7 @@ dependencies = [
 [[package]]
 name = "virtual-fs"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7861,7 +7861,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "async-trait",
  "bytes",
@@ -7874,7 +7874,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8075,7 +8075,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "6.0.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "bindgen",
  "bytes",
@@ -8109,7 +8109,7 @@ dependencies = [
 [[package]]
 name = "wasmer-cache"
 version = "6.0.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "blake3",
  "hex",
@@ -8120,7 +8120,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "6.0.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "backtrace",
  "bytes",
@@ -8150,7 +8150,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler-cranelift"
 version = "6.0.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -8192,7 +8192,7 @@ dependencies = [
 [[package]]
 name = "wasmer-config"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "anyhow",
  "bytesize",
@@ -8214,7 +8214,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "6.0.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -8225,7 +8225,7 @@ dependencies = [
 [[package]]
 name = "wasmer-journal"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8239,6 +8239,7 @@ dependencies = [
  "rkyv 0.8.8",
  "serde",
  "serde_json",
+ "shared-buffer",
  "thiserror 1.0.69",
  "tracing",
  "virtual-fs 0.600.0 (git+https://github.com/hardfist/wasmer?branch=disable-sys2)",
@@ -8279,7 +8280,7 @@ dependencies = [
 [[package]]
 name = "wasmer-package"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "anyhow",
  "bytes",
@@ -8327,7 +8328,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "6.0.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "bytecheck 0.6.12",
  "enum-iterator",
@@ -8348,7 +8349,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "6.0.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "backtrace",
  "cc",
@@ -8374,7 +8375,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8439,7 +8440,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.600.0"
-source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#26e11ec3207d8c6be26b649559994df540e358f8"
+source = "git+https://github.com/hardfist/wasmer?branch=disable-sys2#722282f5d09491420a5e86ed4b4e89f135fb8d5a"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
