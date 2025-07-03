@@ -12,85 +12,18 @@ const OPTIONS_CONFIG = {
 		description:
 			"Build for the target triple, bypassed to `cargo build --target`"
 	},
-	// The working directory of where napi command will be executed in, all other paths options are relative to this path
-	cwd: {
-		type: "string",
-		description:
-			"The working directory of where napi command will be executed in, all other paths options are relative to this path"
-	},
-	// Path to `Cargo.toml`
-	"manifest-path": { type: "string", description: "Path to `Cargo.toml`" },
-	// Path to `napi` config json file
-	"config-path": {
-		type: "string",
-		short: "c",
-		description: "Path to `napi` config json file"
-	},
 	// Path to `package.json`
 	"package-json-path": {
 		type: "string",
 		description: "Path to `package.json`"
 	},
-	// Directory for all crate generated artifacts, see `cargo build --target-dir`
-	"target-dir": {
-		type: "string",
-		description:
-			"Directory for all crate generated artifacts, see `cargo build --target-dir`"
-	},
-	// Path to where all the built files would be put. Default to the crate folder
-	"output-dir": {
-		type: "string",
-		short: "o",
-		description:
-			"Path to where all the built files would be put. Default to the crate folder"
-	},
-
 	// Platform and JS options
-	// Add platform triple to the generated nodejs binding file, eg: `[name].linux-x64-gnu.node`
-	platform: {
-		type: "boolean",
-		description:
-			"Add platform triple to the generated nodejs binding file, eg: `[name].linux-x64-gnu.node`"
-	},
-	// Package name in generated js binding file. Only works with `--platform` flag
-	"js-package-name": {
-		type: "string",
-		description:
-			"Package name in generated js binding file. Only works with `--platform` flag"
-	},
-	// Whether generate const enum for typescript bindings
-	// "const-enum": { type: "boolean", description: "Whether generate const enum for typescript bindings" },
-	// Path and filename of generated JS binding file. Only works with `--platform` flag. Relative to `--output-dir`.
-	js: {
-		type: "string",
-		description:
-			"Path and filename of generated JS binding file. Only works with `--platform` flag. Relative to `--output-dir`."
-	},
-	// Whether to disable the generation JS binding file. Only works with `--platform` flag.
-	"no-js": {
-		type: "boolean",
-		description:
-			"Whether to disable the generation JS binding file. Only works with `--platform` flag."
-	},
-
 	// TypeScript definition options
 	// Path and filename of generated type def file. Relative to `--output-dir`
 	dts: {
 		type: "string",
 		description:
 			"Path and filename of generated type def file. Relative to `--output-dir`"
-	},
-	// Custom file header for generated type def file. Only works when `typedef` feature enabled.
-	"dts-header": {
-		type: "string",
-		description:
-			"Custom file header for generated type def file. Only works when `typedef` feature enabled."
-	},
-	// Whether to disable the default file header for generated type def file. Only works when `typedef` feature enabled.
-	"no-dts-header": {
-		type: "boolean",
-		description:
-			"Whether to disable the default file header for generated type def file. Only works when `typedef` feature enabled."
 	},
 	// Whether to enable the dts cache, default to true
 	"dts-cache": {
@@ -103,12 +36,6 @@ const OPTIONS_CONFIG = {
 	},
 
 	// Output format options
-	// Whether to emit an ESM JS binding file instead of CJS format. Only works with `--platform` flag.
-	esm: {
-		type: "boolean",
-		description:
-			"Whether to emit an ESM JS binding file instead of CJS format. Only works with `--platform` flag."
-	},
 	// Whether strip the library to achieve the minimum file size
 	strip: {
 		type: "boolean",
@@ -135,24 +62,6 @@ const OPTIONS_CONFIG = {
 		description: "Build artifacts with the specified profile"
 	},
 
-	// Package and binary options
-	// Build only the specified binary
-	bin: { type: "string", description: "Build only the specified binary" },
-	// Build the specified library or the one at cwd
-	package: {
-		type: "string",
-		short: "p",
-		description: "Build the specified library or the one at cwd"
-	},
-
-	// Cross compilation options
-	// [experimental] cross-compile for the specified target with `cargo-xwin` on windows and `cargo-zigbuild` on other platform
-	// "cross-compile": { type: "boolean", short: "x", description: "[experimental] cross-compile for the specified target with `cargo-xwin` on windows and `cargo-zigbuild` on other platform" },
-	// [experimental] use [cross](https://github.com/cross-rs/cross) instead of `cargo`
-	// "use-cross": { type: "boolean", description: "[experimental] use [cross](https://github.com/cross-rs/cross) instead of `cargo`" },
-	// [experimental] use @napi-rs/cross-toolchain to cross-compile Linux arm/arm64/x64 gnu targets.
-	// "use-napi-cross": { type: "boolean", description: "[experimental] use @napi-rs/cross-toolchain to cross-compile Linux arm/arm64/x64 gnu targets." },
-
 	// Watch mode
 	// watch the crate changes and build continuously with `cargo-watch` crates
 	watch: {
@@ -167,7 +76,7 @@ const OPTIONS_CONFIG = {
 	features: {
 		type: "string",
 		multiple: true,
-		description: "Space-separated list of features to activate"
+		description: "Comma-separated list of features to activate"
 	},
 	// Activate all available features
 	"all-features": {
@@ -186,32 +95,24 @@ const OPTIONS_CONFIG = {
 
 function showHelp() {
 	console.log(`
-Usage: node scripts/build.js [options]
+Usage: rspack-builder [options]
 
-Build the NAPI-RS project
+Build the Rspack binding builder crate
 
 Options:`);
 
 	const categories = {
 		"Build target and paths": [
 			"target",
-			"cwd",
-			"manifest-path",
-			"config-path",
-			"package-json-path",
-			"target-dir",
-			"output-dir"
+			"package-json-path"
 		],
-		"Platform and JS options": ["platform", "js-package-name", "js", "no-js"],
 		"TypeScript definition options": [
 			"dts",
-			"dts-header",
-			"no-dts-header",
-			"dts-cache"
+			"dts-cache",
+			"no-dts-cache"
 		],
-		"Output format options": ["esm", "strip"],
+		"Output format options": ["strip"],
 		"Build mode options": ["release", "verbose", "profile"],
-		"Package and binary options": ["bin", "package"],
 		"Watch mode": ["watch"],
 		"Feature options": ["features", "all-features", "no-default-features"],
 		Help: ["help"]
@@ -299,49 +200,22 @@ async function build() {
 
 		// Map all parsed arguments to buildOptions
 		if (values.target) buildOptions.target = values.target;
-		if (values.cwd) buildOptions.cwd = values.cwd;
-		if (values["manifest-path"])
-			buildOptions.manifestPath = values["manifest-path"];
-		if (values["config-path"]) buildOptions.configPath = values["config-path"];
 		if (values["package-json-path"])
 			buildOptions.packageJsonPath = values["package-json-path"];
-		if (values["target-dir"]) buildOptions.targetDir = values["target-dir"];
-		if (values["output-dir"]) buildOptions.outputDir = values["output-dir"];
-
-		// Platform and JS options
-		if (values.platform) buildOptions.platform = values.platform;
-		if (values["js-package-name"])
-			buildOptions.jsPackageName = values["js-package-name"];
-		// if (values["const-enum"]) buildOptions.constEnum = values["const-enum"];
-		if (values.js) buildOptions.jsBinding = values.js;
-		if (values["no-js"]) buildOptions.noJsBinding = values["no-js"];
 
 		// TypeScript definition options
 		if (values.dts) buildOptions.dts = values.dts;
-		if (values["dts-header"]) buildOptions.dtsHeader = values["dts-header"];
-		if (values["no-dts-header"])
-			buildOptions.noDtsHeader = values["no-dts-header"];
 		if (values["dts-cache"] !== undefined)
 			buildOptions.dtsCache = values["dts-cache"];
 		if (values["no-dts-cache"]) buildOptions.dtsCache = false;
 
 		// Output format options
-		if (values.esm) buildOptions.esm = values.esm;
 		if (values.strip) buildOptions.strip = values.strip;
 
 		// Build mode options
 		if (values.release) buildOptions.release = values.release;
 		if (values.verbose) buildOptions.verbose = values.verbose;
 		if (values.profile) buildOptions.profile = values.profile;
-
-		// Package and binary options
-		if (values.bin) buildOptions.bin = values.bin;
-		if (values.package) buildOptions.package = values.package;
-
-		// Cross compilation options
-		// if (values["cross-compile"]) buildOptions.crossCompile = values["cross-compile"];
-		// if (values["use-cross"]) buildOptions.useCross = values["use-cross"];
-		// if (values["use-napi-cross"]) buildOptions.useNapiCross = values["use-napi-cross"];
 
 		// Watch mode
 		if (values.watch) buildOptions.watch = values.watch;
@@ -356,6 +230,10 @@ async function build() {
 		// Set default values if not provided
 		if (!buildOptions.cwd) buildOptions.cwd = CWD;
 		if (!buildOptions.platform) buildOptions.platform = true;
+
+		// Set default values
+		buildOptions.noJsBinding = true;
+		buildOptions.noDtsHeader = true;
 
 		if (features.length) {
 			// NAPI-RS CLI handles features as a space-separated list, this is not accepted by cargo.
@@ -377,6 +255,13 @@ async function build() {
 		// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
 		const dts = path.resolve(buildOptions.cwd, buildOptions.dts);
 		let dtsContent = readFileSync(dts, "utf8");
+
+		const dtsLines = dtsContent.split("\n");
+		let endHeaderIndex
+		// clean old dts header
+		if ((endHeaderIndex = dtsLines.findIndex(line => line.startsWith("/* -- napi-rs generated below -- */"))) && endHeaderIndex !== -1) {
+			dtsContent = dtsLines.slice(endHeaderIndex + 1).join("\n");
+		}
 
 		const headers = [readFileSync(path.resolve(__dirname, "banner.d.ts"))];
 		dtsContent = prependDtsHeaderFile(dtsContent, headers);

@@ -26,11 +26,8 @@ build().then((value) => {
 async function build() {
 	return new Promise((resolve, reject) => {
 		let args = [
-			"--platform",
 			"--dts",
 			"binding.d.ts",
-			"--no-js",
-			"--no-dts-header",
 			"--no-dts-cache",
 		];
 		let features = [];
@@ -57,8 +54,6 @@ async function build() {
 		if (positionals.length > 0) {
 			args.push(...positionals);
 		}
-
-		console.log(`Running command: rspack-builder ${args.join(" ")}`);
 
 		let cp = spawn("rspack-builder", args, {
 			stdio: "inherit",
