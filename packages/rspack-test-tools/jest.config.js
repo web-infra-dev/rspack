@@ -1,8 +1,6 @@
 const path = require("node:path");
 const root = path.resolve(__dirname, "../../");
 
-const isWasm = Boolean(process.env.WASM);
-
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-expect",
 	"@rspack/test-tools/setup-env"
@@ -27,7 +25,7 @@ const wasmConfig = process.env.WASM && {
 		"Incremental-watch.test.js",
 		"Incremental-web.test.js",
 		"Incremental-webworker.test.js",
-		isWasm ? undefined : 'NativeWatcher.test.js',
+		'NativeWatcher.test.js',
 	],
 	maxWorkers: 1,
 	maxConcurrency: 1,
