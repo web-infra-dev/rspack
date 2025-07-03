@@ -31,7 +31,7 @@ runs:
       shell: bash
       run: |
         cd ./crates/node_binding
-        pnpm install --ignore-workspace --no-lockfile
+        pnpm install --frozen-lockfile
         cd ../../
 
     - name: Save pnpm cache
