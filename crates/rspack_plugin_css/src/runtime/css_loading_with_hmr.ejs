@@ -1,11 +1,11 @@
 var oldTags = [];
 var newTags = [];
-var applyHandler = function (options) {
+var applyHandler = <%- basicFunction("options") %> {
 	return {
-		dispose: function () { },
-		apply: function () {
+		dispose: <%- basicFunction("") %> { },
+		apply: <%- basicFunction("") %> {
 			var moduleIds = [];
-			newTags.forEach(function (info) {
+			newTags.forEach(<%- basicFunction("info") %> {
 				info[1].sheet.disabled = false;
 			});
 			while (oldTags.length) {
@@ -23,32 +23,23 @@ var applyHandler = function (options) {
 		}
 	};
 };
-var cssTextKey = function (link) {
-	return Array.from(link.sheet.cssRules, function (r) {
-		return r.cssText
-	}).join();
+var cssTextKey = <%- basicFunction("link") %> {
+	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
-__webpack_require__.hmrC.css = function (
-	chunkIds,
-	removedChunks,
-	removedModules,
-	promises,
-	applyHandlers,
-	updatedModulesList
-) {
+__webpack_require__.hmrC.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
-	chunkIds.forEach(function (chunkId) {
-		var filename = __webpack_require__.k(chunkId);
-		var url = __webpack_require__.p + filename;
+	chunkIds.forEach(<%- basicFunction("chunkId") %> {
+		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
+		var url = <%- PUBLIC_PATH %> + filename;
 		var oldTag = loadStylesheet(chunkId, url);
 		if (!oldTag) return;
 		promises.push(
-			new Promise(function (resolve, reject) {
+			new Promise(<%- basicFunction("resolve, reject") %> {
 				var link = loadStylesheet(
 					chunkId,
 					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
-					function (event) {
+					<%- basicFunction("event") %> {
 						if (event.type !== "load") {
 							var error = new Error();
 							var errorType = event && event.type;
