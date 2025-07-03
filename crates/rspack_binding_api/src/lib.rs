@@ -428,6 +428,7 @@ const _: () = {
   static __CTOR: unsafe extern "C" fn() = init;
 
   unsafe extern "C" fn init() {
+    panic::install_panic_handler();
     let rt = tokio::runtime::Builder::new_multi_thread()
       .max_blocking_threads(1)
       .enable_all()
