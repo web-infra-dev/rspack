@@ -14,7 +14,6 @@ use rspack_sources::BoxSource;
 use rspack_tasks::{within_compiler_context, CompilerContext};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::ecma::transforms::base::feature;
 use tracing::instrument;
 
 pub use self::{
