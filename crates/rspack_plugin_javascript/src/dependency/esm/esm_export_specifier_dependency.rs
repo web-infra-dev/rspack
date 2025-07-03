@@ -11,7 +11,6 @@ use rspack_core::{
   GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
   SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
@@ -178,7 +177,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         let export_name = &[dep.name.clone(), enum_key.clone()];
         let exports_info = module_graph.get_prefetched_exports_info(
           &module.identifier(),
-          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+          PrefetchExportsInfoMode::Nested(export_name),
         );
         let enum_member_used_name = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),
@@ -192,10 +191,8 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       }
     }
 
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &module.identifier(),
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
-    );
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let Some(used_name) = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),
       *runtime,

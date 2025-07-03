@@ -10,6 +10,8 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export type CustomPluginName = string;
+
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
@@ -20,6 +22,8 @@ export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
 export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
+
+export const RUST_ERROR_SYMBOL: unique symbol;
 
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
@@ -71,6 +75,18 @@ export interface ContextModule extends Module {
 
 export interface ExternalModule extends Module {
 	readonly userRequest: string;
+}
+
+export interface RspackError extends Error {
+	name: string;
+	message: string;
+	details?: string;
+	module?: Module;
+	loc?: DependencyLocation;
+	file?: string;
+	stack?: string;
+	hideStack?: boolean;
+	error?: Error;
 }
 
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;

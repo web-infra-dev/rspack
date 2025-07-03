@@ -243,7 +243,7 @@ pub async fn update_module_graph(
     .plugin_driver
     .compilation_hooks
     .revoked_modules
-    .call(&artifact.revoked_modules)
+    .call(compilation, &artifact.revoked_modules)
     .await?;
 
   artifact = repair(compilation, artifact, build_dependencies).await?;

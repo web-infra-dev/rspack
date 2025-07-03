@@ -4,7 +4,7 @@ use rspack_core::{
   get_target,
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportInfoSetter, ExportNameOrSpec, ExportProvided, ExportsInfo,
+  DependenciesBlock, DependencyId, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoData,
   ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
 };
@@ -78,10 +78,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         == BuildMetaExportsType::Unset
       {
         let other_exports_info = exports_info.as_data(self.mg).other_exports_info();
-        if !matches!(
-          other_exports_info.as_data(self.mg).provided(),
-          Some(ExportProvided::Unknown)
-        ) {
+        if !matches!(other_exports_info.provided(), Some(ExportProvided::Unknown)) {
           exports_info.set_has_provide_info(self.mg);
           exports_info.set_unknown_exports_provided(self.mg, false, None, None, None, None);
           continue;
@@ -139,12 +136,10 @@ impl<'a> FlagDependencyExportsState<'a> {
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = &export_desc.hide_export {
       for name in hide_export.iter() {
-        ExportInfoSetter::unset_target(
-          exports_info
-            .get_export_info(self.mg, name)
-            .as_data_mut(self.mg),
-          &dep_id,
-        );
+        exports_info
+          .get_export_info(self.mg, name)
+          .as_data_mut(self.mg)
+          .unset_target(&dep_id);
       }
     }
     match exports {
@@ -160,7 +155,8 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
       ExportsOfExportsSpec::NoExports => {}
       ExportsOfExportsSpec::Names(ele) => {
-        let (merge_changed, merge_dependencies) = self.merge_exports(
+        let (merge_changed, merge_dependencies) = merge_exports(
+          self.mg,
           module_id,
           exports_info,
           ele,
@@ -183,164 +179,6 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
     }
 
-    (changed, dependencies)
-  }
-
-  pub fn merge_exports(
-    &mut self,
-    module_id: &ModuleIdentifier,
-    exports_info: ExportsInfo,
-    exports: &Vec<ExportNameOrSpec>,
-    global_export_info: DefaultExportInfo,
-    dep_id: DependencyId,
-  ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
-    let mut changed = false;
-    let mut dependencies = vec![];
-    for export_name_or_spec in exports {
-      let (
-        name,
-        can_mangle,
-        terminal_binding,
-        exports,
-        from,
-        from_export,
-        priority,
-        hidden,
-        inlinable,
-      ) = match export_name_or_spec {
-        ExportNameOrSpec::String(name) => (
-          name.clone(),
-          global_export_info.can_mangle,
-          global_export_info.terminal_binding,
-          None::<&Vec<ExportNameOrSpec>>,
-          global_export_info.from.cloned(),
-          None::<&rspack_core::Nullable<Vec<Atom>>>,
-          global_export_info.priority,
-          false,
-          None,
-        ),
-        ExportNameOrSpec::ExportSpec(spec) => (
-          spec.name.clone(),
-          match spec.can_mangle {
-            Some(v) => Some(v),
-            None => global_export_info.can_mangle,
-          },
-          spec
-            .terminal_binding
-            .unwrap_or(global_export_info.terminal_binding),
-          spec.exports.as_ref(),
-          if spec.from.is_some() {
-            spec.from.clone()
-          } else {
-            global_export_info.from.cloned()
-          },
-          spec.export.as_ref(),
-          match spec.priority {
-            Some(v) => Some(v),
-            None => global_export_info.priority,
-          },
-          spec.hidden.unwrap_or(false),
-          spec.inlinable.as_ref(),
-        ),
-      };
-      let export_info = exports_info.get_export_info(self.mg, &name);
-      let export_info_data = export_info.as_data_mut(self.mg);
-      if let Some(provided) = export_info_data.provided()
-        && matches!(
-          provided,
-          ExportProvided::NotProvided | ExportProvided::Unknown
-        )
-      {
-        export_info_data.set_provided(Some(ExportProvided::Provided));
-        changed = true;
-      }
-
-      if Some(false) != export_info_data.can_mangle_provide() && can_mangle == Some(false) {
-        export_info_data.set_can_mangle_provide(Some(false));
-        changed = true;
-      }
-
-      if let Some(inlined) = inlinable
-        && !export_info_data.inlinable().can_inline()
-      {
-        export_info_data.set_inlinable(Inlinable::Inlined(inlined.clone()));
-        changed = true;
-      }
-
-      if terminal_binding && !export_info_data.terminal_binding() {
-        export_info_data.set_terminal_binding(true);
-        changed = true;
-      }
-
-      if let Some(exports) = exports {
-        let nested_exports_info =
-          ExportInfoSetter::create_nested_exports_info(&export_info, self.mg);
-        let (merge_changed, merge_dependencies) = self.merge_exports(
-          module_id,
-          nested_exports_info,
-          exports,
-          global_export_info.clone(),
-          dep_id,
-        );
-        changed |= merge_changed;
-        dependencies.extend(merge_dependencies);
-      }
-
-      // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
-      // because `create_nested_exports_info` needs `&mut ModuleGraph`
-      let export_info_data = export_info.as_data_mut(self.mg);
-      if let Some(from) = from {
-        changed |= if hidden {
-          ExportInfoSetter::unset_target(export_info_data, &dep_id)
-        } else {
-          let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
-          let export_name = if let Some(from) = from_export {
-            Some(from)
-          } else {
-            Some(&fallback)
-          };
-          ExportInfoSetter::set_target(
-            export_info_data,
-            Some(dep_id),
-            Some(from.dependency_id),
-            export_name,
-            priority,
-          )
-        }
-      }
-
-      // Recalculate target exportsInfo
-      let export_info_data = export_info.as_data(self.mg);
-      let target = get_target(export_info_data, self.mg);
-
-      let mut target_exports_info = None;
-      if let Some(target) = target {
-        let target_module_exports_info = self.mg.get_prefetched_exports_info(
-          &target.module,
-          if let Some(names) = &target.export {
-            PrefetchExportsInfoMode::NamedNestedExports(names)
-          } else {
-            PrefetchExportsInfoMode::Default
-          },
-        );
-        target_exports_info = target_module_exports_info
-          .get_nested_exports_info(target.export.as_deref())
-          .map(|data| data.id());
-
-        dependencies.push((target.module, *module_id));
-      }
-
-      let export_info_data = export_info.as_data_mut(self.mg);
-      if export_info_data.exports_info_owned() {
-        changed |= export_info_data
-          .exports_info()
-          .expect("should have exports_info when exports_info_owned is true")
-          .set_redirect_name_to(self.mg, target_exports_info);
-      } else if export_info_data.exports_info() != target_exports_info {
-        export_info_data.set_exports_info(target_exports_info);
-        changed = true;
-      }
-    }
     (changed, dependencies)
   }
 }
@@ -441,4 +279,182 @@ fn collect_module_exports_specs(
     .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
   // mg_cache.unfreeze();
   Some(res)
+}
+
+pub fn merge_exports(
+  mg: &mut ModuleGraph,
+  module_id: &ModuleIdentifier,
+  exports_info: ExportsInfo,
+  exports: &Vec<ExportNameOrSpec>,
+  global_export_info: DefaultExportInfo,
+  dep_id: DependencyId,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  let mut changed = false;
+  let mut dependencies = vec![];
+  for export_name_or_spec in exports {
+    let (
+      name,
+      can_mangle,
+      terminal_binding,
+      exports,
+      from,
+      from_export,
+      priority,
+      hidden,
+      inlinable,
+    ) = match export_name_or_spec {
+      ExportNameOrSpec::String(name) => (
+        name.clone(),
+        global_export_info.can_mangle,
+        global_export_info.terminal_binding,
+        None::<&Vec<ExportNameOrSpec>>,
+        global_export_info.from.cloned(),
+        None::<&rspack_core::Nullable<Vec<Atom>>>,
+        global_export_info.priority,
+        false,
+        None,
+      ),
+      ExportNameOrSpec::ExportSpec(spec) => (
+        spec.name.clone(),
+        match spec.can_mangle {
+          Some(v) => Some(v),
+          None => global_export_info.can_mangle,
+        },
+        spec
+          .terminal_binding
+          .unwrap_or(global_export_info.terminal_binding),
+        spec.exports.as_ref(),
+        if spec.from.is_some() {
+          spec.from.clone()
+        } else {
+          global_export_info.from.cloned()
+        },
+        spec.export.as_ref(),
+        match spec.priority {
+          Some(v) => Some(v),
+          None => global_export_info.priority,
+        },
+        spec.hidden.unwrap_or(false),
+        spec.inlinable.as_ref(),
+      ),
+    };
+    let export_info = exports_info.get_export_info(mg, &name);
+    let export_info_data = export_info.as_data_mut(mg);
+    if let Some(provided) = export_info_data.provided()
+      && matches!(
+        provided,
+        ExportProvided::NotProvided | ExportProvided::Unknown
+      )
+    {
+      export_info_data.set_provided(Some(ExportProvided::Provided));
+      changed = true;
+    }
+
+    if Some(false) != export_info_data.can_mangle_provide() && can_mangle == Some(false) {
+      export_info_data.set_can_mangle_provide(Some(false));
+      changed = true;
+    }
+
+    if let Some(inlined) = inlinable
+      && !export_info_data.inlinable().can_inline()
+    {
+      export_info_data.set_inlinable(Inlinable::Inlined(inlined.clone()));
+      changed = true;
+    }
+
+    if terminal_binding && !export_info_data.terminal_binding() {
+      export_info_data.set_terminal_binding(true);
+      changed = true;
+    }
+
+    if let Some(exports) = exports {
+      let nested_exports_info = if export_info_data.exports_info_owned() {
+        export_info_data
+          .exports_info()
+          .expect("should have exports_info when exports_info is true")
+      } else {
+        let old_exports_info = export_info_data.exports_info();
+        let new_exports_info = ExportsInfoData::default();
+        let new_exports_info_id = new_exports_info.id();
+        export_info_data.set_exports_info(Some(new_exports_info_id));
+        export_info_data.set_exports_info_owned(true);
+        mg.set_exports_info(new_exports_info_id, new_exports_info);
+
+        new_exports_info_id.set_has_provide_info(mg);
+        if let Some(exports_info) = old_exports_info {
+          exports_info
+            .as_data_mut(mg)
+            .set_redirect_name_to(Some(new_exports_info_id));
+        }
+        new_exports_info_id
+      };
+
+      let (merge_changed, merge_dependencies) = merge_exports(
+        mg,
+        module_id,
+        nested_exports_info,
+        exports,
+        global_export_info.clone(),
+        dep_id,
+      );
+      changed |= merge_changed;
+      dependencies.extend(merge_dependencies);
+    }
+
+    // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
+    // because `create_nested_exports_info` needs `&mut ModuleGraph`
+    let export_info_data = export_info.as_data_mut(mg);
+    if let Some(from) = from {
+      changed |= if hidden {
+        export_info_data.unset_target(&dep_id)
+      } else {
+        let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
+        let export_name = if let Some(from) = from_export {
+          Some(from)
+        } else {
+          Some(&fallback)
+        };
+        export_info_data.set_target(
+          Some(dep_id),
+          Some(from.dependency_id),
+          export_name,
+          priority,
+        )
+      }
+    }
+
+    // Recalculate target exportsInfo
+    let export_info_data = export_info.as_data(mg);
+    let target = get_target(export_info_data, mg);
+
+    let mut target_exports_info = None;
+    if let Some(target) = target {
+      let target_module_exports_info = mg.get_prefetched_exports_info(
+        &target.module,
+        if let Some(names) = &target.export {
+          PrefetchExportsInfoMode::Nested(names)
+        } else {
+          PrefetchExportsInfoMode::Default
+        },
+      );
+      target_exports_info = target_module_exports_info
+        .get_nested_exports_info(target.export.as_deref())
+        .map(|data| data.id());
+
+      dependencies.push((target.module, *module_id));
+    }
+
+    let export_info_data = export_info.as_data_mut(mg);
+    if export_info_data.exports_info_owned() {
+      changed |= export_info_data
+        .exports_info()
+        .expect("should have exports_info when exports_info_owned is true")
+        .as_data_mut(mg)
+        .set_redirect_name_to(target_exports_info);
+    } else if export_info_data.exports_info() != target_exports_info {
+      export_info_data.set_exports_info(target_exports_info);
+      changed = true;
+    }
+  }
+  (changed, dependencies)
 }
