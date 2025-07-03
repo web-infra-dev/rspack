@@ -1,3 +1,3 @@
 module.exports = [
-  [/Rspack cannot parse browserslist query from 'target' configuration./]
+  [/Rspack cannot parse the browserslist query./]
 ];

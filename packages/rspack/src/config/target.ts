@@ -152,7 +152,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 
 			if (Array.isArray(browsers) && browsers.length === 0) {
 				throw new Error(
-					"Rspack cannot parse browserslist query from 'target' configuration. This may happen when the query contains version requirements that exceed the supported range in the browserslist-rs database. Check your browserslist configuration for invalid version numbers."
+					"Rspack cannot parse the browserslist query. This may happen when the query contains version requirements that exceed the supported range in the browserslist-rs database. Check your browserslist configuration for invalid version numbers."
 				);
 			}
 
