@@ -11,6 +11,7 @@ version           = "0.2.0"
 crate-type = ["cdylib"]
 
 [features]
+debug_tool    = ["rspack_binding_api/debug_tool"]
 plugin        = ["rspack_binding_api/plugin"]
 sftrace-setup = ["rspack_binding_api/sftrace-setup"]
 
