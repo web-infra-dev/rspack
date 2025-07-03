@@ -64,6 +64,14 @@ pub trait BindingRenderer {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct ExternalInterop {
+  pub required_symbol: Atom,
+  pub default_access: Option<Atom>,
+  pub namespace_object: Option<Atom>,
+  pub namespace_object2: Option<Atom>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct ChunkLinkContext {
   // specifier order doesn't matter, we can sort them based on name
   pub exports: IdentifierMap<HashSet<Atom>>,
@@ -72,10 +80,14 @@ pub struct ChunkLinkContext {
   pub imports: IdentifierIndexMap<HashMap<Atom, Atom>>,
 
   // const symbol = __webpack_require__(module_id)
-  pub required: IdentifierMap<Atom>,
+  pub required: IdentifierIndexMap<ExternalInterop>,
 
   pub needed_namespace_objects: IdentifierIndexSet,
+  pub namespace_object_sources: IdentifierMap<String>,
+
   pub hoisted_modules: IdentifierIndexSet,
+  pub decl_modules: IdentifierIndexSet,
+
   pub refs: HashMap<String, Ref>,
   pub used_names: HashSet<Atom>,
 }

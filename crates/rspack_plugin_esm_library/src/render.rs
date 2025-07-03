@@ -1,12 +1,12 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeySet};
+use rspack_collections::{IdentifierIndexMap, IdentifierMap, UkeyIndexMap, UkeySet};
 use rspack_core::{
   get_js_chunk_filename_template, render_init_fragments,
-  rspack_sources::{ConcatSource, RawSource, RawStringSource, SourceExt},
-  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, Compilation,
-  ConcatenationScope, InitFragment, ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals,
-  SourceType, SpanExt,
+  rspack_sources::{BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, SourceExt},
+  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
+  Compilation, ConcatenatedModuleInfo, ConcatenationScope, InitFragment, ModuleInfo, PathData,
+  PathInfo, Ref, RuntimeGlobals, SourceType, SpanExt,
 };
 use rspack_error::{error, Result};
 use rspack_plugin_javascript::{
@@ -134,7 +134,11 @@ impl EsmLibraryPlugin {
     // likely to be similar.
     decl_modules.sort_by_key(|m| m.identifier());
 
+    // modules that are not scope hoisted, store in runtime
     let mut decl_source = ConcatSource::default();
+
+    // interop related
+    let mut decl_source_extra = ConcatSource::default();
 
     if !decl_modules.is_empty() {
       // use Object.assign to register module to __webpack_modules__ object
@@ -156,6 +160,8 @@ impl EsmLibraryPlugin {
 
       decl_source.add(RawSource::from_static("});\n"));
     }
+
+    Self::render_external_required(compilation, &mut decl_source_extra, chunk_link);
 
     // present as
     // a.js -> (imported symbol, local symbol)
@@ -194,88 +200,15 @@ impl EsmLibraryPlugin {
     }
 
     // render namespace object before render module contents
-    for m in &chunk_link.hoisted_modules {
-      let info = concatenated_modules_map
-        .get(m)
-        .expect("should have info")
-        .as_concatenated();
-      if let Some(namespace) = &info.namespace_object_source {
-        render_source.add(RawStringSource::from(format!("{namespace}\n")));
-      }
+    for namespace in chunk_link.namespace_object_sources.values() {
+      render_source.add(RawStringSource::from(format!("{namespace}\n")));
     }
 
     for m in &chunk_link.hoisted_modules {
-      let info = concatenated_modules_map
-        .get(m)
-        .expect("should have info")
-        .as_concatenated();
+      let info = concatenated_modules_map.get(m).expect("should have info");
+      let info = info.as_concatenated();
 
-      let mut source = info.source.clone().expect("should have source");
-
-      for ((atom, ctxt), refs) in &info.binding_to_ref {
-        if ctxt == &info.global_ctxt && ConcatenationScope::is_module_reference(atom) {
-          let binding_ref = chunk_link
-            .refs
-            .get(atom.as_str())
-            .expect("should already set");
-
-          let final_name = match binding_ref {
-            Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
-            Ref::Inline(inline) => Cow::Borrowed(inline),
-          };
-
-          for ident in refs {
-            source.replace(
-              ident.id.span.real_lo(),
-              ident.id.span.real_hi() + 2,
-              &final_name,
-              None,
-            );
-          }
-        } else if ctxt == &info.global_ctxt
-          && let Some((index, already_in_chunk, atom)) =
-            ConcatenationScope::match_dynamic_module_reference(atom)
-        {
-          let (ref_module, ref_info) = concatenated_modules_map
-            .get_index(index)
-            .expect("should have module");
-          let internal_names = &ref_info.as_concatenated().internal_names;
-          let internal_symbol = internal_names.get(&atom).unwrap_or_else(|| {
-            panic!(
-              "module {} should have set internal name for: {}, internal_names: {:?}",
-              ref_module, atom, &internal_names
-            )
-          });
-          let content = if already_in_chunk {
-            Cow::Borrowed(internal_symbol.as_str())
-          } else {
-            Cow::Owned(format!("{NAMESPACE_SYMBOL}.{internal_symbol}"))
-          };
-          for ref_atom in refs {
-            source.replace(
-              ref_atom.id.span.real_lo(),
-              ref_atom.id.span.real_hi(),
-              &content,
-              None,
-            );
-          }
-        }
-      }
-
-      for ident in &info.idents {
-        if ident.id.ctxt != info.module_ctxt {
-          continue;
-        }
-
-        if let Some(internal_name) = info.internal_names.get(&ident.id.sym) {
-          source.replace(
-            ident.id.span.real_lo(),
-            ident.id.span.real_hi(),
-            internal_name,
-            None,
-          );
-        }
-      }
+      let source = Self::render_module(info, concatenated_modules_map, chunk_link);
 
       if matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
         render_source.add(RawStringSource::from(format!(
@@ -293,6 +226,7 @@ impl EsmLibraryPlugin {
           )
         )));
       }
+
       render_source.add(source);
       render_source.add(RawSource::from_static("\n"));
     }
@@ -364,30 +298,7 @@ impl EsmLibraryPlugin {
 
     final_source.add(decl_source);
 
-    // render __webpack_require__ call after decl modules
-    if !chunk_link.required.is_empty() {
-      let required_str = RawStringSource::from(
-        chunk_link
-          .required
-          .iter()
-          .map(|(id, atom)| {
-            format!(
-              "const {} = __webpack_require__({});\n",
-              atom,
-              serde_json::to_string(
-                ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id)
-                  .expect("should set module id")
-                  .as_str()
-              )
-              .expect("module id to string should success")
-            )
-          })
-          .collect::<Vec<_>>()
-          .join("\n"),
-      );
-      final_source.add(RawSource::from_static("\n"));
-      final_source.add(required_str);
-    }
+    final_source.add(decl_source_extra);
 
     final_source.add(render_source);
 
@@ -433,5 +344,128 @@ impl EsmLibraryPlugin {
     Ok(Some(RenderSource {
       source: Arc::new(final_source),
     }))
+  }
+
+  pub fn render_module(
+    info: &ConcatenatedModuleInfo,
+    concatenated_modules_map: &IdentifierIndexMap<ModuleInfo>,
+    chunk_link: &ChunkLinkContext,
+  ) -> ReplaceSource<BoxSource> {
+    let mut source = info.source.clone().expect("should have source");
+
+    for ((atom, ctxt), refs) in &info.binding_to_ref {
+      if ctxt == &info.global_ctxt && ConcatenationScope::is_module_reference(atom) {
+        let binding_ref = chunk_link
+          .refs
+          .get(atom.as_str())
+          .expect("should already set");
+
+        let final_name = match binding_ref {
+          Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
+          Ref::Inline(inline) => Cow::Borrowed(inline),
+        };
+
+        for ident in refs {
+          source.replace(
+            ident.id.span.real_lo(),
+            ident.id.span.real_hi() + 2,
+            &final_name,
+            None,
+          );
+        }
+      } else if ctxt == &info.global_ctxt
+        && let Some((index, already_in_chunk, atom)) =
+          ConcatenationScope::match_dynamic_module_reference(atom)
+      {
+        let (ref_module, ref_info) = concatenated_modules_map
+          .get_index(index)
+          .expect("should have module");
+        let internal_names = &ref_info.as_concatenated().internal_names;
+        let internal_symbol = internal_names.get(&atom).unwrap_or_else(|| {
+          panic!(
+            "module {} should have set internal name for: {}, internal_names: {:?}",
+            ref_module, atom, &internal_names
+          )
+        });
+        let content = if already_in_chunk {
+          Cow::Borrowed(internal_symbol.as_str())
+        } else {
+          Cow::Owned(format!("{NAMESPACE_SYMBOL}.{internal_symbol}"))
+        };
+        for ref_atom in refs {
+          source.replace(
+            ref_atom.id.span.real_lo(),
+            ref_atom.id.span.real_hi(),
+            &content,
+            None,
+          );
+        }
+      }
+    }
+
+    for ident in &info.idents {
+      if ident.id.ctxt != info.module_ctxt {
+        continue;
+      }
+
+      if let Some(internal_name) = info.internal_names.get(&ident.id.sym) {
+        source.replace(
+          ident.id.span.real_lo(),
+          ident.id.span.real_hi(),
+          internal_name,
+          None,
+        );
+      }
+    }
+
+    source
+  }
+
+  pub fn render_external_required(
+    compilation: &Compilation,
+    render_source: &mut ConcatSource,
+    chunk_link: &ChunkLinkContext,
+  ) {
+    for (id, interop_info) in &chunk_link.required {
+      let name = &interop_info.required_symbol;
+
+      render_source.add(RawStringSource::from(format!(
+        "const {} = __webpack_require__({});\n",
+        name,
+        serde_json::to_string(
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id)
+            .expect("should set module id")
+            .as_str()
+        )
+        .expect("module id to string should success")
+      )));
+
+      if let Some(namespace_object) = &interop_info.namespace_object {
+        render_source.add(RawStringSource::from(format!(
+          "\nvar {} = /*#__PURE__*/{}({}, 2);",
+          namespace_object,
+          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          name
+        )));
+      }
+
+      if let Some(namespace_object) = &interop_info.namespace_object2 {
+        render_source.add(RawStringSource::from(format!(
+          "\nvar {} = /*#__PURE__*/{}({});",
+          namespace_object,
+          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          name
+        )));
+      }
+
+      if let Some(default_access) = &interop_info.default_access {
+        render_source.add(RawStringSource::from(format!(
+          "\nvar {} = /*#__PURE__*/{}({});",
+          default_access,
+          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          name
+        )));
+      }
+    }
   }
 }

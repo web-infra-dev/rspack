@@ -205,7 +205,6 @@ pub struct ConcatenatedModuleInfo {
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub import_map: ConcatenatedImportMap,
   pub namespace_object_name: Option<Atom>,
-  pub namespace_object_source: Option<String>,
   pub interop_namespace_object_used: bool,
   pub interop_namespace_object_name: Option<Atom>,
   pub interop_namespace_object2_used: bool,
@@ -270,6 +269,14 @@ impl ModuleInfo {
       v
     } else {
       panic!("should convert as concatenated module info")
+    }
+  }
+
+  pub fn as_external(&self) -> &ExternalModuleInfo {
+    if let Self::External(ref v) = self {
+      v
+    } else {
+      panic!("should convert as external module info")
     }
   }
 

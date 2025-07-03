@@ -6,10 +6,11 @@ use rspack_core::{
   reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
   to_normal_comment, BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments,
   ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModuleIdent, ExportInfoGetter,
-  ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleInfo, PathData, PrefetchExportsInfoMode, Ref, RuntimeGlobals, SourceType,
-  SymbolRef, UsageState, UsedName, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
+  ExportProvided, ExportsInfoGetter, ExportsType, ExternalInterop, FindTargetResult,
+  GetUsedNameParam, IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, PathData, PrefetchExportsInfoMode, Ref,
+  RuntimeGlobals, SourceType, SymbolRef, UsageState, UsedName, UsedNameItem,
+  NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
@@ -60,25 +61,34 @@ impl EsmLibraryPlugin {
       .map(|ukey| {
         let modules = compilation.chunk_graph.get_chunk_modules_identifier(ukey);
 
-        let mut hoisted_modules = modules
-          .iter()
-          .copied()
-          .filter(|m| {
-            let info = concate_modules_map
-              .get(m)
-              .expect("should have set module info");
-            matches!(info, ModuleInfo::Concatenated(_))
-          })
-          .collect::<Vec<_>>();
+        let mut decl_modules = IdentifierIndexSet::default();
+        let mut hoisted_modules = IdentifierIndexSet::default();
 
-        // sort modules based on the post order index
+        modules.iter().for_each(|m| {
+          let info = concate_modules_map
+            .get(m)
+            .unwrap_or_else(|| panic!("should have set module info for {m}"));
+
+          if matches!(info, ModuleInfo::Concatenated(_)) {
+            hoisted_modules.insert(*m);
+          } else {
+            decl_modules.insert(*m);
+          }
+        });
+
+        // non-scope-hoisted modules sort by identifier to get better gzip
+        decl_modules.sort_unstable();
+
+        // sort scope-hoisted modules based on the post order index
         hoisted_modules.sort_by(|m1, m2| {
           let m1_index = module_graph.get_post_order_index(m1);
           let m2_index = module_graph.get_post_order_index(m2);
           m1_index.cmp(&m2_index)
         });
+
         let chunk_link = ChunkLinkContext {
-          hoisted_modules: hoisted_modules.into_iter().collect(),
+          hoisted_modules: hoisted_modules,
+          decl_modules: decl_modules,
           ..Default::default()
         };
 
@@ -91,144 +101,141 @@ impl EsmLibraryPlugin {
     }
 
     // link imported specifier with exported symbol
-    let mut needed_namespace_objects = IdentifierIndexSet::default();
+    let mut needed_namespace_objects_by_ukey = UkeyMap::default();
     self.link_imports_and_exports(
       compilation,
       &mut link,
       concate_modules_map,
-      &mut needed_namespace_objects,
+      &mut needed_namespace_objects_by_ukey,
     );
 
-    let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
-    let mut visited = FxHashSet::default();
+    for (ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
+      let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
+      let mut visited = FxHashSet::default();
 
-    // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
-    // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
-    // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
-    loop {
-      let mut changed = false;
-      // using the previous round snapshot `needed_namespace_objects` to iterate, and modify the
-      // original `needed_namespace_objects` during the iteration,
-      // if there is no new id inserted into `needed_namespace_objects`, break the outer loop
-      for module_info_id in needed_namespace_objects.clone().iter() {
-        if visited.contains(module_info_id) {
-          continue;
-        }
-        visited.insert(*module_info_id);
-        changed = true;
+      // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
+      // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
+      // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
+      loop {
+        let mut changed = false;
+        // using the previous round snapshot `needed_namespace_objects` to iterate, and modify the
+        // original `needed_namespace_objects` during the iteration,
+        // if there is no new id inserted into `needed_namespace_objects`, break the outer loop
+        for module_info_id in needed_namespace_objects.clone().iter() {
+          if visited.contains(module_info_id) {
+            continue;
+          }
+          visited.insert(*module_info_id);
+          changed = true;
 
-        let module_info = concate_modules_map
-          .get(module_info_id)
-          .map(|m| m.as_concatenated())
-          .expect("should have module info");
+          let module_info = concate_modules_map
+            .get(module_info_id)
+            .map(|m| m.as_concatenated())
+            .expect("should have module info");
 
-        let module_graph = compilation.get_module_graph();
-        let box_module = module_graph
-          .module_by_identifier(module_info_id)
-          .expect("should have box module");
-        let module_readable_identifier =
-          box_module.readable_identifier(&compilation.options.context);
-        let strict_esm_module = box_module.build_meta().strict_esm_module;
-        let name_space_name = module_info.namespace_object_name.clone();
+          let module_graph = compilation.get_module_graph();
+          let box_module = module_graph
+            .module_by_identifier(module_info_id)
+            .expect("should have box module");
+          let module_readable_identifier =
+            box_module.readable_identifier(&compilation.options.context);
+          let strict_esm_module = box_module.build_meta().strict_esm_module;
+          let name_space_name = module_info.namespace_object_name.clone();
 
-        if module_info.namespace_export_symbol.is_some() {
-          continue;
-        }
-
-        let mut ns_obj = Vec::new();
-        let exports_info = module_graph.get_exports_info(module_info_id);
-        for export_info in exports_info.as_data(&module_graph).exports() {
-          if matches!(
-            export_info.as_data(&module_graph).provided(),
-            Some(ExportProvided::NotProvided)
-          ) {
+          if module_info.namespace_export_symbol.is_some() {
             continue;
           }
 
-          if let Some(UsedNameItem::Str(used_name)) =
-            ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, None)
-          {
-            let final_name = Self::get_binding(
-              &compilation.get_module_graph(),
-              &compilation.module_graph_cache_artifact,
-              module_info_id,
-              vec![export_info
-                .as_data(&module_graph)
-                .name()
-                .cloned()
-                .unwrap_or("".into())],
-              concate_modules_map,
-              &mut needed_namespace_objects,
-              false,
-              false,
-              strict_esm_module,
-              Some(true),
-              &mut Default::default(),
-            );
+          let mut ns_obj = Vec::new();
+          let exports_info = module_graph.get_exports_info(module_info_id);
+          for export_info in exports_info.as_data(&module_graph).exports() {
+            if matches!(
+              export_info.as_data(&module_graph).provided(),
+              Some(ExportProvided::NotProvided)
+            ) {
+              continue;
+            }
 
-            let symbol = match &final_name {
-              Ref::Symbol(symbol_ref) => symbol_ref.symbol.as_str(),
-              Ref::Inline(inline) => inline.as_str(),
-            };
+            if let Some(UsedNameItem::Str(used_name)) =
+              ExportInfoGetter::get_used_name(export_info.as_data(&module_graph), None, None)
+            {
+              let final_name = Self::get_binding(
+                &compilation.get_module_graph(),
+                &compilation.module_graph_cache_artifact,
+                module_info_id,
+                vec![export_info
+                  .as_data(&module_graph)
+                  .name()
+                  .cloned()
+                  .unwrap_or("".into())],
+                concate_modules_map,
+                &mut needed_namespace_objects,
+                false,
+                false,
+                strict_esm_module,
+                Some(true),
+                &mut Default::default(),
+              );
 
-            ns_obj.push(format!(
-              "\n  {}: {}",
-              property_name(&used_name).expect("should have property_name"),
-              returning_function(&compilation.options.output.environment, symbol, "")
-            ));
+              let symbol = match &final_name {
+                Ref::Symbol(symbol_ref) => symbol_ref.symbol.as_str(),
+                Ref::Inline(inline) => inline.as_str(),
+              };
+
+              ns_obj.push(format!(
+                "\n  {}: {}",
+                property_name(&used_name).expect("should have property_name"),
+                returning_function(&compilation.options.output.environment, symbol, "")
+              ));
+            }
           }
-        }
-        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
-        let name = name_space_name.expect("should have name_space_name");
-        let define_getters = if !ns_obj.is_empty() {
-          format!(
-            "{}({}, {{ {} }});\n",
-            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-            name,
-            ns_obj.join(",")
-          )
-        } else {
-          String::new()
-        };
+          // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
+          let name = name_space_name.expect("should have name_space_name");
+          let define_getters = if !ns_obj.is_empty() {
+            format!(
+              "{}({}, {{ {} }});\n",
+              RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+              name,
+              ns_obj.join(",")
+            )
+          } else {
+            String::new()
+          };
 
-        let module_info = concate_modules_map
-          .get_mut(module_info_id)
-          .map(|m| m.as_concatenated_mut())
-          .expect("should have module info");
+          let module_info = concate_modules_map
+            .get_mut(module_info_id)
+            .map(|m| m.as_concatenated_mut())
+            .expect("should have module info");
 
-        if !ns_obj.is_empty() {
+          if !ns_obj.is_empty() {
+            module_info
+              .runtime_requirements
+              .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+          }
+
+          namespace_object_sources.insert(
+            *module_info_id,
+            format!(
+              "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+              module_readable_identifier,
+              name,
+              RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+              name,
+              define_getters
+            ),
+          );
+
           module_info
             .runtime_requirements
-            .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
         }
-
-        namespace_object_sources.insert(
-          *module_info_id,
-          format!(
-            "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
-            module_readable_identifier,
-            name,
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-            name,
-            define_getters
-          ),
-        );
-
-        module_info
-          .runtime_requirements
-          .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+        if !changed {
+          break;
+        }
       }
-      if !changed {
-        break;
-      }
-    }
 
-    for (module, namespace_source) in namespace_object_sources {
-      let info = concate_modules_map
-        .get_mut(&module)
-        .expect("should have module info")
-        .as_concatenated_mut();
-      info.namespace_object_source = Some(namespace_source);
+      let chunk_link = link.get_mut(&ukey).expect("should have chunk link");
+      chunk_link.namespace_object_sources = namespace_object_sources;
     }
 
     compilation.chunk_graph.link = Some(link);
@@ -634,14 +641,14 @@ impl EsmLibraryPlugin {
     compilation: &Compilation,
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
-    needed_namespace_objects: &mut IdentifierIndexSet,
+    needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
   ) {
     let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
     let mut exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashSet<Atom>>>::default();
     let mut imports = UkeyMap::<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>::default();
 
     // const symbol = __webpack_require__(module);
-    let mut required = UkeyMap::<ChunkUkey, IdentifierMap<Atom>>::default();
+    let mut required = UkeyMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
     // link entry direct exports
     for entrypoint_ukey in compilation.entrypoints.values() {
@@ -673,13 +680,6 @@ impl EsmLibraryPlugin {
         }
 
         for (exported_module, mode) in &info.star_exports {
-          let _needs_require = matches!(
-            concate_modules_map
-              .get(exported_module)
-              .expect("should have info"),
-            ModuleInfo::External(_)
-          );
-
           match mode {
             rspack_core::ExportMode::EmptyStar(_)
             | rspack_core::ExportMode::Unused(_)
@@ -728,7 +728,8 @@ impl EsmLibraryPlugin {
 
     // calculate exports based on imports
     for (chunk, chunk_link) in link.iter_mut() {
-      let mut refs = FxHashMap::default();
+      let mut refs = FxIndexMap::default();
+      let needed_namespace_objects = needed_namespace_objects_by_ukey.entry(*chunk).or_default();
 
       for m in chunk_link.hoisted_modules.clone() {
         let codegen_res = compilation.code_generation_results.get(&m, None);
@@ -801,6 +802,8 @@ impl EsmLibraryPlugin {
       }
 
       // deconflict imported symbol and required symbols
+      // if symbol is from outside, we should deconflict them,
+      // because we only deconflict local symbols before
       let mut ref_by_symbol =
         FxIndexMap::<(Atom, ModuleIdentifier), Vec<(String, SymbolRef)>>::default();
       refs
@@ -824,11 +827,71 @@ impl EsmLibraryPlugin {
 
       for ((symbol, m), mut all_refs) in ref_by_symbol {
         let ref_chunk = Self::get_module_chunk(m, compilation);
-        let needs_require = matches!(concate_modules_map.get(&m), Some(ModuleInfo::External(_)));
+        let info = concate_modules_map.get(&m).expect("should have module");
+        let from_external = matches!(info, ModuleInfo::External(_));
         let needs_import_chunk = ref_chunk != *chunk;
 
-        // check if we should import this symbol from other chunk
-        if needs_import_chunk || needs_require {
+        // Symbol is from external module
+        // eg.
+        // var symbol = __webpack_require__('');
+        // symbol.foo;
+        if from_external {
+          imports.entry(*chunk).or_default(); // make sure we imported this chunk, so that runtime can register this module
+          let required_modules = required.entry(*chunk).or_default();
+          let require_info = required_modules.entry(m).or_default();
+
+          let new_name = if Self::is_interop_name(m, &symbol, concate_modules_map) {
+            // the symbol is caused by interop
+            // eg.
+            // var symbol = __webpack_require__('');
+            // var symbol_default = __webpack_require__.n(symbol)
+            let new_name = if all_used_names.contains(&symbol) {
+              let new_name = find_new_name(&symbol, all_used_names, &vec![]);
+              all_used_names.insert(new_name.clone());
+              new_name
+            } else {
+              all_used_names.insert(symbol.clone());
+              symbol.clone()
+            };
+
+            if let Some(name) = info.get_interop_default_access_name()
+              && name == &symbol
+            {
+              require_info.default_access = Some(new_name.clone());
+            } else if let Some(name) = info.get_interop_namespace_object_name()
+              && name == &symbol
+            {
+              require_info.namespace_object = Some(new_name.clone());
+            } else if let Some(name) = info.get_interop_namespace_object2_name()
+              && name == &symbol
+            {
+              require_info.namespace_object2 = Some(new_name.clone());
+            }
+
+            new_name
+          } else {
+            // required symbol, eg.
+            // const foo = __webpack_require__('foo')
+            let name = info
+              .as_external()
+              .name
+              .clone()
+              .expect("should have set external name");
+            let name = if all_used_names.contains(&name) {
+              let new_name = find_new_name(&name, all_used_names, &vec![name.to_string()]);
+              all_used_names.insert(new_name.clone());
+              new_name
+            } else {
+              name
+            };
+            require_info.required_symbol = name.clone();
+            name
+          };
+
+          for (_, cur_ref) in &mut all_refs {
+            cur_ref.symbol = new_name.clone();
+          }
+        } else if needs_import_chunk {
           let (orig_symbol, local_symbol) = if all_used_names.contains(&symbol) {
             let new_symbol = find_new_name(&symbol, all_used_names, &vec![]);
             all_used_names.insert(new_symbol.clone());
@@ -843,18 +906,13 @@ impl EsmLibraryPlugin {
             (symbol.clone(), symbol.clone())
           };
 
-          if needs_require {
-            imports.entry(*chunk).or_default(); // make sure we imported this chunk, so that runtime can register this module
-            required.entry(*chunk).or_default().insert(m, local_symbol);
-          } else {
-            // import symbol from that chunk
-            imports
-              .entry(*chunk)
-              .or_default()
-              .entry(m)
-              .or_default()
-              .insert(orig_symbol, local_symbol);
-          }
+          // import symbol from that chunk
+          imports
+            .entry(*chunk)
+            .or_default()
+            .entry(m)
+            .or_default()
+            .insert(orig_symbol, local_symbol);
         }
 
         for (ref_str, cur_ref) in all_refs {
@@ -876,6 +934,34 @@ impl EsmLibraryPlugin {
     for (chunk, required) in required {
       link.entry(chunk).or_default().required = required;
     }
+  }
+
+  fn is_interop_name(
+    m: ModuleIdentifier,
+    symbol: &Atom,
+    module_to_info_map: &IdentifierIndexMap<ModuleInfo>,
+  ) -> bool {
+    let info = module_to_info_map.get(&m).expect("should have module info");
+
+    if let Some(name) = info.get_interop_default_access_name()
+      && name == symbol
+    {
+      return true;
+    }
+
+    if let Some(name) = info.get_interop_namespace_object_name()
+      && name == symbol
+    {
+      return true;
+    }
+
+    if let Some(name) = info.get_interop_namespace_object2_name()
+      && name == symbol
+    {
+      return true;
+    }
+
+    false
   }
 
   // if imported specifier is in the same chunk
