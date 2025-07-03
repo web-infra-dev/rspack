@@ -65,7 +65,8 @@ pub trait BindingRenderer {
 
 #[derive(Debug, Clone, Default)]
 pub struct ExternalInterop {
-  pub required_symbol: Atom,
+  pub from_module: ModuleIdentifier,
+  pub required_symbol: Option<Atom>,
   pub default_access: Option<Atom>,
   pub namespace_object: Option<Atom>,
   pub namespace_object2: Option<Atom>,
