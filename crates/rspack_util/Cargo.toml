@@ -29,7 +29,7 @@ swc_config = { workspace = true }
 swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
 
 rspack_regex = { workspace = true }
-signal-hook  = { version = "*", optional = true }
+signal-hook  = { version = "0.3.18", optional = true }
 
 [features]
 debug_tool = ["signal-hook"] # only used for local debug and  should not be enabled in production release
