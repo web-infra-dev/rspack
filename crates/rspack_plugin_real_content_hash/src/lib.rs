@@ -18,7 +18,7 @@ use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   PluginContext,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
@@ -133,7 +133,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
 
   let (ordered_hashes, mut hash_dependencies) =
     OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
-  let mut ordered_hashes_iter = ordered_hashes.iter();
+  let mut ordered_hashes_iter = ordered_hashes.into_iter();
 
   logger.time_end(start);
 
@@ -181,7 +181,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       .flatten()
       .collect::<Vec<_>>();
 
-    let mut batch_sources = batch_source_tasks
+    let batch_sources = batch_source_tasks
       .into_par_iter()
       .map(|(hash, name, data)| {
         let new_source = data.compute_new_source(
@@ -193,32 +193,56 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       })
       .collect::<HashMap<_, _>>();
 
-    for old_hash in batch.iter() {
-      if let Some(asset_names) = hash_to_asset_names.get_mut(old_hash.as_str()) {
-        asset_names.sort();
-        let mut asset_contents = asset_names
-          .iter()
-          .filter_map(|name| batch_sources.remove(&(old_hash.as_str(), name)))
-          .collect::<Vec<_>>();
-        asset_contents.dedup();
-        let updated_hash = hooks
-          .update_hash
-          .call(compilation, &asset_contents, old_hash)
-          .await?;
+    let new_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+      batch
+        .iter()
+        .cloned()
+        .filter_map(|old_hash| {
+          let asset_names = hash_to_asset_names.remove(old_hash.as_str())?;
+          Some((old_hash, asset_names))
+        })
+        .for_each(|(old_hash, asset_names)| {
+          let s =
+            unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
+          s.spawn(
+            |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
+              asset_names.sort();
+              let mut asset_contents = asset_names
+                .iter()
+                .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
+                .cloned()
+                .collect::<Vec<_>>();
+              asset_contents.dedup();
+              let updated_hash = hooks
+                .update_hash
+                .call(compilation, &asset_contents, &old_hash)
+                .await?;
 
-        let new_hash = if let Some(new_hash) = updated_hash {
-          new_hash
-        } else {
-          let mut hasher = RspackHash::from(&compilation.options.output);
-          for asset_content in asset_contents {
-            hasher.write(&asset_content.buffer());
-          }
-          let new_hash = hasher.digest(&compilation.options.output.hash_digest);
-          let new_hash = new_hash.rendered(old_hash.len()).to_string();
-          new_hash
-        };
-        hash_to_new_hash.insert(old_hash, new_hash);
-      }
+              let new_hash = if let Some(new_hash) = updated_hash {
+                new_hash
+              } else {
+                let mut hasher = RspackHash::from(&compilation.options.output);
+                for asset_content in asset_contents {
+                  hasher.write(&asset_content.buffer());
+                }
+                let new_hash = hasher.digest(&compilation.options.output.hash_digest);
+                let new_hash = new_hash.rendered(old_hash.len()).to_string();
+                new_hash
+              };
+
+              Ok((old_hash.to_string(), new_hash))
+            },
+          );
+        });
+    })
+    .await
+    .into_iter()
+    .map(|r| r.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    for res in new_hashes {
+      let (old_hash, new_hash) = res?;
+      hash_to_new_hash.insert(old_hash, new_hash);
     }
 
     computed_hashes.extend(batch);
@@ -327,7 +351,7 @@ impl AssetData {
   pub fn compute_new_source(
     &self,
     without_own: bool,
-    hash_to_new_hash: &HashMap<&str, String>,
+    hash_to_new_hash: &HashMap<String, String>,
     hash_regexp: &Regex,
   ) -> BoxSource {
     (if without_own {
