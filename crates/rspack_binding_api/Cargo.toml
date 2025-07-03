@@ -110,7 +110,7 @@ rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing"] }
+tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing", "parking_lot"] }
 ustr                                   = { workspace = true }
 
 [package.metadata.cargo-shear]
@@ -124,4 +124,3 @@ parking_lot = { version = "=0.12.3", features = ["nightly"] }
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_tracing = { workspace = true }
 sftrace-setup  = { workspace = true, optional = true }
-tokio          = { workspace = true, features = ["parking_lot"] }
