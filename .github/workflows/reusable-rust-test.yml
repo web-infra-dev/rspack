@@ -2,12 +2,6 @@ name: Reusable Rust Test
 
 on:
   workflow_call:
-    inputs:
-      save-cache:
-        description: "Whether to save cache"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   check-changed:
@@ -40,7 +34,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-if: ${{ inputs.save-cache }}
+          save-if: true
           key: check
 
       - name: Run Cargo Check
@@ -96,7 +90,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          save-if: ${{ inputs.save-cache }}
+          save-if: true
           key: test
 
       # Compile test without debug info for reducing the CI cache size

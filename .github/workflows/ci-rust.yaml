@@ -21,8 +21,6 @@ jobs:
   rust_tests:
     name: Run Rust Tests
     uses: ./.github/workflows/reusable-rust-test.yml
-    with:
-      save-cache: ${{ github.ref_name == 'main' }}
 
   rust_test_miri:
     name: Rust test miri

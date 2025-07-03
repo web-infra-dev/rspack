@@ -9,17 +9,10 @@ on:
         required: true
         default: false
 
-permissions:
-  contents: write
-  # To publish packages with provenance
-  id-token: write
-
 jobs:
   rust_tests:
     name: Run Rust Tests
     uses: ./.github/workflows/reusable-rust-test.yml
-    with:
-      save-cache: true
 
   release_crates:
     name: Release Crates
