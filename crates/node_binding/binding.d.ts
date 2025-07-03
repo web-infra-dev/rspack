@@ -10,6 +10,8 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
+export type CustomPluginName = string;
+
 export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
 
 export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
@@ -20,6 +22,8 @@ export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
 export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
 export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
+
+export const RUST_ERROR_SYMBOL: unique symbol;
 
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
@@ -71,6 +75,18 @@ export interface ContextModule extends Module {
 
 export interface ExternalModule extends Module {
 	readonly userRequest: string;
+}
+
+export interface RspackError extends Error {
+	name: string;
+	message: string;
+	details?: string;
+	module?: Module;
+	loc?: DependencyLocation;
+	file?: string;
+	stack?: string;
+	hideStack?: boolean;
+	error?: Error;
 }
 
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
@@ -143,10 +159,10 @@ export declare class Dependency {
 
 export declare class Diagnostics {
   get length(): number
-  values(): Array<JsRspackError>
-  get(index: number): JsRspackError | undefined
-  set(index: number, error: JsRspackError): void
-  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<JsRspackError> | undefined | null): Array<JsRspackError>
+  values(): Array<RspackError>
+  get(index: number): RspackError | undefined
+  set(index: number, error: RspackError): void
+  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<RspackError> | undefined | null): Array<RspackError>
 }
 
 export declare class EntryDataDto {
@@ -275,8 +291,8 @@ export declare class JsCompilation {
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   get errors(): Diagnostics
   get warnings(): Diagnostics
-  getErrors(): Array<JsRspackError>
-  getWarnings(): Array<JsRspackError>
+  getErrors(): Array<RspackError>
+  getWarnings(): Array<RspackError>
   getStats(): JsStats
   getAssetPath(filename: string, data: JsPathData): string
   getAssetPathWithInfo(filename: string, data: JsPathData): PathWithInfo
@@ -439,7 +455,7 @@ export declare class Sources {
 }
 
 export interface BuiltinPlugin {
-  name: BuiltinPluginName
+  name: BuiltinPluginName | CustomPluginName
   options: unknown
   canInherentFromParent?: boolean
 }
@@ -904,7 +920,7 @@ export interface JsLoaderContext {
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
-  __internal__error?: JsRspackError
+  __internal__error?: RspackError
   /**
    * UTF-8 hint for `content`
    * - Some(true): `content` is a `UTF-8` encoded sequence
@@ -1142,17 +1158,7 @@ export interface JsRsdoctorVariable {
 
 export interface JsRspackDiagnostic {
   severity: JsRspackSeverity
-  error: JsRspackError
-}
-
-export interface JsRspackError {
-  name: string
-  message: string
-  moduleIdentifier?: string
-  loc?: DependencyLocation
-  file?: string
-  stack?: string
-  hideStack?: boolean
+  error: RspackError
 }
 
 export declare enum JsRspackSeverity {
@@ -2608,6 +2614,8 @@ export interface RealDependencyLocation {
 }
 
 /**
+ * this is a process level tracing, which means it would be shared by all compilers in the same process
+ * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
  * Apache-2.0 licensed

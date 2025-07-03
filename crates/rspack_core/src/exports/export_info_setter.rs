@@ -3,34 +3,30 @@ use std::collections::hash_map::Entry;
 use rspack_util::atom::Atom;
 
 use super::{ExportInfoData, ExportInfoTargetValue, Inlinable, UsageFilterFnTy, UsageState};
-use crate::{
-  DependencyId, ExportInfo, ExportsInfo, ExportsInfoData, ModuleGraph, Nullable, RuntimeSpec,
-};
+use crate::{DependencyId, ExportsInfo, ExportsInfoData, ModuleGraph, Nullable, RuntimeSpec};
 
-pub struct ExportInfoSetter;
-
-impl ExportInfoSetter {
-  pub fn reset_provide_info(info: &mut ExportInfoData) {
-    info.set_provided(None);
-    info.set_can_mangle_provide(None);
-    info.set_inlinable(Inlinable::NoByProvide);
-    info.set_exports_info(None);
-    info.set_exports_info_owned(false);
-    info.set_target_is_set(false);
-    info.target_mut().clear();
-    info.set_terminal_binding(false);
+impl ExportInfoData {
+  pub fn reset_provide_info(&mut self) {
+    self.set_provided(None);
+    self.set_can_mangle_provide(None);
+    self.set_inlinable(Inlinable::NoByProvide);
+    self.set_exports_info(None);
+    self.set_exports_info_owned(false);
+    self.set_target_is_set(false);
+    self.target_mut().clear();
+    self.set_terminal_binding(false);
   }
 
-  pub fn unset_target(info: &mut ExportInfoData, key: &DependencyId) -> bool {
-    if !info.target_is_set() {
+  pub fn unset_target(&mut self, key: &DependencyId) -> bool {
+    if !self.target_is_set() {
       false
     } else {
-      info.target_mut().remove(&Some(*key)).is_some()
+      self.target_mut().remove(&Some(*key)).is_some()
     }
   }
 
   pub fn set_target(
-    info: &mut ExportInfoData,
+    &mut self,
     key: Option<DependencyId>,
     dependency: Option<DependencyId>,
     export_name: Option<&Nullable<Vec<Atom>>>,
@@ -42,8 +38,8 @@ impl ExportInfoSetter {
       None => None,
     };
     let normalized_priority = priority.unwrap_or(0);
-    if !info.target_is_set() {
-      info.target_mut().insert(
+    if !self.target_is_set() {
+      self.target_mut().insert(
         key,
         ExportInfoTargetValue {
           dependency,
@@ -51,15 +47,15 @@ impl ExportInfoSetter {
           priority: normalized_priority,
         },
       );
-      info.set_target_is_set(true);
+      self.set_target_is_set(true);
       return true;
     }
-    let Some(old_target) = info.target_mut().get_mut(&key) else {
+    let Some(old_target) = self.target_mut().get_mut(&key) else {
       if dependency.is_none() {
         return false;
       }
 
-      info.target_mut().insert(
+      self.target_mut().insert(
         key,
         ExportInfoTargetValue {
           dependency,
@@ -82,13 +78,9 @@ impl ExportInfoSetter {
     false
   }
 
-  pub fn do_move_target(
-    export_info: &mut ExportInfoData,
-    dependency: DependencyId,
-    target_export: Option<Vec<Atom>>,
-  ) {
-    export_info.target_mut().clear();
-    export_info.target_mut().insert(
+  pub fn do_move_target(&mut self, dependency: DependencyId, target_export: Option<Vec<Atom>>) {
+    self.target_mut().clear();
+    self.target_mut().insert(
       None,
       ExportInfoTargetValue {
         dependency: Some(dependency),
@@ -96,16 +88,12 @@ impl ExportInfoSetter {
         priority: 0,
       },
     );
-    export_info.set_target_is_set(true);
+    self.set_target_is_set(true);
   }
 
-  pub fn set_used(
-    info: &mut ExportInfoData,
-    new_value: UsageState,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
+  pub fn set_used(&mut self, new_value: UsageState, runtime: Option<&RuntimeSpec>) -> bool {
     if let Some(runtime) = runtime {
-      let used_in_runtime = info.used_in_runtime_mut();
+      let used_in_runtime = self.used_in_runtime_mut();
       let mut changed = false;
       for &k in runtime.iter() {
         match used_in_runtime.entry(k) {
@@ -129,25 +117,25 @@ impl ExportInfoSetter {
         }
       }
       if used_in_runtime.is_empty() {
-        info.set_used_in_runtime(None);
+        self.set_used_in_runtime(None);
         changed = true;
       }
       return changed;
-    } else if info.global_used() != Some(new_value) {
-      info.set_global_used(Some(new_value));
+    } else if self.global_used() != Some(new_value) {
+      self.set_global_used(Some(new_value));
       return true;
     }
     false
   }
 
   pub fn set_used_conditionally(
-    info: &mut ExportInfoData,
+    &mut self,
     condition: UsageFilterFnTy<UsageState>,
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
     if let Some(runtime) = runtime {
-      let used_in_runtime = info.used_in_runtime_mut();
+      let used_in_runtime = self.used_in_runtime_mut();
       let mut changed = false;
 
       for &k in runtime.iter() {
@@ -172,101 +160,94 @@ impl ExportInfoSetter {
         }
       }
       if used_in_runtime.is_empty() {
-        info.set_used_in_runtime(None);
+        self.set_used_in_runtime(None);
         changed = true;
       }
       return changed;
-    } else if let Some(global_used) = info.global_used() {
+    } else if let Some(global_used) = self.global_used() {
       if global_used != new_value && condition(&global_used) {
-        info.set_global_used(Some(new_value));
+        self.set_global_used(Some(new_value));
         return true;
       }
     } else {
-      info.set_global_used(Some(new_value));
+      self.set_global_used(Some(new_value));
       return true;
     }
     false
   }
 
-  pub fn set_used_in_unknown_way(info: &mut ExportInfoData, runtime: Option<&RuntimeSpec>) -> bool {
+  pub fn set_used_in_unknown_way(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
 
-    if ExportInfoSetter::set_used_conditionally(
-      info,
+    if self.set_used_conditionally(
       Box::new(|value| value < &UsageState::Unknown),
       UsageState::Unknown,
       runtime,
     ) {
       changed = true;
     }
-    if info.can_mangle_use() != Some(false) {
-      info.set_can_mangle_use(Some(false));
+    if self.can_mangle_use() != Some(false) {
+      self.set_can_mangle_use(Some(false));
       changed = true;
     }
-    if info.inlinable().can_inline() {
-      info.set_inlinable(Inlinable::NoByUse);
+    if self.inlinable().can_inline() {
+      self.set_inlinable(Inlinable::NoByUse);
       changed = true;
     }
     changed
   }
 
-  pub fn set_used_without_info(info: &mut ExportInfoData, runtime: Option<&RuntimeSpec>) -> bool {
+  pub fn set_used_without_info(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
-    let flag = ExportInfoSetter::set_used(info, UsageState::NoInfo, runtime);
+    let flag = self.set_used(UsageState::NoInfo, runtime);
     changed |= flag;
-    if info.can_mangle_use() != Some(false) {
-      info.set_can_mangle_use(Some(false));
+    if self.can_mangle_use() != Some(false) {
+      self.set_can_mangle_use(Some(false));
       changed = true;
     }
-    if info.inlinable().can_inline() {
-      info.set_inlinable(Inlinable::NoByUse);
+    if self.inlinable().can_inline() {
+      self.set_inlinable(Inlinable::NoByUse);
       changed = true;
     }
     changed
   }
 
-  pub fn create_nested_exports_info(info: &ExportInfo, mg: &mut ModuleGraph) -> ExportsInfo {
-    let info = info.as_data_mut(mg);
-    if info.exports_info_owned() {
-      return info
+  pub fn create_nested_exports_info(&mut self, mg: &mut ModuleGraph) -> ExportsInfo {
+    if self.exports_info_owned() {
+      return self
         .exports_info()
         .expect("should have exports_info when exports_info is true");
     }
 
-    info.set_exports_info_owned(true);
-    let other_exports_info = ExportInfoData::new(None, None);
-    let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
-    let new_exports_info =
-      ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+    self.set_exports_info_owned(true);
+    let new_exports_info = ExportsInfoData::default();
     let new_exports_info_id = new_exports_info.id();
 
-    let old_exports_info = info.exports_info();
-    info.set_exports_info_owned(true);
-    info.set_exports_info(Some(new_exports_info_id));
+    self.set_exports_info_owned(true);
+    self.set_exports_info(Some(new_exports_info_id));
 
     mg.set_exports_info(new_exports_info_id, new_exports_info);
-    mg.set_export_info(other_exports_info.id(), other_exports_info);
-    mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
-
     new_exports_info_id.set_has_provide_info(mg);
+    let old_exports_info = self.exports_info();
     if let Some(exports_info) = old_exports_info {
-      exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
+      exports_info
+        .as_data_mut(mg)
+        .set_redirect_name_to(Some(new_exports_info_id));
     }
     new_exports_info_id
   }
 
-  pub fn set_has_use_info(info: &ExportInfo, mg: &mut ModuleGraph) {
-    let info = info.as_data_mut(mg);
-    if !info.has_use_in_runtime_info() {
-      info.set_has_use_in_runtime_info(true);
+  pub fn set_has_use_info(&mut self, nested_exports_info: &mut Vec<ExportsInfo>) {
+    if !self.has_use_in_runtime_info() {
+      self.set_has_use_in_runtime_info(true);
     }
-    if info.can_mangle_use().is_none() {
-      info.set_can_mangle_use(Some(true));
+    if self.can_mangle_use().is_none() {
+      self.set_can_mangle_use(Some(true));
     }
-    if info.exports_info_owned()
-      && let Some(exports_info) = info.exports_info()
+    if self.exports_info_owned()
+      && let Some(exports_info) = self.exports_info()
     {
-      exports_info.set_has_use_info(mg);
+      nested_exports_info.push(exports_info);
     }
   }
 }

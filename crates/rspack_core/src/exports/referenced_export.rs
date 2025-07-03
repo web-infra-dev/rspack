@@ -1,7 +1,7 @@
-use rspack_collections::UkeySet;
 use rspack_util::atom::Atom;
+use rustc_hash::FxHashSet;
 
-use crate::{ExportInfo, ExportInfoData, ExportInfoGetter, ModuleGraph, RuntimeSpec, UsageState};
+use crate::{ExportInfo, ExportInfoData, ModuleGraph, RuntimeSpec, UsageState};
 
 /// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
 #[derive(Clone, Debug)]
@@ -71,32 +71,30 @@ pub fn collect_referenced_export_items<'a>(
   prefix: Vec<&'a Atom>,
   export_info: Option<&'a ExportInfoData>,
   default_points_to_self: bool,
-  already_visited: &mut UkeySet<ExportInfo>,
+  already_visited: &mut FxHashSet<ExportInfo>,
 ) {
   if let Some(export_info) = export_info {
-    let used = ExportInfoGetter::get_used(export_info, runtime);
+    let export_info_id = export_info.id();
+    let used = export_info.get_used(runtime);
     if used == UsageState::Unused {
       return;
     }
-    if already_visited.contains(&export_info.id()) {
+    if already_visited.contains(&export_info_id) {
       referenced_export.push(prefix);
       return;
     }
-    already_visited.insert(export_info.id());
     // FIXME: more branch
     if used != UsageState::OnlyPropertiesUsed {
-      already_visited.remove(&export_info.id());
       referenced_export.push(prefix);
       return;
     }
+    already_visited.insert(export_info_id);
     if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
       &export_info
         .exports_info()
         .expect("should have exports info"),
     ) {
-      for export_info in exports_info.exports() {
-        let export_info = export_info.as_data(module_graph);
-
+      for export_info in exports_info.exports().values() {
         collect_referenced_export_items(
           module_graph,
           runtime,

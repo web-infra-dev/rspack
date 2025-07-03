@@ -1072,7 +1072,7 @@ impl Stats<'_> {
       {
         let module_graph = self.compilation.get_module_graph();
         let exports_info = module_graph
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
         let used_exports = exports_info.get_used_exports(None);
         match used_exports {
           UsedExports::Unknown => Some(StatsUsedExports::Null),
@@ -1089,7 +1089,7 @@ impl Stats<'_> {
         if !executed && self.compilation.options.optimization.provided_exports {
           let module_graph = self.compilation.get_module_graph();
           let exports_info = module_graph
-            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::AllExports);
+            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
           let provided_exports = exports_info.get_provided_exports();
           match provided_exports {
             ProvidedExports::ProvidedNames(v) => Some(v),

@@ -441,10 +441,8 @@ impl CommonJsExportsDependencyTemplate {
         names,
       )
     } else {
-      let exports_info = module_graph.get_prefetched_exports_info(
-        &module.identifier(),
-        PrefetchExportsInfoMode::NamedNestedExports(names),
-      );
+      let exports_info = module_graph
+        .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Nested(names));
       ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), *runtime, names)
     }
   }

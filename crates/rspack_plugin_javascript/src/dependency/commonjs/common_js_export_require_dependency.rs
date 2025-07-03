@@ -6,12 +6,11 @@ use rspack_cacheable::{
 use rspack_core::{
   collect_referenced_export_items, module_raw, property_access, to_normal_comment,
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportInfoGetter,
-  ExportNameOrSpec, ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
-  PrefetchExportsInfoMode, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
+  ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -70,10 +69,8 @@ impl CommonJsExportRequireDependency {
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
     let ids = self.get_ids(mg);
-    let mut imported_exports_info = Some(mg.get_prefetched_exports_info(
-      imported_module,
-      PrefetchExportsInfoMode::NamedNestedAllExports(ids),
-    ));
+    let mut imported_exports_info =
+      Some(mg.get_prefetched_exports_info(imported_module, PrefetchExportsInfoMode::Nested(ids)));
 
     if !ids.is_empty() {
       let Some(nested_exports_info) = &imported_exports_info else {
@@ -84,14 +81,14 @@ impl CommonJsExportRequireDependency {
         .map(|data| data.id());
 
       imported_exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
+        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
     }
 
     let mut exports_info = Some(
       mg.get_prefetched_exports_info(
         mg.get_parent_module(&self.id)
           .expect("Should get parent module"),
-        PrefetchExportsInfoMode::NamedNestedAllExports(&self.names),
+        PrefetchExportsInfoMode::Nested(&self.names),
       ),
     );
 
@@ -103,7 +100,7 @@ impl CommonJsExportRequireDependency {
         .get_nested_exports_info(Some(&self.names))
         .map(|data| data.id());
       exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::AllExports));
+        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
     };
 
     let no_extra_exports = imported_exports_info.as_ref().is_some_and(|data| {
@@ -113,7 +110,7 @@ impl CommonJsExportRequireDependency {
 
     let no_extra_imports = exports_info.as_ref().is_some_and(|data| {
       matches!(
-        ExportInfoGetter::get_used(data.other_exports_info(), runtime),
+        data.other_exports_info().get_used(runtime),
         UsageState::Unused
       )
     });
@@ -137,10 +134,7 @@ impl CommonJsExportRequireDependency {
       };
       for (_, export_info) in exports_info.exports() {
         let name = export_info.name();
-        if matches!(
-          ExportInfoGetter::get_used(export_info, runtime),
-          UsageState::Unused
-        ) {
+        if matches!(export_info.get_used(runtime), UsageState::Unused) {
           continue;
         }
         if let Some(name) = name {
@@ -175,7 +169,7 @@ impl CommonJsExportRequireDependency {
           }
           if let Some(exports_info) = &exports_info {
             let export_info = exports_info.get_read_only_export_info(name);
-            let used = ExportInfoGetter::get_used(export_info, runtime);
+            let used = export_info.get_used(runtime);
             if matches!(used, UsageState::Unused) {
               continue;
             }
@@ -317,12 +311,12 @@ impl Dependency for CommonJsExportRequireDependency {
     let mut exports_info = mg.get_prefetched_exports_info(
       mg.get_parent_module(&self.id)
         .expect("Can not get parent module"),
-      PrefetchExportsInfoMode::NamedNestedAllExports(&self.names),
+      PrefetchExportsInfoMode::Nested(&self.names),
     );
 
     for name in &self.names {
       let export_info = exports_info.get_read_only_export_info(name);
-      let used = ExportInfoGetter::get_used(export_info, runtime);
+      let used = export_info.get_used(runtime);
       if matches!(used, UsageState::Unused) {
         return vec![ExtendedReferencedExport::Array(vec![])];
       }
@@ -337,7 +331,7 @@ impl Dependency for CommonJsExportRequireDependency {
     }
 
     if !matches!(
-      ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime),
+      exports_info.other_exports_info().get_used(runtime),
       UsageState::Unused
     ) {
       return get_full_result();
@@ -486,7 +480,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     } else {
       let exports_info = mg.get_prefetched_exports_info(
         &module.identifier(),
-        PrefetchExportsInfoMode::NamedNestedExports(&dep.names),
+        PrefetchExportsInfoMode::Nested(&dep.names),
       );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&exports_info),
@@ -514,9 +508,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
           &imported_module.identifier(),
           if ids.is_empty() {
-            PrefetchExportsInfoMode::AllExports
+            PrefetchExportsInfoMode::Default
           } else {
-            PrefetchExportsInfoMode::NamedNestedExports(ids)
+            PrefetchExportsInfoMode::Nested(ids)
           },
         )),
         *runtime,

@@ -1,0 +1,32 @@
+[package]
+description       = "rspack node builder testing"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_binding_builder_testing"
+repository        = "https://github.com/web-infra-dev/rspack"
+version           = "0.2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+
+[package.metadata.cargo-shear]
+# `napi-derive` uses absolute path to `napi`
+ignored = ["napi"]
+
+[features]
+plugin = ["rspack_binding_builder/plugin"]
+
+[dependencies]
+rspack_binding_builder        = { workspace = true }
+rspack_binding_builder_macros = { workspace = true }
+
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_napi  = { workspace = true }
+
+napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
+napi-derive = { workspace = true, features = ["compat-mode"] }
+
+[build-dependencies]
+rspack_binding_build = { workspace = true }

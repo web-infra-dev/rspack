@@ -9,7 +9,6 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
-use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use crate::parser_plugin::JS_DEFAULT_KEYWORD;
@@ -181,10 +180,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
-          &module_identifier,
-          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
-        )),
+        GetUsedNameParam::WithNames(
+          &mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
+        ),
         *runtime,
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) && let UsedName::Normal(used) = used
@@ -221,10 +219,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           if supports_const { "const" } else { "var" }
         )
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
-          &module_identifier,
-          PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&*JS_DEFAULT_KEYWORD])),
-        )),
+        GetUsedNameParam::WithNames(
+          &mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
+        ),
         *runtime,
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) {

@@ -369,7 +369,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         } else {
           let exports_info = module_graph.get_prefetched_exports_info(
             con.module_identifier(),
-            PrefetchExportsInfoMode::NamedNestedExports(ids),
+            PrefetchExportsInfoMode::Nested(ids),
           );
           ExportsInfoGetter::get_used_name(
             GetUsedNameParam::WithNames(&exports_info),
@@ -474,7 +474,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         let Some(new_name) = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&module_graph.get_prefetched_exports_info(
             &module.identifier(),
-            PrefetchExportsInfoMode::NamedNestedExports(&concated_ids),
+            PrefetchExportsInfoMode::Nested(&concated_ids),
           )),
           code_generatable_context.runtime,
           &concated_ids,

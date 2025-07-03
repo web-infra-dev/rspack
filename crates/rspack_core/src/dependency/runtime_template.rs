@@ -217,7 +217,7 @@ pub fn export_from_import(
     let used_name = match ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
         &module_identifier,
-        PrefetchExportsInfoMode::NamedNestedExports(export_name),
+        PrefetchExportsInfoMode::Nested(export_name),
       )),
       *runtime,
       export_name,

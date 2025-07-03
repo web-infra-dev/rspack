@@ -431,7 +431,7 @@ impl ExternalModule {
 
           if let Some(concatenation_scope) = concatenation_scope {
             let exports_info = module_graph
-              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::AllExports);
+              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
             let used_exports = exports_info.get_used_exports(runtime);
             let meta = &self.dependency_meta.attributes;
             let attributes = meta.as_ref().map(|meta| {

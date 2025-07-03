@@ -12,7 +12,6 @@ use rspack_core::{
   ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
   SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 /// Creates `_webpack_require__.d(__webpack_exports__, {})` for each export specifier.
@@ -216,7 +215,7 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
         let export_name = &[dep.name.clone(), enum_key.clone()];
         let exports_info = module_graph.get_prefetched_exports_info(
           &module.identifier(),
-          PrefetchExportsInfoMode::NamedNestedExports(export_name),
+          PrefetchExportsInfoMode::Nested(export_name),
         );
         let enum_member_used_name = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),
@@ -230,12 +229,8 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
       }
     }
 
-    // Get export usage information with proper prefetching
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &module.identifier(),
-      PrefetchExportsInfoMode::NamedExports(FxHashSet::from_iter([&dep.name])),
-    );
-
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let used_name = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),
       *runtime,
@@ -255,7 +250,8 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
           format!(
             "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
             share_key, dep.name, dep.value
-          ).into()
+          )
+          .into()
         } else {
           dep.value.clone()
         };
@@ -269,7 +265,7 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
               let export_name = &[dep.name.clone(), enum_key.clone()];
               let exports_info = module_graph.get_prefetched_exports_info(
                 &module.identifier(),
-                PrefetchExportsInfoMode::NamedNestedExports(export_name),
+                PrefetchExportsInfoMode::Nested(export_name),
               );
               let enum_member_used_name = ExportsInfoGetter::get_used_name(
                 GetUsedNameParam::WithNames(&exports_info),
@@ -280,17 +276,21 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
                 && !used_vec.is_empty()
               {
                 let enum_member_used_atom = used_vec.last().expect("should have last");
-                
+
                 // Generate enum member export with ConsumeShared macro
                 let enum_export_content = if let Some(ref share_key) = consume_shared_info {
                   format!(
                     "/* @common:if [condition=\"treeShake.{}.{}.{}\"] */ {} /* @common:endif */",
-                    share_key, dep.name, enum_key, enum_member.to_string()
-                  ).into()
+                    share_key,
+                    dep.name,
+                    enum_key,
+                    enum_member.to_string()
+                  )
+                  .into()
                 } else {
                   enum_member.to_string().into()
                 };
-                
+
                 exports.push((enum_member_used_atom.clone(), enum_export_content));
               }
             }
@@ -339,7 +339,7 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
               let export_name = &[dep.name.clone(), enum_key.clone()];
               let exports_info = module_graph.get_prefetched_exports_info(
                 &module.identifier(),
-                PrefetchExportsInfoMode::NamedNestedExports(export_name),
+                PrefetchExportsInfoMode::Nested(export_name),
               );
               let enum_member_used_name = ExportsInfoGetter::get_used_name(
                 GetUsedNameParam::WithNames(&exports_info),
@@ -357,7 +357,10 @@ impl DependencyTemplate for ESMExportSpecifierDependency {
 
           init_fragments.push(Box::new(ESMExportInitFragment::new(
             module.get_exports_argument(),
-            enum_exports.into_iter().map(|(k, v)| (k, v.into())).collect(),
+            enum_exports
+              .into_iter()
+              .map(|(k, v)| (k, v.into()))
+              .collect(),
           )));
         }
       }
