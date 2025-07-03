@@ -290,7 +290,11 @@ impl EsmLibraryPlugin {
     }
 
     // deconflict top level symbols
-    for id in &chunk_link.hoisted_modules {
+    for id in chunk_link
+      .hoisted_modules
+      .iter()
+      .chain(chunk_link.decl_modules.iter())
+    {
       let module = module_graph
         .module_by_identifier(id)
         .expect("should have module");
@@ -327,53 +331,54 @@ impl EsmLibraryPlugin {
         info.set_interop_default_access_name(Some(external_name_interop.clone()));
       }
 
-      let mut internal_names = FxHashMap::default();
-      let concate_info = info.as_concatenated();
+      if let ModuleInfo::Concatenated(concate_info) = info {
+        let mut internal_names = FxHashMap::default();
 
-      for (atom, ctxt) in concate_info.binding_to_ref.keys() {
-        // only need to handle top level scope
-        if ctxt != &concate_info.module_ctxt {
-          continue;
+        for (atom, ctxt) in concate_info.binding_to_ref.keys() {
+          // only need to handle top level scope
+          if ctxt != &concate_info.module_ctxt {
+            continue;
+          }
+
+          if all_used_names.contains(atom) {
+            let new_name = find_new_name(atom, &all_used_names, &vec![]);
+            all_used_names.insert(new_name.clone());
+            internal_names.insert(atom.clone(), new_name);
+          } else {
+            all_used_names.insert(atom.clone());
+            internal_names.insert(atom.clone(), atom.clone());
+          }
         }
 
-        if all_used_names.contains(atom) {
-          let new_name = find_new_name(atom, &all_used_names, &vec![]);
-          all_used_names.insert(new_name.clone());
-          internal_names.insert(atom.clone(), new_name);
-        } else {
-          all_used_names.insert(atom.clone());
-          internal_names.insert(atom.clone(), atom.clone());
-        }
-      }
+        concate_info.internal_names = internal_names;
 
-      let concate_info = info.as_concatenated_mut();
-      concate_info.internal_names = internal_names;
-
-      // Handle the name passed through by namespace_export_symbol
-      if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol
-        && namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
-        && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
-      {
-        let name = Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
-        all_used_names.insert(name.clone());
-        concate_info
-          .internal_names
-          .insert(namespace_export_symbol.clone(), name.clone());
-      }
-
-      // Handle namespaceObjectName for concatenated type
-      let namespace_object_name =
-        if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
+        // Handle the name passed through by namespace_export_symbol
+        if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol
+          && namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+          && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+        {
+          let name =
+            Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
+          all_used_names.insert(name.clone());
           concate_info
             .internal_names
-            .get(namespace_export_symbol)
-            .cloned()
-        } else {
-          Some(find_new_name("namespaceObject", &all_used_names, &vec![]))
-        };
-      if let Some(namespace_object_name) = namespace_object_name {
-        all_used_names.insert(namespace_object_name.clone());
-        concate_info.namespace_object_name = Some(namespace_object_name.clone());
+            .insert(namespace_export_symbol.clone(), name.clone());
+        }
+
+        // Handle namespaceObjectName for concatenated type
+        let namespace_object_name =
+          if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
+            concate_info
+              .internal_names
+              .get(namespace_export_symbol)
+              .cloned()
+          } else {
+            Some(find_new_name("namespaceObject", &all_used_names, &vec![]))
+          };
+        if let Some(namespace_object_name) = namespace_object_name {
+          all_used_names.insert(namespace_object_name.clone());
+          concate_info.namespace_object_name = Some(namespace_object_name.clone());
+        }
       }
     }
 
@@ -601,38 +606,6 @@ impl EsmLibraryPlugin {
       orig_concate_modules_map.insert(m.id(), m);
     }
 
-    let module_graph = compilation.get_module_graph();
-    let concate_modules_map = orig_concate_modules_map;
-
-    concate_modules_map.iter_mut().for_each(|(id, info)| {
-      let module = module_graph
-        .module_by_identifier(id)
-        .expect("should have module");
-      let readable_identifier = module.readable_identifier(&compilation.options.context);
-      let exports_type = module.build_meta().exports_type;
-      let default_object = module.build_meta().default_object;
-      // Handle additional logic based on module build meta
-      if exports_type != BuildMetaExportsType::Namespace {
-        let external_name_interop: Atom = "namespaceObject".into();
-        info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
-      }
-
-      if exports_type == BuildMetaExportsType::Default
-        && !matches!(default_object, BuildMetaDefaultObject::Redirect)
-      {
-        let external_name_interop: Atom = "namespaceObject2".into();
-        info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
-      }
-
-      if matches!(
-        exports_type,
-        BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
-      ) {
-        let external_name_interop: Atom = format!("{readable_identifier}_default").into();
-        info.set_interop_default_access_name(Some(external_name_interop.clone()));
-      }
-    });
-
     Ok(())
   }
 
@@ -731,7 +704,48 @@ impl EsmLibraryPlugin {
       let mut refs = FxIndexMap::default();
       let needed_namespace_objects = needed_namespace_objects_by_ukey.entry(*chunk).or_default();
 
+      // if one chunk has multiple modules that require the same
+      // module, the first module require imported module, the
+      // followings should not require the module again.
+      //
+      // ```js
+      // const foo = __webpack_require__('foo')
+      // foo; // access foo
+      // foo; // access foo again, but no require call
+      // ```
       for m in chunk_link.hoisted_modules.clone() {
+        let module = module_graph
+          .module_by_identifier(&m)
+          .expect("should have module");
+        for dep in module.get_dependencies() {
+          let Some(conn) = module_graph.connection_by_dependency_id(dep) else {
+            continue;
+          };
+          if !conn.is_target_active(
+            &module_graph,
+            None,
+            &compilation.module_graph_cache_artifact,
+          ) {
+            continue;
+          }
+
+          let outgoing_module_info = concate_modules_map
+            .get(conn.module_identifier())
+            .expect("should have module info");
+          if matches!(outgoing_module_info, ModuleInfo::External(_)) {
+            let required_modules = required.entry(*chunk).or_default();
+            required_modules
+              .entry(*conn.module_identifier())
+              .or_insert(ExternalInterop {
+                from_module: m,
+                required_symbol: None,
+                default_access: None,
+                namespace_object: None,
+                namespace_object2: None,
+              });
+          }
+        }
+
         let codegen_res = compilation.code_generation_results.get(&m, None);
         let concatenation_scope = codegen_res
           .concatenation_scope
@@ -833,18 +847,32 @@ impl EsmLibraryPlugin {
 
         // Symbol is from external module
         // eg.
-        // var symbol = __webpack_require__('');
+        // var symbol = __webpack_require__('foo');
         // symbol.foo;
         if from_external {
           imports.entry(*chunk).or_default(); // make sure we imported this chunk, so that runtime can register this module
           let required_modules = required.entry(*chunk).or_default();
-          let require_info = required_modules.entry(m).or_default();
+
+          let require_info = required_modules
+            .get_mut(&m)
+            .expect("should have external_info");
 
           let new_name = if Self::is_interop_name(m, &symbol, concate_modules_map) {
             // the symbol is caused by interop
             // eg.
             // var symbol = __webpack_require__('');
             // var symbol_default = __webpack_require__.n(symbol)
+            if require_info.required_symbol.is_none() {
+              // initialize require
+              let new_symbol = find_new_name(
+                info.as_external().name.as_ref().expect("should have name"),
+                &all_used_names,
+                &vec![],
+              );
+              all_used_names.insert(new_symbol.clone());
+              require_info.required_symbol = Some(new_symbol.clone());
+            }
+
             let new_name = if all_used_names.contains(&symbol) {
               let new_name = find_new_name(&symbol, all_used_names, &vec![]);
               all_used_names.insert(new_name.clone());
@@ -869,6 +897,8 @@ impl EsmLibraryPlugin {
             }
 
             new_name
+          } else if let Some(ref name) = require_info.required_symbol {
+            name.clone()
           } else {
             // required symbol, eg.
             // const foo = __webpack_require__('foo')
@@ -877,6 +907,7 @@ impl EsmLibraryPlugin {
               .name
               .clone()
               .expect("should have set external name");
+
             let name = if all_used_names.contains(&name) {
               let new_name = find_new_name(&name, all_used_names, &vec![name.to_string()]);
               all_used_names.insert(new_name.clone());
@@ -884,7 +915,7 @@ impl EsmLibraryPlugin {
             } else {
               name
             };
-            require_info.required_symbol = name.clone();
+            require_info.required_symbol = Some(name.clone());
             name
           };
 

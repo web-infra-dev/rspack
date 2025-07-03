@@ -5,8 +5,8 @@ use rspack_core::{
   get_js_chunk_filename_template, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, SourceExt},
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
-  Compilation, ConcatenatedModuleInfo, ConcatenationScope, InitFragment, ModuleInfo, PathData,
-  PathInfo, Ref, RuntimeGlobals, SourceType, SpanExt,
+  Compilation, ConcatenatedModuleInfo, ConcatenationScope, InitFragment, ModuleIdentifier,
+  ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals, SourceType, SpanExt,
 };
 use rspack_error::{error, Result};
 use rspack_plugin_javascript::{
@@ -137,9 +137,6 @@ impl EsmLibraryPlugin {
     // modules that are not scope hoisted, store in runtime
     let mut decl_source = ConcatSource::default();
 
-    // interop related
-    let mut decl_source_extra = ConcatSource::default();
-
     if !decl_modules.is_empty() {
       // use Object.assign to register module to __webpack_modules__ object
       // so that other module can use __webpack_require__ to load it
@@ -160,8 +157,6 @@ impl EsmLibraryPlugin {
 
       decl_source.add(RawSource::from_static("});\n"));
     }
-
-    Self::render_external_required(compilation, &mut decl_source_extra, chunk_link);
 
     // present as
     // a.js -> (imported symbol, local symbol)
@@ -227,6 +222,7 @@ impl EsmLibraryPlugin {
         )));
       }
 
+      render_source.add(Self::render_external_required(*m, compilation, chunk_link));
       render_source.add(source);
       render_source.add(RawSource::from_static("\n"));
     }
@@ -297,8 +293,6 @@ impl EsmLibraryPlugin {
     }
 
     final_source.add(decl_source);
-
-    final_source.add(decl_source_extra);
 
     final_source.add(render_source);
 
@@ -422,50 +416,69 @@ impl EsmLibraryPlugin {
   }
 
   pub fn render_external_required(
+    root: ModuleIdentifier,
     compilation: &Compilation,
-    render_source: &mut ConcatSource,
     chunk_link: &ChunkLinkContext,
-  ) {
+  ) -> ConcatSource {
+    let mut source = ConcatSource::default();
+
     for (id, interop_info) in &chunk_link.required {
-      let name = &interop_info.required_symbol;
-
-      render_source.add(RawStringSource::from(format!(
-        "const {} = __webpack_require__({});\n",
-        name,
-        serde_json::to_string(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id)
-            .expect("should set module id")
-            .as_str()
-        )
-        .expect("module id to string should success")
-      )));
-
-      if let Some(namespace_object) = &interop_info.namespace_object {
-        render_source.add(RawStringSource::from(format!(
-          "\nvar {} = /*#__PURE__*/{}({}, 2);",
-          namespace_object,
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-          name
-        )));
+      if interop_info.from_module != root {
+        continue;
       }
 
-      if let Some(namespace_object) = &interop_info.namespace_object2 {
-        render_source.add(RawStringSource::from(format!(
-          "\nvar {} = /*#__PURE__*/{}({});",
-          namespace_object,
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-          name
-        )));
-      }
+      let name = interop_info.required_symbol.as_ref();
 
-      if let Some(default_access) = &interop_info.default_access {
-        render_source.add(RawStringSource::from(format!(
-          "\nvar {} = /*#__PURE__*/{}({});",
-          default_access,
-          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
-          name
+      if let Some(name) = name {
+        source.add(RawStringSource::from(format!(
+          "const {name} = __webpack_require__({});\n",
+          serde_json::to_string(
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id)
+              .expect("should set module id")
+              .as_str()
+          )
+          .expect("module id to string should success")
+        )));
+
+        if let Some(namespace_object) = &interop_info.namespace_object {
+          source.add(RawStringSource::from(format!(
+            "var {} = /*#__PURE__*/{}({}, 2);\n",
+            namespace_object,
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            name
+          )));
+        }
+
+        if let Some(namespace_object) = &interop_info.namespace_object2 {
+          source.add(RawStringSource::from(format!(
+            "var {} = /*#__PURE__*/{}({});\n",
+            namespace_object,
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            name
+          )));
+        }
+
+        if let Some(default_access) = &interop_info.default_access {
+          source.add(RawStringSource::from(format!(
+            "var {} = /*#__PURE__*/{}({});\n",
+            default_access,
+            RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+            name
+          )));
+        }
+      } else {
+        source.add(RawStringSource::from(format!(
+          "__webpack_require__({});\n",
+          serde_json::to_string(
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id)
+              .expect("should set module id")
+              .as_str()
+          )
+          .expect("module id to string should success")
         )));
       }
     }
+
+    source
   }
 }
