@@ -13,9 +13,9 @@ use rspack_core::{
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
-  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportInfoGetter,
-  ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
+  ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
+  ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
   ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, ProvidedExports,
   RuntimeCondition, RuntimeSpec, SourceType,
 };
@@ -852,13 +852,12 @@ impl ModuleConcatenationPlugin {
         }
 
         let exports_info =
-          module_graph.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::AllExports);
+          module_graph.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
-            ExportInfoGetter::is_reexport(export_info)
-              && get_target(export_info, &module_graph).is_none()
+            export_info.is_reexport() && get_target(export_info, &module_graph).is_none()
           })
           .copied()
           .collect::<Vec<_>>();
@@ -870,11 +869,7 @@ impl ModuleConcatenationPlugin {
                 .name()
                 .map(|name| name.to_string())
                 .unwrap_or("other exports".to_string());
-              format!(
-                "{} : {}",
-                name,
-                ExportInfoGetter::get_used_info(export_info)
-              )
+              format!("{} : {}", name, export_info.get_used_info())
             })
             .collect::<Vec<String>>()
             .join(", ");
@@ -908,8 +903,8 @@ impl ModuleConcatenationPlugin {
               format!(
                 "{} : {} and {}",
                 name,
-                ExportInfoGetter::get_provided_info(export_info),
-                ExportInfoGetter::get_used_info(export_info),
+                export_info.get_provided_info(),
+                export_info.get_used_info(),
               )
             })
             .collect::<Vec<String>>()
@@ -996,7 +991,7 @@ impl ModuleConcatenationPlugin {
         let exports_info_data = ExportsInfoGetter::prefetch(
           &exports_info,
           &module_graph,
-          PrefetchExportsInfoMode::AllExports,
+          PrefetchExportsInfoMode::Default,
         );
         let provided_names = matches!(
           exports_info_data.get_provided_exports(),
@@ -1069,11 +1064,9 @@ impl ModuleConcatenationPlugin {
       let exports_info_data = ExportsInfoGetter::prefetch(
         &exports_info,
         &module_graph,
-        PrefetchExportsInfoMode::AllExports,
+        PrefetchExportsInfoMode::Default,
       );
-      let filtered_runtime = filter_runtime(Some(runtime), |r| {
-        ExportsInfoGetter::is_module_used(&exports_info_data, r)
-      });
+      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info_data.is_module_used(r));
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(runtime.clone()),
         RuntimeCondition::Boolean(false) => None,

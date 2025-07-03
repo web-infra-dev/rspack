@@ -6,8 +6,8 @@ use rspack_core::{
   to_identifier, ApplyContext, BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames,
   Compilation, CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation,
   CompilerFinishMake, CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions,
-  DependenciesBlock, Dependency, DependencyId, ExportInfoGetter, LibraryOptions, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
+  DependenciesBlock, Dependency, DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier,
+  Plugin, PluginContext, PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -173,12 +173,12 @@ async fn render_startup(
     .map(|d: &CodeGenerationExportsFinalNames| d.inner())
   {
     let exports_info =
-      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::AllExports);
+      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
     for (_, export_info) in exports_info.exports() {
       let info_name = export_info.name().expect("should have name");
-      let used_name =
-        ExportInfoGetter::get_used_name(export_info, Some(info_name), Some(chunk.runtime()))
-          .expect("name can't be empty");
+      let used_name = export_info
+        .get_used_name(Some(info_name), Some(chunk.runtime()))
+        .expect("name can't be empty");
 
       let used_name = match used_name {
         UsedNameItem::Inlined(inlined) => {

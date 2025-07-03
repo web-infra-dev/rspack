@@ -1651,6 +1651,7 @@ export type TTestConfig<T extends ECompilerType> = {
     modules?: Record<string, Object>;
     timeout?: number;
     concurrent?: boolean;
+    snapshotContent?(content: string): string;
     checkSteps?: boolean;
 };
 

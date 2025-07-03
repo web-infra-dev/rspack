@@ -39,7 +39,7 @@
     "@types/semver": "^7.7.0",
     "cspell-ban-words": "0.0.4",
     "heading-case": "^0.1.6",
-    "prettier": "3.5.3",
+    "prettier": "3.6.2",
     "rsbuild-plugin-google-analytics": "1.0.3",
     "rsbuild-plugin-open-graph": "1.0.2",
     "rspress": "2.0.0-beta.12",

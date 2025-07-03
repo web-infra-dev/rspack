@@ -10,7 +10,9 @@ use rspack_collections::UkeyMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use rustc_hash::FxHashMap;
+use tracing::instrument;
 
 use crate::{common::FallbackCacheGroup, module_group::ModuleGroup, CacheGroup, SplitChunkSizes};
 
@@ -39,7 +41,7 @@ impl SplitChunksPlugin {
       options.hide_path_info.unwrap_or(false),
     )
   }
-
+  #[instrument(name = "Compilation:SplitChunks",target=TRACING_BENCH_TARGET, skip_all)]
   async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");

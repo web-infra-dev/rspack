@@ -50,10 +50,10 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DependenciesBlock,
-  DependencyId, DependencyType, ErrorSpan, ExportInfoGetter, ExportProvided, ExportsArgument,
-  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
-  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  DependencyId, DependencyType, ErrorSpan, ExportProvided, ExportsArgument, ExportsInfoGetter,
+  ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage,
+  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName, UsedNameItem,
   DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
@@ -188,7 +188,7 @@ pub struct ConcatenatedModuleInfo {
   pub module_ctxt: SyntaxContext,
   pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
-  pub ast: Option<Ast>,
+  pub has_ast: bool,
   pub source: Option<ReplaceSource<Arc<dyn Source>>>,
   pub internal_source: Option<Arc<dyn Source>>,
   pub internal_names: HashMap<Atom, Atom>,
@@ -712,7 +712,7 @@ impl Module for ConcatenatedModule {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
         continue;
       };
-      if info.ast.is_some() {
+      if info.has_ast {
         all_used_names.extend(info.all_used_names.clone());
       }
     }
@@ -805,7 +805,6 @@ impl Module for ConcatenatedModule {
                   .get(name.as_str())
                   .expect("should have escaped name"),
                 &all_used_names,
-                None,
                 escaped_identifiers
                   .get(&readable_identifier)
                   .expect("should have escaped identifier"),
@@ -862,7 +861,6 @@ impl Module for ConcatenatedModule {
                     find_new_name(
                       "",
                       &all_used_names,
-                      None,
                       escaped_identifiers
                         .get(source)
                         .expect("should have escaped identifier"),
@@ -873,7 +871,6 @@ impl Module for ConcatenatedModule {
                         .get(atom.as_str())
                         .expect("should have escaped name"),
                       &all_used_names,
-                      None,
                       escaped_identifiers
                         .get(&readable_identifier)
                         .expect("should have escaped identifier"),
@@ -928,7 +925,6 @@ impl Module for ConcatenatedModule {
               Some(find_new_name(
                 "namespaceObject",
                 &all_used_names,
-                None,
                 escaped_identifiers
                   .get(&readable_identifier)
                   .expect("should have escaped identifier"),
@@ -951,7 +947,6 @@ impl Module for ConcatenatedModule {
           let external_name: Atom = find_new_name(
             "",
             &all_used_names,
-            None,
             escaped_identifiers
               .get(&readable_identifier)
               .expect("should have escaped identifier"),
@@ -966,7 +961,6 @@ impl Module for ConcatenatedModule {
         let external_name_interop: Atom = find_new_name(
           "namespaceObject",
           &all_used_names,
-          None,
           escaped_identifiers
             .get(&readable_identifier)
             .expect("should have escaped identifier"),
@@ -982,7 +976,6 @@ impl Module for ConcatenatedModule {
         let external_name_interop: Atom = find_new_name(
           "namespaceObject2",
           &all_used_names,
-          None,
           escaped_identifiers
             .get(&readable_identifier)
             .expect("should have escaped identifier"),
@@ -999,7 +992,6 @@ impl Module for ConcatenatedModule {
         let external_name_interop: Atom = find_new_name(
           "default",
           &all_used_names,
-          None,
           escaped_identifiers
             .get(&readable_identifier)
             .expect("should have escaped identifier"),
@@ -1110,8 +1102,8 @@ impl Module for ConcatenatedModule {
       .expect("should have box module");
     let strict_esm_module = root_module.build_meta().strict_esm_module;
 
-    let exports_info = module_graph
-      .get_prefetched_exports_info(&root_module_id, PrefetchExportsInfoMode::AllExports);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(&root_module_id, PrefetchExportsInfoMode::Default);
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for (_, export_info) in exports_info.exports() {
@@ -1119,7 +1111,7 @@ impl Module for ConcatenatedModule {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
-      let used_name = ExportInfoGetter::get_used_name(export_info, None, runtime);
+      let used_name = export_info.get_used_name(None, runtime);
 
       let Some(used_name) = used_name else {
         unused_exports.insert(name);
@@ -1148,7 +1140,7 @@ impl Module for ConcatenatedModule {
         exports_final_names.push((used_name.to_string(), final_name.name.clone()));
         format!(
           "/* {} */ {}",
-          if ExportInfoGetter::is_reexport(export_info) {
+          if export_info.is_reexport() {
             "reexport"
           } else {
             "binding"
@@ -1209,7 +1201,7 @@ impl Module for ConcatenatedModule {
 
     let exports_info =
       module_graph.get_prefetched_exports_info(&self.id(), PrefetchExportsInfoMode::Default);
-    let used = ExportInfoGetter::get_used(exports_info.other_exports_info(), runtime);
+    let used = exports_info.other_exports_info().get_used(runtime);
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
     if used != UsageState::Unused {
       should_add_esm_flag = true
@@ -1318,15 +1310,13 @@ impl Module for ConcatenatedModule {
 
         let mut ns_obj = Vec::new();
         let exports_info = module_graph
-          .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::AllExports);
+          .get_prefetched_exports_info(module_info_id, PrefetchExportsInfoMode::Default);
         for (_, export_info) in exports_info.exports() {
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             continue;
           }
 
-          if let Some(UsedNameItem::Str(used_name)) =
-            ExportInfoGetter::get_used_name(export_info, None, runtime)
-          {
+          if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
             let final_name = Self::get_final_name(
               &compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
@@ -2079,7 +2069,7 @@ impl ConcatenatedModule {
       }
       module_info.binding_to_ref = binding_to_ref;
       let result_source = ReplaceSource::new(source.clone());
-      module_info.ast = Some(ast);
+      module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
@@ -2388,10 +2378,8 @@ impl ConcatenatedModule {
       }
     }
 
-    let exports_info = mg.get_prefetched_exports_info(
-      &info.id(),
-      PrefetchExportsInfoMode::NamedNestedExports(&export_name),
-    );
+    let exports_info =
+      mg.get_prefetched_exports_info(&info.id(), PrefetchExportsInfoMode::Nested(&export_name));
     // webpack use `get_exports_info` here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase, so we use `get_export_info_without_mut_module_graph` instead.`
     let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
@@ -2653,12 +2641,7 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
     .collect()
 }
 
-pub fn find_new_name(
-  old_name: &str,
-  used_names1: &HashSet<Atom>,
-  used_names2: Option<&HashSet<Atom>>,
-  extra_info: &Vec<String>,
-) -> Atom {
+pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {
   let mut name = old_name.to_string();
 
   for info_part in extra_info {
@@ -2674,24 +2657,15 @@ pub fn find_new_name(
       }
     );
     let name_ident = Atom::from(to_identifier_with_escaped(name.clone()));
-    if !used_names1.contains(&name_ident)
-      && (used_names2.is_none()
-        || !used_names2
-          .expect("should not be none")
-          .contains(&name_ident))
-    {
+    if !used_names.contains(&name_ident) {
       return name_ident;
     }
   }
 
   let mut i = 0;
-  let name_with_number_ident = Atom::from(to_identifier_with_escaped(format!("{name}_")));
+  let name_with_number_ident = to_identifier_with_escaped(format!("{name}_"));
   let mut name_with_number = format!("{}{}", name_with_number_ident, itoa!(i)).into();
-  while used_names1.contains(&name_with_number)
-    || used_names2
-      .map(|map| map.contains(&name_with_number))
-      .unwrap_or_default()
-  {
+  while used_names.contains(&name_with_number) {
     i += 1;
     name_with_number = format!("{}{}", name_with_number_ident, itoa!(i)).into();
   }

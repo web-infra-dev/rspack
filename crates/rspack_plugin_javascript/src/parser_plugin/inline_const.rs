@@ -154,8 +154,7 @@ impl DependencyConditionFn for InlineValueDependencyCondition {
     if ids.is_empty() {
       return bailout;
     }
-    let exports_info =
-      mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::NamedNestedExports(ids));
+    let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
     if matches!(
       ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids),
       Some(UsedName::Inlined(_))

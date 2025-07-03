@@ -2,6 +2,7 @@ use futures::Future;
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet};
 use rspack_error::Result;
+use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -283,7 +284,7 @@ impl CodeSplittingCache {
   }
 }
 
-#[instrument(skip_all)]
+#[instrument(name = "Compilation:code_splitting",target=TRACING_BENCH_TARGET, skip_all)]
 pub(crate) async fn use_code_splitting_cache<'a, T, F>(
   compilation: &'a mut Compilation,
   task: T,

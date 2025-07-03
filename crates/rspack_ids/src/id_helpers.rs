@@ -117,11 +117,11 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn assign_deterministic_ids<T: Copy>(
+pub fn assign_deterministic_ids<T>(
   mut items: Vec<T>,
-  get_name: impl Fn(T) -> String,
+  get_name: impl Fn(&T) -> String,
   comparator: impl Fn(&T, &T) -> Ordering,
-  mut assign_id: impl FnMut(T, usize) -> bool,
+  mut assign_id: impl FnMut(&T, usize) -> bool,
   ranges: &[usize],
   expand_factor: usize,
   extra_space: usize,
@@ -145,10 +145,10 @@ pub fn assign_deterministic_ids<T: Copy>(
   }
 
   for item in items {
-    let ident = get_name(item);
+    let ident = get_name(&item);
     let mut i = salt;
     let mut id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
-    while !assign_id(item, id) {
+    while !assign_id(&item, id) {
       i += 1;
       id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
     }

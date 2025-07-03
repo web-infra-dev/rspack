@@ -7,7 +7,7 @@ _2025 年 6 月 26 日_
 
 # Rspack 1.4 发布公告
 
-![Rspack 1.4](https://assets.rspack.dev/rspack/rspack-banner-v1-4.png)
+![Rspack 1.4](https://assets.rspack.rs/rspack/rspack-banner-v1-4.png)
 
 ---
 
@@ -44,7 +44,7 @@ Rspack 1.4 已经正式发布！
 你可以直接体验我们提供的 [在线示例](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example)，也可以在 [这篇文档](/zh/guide/start/quick-start#使用-stackblitz-在线预览) 中了解 StackBlitz 的使用指南。
 
 <video
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-wasm-target.mp4"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-wasm-target.mp4"
   autoPlay
   muted
   loop
@@ -103,7 +103,7 @@ console.log(BrowserRouter, Routes, Route);
 下面是一位用户开启增量构建后的性能对比：
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-incremental-data.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-incremental-data.png"
   alt="incremental benchmark"
   width="760"
 />
@@ -204,7 +204,7 @@ RSPACK_PROFILE=OVERVIEW rspack build
 生成的 `rspack.pftrace` 文件可在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中进行可视化分析：
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-tracing.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
   alt="tracing"
 />
 
@@ -230,7 +230,7 @@ Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
 我们引入了全新的 [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) 插件，通过该插件，你可以无缝集成 Chrome DevTools 的 [自动工作区文件夹](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) (Automatic Workspace Folders) 新特性。这意味着你可以在 DevTools 中直接修改和调试源代码，并将改动保存到本地文件系统。
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
   alt="rsbuild plugin devtools json"
   width="760"
 />
@@ -256,7 +256,7 @@ console.log(rawJsx); // JSX 文件的原始内容
 以下图为例，假设 app 的构建目标为 ES2016，utils 的构建目标为 ES2021，当 `app/src/index.js` 引用 `utils/dist/index.js` 时，SWC 现在会将它降级到 ES2016。
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsbuild-monorepo-compile-scope.png"
   alt="rsbuild monorepo compile scope"
   width="600"
 />
@@ -270,7 +270,7 @@ Rslib 0.10 版本已发布，主要新增了以下功能：
 Rslib 现在默认生成更简洁清晰、体积更小的 ESM 产物。
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-esm.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rslib-esm.png"
   alt="rslib esm"
   width="700"
 />
@@ -302,7 +302,7 @@ export default defineConfig({
 Rslib 现在可以生成 [IIFE 格式](https://rslib.rs/zh/guide/basic/output-format#iife) 的产物，将代码包裹在函数表达式中。
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rslib-iife.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rslib-iife.png"
   alt="rslib iife"
   width="700"
 />
@@ -316,7 +316,7 @@ Rslib 现在可以生成 [IIFE 格式](https://rslib.rs/zh/guide/basic/output-fo
 同时，我们正在开发全新的主题，预览效果如下：
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rspress-preview.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rspress-preview.png"
   alt="rspress theme preview"
   width="800"
 />
@@ -328,7 +328,7 @@ Rsdoctor 推出了 [@rsdoctor/mcp-server](https://rsdoctor.rs/zh/guide/start/mcp
 Rsdoctor MCP 提供产物分析、依赖分析、产物优化建议和构建优化建议，能够分析产物的体积构成、依赖关系、重复依赖，并针对产物体积优化、代码分割以及构建性能提供相应的优化建议。
 
 <video
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsdoctor-mcp.mp4"
   autoPlay
   muted
   loop
@@ -341,7 +341,7 @@ Rsdoctor MCP 提供产物分析、依赖分析、产物优化建议和构建优�
 在这个月，我们发布了 Rstest 的 v0.0.3 版本，初步支持了 Node.js 和 UI 组件的测试，并在我们的 Rsbuild 等多个仓库中接入使用。
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-rstest.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rstest.png"
   alt="rstest"
   width="600"
 />
@@ -362,7 +362,7 @@ Rsdoctor MCP 提供产物分析、依赖分析、产物优化建议和构建优�
 接下来，我们计划继续推进测试覆盖率至 100%，并进一步优化 next-rspack 的性能表现。
 
 <img
-  src="https://assets.rspack.dev/rspack/assets/rspack-v1-4-next-rspack.png"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-next-rspack.png"
   alt="next-rspack"
   width="760"
 />
