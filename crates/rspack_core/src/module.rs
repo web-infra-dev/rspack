@@ -388,6 +388,10 @@ pub trait Module:
 
   fn need_build(&self) -> bool {
     !self.build_info().cacheable
+      || self
+        .diagnostics()
+        .iter()
+        .any(|item| matches!(item.severity(), rspack_error::RspackSeverity::Error))
   }
 
   fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
