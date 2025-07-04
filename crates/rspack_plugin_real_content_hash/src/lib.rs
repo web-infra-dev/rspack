@@ -116,7 +116,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   hash_list.par_sort_by(|a, b| b.len().cmp(&a.len()));
   let hash_regexp = {
     RegexBuilder::new(&hash_list.join("|"))
-      .size_limit(std::usize::MAX)
+      .size_limit(usize::MAX)
       .build()
       .expect("Invalid regex")
   };
