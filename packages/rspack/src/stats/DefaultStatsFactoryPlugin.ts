@@ -696,7 +696,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						(warnings => (map.set(compilation, warnings), warnings))(
 							compilation
 								.__internal_getInner()
-								.createStatsWarnings(compilation.getWarnings())
+								.createStatsWarnings(
+									compilation.getWarnings(),
+									!!options.colors
+								)
 						)
 					);
 				};
