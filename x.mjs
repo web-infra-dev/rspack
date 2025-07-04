@@ -8,6 +8,10 @@ import {
 	launchJestWithArgs,
 	launchRspackCli
 } from "./scripts/debug/launch.mjs";
+import {
+	createTagName,
+	getCargoVersion
+} from "./scripts/release/cargo-version.mjs";
 import { publish_handler } from "./scripts/release/publish.mjs";
 import { version_handler } from "./scripts/release/version.mjs";
 
@@ -278,6 +282,7 @@ program
 	.description("publish crate with cargo-workspaces")
 	.option("--token <token>", "The token to use for accessing the registry")
 	.option("--dry-run", "Runs in dry-run mode")
+	.option("--push-tags", "Push tags to git repository")
 	.action(async options => {
 		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`;
 
@@ -297,6 +302,29 @@ program
 		}
 
 		await $`cargo ${args}`;
+
+		// Push tags functionality
+		if (options.pushTags) {
+			try {
+				const version = getCargoVersion();
+				const tagName = createTagName(version);
+
+				console.info("Configuring git user for tag push...");
+				await $`git config --global --add safe.directory /github/workspace`;
+				await $`git config --global user.name "github-actions[bot]"`;
+				await $`git config --global user.email "github-actions[bot]@users.noreply.github.com"`;
+
+				await $`git status`;
+				console.info(`Creating and pushing tag: ${tagName}`);
+				await $`git tag ${tagName} -m ${tagName}`;
+				await $`git push origin --follow-tags`;
+
+				console.info(`Successfully pushed tag: ${tagName}`);
+			} catch (error) {
+				console.error("Error during tag push:", error);
+				throw error;
+			}
+		}
 	});
 
 program

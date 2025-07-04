@@ -8,6 +8,11 @@ on:
         description: "DryRun release"
         required: true
         default: false
+      push_tags:
+        type: boolean
+        description: "Push tags to repository"
+        required: true
+        default: true
 
 jobs:
   rust_tests:
@@ -36,6 +41,6 @@ jobs:
 
       - name: Publish Crates
         run: |
-          ./x crate-publish ${{ inputs.dry_run && '--dry-run' || '' }} --token $CARGO_REGISTRY_TOKEN
+          ./x crate-publish --token $CARGO_REGISTRY_TOKEN ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.push_tags && '--push-tags' || '' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
