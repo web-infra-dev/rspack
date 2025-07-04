@@ -18,7 +18,7 @@ use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   PluginContext,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
@@ -131,49 +131,123 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     })
     .collect();
 
-  let ordered_hashes = OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
+  let (ordered_hashes, mut hash_dependencies) =
+    OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
+  let mut ordered_hashes_iter = ordered_hashes.into_iter();
+
   logger.time_end(start);
 
   let start = logger.time("old hash to new hash");
   let mut hash_to_new_hash = HashMap::default();
 
   let hooks = RealContentHashPlugin::get_compilation_hooks(compilation.id());
-  for old_hash in &ordered_hashes {
-    if let Some(asset_names) = hash_to_asset_names.get_mut(old_hash.as_str()) {
-      asset_names.sort();
-      let mut asset_contents: Vec<_> = asset_names
-        .par_iter()
-        .filter_map(|name| assets_data.get(name))
-        .map(|data| {
-          data
-            .compute_new_source(
-              data.own_hashes.contains(old_hash),
-              &hash_to_new_hash,
-              &hash_regexp,
-            )
-            .clone()
-        })
-        .collect();
-      asset_contents.dedup();
-      let updated_hash = hooks
-        .update_hash
-        .call(compilation, &asset_contents, old_hash)
-        .await?;
 
-      let new_hash = if let Some(new_hash) = updated_hash {
-        new_hash
-      } else {
-        let mut hasher = RspackHash::from(&compilation.options.output);
-        for asset_content in asset_contents {
-          hasher.write(&asset_content.buffer());
-        }
-        let new_hash = hasher.digest(&compilation.options.output.hash_digest);
-        let new_hash = new_hash.rendered(old_hash.len()).to_string();
-        new_hash
+  let mut computed_hashes = HashSet::default();
+  let mut top_task = ordered_hashes_iter.next();
+
+  loop {
+    let Some(top) = top_task else {
+      break;
+    };
+    let mut batch = vec![top];
+    top_task = None;
+
+    for hash in ordered_hashes_iter.by_ref() {
+      let Some(dependencies) = hash_dependencies.remove(hash.as_str()) else {
+        top_task = Some(hash);
+        break;
       };
+      if dependencies.iter().all(|dep| computed_hashes.contains(dep)) {
+        batch.push(hash);
+      } else {
+        top_task = Some(hash);
+        break;
+      }
+    }
+
+    let batch_source_tasks = batch
+      .iter()
+      .filter_map(|hash| {
+        let assets_names = hash_to_asset_names.get(hash.as_str())?;
+        let tasks = assets_names
+          .iter()
+          .filter_map(|name| {
+            let data = assets_data.get(name)?;
+            Some((hash.as_str(), *name, data))
+          })
+          .collect::<Vec<_>>();
+        Some(tasks)
+      })
+      .flatten()
+      .collect::<Vec<_>>();
+
+    let batch_sources = batch_source_tasks
+      .into_par_iter()
+      .map(|(hash, name, data)| {
+        let new_source = data.compute_new_source(
+          data.own_hashes.contains(hash),
+          &hash_to_new_hash,
+          &hash_regexp,
+        );
+        ((hash, name), new_source)
+      })
+      .collect::<HashMap<_, _>>();
+
+    let new_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+      batch
+        .iter()
+        .cloned()
+        .filter_map(|old_hash| {
+          let asset_names = hash_to_asset_names.remove(old_hash.as_str())?;
+          Some((old_hash, asset_names))
+        })
+        .for_each(|(old_hash, asset_names)| {
+          let s =
+            unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
+          s.spawn(
+            |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
+              asset_names.sort();
+              let mut asset_contents = asset_names
+                .iter()
+                .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
+                .cloned()
+                .collect::<Vec<_>>();
+              asset_contents.dedup();
+              let updated_hash = hooks
+                .update_hash
+                .call(compilation, &asset_contents, &old_hash)
+                .await?;
+
+              let new_hash = if let Some(new_hash) = updated_hash {
+                new_hash
+              } else {
+                let mut hasher = RspackHash::from(&compilation.options.output);
+                for asset_content in asset_contents {
+                  hasher.write(&asset_content.buffer());
+                }
+                let new_hash = hasher.digest(&compilation.options.output.hash_digest);
+                let new_hash = new_hash.rendered(old_hash.len()).to_string();
+                new_hash
+              };
+
+              Ok((old_hash.to_string(), new_hash))
+            },
+          );
+        });
+    })
+    .await
+    .into_iter()
+    .map(|r| r.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    for res in new_hashes {
+      let (old_hash, new_hash) = res?;
       hash_to_new_hash.insert(old_hash, new_hash);
     }
+
+    computed_hashes.extend(batch);
   }
+
   logger.time_end(start);
 
   let start = logger.time("collect hash updates");
@@ -193,12 +267,13 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
         })
         .into_owned();
       let new_name = (name != new_name).then_some(new_name);
-      Some((name.to_owned(), new_source.clone(), new_name))
+      Some((name.to_owned(), new_source, new_name))
     })
     .collect();
   logger.time_end(start);
 
   let start = logger.time("update assets");
+  let mut rename_tasks = vec![];
   for (name, new_source, new_name) in updates {
     compilation.update_asset(&name, |_, old_info| {
       let new_hashes: HashSet<_> = old_info
@@ -218,9 +293,36 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       ))
     })?;
     if let Some(new_name) = new_name {
-      compilation.rename_asset(&name, new_name);
+      rename_tasks.push((name, new_name));
     }
   }
+
+  let assets = compilation.assets_mut();
+  rename_tasks.retain(|(filename, new_name)| {
+    if let Some(asset) = assets.remove(filename) {
+      assets.insert(new_name.clone(), asset);
+      true
+    } else {
+      false
+    }
+  });
+
+  compilation
+    .chunk_by_ukey
+    .values_mut()
+    .par_bridge()
+    .for_each(|chunk| {
+      for (filename, new_name) in rename_tasks.iter() {
+        if chunk.remove_file(filename) {
+          chunk.add_file(new_name.clone());
+        }
+
+        if chunk.remove_auxiliary_file(filename) {
+          chunk.add_auxiliary_file(new_name.clone());
+        }
+      }
+    });
+
   logger.time_end(start);
 
   Ok(())
@@ -277,9 +379,9 @@ impl AssetData {
   pub fn compute_new_source(
     &self,
     without_own: bool,
-    hash_to_new_hash: &HashMap<&str, String>,
+    hash_to_new_hash: &HashMap<String, String>,
     hash_regexp: &Regex,
-  ) -> &BoxSource {
+  ) -> BoxSource {
     (if without_own {
       &self.new_source_without_own
     } else {
@@ -309,6 +411,7 @@ impl AssetData {
       }
       self.old_source.clone()
     })
+    .clone()
   }
 }
 
@@ -328,12 +431,29 @@ impl<'a> OrderedHashesBuilder<'a> {
     }
   }
 
-  pub fn build(&self) -> IndexSet<String> {
+  pub fn build(&self) -> (IndexSet<String>, HashMap<String, HashSet<String>>) {
     let mut ordered_hashes = IndexSet::default();
+    let mut hash_dependencies = HashMap::default();
     for hash in self.hash_to_asset_names.keys() {
-      self.add_to_ordered_hashes(hash, &mut ordered_hashes, &mut HashSet::default());
+      self.add_to_ordered_hashes(
+        hash,
+        &mut ordered_hashes,
+        &mut HashSet::default(),
+        &mut hash_dependencies,
+      );
     }
-    ordered_hashes
+    (
+      ordered_hashes,
+      hash_dependencies
+        .into_iter()
+        .map(|(k, v)| {
+          (
+            k.to_string(),
+            v.into_iter().map(|s| s.to_string()).collect(),
+          )
+        })
+        .collect(),
+    )
   }
 }
 
@@ -364,8 +484,12 @@ impl OrderedHashesBuilder<'_> {
     hash: &'b str,
     ordered_hashes: &mut IndexSet<String>,
     stack: &mut HashSet<&'b str>,
+    hash_dependencies: &mut HashMap<&'b str, HashSet<&'b str>>,
   ) {
-    let deps = self.get_hash_dependencies(hash);
+    let deps = hash_dependencies
+      .entry(hash)
+      .or_insert_with(|| self.get_hash_dependencies(hash))
+      .clone();
     stack.insert(hash);
     for dep in deps {
       if ordered_hashes.contains(dep) {
@@ -376,7 +500,7 @@ impl OrderedHashesBuilder<'_> {
         // so there shouldn't have circular hash dependency between chunks
         panic!("RealContentHashPlugin: circular hash dependency");
       }
-      self.add_to_ordered_hashes(dep, ordered_hashes, stack);
+      self.add_to_ordered_hashes(dep, ordered_hashes, stack, hash_dependencies);
     }
     ordered_hashes.insert(hash.to_string());
     stack.remove(hash);
