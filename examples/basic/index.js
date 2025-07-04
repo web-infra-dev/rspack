@@ -3,40 +3,90 @@ console.log("Hello Rspack with Module Federation");
 // Import existing modules
 import "./lib";
 import {
-	namedExport,
-	functionExport,
 	cjsExport,
-	moduleExport,
 	definedExport,
+	functionExport,
+	moduleExport,
+	namedExport,
 	default as testExportsDefault
 } from "./test-exports";
 
-// Removed external dependencies - using only local shared modules
+import { VERSION, filter, map, uniq } from "lodash-es";
+// Import external shared dependencies
+import React from "react";
+import ReactDOM from "react-dom/client";
 
+import { createApiClient } from "./shared/api.js";
+import { Button } from "./shared/components.js";
 // Eager shared imports - loaded immediately and shared across federated modules
 // Only import specific exports to enable better tree-shaking analysis
-import { formatDate, capitalize } from "./shared/utils.js";
-import { Button } from "./shared/components.js";
-import { createApiClient } from "./shared/api.js";
+import { capitalize, formatDate } from "./shared/utils.js";
 
-// Import new shared modules with various patterns
-import { join, basename, utils as pathUtils, createPathHandler } from "./shared/commonjs-module.js";
-import { version, calculate, DataProcessor, createLogger, default as mixedDefault } from "./shared/mixed-exports.js";
-
-// Import module.exports as default export  
-import moduleExportsLib from "./shared/module-exports.js";
-
-// Import fake CommonJS local module
-import fakeLib from "./fake-node-module/index.js";
-import { validateEmail, capitalize, createLogger: createFakeLogger, constants } from "./fake-node-module/index.js";
-
+import { createApiClient as dynamicCreateApiClient } from "./shared/api.js";
+import { Button as DynamicButton, Modal } from "./shared/components.js";
 // Static imports for previously dynamic modules
 import {
-	formatDate as dynamicFormatDate,
-	capitalize as dynamicCapitalize
+	capitalize as dynamicCapitalize,
+	formatDate as dynamicFormatDate
 } from "./shared/utils.js";
-import { Button as DynamicButton, Modal } from "./shared/components.js";
-import { createApiClient as dynamicCreateApiClient } from "./shared/api.js";
+
+// CJS Test Package Usage Examples - Different import patterns for testing Module Federation
+// Pattern 1: Direct require from alias
+const cjsTestPackage = require("@cjs-test/legacy-utils");
+console.log("CJS Test Package (via alias):", {
+	name: cjsTestPackage.name,
+	version: cjsTestPackage.version,
+	formatPath: cjsTestPackage.formatPath("/test/path")
+});
+
+// Pattern 2: Import specific modules from the CJS test package
+const {
+	formatPath: cjsFormatPath,
+	constants: cjsConstants
+} = require("cjs-modules/legacy-utils");
+const {
+	processArray: cjsProcessArray,
+	dataUtils: cjsDataUtils
+} = require("cjs-modules/data-processor");
+
+// Pattern 3: Test federated CJS modules (if exposed to other apps)
+const testCjsFederated = async () => {
+	try {
+		// This would be used by other federated apps to consume our CJS modules
+		const { formatPath } = await import("./cjs-test");
+		console.log(
+			"Federated CJS test module loaded:",
+			formatPath("/federated/path")
+		);
+	} catch (error) {
+		console.log(
+			"Federated CJS import not available in current context:",
+			error.message
+		);
+	}
+};
+
+// Import CommonJS modules for interoperability testing - ONLY import some exports to test unused detection
+const {
+	processArray,
+	dataUtils
+	// Intentionally NOT importing: createProcessor, filterArray, reduceArray, DataProcessor, DEFAULT_OPTIONS
+} = require("./cjs-modules/data-processor.js");
+const {
+	formatPath,
+	constants
+	// Intentionally NOT importing: FileManager, readFileSync, validateFile, getSelf
+} = require("./cjs-modules/legacy-utils.js");
+
+// Import CommonJS modules for testing CommonJS tracking in the plugin
+const legacyUtils = require("./cjs-modules/legacy-utils.js");
+const dataProcessor = require("./cjs-modules/data-processor.js");
+
+// Pure CommonJS require usage - NO ES6 imports, only require()
+const pureCjsHelper = require("./cjs-modules/pure-cjs-helper.js");
+
+// Test the pure module.exports = { ... } pattern
+const moduleExportsPattern = require("./cjs-modules/module-exports-pattern.js");
 
 console.log("Test exports:", {
 	namedExport,
@@ -47,7 +97,22 @@ console.log("Test exports:", {
 	default: testExportsDefault
 });
 
-// Test local shared dependencies only
+// Test React shared dependency
+console.log("React version:", React.version);
+const reactElement = React.createElement(
+	"div",
+	{ id: "test" },
+	"Hello from React!"
+);
+console.log("Created React element:", reactElement);
+
+// Test lodash shared dependency
+console.log("Lodash version:", VERSION);
+const sampleData = [1, 2, 3, 4, 5];
+const doubled = map(sampleData, n => n * 2);
+console.log("Lodash map result:", doubled);
+const filtered = filter(sampleData, n => n > 2);
+console.log("Lodash filter result:", filtered);
 
 // Test specific shared module exports (tree-shakeable)
 console.log("Formatted date:", formatDate(new Date()));
@@ -78,46 +143,98 @@ const staticClient = dynamicCreateApiClient("https://static.api.example.com", {
 });
 console.log("Created static API client:", staticClient);
 
-// Test new shared modules with various import patterns
-console.log("=== Testing CommonJS Module ===");
-console.log("Path join:", join("/home", "user"));
-console.log("Basename:", basename("/home/user/file.txt"));
-console.log("Path normalize:", pathUtils.normalize("../home//user/./file.txt"));
+// Test CJS test package usage through different patterns
+console.log("CJS Test Package Usage:");
+console.log("- Format path via alias:", cjsFormatPath("/test/from/alias"));
+console.log("- Constants via alias:", cjsConstants);
+console.log(
+	"- Process array via modules:",
+	cjsProcessArray([1, 2, 3], x => x * 3)
+);
+console.log("- Data utils via modules:", cjsDataUtils.sum([10, 20, 30]));
 
-const pathHandler = createPathHandler("/base/path");
-console.log("Path handler resolve:", pathHandler.resolve("file.txt"));
+// Execute federated test
+testCjsFederated();
 
-console.log("=== Testing Mixed Exports ===");
-console.log("Version:", version);
-console.log("Calculate 5 + 3:", calculate(5, 3, 'add'));
-console.log("Calculate 10 / 2:", calculate(10, 2, 'divide'));
+// Test CommonJS modules usage - ONLY use imported exports to test unused detection
+const testData = [1, 2, 3, 4, 5];
+const processedData = processArray(testData, x => x * 2);
+console.log("Processed array:", processedData);
 
-const processor = new DataProcessor("TestProcessor");
-processor.add("item1").add("item2");
-console.log("Processed data:", processor.process());
+console.log("Data utils sum:", dataUtils.sum(testData));
+console.log("Data utils average:", dataUtils.average(testData));
 
-const logger = createLogger("APP");
-logger.info("Testing logger functionality");
+// NOTE: NOT using createProcessor, DataProcessor, filterArray, reduceArray to test unused detection
 
-console.log("Mixed default export:", mixedDefault);
+const filePath = "/some/path/to/file.txt";
+console.log("Formatted path:", formatPath(filePath));
+console.log("Path constants:", constants);
 
-console.log("=== Testing Module Exports ===");
-console.log("Add 15 + 25:", moduleExportsLib.add(15, 25));
-console.log("Multiply 7 * 8:", moduleExportsLib.multiply(7, 8));
-console.log("Math square of 9:", moduleExportsLib.math.square(9));
-console.log("Constants PI:", moduleExportsLib.constants.PI);
+// NOTE: NOT using FileManager, readFileSync, validateFile to test unused detection
 
-const calculator = moduleExportsLib.createCalculator(10);
-console.log("Calculator result:", calculator.add(5).multiply(2).result());
+// Test CommonJS modules usage to trigger ConsumeShared tracking
+console.log("CommonJS Legacy Utils:", {
+	name: legacyUtils.name,
+	version: legacyUtils.version,
+	join: legacyUtils.join("test", "path")
+});
 
-console.log("=== Testing Fake CommonJS Node Module ===");
-console.log("Validate email:", validateEmail("test@example.com"));
-console.log("Capitalize:", capitalize("hello world"));
-console.log("Constants:", constants);
+console.log("CommonJS Data Processor:", {
+	version: dataProcessor.version,
+	sum: dataProcessor.dataUtils.sum([1, 2, 3, 4, 5]),
+	processArray: dataProcessor.processArray([1, 2, 3], x => x * 2)
+});
 
-const fakeLogger = createFakeLogger("FAKE");
-fakeLogger.info("Testing fake CommonJS module");
+// Test pure CommonJS helper - ONLY use some exports to test unused detection
+console.log("Pure CommonJS Helper:", {
+	info: pureCjsHelper.info,
+	generateId: pureCjsHelper.generateId(),
+	helpers: {
+		timestamp: pureCjsHelper.helpers.timestamp(),
+		random: pureCjsHelper.helpers.random()
+	},
+	constants: pureCjsHelper.CONSTANTS
+});
 
-// Test accessing properties from whole module
-console.log("Fake lib debounce:", typeof fakeLib.debounce);
-console.log("Fake lib slugify:", fakeLib.slugify("Hello World Test"));
+// NOTE: NOT using hashString, validateInput, processData, DataValidator, createValidator
+// These should appear as unused exports in the analysis
+
+// Test the pure module.exports = { ... } pattern - ONLY use selected exports
+console.log("Module Exports Pattern Test:", {
+	info: moduleExportsPattern.moduleInfo,
+	// Math utilities
+	sum: moduleExportsPattern.calculateSum([1, 2, 3, 4, 5]),
+	average: moduleExportsPattern.calculateAverage([10, 20, 30]),
+	minMax: moduleExportsPattern.findMinMax([5, 2, 8, 1, 9]),
+	// String utilities
+	slugified: moduleExportsPattern.slugify("Hello World Test"),
+	capitalized: moduleExportsPattern.capitalize("hello"),
+	// Formatting
+	currency: moduleExportsPattern.formatCurrency(1234.56),
+	percentage: moduleExportsPattern.formatPercentage(0.75),
+	// Date utilities
+	formattedDate: moduleExportsPattern.formatDate(new Date()),
+	isWeekend: moduleExportsPattern.isWeekend(new Date()),
+	// Validation
+	isEmailValid: moduleExportsPattern.isEmail("test@example.com"),
+	isUrlValid: moduleExportsPattern.isUrl("https://example.com"),
+	isEmpty: moduleExportsPattern.isEmpty(""),
+	// Constants
+	mathConstants: moduleExportsPattern.MATH_CONSTANTS,
+	httpStatus: moduleExportsPattern.HTTP_STATUS.OK,
+	// DataStore usage
+	dataStore: (() => {
+		const store = moduleExportsPattern.createDataStore();
+		store.set("test", "value");
+		return {
+			hasTest: store.has("test"),
+			testValue: store.get("test"),
+			json: store.toJSON()
+		};
+	})()
+});
+
+// NOTE: Intentionally NOT using some exports to test tree-shaking:
+// - truncate, transformData, filterData, groupBy
+// - isEmail in some contexts, DataStore constructor directly
+// These should appear as unused in the tree-shaking analysis

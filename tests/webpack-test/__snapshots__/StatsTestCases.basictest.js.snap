@@ -600,7 +600,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for external 1`] = `
-"asset main.js xx bytes [emitted] (name: main)
+"asset main.js xx KiB [emitted] (name: main)
 ./index.js xx bytes [built] [code generated]
 external \\"test\\" xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -705,7 +705,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset d4e3657fcff58763.js xx KiB [emitted] [immutable] (name: main)
+"asset bd424548763d791e.js xx KiB [emitted] [immutable] (name: main)
 asset 861a015ed5554248.js xx bytes [emitted] [immutable]"
 `;
 

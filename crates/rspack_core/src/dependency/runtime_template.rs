@@ -8,9 +8,9 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
-  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, UsedName,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, ModuleType,
+  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -400,17 +400,23 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  // Check if this is a side-effect dependency (bare import)
-  // Side-effect imports should NOT be marked as pure
   let is_pure = compilation
     .get_module_graph()
     .dependency_by_id(id)
     .is_some_and(|dep| {
-      // Check the dependency type to distinguish between bare imports and named/default imports
+      // Check dependency type and ConsumeShared ancestry
       let dep_type = dep.dependency_type();
-      // EsmImport = bare imports (side-effect imports like `import './style.css'`) - should NOT be pure
-      // EsmImportSpecifier = named/default imports (like `import { foo } from 'bar'`) - should be pure
-      matches!(dep_type.as_str(), "esm import specifier") && import_var != "__webpack_require__"
+      let is_relevant_import = matches!(
+        dep_type.as_str(),
+        "esm import" | "esm import specifier" | "cjs require"
+      ) && import_var != "__webpack_require__";
+
+      if is_relevant_import {
+        let module_graph = compilation.get_module_graph();
+        is_consume_shared_descendant(&module_graph, &module.identifier())
+      } else {
+        false
+      }
     });
 
   let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
@@ -715,6 +721,31 @@ fn missing_module(request: &str) -> String {
 
 fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
+}
+
+/// Check if a module should receive PURE annotations
+/// Apply to ConsumeShared modules and Module Federation shared modules
+fn is_consume_shared_descendant(
+  module_graph: &ModuleGraph,
+  module_identifier: &ModuleIdentifier,
+) -> bool {
+  if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+    // Check if this module itself is ConsumeShared
+    if module.module_type() == &ModuleType::ConsumeShared {
+      return true;
+    }
+
+    // Check if this module has BuildMeta indicating it's a shared module
+    let build_meta = module.build_meta();
+    if let Some(shared_key) = build_meta.shared_key.as_ref() {
+      return !shared_key.is_empty();
+    }
+
+    // Return false if module doesn't match ConsumeShared criteria
+    return false;
+  }
+
+  false
 }
 
 pub fn missing_module_promise(request: &str) -> String {

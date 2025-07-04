@@ -15,7 +15,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportsBase, ModuleDecoratorDependency,
+    ConsumeSharedExportsDependency, ExportsBase, ModuleDecoratorDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -263,6 +263,21 @@ impl JavascriptParser<'_> {
 
 pub struct CommonJsExportsParserPlugin;
 
+impl CommonJsExportsParserPlugin {
+  /// Detect if this module should use ConsumeSharedExportsDependency based on Module Federation context
+  fn detect_shared_module_key(parser: &JavascriptParser) -> Option<String> {
+    // During parsing, we only have access to the current module's BuildMeta, not the full module graph
+    // We'll check for direct shared module context first
+    let module_identifier = &parser.module_identifier.to_string();
+
+    ConsumeSharedExportsDependency::should_apply_to_module(
+      module_identifier,
+      parser.build_meta,
+      None, // ModuleGraph not available during parsing
+    )
+  }
+}
+
 impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn identifier(
     &self,
@@ -439,14 +454,30 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // exports.a = 1;
       // module.exports.a = 1;
       // this.a = 1;
-      parser
-        .dependencies
-        .push(Box::new(CommonJsExportsDependency::new(
-          left_expr.span().into(),
-          None,
-          base,
-          remaining.to_owned(),
-        )));
+
+      // Check if we're in ConsumeShared OR ProvideShared context
+      let shared_key = Self::detect_shared_module_key(parser);
+
+      if let Some(shared_key) = shared_key {
+        parser
+          .dependencies
+          .push(Box::new(ConsumeSharedExportsDependency::new(
+            left_expr.span().into(),
+            None,
+            base,
+            remaining.to_owned(),
+            shared_key,
+          )));
+      } else {
+        parser
+          .dependencies
+          .push(Box::new(CommonJsExportsDependency::new(
+            left_expr.span().into(),
+            None,
+            base,
+            remaining.to_owned(),
+          )));
+      }
       parser.walk_expression(&assign_expr.right);
       Some(true)
     };
@@ -536,14 +567,29 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         } else {
           panic!("Unexpected expr type");
         };
-        parser
-          .dependencies
-          .push(Box::new(CommonJsExportsDependency::new(
-            call_expr.span.into(),
-            Some(arg2.span().into()),
-            base,
-            vec![str.value.clone()],
-          )));
+        // Check if we're in ConsumeShared OR ProvideShared context
+        let shared_key = Self::detect_shared_module_key(parser);
+
+        if let Some(shared_key) = shared_key {
+          parser
+            .dependencies
+            .push(Box::new(ConsumeSharedExportsDependency::new(
+              call_expr.span.into(),
+              Some(arg2.span().into()),
+              base,
+              vec![str.value.clone()],
+              shared_key,
+            )));
+        } else {
+          parser
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              call_expr.span.into(),
+              Some(arg2.span().into()),
+              base,
+              vec![str.value.clone()],
+            )));
+        }
 
         parser.walk_expression(&arg2.expr);
         Some(true)

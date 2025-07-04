@@ -5,9 +5,9 @@
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
+/* ESM import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/index.js");
 
-const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
+const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__.containers;
 
 const Index = () => {
 	console.log("PlatformProvider", PlatformProvider);
@@ -20,18 +20,38 @@ const Index = () => {
 }),
 "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: () => (/* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider)
+  PlatformProvider: () => (/* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider),
+  usePlatform: () => (/* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.usePlatform)
 });
 /* ESM import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/platform-container/index.js");
+/* ESM import */var _page_container__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./src/containers/page-container/index.js");
 
 
 
 
 
 }),
+"./src/containers/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  containers: () => (/* reexport module object */ _containers__WEBPACK_IMPORTED_MODULE_0__)
+});
+/* ESM import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
+
+
+
+
+}),
+"./src/containers/page-container/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+/* ESM import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
+
+_containers__WEBPACK_IMPORTED_MODULE_0__.usePlatform;
+
+
+}),
 "./src/containers/platform-container/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: () => (PlatformProvider)
+  PlatformProvider: () => (PlatformProvider),
+  usePlatform: () => (usePlatform)
 });
 const usePlatform = 3;
 const PlatformProvider = 1000;

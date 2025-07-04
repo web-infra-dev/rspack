@@ -1,37 +1,40 @@
-// Shared utility functions - testing various export scenarios
+import { DEFAULT_TIMEOUT } from "./config.js";
+// Shared utility functions
+import { deepClone, generateId, validateEmail } from "./nested-utils.js";
 
-// Used export (imported in index.js)
-export const formatDate = (date) => {
-  return new Intl.DateTimeFormat('en-US').format(date);
+// Import CommonJS helper to test PURE annotations for CommonJS requires
+const cjsHelper = require("./cjs-helper.js");
+
+export const formatDate = date => {
+	return new Intl.DateTimeFormat("en-US").format(date);
 };
 
-// Used export (imported in index.js)
-export const capitalize = (str) => {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+export const capitalize = str => {
+	return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-// Unused export (not imported anywhere)
+// Use CommonJS helper function to test CommonJS integration
+export const processWithHelper = input => {
+	return cjsHelper.helperFunction(input);
+};
+
+// Re-export nested utilities
+export { validateEmail, generateId, deepClone };
+
 export const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
+	let timeout;
+	return function executedFunction(...args) {
+		const later = () => {
+			clearTimeout(timeout);
+			func(...args);
+		};
+		clearTimeout(timeout);
+		timeout = setTimeout(later, wait);
+	};
 };
 
-// Additional unused exports for testing
-export const toLowerCase = (str) => str.toLowerCase();
-export const padString = (str, length, char = ' ') => str.padStart(length, char);
-
-// Used default export (not imported but defined)
 export default {
-  formatDate,
-  capitalize,
-  debounce,
-  toLowerCase,
-  padString
+	formatDate,
+	capitalize,
+	debounce
 };

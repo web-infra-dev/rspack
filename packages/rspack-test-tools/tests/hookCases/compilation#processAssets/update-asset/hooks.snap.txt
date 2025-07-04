@@ -5,7 +5,7 @@
 ```javascript
 Array [
   Object {
-    "main.aa6afac1fee0ff8f.js": (() => { // webpackBootstrap
+    "main.d3ed8190fddee929.js": (() => { // webpackBootstrap
 var __webpack_modules__ = ({
 600: (function (module) {
 module.exports = "This is hook"
@@ -19,6 +19,7 @@ module.exports = "This is hook"
 var __webpack_module_cache__ = {};
 
 // The require function
+// #__NO_SIDE_EFFECTS__
 function __webpack_require__(moduleId) {
 
 // Check if module is in cache
@@ -62,7 +63,7 @@ undefined
 ```javascript
 Array [
   Object {
-    "main.1a883b659dd9ba2b.js": // UPDATED
+    "main.6c5132c3e5c62d8b.js": // UPDATED
 (() => { // webpackBootstrap
 var __webpack_modules__ = ({
 600: (function (module) {
@@ -77,6 +78,7 @@ module.exports = "This is hook"
 var __webpack_module_cache__ = {};
 
 // The require function
+// #__NO_SIDE_EFFECTS__
 function __webpack_require__(moduleId) {
 
 // Check if module is in cache

@@ -1,0 +1,748 @@
+// Rstest Snapshot v1
+
+exports[`ConsumeShared Share Chunks Snapshots > CommonJS macro positioning snapshot 1`] = `
+{
+  "cjs-modules_data-processor_js.js": {
+    "macroPatterns": [],
+    "positioningIssues": [],
+    "totalMacroLines": 0,
+  },
+  "cjs-modules_legacy-utils_js.js": {
+    "macroPatterns": [],
+    "positioningIssues": [],
+    "totalMacroLines": 0,
+  },
+  "cjs-modules_pure-cjs-helper_js.js": {
+    "macroPatterns": [],
+    "positioningIssues": [],
+    "totalMacroLines": 0,
+  },
+}
+`;
+
+exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`] = `
+{
+  "cjs-modules_data-processor_js.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": false,
+    "macroCount": 0,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_data-processor_js"], { "./cjs-modules/data-processor.js": /*!**************************",
+    "size": 2532,
+  },
+  "cjs-modules_legacy-utils_js.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": false,
+    "macroCount": 0,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_legacy-utils_js"], { "./cjs-modules/legacy-utils.js": /*!******************************",
+    "size": 3051,
+  },
+  "cjs-modules_module-exports-pattern_js.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": false,
+    "macroCount": 0,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_module-exports-pattern_js"], { "./cjs-modules/module-exports-pattern.js": /*!**********",
+    "size": 5368,
+  },
+  "cjs-modules_pure-cjs-helper_js.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": false,
+    "macroCount": 0,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_pure-cjs-helper_js"], { "./cjs-modules/pure-cjs-helper.js": /*!************************",
+    "size": 2187,
+  },
+  "main.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": true,
+    "hasWebpackRequire": true,
+    "macroCount": 0,
+    "preview": "(() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js":",
+    "size": 1247313,
+  },
+  "remoteEntry.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": true,
+    "hasWebpackRequire": true,
+    "macroCount": 0,
+    "preview": "var basic_example; (() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/d",
+    "size": 273486,
+  },
+  "shared_api_js.js": {
+    "hasMacroComments": true,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": true,
+    "macroCount": 4,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], { "./shared/api.js": /*!***********************!*\\ !*** ./shared/a",
+    "size": 4617,
+  },
+  "shared_components_js.js": {
+    "hasMacroComments": true,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": true,
+    "macroCount": 6,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], { "./shared/components.js": /*!******************************",
+    "size": 2660,
+  },
+  "shared_utils_js.js": {
+    "hasMacroComments": true,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": true,
+    "macroCount": 8,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], { "./shared/config.js": /*!**************************!*\\ !*** ./",
+    "size": 4851,
+  },
+  "vendors-node_modules_pnpm_lodash-es_4_17_21_node_modules_lodash-es_lodash_js.js": {
+    "hasMacroComments": true,
+    "hasPureAnnotations": false,
+    "hasWebpackRequire": true,
+    "macroCount": 321,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_lodash-es_4_17_21_node_modules_lodash-es_lodash_js"], { "../",
+    "size": 1307320,
+  },
+  "vendors-node_modules_pnpm_react-dom_19_1_0_react_19_1_0_node_modules_react-dom_index_js.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": true,
+    "hasWebpackRequire": true,
+    "macroCount": 0,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_react-dom_19_1_0_react_19_1_0_node_modules_react-dom_index_j",
+    "size": 20129,
+  },
+  "vendors-node_modules_pnpm_react_19_1_0_node_modules_react_index_js.js": {
+    "hasMacroComments": false,
+    "hasPureAnnotations": true,
+    "hasWebpackRequire": true,
+    "macroCount": 0,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_react_19_1_0_node_modules_react_index_js"], { "../../node_mo",
+    "size": 46249,
+  },
+}
+`;
+
+exports[`ConsumeShared Share Chunks Snapshots > export pattern analysis snapshot 1`] = `
+{
+  "exports": [
+    {
+      "content": "exports.generateId = function () {",
+      "hasMacro": false,
+      "line": 16,
+    },
+    {
+      "content": "exports.hashString = function (input) {",
+      "hasMacro": false,
+      "line": 20,
+    },
+    {
+      "content": "exports.validateInput = function (input) {",
+      "hasMacro": false,
+      "line": 24,
+    },
+    {
+      "content": "exports.processData = function (data) {",
+      "hasMacro": false,
+      "line": 28,
+    },
+    {
+      "content": "exports.helpers = {",
+      "hasMacro": false,
+      "line": 40,
+    },
+    {
+      "content": "exports.CONSTANTS = {",
+      "hasMacro": false,
+      "line": 47,
+    },
+    {
+      "content": "return exports.CONSTANTS.SUPPORTED_TYPES.includes(typeof data);",
+      "hasMacro": false,
+      "line": 72,
+    },
+    {
+      "content": "exports.DataValidator = DataValidator;",
+      "hasMacro": false,
+      "line": 76,
+    },
+    {
+      "content": "exports.createValidator = function (options) {",
+      "hasMacro": false,
+      "line": 79,
+    },
+  ],
+  "mixedPatterns": true,
+  "moduleExports": [
+    {
+      "content": "module.exports.info = {",
+      "hasMacro": false,
+      "line": 84,
+    },
+  ],
+}
+`;
+
+exports[`ConsumeShared Share Chunks Snapshots > macro annotations extracted 1`] = `
+{
+  "shared_api_js.js": [
+    "/* @common:if [condition="treeShake.api-lib.ApiClient"] */ ApiClient /* @common:endif */",
+    "/* @common:if [condition="treeShake.api-lib.createApiClient"] */ createApiClient /* @common:endif */",
+    "/* @common:if [condition="treeShake.api-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
+    "/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ fetchWithTimeout /* @common:endif */",
+  ],
+  "shared_components_js.js": [
+    "/* @common:if [condition="treeShake.component-lib.Button"] */ Button /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.Modal"] */ Modal /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.Tooltip"] */ Tooltip /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.createAlert"] */ createAlert /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.createCard"] */ createCard /* @common:endif */",
+    "/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
+  ],
+  "shared_utils_js.js": [
+    "/* @common:if [condition="treeShake.utility-lib.capitalize"] */ capitalize /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.debounce"] */ debounce /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.I8 /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.formatDate"] */ formatDate /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.generateId"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.Ox /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.processWithHelper"] */ processWithHelper /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.oH /* @common:endif */",
+  ],
+}
+`;
+
+exports[`ConsumeShared Share Chunks Snapshots > main chunk webpack runtime 1`] = `
+"(() => { // webpackBootstrap
+"use strict";
+var __webpack_modules__ = ({
+"../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js": 
+/*!************************************************************************************************************************************!*\\
+  !*** ../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js ***!
+  \\************************************************************************************************************************************/
+(function (__unused_webpack_module, exports) {
+
+
+const RUNTIME_001 = 'RUNTIME-001';
+const RUNTIME_002 = 'RUNTIME-002';
+const RUNTIME_003 = 'RUNTIME-003';
+const RUNTIME_004 = 'RUNTIME-004';
+const RUNTIME_005 = 'RUNTIME-005';
+const RUNTIME_006 = 'RUNTIME-006';
+const RUNTIME_007 = 'RUNTIME-007';
+const RUNTIME_008 = 'RUNTIME-008';
+const TYPE_001 = 'TYPE-001';
+const BUILD_001 = 'BUILD-001';
+
+const getDocsUrl = (errorCode)=>{
+    const type = errorCode.split('-')[0].toLowerCase();
+    return \`View the docs to see how to solve: https://module-federation.io/guide/troubleshooting/\${type}/\${errorCode}\`;
+};
+const getShortErrorMsg = (errorCode, errorDescMap, args, originalErrorMsg)=>{
+    const msg = [
+        \`\${[
+            errorDescMap[errorCode]
+        ]} #\${errorCode}\`
+    ];
+    args && msg.push(\`args: \${JSON.stringify(args)}\`);
+    msg.push(getDocsUrl(errorCode));
+    originalErrorMsg && msg.push(\`Original Error Message:\\n \${originalErrorMsg}\`);
+    return msg.join('\\n');
+};
+
+function _extends() {
+    _extends = Object.assign || function assign(target) {
+        for(var i = 1; i < arguments.length; i++){
+            var source = arguments[i];
+            for(var key in source)if (Object.prototype.hasOwnProperty.call(source, key)) target[key] = source[key];
+        }
+        return target;
+    };
+    return _extends.apply(this, arguments);
+}
+
+const runtimeDescMap = {
+    [RUNTIME_001]: 'Failed to get remoteEntry exports.',
+    [RUNTIME_002]: 'The remote entry interface does not contain "init"',
+    [RUNTIME_003]: 'Failed to get manifest.',
+    [RUNTIME_004]: 'Failed to locate remote.',
+    [RUNTIME_005]: 'Invalid loadShareSync function call from bundler runtime',
+    [RUNTIME_006]: 'Invalid loadShareSync function call from runtime',
+    [RUNTIME_007]: 'Failed to get remote snapshot.',
+    [RUNTIME_008]: 'Failed to load script resources.'
+};
+const typeDescMap = {
+    [TYPE_001]: 'Failed to generate type declaration. Execute the below cmd to reproduce and fix the error.'
+};
+const buildDescMap = {
+    [BUILD_001]: 'Failed to find expose module.'
+};
+const errorDescMap = _extends({}, runtimeDescMap, typeDescMap, buildDescMap);
+
+exports.BUILD_001 = BUILD_001;
+exports.RUNTIME_001 = RUNTIME_001;
+exports.RUNTIME_002 = RUNTIME_002;
+exports.RUNTIME_003 = RUNTIME_003;
+exports.RUNTIME_004 = RUNTIME_004;
+exports.RUNTIME_005 = RUNTIME_005;
+exports.RUNTIME_006 = RUNTIME_006;
+exports.RUNTIME_007 = RUNTIME_007;
+exports.RUNTIME_008 = RUNTIME_008;
+exports.TYPE_001 = TYPE_001;
+exports.buildDescMap = buildDescMap;
+exports.errorDescMap = errorDescMap;
+exports.getShortErrorMsg = getShortErrorMsg;
+exports.runtimeDescMap = runtimeDescMap;
+exports.typeDescMap = typeDescMap;
+
+
+}),
+"../../node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-client.development.js": 
+/*!*************************************************************************************************************************!*\\
+  !*** ../../node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-client.development.js ***!
+  \\*************************************************************************************************************************/
+(function (__unused_webpack_module, exports, __webpack_require__) {
+var __webpack_unused_export__;
+/**
+ * @license React
+ * react-dom-client.development.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/*
+ Modernizr 3.0.0pre (Custom Build) | MIT
+*/
+
+ true &&
+  (function () {
+    function findHook(fiber, id) {
+      for (fiber = fiber.memoizedState; null !== fiber && 0 < id; )
+        (fiber = fiber.next), id--;
+      return fiber;
+    }
+    function copyWithSetImpl(obj, path, index, value) {
+      if (index >= path.length) return value;
+      var key = path[index],
+        updated = isArrayImpl(obj) ? obj.slice() : assign({}, obj);
+      updated[key] = copyWithSetImpl(obj[key], path, index + 1, value);
+      return updated;
+    }
+    function copyWithRename(obj, oldPath, newPath) {
+      if (oldPath.length !== newPath.length)
+        console.warn("copyWithRename() expects paths of the same length");
+      else {
+        for (var i = 0; i < newPath.length - 1; i++)
+          if (oldPath[i] !== newPath[i]) {
+            console.war"
+`;
+
+exports[`ConsumeShared Share Chunks Snapshots > shared API chunk content 1`] = `
+""use strict";
+(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], {
+"./shared/api.js": 
+/*!***********************!*\\
+  !*** ./shared/api.js ***!
+  \\***********************/
+(function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  ApiClient: () => (/* @common:if [condition="treeShake.api-lib.ApiClient"] */ ApiClient /* @common:endif */),
+  createApiClient: () => (/* @common:if [condition="treeShake.api-lib.createApiClient"] */ createApiClient /* @common:endif */),
+  "default": () => (/* @common:if [condition="treeShake.api-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */),
+  fetchWithTimeout: () => (/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ fetchWithTimeout /* @common:endif */)
+});
+/* ESM import */var _config_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./config.js */ "./shared/config.js");
+/* ESM import */var _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./nested-utils.js */ "./shared/nested-utils.js");
+
+// Shared API utilities
+
+
+const fetchWithTimeout = async (
+	url,
+	options = {},
+	timeout = _config_js__WEBPACK_IMPORTED_MODULE_0__/* .DEFAULT_TIMEOUT */.EH
+) => {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+	try {
+		const response = await fetch(url, {
+			...options,
+			signal: controller.signal
+		});
+		clearTimeout(timeoutId);
+		return response;
+	} catch (error) {
+		clearTimeout(timeoutId);
+		throw error;
+	}
+};
+
+class ApiClient {
+	constructor(baseUrl, headers = {}) {
+		this.baseUrl = baseUrl;
+		this.headers = headers;
+		this.sessionId = (0,_nested_utils_js__WEBPACK_IMPORTED_MODULE_1__/* .generateId */.Ox)(); // Use imported function
+	}
+
+	async get(endpoint) {
+		return fetchWithTimeout(\`\${this.baseUrl}\${endpoint}\`, {
+			headers: this.headers
+		});
+	}
+
+	async post(endpoint, data) {
+		return fetchWithTimeout(\`\${this.baseUrl}\${endpoint}\`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				...this.headers
+			},
+			body: JSON.stringify(data)
+		});
+	}
+}
+
+const createApiClient = (baseUrl, headers) => {
+	return new ApiClient(baseUrl, headers);
+};
+
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
+	fetchWithTimeout,
+	ApiClient,
+	createApiClient
+});
+
+
+}),
+"./shared/config.js": 
+/*!**************************!*\\
+  !*** ./shared/config.js ***!
+  \\**************************/
+(function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  EH: () => (DEFAULT_TIMEOUT)
+});
+// Shared configuration module
+const API_ENDPOINTS = (/* unused pure expression or super */ null && ({
+  users: '/api/users',
+  posts: '/api/posts',
+  auth: '/api/auth'
+}));
+
+const DEFAULT_TIMEOUT = 5000;
+const MAX_RETRIES = 3;
+
+const getApiUrl = (endpoint) => {
+  return \`\${process.env.API_BASE_URL || 'http://localhost:3000'}\${endpoint}\`;
+};
+
+/* unused ESM default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && ({
+  API_ENDPOINTS,
+  DEFAULT_TIMEOUT,
+  MAX_RETRIES,
+  getApiUrl
+})));
+
+}),
+"./shared/nested-utils.js": 
+/*!********************************!*\\
+  !*** ./shared/nested-utils.js ***!
+  \\********************************/
+(function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  I8: () => (deepClone),
+  Ox: () => (generateId),
+  oH: () => (validateEmail)
+});
+// Nested utility functions to test PURE annotations
+const validateEmail = email => {
+	const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+	return emailRegex.test(email);
+};
+
+const generateId = () => {
+	return Math.random().toString(36).substr(2, 9);
+};
+
+const deepClone = obj => {
+	if (obj === null || typeof obj !== "object") return obj;
+	if (obj instanceof Date) return new Date(obj.getTime());
+	if (Array.isArray(obj)) return obj.map(item => deepClone(item));
+	if (typeof obj === "object") {
+		const copy = {};
+		for (const key of Object.keys(obj)) {
+			copy[key] = deepClone(obj[key]);
+		}
+		return copy;
+	}
+};
+
+const sortBy = (array, key) => {
+	return array.sort((a, b) => {
+		if (a[key] < b[key]) return -1;
+		if (a[key] > b[key]) return 1;
+		return 0;
+	});
+};
+
+/* unused ESM default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && ({
+	validateEmail,
+	generateId,
+	deepClone,
+	sortBy
+})));
+
+
+}),
+
+}]);"
+`;
+
+exports[`ConsumeShared Share Chunks Snapshots > shared components chunk content 1`] = `
+""use strict";
+(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], {
+"./shared/components.js": 
+/*!******************************!*\\
+  !*** ./shared/components.js ***!
+  \\******************************/
+(function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  Button: () => (/* @common:if [condition="treeShake.component-lib.Button"] */ Button /* @common:endif */),
+  Modal: () => (/* @common:if [condition="treeShake.component-lib.Modal"] */ Modal /* @common:endif */),
+  Tooltip: () => (/* @common:if [condition="treeShake.component-lib.Tooltip"] */ Tooltip /* @common:endif */),
+  createAlert: () => (/* @common:if [condition="treeShake.component-lib.createAlert"] */ createAlert /* @common:endif */),
+  createCard: () => (/* @common:if [condition="treeShake.component-lib.createCard"] */ createCard /* @common:endif */),
+  "default": () => (/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */)
+});
+// Shared component library - testing various export scenarios
+
+// Used export (imported in index.js)
+class Button {
+  constructor(text, onClick) {
+    this.element = document.createElement('button');
+    this.element.textContent = text;
+    this.element.addEventListener('click', onClick);
+  }
+
+  render() {
+    return this.element;
+  }
+}
+
+// Used export (imported in index.js)
+class Modal {
+  constructor(title, content) {
+    this.title = title;
+    this.content = content;
+    this.isOpen = false;
+  }
+
+  open() {
+    this.isOpen = true;
+    console.log(\`Modal "\${this.title}" opened\`);
+  }
+
+  close() {
+    this.isOpen = false;
+    console.log(\`Modal "\${this.title}" closed\`);
+  }
+}
+
+// Unused export (not imported anywhere)
+const createCard = (title, description) => {
+  return {
+    title,
+    description,
+    render() {
+      return \`<div class="card"><h3>\${title}</h3><p>\${description}</p></div>\`;
+    }
+  };
+};
+
+// Additional unused exports for testing
+class Tooltip {
+  constructor(element, text) {
+    this.element = element;
+    this.text = text;
+  }
+  
+  show() {
+    console.log(\`Showing tooltip: \${this.text}\`);
+  }
+}
+
+const createAlert = (message, type = 'info') => {
+  return {
+    message,
+    type,
+    show() {
+      console.log(\`Alert (\${type}): \${message}\`);
+    }
+  };
+};
+
+// Default export (not imported but defined)
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
+  Button,
+  Modal,
+  createCard,
+  Tooltip,
+  createAlert
+});
+
+}),
+
+}]);"
+`;
+
+exports[`ConsumeShared Share Chunks Snapshots > shared utilities chunk content 1`] = `
+""use strict";
+(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], {
+"./shared/config.js": 
+/*!**************************!*\\
+  !*** ./shared/config.js ***!
+  \\**************************/
+(function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  EH: () => (DEFAULT_TIMEOUT)
+});
+// Shared configuration module
+const API_ENDPOINTS = (/* unused pure expression or super */ null && ({
+  users: '/api/users',
+  posts: '/api/posts',
+  auth: '/api/auth'
+}));
+
+const DEFAULT_TIMEOUT = 5000;
+const MAX_RETRIES = 3;
+
+const getApiUrl = (endpoint) => {
+  return \`\${process.env.API_BASE_URL || 'http://localhost:3000'}\${endpoint}\`;
+};
+
+/* unused ESM default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && ({
+  API_ENDPOINTS,
+  DEFAULT_TIMEOUT,
+  MAX_RETRIES,
+  getApiUrl
+})));
+
+}),
+"./shared/nested-utils.js": 
+/*!********************************!*\\
+  !*** ./shared/nested-utils.js ***!
+  \\********************************/
+(function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  I8: () => (deepClone),
+  Ox: () => (generateId),
+  oH: () => (validateEmail)
+});
+// Nested utility functions to test PURE annotations
+const validateEmail = email => {
+	const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+	return emailRegex.test(email);
+};
+
+const generateId = () => {
+	return Math.random().toString(36).substr(2, 9);
+};
+
+const deepClone = obj => {
+	if (obj === null || typeof obj !== "object") return obj;
+	if (obj instanceof Date) return new Date(obj.getTime());
+	if (Array.isArray(obj)) return obj.map(item => deepClone(item));
+	if (typeof obj === "object") {
+		const copy = {};
+		for (const key of Object.keys(obj)) {
+			copy[key] = deepClone(obj[key]);
+		}
+		return copy;
+	}
+};
+
+const sortBy = (array, key) => {
+	return array.sort((a, b) => {
+		if (a[key] < b[key]) return -1;
+		if (a[key] > b[key]) return 1;
+		return 0;
+	});
+};
+
+/* unused ESM default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && ({
+	validateEmail,
+	generateId,
+	deepClone,
+	sortBy
+})));
+
+
+}),
+"./shared/utils.js": 
+/*!*************************!*\\
+  !*** ./shared/utils.js ***!
+  \\*************************/
+(function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  capitalize: () => (/* @common:if [condition="treeShake.utility-lib.capitalize"] */ capitalize /* @common:endif */),
+  debounce: () => (/* @common:if [condition="treeShake.utility-lib.debounce"] */ debounce /* @common:endif */),
+  deepClone: () => (/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.I8 /* @common:endif */),
+  "default": () => (/* @common:if [condition="treeShake.utility-lib.default"] */ /* ESM default export */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */),
+  formatDate: () => (/* @common:if [condition="treeShake.utility-lib.formatDate"] */ formatDate /* @common:endif */),
+  generateId: () => (/* @common:if [condition="treeShake.utility-lib.generateId"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.Ox /* @common:endif */),
+  processWithHelper: () => (/* @common:if [condition="treeShake.utility-lib.processWithHelper"] */ processWithHelper /* @common:endif */),
+  validateEmail: () => (/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.oH /* @common:endif */)
+});
+/* ESM import */var _config_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./config.js */ "./shared/config.js");
+/* ESM import */var _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./nested-utils.js */ "./shared/nested-utils.js");
+
+// Shared utility functions
+
+
+// Import CommonJS helper to test PURE annotations for CommonJS requires
+const cjsHelper = require("./cjs-helper.js");
+
+const formatDate = date => {
+	return new Intl.DateTimeFormat("en-US").format(date);
+};
+
+const capitalize = str => {
+	return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+// Use CommonJS helper function to test CommonJS integration
+const processWithHelper = input => {
+	return cjsHelper.helperFunction(input);
+};
+
+// Re-export nested utilities
+
+
+const debounce = (func, wait) => {
+	let timeout;
+	return function executedFunction(...args) {
+		const later = () => {
+			clearTimeout(timeout);
+			func(...args);
+		};
+		clearTimeout(timeout);
+		timeout = setTimeout(later, wait);
+	};
+};
+
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
+	formatDate,
+	capitalize,
+	debounce
+});
+
+
+}),
+
+}]);"
+`;
