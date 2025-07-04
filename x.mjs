@@ -252,10 +252,37 @@ program
 
 program
 	.command("crate-version")
-	.argument("<version>", "version")
+	.argument(
+		"<bump>",
+		"bump type (major|minor|patch|premajor|preminor|prepatch|skip|prerelease|custom)"
+	)
+	.argument("[custom]", "custom version when bump is 'custom'")
 	.description("update crate version with cargo-workspaces")
-	.action(async version => {
+	.action(async (bump, custom) => {
 		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`;
+
+		// Validate bump type
+		const validBumps = [
+			"major",
+			"minor",
+			"patch",
+			"premajor",
+			"preminor",
+			"prepatch",
+			"skip",
+			"prerelease",
+			"custom"
+		];
+		if (!validBumps.includes(bump)) {
+			throw new Error(
+				`Invalid bump type: ${bump}. Valid types: ${validBumps.join(", ")}`
+			);
+		}
+
+		// Validate custom version when bump is 'custom'
+		if (bump === "custom" && !custom) {
+			throw new Error("Custom version is required when bump type is 'custom'");
+		}
 
 		const args = [
 			"workspaces",
@@ -268,9 +295,13 @@ program
 			"--force",
 			"rspack*", // Always include targeted crates matched by glob even when there are no changes
 			"--yes", // Skip confirmation prompt
-			"custom",
-			version // Increment versions by custom value (BUMP + CUSTOM args)
+			bump // Bump type
 		];
+
+		// Add custom version if provided
+		if (bump === "custom" && custom) {
+			args.push(custom);
+		}
 
 		await $`cargo ${args}`;
 	});
