@@ -9123,7 +9123,7 @@ class WebpackError_2 extends Error {
     // (undocumented)
     loc?: DependencyLocation;
     // (undocumented)
-    module?: Module;
+    module?: null | Module;
 }
 
 // @public (undocumented)
