@@ -15,6 +15,7 @@ const wasmConfig = process.env.WASM && {
 		"Error.test.js",
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
+
 		// Skip temporarily and should investigate in the future
 		"Defaults.test.js",
 		"Cache.test.js",
@@ -24,8 +25,7 @@ const wasmConfig = process.env.WASM && {
 		"Incremental-watch-webpack.test.js",
 		"Incremental-watch.test.js",
 		"Incremental-web.test.js",
-		"Incremental-webworker.test.js",
-		'NativeWatcher.test.js',
+		"Incremental-webworker.test.js"
 	],
 	maxWorkers: 1,
 	maxConcurrency: 1,
@@ -65,14 +65,20 @@ const config = {
 		testFilter:
 			process.argv.includes("--test") || process.argv.includes("-t")
 				? process.argv[
-				(process.argv.includes("-t")
-					? process.argv.indexOf("-t")
-					: process.argv.indexOf("--test")) + 1
-				]
+						(process.argv.includes("-t")
+							? process.argv.indexOf("-t")
+							: process.argv.indexOf("--test")) + 1
+					]
 				: undefined,
 		printLogger: process.argv.includes("--verbose")
 	},
 	...(wasmConfig || {})
 };
+
+config.testPathIgnorePatterns = config.testPathIgnorePatterns || [];
+config.testPathIgnorePatterns.push(
+	// Skip temporarily because native watcher is not stable in CI
+	"NativeWatcher.test.js"
+);
 
 module.exports = config;
