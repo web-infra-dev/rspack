@@ -8,11 +8,12 @@ use std::{
   sync::LazyLock,
 };
 
+use aho_corasick::{AhoCorasick, MatchKind};
 use derive_more::Debug;
 pub use drive::*;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
-use regex::{Captures, Regex, RegexBuilder};
+use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
@@ -105,21 +106,18 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     return Ok(());
   }
   let start = logger.time("create hash regexp");
-  let mut hash_list = hash_to_asset_names
+  let hash_list = hash_to_asset_names
     .keys()
     // xx\xx{xx?xx.xx -> xx\\xx\{xx\?xx\.xx escape for Regex::new
     .map(|hash| QUOTE_META.replace_all(hash, "\\$0"))
     .collect::<Vec<Cow<str>>>();
-  // long hash should sort before short hash to make sure match long hash first in hash_regexp matching
+  // use LeftmostLongest here:
   // e.g. 4afc|4afcbe match xxx.4afcbe-4afc.js -> xxx.[4afc]be-[4afc].js
   //      4afcbe|4afc match xxx.4afcbe-4afc.js -> xxx.[4afcbe]-[4afc].js
-  hash_list.par_sort_by(|a, b| b.len().cmp(&a.len()));
-  let hash_regexp = {
-    RegexBuilder::new(&hash_list.join("|"))
-      .size_limit(usize::MAX)
-      .build()
-      .expect("Invalid regex")
-  };
+  let hash_regexp = AhoCorasick::builder()
+    .match_kind(MatchKind::LeftmostLongest)
+    .build(hash_list.iter().map(|s| s.as_bytes()))
+    .expect("Invalid patterns");
   logger.time_end(start);
 
   let start = logger.time("create ordered hashes");
@@ -260,17 +258,14 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     .into_par_iter()
     .filter_map(|(name, data)| {
       let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_regexp);
-      let new_name = hash_regexp
-        .replace_all(name, |c: &Captures| {
-          let hash = c
-            .get(0)
-            .expect("RealContentHashPlugin: should have match")
-            .as_str();
-          hash_to_new_hash
-            .get(hash)
-            .expect("RealContentHashPlugin: should have new hash")
-        })
-        .into_owned();
+      let mut new_name = String::new();
+      hash_regexp.replace_all_with(name, &mut new_name, |_, hash, dst| {
+        let replace_to = hash_to_new_hash
+          .get(hash)
+          .expect("RealContentHashPlugin: should have new hash");
+        dst.push_str(replace_to);
+        true
+      });
       let new_name = (name != new_name).then_some(new_name);
       Some((name.to_owned(), new_source, new_name))
     })
@@ -354,17 +349,18 @@ enum AssetDataContent {
 }
 
 impl AssetData {
-  pub fn new(source: BoxSource, info: &AssetInfo, hash_regexp: &Regex) -> Self {
+  pub fn new(source: BoxSource, info: &AssetInfo, hash_regexp: &AhoCorasick) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
     // TODO(ahabhgk): source.is_buffer() instead of String::from_utf8().is_ok()
     let content = if let Ok(content) = String::from_utf8(source.buffer().to_vec()) {
       for hash in hash_regexp.find_iter(&content) {
-        if info.content_hash.contains(hash.as_str()) {
-          own_hashes.insert(hash.as_str().to_string());
+        let hash = &content[hash.range()];
+        if info.content_hash.contains(hash) {
+          own_hashes.insert(hash.to_string());
           continue;
         }
-        referenced_hashes.insert(hash.as_str().to_string());
+        referenced_hashes.insert(hash.to_string());
       }
       AssetDataContent::String(content)
     } else {
@@ -385,7 +381,7 @@ impl AssetData {
     &self,
     without_own: bool,
     hash_to_new_hash: &HashMap<String, String>,
-    hash_regexp: &Regex,
+    hash_regexp: &AhoCorasick,
   ) -> BoxSource {
     (if without_own {
       &self.new_source_without_own
@@ -400,19 +396,19 @@ impl AssetData {
             .iter()
             .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
       {
-        let new_content = hash_regexp.replace_all(content, |c: &Captures| {
-          let hash = c
-            .get(0)
-            .expect("RealContentHashPlugin: should have matched")
-            .as_str();
-          if without_own && self.own_hashes.contains(hash) {
-            return "";
-          }
-          hash_to_new_hash
-            .get(hash)
-            .expect("RealContentHashPlugin: should have new hash")
+        let mut new_content = String::new();
+        hash_regexp.replace_all_with(content, &mut new_content, |_, hash, dst| {
+          let replace_to = if without_own && self.own_hashes.contains(hash) {
+            ""
+          } else {
+            hash_to_new_hash
+              .get(hash)
+              .expect("RealContentHashPlugin: should have new hash")
+          };
+          dst.push_str(replace_to);
+          true
         });
-        return RawStringSource::from(new_content.into_owned()).boxed();
+        return RawStringSource::from(new_content).boxed();
       }
       self.old_source.clone()
     })
