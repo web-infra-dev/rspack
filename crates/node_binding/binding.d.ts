@@ -317,7 +317,7 @@ export declare class JsCompilation {
   addEntry(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   get codeGenerationResults(): CodeGenerationResults
-  createStatsErrors(warnings: Array<RspackError>, colored?: boolean | undefined | null): JsStatsError[]
+  createStatsWarnings(warnings: Array<RspackError>, colored?: boolean | undefined | null): JsStatsError[]
 }
 
 export declare class JsCompiler {

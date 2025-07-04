@@ -15,7 +15,6 @@ import type {
 	JsStatsError,
 	JsStatsModule
 } from "@rspack/binding";
-import { RUST_ERROR_SYMBOL } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
@@ -615,15 +614,6 @@ const EXTRACT_ERROR: Record<
 	) => void
 > = {
 	_: (object, error) => {
-		if (RUST_ERROR_SYMBOL in error) {
-			Object.defineProperty(object, RUST_ERROR_SYMBOL, {
-				enumerable: false,
-				configurable: true,
-				writable: false,
-				value: error[RUST_ERROR_SYMBOL]
-			});
-		}
-
 		object.message = error.message;
 		// `error.code` is rspack-specific
 		if (error.code) {
@@ -645,7 +635,7 @@ const EXTRACT_ERROR: Record<
 			object.moduleIdentifier = error.moduleDescriptor.identifier;
 			object.moduleName = error.moduleDescriptor.name;
 		}
-		if ("loc" in error) {
+		if (error.loc) {
 			object.loc = error.loc;
 		}
 	},
@@ -706,7 +696,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						(warnings => (map.set(compilation, warnings), warnings))(
 							compilation
 								.__internal_getInner()
-								.createStatsErrors(compilation.getWarnings())
+								.createStatsWarnings(compilation.getWarnings())
 						)
 					);
 				};

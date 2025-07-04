@@ -1358,19 +1358,6 @@ pub fn create_stats_errors<'a>(
   diagnostics: &'a mut Vec<Diagnostic>,
   colored: bool,
 ) -> Vec<StatsError<'a>> {
-  let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
-    d.labels()
-      .and_then(|mut l| l.next())
-      .map(|l| l.offset())
-      .unwrap_or_default()
-  };
-  diagnostics.sort_by(
-    |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
-      std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
-      other => other,
-    },
-  );
-
   diagnostics
     .par_iter()
     .map(|d| {

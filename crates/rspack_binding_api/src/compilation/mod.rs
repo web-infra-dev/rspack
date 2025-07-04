@@ -25,9 +25,9 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkGraph, ChunkGroupWrapper,
-  ChunkWrapper, EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset, JsCompatSource,
-  JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats, JsStatsError,
+  create_stats_warnings, entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkGraph,
+  ChunkGroupWrapper, ChunkWrapper, EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset,
+  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackError, RspackResultToNapiResultExt,
   ToJsCompatSource, COMPILER_REFERENCES,
 };
@@ -916,36 +916,14 @@ impl JsCompilation {
   }
 
   #[napi(ts_return_type = "JsStatsError[]")]
-  pub fn create_stats_errors<'a>(
+  pub fn create_stats_warnings<'a>(
     &self,
     env: &'a Env,
     warnings: Vec<RspackError>,
     colored: Option<bool>,
   ) -> Result<Array<'a>> {
     let compilation = self.as_ref()?;
-    let module_graph = compilation.get_module_graph();
-
-    let mut diagnostics = warnings
-      .into_iter()
-      .map(|warning| warning.into_diagnostic(RspackSeverity::Warn))
-      .collect::<Vec<_>>();
-
-    let stats_errors = rspack_core::create_stats_errors(
-      compilation,
-      &module_graph,
-      &mut diagnostics,
-      colored.unwrap_or(false),
-    );
-
-    let mut array = env.create_array(stats_errors.len() as u32)?;
-    let raw_env = env.raw();
-    for (i, warning) in stats_errors.into_iter().enumerate() {
-      let js_warning = JsStatsError::from(warning);
-      let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, js_warning)? };
-      let object = unsafe { Object::from_napi_value(raw_env, napi_val)? };
-      array.set_element(i as u32, object)?;
-    }
-    Ok(array)
+    create_stats_warnings(env, compilation, warnings, colored)
   }
 }
 

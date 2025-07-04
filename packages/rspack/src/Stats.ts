@@ -101,6 +101,7 @@ export class Stats {
 					return statsCompilationMap.get(compilation)!;
 				}
 				const innerStats = this.#getInnerByCompilation(compilation);
+				options.warnings = false;
 				const innerStatsCompilation = innerStats.toJson(options);
 				statsCompilationMap.set(compilation, innerStatsCompilation);
 				return innerStatsCompilation;
