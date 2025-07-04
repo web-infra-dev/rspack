@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, ChunkGraph, Compilation, CompilationModuleIds,
   CompilerOptions, Plugin, PluginContext,
@@ -43,9 +45,20 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     .filter_map(|i| module_graph.module_by_identifier(&i))
     .collect::<Vec<_>>();
   let used_ids_len = used_ids.len();
+
+  let module_names = modules
+    .par_iter()
+    .map(|m| (m.identifier(), get_full_module_name(m, context)))
+    .collect::<IdentifierMap<String>>();
+
   assign_deterministic_ids(
     modules,
-    |m| get_full_module_name(m, context),
+    |m| {
+      module_names
+        .get(&m.identifier())
+        .expect("should have generated full module name")
+        .to_string()
+    },
     |a, b| compare_modules_by_pre_order_index_or_identifier(&module_graph, a, b),
     |module, id| {
       if !used_ids.insert(id.to_string()) {
