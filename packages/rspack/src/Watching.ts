@@ -13,7 +13,11 @@ import type { Callback } from "@rspack/lite-tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import type { WatchOptions } from "./config";
-import type { FileSystemInfoEntry, Watcher } from "./util/fs";
+import type {
+	FileSystemInfoEntry,
+	Watcher,
+	WatcherIncrementalDependencies
+} from "./util/fs";
 
 export class Watching {
 	watcher?: Watcher;
@@ -74,14 +78,14 @@ export class Watching {
 		});
 	}
 
-	watch(
-		files: Iterable<string>,
-		dirs: Iterable<string>,
-		missing: Iterable<string>
+	async watch(
+		files: WatcherIncrementalDependencies,
+		dirs: WatcherIncrementalDependencies,
+		missing: WatcherIncrementalDependencies
 	) {
 		this.pausedWatcher = undefined;
 		// SAFETY: `watchFileSystem` is expected to be initialized.
-		this.watcher = this.compiler.watchFileSystem!.watch(
+		this.watcher = await this.compiler.watchFileSystem!.watch(
 			files,
 			dirs,
 			missing,
@@ -362,9 +366,23 @@ export class Watching {
 		compilation.endTime = Date.now();
 		const cbs = this.callbacks;
 		this.callbacks = [];
-		const fileDependencies = new Set([...compilation.fileDependencies]);
-		const contextDependencies = new Set([...compilation.contextDependencies]);
-		const missingDependencies = new Set([...compilation.missingDependencies]);
+		const fileWatchDependencies: WatcherIncrementalDependencies = {
+			all: new Set([...compilation.fileDependencies]),
+			added: new Set(compilation.__internal__addedFileDependencies),
+			removed: new Set(compilation.__internal__removedFileDependencies)
+		};
+
+		const contextWatchDependencies: WatcherIncrementalDependencies = {
+			all: new Set([...compilation.contextDependencies]),
+			added: new Set(compilation.__internal__addedContextDependencies),
+			removed: new Set(compilation.__internal__removedContextDependencies)
+		};
+
+		const missingWatchDependencies: WatcherIncrementalDependencies = {
+			all: new Set([...compilation.missingDependencies]),
+			added: new Set(compilation.__internal__addedMissingDependencies),
+			removed: new Set(compilation.__internal__removedMissingDependencies)
+		};
 
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
@@ -373,9 +391,9 @@ export class Watching {
 			process.nextTick(() => {
 				if (!this.#closed) {
 					this.watch(
-						fileDependencies,
-						contextDependencies,
-						missingDependencies
+						fileWatchDependencies,
+						contextWatchDependencies,
+						missingWatchDependencies
 					);
 				}
 			});

@@ -644,6 +644,7 @@ export interface ExperimentsNormalized {
 	inlineConst?: boolean;
 	inlineEnum?: boolean;
 	typeReexportsPresence?: boolean;
+	nativeWatcher?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

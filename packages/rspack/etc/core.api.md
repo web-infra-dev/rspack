@@ -818,6 +818,12 @@ export class Compilation {
     // (undocumented)
     [binding.COMPILATION_HOOKS_MAP_SYMBOL]: WeakMap<Compilation, NormalModuleCompilationHooks>;
     constructor(compiler: Compiler, inner: JsCompilation);
+    // (undocumented)
+    get __internal__addedContextDependencies(): string[];
+    // (undocumented)
+    get __internal__addedFileDependencies(): string[];
+    // (undocumented)
+    get __internal__addedMissingDependencies(): string[];
     // @internal
     __internal__deleteAssetSource(filename: string): void;
     // @internal
@@ -832,6 +838,12 @@ export class Compilation {
     __internal__pushDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
     // @internal
     __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
+    // (undocumented)
+    get __internal__removedContextDependencies(): string[];
+    // (undocumented)
+    get __internal__removedFileDependencies(): string[];
+    // (undocumented)
+    get __internal__removedMissingDependencies(): string[];
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
     // (undocumented)
@@ -2358,6 +2370,7 @@ export type Experiments = {
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     inlineConst?: boolean;
+    nativeWatcher?: boolean;
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
 };
@@ -2419,6 +2432,8 @@ export interface ExperimentsNormalized {
     layers?: boolean;
     // (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
+    // (undocumented)
+    nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
     // (undocumented)
@@ -8912,6 +8927,16 @@ class Watcher_2 extends EventEmitter {
 }
 
 // @public (undocumented)
+interface WatcherIncrementalDependencies {
+    // (undocumented)
+    added: Set<string>;
+    // (undocumented)
+    all: Set<string>;
+    // (undocumented)
+    removed: Set<string>;
+}
+
+// @public (undocumented)
 interface WatcherInfo {
     // (undocumented)
     changes: Set<string>;
@@ -8936,7 +8961,7 @@ type WatchFiles = {
 // @public (undocumented)
 interface WatchFileSystem {
     // (undocumented)
-    watch(files: Iterable<string>, directories: Iterable<string>, missing: Iterable<string>, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
+    watch(files: WatcherIncrementalDependencies, directories: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Promise<Watcher>;
 }
 
 // @public (undocumented)
@@ -8979,7 +9004,7 @@ export class Watching {
     // (undocumented)
     suspended: boolean;
     // (undocumented)
-    watch(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>): void;
+    watch(files: WatcherIncrementalDependencies, dirs: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies): Promise<void>;
     // (undocumented)
     watcher?: Watcher;
     // (undocumented)

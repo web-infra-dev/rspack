@@ -440,6 +440,27 @@ export declare class ModuleGraphConnection {
   get originModule(): Module | null
 }
 
+export declare class NativeWatcher {
+  constructor(options: NativeWatcherOptions)
+  /**
+   * # Safety
+   *
+   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
+   * It's important to ensure that the watcher is not used in any other places before this function is finished.
+   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
+   */
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, changedFiles: string[], removedFiles: string[]) => void, callbackUndelayed: (path: string) => void): Promise<void>
+  /**
+   * # Safety
+   *
+   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
+   * It's important to ensure that the watcher is not used in any other places before this function is finished.
+   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
+   */
+  close(): Promise<void>
+  pause(): void
+}
+
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
@@ -1479,6 +1500,14 @@ export declare function loadBrowserslist(input: string | undefined | null, conte
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
 export declare function minifySync(source: string, options: string): TransformOutput
+
+export interface NativeWatcherOptions {
+  followSymlinks?: boolean
+  pollInterval?: number
+  aggregateTimeout?: number
+  /** A function that will be called with the path of a file or directory that is ignored. */
+  ignored?: (path: string) => boolean
+}
 
 export interface NodeFsStats {
   isFile: boolean

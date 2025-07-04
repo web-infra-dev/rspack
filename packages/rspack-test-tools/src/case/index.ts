@@ -17,3 +17,4 @@ export * from "./watch";
 export * from "./incremental";
 export * from "./cache";
 export * from "./serial";
+export * from "./nativeWatcher";

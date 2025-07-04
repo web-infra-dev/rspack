@@ -1,6 +1,9 @@
 mod read;
 pub use read::ReadableFileSystem;
 
+mod watcher;
+pub use watcher::{EventHandler, FsWatcher, FsWatcherOptions, Ignored, PathUpdater};
+
 mod write;
 pub use write::WritableFileSystem;
 mod intermediate;
