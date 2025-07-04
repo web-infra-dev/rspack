@@ -264,11 +264,9 @@ program
 			"--allow-branch",
 			"release-crates/*", // Specify which branches to allow from
 			"--no-git-push", // Do not push generated commit and tags to git remote
-			"--tag-prefix",
-			"crates@", // Customize tag prefix (can be empty)
+			"--no-git-tag", // Do not tag versions in git, we will tag them in `crate-publish`
 			"--force",
 			"rspack*", // Always include targeted crates matched by glob even when there are no changes
-			"--no-individual-tags", // Do not tag individual versions for crates
 			"--yes", // Skip confirmation prompt
 			"custom",
 			version // Increment versions by custom value (BUMP + CUSTOM args)
