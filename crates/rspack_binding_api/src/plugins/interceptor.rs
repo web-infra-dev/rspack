@@ -70,20 +70,19 @@ use rspack_plugin_runtime::{
 };
 
 use crate::{
-  JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
+  ChunkWrapper, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
   JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
   JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
   JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
-  JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
-  JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
-  JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
-  JsLinkPrefetchData, JsLinkPreloadData, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
-  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch,
-  JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
-  JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ModuleObject,
-  ToJsCompatSourceOwned,
+  JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
+  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
+  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsCreateScriptData, JsExecuteModuleArg,
+  JsFactorizeArgs, JsFactorizeOutput, JsLinkPrefetchData, JsLinkPreloadData,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph,
+  JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch, JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals,
+  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
+  JsRuntimeRequirementInTreeResult, ModuleObject, ToJsCompatSourceOwned,
 };
 
 #[napi(object)]
@@ -461,9 +460,9 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_optimize_chunk_modules_taps: RegisterFunction<(), Promise<Option<bool>>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
-  pub register_compilation_chunk_hash_taps: RegisterFunction<JsChunkWrapper, Buffer>,
+  pub register_compilation_chunk_hash_taps: RegisterFunction<ChunkWrapper, Buffer>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>"
   )]
@@ -527,9 +526,9 @@ pub struct RegisterJsTaps {
     Promise<JsContextModuleFactoryAfterResolveResult>,
   >,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
-  pub register_javascript_modules_chunk_hash_taps: RegisterFunction<JsChunkWrapper, Buffer>,
+  pub register_javascript_modules_chunk_hash_taps: RegisterFunction<ChunkWrapper, Buffer>,
   // html plugin
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>"
@@ -750,7 +749,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationChunkHashTaps,
-  tap = CompilationChunkHashTap<JsChunkWrapper, Buffer> @ CompilationChunkHashHook,
+  tap = CompilationChunkHashTap<ChunkWrapper, Buffer> @ CompilationChunkHashHook,
   cache = true,
   kind = RegisterJsTapKind::CompilationChunkHash,
   skip = true,
@@ -854,7 +853,7 @@ define_register!(
 /* JavascriptModules Hooks */
 define_register!(
   RegisterJavascriptModulesChunkHashTaps,
-  tap = JavascriptModulesChunkHashTap<JsChunkWrapper, Buffer> @ JavascriptModulesChunkHashHook,
+  tap = JavascriptModulesChunkHashTap<ChunkWrapper, Buffer> @ JavascriptModulesChunkHashHook,
   cache = true,
   kind = RegisterJsTapKind::JavascriptModulesChunkHash,
   skip = true,
@@ -1248,7 +1247,7 @@ impl CompilationAdditionalTreeRuntimeRequirements
     runtime_requirements: &mut RuntimeGlobals,
   ) -> rspack_error::Result<()> {
     let arg = JsAdditionalTreeRuntimeRequirementsArg {
-      chunk: JsChunkWrapper::new(*chunk_ukey, compilation),
+      chunk: ChunkWrapper::new(*chunk_ukey, compilation),
       runtime_requirements: JsRuntimeGlobals::from(*runtime_requirements),
     };
     let result = self.function.call_with_sync(arg).await?;
@@ -1274,7 +1273,7 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
     runtime_requirements_mut: &mut RuntimeGlobals,
   ) -> rspack_error::Result<Option<()>> {
     let arg = JsRuntimeRequirementInTreeArg {
-      chunk: JsChunkWrapper::new(*chunk_ukey, compilation),
+      chunk: ChunkWrapper::new(*chunk_ukey, compilation),
       all_runtime_requirements: JsRuntimeGlobals::from(*all_runtime_requirements),
       runtime_requirements: JsRuntimeGlobals::from(*runtime_requirements),
     };
@@ -1321,7 +1320,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           .cow_replace("webpack/runtime/", "")
           .into_owned(),
       },
-      chunk: JsChunkWrapper::new(*chunk_ukey, compilation),
+      chunk: ChunkWrapper::new(*chunk_ukey, compilation),
     };
     if let Some(module) = self.function.call_with_sync(arg).await?
       && let Some(source) = module.source
@@ -1357,7 +1356,7 @@ impl CompilationChunkHash for CompilationChunkHashTap {
   ) -> rspack_error::Result<()> {
     let result = self
       .function
-      .call_with_sync(JsChunkWrapper::new(*chunk_ukey, compilation))
+      .call_with_sync(ChunkWrapper::new(*chunk_ukey, compilation))
       .await?;
     result.hash(hasher);
     Ok(())
@@ -1379,7 +1378,7 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
     self
       .function
       .call_with_sync(JsChunkAssetArgs {
-        chunk: JsChunkWrapper::new(*chunk_ukey, compilation),
+        chunk: ChunkWrapper::new(*chunk_ukey, compilation),
         filename: file.to_string(),
       })
       .await
@@ -1727,7 +1726,7 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
   ) -> rspack_error::Result<()> {
     let result = self
       .function
-      .call_with_sync(JsChunkWrapper::new(*chunk_ukey, compilation))
+      .call_with_sync(ChunkWrapper::new(*chunk_ukey, compilation))
       .await?;
     result.hash(hasher);
     Ok(())

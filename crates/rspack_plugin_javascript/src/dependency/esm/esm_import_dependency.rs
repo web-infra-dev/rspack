@@ -454,6 +454,7 @@ fn find_type_exports_from_outgoings(
   export_name: &Atom,
   visited: &mut IdentifierSet,
 ) -> bool {
+  visited.insert(*module_identifier);
   let module = mg
     .module_by_identifier(module_identifier)
     .expect("should have module");

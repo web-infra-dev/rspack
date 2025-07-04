@@ -39,25 +39,6 @@ pub struct ExtendedStatsOptions {
 
 #[derive(Debug)]
 pub struct StatsError<'a> {
-  pub message: String,
-  pub code: Option<String>,
-  pub module_identifier: Option<ModuleIdentifier>,
-  pub module_name: Option<Cow<'a, str>>,
-  pub module_id: Option<ModuleId>,
-  pub loc: Option<String>,
-  pub file: Option<&'a Utf8Path>,
-
-  pub chunk_name: Option<&'a str>,
-  pub chunk_entry: Option<bool>,
-  pub chunk_initial: Option<bool>,
-  pub chunk_id: Option<&'a str>,
-  pub details: Option<String>,
-  pub stack: Option<String>,
-  pub module_trace: Vec<StatsModuleTrace<'a>>,
-}
-
-#[derive(Debug)]
-pub struct StatsWarning<'a> {
   pub name: Option<String>,
   pub message: String,
   pub code: Option<String>,

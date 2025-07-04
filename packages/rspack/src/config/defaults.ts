@@ -685,10 +685,14 @@ const applyOutputDefaults = (
 	D(output, "compareBeforeEmit", true);
 	F(output, "path", () => path.join(process.cwd(), "dist"));
 	F(output, "pathinfo", () => development);
+	D(output, "crossOriginLoading", false);
+	F(output, "scriptType", () => (output.module ? "module" : false));
 	D(
 		output,
 		"publicPath",
-		tp && (tp.document || tp.importScripts) ? "auto" : ""
+		(tp && (tp.document || tp.importScripts)) || output.scriptType === "module"
+			? "auto"
+			: ""
 	);
 
 	// IGNORE(output.hashFunction): Rspack uses faster xxhash64 by default
@@ -802,10 +806,8 @@ const applyOutputDefaults = (
 	D(output, "importMetaName", "import.meta");
 	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
-	D(output, "crossOriginLoading", false);
 	D(output, "workerPublicPath", "");
 	D(output, "sourceMapFilename", "[file].map[query]");
-	F(output, "scriptType", () => (output.module ? "module" : false));
 	D(output, "charset", !futureDefaults);
 	D(output, "chunkLoadTimeout", 120000);
 

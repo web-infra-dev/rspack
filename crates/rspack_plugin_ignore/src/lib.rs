@@ -39,9 +39,10 @@ impl IgnorePlugin {
       if let Some(request) = request {
         match check_resource {
           CheckResourceContent::Fn(check) => {
-            if check(request, context).await.with_context(|| {
-              "run IgnorePlugin check resource error, check whether you passed right fn argument"
-            })? {
+            if check(request, context)
+              .await
+              .with_context(|| "IgnorePlugin: failed to call `checkResource`")?
+            {
               return Ok(Some(false));
             }
           }

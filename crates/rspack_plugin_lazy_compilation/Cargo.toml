@@ -6,7 +6,7 @@ homepage.workspace      = true
 license                 = "MIT"
 name                    = "rspack_plugin_lazy_compilation"
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [dependencies]
 async-trait = { workspace = true }

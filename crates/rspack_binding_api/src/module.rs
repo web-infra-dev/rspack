@@ -17,8 +17,8 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  define_symbols, AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ConcatenatedModule,
-  ContextModule, DependencyWrapper, ExternalModule, JsChunkWrapper, JsCodegenerationResults,
+  define_symbols, AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ChunkWrapper,
+  ConcatenatedModule, ContextModule, DependencyWrapper, ExternalModule, JsCodegenerationResults,
   JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
@@ -711,8 +711,8 @@ pub struct JsRuntimeModule {
 #[napi(object, object_from_js = false)]
 pub struct JsRuntimeModuleArg {
   pub module: JsRuntimeModule,
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
 }
 
 type GenerateFn = ThreadsafeFunction<(), String>;

@@ -1,13 +1,14 @@
 [package]
 authors.workspace       = true
 categories.workspace    = true
+description             = "Rspack browserslist"
 documentation.workspace = true
 edition.workspace       = true
 homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_browserslist"
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [dependencies]
 browserslist-rs = { workspace = true }

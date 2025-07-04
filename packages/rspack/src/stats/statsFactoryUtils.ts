@@ -339,7 +339,7 @@ export type SimpleExtractors = {
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	chunkOrigin: ExtractorsByOption<JsOriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
+	warning: ExtractorsByOption<binding.JsStatsError, StatsError>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem
@@ -725,7 +725,7 @@ export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
 };
 
 export const warningFromStatsWarning = (
-	warning: binding.JsStatsWarning
+	warning: binding.JsStatsError
 ): Error => {
 	const res = new Error(warning.message);
 	res.name = warning.name || "StatsWarning";

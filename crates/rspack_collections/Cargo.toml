@@ -6,7 +6,7 @@ homepage.workspace      = true
 license                 = "MIT"
 name                    = "rspack_collections"
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [dependencies]
 dashmap          = { workspace = true }

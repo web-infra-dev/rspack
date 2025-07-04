@@ -2,19 +2,19 @@ use std::{cell::RefCell, collections::HashMap, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId};
+use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
-use crate::{compilation::entries::EntryOptionsDTO, JsChunkGroupWrapper};
+use crate::{compilation::entries::EntryOptionsDTO, ChunkGroupWrapper};
 
 #[napi]
-pub struct JsChunk {
-  pub(crate) chunk_ukey: ChunkUkey,
+pub struct Chunk {
+  pub(crate) chunk_ukey: rspack_core::ChunkUkey,
   compilation: NonNull<Compilation>,
 }
 
-impl JsChunk {
-  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static Chunk)> {
+impl Chunk {
+  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static rspack_core::Chunk)> {
     let compilation = unsafe { self.compilation.as_ref() };
     if let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk_ukey) {
       Ok((compilation, chunk))
@@ -28,7 +28,7 @@ impl JsChunk {
 }
 
 #[napi]
-impl JsChunk {
+impl Chunk {
   #[napi(getter)]
   pub fn name(&self) -> napi::Result<Either<&str, ()>> {
     let (_, chunk) = self.as_ref()?;
@@ -88,7 +88,7 @@ impl JsChunk {
     )
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "_files")]
   pub fn files(&self) -> napi::Result<Vec<&String>> {
     let (_, chunk) = self.as_ref()?;
     let mut files = Vec::from_iter(chunk.files());
@@ -96,7 +96,7 @@ impl JsChunk {
     Ok(files)
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "_runtime")]
   pub fn runtime(&self) -> napi::Result<Vec<&str>> {
     let (_, chunk) = self.as_ref()?;
     Ok(chunk.runtime().iter().map(|r| r.as_ref()).collect())
@@ -155,7 +155,7 @@ impl JsChunk {
     })
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "_auxiliaryFiles")]
   pub fn auxiliary_files(&self) -> napi::Result<Vec<&String>> {
     let (_, chunk) = self.as_ref()?;
     Ok(chunk.auxiliary_files().iter().collect::<Vec<_>>())
@@ -163,7 +163,7 @@ impl JsChunk {
 }
 
 #[napi]
-impl JsChunk {
+impl Chunk {
   #[napi]
   pub fn is_only_initial(&self) -> napi::Result<bool> {
     let (compilation, chunk) = self.as_ref()?;
@@ -182,44 +182,44 @@ impl JsChunk {
     Ok(chunk.has_runtime(&compilation.chunk_group_by_ukey))
   }
 
-  #[napi(ts_return_type = "JsChunk[]")]
-  pub fn get_all_async_chunks(&self) -> napi::Result<Vec<JsChunkWrapper>> {
+  #[napi(ts_return_type = "Chunk[]")]
+  pub fn get_all_async_chunks(&self) -> napi::Result<Vec<ChunkWrapper>> {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
         .get_all_async_chunks(&compilation.chunk_group_by_ukey)
         .into_iter()
-        .map(|chunk_ukey| JsChunkWrapper::new(chunk_ukey, compilation))
+        .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
 
-  #[napi(ts_return_type = "JsChunk[]")]
-  pub fn get_all_initial_chunks(&self) -> napi::Result<Vec<JsChunkWrapper>> {
+  #[napi(ts_return_type = "Chunk[]")]
+  pub fn get_all_initial_chunks(&self) -> napi::Result<Vec<ChunkWrapper>> {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
         .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
         .into_iter()
-        .map(|chunk_ukey| JsChunkWrapper::new(chunk_ukey, compilation))
+        .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
 
-  #[napi(ts_return_type = "JsChunk[]")]
-  pub fn get_all_referenced_chunks(&self) -> napi::Result<Vec<JsChunkWrapper>> {
+  #[napi(ts_return_type = "Chunk[]")]
+  pub fn get_all_referenced_chunks(&self) -> napi::Result<Vec<ChunkWrapper>> {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
         .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
         .into_iter()
-        .map(|chunk_ukey| JsChunkWrapper::new(chunk_ukey, compilation))
+        .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
 
-  #[napi(ts_return_type = "JsChunkGroup[]")]
-  pub fn groups(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, js_name = "_groupsIterable", ts_return_type = "ChunkGroup[]")]
+  pub fn groups_iterable(&self) -> napi::Result<Vec<ChunkGroupWrapper>> {
     let (compilation, chunk) = self.as_ref()?;
     let mut groups = chunk
       .groups()
@@ -230,7 +230,7 @@ impl JsChunk {
     Ok(
       groups
         .iter()
-        .map(|group| JsChunkGroupWrapper::new(group.ukey, compilation))
+        .map(|group| ChunkGroupWrapper::new(group.ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
@@ -246,19 +246,19 @@ impl JsChunk {
 }
 
 thread_local! {
-  static CHUNK_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<ChunkUkey, OneShotRef>>> = Default::default();
+  static CHUNK_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<rspack_core::ChunkUkey, OneShotRef>>> = Default::default();
 }
 
-pub struct JsChunkWrapper {
-  pub chunk_ukey: ChunkUkey,
+pub struct ChunkWrapper {
+  pub chunk_ukey: rspack_core::ChunkUkey,
   pub compilation_id: CompilationId,
   pub compilation: NonNull<Compilation>,
 }
 
-unsafe impl Send for JsChunkWrapper {}
+unsafe impl Send for ChunkWrapper {}
 
-impl JsChunkWrapper {
-  pub fn new(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Self {
+impl ChunkWrapper {
+  pub fn new(chunk_ukey: rspack_core::ChunkUkey, compilation: &Compilation) -> Self {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     #[allow(clippy::unwrap_used)]
     Self {
@@ -276,7 +276,7 @@ impl JsChunkWrapper {
   }
 }
 
-impl ToNapiValue for JsChunkWrapper {
+impl ToNapiValue for ChunkWrapper {
   unsafe fn to_napi_value(
     env: napi::sys::napi_env,
     val: Self,
@@ -298,7 +298,7 @@ impl ToNapiValue for JsChunkWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_module = JsChunk {
+          let js_module = Chunk {
             chunk_ukey: val.chunk_ukey,
             compilation: val.compilation,
           };
@@ -312,7 +312,7 @@ impl ToNapiValue for JsChunkWrapper {
 
 #[napi(object, object_from_js = false)]
 pub struct JsChunkAssetArgs {
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
   pub filename: String,
 }
