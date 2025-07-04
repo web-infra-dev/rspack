@@ -81,7 +81,7 @@ export interface RspackError extends Error {
 	name: string;
 	message: string;
 	details?: string;
-	module?: Module;
+	module?: null | Module;
 	loc?: DependencyLocation;
 	file?: string;
 	stack?: string;
