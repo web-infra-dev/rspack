@@ -5229,6 +5229,7 @@ dependencies = [
 name = "rspack_plugin_real_content_hash"
 version = "0.2.0"
 dependencies = [
+ "aho-corasick",
  "dashmap 6.1.0",
  "derive_more 1.0.0",
  "indexmap 2.7.1",
