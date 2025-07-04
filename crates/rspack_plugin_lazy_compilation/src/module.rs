@@ -209,7 +209,7 @@ impl Module for LazyCompilationProxyModule {
     );
 
     let keep_active = format!(
-      "var dispose = client.keepAlive({{ data: data, active: {}, module: module, onError: onError }})",
+      "var dispose = client.activate({{ data: data, active: {}, module: module, onError: onError }})",
       block.is_some()
     );
 
@@ -242,12 +242,10 @@ impl Module for LazyCompilationProxyModule {
         if (module.hot) {{
           module.hot.accept();
           module.hot.accept({}, function() {{ module.hot.invalidate(); }});
-          module.hot.dispose(function(data) {{ delete data.resolveSelf; dispose(data); }});
+          module.hot.dispose(function(data) {{ delete data.resolveSelf; }});
           if (module.hot.data && module.hot.data.resolveSelf)
             module.hot.data.resolveSelf(module.exports);
         }}
-        function onError() {{ /* ignore */ }}
-        {}
         ",
         module_namespace_promise(
           &mut template_ctx,
@@ -261,7 +259,6 @@ impl Module for LazyCompilationProxyModule {
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id")
         ),
-        keep_active,
       ))
     } else {
       RawStringSource::from(format!(
