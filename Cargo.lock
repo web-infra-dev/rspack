@@ -4456,6 +4456,7 @@ dependencies = [
  "regex",
  "rkyv 0.8.8",
  "ropey",
+ "rspack_base64",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_dojang",
@@ -5733,6 +5734,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
+ "signal-hook",
  "sugar_path",
  "swc_config",
  "swc_core",
@@ -6154,6 +6156,16 @@ name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
+
+[[package]]
+name = "signal-hook"
+version = "0.3.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d881a16cf4426aa584979d30bd82cb33429027e42122b169753d6ef1085ed6e2"
+dependencies = [
+ "libc",
+ "signal-hook-registry",
+]
 
 [[package]]
 name = "signal-hook-registry"
@@ -6597,9 +6609,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "30.0.1"
+version = "30.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec387d0be9f3a82c051ddcfc8a5075fec67023a38f7b5fb4d8cfc82d843e7710"
+checksum = "042bbc04e5b5f6b687951dee0a2fe5455ac7b83b9e3268932323422330e43c61"
 dependencies = [
  "par-core",
  "swc",
@@ -7184,9 +7196,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_module"
-version = "21.0.0"
+version = "21.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "600c8dc240cf762e6121aef2a1076a5c2774cd438a639beb145e8afa66778f11"
+checksum = "d8a03cb7cb59dfaecfc6db0e3f84e3af45bff71c80a1f91b88abcc6065e6d240"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -7545,9 +7557,9 @@ dependencies = [
 
 [[package]]
 name = "swc_plugin_runner"
-version = "15.0.0"
+version = "15.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d893bf51dce4d733d45789bedffc8b312e33bec187ae1f2022408fc61b859d28"
+checksum = "2d5afb7aba35557fd12dd76b6f5b554310d0c974c3459db2472a18230729989e"
 dependencies = [
  "anyhow",
  "enumset",
@@ -7565,7 +7577,6 @@ dependencies = [
  "tokio",
  "tracing",
  "vergen",
- "virtual-fs",
  "wasmer",
  "wasmer-cache",
  "wasmer-compiler-cranelift",

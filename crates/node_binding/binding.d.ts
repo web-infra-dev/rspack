@@ -1312,10 +1312,11 @@ export interface JsStatsCompilation {
   hash?: string
   modules?: Array<JsStatsModule>
   namedChunkGroups?: Array<JsStatsChunkGroup>
-  warnings: Array<JsStatsWarning>
+  warnings: Array<JsStatsError>
 }
 
 export interface JsStatsError {
+  name?: string
   moduleDescriptor?: JsModuleDescriptor
   message: string
   chunkName?: string
@@ -1452,21 +1453,6 @@ export interface JsStatsOptions {
 export interface JsStatsSize {
   sourceType: string
   size: number
-}
-
-export interface JsStatsWarning {
-  moduleDescriptor?: JsModuleDescriptor
-  name?: string
-  message: string
-  chunkName?: string
-  code?: string
-  chunkEntry?: boolean
-  chunkInitial?: boolean
-  file?: string
-  chunkId?: string
-  details?: string
-  stack?: string
-  moduleTrace: Array<JsStatsModuleTrace>
 }
 
 export interface JsTap {

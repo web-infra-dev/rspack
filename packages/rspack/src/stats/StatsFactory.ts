@@ -10,8 +10,7 @@
 import type {
 	JsStats,
 	JsStatsCompilation,
-	JsStatsError,
-	JsStatsWarning
+	JsStatsError
 } from "@rspack/binding";
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "@rspack/lite-tapable";
 
@@ -28,7 +27,7 @@ export type KnownStatsFactoryContext = {
 	// compilationAuxiliaryFileToChunks?: Map<string, Chunk[]> | undefined;
 	// runtime?: RuntimeSpec | undefined;
 	cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
-	cachedGetWarnings?: ((arg0: Compilation) => JsStatsWarning[]) | undefined;
+	cachedGetWarnings?: ((arg0: Compilation) => JsStatsError[]) | undefined;
 	getStatsCompilation: (compilation: Compilation) => JsStatsCompilation;
 	getInner: (compilation: Compilation) => JsStats;
 };

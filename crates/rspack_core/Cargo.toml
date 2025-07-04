@@ -32,6 +32,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, optional = true }
 ropey = { workspace = true }
+rspack_base64 = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_dojang = { workspace = true }
@@ -85,5 +86,6 @@ pretty_assertions = { version = "1.4.1" }
 workspace = true
 
 [features]
-default = []
-napi    = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
+debug_tool = ["rspack_util/debug_tool"]
+default    = []
+napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
