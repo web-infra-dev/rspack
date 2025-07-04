@@ -114,7 +114,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   // use LeftmostLongest here:
   // e.g. 4afc|4afcbe match xxx.4afcbe-4afc.js -> xxx.[4afc]be-[4afc].js
   //      4afcbe|4afc match xxx.4afcbe-4afc.js -> xxx.[4afcbe]-[4afc].js
-  let hash_regexp = AhoCorasick::builder()
+  let hash_ac = AhoCorasick::builder()
     .match_kind(MatchKind::LeftmostLongest)
     .build(hash_list.iter().map(|s| s.as_bytes()))
     .expect("Invalid patterns");
@@ -128,7 +128,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       asset.get_source().map(|source| {
         (
           name.as_str(),
-          AssetData::new(source.clone(), asset.get_info(), &hash_regexp),
+          AssetData::new(source.clone(), asset.get_info(), &hash_ac),
         )
       })
     })
@@ -187,11 +187,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     let batch_sources = batch_source_tasks
       .into_par_iter()
       .map(|(hash, name, data)| {
-        let new_source = data.compute_new_source(
-          data.own_hashes.contains(hash),
-          &hash_to_new_hash,
-          &hash_regexp,
-        );
+        let new_source =
+          data.compute_new_source(data.own_hashes.contains(hash), &hash_to_new_hash, &hash_ac);
         ((hash, name), new_source)
       })
       .collect::<HashMap<_, _>>();
@@ -257,9 +254,9 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let updates: Vec<_> = assets_data
     .into_par_iter()
     .filter_map(|(name, data)| {
-      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_regexp);
-      let mut new_name = String::new();
-      hash_regexp.replace_all_with(name, &mut new_name, |_, hash, dst| {
+      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_ac);
+      let mut new_name = String::with_capacity(name.len());
+      hash_ac.replace_all_with(name, &mut new_name, |_, hash, dst| {
         let replace_to = hash_to_new_hash
           .get(hash)
           .expect("RealContentHashPlugin: should have new hash");
@@ -349,12 +346,12 @@ enum AssetDataContent {
 }
 
 impl AssetData {
-  pub fn new(source: BoxSource, info: &AssetInfo, hash_regexp: &AhoCorasick) -> Self {
+  pub fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
     // TODO(ahabhgk): source.is_buffer() instead of String::from_utf8().is_ok()
     let content = if let Ok(content) = String::from_utf8(source.buffer().to_vec()) {
-      for hash in hash_regexp.find_iter(&content) {
+      for hash in hash_ac.find_iter(&content) {
         let hash = &content[hash.range()];
         if info.content_hash.contains(hash) {
           own_hashes.insert(hash.to_string());
@@ -381,7 +378,7 @@ impl AssetData {
     &self,
     without_own: bool,
     hash_to_new_hash: &HashMap<String, String>,
-    hash_regexp: &AhoCorasick,
+    hash_ac: &AhoCorasick,
   ) -> BoxSource {
     (if without_own {
       &self.new_source_without_own
@@ -396,8 +393,8 @@ impl AssetData {
             .iter()
             .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
       {
-        let mut new_content = String::new();
-        hash_regexp.replace_all_with(content, &mut new_content, |_, hash, dst| {
+        let mut new_content = String::with_capacity(content.len());
+        hash_ac.replace_all_with(content, &mut new_content, |_, hash, dst| {
           let replace_to = if without_own && self.own_hashes.contains(hash) {
             ""
           } else {
