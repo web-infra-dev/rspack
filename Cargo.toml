@@ -3,8 +3,9 @@ members  = ["crates/*", "tasks/*"]
 resolver = "2"                     # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
 [workspace.package]
-authors       = ["Rspack Teams"]
-categories    = ["bundler", "development-tools", "web-programming"]
+authors = ["Rspack Teams"]
+# See https://crates.io/category_slugs for a list of supported slugs
+categories    = ["development-tools", "web-programming"]
 documentation = "https://rspack.rs/"
 edition       = "2021"
 homepage      = "https://rspack.rs/"
