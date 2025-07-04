@@ -10,8 +10,8 @@ version.workspace = true
 async-trait  = { workspace = true }
 dunce        = { version = "1.0.5" }
 pnp          = { version = "0.9.0" }
-rspack_error = { workspace = true, version = "0.2.0" }
-rspack_paths = { workspace = true, version = "0.2.0" }
+rspack_error = { workspace = true, version = "=0.2.1-alpha.0" }
+rspack_paths = { workspace = true, version = "=0.2.1-alpha.0" }
 tokio        = { workspace = true, features = ["rt", "macros", "sync"] }
 tracing      = { workspace = true }
 
