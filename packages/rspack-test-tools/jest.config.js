@@ -65,10 +65,10 @@ const config = {
 		testFilter:
 			process.argv.includes("--test") || process.argv.includes("-t")
 				? process.argv[
-				(process.argv.includes("-t")
-					? process.argv.indexOf("-t")
-					: process.argv.indexOf("--test")) + 1
-				]
+						(process.argv.includes("-t")
+							? process.argv.indexOf("-t")
+							: process.argv.indexOf("--test")) + 1
+					]
 				: undefined,
 		printLogger: process.argv.includes("--verbose")
 	},
@@ -78,7 +78,7 @@ const config = {
 config.testPathIgnorePatterns = config.testPathIgnorePatterns || [];
 config.testPathIgnorePatterns.push(
 	// Skip temporarily because native watcher is not stable in CI
-	"NativeWatcher.test"
+	"NativeWatcher.test.js"
 );
 
 module.exports = config;
