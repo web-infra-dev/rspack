@@ -323,7 +323,7 @@ import { value2 } from 'shared';
 value2;
 ```
 
-默认的策略中 shared 模块由于同时出现在 3 个 chunk 中，如果它满足了[最小拆分体积](plugins/webpack/split-chunks-plugin#splitchunksminsize)，那么 shared 本该被抽离到一个单独 chunk 中。
+默认的策略中 shared 模块由于同时出现在 3 个 chunk 中，如果它满足了[最小拆分体积](/plugins/webpack/split-chunks-plugin#splitchunksminsize)，那么 shared 本该被抽离到一个单独 chunk 中。
 
 ```
 chunk foo, chunk bar
