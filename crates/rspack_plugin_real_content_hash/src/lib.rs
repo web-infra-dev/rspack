@@ -12,7 +12,7 @@ use derive_more::Debug;
 pub use drive::*;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
-use regex::{Captures, Regex};
+use regex::{Captures, Regex, RegexBuilder};
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
@@ -114,7 +114,12 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   // e.g. 4afc|4afcbe match xxx.4afcbe-4afc.js -> xxx.[4afc]be-[4afc].js
   //      4afcbe|4afc match xxx.4afcbe-4afc.js -> xxx.[4afcbe]-[4afc].js
   hash_list.par_sort_by(|a, b| b.len().cmp(&a.len()));
-  let hash_regexp = Regex::new(&hash_list.join("|")).expect("Invalid regex");
+  let hash_regexp = {
+    RegexBuilder::new(&hash_list.join("|"))
+      .size_limit(std::usize::MAX)
+      .build()
+      .expect("Invalid regex")
+  };
   logger.time_end(start);
 
   let start = logger.time("create ordered hashes");
