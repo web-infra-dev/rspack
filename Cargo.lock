@@ -5386,6 +5386,7 @@ dependencies = [
  "futures",
  "rspack_core",
  "rspack_error",
+ "rspack_futures",
  "rspack_hook",
  "rspack_util",
  "tracing",
