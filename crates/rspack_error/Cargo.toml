@@ -25,4 +25,4 @@ termcolor          = "1.4.1"
 textwrap           = "0.16.1"
 thiserror          = "1.0.69"
 
-unicode-width = "0.2.0"
+unicode-width = "0.2.1"
