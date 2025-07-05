@@ -91,7 +91,7 @@ impl RstestParserPlugin {
               .presentational_dependencies
               .push(Box::new(ConstDependency::new(
                 range,
-                ".require_actual".into(),
+                ".rstest_require_actual".into(),
                 None,
               )));
 
@@ -294,7 +294,7 @@ impl RstestParserPlugin {
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
             call_expr.callee.span().into(),
-            "__webpack_require__.reset_modules".into(),
+            "__webpack_require__.rstest_reset_modules".into(),
             None,
           )));
         Some(true)
@@ -417,54 +417,54 @@ impl JavascriptParserPlugin for RstestParserPlugin {
             if let Some(prop) = q.prop.as_ident() {
               match (ident.sym.as_str(), prop.sym.as_str()) {
                 // rs.mock
-                ("rs", "mock") => {
+                ("rs", "mock") | ("rstest", "mock") => {
                   self.process_mock(parser, call_expr, true, true, MockMethod::Mock, true);
                   return Some(false);
                 }
                 // rs.mockRequire
-                ("rs", "mockRequire") => {
+                ("rs", "mockRequire") | ("rstest", "mockRequire") => {
                   self.process_mock(parser, call_expr, true, false, MockMethod::Mock, true);
                   return Some(false);
                 }
                 // rs.doMock
-                ("rs", "doMock") => {
+                ("rs", "doMock") | ("rstest", "doMock") => {
                   self.process_mock(parser, call_expr, false, true, MockMethod::Mock, true);
                   return Some(false);
                 }
                 // rs.doMockRequire
-                ("rs", "doMockRequire") => {
+                ("rs", "doMockRequire") | ("rstest", "doMockRequire") => {
                   self.process_mock(parser, call_expr, false, false, MockMethod::Mock, true);
                   return Some(false);
                 }
                 // rs.importActual
-                ("rs", "importActual") => {
+                ("rs", "importActual") | ("rstest", "importActual") => {
                   return self.process_import_actual(parser, call_expr);
                 }
                 // rs.requireActual
-                ("rs", "requireActual") => {
+                ("rs", "requireActual") | ("rstest", "requireActual") => {
                   return self.process_require_actual(parser, call_expr);
                 }
                 // rs.importMock
-                ("rs", "importMock") => {
+                ("rs", "importMock") | ("rstest", "importMock") => {
                   return self.load_mock(parser, call_expr, true);
                 }
                 // rs.requireMock
-                ("rs", "requireMock") => {
+                ("rs", "requireMock") | ("rstest", "requireMock") => {
                   return self.load_mock(parser, call_expr, false);
                 }
                 // rs.unmock
-                ("rs", "unmock") => {
+                ("rs", "unmock") | ("rstest", "unmock") => {
                   self.process_mock(parser, call_expr, true, true, MockMethod::Unmock, false);
                   return Some(true);
                 }
                 // rs.doUnmock
-                ("rs", "doUnmock") => {
+                ("rs", "doUnmock") | ("rstest", "doUnmock") => {
                   // return self.unmock_method(parser, call_expr, true);
                   self.process_mock(parser, call_expr, false, true, MockMethod::Unmock, false);
                   return Some(true);
                 }
                 // rs.resetModules
-                ("rs", "resetModules") => {
+                ("rs", "resetModules") | ("rstest", "resetModules") => {
                   return self.reset_modules(parser, call_expr);
                 }
                 _ => {
