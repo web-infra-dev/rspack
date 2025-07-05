@@ -25,10 +25,11 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkGraph, ChunkGroupWrapper,
-  ChunkWrapper, EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset, JsCompatSource,
-  JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats, JsStatsOptimizationBailout,
-  ModuleObject, RspackError, RspackResultToNapiResultExt, ToJsCompatSource, COMPILER_REFERENCES,
+  create_stats_warnings, entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkGraph,
+  ChunkGroupWrapper, ChunkWrapper, EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset,
+  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats,
+  JsStatsOptimizationBailout, ModuleObject, RspackError, RspackResultToNapiResultExt,
+  ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi]
@@ -912,6 +913,17 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
 
     Ok(compilation.code_generation_results.reflector())
+  }
+
+  #[napi(ts_return_type = "JsStatsError[]")]
+  pub fn create_stats_warnings<'a>(
+    &self,
+    env: &'a Env,
+    warnings: Vec<RspackError>,
+    colored: Option<bool>,
+  ) -> Result<Array<'a>> {
+    let compilation = self.as_ref()?;
+    create_stats_warnings(env, compilation, warnings, colored)
   }
 }
 

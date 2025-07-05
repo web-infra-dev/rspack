@@ -1,12 +1,17 @@
 use std::{borrow::Cow, cell::RefCell};
 
-use napi::{sys::napi_value, Env};
+use napi::{
+  bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object},
+  sys::napi_value,
+  Env,
+};
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   rspack_sources::{RawBufferSource, RawSource, Source},
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
+use rspack_error::RspackSeverity;
 use rspack_napi::napi::{
   bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
   Either,
@@ -15,7 +20,8 @@ use rspack_util::{atom::Atom, itoa};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId, RspackResultToNapiResultExt,
+  identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId, RspackError,
+  RspackResultToNapiResultExt,
 };
 
 // These handles are only used during the `to_json` call,
@@ -1228,4 +1234,44 @@ impl JsStats {
   fn hash(&self) -> Option<&str> {
     self.inner.get_hash()
   }
+}
+
+pub fn create_stats_warnings<'a>(
+  env: &'a Env,
+  compilation: &rspack_core::Compilation,
+  warnings: Vec<RspackError>,
+  colored: Option<bool>,
+) -> Result<Array<'a>> {
+  let module_graph = compilation.get_module_graph();
+
+  let mut diagnostics = warnings
+    .into_iter()
+    .map(|warning| warning.into_diagnostic(RspackSeverity::Warn))
+    .collect::<Vec<_>>();
+
+  let stats_warnings = rspack_core::create_stats_errors(
+    compilation,
+    &module_graph,
+    &mut diagnostics,
+    colored.unwrap_or(false),
+  );
+
+  let mut array = env.create_array(stats_warnings.len() as u32)?;
+  let raw_env = env.raw();
+  for (i, warning) in stats_warnings.into_iter().enumerate() {
+    let js_warning = JsStatsError::from(warning);
+    let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, js_warning)? };
+    let object = unsafe { Object::from_napi_value(raw_env, napi_val)? };
+    array.set_element(i as u32, object)?;
+  }
+
+  MODULE_DESCRIPTOR_REFS.with(|refs| {
+    let mut refs = refs.borrow_mut();
+    refs.drain();
+  });
+  MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
+    let mut refs = refs.borrow_mut();
+    refs.drain();
+  });
+  Ok(array)
 }

@@ -6,6 +6,12 @@ module.exports = {
 		/Using \/ for division outside/,
 		{
 			message: /ESModulesLinkingWarning/
+		},
+		{
+			module: /a.js/
+		},
+		warning => {
+			return warning.module.identifier().includes("b.js");
 		}
 	],
 	module: {

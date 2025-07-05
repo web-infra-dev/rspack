@@ -619,8 +619,8 @@ const SIMPLE_PRINTERS: Record<
 	"error.loc": (loc, { green }) => green(loc),
 	"error.message": (message, { bold, formatError }) =>
 		message.includes("\u001b[") ? message : bold(formatError(message)),
-	// "error.details": (details, { formatError }) => formatError(details),
-	// "error.stack": stack => stack,
+	"error.details": (details, { formatError }) => formatError(details),
+	"error.stack": stack => stack,
 	"error.moduleTrace": moduleTrace => undefined,
 	"error.separator!": () => "\n",
 
