@@ -58,10 +58,15 @@ export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
 				describe: "env passed to config function"
 			},
 			devtool: {
-				type: "boolean",
-				default: false,
-				describe: "devtool",
-				alias: "d"
+				type: "string",
+				describe:
+					"devtool in development default value eval, in production default value false",
+				alias: "d",
+				coerce: (arg): string | boolean => {
+					if (arg === "true") return "eval";
+					if (arg === "false") return false;
+					return arg;
+				}
 			}
 		})
 		.alias({ v: "version", h: "help" });
