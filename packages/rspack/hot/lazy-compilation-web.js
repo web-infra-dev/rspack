@@ -11,14 +11,14 @@ if (typeof EventSource !== "function") {
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
 /** @type {EventSource | undefined} */
 var activeEventSource;
-var activeKeys = new Map();
+var compiling = new Set();
 var errorHandlers = new Set();
 
 var updateEventSource = function updateEventSource() {
 	if (activeEventSource) activeEventSource.close();
-	if (activeKeys.size) {
+	if (compiling.size) {
 		activeEventSource = new EventSource(
-			urlBase + Array.from(activeKeys.keys()).join("@")
+			urlBase + Array.from(compiling).join("@")
 		);
 		/**
 		 * @this {EventSource}
@@ -47,17 +47,18 @@ var updateEventSource = function updateEventSource() {
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options
  * @returns {() => void} function to destroy response
  */
-exports.keepAlive = function (options) {
+exports.activate = function (options) {
 	var data = options.data;
 	var onError = options.onError;
 	var active = options.active;
 	var module = options.module;
 	errorHandlers.add(onError);
-	var value = activeKeys.get(data) || 0;
-	activeKeys.set(data, value + 1);
-	if (value === 0) {
+
+	if (!compiling.has(data)) {
+		compiling.add(data);
 		updateEventSource();
 	}
+
 	if (!active && !module.hot) {
 		console.log(
 			"Hot Module Replacement is not enabled. Waiting for process restart..."
@@ -66,14 +67,7 @@ exports.keepAlive = function (options) {
 
 	return function () {
 		errorHandlers.delete(onError);
-		setTimeout(function () {
-			var value = activeKeys.get(data);
-			if (value === 1) {
-				activeKeys.delete(data);
-				updateEventSource();
-			} else {
-				activeKeys.set(data, value - 1);
-			}
-		}, 1000);
+		compiling.delete(data);
+		updateEventSource();
 	};
 };
