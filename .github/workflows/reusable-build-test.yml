@@ -69,10 +69,9 @@ jobs:
       fail-fast: true # for better utilize ci runners
       matrix:
         node: ${{ fromJSON(
-          inputs.target == 'wasm32-wasip1-threads'
-          && '[20]'
-          || (contains(inputs.target, 'linux') && '[16, 18, 20]'
-          || '[18]') )}}
+          inputs.target == 'wasm32-wasip1-threads'&& '[20]'
+          || contains(inputs.target, 'linux') && '[18, 20, 22]'
+          || '[22]') }}
     name: Test Node ${{ matrix.node }}
     defaults:
       run:
