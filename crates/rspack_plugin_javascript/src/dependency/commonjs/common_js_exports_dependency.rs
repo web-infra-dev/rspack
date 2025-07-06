@@ -168,24 +168,8 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module_identifier)
       .expect("should have mgm");
 
-    // Check if parent module is ConsumeShared and get share_key from options
-    let consume_shared_info =
-      if let Some(parent_module_id) = module_graph.get_parent_module(&dep.id) {
-        if let Some(parent_module) = module_graph.module_by_identifier(parent_module_id) {
-          if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
-            // Use the trait method to get share_key
-            let trait_result = parent_module.get_consume_shared_key();
-
-            trait_result
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-      } else {
-        None
-      };
+    // TODO: ConsumeShared tree-shaking macro support disabled - missing get_consume_shared_key method
+    let consume_shared_info: Option<String> = None;
 
     let used = if dep.names.is_empty() {
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
@@ -236,15 +220,8 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           .collect::<Vec<_>>()
           .join(".");
 
-        // Use macro comments for ConsumeShared modules, standard format otherwise
-        let export_content = if let Some(ref share_key) = consume_shared_info {
-          format!(
-            "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-            share_key, export_name, export_assignment
-          )
-        } else {
-          export_assignment
-        };
+        // ConsumeShared macro support disabled - use standard format
+        let export_content = export_assignment;
 
         source.replace(dep.range.start, dep.range.end, &export_content, None);
       } else {
@@ -272,25 +249,13 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           if !used.is_empty() {
             let export_name = used.last().unwrap();
 
-            // Use macro comments for ConsumeShared modules, standard format otherwise
-            let define_property_start = if let Some(ref share_key) = consume_shared_info {
-              format!(
-                "/* @common:if [condition=\"treeShake.{}.{}\"] */ Object.defineProperty({}{}, {}, (",
-                share_key,
-                export_name,
-                base,
-                property_access(used[0..used.len() - 1].iter(), 0),
-                serde_json::to_string(&used.last()).expect("Unexpected render define property base")
-              )
-            } else {
-              format!(
-                "Object.defineProperty({}{}, {}, (",
-                base,
-                property_access(used[0..used.len() - 1].iter(), 0),
-                serde_json::to_string(&used.last())
-                  .expect("Unexpected render define property base")
-              )
-            };
+            // ConsumeShared macro support disabled - use standard format
+            let define_property_start = format!(
+              "Object.defineProperty({}{}, {}, (",
+              base,
+              property_access(used[0..used.len() - 1].iter(), 0),
+              serde_json::to_string(&used.last()).expect("Unexpected render define property base")
+            );
             source.replace(
               dep.range.start,
               value_range.start,
@@ -298,11 +263,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               None,
             );
 
-            let define_property_end = if consume_shared_info.is_some() {
-              ")) /* @common:endif */"
-            } else {
-              "))"
-            };
+            let define_property_end = ")))";
             source.replace(value_range.end, dep.range.end, define_property_end, None);
           } else {
             panic!("Unexpected base type");

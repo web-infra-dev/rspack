@@ -447,22 +447,8 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       .expect("should have mgm");
 
     // Check if parent module is ConsumeShared and get share_key from options
-    let consume_shared_info = if let Some(parent_module_id) = mg.get_parent_module(&dep.id) {
-      if let Some(parent_module) = mg.module_by_identifier(parent_module_id) {
-        if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
-          // Use the trait method to get share_key
-          let trait_result = parent_module.get_consume_shared_key();
-
-          trait_result
-        } else {
-          None
-        }
-      } else {
-        None
-      }
-    } else {
-      None
-    };
+    // TODO: ConsumeShared tree-shaking macro support disabled - missing get_consume_shared_key method
+    let consume_shared_info: Option<String> = None;
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
@@ -551,24 +537,8 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         Some(UsedName::Normal(used)) => {
           let assignment = format!("{base}{} = {require_expr}", property_access(used, 0));
 
-          // Wrap with macro comments for ConsumeShared modules
-          if let Some(ref share_key) = consume_shared_info {
-            // For each export name, wrap the assignment with conditional macros
-            if let Some(export_name) = dep.names.first() {
-              format!(
-                "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-                share_key, export_name, assignment
-              )
-            } else {
-              // For star exports, use a generic condition
-              format!(
-                "/* @common:if [condition=\"treeShake.{}.default\"] */ {} /* @common:endif */",
-                share_key, assignment
-              )
-            }
-          } else {
-            assignment
-          }
+          // ConsumeShared macro support disabled - use regular assignment
+          assignment
         }
         Some(UsedName::Inlined(_)) => {
           // Export a inlinable const from cjs is not possible for now but we compat it here

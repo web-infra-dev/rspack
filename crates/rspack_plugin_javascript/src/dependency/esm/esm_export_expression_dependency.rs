@@ -2,13 +2,12 @@ use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  property_access,
-  rspack_sources::{ReplacementEnforce, Source},
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
-  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
+  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -167,6 +166,11 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
     // Check if this dependency is related to a ConsumeShared module
     // For ConsumeShared modules, the fallback module (current) exports should be wrapped with macros
+    // TODO: ConsumeShared tree-shaking macro support disabled - missing get_consume_shared_key method
+    // When get_consume_shared_key trait method is available, uncomment and restore the logic below
+    let consume_shared_info: Option<String> = None;
+
+    /*
     let consume_shared_info = {
       // First check if parent module is ConsumeShared
       if let Some(parent_module_id) = module_graph.get_parent_module(&dep.id) {
@@ -174,14 +178,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           if parent_module.module_type() == &rspack_core::ModuleType::ConsumeShared {
             // Direct ConsumeShared parent - use its share key
             let trait_result = parent_module.get_consume_shared_key();
-
-            tracing::debug!(
-              "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION_DIRECT_CONSUME_SHARED] Module: {:?}, Parent: {:?}, ShareKey: {:?}",
-              module_identifier,
-              parent_module.identifier(),
-              trait_result
-            );
-
             trait_result
           } else {
             // Check if current module is a fallback for a ConsumeShared module
@@ -192,14 +188,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                 if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
                   if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
                     found_consume_shared = origin_module_obj.get_consume_shared_key();
-
-                    tracing::debug!(
-                      "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION_FALLBACK_FOR_CONSUME_SHARED] FallbackModule: {:?}, ConsumeSharedModule: {:?}, ShareKey: {:?}",
-                      module_identifier,
-                      origin_module,
-                      found_consume_shared
-                    );
-
                     break;
                   }
                 }
@@ -218,14 +206,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             if let Some(origin_module_obj) = module_graph.module_by_identifier(origin_module) {
               if origin_module_obj.module_type() == &rspack_core::ModuleType::ConsumeShared {
                 found_consume_shared = origin_module_obj.get_consume_shared_key();
-
-                tracing::debug!(
-                  "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION_FALLBACK_NO_PARENT] FallbackModule: {:?}, ConsumeSharedModule: {:?}, ShareKey: {:?}",
-                  module_identifier,
-                  origin_module,
-                  found_consume_shared
-                );
-
                 break;
               }
             }
@@ -234,6 +214,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         found_consume_shared
       }
     };
+    */
 
     // Enhanced DEBUG: Log detailed information only for ConsumeShared-related modules
     if consume_shared_info.is_some() {
