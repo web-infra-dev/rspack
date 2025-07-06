@@ -54,7 +54,7 @@ impl ConsumeSharedExportsDependency {
     if let Some(shared_key) = build_meta
       .shared_key
       .as_ref()
-      .or_else(|| build_meta.consume_shared_key.as_ref())
+      .or(build_meta.consume_shared_key.as_ref())
     {
       // Found shared_key in BuildMeta - using it directly
       return Some(shared_key.clone());
