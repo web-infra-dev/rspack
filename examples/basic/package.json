@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "cp -r ./cjs-modules ./node_modules/@cjs-test && pnpm --dir ../.. build:cli:dev && pnpm build:app",
-    "build:app": "rspack build 2>&1 | tee build.log",
+    "build:app": "rspack build",
     "build:quiet": "rspack build 2>/dev/null",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:snapshots",
     "test:unit": "rstest run tests/unit",

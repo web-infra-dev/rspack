@@ -82,7 +82,7 @@ describe("Correct Macro Format Tests", () => {
 		);
 	});
 
-	test("should NOT have any macros in pure-cjs-helper", () => {
+	test("should have tree-shaking macros in pure-cjs-helper", () => {
 		const targetFile = path.join(
 			process.cwd(),
 			"dist",
@@ -94,26 +94,30 @@ describe("Correct Macro Format Tests", () => {
 
 		const content = fs.readFileSync(targetFile, "utf8");
 
-		// CJS modules without ConsumeShared context should have NO macros
+		// CJS modules with Module Federation shared context should have macros
 		const hasMacros =
-			content.includes("@common:if") || content.includes("@common:endif");
+			content.includes("@common:if") && content.includes("@common:endif");
 
-		if (hasMacros) {
+		if (!hasMacros) {
 			throw new Error(
-				"pure-cjs-helper should NOT have any tree-shaking macros - CJS modules without shared context don't get macros"
+				"pure-cjs-helper should have tree-shaking macros - CJS modules in Module Federation shared context get macros"
 			);
 		}
 
-		// Verify exports exist without macros
+		// Verify exports exist with proper macros
 		const expectedExports = ["DataValidator", "generateId", "hashString"];
 		expectedExports.forEach(exportName => {
-			if (!content.includes(`exports.${exportName}`)) {
-				throw new Error(`Expected export '${exportName}' not found in file`);
+			const macroPattern = new RegExp(
+				`@common:if.*treeShake\\.cjs-pure-helper\\.${exportName}.*@common:endif`,
+				"s"
+			);
+			if (!macroPattern.test(content)) {
+				throw new Error(`Expected export '${exportName}' to have tree-shaking macros`);
 			}
 		});
 
 		console.log(
-			"✅ Correctly found NO macros in pure-cjs-helper (CJS without shared context)"
+			"✅ Correctly found tree-shaking macros in pure-cjs-helper (CJS with Module Federation shared context)"
 		);
 	});
 

@@ -135,24 +135,24 @@ describe("Macro export shape validation for all CJS chunks", () => {
 
 		const content = fs.readFileSync(targetFile, "utf8");
 
-		// CJS modules without ConsumeShared context should NOT have macros
+		// CJS modules with Module Federation shared context should have macros
 		const hasMacros =
-			content.includes("@common:if") || content.includes("@common:endif");
+			content.includes("@common:if") && content.includes("@common:endif");
 
-		if (hasMacros) {
+		if (!hasMacros) {
 			throw new Error(
-				"pure-cjs-helper should NOT have tree-shaking macros - CJS modules without shared context don't get macros"
+				"pure-cjs-helper should have tree-shaking macros - CJS modules with Module Federation shared context get macros"
 			);
 		}
 
-		// Verify hashString function exists without macros
-		const hasHashString = content.includes("exports.hashString");
-		if (!hasHashString) {
-			throw new Error("hashString export should exist in the file");
+		// Verify hashString function exists with macros
+		const hasHashStringMacro = content.includes("treeShake.cjs-pure-helper.hashString");
+		if (!hasHashStringMacro) {
+			throw new Error("hashString export should have tree-shaking macros");
 		}
 
 		console.log(
-			"✅ Correctly found NO tree-shaking macros in pure-cjs-helper (CJS without shared context)"
+			"✅ Correctly found tree-shaking macros in pure-cjs-helper (CJS with Module Federation shared context)"
 		);
 	});
 
@@ -185,11 +185,11 @@ describe("Macro export shape validation for all CJS chunks", () => {
 		}
 
 		console.log(
-			"✅ Correctly found NO tree-shaking macros in module-exports-pattern (CJS without shared context)"
+			"✅ Correctly found NO tree-shaking macros in module-exports-pattern (pure object export pattern)"
 		);
 	});
 
-	test("should NOT have tree-shaking macros in legacy-utils", () => {
+	test("should have tree-shaking macros in legacy-utils", () => {
 		const targetFile = path.join(
 			process.cwd(),
 			"dist",
@@ -201,18 +201,24 @@ describe("Macro export shape validation for all CJS chunks", () => {
 
 		const content = fs.readFileSync(targetFile, "utf8");
 
-		// CJS modules without ConsumeShared context should NOT have macros
+		// CJS modules with Module Federation shared context should have macros
 		const hasMacros =
-			content.includes("@common:if") || content.includes("@common:endif");
+			content.includes("@common:if") && content.includes("@common:endif");
 
-		if (hasMacros) {
+		if (!hasMacros) {
 			throw new Error(
-				"legacy-utils should NOT have tree-shaking macros - CJS modules without shared context don't get macros"
+				"legacy-utils should have tree-shaking macros - CJS modules with Module Federation shared context get macros"
 			);
 		}
 
+		// Verify specific macro exists
+		const hasFormatPathMacro = content.includes("treeShake.cjs-legacy-utils.formatPath");
+		if (!hasFormatPathMacro) {
+			throw new Error("formatPath export should have tree-shaking macros");
+		}
+
 		console.log(
-			"✅ Correctly found NO tree-shaking macros in legacy-utils (CJS without shared context)"
+			"✅ Correctly found tree-shaking macros in legacy-utils (CJS with Module Federation shared context)"
 		);
 	});
 

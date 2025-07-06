@@ -44,14 +44,14 @@ describe("Mixed Export Pattern Tests", () => {
 		expect(content).toMatch(/module\.exports\s*=\s*[^;]+;/);
 		expect(content).toMatch(/module\.exports\.\w+\s*=\s*/);
 
-		// Verify NO macros in CJS modules
+		// Verify macros in CJS modules with Module Federation shared context
 		const hasMacros =
-			content.includes("@common:if") || content.includes("@common:endif");
-		expect(hasMacros).toBe(false);
-		console.log("✅ Correctly found NO macros in mixed export pattern file");
+			content.includes("@common:if") && content.includes("@common:endif");
+		expect(hasMacros).toBe(true);
+		console.log("✅ Correctly found macros in mixed export pattern file");
 	});
 
-	test("should NOT have macros in module.exports property assignments", () => {
+	test("should have macros in module.exports property assignments", () => {
 		// CJS modules without shared context should NOT have macros
 		const targetFile = distFiles.find(file => {
 			const filePath = path.join(__dirname, "../../dist", file);
@@ -69,13 +69,13 @@ describe("Mixed Export Pattern Tests", () => {
 		const filePath = path.join(__dirname, "../../dist", targetFile);
 		const content = fs.readFileSync(filePath, "utf8");
 
-		// Verify NO macros in CJS modules
+		// Verify macros in CJS modules with Module Federation shared context
 		const hasMacros =
-			content.includes("@common:if") || content.includes("@common:endif");
-		expect(hasMacros).toBe(false);
+			content.includes("@common:if") && content.includes("@common:endif");
+		expect(hasMacros).toBe(true);
 
 		console.log(
-			`✅ Correctly found NO macros in ${targetFile} (CJS without shared context)`
+			`✅ Correctly found macros in ${targetFile} (CJS with Module Federation shared context)`
 		);
 	});
 
