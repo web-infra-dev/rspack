@@ -146,7 +146,7 @@ impl ConsumeSharedModule {
     let prefetched_fallback = ExportsInfoGetter::prefetch(
       &fallback_exports_info,
       module_graph,
-      PrefetchExportsInfoMode::AllExports,
+      PrefetchExportsInfoMode::Full,
     );
 
     let fallback_provided = prefetched_fallback.get_provided_exports();
@@ -378,10 +378,6 @@ impl Module for ConsumeSharedModule {
     self.options.dyn_hash(&mut hasher);
     module_update_hash(self as &dyn Module, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
-  }
-
-  fn get_consume_shared_key(&self) -> Option<String> {
-    Some(self.options.share_key.clone())
   }
 }
 

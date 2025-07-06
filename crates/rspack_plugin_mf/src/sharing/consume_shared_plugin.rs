@@ -350,7 +350,7 @@ impl ConsumeSharedPlugin {
     let prefetched_fallback = ExportsInfoGetter::prefetch(
       &fallback_exports_info,
       module_graph,
-      PrefetchExportsInfoMode::AllExports,
+      PrefetchExportsInfoMode::Full,
     );
 
     let fallback_provided = prefetched_fallback.get_provided_exports();
@@ -515,7 +515,7 @@ impl ConsumeSharedPlugin {
               let prefetched = ExportsInfoGetter::prefetch(
                 &exports_info,
                 &module_graph,
-                PrefetchExportsInfoMode::AllExports,
+                PrefetchExportsInfoMode::Full,
               );
 
               if let ProvidedExports::ProvidedNames(export_names) = prefetched.get_provided_exports() {

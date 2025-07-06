@@ -334,7 +334,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         used_exports,
         runtime,
         force_side_effects,
-        queue,
+        batch,
       );
       return;
     }
@@ -452,7 +452,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     used_exports: Vec<ExtendedReferencedExport>,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
-    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
+    batch: &mut Vec<(Identifier, Option<RuntimeSpec>)>,
   ) {
     let mut module_graph = self.compilation.get_module_graph_mut();
     let mgm = module_graph
@@ -476,7 +476,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           // Namespace usage - mark all exports as used in unknown way
           let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
           if flag {
-            queue.enqueue((module_id, runtime.clone()));
+            batch.push((module_id, runtime.clone()));
           }
         } else {
           // Specific export usage - process each export in the path
@@ -503,12 +503,13 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               // Intermediate property access - mark as OnlyPropertiesUsed
               let nested_info = export_info.as_data(&module_graph).exports_info();
               if let Some(nested_info) = nested_info {
-                let changed_flag = rspack_core::ExportInfoSetter::set_used_conditionally(
-                  export_info.as_data_mut(&mut module_graph),
-                  Box::new(|used| used == &rspack_core::UsageState::Unused),
-                  rspack_core::UsageState::OnlyPropertiesUsed,
-                  runtime.as_ref(),
-                );
+                let changed_flag = export_info
+                  .as_data_mut(&mut module_graph)
+                  .set_used_conditionally(
+                    Box::new(|used| used == &rspack_core::UsageState::Unused),
+                    rspack_core::UsageState::OnlyPropertiesUsed,
+                    runtime.as_ref(),
+                  );
                 if changed_flag {
                   let current_module = if current_exports_info == mgm_exports_info {
                     Some(module_id)
@@ -519,7 +520,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                       .cloned()
                   };
                   if let Some(current_module) = current_module {
-                    queue.enqueue((current_module, runtime.clone()));
+                    batch.push((current_module, runtime.clone()));
                   }
                 }
                 current_exports_info = nested_info;
@@ -528,12 +529,13 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             }
 
             // Final property or direct export - mark as Used
-            let changed_flag = rspack_core::ExportInfoSetter::set_used_conditionally(
-              export_info.as_data_mut(&mut module_graph),
-              Box::new(|v| v != &rspack_core::UsageState::Used),
-              rspack_core::UsageState::Used,
-              runtime.as_ref(),
-            );
+            let changed_flag = export_info
+              .as_data_mut(&mut module_graph)
+              .set_used_conditionally(
+                Box::new(|v| v != &rspack_core::UsageState::Used),
+                rspack_core::UsageState::Used,
+                runtime.as_ref(),
+              );
             if changed_flag {
               let current_module = if current_exports_info == mgm_exports_info {
                 Some(module_id)
@@ -544,7 +546,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                   .cloned()
               };
               if let Some(current_module) = current_module {
-                queue.enqueue((current_module, runtime.clone()));
+                batch.push((current_module, runtime.clone()));
               }
             }
             break;
@@ -553,10 +555,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
     } else {
       // No specific exports used - handle side effects
-      let changed_flag =
-        mgm_exports_info.set_used_for_side_effects_only(&mut module_graph, runtime.as_ref());
+      let changed_flag = mgm_exports_info
+        .as_data_mut(&mut module_graph)
+        .set_used_for_side_effects_only(runtime.as_ref());
       if changed_flag {
-        queue.enqueue((module_id, runtime));
+        batch.push((module_id, runtime));
       }
     }
   }
