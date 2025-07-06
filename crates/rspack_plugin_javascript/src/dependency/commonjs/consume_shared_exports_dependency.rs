@@ -201,13 +201,13 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
     let end_macro = " /* @common:endif */";
 
     // Apply tree-shaking macros to wrap the entire assignment
+    // The macro should wrap: /* @common:if */ module.exports.prop = value /* @common:endif */
     if let Some(value_range) = &dep.value_range {
-      // value_range now contains the full assignment span
-      // Wrap the entire assignment: /* @common:if */ exports.prop = value /* @common:endif */
+      // value_range contains the full assignment span - wrap the entire assignment
       source.replace(value_range.start, value_range.start, &start_macro, None);
       source.replace(value_range.end, value_range.end, end_macro, None);
     } else {
-      // Object literal shorthand property or other cases - wrap the range
+      // Fallback for cases without value_range
       source.replace(dep.range.start, dep.range.start, &start_macro, None);
       source.replace(dep.range.end, dep.range.end, end_macro, None);
     }

@@ -7,6 +7,10 @@ module.exports = {
 		minimize: false,
 		sideEffects: false
 	},
+	output: {
+		filename: "[name].js",
+		chunkFilename: "[name].js"
+	},
 	plugins: [
 		new ModuleFederationPlugin({
 			name: "shared_modules_macro_test",
