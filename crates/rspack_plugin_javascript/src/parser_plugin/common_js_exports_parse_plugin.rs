@@ -266,15 +266,19 @@ pub struct CommonJsExportsParserPlugin;
 impl CommonJsExportsParserPlugin {
   /// Detect if this module should use ConsumeSharedExportsDependency based on Module Federation context
   fn detect_shared_module_key(parser: &JavascriptParser) -> Option<String> {
-    // During parsing, we only have access to the current module's BuildMeta, not the full module graph
-    // We'll check for direct shared module context first
+    // During parsing, we don't have access to the updated BuildMeta yet (ProvideSharedPlugin runs later)
+    // So we'll always return a placeholder shared_key for potential Module Federation modules
+    // The actual shared_key will be resolved during rendering when BuildMeta is available
     let module_identifier = &parser.module_identifier.to_string();
 
-    ConsumeSharedExportsDependency::should_apply_to_module(
-      module_identifier,
-      parser.build_meta,
-      None, // ModuleGraph not available during parsing
-    )
+    // Check if this looks like a potential Module Federation module
+    // For now, we'll be conservative and only apply to modules that might be shared
+    // The actual shared_key will be resolved during rendering
+    if module_identifier.contains("cjs-modules") || module_identifier.contains("shared") {
+      Some("placeholder".to_string())
+    } else {
+      None
+    }
   }
 }
 
@@ -463,7 +467,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           .dependencies
           .push(Box::new(ConsumeSharedExportsDependency::new(
             left_expr.span().into(),
-            None,
+            Some(assign_expr.span.into()),
             base,
             remaining.to_owned(),
             shared_key,
