@@ -1,5 +1,6 @@
 {
   "name": "cjs-modules",
+  "private": true,
   "version": "1.0.0",
   "description": "CommonJS modules for testing Module Federation sharing",
   "type": "commonjs",
@@ -20,4 +21,4 @@
   ],
   "author": "Rspack Team",
   "license": "MIT"
-} 
+}
