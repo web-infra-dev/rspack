@@ -1,11 +1,14 @@
 [package]
-description       = "node binding build"
-edition.workspace = true
-license           = "MIT"
-name              = "rspack_binding_build"
-publish           = false
-repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+authors.workspace       = true
+categories.workspace    = true
+description             = "Binding build script for Rspack"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_binding_build"
+repository.workspace    = true
+version.workspace       = true
 
 [dependencies]
 napi-build = { workspace = true }

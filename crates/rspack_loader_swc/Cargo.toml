@@ -4,7 +4,7 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_loader_swc"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [package.metadata.cargo-shear]
 ignored = ["swc"]
@@ -32,7 +32,7 @@ serde                          = { workspace = true, features = ["derive"] }
 serde_json                     = { workspace = true }
 swc                            = { workspace = true, features = ["manual-tokio-runtime"] }
 swc_config                     = { workspace = true }
-swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common"] }
+swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common", "ecma_preset_env"] }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
 

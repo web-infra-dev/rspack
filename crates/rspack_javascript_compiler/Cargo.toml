@@ -1,13 +1,14 @@
 [package]
 authors.workspace       = true
 categories.workspace    = true
+description             = "Rspack javascript compiler"
 documentation.workspace = true
 edition.workspace       = true
 homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_javascript_compiler"
 repository.workspace    = true
-version                 = "0.1.0"
+version.workspace       = true
 
 [dependencies]
 anyhow = { workspace = true }

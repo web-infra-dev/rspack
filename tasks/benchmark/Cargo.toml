@@ -5,7 +5,7 @@ license           = "MIT"
 name              = "rspack_benchmark"
 publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 
 [features]
 codspeed = ["criterion2/codspeed"]
