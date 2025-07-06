@@ -46,7 +46,7 @@ impl ConsumeSharedExportsDependency {
 
   /// Check if a module should use ConsumeSharedExportsDependency for tree-shaking
   pub fn should_apply_to_module(
-    module_identifier: &str,
+    _module_identifier: &str,
     build_meta: &rspack_core::BuildMeta,
     _module_graph: Option<&rspack_core::ModuleGraph>,
   ) -> Option<String> {
