@@ -228,6 +228,16 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);
           if supports_const {
+            let default_export_value = if let Some(consume_shared_key) =
+              &module.build_meta().consume_shared_key
+            {
+              format!(
+            "/* @common:if [condition=\"treeShake.{consume_shared_key}.default\"] */ /* ESM default export */ {DEFAULT_EXPORT} /* @common:endif */"
+          )
+            } else {
+              DEFAULT_EXPORT.to_string()
+            };
+
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(
@@ -237,7 +247,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   .collect_vec()
                   .join("")
                   .into(),
-                DEFAULT_EXPORT.into(),
+                default_export_value.into(),
               )],
             )));
             format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")

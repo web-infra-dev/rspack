@@ -351,7 +351,7 @@ impl ConsumeSharedPlugin {
     let prefetched_fallback = ExportsInfoGetter::prefetch(
       &fallback_exports_info,
       module_graph,
-      PrefetchExportsInfoMode::AllExports,
+      PrefetchExportsInfoMode::Default,
     );
 
     let fallback_provided = prefetched_fallback.get_provided_exports();
@@ -516,7 +516,7 @@ impl ConsumeSharedPlugin {
               let prefetched = ExportsInfoGetter::prefetch(
                 &exports_info,
                 &module_graph,
-                PrefetchExportsInfoMode::AllExports,
+                PrefetchExportsInfoMode::Default,
               );
 
               if let ProvidedExports::ProvidedNames(export_names) = prefetched.get_provided_exports() {
@@ -626,7 +626,12 @@ async fn this_compilation(
 
 #[plugin_hook(CompilationFinishModules for ConsumeSharedPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  // Find all ConsumeShared modules and copy metadata from their fallbacks
+  // PHASE 1: Pre-cache ConsumeShared detection results in BuildMeta for template performance
+  self
+    .populate_consume_shared_buildmeta_cache(compilation)
+    .await?;
+
+  // PHASE 2: Find all ConsumeShared modules and copy metadata from their fallbacks
   let consume_shared_modules: Vec<ModuleIdentifier> = compilation
     .get_module_graph()
     .modules()
@@ -709,6 +714,11 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   Ok(None)
 }
 
+// ARCHITECTURAL CORRECTION: The BuildMeta approach requires parser-level detection
+// The after_resolve hook cannot set BuildMeta because modules haven't been created yet.
+// Instead, parsers should detect ConsumeShared context and set BuildMeta during parsing.
+// This hook is removed in favor of parser-level detection using existing module graph traversal.
+
 #[plugin_hook(NormalModuleFactoryCreateModule for ConsumeSharedPlugin)]
 async fn create_module(
   &self,
@@ -759,6 +769,85 @@ async fn additional_tree_runtime_requirements(
     Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
   )?;
   Ok(())
+}
+
+impl ConsumeSharedPlugin {
+  /// Pre-populate BuildMeta with ConsumeShared detection results for template performance
+  /// This runs during finish_modules hook where we have mutable access to modules
+  async fn populate_consume_shared_buildmeta_cache(
+    &self,
+    compilation: &mut Compilation,
+  ) -> Result<()> {
+    // Get mutable access to module graph for BuildMeta updates
+    let module_identifiers: Vec<ModuleIdentifier> = {
+      let module_graph = compilation.get_module_graph();
+      module_graph.modules().keys().copied().collect()
+    };
+
+    // Process each module to detect and cache ConsumeShared context
+    for module_id in module_identifiers {
+      // Detect ConsumeShared context using immutable access
+      let consume_shared_key = {
+        let module_graph = compilation.get_module_graph();
+
+        // Skip if already cached
+        if let Some(module) = module_graph.module_by_identifier(&module_id) {
+          if module.build_meta().consume_shared_key.is_some() {
+            continue;
+          }
+        }
+
+        Self::detect_consume_shared_context_for_module(&module_graph, &module_id)
+      };
+
+      // Cache the result in BuildMeta if ConsumeShared context was detected
+      if let Some(key) = consume_shared_key {
+        let mut module_graph = compilation.get_module_graph_mut();
+        if let Some(module) = module_graph.module_by_identifier_mut(&module_id) {
+          module.build_meta_mut().consume_shared_key = Some(key);
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  /// Detect ConsumeShared context by traversing module graph connections
+  /// This is called during finish_modules hook for optimal caching
+  fn detect_consume_shared_context_for_module(
+    module_graph: &ModuleGraph,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<String> {
+    // Check if this is a direct ConsumeShared module
+    if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+      if module.module_type() == &ModuleType::ConsumeShared {
+        // Try to extract the share_key using get_consume_shared_key() method
+        if let Some(share_key) = module.get_consume_shared_key() {
+          return Some(share_key);
+        }
+      }
+    }
+
+    // Check incoming connections to see if we're being imported by ConsumeShared modules
+    let incoming_connections: Vec<_> = module_graph
+      .get_incoming_connections(module_identifier)
+      .collect();
+
+    for connection in incoming_connections {
+      if let Some(origin_module_id) = &connection.original_module_identifier {
+        if let Some(origin_module) = module_graph.module_by_identifier(origin_module_id) {
+          if origin_module.module_type() == &ModuleType::ConsumeShared {
+            // Extract share_key from ConsumeShared module
+            if let Some(share_key) = origin_module.get_consume_shared_key() {
+              return Some(share_key);
+            }
+          }
+        }
+      }
+    }
+
+    None
+  }
 }
 
 #[async_trait]

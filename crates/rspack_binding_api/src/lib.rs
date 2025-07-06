@@ -385,8 +385,8 @@ impl JsCompiler {
     let compilation_id = compilation.id();
 
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
-    JsChunkWrapper::cleanup_last_compilation(compilation_id);
-    JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
+    ChunkWrapper::cleanup_last_compilation(compilation_id);
+    ChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
@@ -428,6 +428,7 @@ const _: () = {
   static __CTOR: unsafe extern "C" fn() = init;
 
   unsafe extern "C" fn init() {
+    panic::install_panic_handler();
     let rt = tokio::runtime::Builder::new_multi_thread()
       .max_blocking_threads(1)
       .enable_all()

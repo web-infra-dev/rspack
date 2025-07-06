@@ -1,7 +1,7 @@
 import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 
-import { Chunk } from "../Chunk";
+import type { Chunk } from "../Chunk";
 import { type Compilation, checkCompilation } from "../Compilation";
 import type { CreatePartialRegisters } from "../taps/types";
 import { create } from "./base";
@@ -59,7 +59,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return function (data: binding.JsCreateScriptData) {
-					return queried.call(data.code, Chunk.__from_binding(data.chunk));
+					return queried.call(data.code, data.chunk);
 				};
 			}
 		),
@@ -72,7 +72,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return function (data: binding.JsLinkPreloadData) {
-					return queried.call(data.code, Chunk.__from_binding(data.chunk));
+					return queried.call(data.code, data.chunk);
 				};
 			}
 		),
@@ -85,7 +85,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return function (data: binding.JsLinkPrefetchData) {
-					return queried.call(data.code, Chunk.__from_binding(data.chunk));
+					return queried.call(data.code, data.chunk);
 				};
 			}
 		)

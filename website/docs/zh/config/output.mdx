@@ -569,7 +569,7 @@ export default {
 
 :::
 
-Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:12]` 来指定（默认为 16）。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
+Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:12]` 来指定（默认为 16），或使用 `[hash:base64:8]` 来同时指定 digest（目前仅支持 base64）和长度。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
 
 当你想在实际文件名中使用占位符时，可以过滤掉占位符替换。例如，要输出一个文件 `[name].js`，你必须通过在括号之间添加反斜杠来转义 `[name]` 占位符。这样 `[\name\]` 会生成 `[name]` 而不是被替换为资源的名称。
 

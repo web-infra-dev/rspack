@@ -437,192 +437,214 @@ impl SourceMapDevToolPlugin {
       }
     }
 
-    let futures = mapped_sources
-      .into_iter()
-      .map(|(source_filename, source, source_map)| {
-        async {
-          let (source_map_json, debug_id) = match source_map {
-            Some(mut map) => {
-              let debug_id = self.debug_ids.then(|| {
-                let debug_id = generate_debug_id(&source_filename, &source.buffer());
-                map.set_debug_id(Some(debug_id.clone()));
-                debug_id
-              });
-
-              (Some(map.to_json().into_diagnostic()?), debug_id)
-            }
-            None => (None, None),
+    let mapped_assets = rspack_futures::scope::<_, Result<_>>(|token| {
+      mapped_sources
+        .into_iter()
+        .for_each(|(source_filename, source, source_map)| {
+          let s = unsafe {
+            token.used((
+              &self,
+              compilation,
+              file_to_chunk,
+              source_filename,
+              source,
+              source_map,
+            ))
           };
 
-          let mut asset = compilation
-            .assets()
-            .get(&source_filename)
-            .unwrap_or_else(|| {
-              panic!(
-                "expected to find filename '{}' in compilation.assets, but it was not present",
-                &source_filename
-              )
-            })
-            .clone();
-          let Some(source_map_json) = source_map_json else {
-            return Ok(MappedAsset {
-              asset: (source_filename, asset),
-              source_map: None,
-            });
-          };
-          let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&source_filename);
-          let current_source_mapping_url_comment = match &self.source_mapping_url_comment {
-            Some(SourceMappingUrlComment::String(s)) => {
-              let s = if css_extension_detected {
-                URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
-              } else {
-                Cow::from(s)
+          s.spawn(
+            |(plugin, compilation, file_to_chunk, source_filename, source, source_map)| async move {
+              let (source_map_json, debug_id) = match source_map {
+                Some(mut map) => {
+                  let debug_id = plugin.debug_ids.then(|| {
+                    let debug_id = generate_debug_id(&source_filename, &source.buffer());
+                    map.set_debug_id(Some(debug_id.clone()));
+                    debug_id
+                  });
+
+                  (Some(map.to_json().into_diagnostic()?), debug_id)
+                }
+                None => (None, None),
               };
-              Some(SourceMappingUrlCommentRef::String(s))
-            }
-            Some(SourceMappingUrlComment::Fn(f)) => Some(SourceMappingUrlCommentRef::Fn(f)),
-            None => None,
-          };
 
-          if let Some(source_map_filename_config) = &self.source_map_filename {
-            let chunk = file_to_chunk.get(&source_filename);
-            let filename = match &self.file_context {
-              Some(file_context) => Cow::Owned(
-                Path::new(&source_filename)
-                  .relative(Path::new(file_context))
-                  .to_string_lossy()
-                  .to_string(),
-              ),
-              None => Cow::Borrowed(&source_filename),
-            };
-
-            let mut hasher = RspackHash::from(&compilation.options.output);
-            hasher.write(source_map_json.as_bytes());
-            let digest = hasher.digest(&compilation.options.output.hash_digest);
-
-            let data = PathData::default().filename(&filename);
-            let data = match chunk {
-              Some(chunk) => data
-                .chunk_id_optional(
-                  chunk
-                    .id(&compilation.chunk_ids_artifact)
-                    .map(|id| id.as_str()),
-                )
-                .chunk_hash_optional(chunk.rendered_hash(
-                  &compilation.chunk_hashes_artifact,
-                  compilation.options.output.hash_digest_length,
-                ))
-                .chunk_name_optional(
-                  chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
-                )
-                .content_hash_optional(Some(digest.encoded())),
-              None => data,
-            };
-            let source_map_filename = compilation
-              .get_asset_path(source_map_filename_config, data)
-              .await?;
-
-            if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
-              let source_map_url = if let Some(public_path) = &self.public_path {
-                format!("{public_path}{source_map_filename}")
-              } else {
-                let mut file_path = PathBuf::new();
-                file_path.push(Component::RootDir);
-                file_path.extend(Path::new(filename.as_ref()).components());
-
-                let mut source_map_path = PathBuf::new();
-                source_map_path.push(Component::RootDir);
-                source_map_path.extend(Path::new(&source_map_filename).components());
-
-                source_map_path
-                  .relative(
-                    #[allow(clippy::unwrap_used)]
-                    file_path.parent().unwrap(),
+              let mut asset = compilation
+                .assets()
+                .get(&source_filename)
+                .unwrap_or_else(|| {
+                  panic!(
+                    "expected to find filename '{}' in compilation.assets, but it was not present",
+                    &source_filename
                   )
-                  .to_string_lossy()
-                  .to_string()
+                })
+                .clone();
+              let Some(source_map_json) = source_map_json else {
+                return Ok(MappedAsset {
+                  asset: (source_filename, asset),
+                  source_map: None,
+                });
               };
-              let data = data.url(&source_map_url);
-              let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-                SourceMappingUrlCommentRef::String(s) => {
-                  compilation
-                    .get_asset_path(&Filename::from(s.as_ref()), data)
-                    .await?
+              let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&source_filename);
+              let current_source_mapping_url_comment = match &plugin.source_mapping_url_comment {
+                Some(SourceMappingUrlComment::String(s)) => {
+                  let s = if css_extension_detected {
+                    URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
+                  } else {
+                    Cow::from(s)
+                  };
+                  Some(SourceMappingUrlCommentRef::String(s))
                 }
-                SourceMappingUrlCommentRef::Fn(f) => {
-                  let comment = f(data).await?;
-                  Filename::from(comment).render(data, None).await?
-                }
+                Some(SourceMappingUrlComment::Fn(f)) => Some(SourceMappingUrlCommentRef::Fn(f)),
+                None => None,
               };
-              let current_source_mapping_url_comment = current_source_mapping_url_comment
-                .cow_replace("[url]", &source_map_url)
-                .into_owned();
 
-              let debug_id_comment = debug_id
-                .map(|id| format!("\n//# debugId={id}"))
-                .unwrap_or_default();
+              if let Some(source_map_filename_config) = &plugin.source_map_filename {
+                let chunk = file_to_chunk.get(&source_filename);
+                let filename = match &plugin.file_context {
+                  Some(file_context) => Cow::Owned(
+                    Path::new(&source_filename)
+                      .relative(Path::new(file_context))
+                      .to_string_lossy()
+                      .to_string(),
+                  ),
+                  None => Cow::Borrowed(&source_filename),
+                };
 
-              asset.source = Some(
-                ConcatSource::new([
-                  source.clone(),
-                  RawStringSource::from(debug_id_comment).boxed(),
-                  RawStringSource::from(current_source_mapping_url_comment).boxed(),
-                ])
-                .boxed(),
-              );
-              asset.info.related.source_map = Some(source_map_filename.clone());
-            } else {
-              asset.source = Some(source.clone());
-            }
-            let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
-            if let Some(asset) = compilation.assets().get(&source_filename) {
-              // set source map asset version to be the same as the target asset
-              source_map_asset_info.version = asset.info.version.clone();
-            }
-            let source_map_asset = CompilationAsset::new(
-              Some(RawStringSource::from(source_map_json).boxed()),
-              source_map_asset_info,
-            );
-            Ok(MappedAsset {
-              asset: (source_filename, asset),
-              source_map: Some((source_map_filename, source_map_asset)),
-            })
-          } else {
-            let current_source_mapping_url_comment = current_source_mapping_url_comment.expect(
-              "SourceMapDevToolPlugin: append can't be false when no filename is provided.",
-            );
-            let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-              SourceMappingUrlCommentRef::String(s) => s,
-              SourceMappingUrlCommentRef::Fn(_) => {
-                return Err(error!(
+                let mut hasher = RspackHash::from(&compilation.options.output);
+                hasher.write(source_map_json.as_bytes());
+                let digest = hasher.digest(&compilation.options.output.hash_digest);
+
+                let data = PathData::default().filename(&filename);
+                let data = match chunk {
+                  Some(chunk) => data
+                    .chunk_id_optional(
+                      chunk
+                        .id(&compilation.chunk_ids_artifact)
+                        .map(|id| id.as_str()),
+                    )
+                    .chunk_hash_optional(chunk.rendered_hash(
+                      &compilation.chunk_hashes_artifact,
+                      compilation.options.output.hash_digest_length,
+                    ))
+                    .chunk_name_optional(
+                      chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
+                    )
+                    .content_hash_optional(Some(digest.encoded())),
+                  None => data,
+                };
+                let source_map_filename = compilation
+                  .get_asset_path(source_map_filename_config, data)
+                  .await?;
+
+                if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment
+                {
+                  let source_map_url = if let Some(public_path) = &plugin.public_path {
+                    format!("{public_path}{source_map_filename}")
+                  } else {
+                    let mut file_path = PathBuf::new();
+                    file_path.push(Component::RootDir);
+                    file_path.extend(Path::new(filename.as_ref()).components());
+
+                    let mut source_map_path = PathBuf::new();
+                    source_map_path.push(Component::RootDir);
+                    source_map_path.extend(Path::new(&source_map_filename).components());
+
+                    source_map_path
+                      .relative(
+                        #[allow(clippy::unwrap_used)]
+                        file_path.parent().unwrap(),
+                      )
+                      .to_string_lossy()
+                      .to_string()
+                  };
+                  let data = data.url(&source_map_url);
+                  let current_source_mapping_url_comment = match &current_source_mapping_url_comment
+                  {
+                    SourceMappingUrlCommentRef::String(s) => {
+                      compilation
+                        .get_asset_path(&Filename::from(s.as_ref()), data)
+                        .await?
+                    }
+                    SourceMappingUrlCommentRef::Fn(f) => {
+                      let comment = f(data).await?;
+                      Filename::from(comment).render(data, None).await?
+                    }
+                  };
+                  let current_source_mapping_url_comment = current_source_mapping_url_comment
+                    .cow_replace("[url]", &source_map_url)
+                    .into_owned();
+
+                  let debug_id_comment = debug_id
+                    .map(|id| format!("\n//# debugId={id}"))
+                    .unwrap_or_default();
+
+                  asset.source = Some(
+                    ConcatSource::new([
+                      source.clone(),
+                      RawStringSource::from(debug_id_comment).boxed(),
+                      RawStringSource::from(current_source_mapping_url_comment).boxed(),
+                    ])
+                    .boxed(),
+                  );
+                  asset.info.related.source_map = Some(source_map_filename.clone());
+                } else {
+                  asset.source = Some(source.clone());
+                }
+                let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
+                if let Some(asset) = compilation.assets().get(&source_filename) {
+                  // set source map asset version to be the same as the target asset
+                  source_map_asset_info.version = asset.info.version.clone();
+                }
+                let source_map_asset = CompilationAsset::new(
+                  Some(RawStringSource::from(source_map_json).boxed()),
+                  source_map_asset_info,
+                );
+                Ok(MappedAsset {
+                  asset: (source_filename, asset),
+                  source_map: Some((source_map_filename, source_map_asset)),
+                })
+              } else {
+                let current_source_mapping_url_comment = current_source_mapping_url_comment.expect(
+                  "SourceMapDevToolPlugin: append can't be false when no filename is provided.",
+                );
+                let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+                  SourceMappingUrlCommentRef::String(s) => s,
+                  SourceMappingUrlCommentRef::Fn(_) => {
+                    return Err(error!(
                   "SourceMapDevToolPlugin: append can't be a function when no filename is provided"
                 ))
-              }
-            };
-            let base64 = rspack_base64::encode_to_string(source_map_json.as_bytes());
-            asset.source = Some(
-              ConcatSource::new([
-                source.clone(),
-                RawStringSource::from(
-                  current_source_mapping_url_comment
-                    .cow_replace(
-                      "[url]",
-                      &format!("data:application/json;charset=utf-8;base64,{base64}"),
+                  }
+                };
+                let base64 = rspack_base64::encode_to_string(source_map_json.as_bytes());
+                asset.source = Some(
+                  ConcatSource::new([
+                    source.clone(),
+                    RawStringSource::from(
+                      current_source_mapping_url_comment
+                        .cow_replace(
+                          "[url]",
+                          &format!("data:application/json;charset=utf-8;base64,{base64}"),
+                        )
+                        .into_owned(),
                     )
-                    .into_owned(),
-                )
-                .boxed(),
-              ])
-              .boxed(),
-            );
-            Ok(MappedAsset {
-              asset: (source_filename, asset),
-              source_map: None,
-            })
-          }
-        }
-      });
-    join_all(futures).await.into_iter().collect()
+                    .boxed(),
+                  ])
+                  .boxed(),
+                );
+                Ok(MappedAsset {
+                  asset: (source_filename, asset),
+                  source_map: None,
+                })
+              }
+            },
+          );
+        });
+    })
+    .await
+    .into_iter()
+    .map(|r| r.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    mapped_assets.into_iter().collect::<Result<Vec<_>>>()
   }
 }
 

@@ -118,7 +118,7 @@ impl<T, K> QueueHandler<T, K> {
       .expect("failed to send channel message");
   }
 
-  pub fn wait_for(&self, key: K, callback: QueueHandleCallback) {
+  pub fn wait_for_enter(&self, key: K, callback: QueueHandleCallback) {
     self
       .inner
       .send(TaskItem::Wait(key, callback))

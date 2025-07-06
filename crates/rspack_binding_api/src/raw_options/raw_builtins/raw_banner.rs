@@ -6,13 +6,13 @@ use rspack_error::Result;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
 
-use crate::{into_asset_conditions, JsChunkWrapper, RawAssetConditions};
+use crate::{into_asset_conditions, ChunkWrapper, RawAssetConditions};
 
 #[napi(object, object_from_js = false)]
 pub struct JsBannerContentFnCtx {
   pub hash: String,
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
   pub filename: String,
 }
 
@@ -20,7 +20,7 @@ impl From<BannerContentFnCtx<'_>> for JsBannerContentFnCtx {
   fn from(value: BannerContentFnCtx) -> Self {
     Self {
       hash: value.hash.to_string(),
-      chunk: JsChunkWrapper::new(value.chunk.ukey(), value.compilation),
+      chunk: ChunkWrapper::new(value.chunk.ukey(), value.compilation),
       filename: value.filename.to_string(),
     }
   }
@@ -50,7 +50,7 @@ impl TryFrom<RawBannerContentWrapper> for BannerContent {
 pub struct RawBannerPluginOptions {
   #[debug(skip)]
   #[napi(
-    ts_type = "string | ((args: { hash: string, chunk: JsChunk, filename: string }) => string)"
+    ts_type = "string | ((args: { hash: string, chunk: Chunk, filename: string }) => string)"
   )]
   pub banner: RawBannerContent,
   pub entry_only: Option<bool>,

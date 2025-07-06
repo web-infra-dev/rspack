@@ -5,7 +5,7 @@ homepage.workspace = true
 license            = "MIT"
 name               = "rspack_plugin_dll"
 repository         = "https://github.com/web-infra-dev/rspack"
-version            = "0.2.0"
+version.workspace  = true
 
 [dependencies]
 rspack_cacheable        = { workspace = true }

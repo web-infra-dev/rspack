@@ -25,8 +25,8 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  entry::JsEntryOptions, utils::callbackify, AssetInfo, EntryDependency, ErrorCode,
-  JsAddingRuntimeModule, JsAsset, JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper,
+  create_stats_warnings, entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkGraph,
+  ChunkGroupWrapper, ChunkWrapper, EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset,
   JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats,
   JsStatsOptimizationBailout, ModuleObject, RspackError, RspackResultToNapiResultExt,
   ToJsCompatSource, COMPILER_REFERENCES,
@@ -224,15 +224,15 @@ impl JsCompilation {
     Ok(compilation.named_chunks.keys().cloned().collect::<Vec<_>>())
   }
 
-  #[napi(ts_return_type = "JsChunk | null")]
-  pub fn get_named_chunk(&self, name: String) -> Result<Option<JsChunkWrapper>> {
+  #[napi(ts_return_type = "Chunk")]
+  pub fn get_named_chunk(&self, name: String) -> Result<Option<ChunkWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(compilation.named_chunks.get(&name).and_then(|c| {
       compilation
         .chunk_by_ukey
         .get(c)
-        .map(|chunk| JsChunkWrapper::new(chunk.ukey(), compilation))
+        .map(|chunk| ChunkWrapper::new(chunk.ukey(), compilation))
     }))
   }
 
@@ -249,14 +249,14 @@ impl JsCompilation {
     )
   }
 
-  #[napi(ts_return_type = "JsChunkGroup")]
-  pub fn get_named_chunk_group(&self, name: String) -> Result<Option<JsChunkGroupWrapper>> {
+  #[napi(ts_return_type = "ChunkGroup")]
+  pub fn get_named_chunk_group(&self, name: String) -> Result<Option<ChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
     Ok(
       compilation
         .named_chunk_groups
         .get(&name)
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation)),
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation)),
     )
   }
 
@@ -356,29 +356,29 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
-  pub fn entrypoints(&self) -> Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, ts_return_type = "ChunkGroup[]")]
+  pub fn entrypoints(&self) -> Result<Vec<ChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
       compilation
         .entrypoints()
         .values()
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
         .collect(),
     )
   }
 
-  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
-  pub fn chunk_groups(&self) -> Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, ts_return_type = "ChunkGroup[]")]
+  pub fn chunk_groups(&self) -> Result<Vec<ChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
       compilation
         .chunk_group_by_ukey
         .keys()
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
-        .collect::<Vec<JsChunkGroupWrapper>>(),
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
+        .collect::<Vec<ChunkGroupWrapper>>(),
     )
   }
 
@@ -673,7 +673,7 @@ impl JsCompilation {
   #[napi]
   pub fn add_runtime_module(
     &mut self,
-    chunk: &JsChunk,
+    chunk: &Chunk,
     runtime_module: JsAddingRuntimeModule,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
@@ -693,9 +693,9 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn chunk_graph(&self) -> napi::Result<JsChunkGraph> {
+  pub fn chunk_graph(&self) -> napi::Result<ChunkGraph> {
     let compilation = self.as_ref()?;
-    Ok(JsChunkGraph::new(compilation))
+    Ok(ChunkGraph::new(compilation))
   }
 
   #[napi(
@@ -913,6 +913,17 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
 
     Ok(compilation.code_generation_results.reflector())
+  }
+
+  #[napi(ts_return_type = "JsStatsError[]")]
+  pub fn create_stats_warnings<'a>(
+    &self,
+    env: &'a Env,
+    warnings: Vec<RspackError>,
+    colored: Option<bool>,
+  ) -> Result<Array<'a>> {
+    let compilation = self.as_ref()?;
+    create_stats_warnings(env, compilation, warnings, colored)
   }
 }
 

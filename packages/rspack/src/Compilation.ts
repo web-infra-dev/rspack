@@ -10,6 +10,7 @@
 import * as binding from "@rspack/binding";
 import type {
 	AssetInfo,
+	ChunkGroup,
 	Dependency,
 	ExternalObject,
 	JsCompatSourceOwned,
@@ -20,12 +21,11 @@ import type {
 export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
-import { Chunk } from "./Chunk";
-import { ChunkGraph } from "./ChunkGraph";
-import { ChunkGroup } from "./ChunkGroup";
+import type { Chunk } from "./Chunk";
+import type { ChunkGraph } from "./ChunkGraph";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Entrypoint } from "./Entrypoint";
+import type { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import type { Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
@@ -58,8 +58,12 @@ import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
+// patch Chunk
+import "./Chunk";
 // patch Chunks
 import "./Chunks";
+// patch ChunkGraph
+import "./ChunkGraph";
 // patch CodeGenerationResults
 import "./CodeGenerationResults";
 import { createDiagnosticArray } from "./Diagnostics";
@@ -399,7 +403,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.children = [];
 		this.needAdditionalPass = false;
 
-		this.chunkGraph = ChunkGraph.__from_binding(inner.chunkGraph);
+		this.chunkGraph = inner.chunkGraph;
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 
 		this.#addIncludeDispatcher = new AddEntryItemDispatcher(
@@ -431,17 +435,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
 		return new Map(
-			this.#inner.entrypoints.map(binding => {
-				const entrypoint = Entrypoint.__from_binding(binding);
-				return [entrypoint.name!, entrypoint];
-			})
+			this.#inner.entrypoints.map(entrypoint => [entrypoint.name!, entrypoint])
 		);
 	}
 
 	get chunkGroups(): ReadonlyArray<ChunkGroup> {
-		return this.#inner.chunkGroups.map(binding =>
-			ChunkGroup.__from_binding(binding)
-		);
+		return this.#inner.chunkGroups;
 	}
 
 	/**
@@ -457,8 +456,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					const binding = this.#inner.getNamedChunkGroup(property);
-					return ChunkGroup.__from_binding(binding);
+					return this.#inner.getNamedChunkGroup(property);
 				}
 			}
 		});
@@ -492,8 +490,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					const binding = this.#inner.getNamedChunk(property);
-					return binding ? Chunk.__from_binding(binding) : undefined;
+					return this.#inner.getNamedChunk(property);
 				}
 			}
 		});
@@ -952,7 +949,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
 		runtimeModule.attach(this, chunk, this.chunkGraph);
 		this.#inner.addRuntimeModule(
-			Chunk.__to_binding(chunk),
+			chunk,
 			RuntimeModule.__to_binding(this, runtimeModule)
 		);
 	}
@@ -977,6 +974,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				? optionsOrName
 				: { name: optionsOrName };
 		this.#addEntryDispatcher.call(context, dependency, options, callback);
+	}
+
+	getWarnings(): WebpackError[] {
+		return this.hooks.processWarnings.call(this.#inner.getWarnings());
+	}
+
+	getErrors(): WebpackError[] {
+		return this.#inner.getErrors();
 	}
 
 	/**

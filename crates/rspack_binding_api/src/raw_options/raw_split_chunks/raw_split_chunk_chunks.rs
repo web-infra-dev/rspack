@@ -5,9 +5,9 @@ use rspack_collections::DatabaseItem;
 use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
 use rspack_regex::RspackRegex;
 
-use crate::JsChunkWrapper;
+use crate::ChunkWrapper;
 
-pub type Chunks<'a> = Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<JsChunkWrapper, bool>>;
+pub type Chunks<'a> = Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<ChunkWrapper, bool>>;
 
 pub fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks::ChunkFilter {
   match raw {
@@ -18,7 +18,7 @@ pub fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks::ChunkFil
     }
     Either3::C(f) => Arc::new(move |chunk, compilation| {
       let f = f.clone();
-      let chunk_wrapper = JsChunkWrapper::new(chunk.ukey(), compilation);
+      let chunk_wrapper = ChunkWrapper::new(chunk.ukey(), compilation);
       Box::pin(async move { f.call_with_sync(chunk_wrapper).await })
     }),
   }

@@ -1,145 +1,48 @@
-import type { JsChunk } from "@rspack/binding";
+import util from "node:util";
+import { Chunk } from "@rspack/binding";
 
-import { ChunkGroup } from "./ChunkGroup";
-import type { EntryOptions } from "./exports";
-
-const CHUNK_MAPPINGS = new WeakMap<JsChunk, Chunk>();
-
-export class Chunk {
-	#inner: JsChunk;
-
-	declare readonly name?: string;
-	declare readonly id?: string;
-	declare readonly ids: ReadonlyArray<string>;
-	declare readonly idNameHints: ReadonlyArray<string>;
-	declare readonly filenameTemplate?: string;
-	declare readonly cssFilenameTemplate?: string;
-	declare readonly files: ReadonlySet<string>;
-	declare readonly runtime: ReadonlySet<string>;
-	declare readonly hash?: string;
-	declare readonly contentHash: Readonly<Record<string, string>>;
-	declare readonly renderedHash?: string;
-	declare readonly chunkReason?: string;
-	declare readonly auxiliaryFiles: ReadonlySet<string>;
-
-	static __from_binding(binding: JsChunk) {
-		let chunk = CHUNK_MAPPINGS.get(binding);
-		if (chunk) {
-			return chunk;
-		}
-		chunk = new Chunk(binding);
-		CHUNK_MAPPINGS.set(binding, chunk);
-		return chunk;
+Object.defineProperty(Chunk.prototype, "files", {
+	enumerable: true,
+	configurable: true,
+	get(this: Chunk) {
+		return new Set(this._files);
 	}
+});
 
-	static __to_binding(chunk: Chunk): JsChunk {
-		return chunk.#inner;
+Object.defineProperty(Chunk.prototype, "runtime", {
+	enumerable: true,
+	configurable: true,
+	get(this: Chunk) {
+		return new Set(this._runtime);
 	}
+});
 
-	constructor(binding: JsChunk) {
-		this.#inner = binding;
-
-		Object.defineProperties(this, {
-			name: {
-				enumerable: true,
-				get: () => {
-					return binding.name;
-				}
-			},
-			id: {
-				enumerable: true,
-				get: () => {
-					return binding.id;
-				}
-			},
-			ids: {
-				enumerable: true,
-				get: () => {
-					return binding.ids;
-				}
-			},
-			idNameHints: {
-				enumerable: true,
-				get: () => {
-					return binding.idNameHints;
-				}
-			},
-			filenameTemplate: {
-				enumerable: true,
-				get: () => {
-					return binding.filenameTemplate;
-				}
-			},
-			cssFilenameTemplate: {
-				enumerable: true,
-				get: () => {
-					return binding.cssFilenameTemplate;
-				}
-			},
-			files: {
-				enumerable: true,
-				get: () => {
-					return new Set(binding.files);
-				}
-			},
-			runtime: {
-				enumerable: true,
-				get: () => {
-					return new Set(binding.runtime);
-				}
-			},
-			hash: {
-				enumerable: true,
-				get: () => {
-					return binding.hash;
-				}
-			},
-			contentHash: {
-				enumerable: true,
-				get: () => {
-					return binding.contentHash;
-				}
-			},
-			renderedHash: {
-				enumerable: true,
-				get: () => {
-					return binding.renderedHash;
-				}
-			},
-			chunkReason: {
-				enumerable: true,
-				get: () => {
-					return binding.chunkReason;
-				}
-			},
-			auxiliaryFiles: {
-				enumerable: true,
-				get: () => {
-					return new Set(binding.auxiliaryFiles);
-				}
-			}
-		});
+Object.defineProperty(Chunk.prototype, "auxiliaryFiles", {
+	enumerable: true,
+	configurable: true,
+	get(this: Chunk) {
+		return new Set(this._auxiliaryFiles);
 	}
+});
 
-	isOnlyInitial(): boolean {
-		return this.#inner.isOnlyInitial();
+Object.defineProperty(Chunk.prototype, "groupsIterable", {
+	enumerable: true,
+	configurable: true,
+	get(this: Chunk) {
+		return new Set(this._groupsIterable);
 	}
+});
 
-	canBeInitial(): boolean {
-		return this.#inner.canBeInitial();
-	}
+interface ChunkMaps {
+	hash: Record<string | number, string>;
+	contentHash: Record<string | number, Record<string, string>>;
+	name: Record<string | number, string>;
+}
 
-	hasRuntime(): boolean {
-		return this.#inner.hasRuntime();
-	}
-
-	get groupsIterable(): ReadonlySet<ChunkGroup> {
-		return new Set(
-			this.#inner.groups().map(binding => ChunkGroup.__from_binding(binding))
-		);
-	}
-
-	getChunkMaps(realHash: boolean) {
+Object.defineProperty(Chunk.prototype, "getChunkMaps", {
+	enumerable: true,
+	configurable: true,
+	value(this: Chunk, realHash: boolean): ChunkMaps {
 		const chunkHashMap: Record<string | number, string> = {};
 		const chunkContentHashMap: Record<
 			string | number,
@@ -171,32 +74,24 @@ export class Chunk {
 			name: chunkNameMap
 		};
 	}
+});
 
-	getAllAsyncChunks(): ReadonlySet<Chunk> {
-		return new Set(
-			this.#inner
-				.getAllAsyncChunks()
-				.map(binding => Chunk.__from_binding(binding))
-		);
+Object.defineProperty(Chunk.prototype, util.inspect.custom, {
+	enumerable: true,
+	configurable: true,
+	value(this: Chunk): any {
+		return { ...this };
 	}
+});
 
-	getAllInitialChunks(): ReadonlySet<Chunk> {
-		return new Set(
-			this.#inner
-				.getAllInitialChunks()
-				.map(binding => Chunk.__from_binding(binding))
-		);
-	}
-
-	getAllReferencedChunks(): ReadonlySet<Chunk> {
-		return new Set(
-			this.#inner
-				.getAllReferencedChunks()
-				.map(binding => Chunk.__from_binding(binding))
-		);
-	}
-
-	getEntryOptions(): Readonly<EntryOptions> | undefined {
-		return this.#inner.getEntryOptions();
+declare module "@rspack/binding" {
+	interface Chunk {
+		readonly files: ReadonlySet<string>;
+		readonly runtime: ReadonlySet<string>;
+		readonly auxiliaryFiles: ReadonlySet<string>;
+		readonly groupsIterable: ReadonlySet<ChunkGroup>;
+		getChunkMaps(realHash: boolean): ChunkMaps;
 	}
 }
+
+export { Chunk } from "@rspack/binding";

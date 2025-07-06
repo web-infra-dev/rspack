@@ -13,8 +13,7 @@ import type {
 	JsOriginRecord,
 	JsStatsAssetInfo,
 	JsStatsError,
-	JsStatsModule,
-	JsStatsWarning
+	JsStatsModule
 } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
@@ -63,8 +62,7 @@ import {
 	moduleGroup,
 	resolveStatsMillisecond,
 	sortByField,
-	spaceLimited,
-	warningFromStatsWarning
+	spaceLimited
 } from "./statsFactoryUtils";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
@@ -609,7 +607,7 @@ const EXTRACT_ERROR: Record<
 	string,
 	(
 		object: StatsError,
-		error: JsStatsError | JsStatsWarning,
+		error: JsStatsError,
 		context: KnownStatsFactoryContext,
 		options: StatsOptions,
 		factory: StatsFactory
@@ -637,7 +635,7 @@ const EXTRACT_ERROR: Record<
 			object.moduleIdentifier = error.moduleDescriptor.identifier;
 			object.moduleName = error.moduleDescriptor.name;
 		}
-		if ("loc" in error) {
+		if (error.loc) {
 			object.loc = error.loc;
 		}
 	},
@@ -674,7 +672,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			options: StatsOptions
 		) => {
 			const statsCompilation = context.getStatsCompilation(compilation);
-
 			if (!context.makePathsRelative) {
 				context.makePathsRelative = makePathsRelative.bindContextCache(
 					compilation.compiler.context,
@@ -685,7 +682,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				const map = new WeakMap();
 				context.cachedGetErrors = compilation =>
 					map.get(compilation) ||
-					// eslint-disable-next-line no-sequences
 					(errors => {
 						map.set(compilation, errors);
 						return errors;
@@ -693,17 +689,20 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetWarnings) {
 				const map = new WeakMap();
-				context.cachedGetWarnings = compilation =>
-					map.get(compilation) ||
-					// eslint-disable-next-line no-sequences
-					(warnings => {
-						map.set(compilation, warnings);
-						return warnings;
-					})(
-						compilation.hooks.processWarnings.call(
-							statsCompilation.warnings.map(warningFromStatsWarning)
+				context.cachedGetWarnings = compilation => {
+					return (
+						map.get(compilation) ||
+						// biome-ignore lint/style/noCommaOperator: based on webpack's logic
+						(warnings => (map.set(compilation, warnings), warnings))(
+							compilation
+								.__internal_getInner()
+								.createStatsWarnings(
+									compilation.getWarnings(),
+									!!options.colors
+								)
 						)
 					);
+				};
 			}
 			if (compilation.name) {
 				object.name = compilation.name;

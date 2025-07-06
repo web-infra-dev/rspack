@@ -13,6 +13,7 @@ module.exports = "This is hook"
 var __webpack_module_cache__ = {};
 
 // The require function
+// #__NO_SIDE_EFFECTS__
 function __webpack_require__(moduleId) {
 
 // Check if module is in cache

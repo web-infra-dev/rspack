@@ -77,6 +77,8 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     })
     .collect::<UkeyMap<_, _>>();
 
+  let mut ordered_chunk_modules_cache = Default::default();
+
   assign_deterministic_ids(
     chunks,
     |chunk| {
@@ -93,6 +95,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
         &compilation.module_ids_artifact,
         a,
         b,
+        &mut ordered_chunk_modules_cache,
       )
     },
     |chunk, id| {

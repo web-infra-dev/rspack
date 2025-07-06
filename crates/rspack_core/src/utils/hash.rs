@@ -38,43 +38,43 @@ pub fn include_hash(filename: &str, hashes: &HashSet<String>) -> bool {
 }
 
 pub trait Replacer {
-  fn get(&mut self, hash_len: Option<usize>) -> Cow<'_, str>;
+  fn get(&mut self, dst: &mut String, hash_len: Option<usize>, need_base64: bool);
 }
 
 impl Replacer for &str {
   #[inline]
-  fn get(&mut self, _: Option<usize>) -> Cow<'_, str> {
-    Cow::Borrowed(self)
+  fn get(&mut self, dst: &mut String, _: Option<usize>, _: bool) {
+    dst.push_str(self);
   }
 }
 
 impl Replacer for &String {
   #[inline]
-  fn get(&mut self, _: Option<usize>) -> Cow<'_, str> {
-    Cow::Borrowed(self.as_str())
+  fn get(&mut self, dst: &mut String, _: Option<usize>, _: bool) {
+    dst.push_str(self);
   }
 }
 
 impl<F, S> Replacer for F
 where
-  F: FnMut(Option<usize>) -> S,
+  F: FnMut(Option<usize>, bool) -> S,
   S: AsRef<str>,
 {
   #[inline]
-  fn get(&mut self, hash_len: Option<usize>) -> Cow<'_, str> {
-    Cow::Owned((*self)(hash_len).as_ref().to_string())
+  fn get(&mut self, dst: &mut String, hash_len: Option<usize>, need_base64: bool) {
+    dst.push_str((*self)(hash_len, need_base64).as_ref())
   }
 }
 
 fn replace_all_placeholder_impl<'a>(
   pattern: &'a str,
-  is_len_enabled: bool,
+  with_extra: bool,
   mut placeholder: &'a str,
   mut replacer: impl Replacer,
 ) -> Cow<'a, str> {
   let offset = placeholder.len() - 1;
 
-  if is_len_enabled {
+  if with_extra {
     placeholder = &placeholder[..offset];
   }
 
@@ -93,30 +93,48 @@ fn replace_all_placeholder_impl<'a>(
     }
 
     let start_offset = start + offset;
-    let (end, len) = if is_len_enabled {
+    let (end, len, need_base64) = if with_extra {
       let rest = &pattern[start_offset..];
-      match rest.as_bytes().first() {
-        Some(&b':') => {
-          if let Some(index) = rest.find(']') {
-            match rest[1..index].parse::<usize>() {
-              Ok(len) => (start_offset + index, Some(len)),
-              Err(_) => continue,
+      let Some(end) = rest.find(']') else {
+        continue;
+      };
+      if end == 0 {
+        (start_offset, None, false)
+      } else {
+        let matched = &rest[1..end];
+        let mut configs = matched.split(':');
+        let mut len = None;
+        let mut need_base64 = false;
+        if let Some(digest_or_len) = configs.next() {
+          match digest_or_len.parse::<usize>() {
+            Ok(l) => len = Some(l),
+            Err(_) => {
+              if digest_or_len == "base64" {
+                need_base64 = true;
+              } else {
+                continue;
+              }
             }
-          } else {
-            continue;
+          }
+        };
+        if need_base64 && let Some(l) = configs.next() {
+          match l.parse::<usize>() {
+            Ok(l) => len = Some(l),
+            Err(_) => continue,
           }
         }
-        Some(&b']') => (start_offset, None),
-        _ => continue,
+        if len.is_none() {
+          // must have len, can't use base64 digest without a specific len
+          continue;
+        }
+        (start_offset + end, len, need_base64)
       }
     } else {
-      (start_offset, None)
+      (start_offset, None, false)
     };
 
-    let replacer = replacer.get(len);
-
     result.push_str(&pattern[last_end..start]);
-    result.push_str(replacer.as_ref());
+    replacer.get(&mut result, len, need_base64);
 
     last_end = end + 1;
   }
@@ -164,7 +182,19 @@ fn test_replace_all_placeholder() {
     "hello-[hash]-[hash:-]-[hash_name]-[hash:1]-[hash:].js".replace_all_with_len("[hash]", "abc");
   assert_eq!(result, "hello-abc-[hash:-]-[hash_name]-abc-[hash:].js");
 
-  let result = "hello-[hash]-[hash:5]-[hash_name]-[hash:o].js"
-    .replace_all_with_len("[hash]", |n: Option<usize>| &"abcdefgh"[..n.unwrap_or(8)]);
+  let result = "hello-[hash]-[hash:5]-[hash_name]-[hash:o].js".replace_all_with_len(
+    "[hash]",
+    |len: Option<usize>, base64: bool| {
+      assert!(!base64);
+      &"abcdefgh"[..len.unwrap_or(8)]
+    },
+  );
   assert_eq!(result, "hello-abcdefgh-abcde-[hash_name]-[hash:o].js");
+
+  let result =
+    "[hash:base64:4]".replace_all_with_len("[hash]", |len: Option<usize>, base64: bool| {
+      assert!(base64);
+      &"abcdefgh"[..len.unwrap_or(8)]
+    });
+  assert_eq!(result, "abcd");
 }

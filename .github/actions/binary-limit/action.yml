@@ -1,0 +1,20 @@
+name: Binary Size Limit
+
+description: Compare binary size with default
+
+inputs:
+  percentage-threshold:
+    description: "the"
+    default: "5"
+    required: false
+
+runs:
+  using: composite
+
+  steps:
+    - name: GitHub Script
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+      with:
+        script: |
+          const action = require("./.github/actions/binary-limit/binary-limit-script.js");
+          await action({github, context});

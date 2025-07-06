@@ -1,7 +1,7 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-__webpack_require__("./resources sync recursive ^\\.\\/pre_.*\\.js$")(`./pre_${i + 1}.js`);
+/* #__PURE__ */ __webpack_require__("./resources sync recursive ^\\.\\/pre_.*\\.js$")(`./pre_${i + 1}.js`);
 
 
 }),
