@@ -552,7 +552,7 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from Xdir/errors-xxx.js):loader error1
+  × Module Error (from Xdir/errors-xxx.js):loader errorXtack1
 
 ERROR in ./index.js (./loader.js!./index.js)
   × Module Error (from Xdir/errors-xxx.js):loader error2
@@ -566,7 +566,7 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from Xdir/errors-xxx.js):loader error1
+  × Module Error (from Xdir/errors-xxx.js):loader errorXtackXtackXtack3
 
 ERROR in ./index.js (./loader.js!./index.js)
   × Module Error (from Xdir/errors-xxx.js):loader error2
@@ -580,10 +580,10 @@ assets by status xx bytes [cached] 1 asset
 ./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from Xdir/errors-xxx.js):loader error1
+  × Module Error (from Xdir/errors-xxx.js):loader errorXtackXtackXtack3
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from Xdir/errors-xxx.js):loader error2
+  × Module Error (from Xdir/errors-xxx.js):loader errorXtackXtack2
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;

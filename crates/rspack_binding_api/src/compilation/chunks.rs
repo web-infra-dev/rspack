@@ -4,7 +4,7 @@ use napi::{
 };
 use rspack_core::Compilation;
 
-use crate::{JsChunk, JsChunkWrapper, JsCompilation};
+use crate::{Chunk, ChunkWrapper, JsCompilation};
 
 #[napi]
 pub struct Chunks {
@@ -40,20 +40,20 @@ impl Chunks {
     Ok(compilation.chunk_by_ukey.len() as u32)
   }
 
-  #[napi(js_name = "_values", ts_return_type = "JsChunk[]")]
-  pub fn values(&self) -> napi::Result<Vec<JsChunkWrapper>> {
+  #[napi(js_name = "_values", ts_return_type = "Chunk[]")]
+  pub fn values(&self) -> napi::Result<Vec<ChunkWrapper>> {
     let compilation = self.as_ref()?;
     Ok(
       compilation
         .chunk_by_ukey
         .keys()
-        .map(|chunk_ukey| JsChunkWrapper::new(*chunk_ukey, compilation))
+        .map(|chunk_ukey| ChunkWrapper::new(*chunk_ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
 
   #[napi(js_name = "_has")]
-  pub fn has(&self, chunk: &JsChunk) -> napi::Result<bool> {
+  pub fn has(&self, chunk: &Chunk) -> napi::Result<bool> {
     let compilation = self.as_ref()?;
     Ok(compilation.chunk_by_ukey.contains(&chunk.chunk_ukey))
   }
