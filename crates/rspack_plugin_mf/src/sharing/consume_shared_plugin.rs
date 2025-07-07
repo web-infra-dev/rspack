@@ -13,9 +13,9 @@ use rspack_core::{
   CompilationFinishModules, CompilationParams, CompilerOptions, CompilerThisCompilation, Context,
   DependencyCategory, DependencyType, ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData,
   ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleCreateData,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType, ResolveResult,
-  Resolver, RuntimeGlobals,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
+  PluginContext, PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -295,6 +295,20 @@ impl ConsumeSharedPlugin {
 
       None
     }
+  }
+
+  /// Extract share key from ConsumeShared module identifier
+  /// Format: "consume shared module ({share_scope}) {share_key}@{version}..."
+  fn extract_share_key_from_identifier(identifier: &str) -> Option<String> {
+    // Use regex to extract share_key from the identifier
+    static SHARE_KEY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+      Regex::new(r"consume shared module \([^)]+\) ([^@]+)@").expect("valid regex")
+    });
+
+    SHARE_KEY_REGEX
+      .captures(identifier)
+      .and_then(|caps| caps.get(1))
+      .map(|m| m.as_str().to_string())
   }
 
   /// Set consume_shared_key in the fallback module's BuildMeta for tree-shaking macro support
@@ -789,6 +803,43 @@ async fn create_module(
   Ok(None)
 }
 
+#[plugin_hook(NormalModuleFactoryModule for ConsumeSharedPlugin)]
+async fn normal_module_factory_module(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  _create_data: &mut NormalModuleCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  // Check if this is a ConsumeSharedFallback dependency
+  if !data.dependencies.is_empty()
+    && matches!(
+      data.dependencies[0].dependency_type(),
+      DependencyType::ConsumeSharedFallback
+    )
+  {
+    // Get the issuer identifier (ConsumeShared module)
+    if let Some(issuer_id) = &data.issuer_identifier {
+      // Try to get the share_key from the issuer module
+      // Since we're in the module factory, we need to check if the issuer is a ConsumeSharedModule
+      // The issuer should be in the dependency's context
+      if let Some(_dep) = data.dependencies[0]
+        .as_any()
+        .downcast_ref::<super::consume_shared_fallback_dependency::ConsumeSharedFallbackDependency>(
+      ) {
+        // Extract share key from the issuer identifier
+        // ConsumeShared module identifiers have the format:
+        // "consume shared module ({share_scope}) {share_key}@{version}..."
+        let issuer_str = issuer_id.to_string();
+        if let Some(share_key) = Self::extract_share_key_from_identifier(&issuer_str) {
+          // Set the consume_shared_key in the fallback module's BuildMeta
+          module.build_meta_mut().consume_shared_key = Some(share_key);
+        }
+      }
+    }
+  }
+  Ok(())
+}
+
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ConsumeSharedPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
@@ -831,6 +882,11 @@ impl Plugin for ConsumeSharedPlugin {
       .normal_module_factory_hooks
       .create_module
       .tap(create_module::new(self));
+    ctx
+      .context
+      .normal_module_factory_hooks
+      .module
+      .tap(normal_module_factory_module::new(self));
     ctx
       .context
       .compilation_hooks
