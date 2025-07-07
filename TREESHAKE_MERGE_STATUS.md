@@ -22,7 +22,7 @@ This document tracks the complete status of merging tree-shaking features from t
 
 ### ✅ Group 2: Core ConsumeShared Implementation
 - **Status**: ✅ COMPLETED
-- **Commits**: `abb97ba83` - `60ddf9aff`
+- **Commits**: `abb97be83` - `60ddf9aff`
 - **Focus**: Export usage analysis and metadata handling
 - **Build**: ✅ PASSED
 - **Issues Fixed**: 
