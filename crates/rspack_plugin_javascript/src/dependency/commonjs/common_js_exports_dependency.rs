@@ -260,7 +260,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       if let Some(value_range) = &dep.value_range {
         if let Some(UsedName::Normal(used)) = used {
           if !used.is_empty() {
-            let export_name = used.last().unwrap();
+            let _export_name = used.last().unwrap();
 
             // NOTE: Tree-shaking macros are temporarily disabled for Object.defineProperty
             // to avoid syntax errors with swc-generated code that has extra parentheses.
