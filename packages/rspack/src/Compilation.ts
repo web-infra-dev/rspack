@@ -1000,6 +1000,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#addEntryDispatcher.call(context, dependency, options, callback);
 	}
 
+	getWarnings(): WebpackError[] {
+		return this.hooks.processWarnings.call(this.#inner.getWarnings());
+	}
+
+	getErrors(): WebpackError[] {
+		return this.#inner.getErrors();
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *

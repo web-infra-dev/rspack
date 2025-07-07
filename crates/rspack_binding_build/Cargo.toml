@@ -8,7 +8,7 @@ homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_binding_build"
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [dependencies]
 napi-build = { workspace = true }

@@ -9,7 +9,7 @@ license.workspace       = true
 name                    = "rspack_binding_builder_testing"
 publish                 = false
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [lib]
 crate-type = ["cdylib"]

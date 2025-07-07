@@ -7,9 +7,8 @@ edition.workspace       = true
 homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_binding_api"
-publish                 = false
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [features]
 debug_tool    = ["rspack_core/debug_tool"]

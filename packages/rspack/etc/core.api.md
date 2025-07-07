@@ -930,6 +930,8 @@ export class Compilation {
     // (undocumented)
     getCache(name: string): CacheFacade_2;
     // (undocumented)
+    getErrors(): WebpackError_2[];
+    // (undocumented)
     getLogger(name: string | (() => string)): Logger_3;
     // (undocumented)
     getPath(filename: string, data?: PathData): string;
@@ -937,6 +939,8 @@ export class Compilation {
     getPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
     // (undocumented)
     getStats(): Stats;
+    // (undocumented)
+    getWarnings(): WebpackError_2[];
     // (undocumented)
     get hash(): Readonly<string | null>;
     // (undocumented)
@@ -3935,7 +3939,7 @@ type KnownStatsError = {
 type KnownStatsFactoryContext = {
     type: string;
     makePathsRelative?: ((arg0: string) => string) | undefined;
-    compilation?: Compilation | undefined;
+    compilation: Compilation;
     cachedGetErrors?: ((arg0: Compilation) => JsStatsError[]) | undefined;
     cachedGetWarnings?: ((arg0: Compilation) => JsStatsError[]) | undefined;
     getStatsCompilation: (compilation: Compilation) => JsStatsCompilation;
@@ -9144,7 +9148,7 @@ class WebpackError_2 extends Error {
     // (undocumented)
     loc?: DependencyLocation;
     // (undocumented)
-    module?: Module;
+    module?: null | Module;
 }
 
 // @public (undocumented)

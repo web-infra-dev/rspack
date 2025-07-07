@@ -81,7 +81,7 @@ export interface RspackError extends Error {
 	name: string;
 	message: string;
 	details?: string;
-	module?: Module;
+	module?: null | Module;
 	loc?: DependencyLocation;
 	file?: string;
 	stack?: string;
@@ -317,6 +317,7 @@ export declare class JsCompilation {
   addEntry(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   get codeGenerationResults(): CodeGenerationResults
+  createStatsWarnings(warnings: Array<RspackError>, colored?: boolean | undefined | null): JsStatsError[]
 }
 
 export declare class JsCompiler {

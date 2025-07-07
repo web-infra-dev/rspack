@@ -21,7 +21,7 @@ import { type GroupConfig, smartGrouping } from "../util/smartGrouping";
 export type KnownStatsFactoryContext = {
 	type: string;
 	makePathsRelative?: ((arg0: string) => string) | undefined;
-	compilation?: Compilation | undefined;
+	compilation: Compilation;
 	// rootModules?: Set<Module> | undefined;
 	// compilationFileToChunks?: Map<string, Chunk[]> | undefined;
 	// compilationAuxiliaryFileToChunks?: Map<string, Chunk[]> | undefined;
