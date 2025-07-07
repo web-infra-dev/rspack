@@ -1458,7 +1458,17 @@ impl Compilation {
           .all_dependencies
           .iter()
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| dependency.get_diagnostics(&module_graph, module_graph_cache))
+          .filter_map(|dependency| {
+            dependency
+              .get_diagnostics(&module_graph, module_graph_cache)
+              .map(|diagnostics| {
+                diagnostics.into_iter().map(|diagnostic| {
+                  diagnostic
+                    .with_module_identifier(Some(*module_identifier))
+                    .with_loc(dependency.loc())
+                })
+              })
+          })
           .flatten()
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)
