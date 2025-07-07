@@ -168,6 +168,9 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module_identifier)
       .expect("should have module graph module");
 
+    // Get ConsumeShared context from BuildMeta
+    let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
+
     // remove the enum decl if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
       let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
@@ -208,9 +211,20 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       }
       UsedName::Inlined(_) => return,
     };
+
+    // Generate export content with ConsumeShared macro integration when active
+    let export_value = if let Some(ref share_key) = consume_shared_info {
+      Atom::from(format!(
+        "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
+        share_key, dep.name, dep.value
+      ))
+    } else {
+      dep.value.clone()
+    };
+
     init_fragments.push(Box::new(ESMExportInitFragment::new(
       module.get_exports_argument(),
-      vec![(used_name, dep.value.clone())],
+      vec![(used_name, export_value)],
     )));
   }
 }

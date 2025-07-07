@@ -379,6 +379,12 @@ impl Module for ConsumeSharedModule {
     module_update_hash(self as &dyn Module, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
+
+  /// Get the share_key for ConsumeShared modules.
+  /// Returns Some(share_key) for ConsumeShared modules, None for others.
+  fn get_consume_shared_key(&self) -> Option<String> {
+    Some(self.options.share_key.clone())
+  }
 }
 
 impl_empty_diagnosable_trait!(ConsumeSharedModule);

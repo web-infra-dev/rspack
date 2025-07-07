@@ -1,0 +1,24 @@
+{
+  "name": "cjs-modules",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CommonJS modules for testing Module Federation sharing",
+  "type": "commonjs",
+  "main": "legacy-utils.js",
+  "exports": {
+    "./legacy-utils": "./legacy-utils.js",
+    "./data-processor": "./data-processor.js",
+    ".": "./legacy-utils.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "commonjs",
+    "module-federation",
+    "rspack",
+    "testing"
+  ],
+  "author": "Rspack Team",
+  "license": "MIT"
+}

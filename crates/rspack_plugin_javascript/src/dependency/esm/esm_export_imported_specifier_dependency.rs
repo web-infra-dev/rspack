@@ -802,11 +802,24 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
-    export_map.push((key.into(), format!("/* {comment} */ {return_value}").into()));
     let module_graph = compilation.get_module_graph();
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
+
+    // Get ConsumeShared context from BuildMeta
+    let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
+
+    // Use macro comments for ConsumeShared modules, standard format otherwise
+    let export_content = if let Some(ref share_key) = consume_shared_info {
+      format!(
+        "/* @common:if [condition=\"treeShake.{share_key}.{key}\"] */ /* {comment} */ {return_value} /* @common:endif */"
+      )
+    } else {
+      format!("/* {comment} */ {return_value}")
+    };
+
+    export_map.push((key.clone().into(), export_content.into()));
     ESMExportInitFragment::new(module.get_exports_argument(), export_map)
   }
 
@@ -831,15 +844,34 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     let mut export_map = vec![];
-    let value = format!(
-      r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
-      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-      if fake_type == 0 {
-        "".to_string()
-      } else {
-        format!(", {fake_type}")
-      }
-    );
+
+    // Get ConsumeShared context from BuildMeta
+    let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
+
+    // Use macro comments for ConsumeShared modules, standard format otherwise
+    let value = if let Some(ref share_key) = consume_shared_info {
+      format!(
+        "/* @common:if [condition=\"treeShake.{}.{}\"] */ /* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{})) /* @common:endif */",
+        share_key,
+        key,
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        if fake_type == 0 {
+          "".to_string()
+        } else {
+          format!(", {fake_type}")
+        }
+      )
+    } else {
+      format!(
+        r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        if fake_type == 0 {
+          "".to_string()
+        } else {
+          format!(", {fake_type}")
+        }
+      )
+    };
     export_map.push((key.into(), value.into()));
     let frags = vec![
       {

@@ -447,8 +447,8 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       .expect("should have mgm");
 
     // Check if parent module is ConsumeShared and get share_key from options
-    // TODO: ConsumeShared tree-shaking macro support disabled - missing get_consume_shared_key method
-    let consume_shared_info: Option<String> = None;
+    // ConsumeShared tree-shaking macro support
+    let consume_shared_info: Option<String> = module.get_consume_shared_key();
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
@@ -535,10 +535,22 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     if dep.base.is_expression() {
       let expr = match used {
         Some(UsedName::Normal(used)) => {
-          let assignment = format!("{base}{} = {require_expr}", property_access(used, 0));
+          let assignment = format!("{base}{} = {require_expr}", property_access(&used, 0));
 
-          // ConsumeShared macro support disabled - use regular assignment
-          assignment
+          // ConsumeShared tree-shaking macro support
+          if let Some(shared_key) = &consume_shared_info {
+            let export_name = used
+              .iter()
+              .map(|a| a.as_str())
+              .collect::<Vec<_>>()
+              .join(".");
+            format!(
+              "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
+              shared_key, export_name, assignment
+            )
+          } else {
+            assignment
+          }
         }
         Some(UsedName::Inlined(_)) => {
           // Export a inlinable const from cjs is not possible for now but we compat it here

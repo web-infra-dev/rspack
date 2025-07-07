@@ -166,9 +166,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
     // Check if this dependency is related to a ConsumeShared module
     // For ConsumeShared modules, the fallback module (current) exports should be wrapped with macros
-    // TODO: ConsumeShared tree-shaking macro support disabled - missing get_consume_shared_key method
-    // When get_consume_shared_key trait method is available, uncomment and restore the logic below
-    let consume_shared_info: Option<String> = None;
+    // ConsumeShared tree-shaking macro support
+    let consume_shared_info: Option<String> = module.get_consume_shared_key();
 
     /*
     let consume_shared_info = {

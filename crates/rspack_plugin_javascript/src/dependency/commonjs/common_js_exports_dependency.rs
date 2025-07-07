@@ -168,8 +168,8 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module_identifier)
       .expect("should have mgm");
 
-    // TODO: ConsumeShared tree-shaking macro support disabled - missing get_consume_shared_key method
-    let consume_shared_info: Option<String> = None;
+    // ConsumeShared tree-shaking macro support
+    let consume_shared_info: Option<String> = module.get_consume_shared_key();
 
     let used = if dep.names.is_empty() {
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
@@ -220,8 +220,15 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           .collect::<Vec<_>>()
           .join(".");
 
-        // ConsumeShared macro support disabled - use standard format
-        let export_content = export_assignment;
+        // ConsumeShared tree-shaking macro support
+        let export_content = if let Some(shared_key) = &consume_shared_info {
+          format!(
+            "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
+            shared_key, export_name, export_assignment
+          )
+        } else {
+          export_assignment
+        };
 
         source.replace(dep.range.start, dep.range.end, &export_content, None);
       } else {
@@ -249,22 +256,40 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           if !used.is_empty() {
             let export_name = used.last().unwrap();
 
-            // ConsumeShared macro support disabled - use standard format
-            let define_property_start = format!(
-              "Object.defineProperty({}{}, {}, (",
-              base,
-              property_access(used[0..used.len() - 1].iter(), 0),
-              serde_json::to_string(&used.last()).expect("Unexpected render define property base")
-            );
+            // ConsumeShared tree-shaking macro support
+            let (define_property_start, define_property_end) = if let Some(shared_key) =
+              &consume_shared_info
+            {
+              (
+                format!(
+                  "/* @common:if [condition=\"treeShake.{}.{}\"] */ Object.defineProperty({}{}, {}, (",
+                  shared_key,
+                  export_name,
+                  base,
+                  property_access(used[0..used.len() - 1].iter(), 0),
+                  serde_json::to_string(&used.last()).expect("Unexpected render define property base")
+                ),
+                ")) /* @common:endif */)",
+              )
+            } else {
+              (
+                format!(
+                  "Object.defineProperty({}{}, {}, (",
+                  base,
+                  property_access(used[0..used.len() - 1].iter(), 0),
+                  serde_json::to_string(&used.last())
+                    .expect("Unexpected render define property base")
+                ),
+                "))",
+              )
+            };
             source.replace(
               dep.range.start,
               value_range.start,
               &define_property_start,
               None,
             );
-
-            let define_property_end = ")))";
-            source.replace(value_range.end, dep.range.end, define_property_end, None);
+            source.replace(value_range.end, dep.range.end, &define_property_end, None);
           } else {
             panic!("Unexpected base type");
           }
