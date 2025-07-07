@@ -258,11 +258,10 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
         let property_access_str = property_access(used, 0);
         let content = if !effective_shared_key.is_empty() && !export_name.is_empty() {
           format!(
-            "/* @common:if [condition=\"treeShake.{}.{}\"] */ {}{} /* @common:endif */",
-            effective_shared_key, export_name, base, property_access_str
+            "/* @common:if [condition=\"treeShake.{effective_shared_key}.{export_name}\"] */ {base}{property_access_str} /* @common:endif */"
           )
         } else {
-          format!("{}{}", base, property_access_str)
+          format!("{base}{property_access_str}")
         };
         source.replace(dep.range.start, dep.range.end, &content, None);
       } else {

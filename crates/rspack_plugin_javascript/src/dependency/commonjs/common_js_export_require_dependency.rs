@@ -545,8 +545,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
               .collect::<Vec<_>>()
               .join(".");
             format!(
-              "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-              shared_key, export_name, assignment
+              "/* @common:if [condition=\"treeShake.{shared_key}.{export_name}\"] */ {assignment} /* @common:endif */"
             )
           } else {
             assignment

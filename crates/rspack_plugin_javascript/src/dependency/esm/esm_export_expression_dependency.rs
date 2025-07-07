@@ -281,7 +281,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
         // Use macro comments for shared modules (both ConsumeShared and regular shared), standard format otherwise
         let export_content = if let Some(ref share_key) = shared_key {
-          format!("/* @common:if [condition=\"treeShake.{}.default\"] */ /* export default binding */ {name} /* @common:endif */", share_key)
+          format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* export default binding */ {name} /* @common:endif */")
         } else {
           format!("/* export default binding */ {name}")
         };
@@ -358,8 +358,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
         if let Some(ref share_key) = consume_shared_info {
           format!(
-            "/* @common:if [condition=\"treeShake.{}.default\"] */ /* ESM default export */ {} {DEFAULT_EXPORT} = ",
-            share_key,
+            "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ {} {DEFAULT_EXPORT} = ",
             if supports_const { "const" } else { "var" }
           )
         } else {
@@ -392,7 +391,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
           if supports_const {
             let fragment_content = if let Some(ref share_key) = consume_shared_info {
-              format!("/* @common:if [condition=\"treeShake.{}.default\"] */ {DEFAULT_EXPORT} /* @common:endif */", share_key)
+              format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {DEFAULT_EXPORT} /* @common:endif */")
             } else {
               DEFAULT_EXPORT.to_string()
             };
@@ -411,25 +410,22 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             )));
 
             if let Some(ref share_key) = consume_shared_info {
-              format!("/* @common:if [condition=\"treeShake.{}.default\"] */ /* ESM default export */ const {DEFAULT_EXPORT} = ", share_key)
+              format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ const {DEFAULT_EXPORT} = ")
             } else {
               format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
             }
+          } else if let Some(ref share_key) = consume_shared_info {
+            format!(
+              r#"/* @common:if [condition="treeShake.{share_key}.default"] */ /* ESM default export */ {}{} = "#,
+              module.get_exports_argument(),
+              property_access(used, 0)
+            )
           } else {
-            if let Some(ref share_key) = consume_shared_info {
-              format!(
-                r#"/* @common:if [condition="treeShake.{}.default"] */ /* ESM default export */ {}{} = "#,
-                share_key,
-                module.get_exports_argument(),
-                property_access(used, 0)
-              )
-            } else {
-              format!(
-                r#"/* ESM default export */ {}{} = "#,
-                module.get_exports_argument(),
-                property_access(used, 0)
-              )
-            }
+            format!(
+              r#"/* ESM default export */ {}{} = "#,
+              module.get_exports_argument(),
+              property_access(used, 0)
+            )
           }
         } else {
           // DEBUG: Log inlined export only for ConsumeShared modules
@@ -443,8 +439,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
           if let Some(ref share_key) = consume_shared_info {
             format!(
-              "/* @common:if [condition=\"treeShake.{}.default\"] */ /* inlined ESM default export */ var {DEFAULT_EXPORT} = ",
-              share_key
+              "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* inlined ESM default export */ var {DEFAULT_EXPORT} = "
             )
           } else {
             format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
@@ -462,8 +457,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
         if let Some(ref share_key) = consume_shared_info {
           format!(
-            "/* @common:if [condition=\"treeShake.{}.default\"] */ /* unused ESM default export */ var {DEFAULT_EXPORT} = ",
-            share_key
+            "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* unused ESM default export */ var {DEFAULT_EXPORT} = "
           )
         } else {
           format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
@@ -539,8 +533,7 @@ fn _process_object_literal_with_usage(content: &str, share_key: &str) -> String 
 
       if should_wrap {
         format!(
-          "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-          share_key, prop_name, prop_name
+          "/* @common:if [condition=\"treeShake.{share_key}.{prop_name}\"] */ {prop_name} /* @common:endif */"
         )
       } else {
         prop_name.to_string()

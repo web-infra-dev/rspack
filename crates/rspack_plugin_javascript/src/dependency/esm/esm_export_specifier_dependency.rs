@@ -221,13 +221,13 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       // Special handling for default export to match test expectations
       if dep.name == "default" {
         Atom::from(format!(
-          "/* @common:if [condition=\"treeShake.{}.default\"] */ {} /* @common:endif */",
-          share_key, dep.value
+          "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {} /* @common:endif */",
+          dep.value
         ))
       } else {
         Atom::from(format!(
-          "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-          share_key, dep.name, dep.value
+          "/* @common:if [condition=\"treeShake.{share_key}.{}\"] */ {} /* @common:endif */",
+          dep.name, dep.value
         ))
       }
     } else {

@@ -229,8 +229,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         // ConsumeShared tree-shaking macro support
         let export_content = if let Some(shared_key) = &consume_shared_info {
           format!(
-            "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-            shared_key, export_name, export_assignment
+            "/* @common:if [condition=\"treeShake.{shared_key}.{export_name}\"] */ {export_assignment} /* @common:endif */"
           )
         } else {
           export_assignment
@@ -260,7 +259,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       if let Some(value_range) = &dep.value_range {
         if let Some(UsedName::Normal(used)) = used {
           if !used.is_empty() {
-            let _export_name = used.last().unwrap();
+            let _export_name = used.last().expect("used should have at least one element");
 
             // NOTE: Tree-shaking macros are temporarily disabled for Object.defineProperty
             // to avoid syntax errors with swc-generated code that has extra parentheses.
@@ -282,7 +281,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               &define_property_start,
               None,
             );
-            source.replace(value_range.end, dep.range.end, &define_property_end, None);
+            source.replace(value_range.end, dep.range.end, define_property_end, None);
           } else {
             panic!("Unexpected base type");
           }
