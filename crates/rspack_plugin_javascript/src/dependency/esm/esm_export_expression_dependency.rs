@@ -407,6 +407,16 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               DEFAULT_EXPORT.to_string()
             };
 
+            // DEBUG: Log fragment creation for shared modules
+            if shared_key.is_some() {
+              tracing::debug!(
+                "[RSPACK_EXPORT_DEBUG:FRAGMENT_CREATE] Module: {:?}, FragmentContent: {:?}, Used: {:?}",
+                module_identifier,
+                fragment_content,
+                used
+              );
+            }
+
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(
