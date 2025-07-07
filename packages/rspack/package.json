@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@ast-grep/napi": "^0.37.0",
+    "@rsbuild/core": "^1.4.4",
     "@rslib/core": "0.10.0",
     "@swc/core": "1.12.0",
     "@swc/types": "0.1.22",
