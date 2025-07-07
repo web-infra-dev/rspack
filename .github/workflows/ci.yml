@@ -127,7 +127,8 @@ jobs:
         test-windows,
         test-mac,
         test-wasm,
-        check-changed
+        check-changed,
+        size-limit
       ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
@@ -135,7 +136,7 @@ jobs:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
