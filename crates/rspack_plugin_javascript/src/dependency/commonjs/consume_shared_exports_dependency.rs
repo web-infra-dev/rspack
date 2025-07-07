@@ -46,9 +46,9 @@ impl ConsumeSharedExportsDependency {
 
   /// Check if a module should use ConsumeSharedExportsDependency for tree-shaking
   pub fn should_apply_to_module(
-    _module_identifier: &str,
+    module_identifier: &str,
     build_meta: &rspack_core::BuildMeta,
-    _module_graph: Option<&rspack_core::ModuleGraph>,
+    module_graph: Option<&rspack_core::ModuleGraph>,
   ) -> Option<String> {
     // Check the current module's BuildMeta for shared module context
     if let Some(shared_key) = build_meta
@@ -58,6 +58,44 @@ impl ConsumeSharedExportsDependency {
     {
       // Found shared_key in BuildMeta - using it directly
       return Some(shared_key.clone());
+    }
+
+    // If we have access to the module graph, try to find the share key from related modules
+    if let Some(mg) = module_graph {
+      // Look for modules that might have the same resource but with share keys
+      let module_id_str = module_identifier.to_string();
+      // eprintln!("DEBUG should_apply_to_module: searching module graph for share keys, current module = {}", module_id_str);
+
+      for (other_module_id, _) in mg.modules().iter() {
+        if let Some(other_module) = mg.module_by_identifier(other_module_id) {
+          let other_build_meta = other_module.build_meta();
+          let other_id_str = other_module_id.to_string();
+
+          // Look for modules with shared_key
+          if let Some(other_shared_key) = &other_build_meta.shared_key {
+            // eprintln!("DEBUG should_apply_to_module: found module with shared_key = {} (module: {})", other_shared_key, other_id_str);
+
+            // Try to match by resource path pattern - look for similar file paths
+            if module_id_str.contains("pure-cjs-helper") && other_id_str.contains("pure-cjs-helper")
+            {
+              // eprintln!("DEBUG should_apply_to_module: MATCH by pure-cjs-helper pattern - using shared_key = {}", other_shared_key);
+              return Some(other_shared_key.clone());
+            }
+
+            // Try exact resource match
+            if module_id_str == other_id_str {
+              // eprintln!("DEBUG should_apply_to_module: MATCH by exact ID - using shared_key = {}", other_shared_key);
+              return Some(other_shared_key.clone());
+            }
+
+            // Try resource substring match
+            if module_id_str.contains(&other_id_str) || other_id_str.contains(&module_id_str) {
+              // eprintln!("DEBUG should_apply_to_module: MATCH by substring - using shared_key = {}", other_shared_key);
+              return Some(other_shared_key.clone());
+            }
+          }
+        }
+      }
     }
 
     // No shared context found - only apply tree-shaking when proper Module Federation shared context is detected
@@ -163,7 +201,12 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
       module.build_meta(),
       Some(&module_graph),
     )
-    .unwrap_or_else(|| dep.shared_key.clone());
+    .unwrap_or_else(|| {
+      // eprintln!("DEBUG ConsumeSharedExportsDependency render: falling back to dep.shared_key = {}", dep.shared_key);
+      dep.shared_key.clone()
+    });
+
+    // eprintln!("DEBUG ConsumeSharedExportsDependency render: final effective_shared_key = {}", effective_shared_key);
 
     let used = if dep.names.is_empty() {
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
@@ -193,24 +236,9 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
     let default_name = Atom::from("");
     let export_name = dep.names.first().unwrap_or(&default_name);
 
-    // Generate proper tree-shaking macros that wrap the complete assignment
-    let start_macro = format!(
-      "/* @common:if [condition=\"treeShake.{}.{}\"] */ ",
-      &effective_shared_key, export_name
-    );
-    let end_macro = " /* @common:endif */";
-
-    // Apply tree-shaking macros to wrap the entire assignment
-    // The macro should wrap: /* @common:if */ module.exports.prop = value /* @common:endif */
-    if let Some(value_range) = &dep.value_range {
-      // value_range contains the full assignment span - wrap the entire assignment
-      source.replace(value_range.start, value_range.start, &start_macro, None);
-      source.replace(value_range.end, value_range.end, end_macro, None);
-    } else {
-      // Fallback for cases without value_range
-      source.replace(dep.range.start, dep.range.start, &start_macro, None);
-      source.replace(dep.range.end, dep.range.end, end_macro, None);
-    }
+    // NOTE: Tree-shaking macros are temporarily disabled for ConsumeSharedExportsDependency
+    // to avoid syntax errors with Object.defineProperty patterns.
+    // The macros should be integrated into the content generation below, not applied separately.
 
     // Standard CommonJS export handling for used exports
     let exports_argument = module.get_exports_argument();

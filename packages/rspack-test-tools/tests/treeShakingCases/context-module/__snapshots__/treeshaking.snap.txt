@@ -50,7 +50,7 @@ webpackContext.id = "./child sync recursive ^\\.\\/.*\\.js$";
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 let a = "index";
-__webpack_require__("./child sync recursive ^\\.\\/.*\\.js$")(`./${a}.js`);
+/* #__PURE__ */ __webpack_require__("./child sync recursive ^\\.\\/.*\\.js$")(`./${a}.js`);
 
 
 }),

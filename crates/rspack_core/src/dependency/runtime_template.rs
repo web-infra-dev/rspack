@@ -8,9 +8,9 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, ModuleType,
-  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, UsedName,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
+  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -400,30 +400,30 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  let is_pure = compilation
-    .get_module_graph()
-    .dependency_by_id(id)
-    .is_some_and(|dep| {
-      // Check dependency type and ConsumeShared ancestry
-      let dep_type = dep.dependency_type();
-      let is_relevant_import = matches!(
-        dep_type.as_str(),
-        "esm import" | "esm import specifier" | "cjs require"
-      ) && import_var != "__webpack_require__";
-
-      if is_relevant_import {
-        let module_graph = compilation.get_module_graph();
-        is_consume_shared_descendant(&module_graph, &module.identifier())
-      } else {
-        false
-      }
-    });
-
-  let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
+  // TODO: Re-enable PURE annotations for ConsumeShared modules
+  // let is_pure = compilation
+  //   .get_module_graph()
+  //   .dependency_by_id(id)
+  //   .is_some_and(|dep| {
+  //     // Check dependency type and ConsumeShared ancestry
+  //     let dep_type = dep.dependency_type();
+  //     let is_relevant_import = matches!(
+  //       dep_type.as_str(),
+  //       "esm import" | "esm import specifier" | "cjs require"
+  //     ) && import_var != "__webpack_require__";
+  //
+  //     if is_relevant_import {
+  //       let module_graph = compilation.get_module_graph();
+  //       is_consume_shared_descendant(&module_graph, &module.identifier())
+  //     } else {
+  //       false
+  //     }
+  //   });
+  //
+  // let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
 
   let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {}{}({module_id_expr});\n",
-    pure_annotation,
+    "/* ESM import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
     RuntimeGlobals::REQUIRE
   );
 
@@ -704,7 +704,7 @@ pub fn module_raw(
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     format!(
-      "/* #__PURE__ */ {}({})",
+      "{}({})",
       RuntimeGlobals::REQUIRE,
       module_id_expr(&compilation.options, request, module_id)
     )
@@ -723,30 +723,31 @@ fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
 }
 
-/// Check if a module should receive PURE annotations
-/// Apply to ConsumeShared modules and Module Federation shared modules
-fn is_consume_shared_descendant(
-  module_graph: &ModuleGraph,
-  module_identifier: &ModuleIdentifier,
-) -> bool {
-  if let Some(module) = module_graph.module_by_identifier(module_identifier) {
-    // Check if this module itself is ConsumeShared
-    if module.module_type() == &ModuleType::ConsumeShared {
-      return true;
-    }
-
-    // Check if this module has BuildMeta indicating it's a shared module
-    let build_meta = module.build_meta();
-    if let Some(shared_key) = build_meta.shared_key.as_ref() {
-      return !shared_key.is_empty();
-    }
-
-    // Return false if module doesn't match ConsumeShared criteria
-    return false;
-  }
-
-  false
-}
+// TODO: Re-enable when PURE annotations are restored
+// /// Check if a module should receive PURE annotations
+// /// Apply to ConsumeShared modules and Module Federation shared modules
+// fn is_consume_shared_descendant(
+//   module_graph: &ModuleGraph,
+//   module_identifier: &ModuleIdentifier,
+// ) -> bool {
+//   if let Some(module) = module_graph.module_by_identifier(module_identifier) {
+//     // Check if this module itself is ConsumeShared
+//     if module.module_type() == &ModuleType::ConsumeShared {
+//       return true;
+//     }
+//
+//     // Check if this module has BuildMeta indicating it's a shared module
+//     let build_meta = module.build_meta();
+//     if let Some(shared_key) = build_meta.shared_key.as_ref() {
+//       return !shared_key.is_empty();
+//     }
+//
+//     // Return false if module doesn't match ConsumeShared criteria
+//     return false;
+//   }
+//
+//   false
+// }
 
 pub fn missing_module_promise(request: &str) -> String {
   format!(

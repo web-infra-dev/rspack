@@ -234,14 +234,20 @@ async fn normal_module_factory_module(
   }
   let request = &create_data.raw_request;
 
+  // Debug: Print request information
+  // eprintln!("DEBUG ProvideSharedPlugin: request = {}", request);
+  // eprintln!("DEBUG ProvideSharedPlugin: resource = {}", resource);
+
   // First check match_provides (for package names like 'react', 'lodash-es')
   let match_config = {
     let match_provides = self.match_provides.read().await;
+    // eprintln!("DEBUG ProvideSharedPlugin: match_provides keys = {:?}", match_provides.keys().collect::<Vec<_>>());
     match_provides.get(request).cloned()
   }; // Read lock is dropped here
 
   if let Some(config) = match_config {
     // Set the shared_key in the module's BuildMeta for tree-shaking
+    // eprintln!("DEBUG ProvideSharedPlugin: Setting shared_key = {} for request = {}", config.share_key, request);
     module.build_meta_mut().shared_key = Some(config.share_key.clone());
 
     self
@@ -264,11 +270,13 @@ async fn normal_module_factory_module(
   // Second check resolved_provide_map (for relative paths like './cjs-modules/data-processor.js')
   let resolved_config = {
     let resolved_provide_map = self.resolved_provide_map.read().await;
+    // eprintln!("DEBUG ProvideSharedPlugin: resolved_provide_map keys = {:?}", resolved_provide_map.keys().collect::<Vec<_>>());
     resolved_provide_map.get(request).cloned()
   }; // Read lock is dropped here
 
   if let Some(config) = resolved_config {
     // Set the shared_key in the module's BuildMeta for tree-shaking
+    // eprintln!("DEBUG ProvideSharedPlugin: Setting shared_key = {} for resolved request = {}", config.share_key, request);
     module.build_meta_mut().shared_key = Some(config.share_key.clone());
 
     self

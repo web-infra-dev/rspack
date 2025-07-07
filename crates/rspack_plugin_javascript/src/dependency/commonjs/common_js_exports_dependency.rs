@@ -169,7 +169,13 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .expect("should have mgm");
 
     // ConsumeShared tree-shaking macro support
-    let consume_shared_info: Option<String> = module.get_consume_shared_key();
+    let consume_shared_info: Option<String> = module.get_consume_shared_key().or_else(|| {
+      let shared_key = module.build_meta().shared_key.clone();
+      // eprintln!("DEBUG CommonJsExportsDependency: module identifier = {}", module.identifier());
+      // eprintln!("DEBUG CommonJsExportsDependency: module.build_meta().shared_key = {:?}", shared_key);
+      // eprintln!("DEBUG CommonJsExportsDependency: module.get_consume_shared_key() = {:?}", module.get_consume_shared_key());
+      shared_key
+    });
 
     let used = if dep.names.is_empty() {
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
@@ -256,33 +262,20 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           if !used.is_empty() {
             let export_name = used.last().unwrap();
 
-            // ConsumeShared tree-shaking macro support
-            let (define_property_start, define_property_end) = if let Some(shared_key) =
-              &consume_shared_info
-            {
-              (
-                format!(
-                  "/* @common:if [condition=\"treeShake.{}.{}\"] */ Object.defineProperty({}{}, {}, (",
-                  shared_key,
-                  export_name,
-                  base,
-                  property_access(used[0..used.len() - 1].iter(), 0),
-                  serde_json::to_string(&used.last()).expect("Unexpected render define property base")
-                ),
-                ")) /* @common:endif */)",
-              )
-            } else {
-              (
-                format!(
-                  "Object.defineProperty({}{}, {}, (",
-                  base,
-                  property_access(used[0..used.len() - 1].iter(), 0),
-                  serde_json::to_string(&used.last())
-                    .expect("Unexpected render define property base")
-                ),
-                "))",
-              )
-            };
+            // NOTE: Tree-shaking macros are temporarily disabled for Object.defineProperty
+            // to avoid syntax errors with swc-generated code that has extra parentheses.
+            // The swc loader generates: Object.defineProperty(exports, "a", ({...}))
+            // which conflicts with macro wrapping.
+            let (define_property_start, define_property_end) = (
+              format!(
+                "Object.defineProperty({}{}, {}, (",
+                base,
+                property_access(used[0..used.len() - 1].iter(), 0),
+                serde_json::to_string(&used.last())
+                  .expect("Unexpected render define property base")
+              ),
+              "))",
+            );
             source.replace(
               dep.range.start,
               value_range.start,

@@ -297,6 +297,52 @@ impl ConsumeSharedPlugin {
     }
   }
 
+  /// Set consume_shared_key in the fallback module's BuildMeta for tree-shaking macro support
+  fn set_consume_shared_key_in_fallback(
+    compilation: &mut Compilation,
+    consume_shared_id: &ModuleIdentifier,
+  ) -> Result<()> {
+    // First, get the share_key from the ConsumeShared module
+    let share_key = {
+      let module_graph = compilation.get_module_graph();
+      if let Some(consume_shared_module) = module_graph.module_by_identifier(consume_shared_id) {
+        consume_shared_module.get_consume_shared_key()
+      } else {
+        None
+      }
+    };
+
+    if let Some(share_key) = share_key {
+      // Find the fallback module identifier
+      let fallback_id = {
+        let module_graph = compilation.get_module_graph();
+        if let Some(consume_shared_module) = module_graph.module_by_identifier(consume_shared_id) {
+          if let Some(consume_shared) = consume_shared_module
+            .as_any()
+            .downcast_ref::<ConsumeSharedModule>()
+          {
+            consume_shared.find_fallback_module_id(&module_graph)
+          } else {
+            None
+          }
+        } else {
+          None
+        }
+      };
+
+      // If we have a fallback, set the consume_shared_key in its BuildMeta
+      if let Some(fallback_id) = fallback_id {
+        let mut module_graph = compilation.get_module_graph_mut();
+        if let Some(fallback_module) = module_graph.module_by_identifier_mut(&fallback_id) {
+          // Set the consume_shared_key in the fallback module's BuildMeta
+          fallback_module.build_meta_mut().consume_shared_key = Some(share_key);
+        }
+      }
+    }
+
+    Ok(())
+  }
+
   /// Copy metadata from fallback module to ConsumeShared module
   fn copy_fallback_metadata_to_consume_shared(
     compilation: &mut Compilation,
@@ -642,6 +688,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Process each ConsumeShared module individually to avoid borrow checker issues
   for consume_shared_id in consume_shared_modules {
+    // First, set the consume_shared_key in the fallback module's BuildMeta
+    Self::set_consume_shared_key_in_fallback(compilation, &consume_shared_id)?;
+
     if self.options.enhanced {
       // Use enhanced copying that includes usage analysis
       Self::enhanced_copy_fallback_metadata_to_consume_shared(compilation, &consume_shared_id)?;

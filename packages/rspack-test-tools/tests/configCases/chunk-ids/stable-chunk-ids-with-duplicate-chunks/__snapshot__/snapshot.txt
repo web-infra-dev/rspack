@@ -7,7 +7,7 @@ exports.modules = {
 "./node_modules/cell/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
-module.exports.cell = function(cell) {
+/* @common:if [condition="treeShake.cell.cell"] */ module.exports.cell /* @common:endif */ = function(cell) {
     return tmpl(`<td>CELL</td>`, { CELL: cell })
 }
 
@@ -25,7 +25,7 @@ exports.modules = {
 "./node_modules/cell/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
-module.exports.cell = function(cell) {
+/* @common:if [condition="treeShake.cell.cell"] */ module.exports.cell /* @common:endif */ = function(cell) {
     return tmpl(`<td>CELL</td>`, { CELL: cell })
 }
 
@@ -44,7 +44,7 @@ exports.modules = {
 const { cell } = __webpack_require__("webpack/sharing/consume/default/cell/cell")
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
-module.exports.row = function(cells) {
+/* @common:if [condition="treeShake.row.row"] */ module.exports.row /* @common:endif */ = function(cells) {
     return tmpl(`<tr>CELLS</tr>`, { CELLS: cells.map(c => cell(c)).join('\n') })
 }
 
@@ -63,7 +63,7 @@ exports.modules = {
 const { cell } = __webpack_require__("webpack/sharing/consume/default/cell/cell")
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
-module.exports.row = function(cells) {
+/* @common:if [condition="treeShake.row.row"] */ module.exports.row /* @common:endif */ = function(cells) {
     return tmpl(`<tr>CELLS</tr>`, { CELLS: cells.map(c => cell(c)).join('\n') })
 }
 
