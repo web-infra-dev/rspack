@@ -384,23 +384,19 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               property_access(used, 0)
             )
           }
-        } else {
-          if let Some(ref share_key) = shared_key {
-            format!(
-              "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* inlined ESM default export */ var {DEFAULT_EXPORT} = "
-            )
-          } else {
-            format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
-          }
-        }
-      } else {
-        if let Some(ref share_key) = shared_key {
+        } else if let Some(ref share_key) = shared_key {
           format!(
-            "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* unused ESM default export */ var {DEFAULT_EXPORT} = "
+            "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* inlined ESM default export */ var {DEFAULT_EXPORT} = "
           )
         } else {
-          format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
+          format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
         }
+      } else if let Some(ref share_key) = shared_key {
+        format!(
+          "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* unused ESM default export */ var {DEFAULT_EXPORT} = "
+        )
+      } else {
+        format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
       };
 
       source.replace(

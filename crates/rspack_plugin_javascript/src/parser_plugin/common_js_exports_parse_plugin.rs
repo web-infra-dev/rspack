@@ -4,7 +4,7 @@ use rspack_core::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{Span, Spanned},
+  common::Spanned,
   ecma::ast::{
     AssignExpr, AssignTarget, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr,
     ObjectLit, Prop, PropName, PropOrSpread, SimpleAssignTarget, ThisExpr, UnaryExpr, UnaryOp,
@@ -26,11 +26,6 @@ use crate::{
 
 const MODULE_NAME: &str = "module";
 const EXPORTS_NAME: &str = "exports";
-
-/// Helper function to get the range between two spans (for the '=' in assignments)
-fn source_range_between(left_span: &Span, right_span: &Span) -> DependencyRange {
-  DependencyRange::new(left_span.real_hi(), right_span.real_lo())
-}
 
 fn get_member_expression_info<E: ExprLike>(
   parser: &mut JavascriptParser,
