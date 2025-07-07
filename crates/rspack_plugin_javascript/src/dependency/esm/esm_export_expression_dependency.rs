@@ -487,7 +487,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
   }
 }
 
-fn process_object_literal_with_usage(content: &str, share_key: &str) -> String {
+fn _process_object_literal_with_usage(content: &str, share_key: &str) -> String {
   // Handle both patterns: {prop1, prop2} and ({prop1, prop2})
   let obj_start = if let Some(pos) = content.find("({") {
     pos + 1

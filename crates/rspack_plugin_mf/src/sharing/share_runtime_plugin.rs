@@ -11,7 +11,7 @@ use crate::{ShareRuntimeModule, ShareUsagePlugin, ShareUsagePluginOptions};
 #[derive(Debug)]
 pub struct ShareRuntimePlugin {
   enhanced: bool,
-  enable_export_usage_tracking: bool,
+  _enable_export_usage_tracking: bool,
 }
 
 impl ShareRuntimePlugin {
