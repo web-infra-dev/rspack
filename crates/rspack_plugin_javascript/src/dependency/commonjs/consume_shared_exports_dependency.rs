@@ -196,7 +196,7 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
       .expect("should have mgm");
 
     // Try to get an updated shared_key during rendering when module graph is available
-    let effective_shared_key = ConsumeSharedExportsDependency::should_apply_to_module(
+    let _effective_shared_key = ConsumeSharedExportsDependency::should_apply_to_module(
       &module.identifier().to_string(),
       module.build_meta(),
       Some(&module_graph),
@@ -234,7 +234,7 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
 
     // ConsumeShared tree-shaking logic - properly wrap complete assignments
     let default_name = Atom::from("");
-    let export_name = dep.names.first().unwrap_or(&default_name);
+    let _export_name = dep.names.first().unwrap_or(&default_name);
 
     // NOTE: Tree-shaking macros are temporarily disabled for ConsumeSharedExportsDependency
     // to avoid syntax errors with Object.defineProperty patterns.

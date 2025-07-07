@@ -162,7 +162,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
     let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
-    let module_graph = compilation.get_module_graph();
 
     // Check if this dependency is related to a ConsumeShared module
     // For ConsumeShared modules, the fallback module (current) exports should be wrapped with macros
