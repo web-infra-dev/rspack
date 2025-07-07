@@ -1,6 +1,6 @@
-import * as z from "zod/v4";
 import { Compilation } from "../../Compilation";
 import { anyFunction } from "../../config/utils";
+import { z } from "../../config/zod";
 import { memoize } from "../../util/memoize";
 import { validate } from "../../util/validate";
 

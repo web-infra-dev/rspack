@@ -1,4 +1,4 @@
-import * as z from "zod/v4";
+import { z } from "./zod";
 
 // Zod v4 doesn't support Infinity, so we need to use a custom type
 // See: https://github.com/colinhacks/zod/issues/4721

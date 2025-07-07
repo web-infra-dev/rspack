@@ -10,7 +10,7 @@
 - Bundle: moduleB_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 64
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: moduleA_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1392
+- Update: moduleA_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1230
 
 ## Manifest
 
@@ -69,12 +69,10 @@ var data = "0"
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./moduleA.js", function() { module.hot.invalidate(); });
-          module.hot.dispose(function(data) { delete data.resolveSelf; dispose(data); });
+          module.hot.dispose(function(data) { delete data.resolveSelf; });
           if (module.hot.data && module.hot.data.resolveSelf)
             module.hot.data.resolveSelf(module.exports);
         }
-        function onError() { /* ignore */ }
-        var dispose = client.keepAlive({ data: data, active: true, module: module, onError: onError })
         
 
 }),
