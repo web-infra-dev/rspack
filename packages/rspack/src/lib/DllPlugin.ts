@@ -8,11 +8,11 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import * as z from "zod/v4";
 import type { Compiler } from "../Compiler";
 import { LibManifestPlugin } from "../builtin-plugin";
 import { DllEntryPlugin } from "../builtin-plugin/DllEntryPlugin";
 import { FlagAllModulesAsUsedPlugin } from "../builtin-plugin/FlagAllModulesAsUsedPlugin";
+import { z } from "../config/zod";
 import { memoize } from "../util/memoize";
 import { validate } from "../util/validate";
 
