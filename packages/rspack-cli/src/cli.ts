@@ -170,7 +170,7 @@ export class RspackCLI {
 
 			// false is also a valid value for sourcemap, so don't override it
 			if (typeof item.devtool === "undefined") {
-				item.devtool = isBuild ? false : "eval";
+				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
 			// user parameters always has highest priority than default devtool and config devtool
 			if (typeof options.devtool !== "undefined") {

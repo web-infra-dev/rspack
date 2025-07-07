@@ -60,10 +60,10 @@ export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
 			devtool: {
 				type: "string",
 				describe:
-					"devtool in development default value eval, in production default value false",
+					"devtool in development default value source-map, in production default value false",
 				alias: "d",
 				coerce: (arg): string | boolean => {
-					if (arg === "true") return "eval";
+					if (arg === "true") return "source-map";
 					if (arg === "false") return false;
 					return arg;
 				}
