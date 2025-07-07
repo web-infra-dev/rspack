@@ -168,6 +168,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     // ConsumeShared tree-shaking macro support
     let consume_shared_info: Option<String> = module.get_consume_shared_key();
 
+    // Also check if this is a regular shared module with a shared_key
+    let shared_key = module
+      .build_meta()
+      .shared_key
+      .clone()
+      .or(consume_shared_info.clone());
+
     /*
     let consume_shared_info = {
       // First check if parent module is ConsumeShared
@@ -272,8 +279,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           );
         }
 
-        // Use macro comments for ConsumeShared modules, standard format otherwise
-        let export_content = if let Some(ref share_key) = consume_shared_info {
+        // Use macro comments for shared modules (both ConsumeShared and regular shared), standard format otherwise
+        let export_content = if let Some(ref share_key) = shared_key {
           format!("/* @common:if [condition=\"treeShake.{}.default\"] */ /* export default binding */ {name} /* @common:endif */", share_key)
         } else {
           format!("/* export default binding */ {name}")
@@ -295,7 +302,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         // do nothing for unused or inlined
       }
 
-      let prefix_content = if let Some(ref share_key) = consume_shared_info {
+      let prefix_content = if let Some(ref share_key) = shared_key {
         format!(
           "/* @common:if [condition=\"treeShake.{}.default\"] */ /* ESM default export */ {}",
           share_key, dep.prefix

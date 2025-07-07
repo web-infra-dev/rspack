@@ -196,7 +196,7 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
       .expect("should have mgm");
 
     // Try to get an updated shared_key during rendering when module graph is available
-    let _effective_shared_key = ConsumeSharedExportsDependency::should_apply_to_module(
+    let effective_shared_key = ConsumeSharedExportsDependency::should_apply_to_module(
       &module.identifier().to_string(),
       module.build_meta(),
       Some(&module_graph),
@@ -234,11 +234,7 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
 
     // ConsumeShared tree-shaking logic - properly wrap complete assignments
     let default_name = Atom::from("");
-    let _export_name = dep.names.first().unwrap_or(&default_name);
-
-    // NOTE: Tree-shaking macros are temporarily disabled for ConsumeSharedExportsDependency
-    // to avoid syntax errors with Object.defineProperty patterns.
-    // The macros should be integrated into the content generation below, not applied separately.
+    let export_name = dep.names.first().unwrap_or(&default_name);
 
     // Standard CommonJS export handling for used exports
     let exports_argument = module.get_exports_argument();
@@ -259,12 +255,16 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
 
     if dep.base.is_expression() {
       if let Some(UsedName::Normal(used)) = used {
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          &format!("{}{}", base, property_access(used, 0)),
-          None,
-        );
+        let property_access_str = property_access(used, 0);
+        let content = if !effective_shared_key.is_empty() && !export_name.is_empty() {
+          format!(
+            "/* @common:if [condition=\"treeShake.{}.{}\"] */ {}{} /* @common:endif */",
+            effective_shared_key, export_name, base, property_access_str
+          )
+        } else {
+          format!("{}{}", base, property_access_str)
+        };
+        source.replace(dep.range.start, dep.range.end, &content, None);
       } else {
         let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
         let placeholder_var = format!(

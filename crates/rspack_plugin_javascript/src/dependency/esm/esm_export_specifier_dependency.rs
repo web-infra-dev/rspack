@@ -168,8 +168,12 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module_identifier)
       .expect("should have module graph module");
 
-    // Get ConsumeShared context from BuildMeta
-    let consume_shared_info = module.build_meta().consume_shared_key.as_ref();
+    // Get shared key from BuildMeta (either ConsumeShared or regular shared module)
+    let meta = module.build_meta();
+    let shared_key = meta
+      .shared_key
+      .as_ref()
+      .or(meta.consume_shared_key.as_ref());
 
     // remove the enum decl if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
@@ -212,12 +216,20 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       UsedName::Inlined(_) => return,
     };
 
-    // Generate export content with ConsumeShared macro integration when active
-    let export_value = if let Some(ref share_key) = consume_shared_info {
-      Atom::from(format!(
-        "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
-        share_key, dep.name, dep.value
-      ))
+    // Generate export content with tree-shaking macro for shared modules
+    let export_value = if let Some(ref share_key) = shared_key {
+      // Special handling for default export to match test expectations
+      if dep.name == "default" {
+        Atom::from(format!(
+          "/* @common:if [condition=\"treeShake.{}.default\"] */ {} /* @common:endif */",
+          share_key, dep.value
+        ))
+      } else {
+        Atom::from(format!(
+          "/* @common:if [condition=\"treeShake.{}.{}\"] */ {} /* @common:endif */",
+          share_key, dep.name, dep.value
+        ))
+      }
     } else {
       dep.value.clone()
     };
