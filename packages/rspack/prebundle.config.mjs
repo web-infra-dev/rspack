@@ -5,32 +5,27 @@ import { join } from "node:path";
 /** @type {import('prebundle').Config} */
 export default {
 	dependencies: [
+		"@swc/types",
+		"graceful-fs",
+		"browserslist-load-config",
 		{
 			name: "webpack-sources",
 			copyDts: true
 		},
-		"graceful-fs",
-		"browserslist-load-config",
 		{
 			name: "watchpack",
 			externals: {
 				"graceful-fs": "../graceful-fs/index.js"
 			},
 			afterBundle(task) {
+				const importStatement = "import fs from 'graceful-fs';";
 				const dtsPath = join(task.distPath, "index.d.ts");
 				const content = readFileSync(dtsPath, "utf-8");
-				// Ensure the type of graceful-fs is imported from the correct path
 				writeFileSync(
 					dtsPath,
-					content.replace(
-						"from 'graceful-fs'",
-						"from '../graceful-fs/index.js'"
-					)
+					content.replace(importStatement, `// @ts-ignore\n${importStatement}`)
 				);
 			}
-		},
-		{
-			name: "@swc/types"
 		}
 	]
 };
