@@ -4,7 +4,7 @@ use rspack_core::{
 };
 use swc_core::{
   atoms::Atom,
-  common::Spanned,
+  common::{Span, Spanned},
   ecma::ast::{
     AssignExpr, AssignTarget, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr,
     ObjectLit, Prop, PropName, PropOrSpread, SimpleAssignTarget, ThisExpr, UnaryExpr, UnaryOp,
@@ -26,6 +26,11 @@ use crate::{
 
 const MODULE_NAME: &str = "module";
 const EXPORTS_NAME: &str = "exports";
+
+/// Helper function to get the range between two spans (for the '=' in assignments)
+fn source_range_between(left_span: &Span, right_span: &Span) -> DependencyRange {
+  DependencyRange::new(left_span.real_hi(), right_span.real_lo())
+}
 
 fn get_member_expression_info<E: ExprLike>(
   parser: &mut JavascriptParser,
@@ -266,19 +271,18 @@ pub struct CommonJsExportsParserPlugin;
 impl CommonJsExportsParserPlugin {
   /// Detect if this module should use ConsumeSharedExportsDependency based on Module Federation context
   fn detect_shared_module_key(parser: &JavascriptParser) -> Option<String> {
-    // During parsing, we don't have access to the updated BuildMeta yet (ProvideSharedPlugin runs later)
-    // So we'll always return a placeholder shared_key for potential Module Federation modules
-    // The actual shared_key will be resolved during rendering when BuildMeta is available
-    let module_identifier = &parser.module_identifier.to_string();
-
-    // Check if this looks like a potential Module Federation module
-    // For now, we'll be conservative and only apply to modules that might be shared
-    // The actual shared_key will be resolved during rendering
-    if module_identifier.contains("cjs-modules") || module_identifier.contains("shared") {
-      Some("placeholder".to_string())
-    } else {
-      None
+    // Check if this module has a shared_key in BuildMeta (set by ProvideSharedPlugin)
+    if let Some(ref shared_key) = parser.build_meta.shared_key {
+      return Some(shared_key.clone());
     }
+
+    // Check if this module has consume_shared_key in BuildMeta (set by ConsumeSharedPlugin)
+    if let Some(ref consume_shared_key) = parser.build_meta.consume_shared_key {
+      return Some(consume_shared_key.clone());
+    }
+
+    // No shared context found
+    None
   }
 }
 
@@ -463,6 +467,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       let shared_key = Self::detect_shared_module_key(parser);
 
       if let Some(shared_key) = shared_key {
+        // For assignments, pass the member expression span for now
+        // TODO: We need to figure out why assign_expr.span doesn't include the full assignment
         parser
           .dependencies
           .push(Box::new(ConsumeSharedExportsDependency::new(
@@ -473,11 +479,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
             shared_key,
           )));
       } else {
+        // For assignments, pass both member expression and assignment spans
         parser
           .dependencies
           .push(Box::new(CommonJsExportsDependency::new(
             left_expr.span().into(),
-            None,
+            Some(assign_expr.span.into()),
             base,
             remaining.to_owned(),
           )));

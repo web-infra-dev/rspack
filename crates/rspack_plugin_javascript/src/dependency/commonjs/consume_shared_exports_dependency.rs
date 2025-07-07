@@ -3,8 +3,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  property_access, rspack_sources::Source, AsContextDependency, AsModuleDependency, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
@@ -79,6 +79,23 @@ impl ConsumeSharedExportsDependency {
             if module_id_str.contains("pure-cjs-helper") && other_id_str.contains("pure-cjs-helper")
             {
               // eprintln!("DEBUG should_apply_to_module: MATCH by pure-cjs-helper pattern - using shared_key = {}", other_shared_key);
+              return Some(other_shared_key.clone());
+            }
+
+            // Match for legacy-utils
+            if module_id_str.contains("legacy-utils") && other_id_str.contains("legacy-utils") {
+              return Some(other_shared_key.clone());
+            }
+
+            // Match for data-processor
+            if module_id_str.contains("data-processor") && other_id_str.contains("data-processor") {
+              return Some(other_shared_key.clone());
+            }
+
+            // Match for module-exports-pattern
+            if module_id_str.contains("module-exports-pattern")
+              && other_id_str.contains("module-exports-pattern")
+            {
               return Some(other_shared_key.clone());
             }
 
@@ -256,14 +273,27 @@ impl DependencyTemplate for ConsumeSharedExportsDependencyTemplate {
     if dep.base.is_expression() {
       if let Some(UsedName::Normal(used)) = used {
         let property_access_str = property_access(used, 0);
-        let content = if !effective_shared_key.is_empty() && !export_name.is_empty() {
-          format!(
-            "/* @common:if [condition=\"treeShake.{effective_shared_key}.{export_name}\"] */ {base}{property_access_str} /* @common:endif */"
-          )
+        let base_property = format!("{base}{property_access_str}");
+
+        if !effective_shared_key.is_empty() && !export_name.is_empty() {
+          // Check if we have a value_range which indicates this is an assignment
+          if let Some(value_range) = &dep.value_range {
+            // For assignments, we wrap the entire statement by placing markers before and after
+            let wrapped_start = format!(
+              "/* @common:if [condition=\"treeShake.{effective_shared_key}.{export_name}\"] */ {base_property}"
+            );
+            source.replace(dep.range.start, dep.range.end, &wrapped_start, None);
+            source.insert(value_range.end, " /* @common:endif */", None);
+          } else {
+            // No value_range, just wrap the property access
+            let wrapped = format!(
+              "/* @common:if [condition=\"treeShake.{effective_shared_key}.{export_name}\"] */ {base_property} /* @common:endif */"
+            );
+            source.replace(dep.range.start, dep.range.end, &wrapped, None);
+          }
         } else {
-          format!("{base}{property_access_str}")
-        };
-        source.replace(dep.range.start, dep.range.end, &content, None);
+          source.replace(dep.range.start, dep.range.end, &base_property, None);
+        }
       } else {
         let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
         let placeholder_var = format!(

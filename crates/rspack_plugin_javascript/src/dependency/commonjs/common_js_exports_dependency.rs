@@ -3,8 +3,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  property_access, rspack_sources::Source, AsContextDependency, AsModuleDependency, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
@@ -227,15 +227,37 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           .join(".");
 
         // ConsumeShared tree-shaking macro support
-        let export_content = if let Some(shared_key) = &consume_shared_info {
-          format!(
-            "/* @common:if [condition=\"treeShake.{shared_key}.{export_name}\"] */ {export_assignment} /* @common:endif */"
-          )
-        } else {
-          export_assignment
-        };
+        if let Some(shared_key) = &consume_shared_info {
+          // Get the source content to check if this includes an assignment
+          let source_str = source.source();
+          let start = dep.range.start as usize;
+          let end = dep.range.end as usize;
 
-        source.replace(dep.range.start, dep.range.end, &export_content, None);
+          // Check if the range is valid and contains an assignment
+          let is_assignment = if start < source_str.len() && end <= source_str.len() {
+            let content = &source_str[start..end];
+            content.contains("=")
+          } else {
+            false
+          };
+
+          if is_assignment {
+            // This is a full assignment statement - wrap the entire thing
+            let assignment_content = &source_str[start..end];
+            let wrapped = format!(
+              "/* @common:if [condition=\"treeShake.{shared_key}.{export_name}\"] */ {assignment_content} /* @common:endif */"
+            );
+            source.replace(dep.range.start, dep.range.end, &wrapped, None);
+          } else {
+            // Just property access - wrap only that
+            let wrapped = format!(
+              "/* @common:if [condition=\"treeShake.{shared_key}.{export_name}\"] */ {export_assignment} /* @common:endif */"
+            );
+            source.replace(dep.range.start, dep.range.end, &wrapped, None);
+          }
+        } else {
+          source.replace(dep.range.start, dep.range.end, &export_assignment, None);
+        }
       } else {
         // Export a inlinable const from cjs is not possible for now but we compat it here
         let is_inlined = matches!(used, Some(UsedName::Inlined(_)));

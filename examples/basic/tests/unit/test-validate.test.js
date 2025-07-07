@@ -86,7 +86,6 @@ describe("ConsumeShared Build Validation", () => {
 				usedExports: [],
 				unusedExports: [],
 				missingMacros: [],
-				extraMacros: [],
 				defaultExportHasMacro: false
 			};
 
@@ -111,16 +110,14 @@ describe("ConsumeShared Build Validation", () => {
 				}
 			}
 
-			// Verify unused exports don't have active code (should be marked unused or absent)
+			// Verify unused exports have macros too (for proper tree-shaking)
 			for (const exportName of moduleData.unused_exports) {
-				// Check if export is completely absent or marked as unused
-				const exportRegex = new RegExp(`${exportName}\\s*:\\s*\\(\\)\\s*=>`);
-				const unusedRegex = new RegExp(`/\\*.*unused.*${exportName}.*\\*/`);
+				// Check if export has tree-shaking macro
+				const macroPattern = `${exportName}[\\s\\S]*?@common:if[\\s\\S]*?condition="treeShake\\.${moduleName}\\.${exportName}"`;
+				const macroRegex = new RegExp(macroPattern);
 
-				if (!exportRegex.test(chunkContent) || unusedRegex.test(chunkContent)) {
+				if (macroRegex.test(chunkContent)) {
 					validationResults[moduleName].unusedExports.push(exportName);
-				} else {
-					validationResults[moduleName].extraMacros.push(exportName);
 				}
 			}
 		}

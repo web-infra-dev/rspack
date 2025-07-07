@@ -245,11 +245,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) && let UsedName::Normal(used) = used
       {
-        // Use macro comments for shared modules (both ConsumeShared and regular shared), standard format otherwise
+        // For ESM export bindings, we need to reference the actual variable name
+        // When it's a function/expression, name will be __WEBPACK_DEFAULT_EXPORT__
+        // When it's an identifier, name will be that identifier
         let export_content = if let Some(ref share_key) = shared_key {
-          format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* export default binding */ {name} /* @common:endif */")
+          format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {name} /* @common:endif */")
         } else {
-          format!("/* export default binding */ {name}")
+          name.to_string()
         };
 
         init_fragments.push(Box::new(ESMExportInitFragment::new(
