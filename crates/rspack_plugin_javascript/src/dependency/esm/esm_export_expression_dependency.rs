@@ -221,8 +221,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     };
     */
 
-    // Enhanced DEBUG: Log detailed information only for ConsumeShared-related modules
-    if consume_shared_info.is_some() {
+    // Enhanced DEBUG: Log detailed information only for shared modules
+    if shared_key.is_some() {
       tracing::debug!(
         "[RSPACK_EXPORT_DEBUG:ESM_EXPRESSION] Module: {:?}, Type: {:?}, Declaration: {:?}, Range: {:?}, Runtime: {:?}",
         module.identifier(),
@@ -268,8 +268,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) && let UsedName::Normal(used) = used
       {
-        // DEBUG: Log export binding generation only for ConsumeShared modules
-        if consume_shared_info.is_some() {
+        // DEBUG: Log export binding generation only for shared modules
+        if shared_key.is_some() {
           tracing::debug!(
             "[RSPACK_EXPORT_DEBUG:ESM_BINDING] Module: {:?}, Name: {}, Used: {:?}, ExportsInfo: available, ModuleGraph: present, ConsumeShared: {:?}",
             module_identifier,
@@ -342,8 +342,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         }
       }
 
-      // Add the closing @common:endif for ConsumeShared declarations
-      if consume_shared_info.is_some() {
+      // Add the closing @common:endif for shared module declarations
+      if shared_key.is_some() {
         source.replace(
           dep.range_stmt.end,
           dep.range_stmt.end,
@@ -354,9 +354,20 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     } else {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
+
+      // DEBUG: Log for shared modules
+      if shared_key.is_some() {
+        tracing::debug!(
+          "[RSPACK_EXPORT_DEBUG:NO_DECLARATION] Module: {:?}, SharedKey: {:?}, SupportsConst: {}",
+          module_identifier,
+          shared_key,
+          supports_const
+        );
+      }
+
       let content = if let Some(ref mut scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
-        if let Some(ref share_key) = consume_shared_info {
+        if let Some(ref share_key) = shared_key {
           format!(
             "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ {} {DEFAULT_EXPORT} = ",
             if supports_const { "const" } else { "var" }
@@ -377,8 +388,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);
 
-          // DEBUG: Log export fragment generation only for ConsumeShared modules
-          if consume_shared_info.is_some() {
+          // DEBUG: Log export fragment generation only for shared modules
+          if shared_key.is_some() {
             tracing::debug!(
               "[RSPACK_EXPORT_DEBUG:ESM_FRAGMENT] Module: {:?}, Used: {:?}, SupportsConst: {}, ExportsArg: {:?}, ConsumeShared: {:?}",
               module_identifier,
@@ -390,7 +401,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           }
 
           if supports_const {
-            let fragment_content = if let Some(ref share_key) = consume_shared_info {
+            let fragment_content = if let Some(ref share_key) = shared_key {
               format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {DEFAULT_EXPORT} /* @common:endif */")
             } else {
               DEFAULT_EXPORT.to_string()
@@ -409,12 +420,12 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               )],
             )));
 
-            if let Some(ref share_key) = consume_shared_info {
+            if let Some(ref share_key) = shared_key {
               format!("/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* ESM default export */ const {DEFAULT_EXPORT} = ")
             } else {
               format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
             }
-          } else if let Some(ref share_key) = consume_shared_info {
+          } else if let Some(ref share_key) = shared_key {
             format!(
               r#"/* @common:if [condition="treeShake.{share_key}.default"] */ /* ESM default export */ {}{} = "#,
               module.get_exports_argument(),
@@ -428,8 +439,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             )
           }
         } else {
-          // DEBUG: Log inlined export only for ConsumeShared modules
-          if consume_shared_info.is_some() {
+          // DEBUG: Log inlined export only for shared modules
+          if shared_key.is_some() {
             tracing::debug!(
               "[RSPACK_EXPORT_DEBUG:ESM_INLINED] Module: {:?}, Type: inlined, ConsumeShared: {:?}",
               module_identifier,
@@ -437,7 +448,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
             );
           }
 
-          if let Some(ref share_key) = consume_shared_info {
+          if let Some(ref share_key) = shared_key {
             format!(
               "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* inlined ESM default export */ var {DEFAULT_EXPORT} = "
             )
@@ -446,8 +457,8 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           }
         }
       } else {
-        // DEBUG: Log unused export only for ConsumeShared modules
-        if consume_shared_info.is_some() {
+        // DEBUG: Log unused export only for shared modules
+        if shared_key.is_some() {
           tracing::debug!(
             "[RSPACK_EXPORT_DEBUG:ESM_UNUSED] Module: {:?}, Type: unused, ConsumeShared: {:?}",
             module_identifier,
@@ -455,7 +466,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           );
         }
 
-        if let Some(ref share_key) = consume_shared_info {
+        if let Some(ref share_key) = shared_key {
           format!(
             "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ /* unused ESM default export */ var {DEFAULT_EXPORT} = "
           )
@@ -471,7 +482,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         None,
       );
 
-      let end_content = if consume_shared_info.is_some() {
+      let end_content = if shared_key.is_some() {
         ") /* @common:endif */;"
       } else {
         ");"
