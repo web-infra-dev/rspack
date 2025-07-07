@@ -1536,7 +1536,7 @@ impl Compilation {
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {
-        build_chunk_graph_new(compilation)?;
+        build_chunk_graph_new(compilation).await?;
       } else {
         build_chunk_graph(compilation)?;
       }

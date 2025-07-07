@@ -7,5 +7,11 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
+	optimization: {
+		moduleIds: "named"
+	},
+	experiments: {
+		// parallelCodeSplitting: false
+	},
 	target: "web"
 };

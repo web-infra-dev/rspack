@@ -6,24 +6,23 @@ use std::{
 };
 
 use indexmap::IndexSet;
-use rayon::prelude::*;
 use rspack_collections::{
   DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
-  IdentifierMap, IdentifierSet, Ukey, UkeyMap,
+  IdentifierMap, IdentifierSet, Ukey, UkeyMap, UkeySet,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::sync::mpsc::unbounded_channel;
 use tracing::instrument;
 
-use super::available_modules::{remove_available_modules, AvailableModules};
+use super::available_modules::AvailableModules;
 use crate::{
   assign_depths,
   incremental::{IncrementalPasses, Mutation},
-  merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind,
-  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
-  DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
-  RuntimeSpec, SyntheticDependencyLocation,
+  merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupUkey,
+  ChunkLoading, Compilation, DependenciesBlock, DependencyLocation, EntryDependency, EntryRuntime,
+  GroupOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
 };
 
 type ModuleDeps = HashMap<
@@ -31,337 +30,179 @@ type ModuleDeps = HashMap<
   IdentifierDashMap<Arc<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>>,
 >;
 
-static NEXT_CACHE_UKEY: AtomicU32 = AtomicU32::new(0);
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub struct CacheUkey(Ukey, std::marker::PhantomData<CacheableChunkItem>);
-
-impl CacheUkey {
-  fn new() -> Self {
-    Self(
-      Ukey::new(NEXT_CACHE_UKEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed)),
-      std::marker::PhantomData,
-    )
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct CacheableChunkItem {
-  pub cache_ukey: CacheUkey,
-  pub chunk_desc: ChunkDesc,
-}
+static NEXT_EDGE_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Default)]
 pub struct CodeSplitter {
-  cache_chunk_desc: HashMap<CreateChunkRoot, Vec<CacheableChunkItem>>,
-  cache_chunks: UkeyMap<CacheUkey, Chunk>,
   pub module_deps: ModuleDeps,
   pub module_ordinal: IdentifierMap<u64>,
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-enum CreateChunkRoot {
-  Entry(String, Box<EntryData>, RuntimeSpec),
-  Block(Vec<AsyncDependenciesBlockIdentifier>, RuntimeSpec),
-}
-
-struct FinalizeChunksResult {
-  chunks: Vec<(bool, CacheableChunkItem)>,
-  chunk_children: Vec<IndexSet<usize>>,
-  chunk_parents: Vec<IndexSet<usize>>,
-}
-
-// Description about how to create chunk
-#[derive(Debug, Clone)]
-pub enum ChunkDesc {
-  // Name, entry_modules, Options, Modules
-  Entry(Box<EntryChunkDesc>),
-
-  // original, root, Options, Modules
-  Chunk(Box<NormalChunkDesc>),
-}
-
-impl ChunkDesc {
-  pub fn name(&self) -> Option<&str> {
-    match self {
-      ChunkDesc::Entry(entry) => entry.entry.as_deref(),
-      ChunkDesc::Chunk(chunk) => chunk.options.as_ref().and_then(|opt| opt.name.as_deref()),
-    }
-  }
-
-  pub(crate) fn outgoings(
-    &self,
-  ) -> &IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
-    match self {
-      ChunkDesc::Entry(entry) => &entry.outgoing_blocks,
-      ChunkDesc::Chunk(chunk) => &chunk.outgoing_blocks,
-    }
-  }
-
-  pub(crate) fn outgoings_mut(
-    &mut self,
-  ) -> &mut IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
-    match self {
-      ChunkDesc::Entry(entry) => &mut entry.outgoing_blocks,
-      ChunkDesc::Chunk(chunk) => &mut chunk.outgoing_blocks,
-    }
-  }
-
-  pub(crate) fn chunk_modules_mut(&mut self) -> &mut IdentifierSet {
-    match self {
-      ChunkDesc::Entry(entry) => &mut entry.chunk_modules,
-      ChunkDesc::Chunk(chunk) => &mut chunk.chunk_modules,
-    }
-  }
-
-  pub(crate) fn chunk_modules(&self) -> &IdentifierSet {
-    match self {
-      ChunkDesc::Entry(entry) => &entry.chunk_modules,
-      ChunkDesc::Chunk(chunk) => &chunk.chunk_modules,
-    }
-  }
-
-  pub(crate) fn chunk_modules_ordinal(&self) -> &AvailableModules {
-    match self {
-      ChunkDesc::Entry(entry) => &entry.modules_ordinal,
-      ChunkDesc::Chunk(chunk) => &chunk.modules_ordinal,
-    }
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct EntryChunkDesc {
-  pub initial: bool,
-
-  options: EntryOptions,
-  modules_ordinal: AvailableModules,
-  entry: Option<String>,
-  pub entry_modules: Vec<ModuleIdentifier>,
-  chunk_modules: IdentifierSet,
-
-  pre_order_indices: IdentifierMap<usize>,
-  post_order_indices: IdentifierMap<usize>,
-
-  // use incoming and outgoing to track chunk relations,
-  // entry has no incomings
-  outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
-  incoming_blocks: HashSet<AsyncDependenciesBlockIdentifier>,
-
-  runtime: RuntimeSpec,
-}
-
-#[derive(Debug, Clone)]
-pub struct NormalChunkDesc {
-  options: Option<ChunkGroupOptions>,
-  modules_ordinal: AvailableModules,
-  chunk_modules: IdentifierSet,
-
-  pre_order_indices: IdentifierMap<usize>,
-  post_order_indices: IdentifierMap<usize>,
-
-  // use incoming and outgoing to track chunk relations
-  incoming_blocks: HashSet<AsyncDependenciesBlockIdentifier>,
-  outgoing_blocks: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
-  runtime: RuntimeSpec,
 }
 
 #[derive(Default, Debug)]
 struct FillCtx {
   pub chunk_modules: IdentifierSet,
-  pub out_goings: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  pub outgoings: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
   pub pre_order_indices: IdentifierMap<usize>,
   pub post_order_indices: IdentifierMap<usize>,
   pub module_ordinal: AvailableModules,
   pub next_pre_order_index: usize,
   pub next_post_order_index: usize,
   pub chunk_loading: bool,
+  pub available_modules: Option<AvailableModules>,
+  pub skipped: IdentifierSet,
 }
 
-impl CreateChunkRoot {
-  pub(crate) fn get_runtime(&self) -> &RuntimeSpec {
+#[derive(Debug, Clone)]
+pub struct CreateChunkResult {
+  pub available_modules: AvailableModules,
+  pub pre_order_indices: IdentifierMap<usize>,
+  pub post_order_indices: IdentifierMap<usize>,
+  pub modules: IdentifierSet,
+  pub modules_ordinal: AvailableModules,
+  pub outgoings: IndexSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  pub skipped: IdentifierSet,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Edge {
+  // entry
+  Entry(String, Vec<ModuleIdentifier>, bool),
+
+  // async entry
+  // for example: `new Worker()`
+  AsyncEntry(EdgeUkey, AsyncDependenciesBlockIdentifier, bool),
+
+  // use normal `import()`
+  Block(UkeySet<EdgeUkey>, AsyncDependenciesBlockIdentifier),
+
+  // use `webpackChunkName`
+  // a  b
+  // \ / webpackChunkName: c.js
+  //  c
+  // The 2 edges from a and b is one MagicName edge
+  MagicName(
+    String,
+    UkeySet<EdgeUkey>,
+    Vec<AsyncDependenciesBlockIdentifier>,
+  ),
+}
+
+impl Edge {
+  fn name<'me>(&'me self, module_graph: &'me ModuleGraph) -> Option<&'me str> {
     match self {
-      CreateChunkRoot::Entry(_, _, rt) => rt,
-      CreateChunkRoot::Block(_, rt) => rt,
+      Edge::Entry(name, _, _) => Some(name.as_str()),
+      Edge::AsyncEntry(_, ref block_id, _) => module_graph
+        .block_by_id(block_id)
+        .expect("should have block")
+        .get_group_options()
+        .and_then(|option| {
+          option.name().or_else(|| {
+            option
+              .entry_options()
+              .and_then(|option| option.name.as_deref())
+          })
+        }),
+      Edge::Block(_, _) => None,
+      Edge::MagicName(name, _, _) => Some(name.as_str()),
     }
   }
 
-  fn set_runtime(&mut self, runtime: RuntimeSpec) {
-    match self {
-      CreateChunkRoot::Entry(_, _, rt) => *rt = runtime,
-      CreateChunkRoot::Block(_, rt) => *rt = runtime,
-    }
-  }
-
-  fn create(&self, splitter: &CodeSplitter, compilation: &Compilation) -> Vec<ChunkDesc> {
+  fn block_options(&self, compilation: &Compilation) -> Option<GroupOptions> {
     let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache_artifact;
-
     match self {
-      CreateChunkRoot::Entry(entry, data, runtime) => {
-        let mut entry_modules = vec![];
+      Edge::Entry(entry, _, _) => {
+        let entry = compilation.entries.get(entry).expect("should have entry");
 
-        let deps = compilation
-          .global_entry
-          .dependencies
-          .iter()
-          .chain(data.dependencies.iter());
-
-        let mut ctx = FillCtx::default();
-        let chunk_loading = data
-          .options
-          .chunk_loading
-          .as_ref()
-          .unwrap_or(&compilation.options.output.chunk_loading);
-        let async_chunks = data
-          .options
-          .async_chunks
-          .unwrap_or(compilation.options.output.async_chunks);
-        ctx.chunk_loading = !matches!(chunk_loading, ChunkLoading::Disable) && async_chunks;
-
-        for m in deps
-          .clone()
-          .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
-        {
-          entry_modules.push(*m);
-        }
-
-        for m in deps
-          .chain(
-            compilation
-              .global_entry
-              .include_dependencies
-              .iter()
-              .chain(data.include_dependencies.iter()),
-          )
-          .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
-        {
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
-        }
-
-        vec![ChunkDesc::Entry(Box::new(EntryChunkDesc {
-          initial: true,
-          entry: Some(entry.clone()),
-          entry_modules,
-          chunk_modules: ctx.chunk_modules,
-          pre_order_indices: ctx.pre_order_indices,
-          post_order_indices: ctx.post_order_indices,
-          options: data.options.clone(),
-          modules_ordinal: ctx.module_ordinal,
-          incoming_blocks: Default::default(),
-          outgoing_blocks: ctx.out_goings,
-          runtime: runtime.clone(),
-        }))]
+        Some(GroupOptions::Entrypoint(Box::new(entry.options.clone())))
       }
-      CreateChunkRoot::Block(block_ids, runtime) => {
-        let block_id = &block_ids[0];
+      Edge::Block(_, block_id) | Edge::AsyncEntry(_, block_id, _) => {
+        let block = module_graph
+          .block_by_id(block_id)
+          .expect("should have block for block_id");
+        block.get_group_options().cloned()
+      }
+      Edge::MagicName(_, _, blocks) => {
+        let block_id = blocks[0];
+        let block = module_graph
+          .block_by_id(&block_id)
+          .expect("should have block for block_id");
+        block.get_group_options().cloned()
+      }
+    }
+  }
+
+  fn incoming_blocks(&self) -> Vec<AsyncDependenciesBlockIdentifier> {
+    match self {
+      Edge::Entry(_, _, _) => vec![],
+      Edge::AsyncEntry(_, block, _) => vec![*block],
+      Edge::Block(_, block) => vec![*block],
+      Edge::MagicName(_, _, blocks) => blocks.clone(),
+    }
+  }
+
+  fn root_modules(&self, module_graph: &ModuleGraph) -> Option<Vec<ModuleIdentifier>> {
+    match self {
+      Edge::Entry(_, modules, _) => Some(modules.clone()),
+      Edge::AsyncEntry(_, block_id, _) => {
         let block = module_graph
           .block_by_id(block_id)
           .expect("should have block");
+        Some(
+          block
+            .get_dependencies()
+            .iter()
+            .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+            .copied()
+            .collect(),
+        )
+      }
+      Edge::Block(_, _) => None,
+      Edge::MagicName(_, _, _) => None,
+    }
+  }
 
-        let mut chunks = vec![];
-        let mut ctx = FillCtx {
-          chunk_loading: if let Some(entry_option) = block
-            .get_group_options()
-            .and_then(|opt| opt.entry_options())
-          {
-            let chunk_loading = entry_option
-              .chunk_loading
-              .as_ref()
-              .unwrap_or(&compilation.options.output.chunk_loading);
-            let async_chunks = entry_option
-              .async_chunks
-              .unwrap_or(compilation.options.output.async_chunks);
-
-            !matches!(chunk_loading, ChunkLoading::Disable) && async_chunks
-          } else {
-            true
-          },
-          ..Default::default()
-        };
-
-        let all_dependencies = block_ids.iter().flat_map(|id| {
-          let block = module_graph.block_by_id(id).expect("should have block");
-          block.get_dependencies()
-        });
-
-        for dep_id in all_dependencies {
-          let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) else {
-            continue;
-          };
-
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
-        }
-
-        if let Some(group_option) = block.get_group_options()
-          && let Some(entry_options) = group_option.entry_options()
-        {
-          let mut entry_modules = IdentifierSet::default();
-          for dep_id in block.get_dependencies() {
-            let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) else {
-              continue;
-            };
-            entry_modules.insert(*m);
-          }
-
-          chunks.push(ChunkDesc::Entry(Box::new(EntryChunkDesc {
-            initial: false,
-            options: entry_options.clone(),
-            modules_ordinal: ctx.module_ordinal,
-            entry: entry_options.name.clone(),
-            entry_modules: entry_modules.iter().copied().collect(),
-            chunk_modules: ctx.chunk_modules,
-            outgoing_blocks: ctx.out_goings,
-            incoming_blocks: block_ids.iter().copied().collect(),
-            pre_order_indices: ctx.pre_order_indices,
-            post_order_indices: ctx.post_order_indices,
-            runtime: runtime.clone(),
-          })))
-        } else {
-          let blocks = block_ids.iter().map(|block_id| {
-            module_graph
-              .block_by_id(block_id)
-              .expect("should have block")
-          });
-
-          let mut options = block
-            .get_group_options()
-            .and_then(|opt| opt.normal_options())
-            .cloned();
-
-          // If uses webpackChunkName to merge chunks, the options should be merged
-          for block in blocks {
-            if let Some(GroupOptions::ChunkGroup(block_options)) = block.get_group_options() {
-              if let Some(group_options) = &mut options {
-                group_options.preload_order =
-                  group_options.preload_order.max(block_options.preload_order);
-
-                group_options.prefetch_order = group_options
-                  .prefetch_order
-                  .max(block_options.prefetch_order);
-              } else {
-                options = Some(block_options.clone());
-              }
-            }
-          }
-
-          chunks.push(ChunkDesc::Chunk(Box::new(NormalChunkDesc {
-            chunk_modules: ctx.chunk_modules,
-            options,
-            modules_ordinal: ctx.module_ordinal,
-            pre_order_indices: ctx.pre_order_indices,
-            post_order_indices: ctx.post_order_indices,
-
-            incoming_blocks: block_ids.iter().copied().collect(),
-            outgoing_blocks: ctx.out_goings,
-
-            runtime: runtime.clone(),
-          })));
-        }
-
-        chunks
+  fn add_parent(&mut self, parent: EdgeUkey) {
+    match self {
+      Edge::Entry(_, _, _) => {}
+      Edge::AsyncEntry(_, _, _) => {}
+      Edge::Block(from, _) => {
+        from.insert(parent);
+      }
+      Edge::MagicName(_, from, _) => {
+        from.insert(parent);
       }
     }
   }
+
+  fn from(&self) -> Option<UkeySet<EdgeUkey>> {
+    match self {
+      Edge::Entry(_, _, _) => None,
+      Edge::AsyncEntry(edge_ukey, _, _) => Some(once(*edge_ukey).collect()),
+      Edge::Block(from, _) => Some(from.clone()),
+      Edge::MagicName(_, from, _) => Some(from.clone()),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct EdgeUkey(Ukey, std::marker::PhantomData<Edge>);
+
+impl EdgeUkey {
+  fn new() -> Self {
+    Self(
+      Ukey::new(NEXT_EDGE_UKEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed)),
+      std::marker::PhantomData,
+    )
+  }
+}
+
+struct ScanModuleGraphResult {
+  pub(crate) edges: UkeyMap<EdgeUkey, Edge>,
+  pub(crate) entry_runtimes: HashMap<String, RuntimeSpec>,
+  pub(crate) entry_edges: HashMap<String, EdgeUkey>,
+  pub(crate) edge_parents: HashMap<EdgeUkey, HashSet<EdgeUkey>>,
+  pub(crate) edge_for_block: HashMap<AsyncDependenciesBlockIdentifier, EdgeUkey>,
+  pub(crate) runtime_for_edge: UkeyMap<EdgeUkey, RuntimeSpec>,
 }
 
 impl CodeSplitter {
@@ -374,65 +215,26 @@ impl CodeSplitter {
     }
 
     Self {
-      cache_chunk_desc: Default::default(),
-      cache_chunks: Default::default(),
       module_deps: Default::default(),
       module_ordinal,
     }
   }
 
-  fn invalidate_outgoing_cache(&mut self, module: ModuleIdentifier) {
-    // refresh module traversal result in the last compilation
-    for map in self.module_deps.values() {
-      map.remove(&module);
-    }
-  }
-
-  // modify the module ordinal for changed_modules
-  pub fn invalidate(&mut self, changed_modules: impl Iterator<Item = ModuleIdentifier>) {
-    let module_ordinal = &mut self.module_ordinal;
-    let mut invalidate_outgoing_module = IdentifierSet::default();
-
-    for module in changed_modules {
-      // add ordinal for new modules
-      if !module_ordinal.contains_key(&module) {
-        module_ordinal.insert(module, module_ordinal.len() as u64);
-      }
-
-      invalidate_outgoing_module.insert(module);
-
-      // remove chunks that contains changed module
-      self.cache_chunk_desc.retain(|_, chunks| {
-        // if this module is not in this chunk
-        let can_reuse = chunks.iter().all(|item| match &item.chunk_desc {
-          ChunkDesc::Entry(entry_chunk_desc) => !entry_chunk_desc.chunk_modules.contains(&module),
-          ChunkDesc::Chunk(normal_chunk_desc) => !normal_chunk_desc.chunk_modules.contains(&module),
-        });
-
-        if !can_reuse {
-          for chunk in chunks.iter() {
-            invalidate_outgoing_module.extend(chunk.chunk_desc.chunk_modules().iter().copied());
-          }
-        }
-
-        can_reuse
-      });
-    }
-
-    for m in invalidate_outgoing_module {
-      self.invalidate_outgoing_cache(m);
-    }
-  }
-
   #[instrument(skip_all)]
-  fn analyze_module_graph(
+  fn scan_module_graph<'a>(
     &mut self,
-    compilation: &mut Compilation,
-  ) -> Result<Vec<CreateChunkRoot>> {
+    compilation: &'a mut Compilation,
+  ) -> Result<ScanModuleGraphResult> {
     // determine runtime and chunkLoading
-    let mut entry_runtime: std::collections::HashMap<&str, RuntimeSpec, rustc_hash::FxBuildHasher> =
-      HashMap::default();
     let mut diagnostics = vec![];
+    let mut entry_runtime: HashMap<String, RuntimeSpec> = HashMap::default();
+    let mut entry_edges: HashMap<String, EdgeUkey> = Default::default();
+    let mut runtime_for_edge: UkeyMap<EdgeUkey, RuntimeSpec> = Default::default();
+    let mut edge_parents: HashMap<EdgeUkey, HashSet<EdgeUkey>> = HashMap::default();
+    let mut edge_for_block: HashMap<AsyncDependenciesBlockIdentifier, EdgeUkey> =
+      Default::default();
+    let mut edges: UkeyMap<EdgeUkey, Edge> = Default::default();
+
     for entry in compilation.entries.keys() {
       let mut visited = vec![];
       if let Err(error) =
@@ -440,19 +242,23 @@ impl CodeSplitter {
       {
         diagnostics.push(Diagnostic::from(error));
         let tmp_runtime = once(ustr::Ustr::from(entry.as_str())).collect::<RuntimeSpec>();
-        entry_runtime.insert(entry, tmp_runtime.clone());
+        entry_runtime.insert(entry.clone(), tmp_runtime.clone());
       };
     }
 
     // iterate module graph to find block runtime and its parents
     // let mut blocks_with_runtime = HashMap::default();
-    let mut stack = vec![];
+    let mut stack: Vec<StackItem> = vec![];
     let mut visited = HashSet::default();
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let global_chunk_loading = &compilation.options.output.chunk_loading;
-    let mut roots = HashMap::<AsyncDependenciesBlockIdentifier, CreateChunkRoot>::default();
-    let mut named_roots = HashMap::<String, CreateChunkRoot>::default();
+    let global_async_chunks = compilation.options.output.async_chunks;
+
+    // normal `import()` or `require.ensure`
+    let mut roots = HashMap::<AsyncDependenciesBlockIdentifier, EdgeUkey>::default();
+    // webpackChunkName or entry
+    let mut named_edges = HashMap::<String, EdgeUkey>::default();
 
     let global_deps = compilation.global_entry.dependencies.iter();
     let global_included_deps = compilation.global_entry.include_dependencies.iter();
@@ -471,44 +277,76 @@ impl CodeSplitter {
       ) && entry_data
         .options
         .async_chunks
-        .unwrap_or(compilation.options.output.async_chunks);
+        .unwrap_or(global_async_chunks);
+
       let runtime = entry_runtime
         .get(entry.as_str())
         .expect("already set runtime");
 
       self.module_deps.entry(runtime.clone()).or_default();
 
-      named_roots.insert(
-        entry.clone(),
-        CreateChunkRoot::Entry(entry.clone(), Box::new(entry_data.clone()), runtime.clone()),
-      );
-
-      global_deps
+      let modules: Vec<ModuleIdentifier> = global_deps
         .clone()
         .chain(entry_data.dependencies.iter())
         .chain(global_included_deps.clone())
         .chain(entry_data.include_dependencies.iter())
-        .for_each(|dep_id| {
-          if let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) {
-            stack.push((*m, Cow::Borrowed(runtime), chunk_loading));
-          }
+        .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+        .copied()
+        .collect();
+
+      let ukey = EdgeUkey::new();
+      edges.insert(
+        ukey,
+        Edge::Entry(entry.clone(), modules.clone(), chunk_loading),
+      );
+
+      for module in &modules {
+        stack.push(StackItem {
+          module: *module,
+          chunk_loading,
+          edge: ukey,
         });
+      }
+
+      entry_edges.insert(entry.clone(), ukey);
+      named_edges.insert(entry.clone(), ukey);
+      runtime_for_edge.insert(ukey, runtime.clone());
     }
 
-    while let Some((module, runtime, chunk_loading)) = stack.pop() {
+    struct StackItem {
+      module: ModuleIdentifier,
+      chunk_loading: bool,
+      edge: EdgeUkey, // the edge that create current chunk
+    }
+
+    while let Some(item) = stack.pop() {
+      let StackItem {
+        module,
+        chunk_loading,
+        edge,
+      } = item;
+
+      let runtime = runtime_for_edge.get(&edge).expect("should have runtime");
+
       if !visited.insert((module, runtime.clone())) {
         continue;
       }
 
-      let guard =
-        self.outgoings_modules(&module, runtime.as_ref(), &module_graph, module_graph_cache);
-      let (modules, blocks) = guard.as_ref();
+      let guard = self.outgoings_modules(&module, runtime, &module_graph, module_graph_cache);
+      let (modules, blocks) = guard.value();
+
       let blocks = blocks.clone();
       for m in modules {
-        stack.push((*m, runtime.clone(), chunk_loading));
+        stack.push(StackItem {
+          module: *m,
+          chunk_loading,
+          edge: edge.clone(),
+        });
       }
 
       for block_id in blocks {
+        let runtime = runtime_for_edge.get(&edge).expect("should have runtime");
+
         index_by_block.entry(block_id).or_insert_with(|| {
           next_idx += 1;
           next_idx
@@ -532,31 +370,29 @@ impl CodeSplitter {
           !matches!(
             opt.chunk_loading.as_ref().unwrap_or(global_chunk_loading),
             ChunkLoading::Disable
-          ) && opt
-            .async_chunks
-            .unwrap_or(compilation.options.output.async_chunks)
+          ) && opt.async_chunks.unwrap_or(global_async_chunks)
         });
-        let child_runtime = if should_create {
+
+        let new_edge = if should_create {
           if let Some(name) = block.get_group_options().and_then(|options| {
             options
               .name()
               .or_else(|| entry_options.and_then(|entry| entry.name.as_deref()))
-          }) && let Some(root) = named_roots.get_mut(name)
+          }) && let Some(prev) = named_edges.get(name)
           {
-            // already created with name, let old_runtime = root.get_runtime();
-            let old_runtime = root.get_runtime();
-            let new_runtime = if is_entry {
-              // async entrypoint has unique runtime, do not merge runtime
-              old_runtime.clone()
-            } else {
+            // async entrypoint has unique runtime, do not merge runtime
+            if !is_entry {
+              let old_runtime = runtime_for_edge
+                .get(prev)
+                .expect("should have runtime info");
+
               let new_runtime = merge_runtime(&runtime, old_runtime);
               self.module_deps.entry(new_runtime.clone()).or_default();
-              root.set_runtime(new_runtime.clone());
-              new_runtime
+              runtime_for_edge.insert(*prev, new_runtime);
             };
 
-            match root {
-              CreateChunkRoot::Entry(_, options, _) => {
+            match edges.get_mut(prev).expect("should have edge") {
+              Edge::AsyncEntry(_, _, _) | Edge::Entry(_, _, _) => {
                 if entry_options.is_some() {
                   diagnostics.push(Diagnostic::from(error!(
                     "Two entrypoints with the same name {}",
@@ -570,123 +406,140 @@ impl CodeSplitter {
                       )
                     )
                   );
-
-                  options
-                    .dependencies
-                    .extend(block.get_dependencies().iter().copied());
                 }
               }
-              CreateChunkRoot::Block(async_dependencies_block_identifiers, _) => {
-                if !async_dependencies_block_identifiers.contains(&block_id) {
+              Edge::MagicName(_, _from_edge, async_dependencies_block_identifiers) => {
+                if async_dependencies_block_identifiers
+                  .binary_search(&block_id)
+                  .is_err()
+                {
                   async_dependencies_block_identifiers.push(block_id);
                 }
-                // should re-visit all children bringing new runtime
-                async_dependencies_block_identifiers
-                  .iter()
-                  .filter(|id| **id != block_id)
-                  .for_each(|root_block| {
-                    let root_block = module_graph
-                      .block_by_id(root_block)
-                      .expect("should have block");
-                    root_block
-                      .get_dependencies()
-                      .iter()
-                      .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
-                      .for_each(|m| {
-                        stack.push((*m, Cow::Owned(new_runtime.clone()), child_chunk_loading));
-                      });
-                  });
+              }
+              Edge::Block(_, _) => {
+                unreachable!()
               }
             }
 
-            Cow::Owned(new_runtime)
-          } else if let Some(root) = roots.get_mut(&block_id) {
+            let prev_edge = edges.get_mut(prev).expect("should have edge");
+            prev_edge.add_parent(edge);
+
+            *prev
+          } else if let Some(prev) = roots.get(&block_id) {
             // already created
-            let old_runtime = root.get_runtime();
-            let new_runtime = if is_entry {
-              // async entrypoint has unique runtime, do not merge runtime
-              old_runtime.clone()
-            } else {
+            if !is_entry {
+              let old_runtime = runtime_for_edge
+                .get(&prev)
+                .expect("should have runtime info");
               let new_runtime = merge_runtime(&runtime, old_runtime);
               self.module_deps.entry(new_runtime.clone()).or_default();
-              root.set_runtime(new_runtime.clone());
-              new_runtime
-            };
-            Cow::Owned(new_runtime)
-          } else {
-            let rt = if let Some(entry_options) = entry_options {
-              RuntimeSpec::from_entry_options(entry_options)
-                .map(|rt| {
-                  self.module_deps.entry(rt.clone()).or_default();
-                  Cow::Owned(rt)
-                })
-                .unwrap_or(runtime.clone())
-            } else {
-              runtime.clone()
+              runtime_for_edge.insert(*prev, new_runtime);
             };
 
-            if let Some(name) = block.get_group_options().and_then(|options| {
+            let prev_edge = edges.get_mut(prev).expect("should have edge");
+            prev_edge.add_parent(edge);
+
+            *prev
+          } else {
+            let rt = entry_options
+              .and_then(|entry_options| {
+                RuntimeSpec::from_entry_options(entry_options).map(|rt| {
+                  self.module_deps.entry(rt.clone()).or_default();
+                  rt
+                })
+              })
+              .unwrap_or_else(|| {
+                runtime_for_edge
+                  .get(&edge)
+                  .expect("should have runtime for edge")
+                  .clone()
+              });
+
+            let name = block.get_group_options().and_then(|options| {
               options.name().or_else(|| {
                 options
                   .entry_options()
                   .and_then(|entry_options| entry_options.name.as_deref())
               })
-            }) {
-              named_roots.insert(
+            });
+            let new_edge = if is_entry {
+              let new_edge = Edge::AsyncEntry(edge, block_id, child_chunk_loading);
+              let ukey = EdgeUkey::new();
+              edges.insert(ukey, new_edge);
+              ukey
+            } else if let Some(name) = name {
+              let new_edge = Edge::MagicName(
                 name.to_string(),
-                CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
+                once(edge).collect(),
+                once(block_id).collect(),
               );
+              let ukey = EdgeUkey::new();
+              edges.insert(ukey, new_edge);
+              ukey
             } else {
-              roots.insert(
-                block_id,
-                CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
-              );
+              let new_edge = Edge::Block(once(edge).collect(), block_id);
+              let ukey = EdgeUkey::new();
+              edges.insert(ukey, new_edge);
+              ukey
+            };
+
+            if let Some(name) = name {
+              named_edges.insert(name.to_string(), new_edge);
+            } else {
+              roots.insert(block_id, new_edge);
             }
-            rt.clone()
+
+            runtime_for_edge.insert(new_edge, rt);
+
+            new_edge
           }
         } else {
-          runtime.clone()
+          edge
         };
+
+        if let Some(from_edges) = edges.get(&new_edge).expect("should have from").from() {
+          let parents = edge_parents.entry(new_edge).or_default();
+          parents.extend(from_edges);
+        };
+
+        edge_for_block.insert(block_id, new_edge.clone());
 
         block
           .get_dependencies()
           .iter()
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
           .for_each(|module| {
-            stack.push((*module, child_runtime.clone(), child_chunk_loading));
+            stack.push(StackItem {
+              module: *module,
+              chunk_loading: child_chunk_loading,
+              edge: new_edge.clone(),
+            });
           });
+      }
+    }
+
+    for edge in named_edges.values() {
+      if let Edge::MagicName(_, _, blocks) = edges.get_mut(edge).expect("should have edge") {
+        blocks.sort_by(|a, b| index_by_block.get(a).cmp(&index_by_block.get(b)));
       }
     }
 
     compilation.extend_diagnostics(diagnostics);
 
-    for root in named_roots.values_mut() {
-      if let CreateChunkRoot::Block(blocks, _) = root {
-        if blocks.len() <= 1 {
-          continue;
-        }
-
-        blocks.sort_by(|a, b| {
-          let a_index = index_by_block.get(a).expect("should have index");
-          let b_index = index_by_block.get(b).expect("should have index");
-
-          a_index.cmp(b_index)
-        });
-      }
-    }
-
-    Ok(
-      roots
-        .into_values()
-        .chain(named_roots.into_values())
-        .collect(),
-    )
+    Ok(ScanModuleGraphResult {
+      edges,
+      entry_edges,
+      entry_runtimes: entry_runtime,
+      edge_parents,
+      runtime_for_edge,
+      edge_for_block,
+    })
   }
 
   fn get_entry_runtime<'a, 'b>(
     entry: &'a str,
     compilation: &'a Compilation,
-    entry_runtime: &'b mut HashMap<&'a str, RuntimeSpec>,
+    entry_runtime: &'b mut HashMap<String, RuntimeSpec>,
     visited: &'b mut Vec<&'a str>,
   ) -> Result<RuntimeSpec> {
     if visited.binary_search(&entry).is_ok() {
@@ -731,7 +584,7 @@ impl CodeSplitter {
       RuntimeSpec::from_entry_options(&entry_data.options).expect("should have runtime")
     };
 
-    entry_runtime.insert(entry, runtime.clone());
+    entry_runtime.insert(entry.to_string(), runtime.clone());
     Ok(runtime)
   }
 
@@ -748,8 +601,15 @@ impl CodeSplitter {
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Arc<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
-    let module_map = self.module_deps.get(runtime).expect("should have value");
+  ) -> Ref<ModuleIdentifier, (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
+    let module_map: &dashmap::DashMap<
+      rspack_collections::Identifier,
+      (
+        Vec<rspack_collections::Identifier>,
+        Vec<AsyncDependenciesBlockIdentifier>,
+      ),
+      BuildHasherDefault<ustr::IdentityHasher>,
+    > = self.module_deps.get(runtime).expect("should have value");
 
     let guard = module_map.get(module);
     if let Some(ref_value) = guard {
@@ -820,6 +680,13 @@ impl CodeSplitter {
     while let Some(task) = stack.pop() {
       match task {
         Task::Enter(target_module) => {
+          if let Some(ref available_modules) = ctx.available_modules
+            && available_modules.is_module_available(self.get_module_ordinal(target_module))
+          {
+            ctx.skipped.insert(target_module);
+            continue;
+          }
+
           if !ctx.chunk_modules.insert(target_module) {
             continue;
           }
@@ -849,7 +716,7 @@ impl CodeSplitter {
           let mut outgoing_modules = outgoing_modules.clone();
 
           if ctx.chunk_loading {
-            ctx.out_goings.extend(blocks.clone());
+            ctx.outgoings.extend(blocks.clone());
           } else {
             let modules = blocks
               .iter()
@@ -878,6 +745,7 @@ impl CodeSplitter {
     }
   }
 
+  #[tracing::instrument(skip_all)]
   fn set_order_index_and_group_index(&mut self, compilation: &mut Compilation) {
     enum Task<'compilation> {
       Group(ChunkGroupUkey, AsyncDependenciesBlockIdentifier),
@@ -901,22 +769,21 @@ impl CodeSplitter {
     let global_included_deps = compilation.global_entry.include_dependencies.iter();
 
     for (name, entry) in &compilation.entries {
+      let entrypoint_ukey = compilation
+        .entrypoints
+        .get(name.as_str())
+        .expect("should have entrypoint");
+      let entrypoint = compilation.chunk_group_by_ukey.expect_get(entrypoint_ukey);
+      let entry_chunk = compilation.chunk_by_ukey.expect_get(&entrypoint.chunks[0]);
+      let entry_chunk_runtime = entry_chunk.runtime();
+
       global_deps
         .clone()
         .chain(entry.dependencies.iter())
         .chain(global_included_deps.clone())
         .chain(entry.include_dependencies.iter())
         .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
-        .for_each(|m| {
-          let entrypoint_ukey = compilation
-            .entrypoints
-            .get(name.as_str())
-            .expect("should have entrypoint");
-          let entrypoint = compilation.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-          let entry_chunk = compilation.chunk_by_ukey.expect_get(&entrypoint.chunks[0]);
-          let entry_chunk_runtime = entry_chunk.runtime();
-          queue.push(Task::Enter((*m, entry_chunk_runtime)))
-        });
+        .for_each(|m| queue.push(Task::Enter((*m, entry_chunk_runtime))));
 
       chunk_group_index += 1;
       chunk_group_indices.insert(
@@ -1021,164 +888,697 @@ impl CodeSplitter {
     }
   }
 
-  fn reuse_chunk(mut chunk: Chunk, compilation: &mut Compilation) -> ChunkUkey {
-    chunk.clear_groups();
-    chunk.set_prevent_integration(false);
+  fn create_chunk(
+    &self,
+    edge: &Edge,
+    runtime: RuntimeSpec,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    available_modules: AvailableModules,
+  ) -> CreateChunkResult {
+    let (root_modules, chunk_loading) = match edge {
+      Edge::Entry(_, modules, chunk_loading) => (modules.clone(), *chunk_loading),
+      Edge::AsyncEntry(_, block_id, chunk_loading) => {
+        let block = module_graph
+          .block_by_id(block_id)
+          .expect("should have block");
+        let modules = block
+          .get_dependencies()
+          .iter()
+          .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+          .copied()
+          .collect::<Vec<_>>();
 
-    let ukey = chunk.ukey();
-    if let Some(name) = chunk.name() {
-      compilation.named_chunks.insert(name.to_owned(), ukey);
-    }
-    compilation.chunk_by_ukey.add(chunk);
-    ukey
-  }
+        (modules, *chunk_loading)
+      }
+      Edge::MagicName(_, _, blocks) => {
+        let mut modules = vec![];
+        for block_id in blocks.iter() {
+          let block = module_graph
+            .block_by_id(block_id)
+            .expect("should have block");
+          modules.extend(
+            block
+              .get_dependencies()
+              .iter()
+              .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+              .copied(),
+          );
+        }
+        (modules, true)
+      }
+      Edge::Block(_, async_dependencies_block_identifier) => {
+        let block = module_graph
+          .block_by_id(&async_dependencies_block_identifier)
+          .expect("should have block");
+        let modules = block
+          .get_dependencies()
+          .iter()
+          .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+          .copied()
+          .collect::<Vec<_>>();
 
-  fn create_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
-    let mut errors = vec![];
-
-    let mut roots = self.analyze_module_graph(compilation)?;
-
-    let enable_incremental: bool = compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
-
-    let reused = if enable_incremental {
-      // lets see if any of them are from cache
-      roots
-        .par_iter()
-        .map(|root| self.cache_chunk_desc.contains_key(root))
-        .collect()
-    } else {
-      vec![false; roots.len()]
+        (modules, true)
+      }
     };
 
-    // fill chunk with modules in parallel
-    let root_chunks = roots
-      .par_iter()
-      .enumerate()
-      .map(|(idx, root)| {
-        if reused[idx] {
-          // we can reuse result from last computation
-          // because inner modules have no changes at all
-          self
-            .cache_chunk_desc
-            .get(root)
-            .expect("should have value")
-            .clone()
-        } else {
-          root
-            .create(self, compilation)
-            .into_iter()
-            .map(|chunk| CacheableChunkItem {
-              cache_ukey: CacheUkey::new(),
-              chunk_desc: chunk,
-            })
-            .collect()
+    let mut ctx = FillCtx {
+      available_modules: Some(available_modules.clone()),
+      chunk_loading,
+      ..Default::default()
+    };
+
+    for m in root_modules {
+      self.fill_chunk_modules(m, &runtime, module_graph, module_graph_cache, &mut ctx);
+    }
+
+    CreateChunkResult {
+      available_modules,
+      modules: ctx.chunk_modules,
+      post_order_indices: ctx.post_order_indices,
+      pre_order_indices: ctx.pre_order_indices,
+      modules_ordinal: ctx.module_ordinal,
+      outgoings: ctx.outgoings,
+      skipped: ctx.skipped,
+    }
+  }
+
+  pub fn invalidate(&mut self, _affected: IdentifierSet) {
+    // todo!()
+  }
+
+  fn update_chunk_result(
+    &self,
+    edge: &Edge,
+    runtime: &RuntimeSpec,
+    compilation: &Compilation,
+    result: &mut CreateChunkResult,
+  ) {
+    let module_graph: ModuleGraph<'_> = compilation.get_module_graph();
+
+    if matches!(edge, Edge::Entry(_, _, _)) {
+      // for entry, check if we can skip more modules by depend_on
+      let new_result = self.create_chunk(
+        edge,
+        runtime.clone(),
+        &module_graph,
+        &compilation.module_graph_cache_artifact,
+        result.available_modules.clone(),
+      );
+
+      result.modules = new_result.modules;
+      result.modules_ordinal = new_result.modules_ordinal;
+      result.post_order_indices = new_result.post_order_indices;
+      result.pre_order_indices = new_result.pre_order_indices;
+    } else {
+      // for async entry, we can check if skipped module should enter
+      let chunk_loading = match edge {
+        Edge::Entry(_, _, _) => unreachable!(),
+        Edge::AsyncEntry(_, _, loading) => *loading,
+        Edge::Block(_, _) => true,
+        Edge::MagicName(_, _, _) => true,
+      };
+      let mut ctx = FillCtx {
+        available_modules: Some(result.available_modules.clone()),
+        chunk_modules: result.modules.clone(),
+        module_ordinal: result.modules_ordinal.clone(),
+        chunk_loading,
+        outgoings: result.outgoings.clone(),
+        skipped: result.skipped.clone(),
+        ..Default::default()
+      };
+
+      for skipped in &result.skipped {
+        if result
+          .available_modules
+          .is_module_available(self.get_module_ordinal(*skipped))
+        {
+          // still available
+          continue;
         }
-      })
-      .collect::<Vec<_>>();
 
-    let mut cached_chunks = root_chunks.clone();
+        ctx.skipped.remove(skipped);
 
-    let chunks = root_chunks
-      .into_iter()
-      .enumerate()
-      .flat_map(|(idx, caches)| {
-        caches
-          .into_iter()
-          .map(|cache| (reused[idx], cache))
-          .collect::<Vec<_>>()
-      })
-      .collect::<Vec<_>>();
+        // if we reach here, means the module is not available, so we need to add it
+        self.fill_chunk_modules(
+          *skipped,
+          runtime,
+          &module_graph,
+          &compilation.module_graph_cache_artifact,
+          &mut ctx,
+        );
+      }
 
-    // determine chunk graph relations and
-    // remove available modules if could
-    let finalize_result = self.finalize_chunk_desc(chunks, compilation);
+      result.modules = ctx.chunk_modules;
+      result.modules_ordinal = ctx.module_ordinal;
+      result.post_order_indices = ctx.post_order_indices;
+      result.pre_order_indices = ctx.pre_order_indices;
+      result.skipped = ctx.skipped;
+      result.outgoings = ctx.outgoings;
+    }
+  }
 
-    let chunks_len = finalize_result.chunks.len();
-    let mut chunks_ukey = vec![0.into(); chunks_len];
+  fn _available_modules(&self, available_modules: &AvailableModules) -> IdentifierSet {
+    let mut modules = IdentifierSet::default();
+    for (m, bit) in &self.module_ordinal {
+      if available_modules.is_module_available(*bit) {
+        modules.insert(*m);
+      }
+    }
+    modules
+  }
 
-    let mut entries_depend_on = vec![];
-    let mut async_entrypoints = HashSet::default();
-    let mut entrypoints = HashMap::default();
-    let mut skipped = HashSet::<usize>::default();
+  #[instrument(skip_all)]
+  async fn create_chunk_loop(&mut self, compilation: &mut Compilation) -> Result<()> {
+    #[derive(Debug)]
+    enum Task {
+      Create(CreateChunk),
+      Result(Option<UkeySet<EdgeUkey>>, EdgeUkey, CreateChunkResult),
+      Check,
+    }
 
-    for (idx, (reuse, cache)) in finalize_result.chunks.into_iter().enumerate() {
-      let chunk_desc = cache.chunk_desc;
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct CreateChunk {
+      pub(crate) from: Option<UkeySet<EdgeUkey>>,
+      pub(crate) edge: EdgeUkey,
+      pub(crate) available_modules: AvailableModules,
+      pub(crate) runtime: RuntimeSpec,
+    }
 
-      if finalize_result.chunk_parents[idx].is_empty() && matches!(chunk_desc, ChunkDesc::Chunk(_))
+    let (tx, mut rx) = unbounded_channel();
+    let mut active = 0;
+
+    let mut pending: HashMap<EdgeUkey, (UkeySet<EdgeUkey>, AvailableModules)> = Default::default();
+    let mut executing: HashMap<EdgeUkey, AvailableModules> = Default::default();
+    let mut done: HashMap<EdgeUkey, CreateChunkResult> = HashMap::default();
+
+    let mut chunk_children: HashMap<EdgeUkey, IndexSet<EdgeUkey>> = Default::default();
+
+    let ScanModuleGraphResult {
+      entry_edges,
+      edges,
+      entry_runtimes,
+      mut edge_parents,
+      runtime_for_edge,
+      edge_for_block,
+    } = self.scan_module_graph(compilation)?;
+
+    // calculate dependOn
+    for (entry, data) in &compilation.entries {
+      let Some(depend_on) = &data.options.depend_on else {
+        continue;
+      };
+
+      let curr_edge = *entry_edges
+        .get(entry.as_str())
+        .expect("should have entry edge");
+
+      for dep in depend_on {
+        let Some(dep_edge) = entry_edges.get(dep) else {
+          continue;
+        };
+        edge_parents.entry(curr_edge).or_default().insert(*dep_edge);
+        chunk_children
+          .entry(*dep_edge)
+          .or_default()
+          .insert(curr_edge);
+      }
+    }
+
+    for (entry, entry_edge) in &entry_edges {
+      if let Some(parents) = edge_parents.get(entry_edge)
+        && !parents.is_empty()
       {
-        // skip empty chunk
-        skipped.insert(idx);
         continue;
       }
 
-      if !reuse {
-        chunk_desc.chunk_modules();
-      }
+      active += 1;
+      tx.send(Task::Create(CreateChunk {
+        from: None,
+        edge: *entry_edges.get(entry.as_str()).expect("should have edge"),
+        available_modules: AvailableModules::default(),
+        runtime: entry_runtimes
+          .get(entry)
+          .expect("should have runtime")
+          .clone(),
+      }))
+      .expect("should send task");
+    }
 
-      match chunk_desc {
-        ChunkDesc::Entry(entry_desc) => {
-          let box EntryChunkDesc {
-            entry,
-            entry_modules,
-            chunk_modules,
-            options,
-            incoming_blocks,
-            outgoing_blocks: _,
-            initial,
-            pre_order_indices,
-            post_order_indices,
+    loop {
+      let task = rx.recv().await;
+      active -= 1;
+      match task {
+        Some(Task::Create(create_chunk)) => {
+          let CreateChunk {
+            mut from,
+            edge: edge_ukey,
+            mut available_modules,
             runtime,
-            ..
-          } = entry_desc;
+          } = create_chunk;
 
-          let entry_chunk_ukey =
-            if reuse && let Some(chunk) = self.cache_chunks.remove(&cache.cache_ukey) {
-              Self::reuse_chunk(chunk, compilation)
-            } else if let Some(chunk_name) = &options.name {
-              let (ukey, add) = Compilation::add_named_chunk(
-                chunk_name.clone(),
-                &mut compilation.chunk_by_ukey,
-                &mut compilation.named_chunks,
-              );
-              if add && let Some(mutations) = compilation.incremental.mutations_write() {
-                mutations.add(Mutation::ChunkAdd { chunk: ukey });
-              };
-              ukey
-            } else {
-              let ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-              if let Some(mutations) = compilation.incremental.mutations_write() {
-                mutations.add(Mutation::ChunkAdd { chunk: ukey });
-              };
-              ukey
-            };
+          let edge = edges.get(&edge_ukey).expect("should have edge");
+          let is_entry = matches!(edge, Edge::Entry(_, _, _));
 
-          let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
-            initial,
-            Box::new(options.clone()),
-          ));
+          if let Some(from) = from.clone()
+            && let Some(parents) = edge_parents.get_mut(&edge_ukey)
+          {
+            for from in &from {
+              parents.remove(from);
+            }
 
-          entrypoint.module_pre_order_indices = pre_order_indices;
-          entrypoint.module_post_order_indices = post_order_indices;
-
-          let entry_chunk = compilation.chunk_by_ukey.expect_get_mut(&entry_chunk_ukey);
-          entrypoint.set_entrypoint_chunk(entry_chunk_ukey);
-          entrypoint.connect_chunk(entry_chunk);
-
-          if initial {
-            entrypoints.insert(entry.clone().expect("entry has name"), entrypoint.ukey);
-          } else {
-            compilation.async_entrypoints.push(entrypoint.ukey);
-            async_entrypoints.insert(entrypoint.ukey);
+            if !parents.is_empty() {
+              match pending.get_mut(&edge_ukey) {
+                Some((pending_parents, pending_available)) => {
+                  pending_available.merge_available_modules(is_entry, &available_modules);
+                  pending_parents.extend(from);
+                }
+                None => {
+                  pending.insert(edge_ukey, (from, available_modules));
+                }
+              }
+              active += 1;
+              tx.send(Task::Check).expect("should send task");
+              continue;
+            }
           }
 
-          entry_chunk.set_runtime(runtime.clone());
+          // if we reach here, means all incoming edges should success, the from should be all incomings
+          if let Some((pending_edges, pending_available_modules)) = pending.remove(&edge_ukey) {
+            match &mut from {
+              Some(from_edges) => {
+                // we have pending edges, so we need to add them to from
+                from_edges.extend(pending_edges.clone());
+              }
+              None => {
+                // we don't have from, so we can use pending edges
+                from = Some(pending_edges);
+              }
+            }
+            available_modules.merge_available_modules(is_entry, &pending_available_modules);
+          }
 
-          if let Some(filename) = &options.filename {
-            entry_chunk.set_filename_template(Some(filename.clone()));
+          if let Some(result) = done.get_mut(&edge_ukey) {
+            active += 1;
 
-            if filename.has_hash_placeholder() && let Some(diagnostic) = compilation.incremental.disable_passes(
+            if result
+              .available_modules
+              .should_invalidate(is_entry, &available_modules)
+            {
+              // we have more accurate available modules, so we need to re-visit
+              result
+                .available_modules
+                .merge_available_modules(is_entry, &available_modules);
+
+              self.update_chunk_result(edge, &runtime, &compilation, result);
+
+              tx.send(Task::Result(from.clone(), edge_ukey, result.clone()))
+                .expect("should send task");
+            } else {
+              tx.send(Task::Check).expect("should send task");
+            }
+            continue;
+          }
+
+          let tx = tx.clone();
+          if let Some(prev_available_modules) = executing.get(&edge_ukey) {
+            available_modules.merge_available_modules(is_entry, prev_available_modules);
+            executing.insert(edge_ukey, available_modules.clone());
+          }
+
+          struct Cell<T>(pub *const T);
+          impl<T> Cell<T> {
+            pub unsafe fn as_ref<'a>(self) -> &'a T {
+              self.0.as_ref_unchecked()
+            }
+          }
+          unsafe impl<T> Send for Cell<T> {}
+
+          let this_ptr = Cell(self as *const CodeSplitter);
+          let compilation_ptr = Cell(compilation as *const Compilation);
+          let edges = Cell(&edges as *const UkeyMap<EdgeUkey, Edge>);
+
+          active += 1;
+          rayon::spawn(move || {
+            // Safety:
+            // we ensure captured value is available during spawn executing
+            let (this, compilation, edges) =
+              unsafe { (this_ptr.as_ref(), compilation_ptr.as_ref(), edges.as_ref()) };
+            let mg = compilation.get_module_graph();
+            let edge = edges.get(&edge_ukey).expect("should have edge");
+
+            let res = Task::Result(
+              from,
+              edge_ukey,
+              this.create_chunk(
+                edge,
+                runtime,
+                &mg,
+                &compilation.module_graph_cache_artifact,
+                available_modules,
+              ),
+            );
+            tx.send(res).expect("should send task");
+          });
+        }
+
+        Some(Task::Result(from_edges, edge_ukey, create_result)) => {
+          let edge = edges.get(&edge_ukey).expect("should have edge");
+
+          if !done.contains_key(&edge_ukey) {
+            done.insert(edge_ukey, create_result.clone());
+          }
+
+          // handle depend_on
+          let mut created = UkeySet::default();
+          if matches!(edge, Edge::Entry(_, _, _))
+            && let Some(children) = chunk_children.get(&edge_ukey)
+            && !children.is_empty()
+          {
+            let child_available_modules = create_result
+              .available_modules
+              .union(&create_result.modules_ordinal);
+
+            for child in children {
+              active += 1;
+              created.insert(*child);
+              tx.send(Task::Create(CreateChunk {
+                from: Some(once(edge_ukey).collect()),
+                edge: *child,
+                available_modules: child_available_modules.clone(),
+                runtime: runtime_for_edge
+                  .get(child)
+                  .expect("should have runtime")
+                  .clone(),
+              }))
+              .expect("should send task");
+            }
+          }
+
+          if let Some(parents) = from_edges {
+            for parent in parents {
+              chunk_children.entry(parent).or_default().insert(edge_ukey);
+            }
+          }
+
+          if !create_result.outgoings.is_empty() {
+            let child_available_modules = create_result
+              .available_modules
+              .union(&create_result.modules_ordinal);
+
+            let mut has_children = false;
+            for block in create_result.outgoings {
+              let Some(outgoing) = edge_for_block.get(&block) else {
+                continue;
+              };
+
+              let outgoing_edge = edges.get(outgoing).expect("should have item for ukey");
+
+              if !created.insert(*outgoing) {
+                continue;
+              }
+
+              has_children = true;
+
+              let is_entry = matches!(
+                outgoing_edge,
+                Edge::Entry(_, _, _) | Edge::AsyncEntry(_, _, _)
+              );
+
+              active += 1;
+              tx.send(Task::Create(CreateChunk {
+                from: Some(once(edge_ukey).collect()),
+                edge: *outgoing,
+                available_modules: if is_entry {
+                  AvailableModules::default()
+                } else {
+                  child_available_modules.clone()
+                },
+                runtime: runtime_for_edge
+                  .get(outgoing)
+                  .expect("should have runtime")
+                  .clone(),
+              }))
+              .expect("should send task");
+            }
+
+            if !has_children {
+              active += 1;
+              tx.send(Task::Check).expect("should send task");
+            }
+          } else {
+            active += 1;
+            tx.send(Task::Check).expect("should send task");
+          }
+        }
+        Some(Task::Check) => {
+          // we still have tasks to be done
+          if active != 0 {
+            continue;
+          }
+
+          // don't have any tasks,
+          if pending.is_empty() {
+            break;
+          }
+
+          // if there is no tasks and we have pending task
+          // there are 2 cases
+          // 1.
+          // there are cycle chunks, which parents can never be 0
+          // 2.
+          // there are dynamic imports exist in skipped modules,
+          // Entry(import m) --> Home(import m as well), if m has dynamic import,
+          // in the pre-scan phase we can find 2 parents for m, but actually it
+          // has only 1 parent which is Entry, and skipped from Home
+          let edge_ukey = pending
+            .keys()
+            .next()
+            .expect("we have at least one item")
+            .clone();
+
+          let (pending_parents, available_modules) =
+            pending.remove(&edge_ukey).expect("should have value");
+
+          if let Some(parents) = edge_parents.get_mut(&edge_ukey) {
+            // clear waiting incomings
+            parents.clear();
+          }
+
+          active += 1;
+          tx.send(Task::Create(CreateChunk {
+            from: Some(pending_parents),
+            edge: edge_ukey,
+            available_modules: available_modules,
+            runtime: runtime_for_edge
+              .get(&edge_ukey)
+              .expect("should have result")
+              .clone(), // we don't have runtime here, so use default
+          }))
+          .expect("should send task");
+        }
+        None => {
+          unreachable!();
+        }
+      }
+    }
+
+    let mut edge_to_cg = UkeyMap::<EdgeUkey, ChunkGroupUkey>::default();
+
+    for (edge_ukey, chunk_desc) in done {
+      let CreateChunkResult {
+        pre_order_indices,
+        post_order_indices,
+        modules,
+        available_modules: _,
+        modules_ordinal: _,
+        outgoings: _,
+        skipped: _,
+      } = chunk_desc;
+
+      let edge = edges.get(&edge_ukey).expect("should have edge");
+
+      let mg = compilation.get_module_graph();
+      let name = edge.name(&mg).map(|name| name.to_string());
+      let is_entry = matches!(edge, Edge::Entry(_, _, _));
+      let is_async_entry = matches!(edge, Edge::AsyncEntry(_, _, _));
+
+      let (chunk, created) = if let Some(ref name) = name {
+        let (chunk, create) = Compilation::add_named_chunk(
+          name.to_string(),
+          &mut compilation.chunk_by_ukey,
+          &mut compilation.named_chunks,
+        );
+
+        (chunk, create)
+      } else {
+        (Compilation::add_chunk(&mut compilation.chunk_by_ukey), true)
+      };
+
+      if created && let Some(mutations) = compilation.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkAdd { chunk });
+      }
+
+      let group_options = edge.block_options(compilation);
+
+      let mut chunk_group = if is_entry || is_async_entry {
+        ChunkGroup::new(ChunkGroupKind::new_entrypoint(
+          !is_async_entry,
+          Box::new(
+            group_options
+              .as_ref()
+              .expect("should have entry options")
+              .entry_options()
+              .expect("should be entry options")
+              .clone(),
+          ),
+        ))
+      } else {
+        ChunkGroup::new(ChunkGroupKind::Normal {
+          options: edge
+            .block_options(compilation)
+            .and_then(|opt| opt.normal_options().cloned())
+            .unwrap_or_default()
+            .clone(),
+        })
+      };
+
+      let chunk_group_ukey: ChunkGroupUkey = chunk_group.ukey();
+      let runtime = runtime_for_edge
+        .get(&edge_ukey)
+        .expect("should have runtime")
+        .clone();
+      edge_to_cg.insert(edge_ukey, chunk_group_ukey);
+      compilation.chunk_graph.add_chunk(chunk);
+      chunk_group.connect_chunk(compilation.chunk_by_ukey.expect_get_mut(&chunk));
+
+      chunk_group.module_pre_order_indices = pre_order_indices;
+      chunk_group.module_post_order_indices = post_order_indices;
+
+      if is_async_entry || is_entry {
+        chunk_group.set_entrypoint_chunk(chunk);
+      }
+
+      if is_async_entry {
+        compilation.async_entrypoints.push(chunk_group_ukey);
+      }
+
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk);
+      let chunk_ukey = chunk.ukey();
+      chunk.set_runtime(runtime.clone());
+
+      if let Some(name) = chunk_group.kind.name() {
+        compilation
+          .named_chunk_groups
+          .insert(name.to_owned(), chunk_group_ukey);
+      }
+
+      if is_entry {
+        let options = group_options
+          .as_ref()
+          .expect("should have option")
+          .entry_options()
+          .expect("is entry option");
+
+        if let Some(EntryRuntime::String(ref entry_runtime)) = options.runtime {
+          let (runtime_chunk_ukey, add) = Compilation::add_named_chunk(
+            entry_runtime.into(),
+            &mut compilation.chunk_by_ukey,
+            &mut compilation.named_chunks,
+          );
+
+          if add && let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunkAdd {
+              chunk: runtime_chunk_ukey,
+            });
+          }
+
+          let rt_chunk = if compilation.entries.contains_key(entry_runtime) {
+            let name = name.as_ref().expect("should have name");
+            compilation.push_diagnostic(Diagnostic::from(error!(
+                  "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{entry_runtime}'.
+It's not valid to use other entrypoints as runtime chunk.
+Did you mean to use 'dependOn: \"{entry_runtime}\"' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{entry_runtime}'? For this '{entry_runtime}' must always be loaded when '{name}' is used.
+Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
+                                ),
+                ).with_chunk(Some(chunk_ukey.as_u32())));
+            compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey)
+          } else {
+            let runtime_chunk = compilation
+              .chunk_by_ukey
+              .expect_get_mut(&runtime_chunk_ukey);
+            runtime_chunk.set_prevent_integration(true);
+            compilation.chunk_graph.add_chunk(runtime_chunk_ukey);
+            compilation
+              .chunk_by_ukey
+              .expect_get_mut(&runtime_chunk_ukey)
+          };
+          chunk_group.unshift_chunk(rt_chunk);
+          rt_chunk.set_runtime(runtime);
+          rt_chunk.add_group(chunk_group_ukey);
+          chunk_group.set_runtime_chunk(rt_chunk.ukey());
+        } else if options.depend_on.is_none() {
+          chunk_group.set_runtime_chunk(chunk_ukey);
+        }
+
+        let name = name.as_ref().expect("should have name");
+        let entry_data = compilation
+          .entries
+          .get(name)
+          .expect("should have entry data");
+        let dependencies = compilation
+          .global_entry
+          .dependencies
+          .iter()
+          .chain(entry_data.dependencies.iter());
+        let requests = dependencies
+          .map(|dep_id| {
+            let module_graph = compilation.get_module_graph();
+            let dep = module_graph.dependency_by_id(dep_id);
+            let mut request = None;
+            if let Some(dep) = dep {
+              if let Some(d) = dep.as_any().downcast_ref::<EntryDependency>() {
+                request = Some(d.request().to_string());
+              }
+            }
+            request
+          })
+          .collect::<Vec<_>>();
+        for request in requests {
+          let loc = Some(DependencyLocation::Synthetic(
+            SyntheticDependencyLocation::new(name),
+          ));
+          chunk_group.add_origin(None, loc, request);
+        }
+
+        let mut assign_depths_map = IdentifierMap::default();
+        let module_graph = compilation.get_module_graph();
+        let modules = edge
+          .root_modules(&module_graph)
+          .expect("should have entry modules");
+
+        assign_depths(
+          &mut assign_depths_map,
+          &compilation.get_module_graph(),
+          modules.iter(),
+        );
+
+        let mut module_graph = compilation.get_module_graph_mut();
+        for (m, depth) in assign_depths_map {
+          module_graph.set_depth_if_lower(&m, depth);
+        }
+      } else if is_async_entry {
+        chunk_group.set_runtime_chunk(chunk_ukey);
+      }
+
+      if let Some(filename) = group_options
+        .as_ref()
+        .and_then(|opt| opt.entry_options().and_then(|opt| opt.filename.as_ref()))
+      {
+        let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+        chunk.set_filename_template(Some(filename.clone()));
+
+        if filename.has_hash_placeholder() && let Some(diagnostic) = compilation.incremental.disable_passes(
               IncrementalPasses::CHUNKS_RENDER,
               "Chunk filename that dependent on full hash",
               "chunk filename that dependent on full hash is not supported in incremental compilation",
@@ -1188,557 +1588,172 @@ impl CodeSplitter {
               }
               compilation.chunk_render_artifact.clear();
             }
-          }
+      }
 
-          if let Some(name) = entrypoint.kind.name() {
-            compilation
-              .named_chunk_groups
-              .insert(name.to_owned(), entrypoint.ukey);
-          }
+      for incoming in edge.incoming_blocks() {
+        compilation
+          .chunk_graph
+          .connect_block_and_chunk_group(incoming, chunk_group_ukey);
 
-          if initial {
-            if let Some(EntryRuntime::String(entry_runtime)) = &options.runtime {
-              let (runtime_chunk_ukey, add) = Compilation::add_named_chunk(
-                entry_runtime.into(),
-                &mut compilation.chunk_by_ukey,
-                &mut compilation.named_chunks,
-              );
-
-              if add && let Some(mutations) = compilation.incremental.mutations_write() {
-                mutations.add(Mutation::ChunkAdd {
-                  chunk: runtime_chunk_ukey,
-                });
-              }
-
-              let rt_chunk = if compilation.entries.contains_key(entry_runtime) {
-                let name = entry.as_ref().expect("should have name");
-                errors.push(Diagnostic::from(error!(
-                  "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{entry_runtime}'.
-It's not valid to use other entrypoints as runtime chunk.
-Did you mean to use 'dependOn: \"{entry_runtime}\"' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{entry_runtime}'? For this '{entry_runtime}' must always be loaded when '{name}' is used.
-Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
-                                ),
-                ).with_chunk(Some(entry_chunk_ukey.as_u32())));
-                compilation.chunk_by_ukey.expect_get_mut(&entry_chunk_ukey)
-              } else {
-                let runtime_chunk = compilation
-                  .chunk_by_ukey
-                  .expect_get_mut(&runtime_chunk_ukey);
-                runtime_chunk.set_prevent_integration(true);
-                compilation.chunk_graph.add_chunk(runtime_chunk_ukey);
-                compilation
-                  .chunk_by_ukey
-                  .expect_get_mut(&runtime_chunk_ukey)
-              };
-              entrypoint.unshift_chunk(rt_chunk);
-              rt_chunk.set_runtime(runtime);
-              rt_chunk.add_group(entrypoint.ukey);
-              entrypoint.set_runtime_chunk(rt_chunk.ukey());
-            } else if let Some(depend_on) = &options.depend_on {
-              entries_depend_on.push((
-                entry
-                  .clone()
-                  .expect("entry has dependOn but does not have name, this is unreachable"),
-                depend_on.clone(),
-              ));
-            } else {
-              entrypoint.set_runtime_chunk(entry_chunk_ukey);
-            }
-          } else {
-            entrypoint.set_runtime_chunk(entry_chunk_ukey);
-          }
-
-          let entrypoint_ukey = entrypoint.ukey;
-
-          if initial {
-            let name = entry.as_ref().expect("should have name");
-            let entry_data = compilation
-              .entries
-              .get(name)
-              .expect("should have entry data");
-            let dependencies = compilation
-              .global_entry
-              .dependencies
-              .iter()
-              .chain(entry_data.dependencies.iter());
-            let requests = dependencies
-              .map(|dep_id| {
-                let module_graph = compilation.get_module_graph();
-                let dep = module_graph.dependency_by_id(dep_id);
-                let mut request = None;
-                if let Some(dep) = dep {
-                  if let Some(d) = dep.as_any().downcast_ref::<EntryDependency>() {
-                    request = Some(d.request().to_string());
-                  }
-                }
-                request
-              })
-              .collect::<Vec<_>>();
-            for request in requests {
-              let loc = Some(DependencyLocation::Synthetic(
-                SyntheticDependencyLocation::new(name),
-              ));
-              entrypoint.add_origin(None, loc, request);
-            }
-
-            if initial {
-              let mut assign_depths_map = IdentifierMap::default();
-              assign_depths(
-                &mut assign_depths_map,
-                &compilation.get_module_graph(),
-                entry_modules.iter(),
-              );
-              let mut module_graph = compilation.get_module_graph_mut();
-              for (m, depth) in assign_depths_map {
-                module_graph.set_depth_if_lower(&m, depth);
-              }
-            }
-          }
-
-          for incoming in incoming_blocks {
-            compilation
-              .chunk_graph
-              .connect_block_and_chunk_group(incoming, entrypoint_ukey);
-
-            let module_graph = compilation.get_module_graph();
-            if let Some(block) = module_graph.block_by_id(&incoming) {
-              entrypoint.add_origin(Some(*block.parent()), block.loc(), block.request().clone());
-            }
-          }
-
-          compilation.chunk_group_by_ukey.add(entrypoint);
-          compilation.chunk_graph.add_chunk(entry_chunk_ukey);
-
-          for m in entry_modules {
-            compilation.chunk_graph.connect_chunk_and_entry_module(
-              entry_chunk_ukey,
-              m,
-              entrypoint_ukey,
-            );
-
-            compilation
-              .chunk_graph
-              .connect_chunk_and_module(entry_chunk_ukey, m);
-          }
-
-          // TODO: do this in parallel
-          for module in chunk_modules.iter() {
-            compilation
-              .chunk_graph
-              .connect_chunk_and_module(entry_chunk_ukey, *module);
-          }
-
-          chunks_ukey[idx] = entry_chunk_ukey;
-
-          if enable_incremental {
-            self.cache_chunks.insert(
-              cache.cache_ukey,
-              compilation
-                .chunk_by_ukey
-                .expect_get(&entry_chunk_ukey)
-                .clone(),
-            );
-          }
-        }
-        ChunkDesc::Chunk(chunk_desc) => {
-          let box NormalChunkDesc {
-            options,
-            chunk_modules,
-            pre_order_indices,
-            post_order_indices,
-            incoming_blocks,
-            runtime,
-            ..
-          } = chunk_desc;
-
-          let modules = chunk_modules;
-
-          if modules.is_empty() {
-            // ignore empty chunk
-            skipped.insert(idx);
-          }
-
-          let name = if let Some(option) = &options {
-            option.name.as_ref()
-          } else {
-            None
-          };
-
-          let ukey = if reuse && let Some(chunk) = self.cache_chunks.remove(&cache.cache_ukey) {
-            Self::reuse_chunk(chunk, compilation)
-          } else if let Some(name) = name {
-            let (ukey, add) = Compilation::add_named_chunk(
-              name.clone(),
-              &mut compilation.chunk_by_ukey,
-              &mut compilation.named_chunks,
-            );
-            if add && let Some(mutations) = compilation.incremental.mutations_write() {
-              mutations.add(Mutation::ChunkAdd { chunk: ukey });
-            }
-            ukey
-          } else {
-            let ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-            if let Some(mutations) = compilation.incremental.mutations_write() {
-              mutations.add(Mutation::ChunkAdd { chunk: ukey });
-            }
-            ukey
-          };
-
-          let mut group = ChunkGroup::new(crate::ChunkGroupKind::Normal {
-            options: options.clone().unwrap_or_default(),
-          });
-          group.module_pre_order_indices = pre_order_indices;
-          group.module_post_order_indices = post_order_indices;
-          let group_ukey = group.ukey;
-
-          let chunk = compilation.chunk_by_ukey.expect_get_mut(&ukey);
-          group.connect_chunk(chunk);
-          chunk.set_runtime(runtime);
-
-          for block in incoming_blocks {
-            compilation
-              .chunk_graph
-              .connect_block_and_chunk_group(block, group_ukey);
-
-            let module_graph = compilation.get_module_graph();
-            if let Some(block) = module_graph.block_by_id(&block) {
-              group.add_origin(Some(*block.parent()), block.loc(), block.request().clone());
-            }
-          }
-
-          compilation.chunk_group_by_ukey.add(group);
-          compilation.chunk_graph.add_chunk(ukey);
-
-          if let Some(name) = name {
-            compilation
-              .named_chunk_groups
-              .insert(name.clone(), group_ukey);
-          }
-
-          chunks_ukey[idx] = ukey;
-
-          // TODO: do this in parallel
-          for module in modules {
-            compilation
-              .chunk_graph
-              .connect_chunk_and_module(ukey, module);
-          }
-
-          if enable_incremental {
-            self.cache_chunks.insert(
-              cache.cache_ukey,
-              compilation.chunk_by_ukey.expect_get(&ukey).clone(),
-            );
-          }
+        let module_graph = compilation.get_module_graph();
+        if let Some(block) = module_graph.block_by_id(&incoming) {
+          chunk_group.add_origin(Some(*block.parent()), block.loc(), block.request().clone());
         }
       }
-    }
 
-    // the left cache is unused, mark them as removed
-    if let Some(mutations) = compilation.incremental.mutations_write() {
-      self.cache_chunks.retain(|_, chunk| {
-        let should_remove = !compilation.chunk_by_ukey.contains(&chunk.ukey());
+      if is_entry || is_async_entry {
+        let module_graph = compilation.get_module_graph();
+        let entry_modules = if is_entry {
+          let entry_data = compilation
+            .entries
+            .get(name.as_ref().expect("should have name"))
+            .expect("should have entry data");
 
-        if should_remove {
-          mutations.add(Mutation::ChunkRemove {
-            chunk: chunk.ukey(),
-          });
+          compilation
+            .global_entry
+            .dependencies
+            .iter()
+            .chain(entry_data.dependencies.iter())
+            .filter_map(|dep_id| {
+              module_graph
+                .module_identifier_by_dependency_id(dep_id)
+                .copied()
+            })
+            .collect::<Vec<_>>()
+        } else {
+          let Edge::AsyncEntry(_, block, _) = edge else {
+            unreachable!()
+          };
+          let block = module_graph.block_by_id(block).expect("should have block");
+          block
+            .get_dependencies()
+            .iter()
+            .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+            .copied()
+            .collect::<Vec<_>>()
+        };
+
+        for m in entry_modules {
+          compilation
+            .chunk_graph
+            .connect_chunk_and_entry_module(chunk_ukey, m, chunk_group_ukey);
         }
+      }
+      compilation.chunk_group_by_ukey.add(chunk_group);
 
-        !should_remove
-      });
+      for m in modules {
+        compilation
+          .chunk_graph
+          .connect_chunk_and_module(chunk_ukey, m);
+      }
     }
 
     for entry in compilation.entries.keys() {
-      if let Some(entrypoint) = entrypoints.get(entry) {
-        compilation.entrypoints.insert(entry.clone(), *entrypoint);
-      }
+      let entrypoint_ukey = compilation
+        .named_chunk_groups
+        .get(entry)
+        .expect("should have entrypoint");
+      compilation
+        .entrypoints
+        .insert(entry.clone(), *entrypoint_ukey);
     }
 
-    for (entry, depend_on) in entries_depend_on {
-      let entrypoint_ukey = *compilation.entrypoints.get(&entry).expect("unreachable");
-      let entrypoint = compilation
-        .chunk_group_by_ukey
-        .get(&entrypoint_ukey)
-        .expect("unreachable");
-      let entry_point_chunk = compilation
-        .chunk_by_ukey
-        .expect_get(&entrypoint.get_entrypoint_chunk());
-      let entry_point_chunk_ukey = entry_point_chunk.ukey();
-      let referenced_chunks =
-        entry_point_chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey);
+    let mut runtime_errors = vec![];
+    for name in compilation.entries.keys() {
+      let options = &compilation
+        .entries
+        .get(name)
+        .expect("should have entry")
+        .options;
 
-      let mut parents = vec![];
+      if let Some(depend_on) = &options.depend_on {
+        let ukey = compilation
+          .entrypoints
+          .get(name.as_str())
+          .ok_or_else(|| error!("no entrypoints found"))?;
 
-      for dep in depend_on {
-        if let Some(dep_entrypoint_ukey) = compilation.entrypoints.get(&dep) {
-          let dep_entrypoint = compilation
-            .chunk_group_by_ukey
-            .expect_get_mut(dep_entrypoint_ukey);
-          let dependency_chunk_ukey = dep_entrypoint.get_entrypoint_chunk();
-          if referenced_chunks.contains(&dependency_chunk_ukey) {
-            // cycle dep
-            compilation
-              .chunk_group_by_ukey
-              .get_mut(&entrypoint_ukey)
-              .expect("unreachable")
-              .set_runtime_chunk(entry_point_chunk_ukey);
-            break;
-          }
+        let mut entry_point_runtime = None;
+        let mut has_error = false;
 
-          dep_entrypoint.add_child(entrypoint_ukey);
-          parents.push(dep_entrypoint_ukey);
-        } else {
-          errors.push(Diagnostic::from(error!("entry {dep} not found")));
-        }
-      }
-
-      let entrypoint = compilation
-        .chunk_group_by_ukey
-        .expect_get_mut(&entrypoint_ukey);
-      for parent in parents {
-        entrypoint.add_parent(*parent);
-      }
-    }
-
-    // connect parent and children
-    for idx in 0..chunks_len {
-      if skipped.contains(&idx) {
-        continue;
-      }
-
-      let Some(children) = finalize_result.chunk_children.get(idx) else {
-        continue;
-      };
-      let children = children.iter().filter(|idx| !skipped.contains(idx));
-
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunks_ukey[idx]);
-
-      let groups = chunk.groups().clone();
-      let children_groups = children
-        .flat_map(|parent| {
-          compilation
+        {
+          let entry_point = compilation.chunk_group_by_ukey.expect_get(ukey);
+          let entry_point_chunk = compilation
             .chunk_by_ukey
-            .expect_get(&chunks_ukey[*parent])
-            .groups()
-        })
-        .copied();
+            .expect_get(&entry_point.get_entrypoint_chunk());
+          let referenced_chunks =
+            entry_point_chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey);
 
-      for group in &groups {
-        let children = children_groups
-          .clone()
-          .filter(|cg| !async_entrypoints.contains(cg));
-        let group = compilation.chunk_group_by_ukey.expect_get_mut(group);
-        group.children.extend(children);
-      }
-
-      for child_ukey in children_groups {
-        if async_entrypoints.contains(&child_ukey) {
-          for parent in &groups {
-            let parent = compilation.chunk_group_by_ukey.expect_get_mut(parent);
-            parent.add_async_entrypoint(child_ukey);
+          for dep in depend_on {
+            if let Some(dependency_ukey) = compilation.entrypoints.get(dep) {
+              let dependency_chunk_ukey = compilation
+                .chunk_group_by_ukey
+                .expect_get(dependency_ukey)
+                .get_entrypoint_chunk();
+              if referenced_chunks.contains(&dependency_chunk_ukey) {
+                runtime_errors.push(Diagnostic::from(
+                error!(
+                  "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
+                ),
+              ).with_chunk(Some(entry_point.get_entrypoint_chunk().as_u32())));
+                entry_point_runtime = Some(entry_point_chunk.ukey());
+                has_error = true;
+                break;
+              }
+            } else {
+              panic!("Entry {name} depends on {dep}, but this entry was not found");
+            }
           }
-        } else {
-          let child = compilation.chunk_group_by_ukey.expect_get_mut(&child_ukey);
-          child.parents.extend(groups.clone());
+        }
+
+        if has_error {
+          let entry_point = compilation.chunk_group_by_ukey.expect_get_mut(ukey);
+          entry_point.set_runtime_chunk(entry_point_runtime.expect("Should set runtime chunk"));
         }
       }
     }
+
+    for (edge, children) in chunk_children {
+      let chunk_group_ukey = edge_to_cg
+        .get(&edge)
+        .expect("should have chunk group for edge");
+
+      for child in children {
+        let child_cg = edge_to_cg.get(&child).unwrap_or_else(|| {
+          let edge = edges.get(&child).expect("should have edge");
+          panic!("should have chunk group for edge {:?}", edge)
+        });
+
+        let child_group = compilation.chunk_group_by_ukey.expect_get_mut(child_cg);
+
+        let is_child_async_entrypoint =
+          child_group.kind.is_entrypoint() && !child_group.is_initial();
+
+        if !is_child_async_entrypoint {
+          child_group.add_parent(*chunk_group_ukey);
+        }
+
+        let chunk_group = compilation
+          .chunk_group_by_ukey
+          .expect_get_mut(chunk_group_ukey);
+
+        if is_child_async_entrypoint {
+          chunk_group.add_async_entrypoint(*child_cg);
+        } else {
+          chunk_group.add_child(*child_cg);
+        }
+      }
+    }
+
     self.set_order_index_and_group_index(compilation);
 
-    errors.sort_unstable_by_key(|err| err.message());
-
-    compilation.extend_diagnostics(errors);
-
-    if enable_incremental {
-      // flush cache from previous compilation
-      self.cache_chunk_desc.clear();
-
-      // insert new cache
-      cached_chunks.reverse();
-      for chunks in &cached_chunks {
-        let root = roots.pop().expect("should have root");
-        self.cache_chunk_desc.insert(root, chunks.clone());
-      }
-    }
+    compilation.extend_diagnostics(runtime_errors);
 
     Ok(())
-  }
-
-  #[instrument(skip_all)]
-  fn calculate_relation(
-    chunks: &[(bool, CacheableChunkItem)],
-    chunks_origin_block: &HashMap<AsyncDependenciesBlockIdentifier, usize>,
-    idx_by_name: &HashMap<String, usize>,
-    chunks_by_block: &HashMap<AsyncDependenciesBlockIdentifier, Vec<usize>>,
-  ) -> (Vec<IndexSet<usize>>, Vec<IndexSet<usize>>) {
-    let chunks_len = chunks.len();
-    // map that records info about chunk to its parents
-    // this is useful when calculate removeAvailableModules, as it needs calculate based on parents
-    let mut chunk_parents: Vec<IndexSet<usize>> = Vec::with_capacity(chunks_len);
-
-    // this is useful when determine chunk index, the order index of chunk is deterministic,
-    // we use chunk outgoing blocks order to ensure that
-    let mut chunk_children: Vec<IndexSet<usize>> = vec![Default::default(); chunks_len];
-
-    let mut parents = HashSet::default();
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      parents.clear();
-      match &cache.chunk_desc {
-        ChunkDesc::Entry(entry) => {
-          if let Some(depend_on) = &entry.options.depend_on {
-            let depend_on_parents: IndexSet<usize> = depend_on
-              .iter()
-              .map(|dep| idx_by_name.get(dep.as_str()).expect("unreachable"))
-              .copied()
-              .collect();
-
-            for parent in &depend_on_parents {
-              chunk_children[*parent].insert(idx);
-            }
-
-            chunk_parents.push(depend_on_parents);
-          } else {
-            chunk_parents.push(Default::default());
-          }
-        }
-        ChunkDesc::Chunk(chunk) => {
-          for block in &chunk.incoming_blocks {
-            let Some(chunk_parents) = chunks_by_block.get(block) else {
-              continue;
-            };
-
-            parents.extend(chunk_parents);
-          }
-          chunk_parents.push(
-            parents
-              .iter()
-              .filter(|parent| **parent != idx)
-              .copied()
-              .collect(),
-          );
-        }
-      }
-    }
-
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      chunk_children[idx].extend(
-        cache
-          .chunk_desc
-          .outgoings()
-          .iter()
-          .filter_map(|outgoing_block| chunks_origin_block.get(outgoing_block).copied())
-          .filter(|child| *child != idx),
-      );
-    }
-
-    (chunk_parents, chunk_children)
-  }
-
-  // 1. determine parent child relationship
-  // 2. remove modules that exist in all parents
-  #[instrument(skip_all)]
-  fn finalize_chunk_desc(
-    &mut self,
-    mut chunks: Vec<(bool, CacheableChunkItem)>,
-    compilation: &Compilation,
-  ) -> FinalizeChunksResult {
-    // which chunk owns this block identifier
-    let mut chunks_by_block: HashMap<AsyncDependenciesBlockIdentifier, Vec<usize>> =
-      HashMap::default();
-
-    let mut idx_by_name: HashMap<String, usize> = Default::default();
-
-    // one block.dep only point to a unique chunk
-    // use this to a chunk is initialized because of which block.dep
-    let mut chunks_origin_block = HashMap::default();
-
-    let mut roots = vec![];
-
-    // 1st iter, find roots and analyze which block belongs to which chunk
-    // note that async entrypoint has no parents
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      let chunk = &cache.chunk_desc;
-      if let Some(name) = chunk.name() {
-        idx_by_name.insert(name.to_string(), idx);
-      }
-      let incoming_blocks = match chunk {
-        ChunkDesc::Entry(entry) => {
-          roots.push(idx);
-
-          &entry.incoming_blocks
-        }
-        ChunkDesc::Chunk(chunk) => &chunk.incoming_blocks,
-      };
-      for block in incoming_blocks {
-        if chunks_origin_block.insert(*block, idx).is_some() {
-          unreachable!()
-        }
-      }
-
-      for block in chunk.outgoings() {
-        chunks_by_block.entry(*block).or_default().push(idx);
-      }
-    }
-
-    let (mut chunk_parents, mut chunk_children) = Self::calculate_relation(
-      &chunks,
-      &chunks_origin_block,
-      &idx_by_name,
-      &chunks_by_block,
-    );
-
-    if compilation.options.optimization.remove_available_modules {
-      /*
-            4rd iter, remove modules that is available in parents
-            remove modules that are already exist in parent chunk
-
-            if we meet cycle like following:
-
-                  ┌────┐      ┌────┐
-      module x <- │ e1 │      │ e2 │ -> module x
-                  └──┬─┘      └─┬──┘
-                     │          │
-                     v          v
-                  ┌───┐       ┌───┐
-                  │ a ├──────>│ b │
-                  └───┘       └─┬─┘
-                    ^           │
-                    │  ┌─────┐  │
-                    └──┤  c  │<─┘
-                       └─────┘
-                          |
-                          v
-                      module x (this should not be included in any chunk, as it already exist in all parents)
-          */
-      remove_available_modules(
-        compilation,
-        &self.module_ordinal,
-        &mut chunks,
-        &mut roots,
-        &chunk_parents,
-        &chunk_children,
-      );
-
-      // we modify `chunk.outgoings()` so we should re-calculate chunk relations
-      (chunk_parents, chunk_children) = Self::calculate_relation(
-        &chunks,
-        &chunks_origin_block,
-        &idx_by_name,
-        &chunks_by_block,
-      );
-    }
-
-    FinalizeChunksResult {
-      chunks,
-      chunk_children,
-      chunk_parents,
-    }
   }
 }
 
 // main entry for code splitting
-pub fn code_split(compilation: &mut Compilation) -> Result<()> {
+pub async fn code_split(compilation: &mut Compilation) -> Result<()> {
   // ensure every module have a cgm, webpack uses the same trick
   for m in compilation
     .get_module_graph()
@@ -1772,14 +1787,15 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
 
     // reuse data from last computation
     let mut splitter = std::mem::take(&mut compilation.code_splitting_cache.new_code_splitter);
-    splitter.invalidate(affected.into_iter());
+    splitter.invalidate(affected.into_iter().collect());
     splitter
   } else {
     CodeSplitter::new(compilation.get_module_graph().modules().keys().copied())
   };
 
   // fill chunks with its modules
-  splitter.create_chunks(compilation)?;
+  // splitter.create_chunks(compilation)?;
+  splitter.create_chunk_loop(compilation).await?;
 
   compilation.code_splitting_cache.new_code_splitter = splitter;
 
