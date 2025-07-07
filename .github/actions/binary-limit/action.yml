@@ -3,9 +3,9 @@ name: Binary Size Limit
 description: Compare binary size with default
 
 inputs:
-  percentage-threshold:
-    description: "the"
-    default: "5"
+  size-threshold:
+    description: "the increase size limit in bytes, default is 50kb"
+    default: "51200"
     required: false
 
 runs:
@@ -16,5 +16,6 @@ runs:
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       with:
         script: |
+          const limit = parseInt("${{ inputs.size-threshold }}") || 51200;
           const action = require("./.github/actions/binary-limit/binary-limit-script.js");
-          await action({github, context});
+          await action({github, context, limit});
