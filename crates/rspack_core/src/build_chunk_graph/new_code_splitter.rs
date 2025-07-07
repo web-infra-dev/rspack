@@ -754,12 +754,9 @@ impl CodeSplitter {
     &self,
     module: &ModuleIdentifier,
     runtime: &RuntimeSpec,
-  ) -> (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>) {
+  ) -> Option<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
     let module_map = self.module_deps.get(runtime).expect("should have value");
-    module_map
-      .get(module)
-      .expect("should have outgoing modules")
-      .clone()
+    module_map.get(module).cloned()
   }
 
   pub fn outgoings_modules(
@@ -864,7 +861,13 @@ impl CodeSplitter {
               value
             });
 
-          let (mut outgoing_modules, blocks) = self.get_outgoings_modules(&target_module, runtime);
+          let Some((mut outgoing_modules, blocks)) =
+            self.get_outgoings_modules(&target_module, runtime)
+          else {
+            // not exists when error occurs
+            // just skip it and the errors will be reported in stats
+            continue;
+          };
 
           if ctx.chunk_loading {
             ctx.out_goings.extend(blocks);
@@ -987,7 +990,11 @@ impl CodeSplitter {
             if !self.module_deps.contains_key(runtime) {
               self.module_deps.insert(runtime.clone(), Default::default());
             }
-            let (modules, blocks) = self.get_outgoings_modules(&m, runtime);
+            let Some((modules, blocks)) = self.get_outgoings_modules(&m, runtime) else {
+              // not exists when error occurs
+              // just skip it and the errors will be reported in stats
+              continue;
+            };
 
             for m in modules.iter().rev() {
               queue.push(Task::Enter((*m, runtime)));
@@ -1154,6 +1161,22 @@ impl CodeSplitter {
     let mut async_entrypoints = HashSet::default();
     let mut entrypoints = HashMap::default();
     let mut skipped = HashSet::<usize>::default();
+    let outgoings = {
+      let mg = compilation.get_module_graph();
+      let all_modules = mg.modules();
+      all_modules
+        .keys()
+        .par_bridge()
+        .map(|mid| {
+          (
+            *mid,
+            mg.get_outgoing_connections(mid)
+              .cloned()
+              .collect::<Vec<_>>(),
+          )
+        })
+        .collect::<IdentifierMap<_>>()
+    };
 
     for (idx, (reuse, cache)) in finalize_result.chunks.into_iter().enumerate() {
       let chunk_desc = cache.chunk_desc;
@@ -1335,11 +1358,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
             if initial {
               let mut assign_depths_map = IdentifierMap::default();
-              assign_depths(
-                &mut assign_depths_map,
-                &compilation.get_module_graph(),
-                entry_modules.iter(),
-              );
+              assign_depths(&mut assign_depths_map, &entry_modules, &outgoings);
               let mut module_graph = compilation.get_module_graph_mut();
               for (m, depth) in assign_depths_map {
                 module_graph.set_depth_if_lower(&m, depth);
