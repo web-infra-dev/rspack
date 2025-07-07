@@ -10,7 +10,7 @@ module.exports = {
 	async check(stats) {
 		expect(stats?.toString({ timings: false, version: false }))
 			.toMatchInlineSnapshot(`
-		asset main.js 11 bytes [emitted] (name: main)
+		asset main.js 344 bytes [emitted] (name: main)
 		./fixtures/abc.js 83 bytes [built] [code generated]
 		./fixtures/a.js 55 bytes [built] [code generated]
 		./fixtures/b.js 94 bytes [built] [code generated]

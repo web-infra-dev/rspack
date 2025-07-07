@@ -10,7 +10,7 @@
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* export default binding */ __WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 /* ESM import */var _dead__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dead.js");
 
