@@ -98,6 +98,8 @@ fn assign_named_chunk_ids(
   let name_to_items_keys = name_to_items.keys().cloned().collect::<FxHashSet<_>>();
   let mut unnamed_items = vec![];
 
+  let mut ordered_chunk_modules_cache = Default::default();
+
   for (name, mut items) in name_to_items {
     if name.is_empty() {
       for item in items {
@@ -123,6 +125,7 @@ fn assign_named_chunk_ids(
           &compilation.module_ids_artifact,
           a,
           b,
+          &mut ordered_chunk_modules_cache,
         )
       });
       let mut i = 0;
@@ -155,6 +158,7 @@ fn assign_named_chunk_ids(
       &compilation.module_ids_artifact,
       a,
       b,
+      &mut ordered_chunk_modules_cache,
     )
   });
   unnamed_items

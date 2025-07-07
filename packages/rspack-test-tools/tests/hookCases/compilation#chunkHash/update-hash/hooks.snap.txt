@@ -4,25 +4,7 @@
 
 ```javascript
 Array [
-  Chunk {
-    "auxiliaryFiles": Set {},
-    "chunkReason": undefined,
-    "contentHash": Object {},
-    "cssFilenameTemplate": undefined,
-    "filenameTemplate": undefined,
-    "files": Set {},
-    "hash": undefined,
-    "id": "909",
-    "idNameHints": Array [],
-    "ids": Array [
-      "909",
-    ],
-    "name": "main",
-    "renderedHash": undefined,
-    "runtime": Set {
-      "main",
-    },
-  },
+  Chunk {},
   WasmHashAdapter {
     "wasmHash": WasmHash {
       "buffered": 0,

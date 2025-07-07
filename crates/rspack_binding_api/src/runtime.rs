@@ -10,7 +10,7 @@ use rspack_plugin_runtime::{
 };
 use rustc_hash::FxHashMap;
 
-use crate::JsChunkWrapper;
+use crate::ChunkWrapper;
 
 type RuntimeGlobalMap = (
   FxHashMap<RuntimeGlobals, String>,
@@ -102,8 +102,8 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
 
 #[napi(object, object_from_js = false)]
 pub struct JsAdditionalTreeRuntimeRequirementsArg {
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
   pub runtime_requirements: JsRuntimeGlobals,
 }
 
@@ -154,8 +154,8 @@ impl JsAdditionalTreeRuntimeRequirementsResult {
 
 #[napi(object, object_from_js = false)]
 pub struct JsRuntimeRequirementInTreeArg {
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
   pub all_runtime_requirements: JsRuntimeGlobals,
   pub runtime_requirements: JsRuntimeGlobals,
 }
@@ -188,8 +188,8 @@ impl JsRuntimeRequirementInTreeResult {
 #[napi(object, object_from_js = false)]
 pub struct JsCreateScriptData {
   pub code: String,
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
 }
 
 impl From<CreateScriptData> for JsCreateScriptData {
@@ -204,8 +204,8 @@ impl From<CreateScriptData> for JsCreateScriptData {
 #[napi(object, object_from_js = false)]
 pub struct JsLinkPreloadData {
   pub code: String,
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
 }
 
 impl From<LinkPreloadData> for JsLinkPreloadData {
@@ -220,8 +220,8 @@ impl From<LinkPreloadData> for JsLinkPreloadData {
 #[napi(object, object_from_js = false)]
 pub struct JsLinkPrefetchData {
   pub code: String,
-  #[napi(ts_type = "JsChunk")]
-  pub chunk: JsChunkWrapper,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
 }
 
 impl From<LinkPrefetchData> for JsLinkPrefetchData {
@@ -233,7 +233,7 @@ impl From<LinkPrefetchData> for JsLinkPrefetchData {
   }
 }
 
-impl From<RuntimeModuleChunkWrapper> for JsChunkWrapper {
+impl From<RuntimeModuleChunkWrapper> for ChunkWrapper {
   fn from(value: RuntimeModuleChunkWrapper) -> Self {
     Self {
       chunk_ukey: value.chunk_ukey,

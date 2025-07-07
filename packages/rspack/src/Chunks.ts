@@ -1,13 +1,11 @@
 import { Chunks } from "@rspack/binding";
-import { Chunk } from "./Chunk";
+import type { Chunk } from "./Chunk";
 
 Object.defineProperty(Chunks.prototype, "values", {
 	enumerable: true,
 	configurable: true,
 	value(this: Chunks): SetIterator<Chunk> {
-		return this._values()
-			.map(binding => Chunk.__from_binding(binding))
-			.values();
+		return this._values().values();
 	}
 });
 
@@ -35,8 +33,7 @@ Object.defineProperty(Chunks.prototype, "forEach", {
 		callbackfn: (value: Chunk, value2: Chunk, set: ReadonlySet<Chunk>) => void,
 		thisArg?: any
 	): void {
-		for (const binding of this._values()) {
-			const chunk = Chunk.__from_binding(binding);
+		for (const chunk of this._values()) {
 			callbackfn.call(thisArg, chunk, chunk, this);
 		}
 	}
@@ -46,7 +43,7 @@ Object.defineProperty(Chunks.prototype, "has", {
 	enumerable: true,
 	configurable: true,
 	value(this: Chunks, value: Chunk): boolean {
-		return this._has(Chunk.__to_binding(value));
+		return this._has(value);
 	}
 });
 

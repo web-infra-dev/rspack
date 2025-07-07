@@ -6,7 +6,7 @@ homepage.workspace      = true
 license                 = "MIT"
 name                    = "rspack_plugin_library"
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

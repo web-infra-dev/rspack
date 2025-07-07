@@ -47,10 +47,12 @@ permissions:
 jobs:
   get-runner-labels:
     name: Get Runner Labels
+    if: github.repository == 'web-infra-dev/rspack'
     uses: ./.github/workflows/get-runner-labels.yml
 
   build:
     name: Test Linux
+    if: github.repository == 'web-infra-dev/rspack'
     needs: [get-runner-labels]
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -61,6 +63,7 @@ jobs:
       bench: false
 
   create-comment:
+    if: github.repository == 'web-infra-dev/rspack'
     runs-on: ubuntu-latest
     outputs:
       comment-id: ${{ steps.create-comment.outputs.result }}
@@ -94,6 +97,7 @@ jobs:
             return comment.id
 
   calculate-eco-ci-suite:
+    if: github.repository == 'web-infra-dev/rspack'
     runs-on: ubuntu-latest
     outputs:
       suites: ${{ steps.calculate.outputs.result }}
@@ -126,6 +130,7 @@ jobs:
             })
 
   eco-ci:
+    if: github.repository == 'web-infra-dev/rspack'
     needs: [build, calculate-eco-ci-suite]
     strategy:
       matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
@@ -199,9 +204,9 @@ jobs:
           path: ${{ matrix.suite }}.json
 
   comment-compare-results:
+    if: github.repository == 'web-infra-dev/rspack' && !cancelled()
     runs-on: ubuntu-latest
     needs: [create-comment, eco-ci]
-    if: ${{ !cancelled() }}
     steps:
       - name: Download Result
         uses: actions/download-artifact@v4

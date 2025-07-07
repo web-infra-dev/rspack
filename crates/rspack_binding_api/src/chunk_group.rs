@@ -2,20 +2,20 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, CompilationId};
+use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{location::RealDependencyLocation, JsChunkWrapper, ModuleObject, ModuleObjectRef};
+use crate::{location::RealDependencyLocation, ChunkWrapper, ModuleObject, ModuleObjectRef};
 
 #[napi]
-pub struct JsChunkGroup {
-  chunk_group_ukey: ChunkGroupUkey,
+pub struct ChunkGroup {
+  chunk_group_ukey: rspack_core::ChunkGroupUkey,
   compilation: NonNull<Compilation>,
 }
 
-impl JsChunkGroup {
-  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static ChunkGroup)> {
+impl ChunkGroup {
+  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static rspack_core::ChunkGroup)> {
     let compilation = unsafe { self.compilation.as_ref() };
     if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(&self.chunk_group_ukey) {
       Ok((compilation, chunk_group))
@@ -29,15 +29,15 @@ impl JsChunkGroup {
 }
 
 #[napi]
-impl JsChunkGroup {
-  #[napi(getter, ts_return_type = "JsChunk[]")]
-  pub fn chunks(&self) -> napi::Result<Vec<JsChunkWrapper>> {
+impl ChunkGroup {
+  #[napi(getter, ts_return_type = "Chunk[]")]
+  pub fn chunks(&self) -> napi::Result<Vec<ChunkWrapper>> {
     let (compilation, chunk_graph) = self.as_ref()?;
     Ok(
       chunk_graph
         .chunks
         .iter()
-        .map(|ukey| JsChunkWrapper::new(*ukey, compilation))
+        .map(|ukey| ChunkWrapper::new(*ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
@@ -95,13 +95,13 @@ impl JsChunkGroup {
     Ok(js_origins)
   }
 
-  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
-  pub fn children_iterable(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(getter, ts_return_type = "ChunkGroup[]")]
+  pub fn children_iterable(&self) -> napi::Result<Vec<ChunkGroupWrapper>> {
     let (compilation, chunk_graph) = self.as_ref()?;
     Ok(
       chunk_graph
         .children_iterable()
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
@@ -112,30 +112,30 @@ impl JsChunkGroup {
     Ok(chunk_group.is_initial())
   }
 
-  #[napi(ts_return_type = "JsChunkGroup[]")]
-  pub fn get_parents(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
+  #[napi(ts_return_type = "ChunkGroup[]")]
+  pub fn get_parents(&self) -> napi::Result<Vec<ChunkGroupWrapper>> {
     let (compilation, chunk_group) = self.as_ref()?;
     Ok(
       chunk_group
         .parents
         .iter()
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
+        .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
         .collect(),
     )
   }
 
-  #[napi(ts_return_type = "JsChunk")]
-  pub fn get_runtime_chunk(&self) -> napi::Result<JsChunkWrapper> {
+  #[napi(ts_return_type = "Chunk")]
+  pub fn get_runtime_chunk(&self) -> napi::Result<ChunkWrapper> {
     let (compilation, chunk_group) = self.as_ref()?;
     let chunk_ukey = chunk_group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
-    Ok(JsChunkWrapper::new(chunk_ukey, compilation))
+    Ok(ChunkWrapper::new(chunk_ukey, compilation))
   }
 
-  #[napi(ts_return_type = "JsChunk")]
-  pub fn get_entrypoint_chunk(&self) -> napi::Result<JsChunkWrapper> {
+  #[napi(ts_return_type = "Chunk")]
+  pub fn get_entrypoint_chunk(&self) -> napi::Result<ChunkWrapper> {
     let (compilation, chunk_group) = self.as_ref()?;
     let chunk_ukey = chunk_group.get_entrypoint_chunk();
-    Ok(JsChunkWrapper::new(chunk_ukey, compilation))
+    Ok(ChunkWrapper::new(chunk_ukey, compilation))
   }
 
   #[napi]
@@ -179,17 +179,17 @@ impl JsChunkGroup {
 }
 
 thread_local! {
-  static CHUNK_GROUP_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<ChunkGroupUkey, OneShotRef>>> = Default::default();
+  static CHUNK_GROUP_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<rspack_core::ChunkGroupUkey, OneShotRef>>> = Default::default();
 }
 
-pub struct JsChunkGroupWrapper {
-  chunk_group_ukey: ChunkGroupUkey,
+pub struct ChunkGroupWrapper {
+  chunk_group_ukey: rspack_core::ChunkGroupUkey,
   compilation_id: CompilationId,
   compilation: NonNull<Compilation>,
 }
 
-impl JsChunkGroupWrapper {
-  pub fn new(chunk_group_ukey: ChunkGroupUkey, compilation: &Compilation) -> Self {
+impl ChunkGroupWrapper {
+  pub fn new(chunk_group_ukey: rspack_core::ChunkGroupUkey, compilation: &Compilation) -> Self {
     #[allow(clippy::unwrap_used)]
     Self {
       chunk_group_ukey,
@@ -206,7 +206,7 @@ impl JsChunkGroupWrapper {
   }
 }
 
-impl ToNapiValue for JsChunkGroupWrapper {
+impl ToNapiValue for ChunkGroupWrapper {
   unsafe fn to_napi_value(
     env: napi::sys::napi_env,
     val: Self,
@@ -228,7 +228,7 @@ impl ToNapiValue for JsChunkGroupWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_module = JsChunkGroup {
+          let js_module = ChunkGroup {
             chunk_group_ukey: val.chunk_group_ukey,
             compilation: val.compilation,
           };

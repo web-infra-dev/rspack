@@ -62,6 +62,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
     occurs_in_initial_chunks_map.insert(chunk.ukey(), occurs);
   }
 
+  let mut ordered_chunk_modules_cache = Default::default();
   let chunks = compilation
     .chunk_by_ukey
     .values()
@@ -88,6 +89,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
         &compilation.module_ids_artifact,
         a,
         b,
+        &mut ordered_chunk_modules_cache,
       )
     })
     .map(|chunk| chunk.ukey())
