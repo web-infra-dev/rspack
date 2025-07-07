@@ -429,7 +429,10 @@ impl CodeSplitter {
   fn analyze_module_graph(
     &mut self,
     compilation: &mut Compilation,
-    prepared_outgoings: &IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
+    prepared_outgoings: &IdentifierMap<(
+      IdentifierIndexMap<Vec<ModuleGraphConnection>>,
+      Vec<AsyncDependenciesBlockIdentifier>,
+    )>,
   ) -> Result<Vec<CreateChunkRoot>> {
     // determine runtime and chunkLoading
     let mut entry_runtime: std::collections::HashMap<&str, RuntimeSpec, rustc_hash::FxBuildHasher> =
@@ -765,7 +768,10 @@ impl CodeSplitter {
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
-    prepared_outgoings: &IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
+    prepared_outgoings: &IdentifierMap<(
+      IdentifierIndexMap<Vec<ModuleGraphConnection>>,
+      Vec<AsyncDependenciesBlockIdentifier>,
+    )>,
   ) -> (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>) {
     if let Some(ref_value) = self
       .module_deps
@@ -776,15 +782,12 @@ impl CodeSplitter {
       return (ref_value.0.clone(), ref_value.1.clone());
     }
 
-    let outgoings = prepared_outgoings
+    let (outgoings, blocks) = prepared_outgoings
       .get(module)
       .expect("should have outgoings");
-    let m = module_graph
-      .module_by_identifier(module)
-      .expect("should have module");
 
     let mut modules = IdentifierIndexSet::default();
-    let mut blocks = m.get_blocks().to_vec();
+    let mut blocks = blocks.clone();
 
     'outer: for (m, conns) in outgoings.iter() {
       for conn in conns {
@@ -802,8 +805,8 @@ impl CodeSplitter {
               module_graph_cache,
               prepared_outgoings,
             );
-            modules.extend(extra_modules.iter().copied());
-            blocks.extend(extra_blocks.iter().copied());
+            modules.extend(extra_modules);
+            blocks.extend(extra_blocks);
           }
           crate::ConnectionState::Active(false) => {}
           crate::ConnectionState::CircularConnection => {}
@@ -1048,7 +1051,10 @@ impl CodeSplitter {
   fn prepare_outgoings(
     &self,
     compilation: &Compilation,
-  ) -> IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>> {
+  ) -> IdentifierMap<(
+    IdentifierIndexMap<Vec<ModuleGraphConnection>>,
+    Vec<AsyncDependenciesBlockIdentifier>,
+  )> {
     let module_graph = compilation.get_module_graph();
     let modules = module_graph.modules().keys().copied().collect::<Vec<_>>();
     modules
@@ -1058,7 +1064,7 @@ impl CodeSplitter {
         let m = module_graph
           .module_by_identifier(&mid)
           .expect("should have module");
-
+        let blocks = m.get_blocks().to_vec();
         m.get_dependencies()
           .iter()
           .filter(|dep_id| {
@@ -1072,7 +1078,7 @@ impl CodeSplitter {
           .map(|conn| (conn.module_identifier(), conn))
           .for_each(|(module, conn)| outgoings.entry(*module).or_default().push(conn.clone()));
 
-        (mid, outgoings)
+        (mid, (outgoings, blocks))
       })
       .collect::<IdentifierMap<_>>()
   }
