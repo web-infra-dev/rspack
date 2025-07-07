@@ -283,9 +283,11 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Reexport star from external module.
   // Only preserve star reexports for module graph entry, nested reexports are not supported.
   for dep_id in &compilation.make_artifact.entry_dependencies {
-    let module = mg
-      .get_module_by_dependency_id(dep_id)
-      .expect("should have mgm");
+    let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
+      // 1. Entry may have factorize error
+      // 2. The target module is deleted but because it is currently in the finish_make hook, make will not clean it up.
+      continue;
+    };
 
     let mut module_id_to_connections: IdentifierMap<Vec<DependencyId>> = IdentifierMap::default();
     mg.get_outgoing_connections(&module.identifier())
