@@ -3,7 +3,6 @@
 mod drive;
 
 use std::{
-  borrow::Cow,
   hash::{BuildHasherDefault, Hasher},
   sync::LazyLock,
 };
@@ -106,17 +105,12 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     return Ok(());
   }
   let start = logger.time("create hash regexp");
-  let hash_list = hash_to_asset_names
-    .keys()
-    // xx\xx{xx?xx.xx -> xx\\xx\{xx\?xx\.xx escape for Regex::new
-    .map(|hash| QUOTE_META.replace_all(hash, "\\$0"))
-    .collect::<Vec<Cow<str>>>();
   // use LeftmostLongest here:
   // e.g. 4afc|4afcbe match xxx.4afcbe-4afc.js -> xxx.[4afc]be-[4afc].js
   //      4afcbe|4afc match xxx.4afcbe-4afc.js -> xxx.[4afcbe]-[4afc].js
   let hash_ac = AhoCorasick::builder()
     .match_kind(MatchKind::LeftmostLongest)
-    .build(hash_list.iter().map(|s| s.as_bytes()))
+    .build(hash_to_asset_names.keys().map(|s| s.as_bytes()))
     .expect("Invalid patterns");
   logger.time_end(start);
 

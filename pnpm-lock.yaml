@@ -337,6 +337,9 @@ importers:
       '@ast-grep/napi':
         specifier: ^0.37.0
         version: 0.37.0
+      '@rsbuild/core':
+        specifier: ^1.4.4
+        version: 1.4.4
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(@microsoft/api-extractor@7.52.8(@types/node@20.19.0))(typescript@5.8.3)
@@ -1004,7 +1007,7 @@ importers:
         version: 1.9.4
       '@rsbuild/plugin-sass':
         specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.4.3)
+        version: 1.3.2(@rsbuild/core@1.4.4)
       '@rspress/plugin-algolia':
         specifier: 2.0.0-beta.19
         version: 2.0.0-beta.19(@algolia/client-search@5.25.0)(@rspress/runtime@2.0.0-beta.19)(@types/react@19.1.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(search-insights@2.17.3)
@@ -1037,10 +1040,10 @@ importers:
         version: 3.6.2
       rsbuild-plugin-google-analytics:
         specifier: 1.0.3
-        version: 1.0.3(@rsbuild/core@1.4.3)
+        version: 1.0.3(@rsbuild/core@1.4.4)
       rsbuild-plugin-open-graph:
         specifier: 1.0.2
-        version: 1.0.2(@rsbuild/core@1.4.3)
+        version: 1.0.2(@rsbuild/core@1.4.4)
       rspress:
         specifier: 2.0.0-beta.19
         version: 2.0.0-beta.19(@types/react@19.1.7)(acorn@8.15.0)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
@@ -2554,8 +2557,8 @@ packages:
     engines: {node: '>=16.10.0'}
     hasBin: true
 
-  '@rsbuild/core@1.4.3':
-    resolution: {integrity: sha512-97vmVaOXUxID85cVSDFHLFmDfeJTR4SoOHbn7kknkEeZFg3wHlDYhx+lbQPOZf+toHOm8d1w1LlunxVkCAdHLg==}
+  '@rsbuild/core@1.4.4':
+    resolution: {integrity: sha512-JN/AUT9yN4JkbVLAPnrWu9q5Q0EQVrzDzlK5jHT/nbWWA4z1HYWFSdI1iuK8+nwfQ4zEOQalVv1+Jlk+qV7HoQ==}
     engines: {node: '>=16.10.0'}
     hasBin: true
 
@@ -9724,7 +9727,7 @@ snapshots:
       core-js: 3.43.0
       jiti: 2.4.2
 
-  '@rsbuild/core@1.4.3':
+  '@rsbuild/core@1.4.4':
     dependencies:
       '@rspack/core': 1.4.2(@swc/helpers@0.5.17)
       '@rspack/lite-tapable': 1.0.1
@@ -9732,17 +9735,17 @@ snapshots:
       core-js: 3.43.0
       jiti: 2.4.2
 
-  '@rsbuild/plugin-react@1.3.2(@rsbuild/core@1.4.3)':
+  '@rsbuild/plugin-react@1.3.2(@rsbuild/core@1.4.4)':
     dependencies:
-      '@rsbuild/core': 1.4.3
+      '@rsbuild/core': 1.4.4
       '@rspack/plugin-react-refresh': 1.4.3(react-refresh@0.17.0)
       react-refresh: 0.17.0
     transitivePeerDependencies:
       - webpack-hot-middleware
 
-  '@rsbuild/plugin-sass@1.3.2(@rsbuild/core@1.4.3)':
+  '@rsbuild/plugin-sass@1.3.2(@rsbuild/core@1.4.4)':
     dependencies:
-      '@rsbuild/core': 1.4.3
+      '@rsbuild/core': 1.4.4
       deepmerge: 4.3.1
       loader-utils: 2.0.4
       postcss: 8.5.4
@@ -10001,8 +10004,8 @@ snapshots:
       '@mdx-js/loader': 3.1.0(acorn@8.15.0)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       '@mdx-js/mdx': 3.1.0(acorn@8.15.0)
       '@mdx-js/react': 3.1.0(@types/react@19.1.7)(react@19.1.0)
-      '@rsbuild/core': 1.4.3
-      '@rsbuild/plugin-react': 1.3.2(@rsbuild/core@1.4.3)
+      '@rsbuild/core': 1.4.4
+      '@rsbuild/plugin-react': 1.3.2(@rsbuild/core@1.4.4)
       '@rspress/mdx-rs': 0.6.6
       '@rspress/plugin-last-updated': 2.0.0-beta.19
       '@rspress/plugin-medium-zoom': 2.0.0-beta.19(@rspress/runtime@2.0.0-beta.19)
@@ -10126,7 +10129,7 @@ snapshots:
 
   '@rspress/shared@2.0.0-beta.19':
     dependencies:
-      '@rsbuild/core': 1.4.3
+      '@rsbuild/core': 1.4.4
       '@shikijs/rehype': 3.4.2
       gray-matter: 4.0.3
       lodash-es: 4.17.21
@@ -14964,13 +14967,13 @@ snapshots:
       '@microsoft/api-extractor': 7.52.8(@types/node@20.19.0)
       typescript: 5.8.3
 
-  rsbuild-plugin-google-analytics@1.0.3(@rsbuild/core@1.4.3):
+  rsbuild-plugin-google-analytics@1.0.3(@rsbuild/core@1.4.4):
     optionalDependencies:
-      '@rsbuild/core': 1.4.3
+      '@rsbuild/core': 1.4.4
 
-  rsbuild-plugin-open-graph@1.0.2(@rsbuild/core@1.4.3):
+  rsbuild-plugin-open-graph@1.0.2(@rsbuild/core@1.4.4):
     optionalDependencies:
-      '@rsbuild/core': 1.4.3
+      '@rsbuild/core': 1.4.4
 
   rspack-plugin-virtual-module@1.0.1:
     dependencies:
@@ -14982,7 +14985,7 @@ snapshots:
 
   rspress@2.0.0-beta.19(@types/react@19.1.7)(acorn@8.15.0)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))):
     dependencies:
-      '@rsbuild/core': 1.4.3
+      '@rsbuild/core': 1.4.4
       '@rspress/core': 2.0.0-beta.19(@types/react@19.1.7)(acorn@8.15.0)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       '@rspress/shared': 2.0.0-beta.19
       cac: 6.7.14

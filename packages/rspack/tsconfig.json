@@ -3,7 +3,6 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "resolveJsonModule": true,
     "emitDeclarationOnly": true,
     "paths": {
       "watchpack": ["./compiled/watchpack"],
@@ -14,9 +13,5 @@
       "tinypool": ["./compiled/tinypool"]
     }
   },
-  "include": ["src", "src/**/*.json"],
-  "exclude": ["src/config/schema.check.js", "src/container/default.runtime.js"],
-  "ts-node": {
-    "transpileOnly": true
-  }
+  "include": ["src"]
 }

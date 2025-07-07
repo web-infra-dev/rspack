@@ -1,5 +1,6 @@
 Array [
   Object {
+    loc: 4:13-40,
     moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/optional-context-dependency/locale.js,
     moduleName: ./locale.js,
   },

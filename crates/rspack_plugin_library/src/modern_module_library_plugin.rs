@@ -89,7 +89,7 @@ impl ModernModuleLibraryPlugin {
     for module_id in &module_ids {
       let module = module_graph
         .module_by_identifier(module_id)
-        .expect("should have module");
+        .expect("we have mgm we know for sure we have module");
 
       if let Some(module) = module.as_ref().downcast_ref::<ConcatenatedModule>() {
         concatenated_module_ids.insert(*module_id);
@@ -103,9 +103,9 @@ impl ModernModuleLibraryPlugin {
       .iter()
       .filter(|id| !concatenated_module_ids.contains(id))
       .filter(|id| {
-        let mgm = module_graph
-          .module_graph_module_by_identifier(id)
-          .expect("should have module");
+        let Some(mgm) = module_graph.module_graph_module_by_identifier(id) else {
+          return false;
+        };
         let reasons = &mgm.optimization_bailout;
 
         let is_concatenation_entry_candidate = reasons
@@ -247,7 +247,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Remove `import()` runtime.
   for module in mg.modules().values() {
     for block_id in module.get_blocks() {
-      let block = mg.block_by_id(block_id).expect("should have block");
+      let Some(block) = mg.block_by_id(block_id) else {
+        continue;
+      };
       for block_dep_id in block.get_dependencies() {
         let block_dep = mg.dependency_by_id(block_dep_id);
         if let Some(block_dep) = block_dep {
@@ -257,9 +259,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
               // Try find the connection with a import dependency pointing to an external module.
               // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
               let import_module_id = import_dep_connection.module_identifier();
-              let import_module = mg
-                .module_by_identifier(import_module_id)
-                .expect("should have mgm");
+              let Some(import_module) = mg.module_by_identifier(import_module_id) else {
+                continue;
+              };
 
               if let Some(external_module) = import_module.as_external_module() {
                 let new_dep = ModernModuleImportDependency::new(
@@ -283,9 +285,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Reexport star from external module.
   // Only preserve star reexports for module graph entry, nested reexports are not supported.
   for dep_id in &compilation.make_artifact.entry_dependencies {
-    let module = mg
-      .get_module_by_dependency_id(dep_id)
-      .expect("should have mgm");
+    let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
+      continue;
+    };
 
     let mut module_id_to_connections: IdentifierMap<Vec<DependencyId>> = IdentifierMap::default();
     mg.get_outgoing_connections(&module.identifier())
@@ -306,9 +308,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
             let reexport_connection = mg.connection_by_dependency_id(&reexport_dep.id);
             if let Some(reexport_connection) = reexport_connection {
               let import_module_id = reexport_connection.module_identifier();
-              let import_module = mg
-                .module_by_identifier(import_module_id)
-                .expect("should have mgm");
+              let Some(import_module) = mg.module_by_identifier(import_module_id) else {
+                continue;
+              };
 
               if let Some(external_module) = import_module.as_external_module() {
                 if reexport_dep.request == external_module.user_request() {
