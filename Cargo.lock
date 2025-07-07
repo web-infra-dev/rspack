@@ -285,7 +285,7 @@ dependencies = [
  "bitflags 2.9.1",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "log",
  "prettyplease",
  "proc-macro2",
@@ -8237,8 +8237,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "virtual-fs"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "558995609ae4e69538c3f1eec3ad1d195ee8a1ed9d39768713728a57ed4ba6fe"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8266,8 +8265,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63e6226c62058843d3f5b23501911972042bb7a1bdc7042d74855d062870fa84"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "async-trait",
  "bytes",
@@ -8282,8 +8280,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa7a7d65a5652fb7e8db54676f523e489318228ee2a742db0728396b34b4a728"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8522,8 +8519,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b8204e4eb959d89b41d4a536e61ce73f5416bccc81c7d3b7fa993995538ee97"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "bindgen",
  "bytes",
@@ -8557,8 +8553,7 @@ dependencies = [
 [[package]]
 name = "wasmer-cache"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3077ff8340cc09dcc53d4a140681ea7fb3d5525eb028f3853db1bc81434c3bad"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "blake3",
  "hex",
@@ -8569,8 +8564,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "690827b8ec4f3858d8b001d96ddfc25c28a255cbfa984ba5bd1ed173f29ffc2a"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "backtrace",
  "bytes",
@@ -8600,8 +8594,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler-cranelift"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a46a83b498a2f0dcdc2e97d611db9eae92a38f20fc5dac4709d645bdfd8d2d6"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -8620,8 +8613,7 @@ dependencies = [
 [[package]]
 name = "wasmer-config"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51dab2fa03bfb28b8b8c2f546531f56b341743557305e51ea621b1d8f7075b29"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "anyhow",
  "bytesize",
@@ -8643,8 +8635,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccaedaf20c22736904ad842127cdbe46432998dbcdd840b024dda856a8b52265"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -8655,8 +8646,7 @@ dependencies = [
 [[package]]
 name = "wasmer-journal"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dd746264554197deae474fa069949c6352e2758dceb3157389af1436e121e9e"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8683,8 +8673,7 @@ dependencies = [
 [[package]]
 name = "wasmer-package"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20614419fe563480822cec9f67818aced0b1b2cc26f88e96372bbaec9fd14c0f"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "anyhow",
  "bytes",
@@ -8711,8 +8700,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b45fd1274b21365d3232732afe53c220ecbcdb78946405087e7016e7b2369a0"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "bytecheck 0.6.12",
  "enum-iterator",
@@ -8733,8 +8721,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac4e7cec7b509e70664773f03907e6122d1633c100cb28009da770786806e6db"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "backtrace",
  "cc",
@@ -8760,8 +8747,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fc74d209309baed0338fda8310847a9641bb77c2aeb1ae25af309006c22153f"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8827,8 +8813,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.600.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3732cc6f863b06ef80e066a3c2558c322de6fbe76caf704aefe9ca7ccaf25f10"
+source = "git+https://github.com/hardfist/wasmer?branch=wasi-common#21cee9ae8584600314a4f83687253257a894afa6"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
