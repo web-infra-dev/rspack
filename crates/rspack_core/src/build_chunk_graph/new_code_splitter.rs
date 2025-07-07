@@ -199,7 +199,7 @@ impl CreateChunkRoot {
     &self,
     splitter: &CodeSplitter,
     compilation: &Compilation,
-    prepared_outgoings: &HashMap<ModuleIdentifier, IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
+    prepared_outgoings: &IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
   ) -> Vec<ChunkDesc> {
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -450,7 +450,7 @@ impl CodeSplitter {
   fn analyze_module_graph(
     &mut self,
     compilation: &mut Compilation,
-    prepared_outgoings: &HashMap<ModuleIdentifier, IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
+    prepared_outgoings: &IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
   ) -> Result<Vec<CreateChunkRoot>> {
     // determine runtime and chunkLoading
     let mut entry_runtime: std::collections::HashMap<&str, RuntimeSpec, rustc_hash::FxBuildHasher> =
@@ -777,7 +777,7 @@ impl CodeSplitter {
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
-    prepared_outgoings: &HashMap<ModuleIdentifier, IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
+    prepared_outgoings: &IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
   ) -> Ref<ModuleIdentifier, (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
     let module_map = self.module_deps.get(runtime).expect("should have value");
 
@@ -837,7 +837,7 @@ impl CodeSplitter {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     ctx: &mut FillCtx,
-    prepared_outgoings: &HashMap<ModuleIdentifier, IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
+    prepared_outgoings: &IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
   ) {
     enum Task {
       Enter(ModuleIdentifier),
@@ -917,7 +917,7 @@ impl CodeSplitter {
   fn set_order_index_and_group_index(
     &mut self,
     compilation: &mut Compilation,
-    prepared_outgoings: &HashMap<ModuleIdentifier, IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
+    prepared_outgoings: &IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>>,
   ) {
     enum Task<'compilation> {
       Group(ChunkGroupUkey, AsyncDependenciesBlockIdentifier),
@@ -1082,7 +1082,7 @@ impl CodeSplitter {
   fn prepare_outgoings(
     &self,
     compilation: &Compilation,
-  ) -> HashMap<ModuleIdentifier, IdentifierIndexMap<Vec<ModuleGraphConnection>>> {
+  ) -> IdentifierMap<IdentifierIndexMap<Vec<ModuleGraphConnection>>> {
     let module_graph = compilation.get_module_graph();
     let modules = module_graph.modules().keys().copied().collect::<Vec<_>>();
     modules
@@ -1108,7 +1108,7 @@ impl CodeSplitter {
 
         (mid, outgoings)
       })
-      .collect::<HashMap<_, _>>()
+      .collect::<IdentifierMap<_>>()
   }
 
   fn create_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
