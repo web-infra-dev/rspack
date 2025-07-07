@@ -99,8 +99,9 @@ const DATA_URL_BASE =
 function compareBinarySize(headSize, baseSize, context, baseCommit) {
 	const message = baseCommit.commit.message.split("\n")[0];
 	const author = baseCommit.commit.author.name;
+	const headSha = context.payload.pull_request?.head.sha || context.sha;
 
-	const info = `> Comparing [\`${context.sha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${context.sha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n`;
+	const info = `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n`;
 
 	const diff = headSize - baseSize;
 	const percentage = (Math.abs(diff / baseSize) * 100).toFixed(2);
