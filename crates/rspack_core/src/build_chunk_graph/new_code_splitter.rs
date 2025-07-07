@@ -63,8 +63,8 @@ enum CreateChunkRoot {
 
 struct FinalizeChunksResult {
   chunks: Vec<(bool, CacheableChunkItem)>,
-  chunk_children: Vec<Vec<usize>>,
-  chunk_parents: Vec<Vec<usize>>,
+  chunk_children: Vec<IndexSet<usize>>,
+  chunk_parents: Vec<IndexSet<usize>>,
 }
 
 // Description about how to create chunk
@@ -100,13 +100,6 @@ impl ChunkDesc {
     match self {
       ChunkDesc::Entry(entry) => &mut entry.outgoing_blocks,
       ChunkDesc::Chunk(chunk) => &mut chunk.outgoing_blocks,
-    }
-  }
-
-  pub(crate) fn incomings(&self) -> &HashSet<AsyncDependenciesBlockIdentifier> {
-    match self {
-      ChunkDesc::Entry(entry) => &entry.incoming_blocks,
-      ChunkDesc::Chunk(chunk) => &chunk.incoming_blocks,
     }
   }
 
@@ -1574,6 +1567,76 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     Ok(())
   }
 
+  #[instrument(skip_all)]
+  fn calculate_relation(
+    chunks: &[(bool, CacheableChunkItem)],
+    chunks_origin_block: &HashMap<AsyncDependenciesBlockIdentifier, usize>,
+    idx_by_name: &HashMap<String, usize>,
+    chunks_by_block: &HashMap<AsyncDependenciesBlockIdentifier, Vec<usize>>,
+  ) -> (Vec<IndexSet<usize>>, Vec<IndexSet<usize>>) {
+    let chunks_len = chunks.len();
+    // map that records info about chunk to its parents
+    // this is useful when calculate removeAvailableModules, as it needs calculate based on parents
+    let mut chunk_parents: Vec<IndexSet<usize>> = Vec::with_capacity(chunks_len);
+
+    // this is useful when determine chunk index, the order index of chunk is deterministic,
+    // we use chunk outgoing blocks order to ensure that
+    let mut chunk_children: Vec<IndexSet<usize>> = vec![Default::default(); chunks_len];
+
+    let mut parents = HashSet::default();
+    for (idx, (_, cache)) in chunks.iter().enumerate() {
+      parents.clear();
+      match &cache.chunk_desc {
+        ChunkDesc::Entry(entry) => {
+          if let Some(depend_on) = &entry.options.depend_on {
+            let depend_on_parents: IndexSet<usize> = depend_on
+              .iter()
+              .map(|dep| idx_by_name.get(dep.as_str()).expect("unreachable"))
+              .copied()
+              .collect();
+
+            for parent in &depend_on_parents {
+              chunk_children[*parent].insert(idx);
+            }
+
+            chunk_parents.push(depend_on_parents);
+          } else {
+            chunk_parents.push(Default::default());
+          }
+        }
+        ChunkDesc::Chunk(chunk) => {
+          for block in &chunk.incoming_blocks {
+            let Some(chunk_parents) = chunks_by_block.get(block) else {
+              continue;
+            };
+
+            parents.extend(chunk_parents);
+          }
+          chunk_parents.push(
+            parents
+              .iter()
+              .filter(|parent| **parent != idx)
+              .copied()
+              .collect(),
+          );
+        }
+      }
+    }
+
+    for (idx, (_, cache)) in chunks.iter().enumerate() {
+      chunk_children[idx].extend(
+        cache
+          .chunk_desc
+          .outgoings()
+          .iter()
+          .filter_map(|outgoing_block| chunks_origin_block.get(outgoing_block).copied())
+          .filter(|child| *child != idx),
+      );
+    }
+
+    (chunk_parents, chunk_children)
+  }
+
   // 1. determine parent child relationship
   // 2. remove modules that exist in all parents
   #[instrument(skip_all)]
@@ -1582,21 +1645,11 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     mut chunks: Vec<(bool, CacheableChunkItem)>,
     compilation: &Compilation,
   ) -> FinalizeChunksResult {
-    let chunks_len = chunks.len();
-
-    // map that records info about chunk to its parents
-    // this is useful when calculate removeAvailableModules, as it needs calculate based on parents
-    let mut chunk_parents = Vec::with_capacity(chunks_len);
-
-    // this is useful when determine chunk index, the order index of chunk is deterministic,
-    // we use chunk outgoing blocks order to ensure that
-    let mut chunk_children: Vec<Vec<usize>> = vec![vec![]; chunks_len];
-
     // which chunk owns this block identifier
     let mut chunks_by_block: HashMap<AsyncDependenciesBlockIdentifier, Vec<usize>> =
       HashMap::default();
 
-    let mut idx_by_name: HashMap<&str, usize> = Default::default();
+    let mut idx_by_name: HashMap<String, usize> = Default::default();
 
     // one block.dep only point to a unique chunk
     // use this to a chunk is initialized because of which block.dep
@@ -1609,7 +1662,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     for (idx, (_, cache)) in chunks.iter().enumerate() {
       let chunk = &cache.chunk_desc;
       if let Some(name) = chunk.name() {
-        idx_by_name.insert(name, idx);
+        idx_by_name.insert(name.to_string(), idx);
       }
       let incoming_blocks = match chunk {
         ChunkDesc::Entry(entry) => {
@@ -1630,57 +1683,12 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
       }
     }
 
-    // 2nd iter, analyze chunk relations
-    let mut parents = HashSet::default();
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      parents.clear();
-      match &cache.chunk_desc {
-        ChunkDesc::Entry(entry) => {
-          if let Some(depend_on) = &entry.options.depend_on {
-            let depend_on_parents: Vec<usize> = depend_on
-              .iter()
-              .map(|dep| idx_by_name.get(dep.as_str()).expect("unreachable"))
-              .copied()
-              .collect();
-
-            for parent in &depend_on_parents {
-              chunk_children[*parent].push(idx);
-            }
-
-            chunk_parents.push(depend_on_parents);
-          } else {
-            chunk_parents.push(Vec::default());
-          }
-        }
-        ChunkDesc::Chunk(chunk) => {
-          for block in &chunk.incoming_blocks {
-            let Some(chunk_parents) = chunks_by_block.get(block) else {
-              continue;
-            };
-
-            parents.extend(chunk_parents);
-          }
-          chunk_parents.push(
-            parents
-              .iter()
-              .filter(|parent| **parent != idx)
-              .copied()
-              .collect::<Vec<_>>(),
-          );
-        }
-      }
-    }
-
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      chunk_children[idx].extend(
-        cache
-          .chunk_desc
-          .outgoings()
-          .iter()
-          .filter_map(|outgoing_block| chunks_origin_block.get(outgoing_block).copied())
-          .filter(|child| *child != idx),
-      );
-    }
+    let (mut chunk_parents, mut chunk_children) = Self::calculate_relation(
+      &chunks,
+      &chunks_origin_block,
+      &idx_by_name,
+      &chunks_by_block,
+    );
 
     if compilation.options.optimization.remove_available_modules {
       /*
@@ -1710,8 +1718,16 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
         &self.module_ordinal,
         &mut chunks,
         &mut roots,
-        &mut chunk_parents,
-        &mut chunk_children,
+        &chunk_parents,
+        &chunk_children,
+      );
+
+      // we modify `chunk.outgoings()` so we should re-calculate chunk relations
+      (chunk_parents, chunk_children) = Self::calculate_relation(
+        &chunks,
+        &chunks_origin_block,
+        &idx_by_name,
+        &chunks_by_block,
       );
     }
 
