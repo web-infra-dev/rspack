@@ -48,7 +48,7 @@ tracing-subscriber = { workspace = true }
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
 
-color-backtrace = "0.7.0"
+color-backtrace = { workspace = true }
 
 derive_more                            = { workspace = true, features = ["debug"] }
 futures                                = { workspace = true }

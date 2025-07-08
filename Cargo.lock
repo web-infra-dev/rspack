@@ -1182,6 +1182,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "deny-ext"
+version = "0.2.1-alpha.0"
+dependencies = [
+ "toml",
+]
+
+[[package]]
 name = "deranged"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
