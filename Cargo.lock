@@ -4196,7 +4196,6 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_loader_swc",
  "rspack_loader_testing",
- "rspack_macros",
  "rspack_napi",
  "rspack_napi_macros",
  "rspack_paths",
@@ -4665,7 +4664,6 @@ version = "0.2.1-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "rspack_workspace",
  "syn 2.0.95",
 ]
 
