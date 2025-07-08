@@ -34,6 +34,9 @@ jobs:
         with:
           tool: cargo-codspeed@2.10.1
 
+      - name: Run Cargo codegen
+        run: cargo codegen
+
       - name: Build Benchmark
         env:
           RUSTFLAGS: "--cfg codspeed"
