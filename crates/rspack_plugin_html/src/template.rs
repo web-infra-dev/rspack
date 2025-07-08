@@ -1,6 +1,6 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use itertools::Itertools;
 use rspack_core::{Compilation, CrossOriginLoading, Mode};
 use rspack_dojang::{dojang::DojangOptions, Dojang, Operand};
@@ -32,7 +32,7 @@ pub struct HtmlTemplate {
 }
 
 impl HtmlTemplate {
-  pub fn new(
+  pub async fn new(
     config: &HtmlRspackPluginOptions,
     compilation: &Compilation,
   ) -> Result<Self, miette::Error> {
@@ -69,7 +69,11 @@ impl HtmlTemplate {
           parameters: None,
         })
       } else {
-        fs::read_to_string(&resolved_template)
+        compilation
+          .input_filesystem
+          .read_to_string(&resolved_template)
+          .await
+          .map_err(|err| anyhow!(err))
           .context(format!(
             "HtmlRspackPlugin: could not load file `{}` from `{}`",
             template, &compilation.options.context
@@ -88,7 +92,11 @@ impl HtmlTemplate {
         path_clean::clean(compilation.options.context.as_path().join("src/index.ejs"))
           .assert_utf8();
 
-      if let Ok(content) = fs::read_to_string(&default_src_template) {
+      if let Ok(content) = compilation
+        .input_filesystem
+        .read_to_string(&default_src_template)
+        .await
+      {
         Ok(Self {
           render: TemplateRender::Template(content),
           url: default_src_template.as_str().to_string(),
