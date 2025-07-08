@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { type Edit, Lang, parse } from "@ast-grep/napi";
 import type { RsbuildPlugin } from "@rsbuild/core";
-import { type LibConfig, defineConfig, rsbuild } from "@rslib/core";
+import { type LibConfig, defineConfig, rsbuild, rspack } from "@rslib/core";
 import prebundleConfig from "./prebundle.config.mjs";
 
 const merge = rsbuild.mergeRsbuildConfig;
@@ -88,8 +89,78 @@ const fixZodTypePlugin: RsbuildPlugin = {
 	}
 };
 
+const mfRuntimePlugin: RsbuildPlugin = {
+	name: "mf-runtime",
+	setup(api) {
+		api.onAfterBuild(async () => {
+			const { swc } = rspack.experiments;
+			const runtime = await fs.promises.readFile(
+				path.resolve(
+					__dirname,
+					"src/runtime/moduleFederationDefaultRuntime.js"
+				),
+				"utf-8"
+			);
+
+			const { code: downgradedRuntime } = await swc.transform(runtime, {
+				jsc: {
+					target: "es2015"
+				}
+			});
+
+			const minimizedRuntime = await swc.minify(downgradedRuntime, {
+				compress: false,
+				mangle: false,
+				ecma: 2015
+			});
+
+			await fs.promises.writeFile(
+				path.resolve(__dirname, "dist/moduleFederationDefaultRuntime.js"),
+				minimizedRuntime.code
+			);
+		});
+	}
+};
+
+const codmodPlugin: RsbuildPlugin = {
+	name: "codmod",
+	setup(api) {
+		/**
+		 * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
+		 */
+		function replaceBinding(root): Edit[] {
+			const binding = root.find(`module.exports = require("@rspack/binding");`);
+			const bindingPkg = root.find(
+				`module.exports = require("@rspack/binding/package.json");`
+			);
+			return [
+				binding.replace(
+					`module.exports = require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`
+				),
+				bindingPkg.replace(
+					`module.exports = require(process.env.RSPACK_BINDING ? require("node:path").resolve(process.env.RSPACK_BINDING, './package.json') : "@rspack/binding/package.json");`
+				)
+			];
+		}
+
+		api.onAfterBuild(async () => {
+			const dist = fs.readFileSync(
+				require.resolve(path.resolve(__dirname, "dist/index.js")),
+				"utf-8"
+			);
+			const root = parse(Lang.JavaScript, dist).root();
+			const edits = [...replaceBinding(root)];
+
+			fs.writeFileSync(
+				require.resolve(path.resolve(__dirname, "dist/index.js")),
+				root.commitEdits(edits)
+			);
+		});
+	}
+};
+
 export default defineConfig({
-	plugins: [fixZodTypePlugin],
+	plugins: [fixZodTypePlugin, mfRuntimePlugin, codmodPlugin],
 	lib: [
 		merge(commonLibConfig, {
 			dts: {
