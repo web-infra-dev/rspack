@@ -41,4 +41,4 @@ tracing                        = { workspace = true }
 stacker = { workspace = true }
 
 [build-dependencies]
-cargo_toml = { version = "0.21.0" }
+cargo_toml = { workspace = true }
