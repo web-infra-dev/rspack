@@ -48,16 +48,16 @@ use crate::{
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkContentHashArtifact, ChunkGraph, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact,
+  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData,
+  ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
+  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -263,6 +263,9 @@ pub struct Compilation {
   // artiface for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
+  // artifact for chunk_content_hash
+  pub chunk_content_hash_artifact: ChunkContentHashArtifact,
+
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub cache: Arc<dyn Cache>,
@@ -386,6 +389,7 @@ impl Compilation {
       module_graph_cache_artifact: Default::default(),
       module_static_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
+      chunk_content_hash_artifact: Default::default(),
       build_time_executed_modules: Default::default(),
       cache,
       old_cache,

@@ -1,9 +1,11 @@
 // TODO add #[cfg(test)]
 mod memory;
+mod memory_gc;
 
 use std::{path::PathBuf, sync::Arc};
 
 pub use memory::MemoryStorage;
+pub use memory_gc::MemoryGCStorage;
 use rspack_fs::IntermediateFileSystem;
 pub use rspack_storage::Storage;
 use rspack_storage::{BridgeFileSystem, PackStorage, PackStorageOptions};
