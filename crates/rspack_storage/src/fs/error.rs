@@ -1,6 +1,7 @@
 use std::io::ErrorKind;
 
 use cow_utils::CowUtils;
+use rspack_fs::Error;
 use rspack_paths::Utf8Path;
 use tokio::task::JoinError;
 
@@ -59,7 +60,7 @@ impl FSError {
   pub fn from_message(file: &Utf8Path, opt: FSOperation, message: String) -> Self {
     Self {
       file: file.to_string(),
-      inner: rspack_fs::Error::Io(std::io::Error::other(message)),
+      inner: Error::other(message),
       opt,
     }
   }
@@ -73,9 +74,7 @@ impl FSError {
       || lower_case_error_content.contains("file not exists")
   }
   pub fn kind(&self) -> ErrorKind {
-    match &self.inner {
-      rspack_fs::Error::Io(e) => e.kind(),
-    }
+    self.inner.kind()
   }
 }
 
@@ -84,11 +83,7 @@ impl std::fmt::Display for FSError {
     write!(
       f,
       "{} `{}` failed due to `{}`",
-      self.opt,
-      self.file,
-      match &self.inner {
-        rspack_fs::Error::Io(e) => e,
-      }
+      self.opt, self.file, self.inner
     )
   }
 }

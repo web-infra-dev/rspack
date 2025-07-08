@@ -1,6 +1,6 @@
 use std::{fs::Metadata, io::ErrorKind};
 
-use crate::{Error, IoResultToFsResultExt, Result};
+use crate::{Error, Result};
 
 #[derive(Debug, Clone)]
 pub struct FileMetadata {
@@ -17,8 +17,7 @@ impl TryFrom<Metadata> for FileMetadata {
 
   fn try_from(metadata: Metadata) -> Result<Self> {
     let mtime_ms = metadata
-      .modified()
-      .to_fs_result()?
+      .modified()?
       .duration_since(std::time::UNIX_EPOCH)
       .expect("mtime is before unix epoch")
       .as_millis() as u64;
@@ -38,8 +37,7 @@ impl TryFrom<Metadata> for FileMetadata {
       }
     };
     let atime_ms = metadata
-      .accessed()
-      .to_fs_result()?
+      .accessed()?
       .duration_since(std::time::UNIX_EPOCH)
       .expect("atime is before unix epoch")
       .as_millis() as u64;

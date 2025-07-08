@@ -6,7 +6,7 @@ use std::sync::{atomic::AtomicU32, Arc};
 
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
-use rspack_error::Result;
+use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -436,7 +436,8 @@ impl Compiler {
             .parent()
             .unwrap_or_else(|| panic!("The parent of {file_path} can't found")),
         )
-        .await?;
+        .await
+        .into_diagnostic()?;
 
       let content = source.buffer();
 
@@ -480,7 +481,11 @@ impl Compiler {
       };
 
       if need_write {
-        self.output_filesystem.write(&file_path, &content).await?;
+        self
+          .output_filesystem
+          .write(&file_path, &content)
+          .await
+          .into_diagnostic()?;
         self.compilation.emitted_assets.insert(filename.to_string());
       }
 
@@ -513,7 +518,8 @@ impl Compiler {
           self
             .output_filesystem
             .remove_dir_all(&self.options.output.path)
-            .await?;
+            .await
+            .into_diagnostic()?;
         }
         CleanOptions::KeepPath(p) => {
           let path = self.options.output.path.join(p);
@@ -522,7 +528,8 @@ impl Compiler {
             &self.options.output.path,
             KeepPattern::Path(&path),
           )
-          .await?;
+          .await
+          .into_diagnostic()?;
         }
         CleanOptions::KeepRegex(r) => {
           let keep_pattern = KeepPattern::Regex(r);
@@ -531,7 +538,8 @@ impl Compiler {
             &self.options.output.path,
             keep_pattern,
           )
-          .await?;
+          .await
+          .into_diagnostic()?;
         }
         CleanOptions::KeepFunc(f) => {
           let keep_pattern = KeepPattern::Func(f);
@@ -540,7 +548,8 @@ impl Compiler {
             &self.options.output.path,
             keep_pattern,
           )
-          .await?;
+          .await
+          .into_diagnostic()?;
         }
         _ => {}
       }

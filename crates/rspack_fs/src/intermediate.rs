@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use rspack_paths::Utf8Path;
 
 use super::Result;
-use crate::{Error, WritableFileSystem};
+use crate::WritableFileSystem;
 
 pub trait IntermediateFileSystem:
   WritableFileSystem + IntermediateFileSystemExtras + Debug + Send + Sync
@@ -22,7 +22,7 @@ pub trait ReadStream: Debug + Sync + Send {
   async fn read_line(&mut self) -> Result<String> {
     match String::from_utf8(self.read_until(b'\n').await?) {
       Ok(s) => Ok(s),
-      Err(_) => Err(Error::Io(std::io::Error::other("invalid utf8 line"))),
+      Err(_) => Err(std::io::Error::other("invalid utf8 line")),
     }
   }
   async fn read(&mut self, length: usize) -> Result<Vec<u8>>;
