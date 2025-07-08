@@ -71,7 +71,7 @@ jobs:
       - name: Install cargo-deny
         uses: taiki-e/install-action@726a5c9e4be3a589bab5f60185f0cdde7ed4498e # v2
         with:
-          tool: cargo-deny@0.16
+          tool: cargo-deny@0.18.3
       - name: Check licenses
         run: cargo deny --all-features check license bans
 
