@@ -323,7 +323,6 @@ impl ContextModuleFactory {
 
         raw_module.set_factory_meta(FactoryMeta {
           side_effect_free: Some(true),
-          ..Default::default()
         });
 
         data.add_file_dependencies(file_dependencies);

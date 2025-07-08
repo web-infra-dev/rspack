@@ -357,7 +357,6 @@ impl NormalModuleFactory {
 
             raw_module.set_factory_meta(FactoryMeta {
               side_effect_free: Some(true),
-              ..Default::default()
             });
 
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
@@ -885,7 +884,6 @@ impl NormalModuleFactory {
 
         raw_module.set_factory_meta(FactoryMeta {
           side_effect_free: Some(true),
-          ..Default::default()
         });
 
         return Ok(ModuleFactoryResult::new_with_module(raw_module));
