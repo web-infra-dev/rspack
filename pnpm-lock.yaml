@@ -322,9 +322,6 @@ importers:
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(@microsoft/api-extractor@7.52.8(@types/node@20.19.0))(typescript@5.8.3)
-      '@swc/core':
-        specifier: 1.12.0
-        version: 1.12.0(@swc/helpers@0.5.17)
       '@swc/types':
         specifier: 0.1.22
         version: 0.1.22
@@ -10158,6 +10155,7 @@ snapshots:
       '@swc/core-win32-ia32-msvc': 1.12.0
       '@swc/core-win32-x64-msvc': 1.12.0
       '@swc/helpers': 0.5.17
+    optional: true
 
   '@swc/counter@0.1.3': {}
 
