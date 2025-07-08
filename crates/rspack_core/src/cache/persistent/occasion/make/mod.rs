@@ -89,11 +89,11 @@ impl MakeOccasion {
     let mut make_failed_dependencies = HashSet::default();
     for (dep_id, dep) in mg.dependencies() {
       if let Some(info) = FactorizeInfo::get_from(dep) {
+        file_dep.add_batch_file(info.file_dependencies());
+        context_dep.add_batch_file(info.context_dependencies());
+        missing_dep.add_batch_file(info.missing_dependencies());
         if !info.is_success() {
           make_failed_dependencies.insert(dep_id);
-          file_dep.add_batch_file(&info.file_dependencies());
-          context_dep.add_batch_file(&info.context_dependencies());
-          missing_dep.add_batch_file(&info.missing_dependencies());
         }
       }
     }

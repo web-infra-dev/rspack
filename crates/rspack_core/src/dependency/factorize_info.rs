@@ -7,40 +7,47 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::{BoxDependency, DependencyId};
 
+/// Factorize info for dependency
 #[cacheable]
 #[derive(Debug, Clone, Default)]
-pub enum FactorizeInfo {
-  #[default]
-  Success,
-  Failed {
-    related_dep_ids: Vec<DependencyId>,
-    file_dependencies: HashSet<ArcPath>,
-    context_dependencies: HashSet<ArcPath>,
-    missing_dependencies: HashSet<ArcPath>,
-    // TODO remove skip after Diagnostic cacheable.
-    #[cacheable(with=Skip)]
-    diagnostics: Vec<Diagnostic>,
-  },
+pub struct FactorizeInfo {
+  /// The dependeny ids which have same origin module and target module.
+  ///
+  /// The process dependencies task in make will merge the dependencies which will has
+  /// same origin module and target module as a single factorize task, and we will add
+  /// the factorize info to the first dependency and use this field to track related dependencies.
+  related_dep_ids: Vec<DependencyId>,
+  /// The files that current dependency depends on.
+  file_dependencies: HashSet<ArcPath>,
+  /// The directory that current dependency depends on.
+  context_dependencies: HashSet<ArcPath>,
+  /// The missing files that current dependency depends on.
+  missing_dependencies: HashSet<ArcPath>,
+  // TODO remove Skip and Option after Diagnostic cacheable.
+  /// The diagnostics generate by factorize task.
+  #[cacheable(with=Skip)]
+  diagnostics: Option<Vec<Diagnostic>>,
 }
 
 impl FactorizeInfo {
   pub fn new(
-    diagnostics: Vec<Diagnostic>,
     related_dep_ids: Vec<DependencyId>,
     file_dependencies: HashSet<ArcPath>,
     context_dependencies: HashSet<ArcPath>,
     missing_dependencies: HashSet<ArcPath>,
+    diagnostics: Vec<Diagnostic>,
   ) -> Self {
-    if diagnostics.is_empty() {
-      Self::Success
+    let diagnostics = if diagnostics.is_empty() {
+      Some(diagnostics)
     } else {
-      Self::Failed {
-        related_dep_ids,
-        file_dependencies,
-        context_dependencies,
-        missing_dependencies,
-        diagnostics,
-      }
+      None
+    };
+    Self {
+      related_dep_ids,
+      file_dependencies,
+      context_dependencies,
+      missing_dependencies,
+      diagnostics,
     }
   }
 
@@ -54,73 +61,43 @@ impl FactorizeInfo {
     }
   }
 
+  // TODO remove it after diagnostic cacheable.
   pub fn is_success(&self) -> bool {
-    matches!(self, FactorizeInfo::Success)
+    self.diagnostics.is_none()
   }
 
   pub fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
-    if let FactorizeInfo::Failed {
-      file_dependencies,
-      context_dependencies,
-      missing_dependencies,
-      ..
-    } = self
-    {
-      for item in modified_file {
-        if file_dependencies.contains(item)
-          || context_dependencies.contains(item)
-          || missing_dependencies.contains(item)
-        {
-          return true;
-        }
+    for item in modified_file {
+      if self.file_dependencies.contains(item)
+        || self.context_dependencies.contains(item)
+        || self.missing_dependencies.contains(item)
+      {
+        return true;
       }
     }
-
     false
   }
 
-  pub fn related_dep_ids(&self) -> Cow<[DependencyId]> {
-    match &self {
-      Self::Success => Cow::Owned(vec![]),
-      Self::Failed {
-        related_dep_ids, ..
-      } => Cow::Borrowed(related_dep_ids),
-    }
+  pub fn related_dep_ids(&self) -> &[DependencyId] {
+    &self.related_dep_ids
   }
 
-  pub fn file_dependencies(&self) -> Cow<HashSet<ArcPath>> {
-    match &self {
-      Self::Success => Cow::Owned(Default::default()),
-      Self::Failed {
-        file_dependencies, ..
-      } => Cow::Borrowed(file_dependencies),
-    }
+  pub fn file_dependencies(&self) -> &HashSet<ArcPath> {
+    &self.file_dependencies
   }
 
-  pub fn context_dependencies(&self) -> Cow<HashSet<ArcPath>> {
-    match &self {
-      Self::Success => Cow::Owned(Default::default()),
-      Self::Failed {
-        context_dependencies,
-        ..
-      } => Cow::Borrowed(context_dependencies),
-    }
+  pub fn context_dependencies(&self) -> &HashSet<ArcPath> {
+    &self.context_dependencies
   }
 
-  pub fn missing_dependencies(&self) -> Cow<HashSet<ArcPath>> {
-    match &self {
-      Self::Success => Cow::Owned(Default::default()),
-      Self::Failed {
-        missing_dependencies,
-        ..
-      } => Cow::Borrowed(missing_dependencies),
-    }
+  pub fn missing_dependencies(&self) -> &HashSet<ArcPath> {
+    &self.missing_dependencies
   }
 
   pub fn diagnostics(&self) -> Cow<[Diagnostic]> {
-    match &self {
-      Self::Success => Cow::Owned(vec![]),
-      Self::Failed { diagnostics, .. } => Cow::Borrowed(diagnostics),
+    match &self.diagnostics {
+      Some(d) => Cow::Borrowed(d),
+      None => Cow::Owned(vec![]),
     }
   }
 }

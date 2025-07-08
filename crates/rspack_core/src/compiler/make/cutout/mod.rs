@@ -53,13 +53,11 @@ impl Cutout {
               force_build_modules.insert(module.identifier());
             }
           }
-          for dep_id in &artifact.make_failed_dependencies {
-            let dep = module_graph
-              .dependency_by_id(dep_id)
-              .expect("should have dependency");
-            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-            if info.depends_on(&files) {
-              force_build_deps.insert(*dep_id);
+          for dep in module_graph.dependencies().values() {
+            if let Some(info) = FactorizeInfo::get_from(dep) {
+              if info.depends_on(&files) {
+                force_build_deps.insert(*dep.id());
+              }
             }
           }
         }
@@ -72,14 +70,16 @@ impl Cutout {
       };
     }
 
-    for module_identifier in &force_build_modules {
-      self
-        .fix_issuers
-        .analyze_force_build_module(artifact, module_identifier);
-      self
-        .fix_build_meta
-        .analyze_force_build_module(artifact, module_identifier);
-    }
+    // analyze
+    self
+      .fix_issuers
+      .analyze_force_build_modules(artifact, &force_build_modules);
+    self
+      .fix_build_meta
+      .analyze_force_build_modules(artifact, &force_build_modules);
+    self
+      .fix_issuers
+      .analyze_force_build_dependencies(artifact, &force_build_deps);
 
     let mut build_deps = HashSet::default();
 

@@ -93,21 +93,26 @@ impl MakeArtifact {
       .iter()
       .chain(mgm.incoming_connections())
     {
-      if !self.make_failed_dependencies.remove(dep_id) {
+      // if connection does not exist means the dependency has been revoked,
+      // just skip it
+      if mg.connection_by_dependency_id(dep_id).is_none() {
         continue;
       }
-      // make failed dependencies clean it.
+
+      self.make_failed_dependencies.remove(dep_id);
       let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      let Some(info) = FactorizeInfo::get_from(dep) else {
+        continue;
+      };
       self
         .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
+        .remove_batch_file(info.file_dependencies());
       self
         .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
+        .remove_batch_file(info.context_dependencies());
       self
         .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+        .remove_batch_file(info.missing_dependencies());
     }
 
     self.revoked_modules.insert(*module_identifier);
@@ -117,25 +122,30 @@ impl MakeArtifact {
 
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
     let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    // if connection does not exist means the dependency has been revoked,
+    // just skip it
+    if mg.connection_by_dependency_id(dep_id).is_none() {
+      return vec![];
+    }
 
-    let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
-      // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+    self.make_failed_dependencies.remove(dep_id);
+    let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+    let mut revoke_dep_ids = if let Some(info) = FactorizeInfo::get_from(dep) {
       self
         .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
+        .remove_batch_file(info.file_dependencies());
       self
         .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
+        .remove_batch_file(info.context_dependencies());
       self
         .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
-      // related_dep_ids will contain dep_id it self
-      info.related_dep_ids().into_owned()
+        .remove_batch_file(info.missing_dependencies());
+      info.related_dep_ids().to_owned()
     } else {
-      vec![*dep_id]
+      vec![]
     };
+    // add itself
+    revoke_dep_ids.push(*dep_id);
     revoke_dep_ids
       .iter()
       .filter_map(|dep_id| mg.revoke_dependency(dep_id, force))

@@ -1,9 +1,10 @@
 use std::collections::VecDeque;
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
+use rustc_hash::FxHashSet as HashSet;
 
 use super::super::MakeArtifact;
-use crate::{ModuleGraph, ModuleIdentifier, ModuleIssuer};
+use crate::{DependencyId, ModuleGraph, ModuleIdentifier, ModuleIssuer};
 
 /// Result of IssuerHelper.is_issuer.
 enum IsIssuerResult {
@@ -110,44 +111,69 @@ pub struct FixIssuers {
 }
 
 impl FixIssuers {
-  /// Analyze force_build_module.
+  /// Analyze force_build_modules.
   ///
-  /// This function will
+  /// This function will check each force_build_module and
   /// 1. save the issuer of force_build_module to self.force_build_module_issuers.
   /// 2. add force_build_module and the child module whose issuer is this force_build_module to self.need_check_modules.
-  pub fn analyze_force_build_module(
+  pub fn analyze_force_build_modules(&mut self, artifact: &MakeArtifact, mids: &IdentifierSet) {
+    let module_graph = artifact.get_module_graph();
+    for module_identifier in mids {
+      let mgm = module_graph
+        .module_graph_module_by_identifier(module_identifier)
+        .expect("should have module graph module");
+      self
+        .force_build_module_issuers
+        .insert(*module_identifier, mgm.issuer().clone());
+      self.need_check_modules.insert(*module_identifier);
+
+      // analyze child module
+      // if child module issuer is current module,
+      // add child module to self.need_check_modules
+      for child_dep_id in mgm.outgoing_connections() {
+        let child_mid = module_graph
+          .module_identifier_by_dependency_id(child_dep_id)
+          .expect("should module exist");
+        let Some(child_mgm) = module_graph.module_graph_module_by_identifier(child_mid) else {
+          // peresistent cache recovery module graph will lose some module and mgm.
+          // TODO replace to .expect() after all modules are cacheable.
+          self.need_check_modules.insert(*child_mid);
+          continue;
+        };
+
+        let child_module_issuer = child_mgm.issuer();
+        if let ModuleIssuer::Some(i) = child_module_issuer
+          && i == module_identifier
+        {
+          self.need_check_modules.insert(*child_mid);
+        }
+      }
+    }
+  }
+
+  /// Analyze force_build_dependencies.
+  ///
+  /// This function will check the origin and target module of each force_build_dependencies,
+  /// if target module is the origin module of current dependency, it is added to self.need_check_modules.
+  pub fn analyze_force_build_dependencies(
     &mut self,
     artifact: &MakeArtifact,
-    module_identifier: &ModuleIdentifier,
+    dep_ids: &HashSet<DependencyId>,
   ) {
     let module_graph = artifact.get_module_graph();
-    let mgm = module_graph
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have module graph module");
-    self
-      .force_build_module_issuers
-      .insert(*module_identifier, mgm.issuer().clone());
-    self.need_check_modules.insert(*module_identifier);
-
-    // analyze child module
-    // if child module issuer is current module,
-    // add child module to self.need_check_modules
-    for child_dep_id in mgm.outgoing_connections() {
-      let child_mid = module_graph
-        .module_identifier_by_dependency_id(child_dep_id)
-        .expect("should module exist");
-      let Some(child_mgm) = module_graph.module_graph_module_by_identifier(child_mid) else {
-        // peresistent cache recovery module graph will lose some module and mgm.
-        // TODO replace to .expect() after all modules are cacheable.
-        self.need_check_modules.insert(*child_mid);
-        continue;
-      };
-
-      let child_module_issuer = child_mgm.issuer();
-      if let ModuleIssuer::Some(i) = child_module_issuer
-        && i == module_identifier
-      {
-        self.need_check_modules.insert(*child_mid);
+    for dep_id in dep_ids {
+      let conn = module_graph
+        .connection_by_dependency_id(dep_id)
+        .expect("should have connection");
+      let parent_mid = &conn.original_module_identifier;
+      let child_mid = conn.module_identifier();
+      // peresistent cache recovery module graph will lose some module and mgm.
+      // TODO replace to .expect() after all modules are cacheable.
+      if let Some(child_mgm) = module_graph.module_graph_module_by_identifier(child_mid) {
+        let issuer = child_mgm.issuer().identifier();
+        if issuer == parent_mid.as_ref() {
+          self.add_need_check_module(*child_mid)
+        }
       }
     }
   }

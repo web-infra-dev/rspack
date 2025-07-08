@@ -105,7 +105,6 @@ impl Task<MakeTaskContext> for FactorizeTask {
     }
 
     let factorize_info = FactorizeInfo::new(
-      create_data.diagnostics,
       create_data
         .dependencies
         .iter()
@@ -114,6 +113,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       create_data.file_dependencies,
       create_data.context_dependencies,
       create_data.missing_dependencies,
+      create_data.diagnostics,
     );
     let exports_info = ExportsInfoData::default();
     Ok(vec![Box::new(FactorizeResultTask {
@@ -155,21 +155,21 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
     } = *self;
 
     let artifact = &mut context.artifact;
+    artifact
+      .file_dependencies
+      .add_batch_file(factorize_info.file_dependencies());
+    artifact
+      .context_dependencies
+      .add_batch_file(factorize_info.context_dependencies());
+    artifact
+      .missing_dependencies
+      .add_batch_file(factorize_info.missing_dependencies());
     if !factorize_info.diagnostics().is_empty() {
-      artifact
-        .file_dependencies
-        .add_batch_file(&factorize_info.file_dependencies());
-      artifact
-        .context_dependencies
-        .add_batch_file(&factorize_info.context_dependencies());
-      artifact
-        .missing_dependencies
-        .add_batch_file(&factorize_info.missing_dependencies());
       artifact
         .make_failed_dependencies
         .insert(*dependencies[0].id());
     }
-    // write factorize_info to dependencies[0] and set success factorize_info to others
+
     for dep in &mut dependencies {
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
         d.factorize_info_mut()
@@ -178,6 +178,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       } else {
         unreachable!("only module dependency and context dependency can factorize")
       };
+      // write factorize_info to dependencies[0] and set default factorize_info to others
       *dep_factorize_info = std::mem::take(&mut factorize_info);
     }
 
