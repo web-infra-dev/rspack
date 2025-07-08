@@ -1,0 +1,16 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "deny-ext"
+repository.workspace    = true
+version.workspace       = true
+
+[dependencies]
+toml = { workspace = true }
+
+[lints]
+workspace = true
