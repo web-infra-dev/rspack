@@ -66,6 +66,7 @@ impl NativeWatcher {
   }
 
   #[napi]
+  #[allow(clippy::too_many_arguments)]
   pub fn watch(
     &mut self,
     reference: Reference<NativeWatcher>,
