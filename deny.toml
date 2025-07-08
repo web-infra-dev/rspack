@@ -228,8 +228,6 @@ skip = [
     { crate = "regex-syntax", reason = "external dependency"},
     { crate = "rkyv", reason = "FIXME: need to be fixed"},
     { crate = "rkyv_derive", reason = "FIXME: need to be fixed"},
-    { crate = "rustc-hash", reason = "external dependency"},
-    { crate = "semver", reason = "external dependency"},
     { crate = "syn", reason = "external dependency"},
     { crate = "thiserror", reason = "external dependency"},
     { crate = "thiserror-impl", reason = "external dependency"},
