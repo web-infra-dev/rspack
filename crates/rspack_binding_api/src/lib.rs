@@ -97,6 +97,7 @@ mod stats;
 mod swc;
 mod trace_event;
 mod utils;
+mod virtual_modules;
 
 use std::{cell::RefCell, sync::Arc};
 
@@ -137,6 +138,9 @@ use crate::{
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
   utils::callbackify,
+  virtual_modules::{
+    HashMapVirtualFileStore, JsVirtualFileStore, VirtualFileStore, VirtualFileSystem,
+  },
 };
 
 // Export expected @rspack/core version
@@ -166,6 +170,7 @@ struct JsCompiler {
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   compiler_context: Arc<CompilerContext>,
+  virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
 
 #[napi]
@@ -218,12 +223,14 @@ impl JsCompiler {
         bp.append_to(env, &mut this, &mut plugins)?;
       }
 
+      let pnp = options.resolve.pnp.unwrap_or(false);
+      let virtual_files = options.__virtual_files.take();
       let use_input_fs = options.experiments.use_input_file_system.take();
       let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
-      let input_file_system: Option<Arc<dyn ReadableFileSystem>> =
+      let mut input_file_system: Option<Arc<dyn ReadableFileSystem>> =
         input_filesystem.and_then(|fs| {
           use_input_fs.and_then(|use_input_file_system| {
             let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
@@ -244,6 +251,31 @@ impl JsCompiler {
             }
           })
         });
+
+      let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
+      if let Some(list) = virtual_files {
+        let store = {
+          let mut store = HashMapVirtualFileStore::new();
+          for f in list {
+            store.write_file(f.path.as_str().into(), f.content.into());
+          }
+          Arc::new(RwLock::new(store))
+        };
+        input_file_system = input_file_system
+          .map(|real_fs| {
+            let binding: Arc<dyn ReadableFileSystem> =
+              Arc::new(VirtualFileSystem::new(real_fs, store.clone()));
+            binding
+          })
+          .or_else(|| {
+            let binding: Arc<dyn ReadableFileSystem> = Arc::new(VirtualFileSystem::new(
+              Arc::new(NativeFileSystem::new(pnp)),
+              store.clone(),
+            ));
+            Some(binding)
+          });
+        virtual_file_store = Some(store);
+      }
 
       resolver_factory_reference.update_options(
         input_file_system.clone(),
@@ -288,6 +320,7 @@ impl JsCompiler {
         include_dependencies_map: Default::default(),
         entry_dependencies_map: Default::default(),
         compiler_context,
+        virtual_file_store,
       })
     })
   }
@@ -367,6 +400,14 @@ impl JsCompiler {
         print_error_diagnostic(e, self.compiler.options.stats.colors)
       })?;
     Ok(())
+  }
+
+  #[napi]
+  pub fn get_virtual_file_store(&self) -> Option<JsVirtualFileStore> {
+    self
+      .virtual_file_store
+      .as_ref()
+      .map(|store| JsVirtualFileStore::new(store.clone()))
   }
 }
 
