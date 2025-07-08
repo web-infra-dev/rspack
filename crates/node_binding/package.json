@@ -14,7 +14,6 @@
     "binding.d.ts"
   ],
   "scripts": {
-    "prepare": "cargo codegen",
     "build:dev": "node scripts/build.js",
     "build:debug": "node scripts/build.js --profile release-debug",
     "build:ci": "node scripts/build.js --profile ci",
