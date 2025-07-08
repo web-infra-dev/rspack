@@ -625,7 +625,6 @@ describe("MultiCompiler", function () {
 		let firstRun = true;
 		compiler.watchFileSystem = {
 			async watch(
-				symbol,
 				files,
 				directories,
 				missing,
