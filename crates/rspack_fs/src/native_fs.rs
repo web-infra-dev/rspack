@@ -8,7 +8,7 @@ use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use tracing::instrument;
 
 use crate::{
-  FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
   ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 #[derive(Debug)]
@@ -148,10 +148,10 @@ impl ReadableFileSystem for NativeFileSystem {
         VPath::Virtual(info) => fs::read(info.physical_base_path()),
         VPath::Native(path) => fs::read(&path),
       };
-      return buffer;
+      return buffer.map_err(Error::from);
     }
 
-    fs::read(path)
+    fs::read(path).map_err(Error::from)
   }
   #[instrument(skip(self), level = "debug")]
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
