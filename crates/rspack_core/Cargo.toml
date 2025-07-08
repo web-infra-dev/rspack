@@ -14,7 +14,7 @@ bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
 derive_more = { workspace = true, features = ["debug"] }
-dyn-clone = "1.0.17"
+dyn-clone = { workspace = true }
 either = { workspace = true }
 futures = { workspace = true }
 hashlink = { workspace = true }
@@ -80,7 +80,7 @@ tracing = { workspace = true }
 ustr = { workspace = true }
 
 [dev-dependencies]
-pretty_assertions = { version = "1.4.1" }
+pretty_assertions = { workspace = true }
 
 [lints]
 workspace = true
