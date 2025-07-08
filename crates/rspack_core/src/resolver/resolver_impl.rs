@@ -191,7 +191,7 @@ impl Resolver {
     }
   }
 
-  pub(crate) fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {
+  pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {
     self.inner_fs.clone()
   }
 }

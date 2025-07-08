@@ -5143,6 +5143,7 @@ name = "rspack_plugin_mf"
 version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
+ "camino",
  "hashlink",
  "itertools 0.14.0",
  "regex",
@@ -5150,6 +5151,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_hash",
  "rspack_hook",
  "rspack_loader_runner",
