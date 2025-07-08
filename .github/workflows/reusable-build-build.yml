@@ -61,6 +61,9 @@ jobs:
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
 
+      - name: Run Cargo codegen
+        run: cargo codegen
+
       - name: Trim paths
         run: |
           echo $'\n' >> .cargo/config.toml
