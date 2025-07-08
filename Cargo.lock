@@ -652,6 +652,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "codegen"
+version = "0.2.1-alpha.0"
+dependencies = [
+ "anyhow",
+ "cargo_toml",
+ "serde_json",
+]
+
+[[package]]
 name = "codspeed"
 version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4187,7 +4196,6 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_loader_swc",
  "rspack_loader_testing",
- "rspack_macros",
  "rspack_napi",
  "rspack_napi_macros",
  "rspack_paths",
@@ -4240,6 +4248,7 @@ dependencies = [
  "rspack_tasks",
  "rspack_tracing",
  "rspack_util",
+ "rspack_workspace",
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
@@ -4404,6 +4413,7 @@ dependencies = [
  "rspack_storage",
  "rspack_tasks",
  "rspack_util",
+ "rspack_workspace",
  "rustc-hash 2.1.1",
  "scopeguard",
  "serde",
@@ -4514,13 +4524,13 @@ version = "0.2.1-alpha.0"
 dependencies = [
  "anyhow",
  "base64",
- "cargo_toml",
  "indoc",
  "jsonc-parser",
  "rspack_cacheable",
  "rspack_error",
  "rspack_sources",
  "rspack_util",
+ "rspack_workspace",
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
@@ -4606,7 +4616,6 @@ name = "rspack_loader_swc"
 version = "0.2.1-alpha.0"
 dependencies = [
  "async-trait",
- "cargo_toml",
  "either",
  "rspack_cacheable",
  "rspack_core",
@@ -4616,6 +4625,7 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_swc_plugin_import",
  "rspack_swc_plugin_ts_collector",
+ "rspack_workspace",
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
@@ -4654,7 +4664,6 @@ version = "0.2.1-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "serde_json",
  "syn 2.0.95",
 ]
 
@@ -5668,6 +5677,10 @@ dependencies = [
  "swc_core",
  "unicase",
 ]
+
+[[package]]
+name = "rspack_workspace"
+version = "0.2.1-alpha.0"
 
 [[package]]
 name = "rustc-demangle"

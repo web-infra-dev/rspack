@@ -44,12 +44,10 @@ rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }
 rspack_sources   = { workspace = true }
 rspack_util      = { workspace = true }
+rspack_workspace = { workspace = true }
 
 [lints]
 workspace = true
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }
-
-[build-dependencies]
-cargo_toml = { workspace = true }
