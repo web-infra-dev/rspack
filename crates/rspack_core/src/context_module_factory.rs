@@ -1,10 +1,11 @@
-use std::{borrow::Cow, fs, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use rspack_error::{error, miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
+use rspack_error::{error, Result, ToStringResultToRspackResultExt};
+use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
@@ -138,6 +139,7 @@ impl ContextModuleFactory {
         &mut context_element_dependencies,
         &options,
         &resolver.options(),
+        resolver.inner_fs(),
       )?;
       context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
 
@@ -391,15 +393,20 @@ fn visit_dirs(
   dir: &Utf8Path,
   dependencies: &mut Vec<ContextElementDependency>,
   options: &ContextModuleOptions,
-  resolve_options: &ResolveInnerOptions,
+  resolve_options: &ResolveInnerOptions<'_>,
+  fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
-  if !dir.is_dir() {
+  if !fs
+    .metadata_sync(dir)
+    .map(|m| m.is_directory)
+    .unwrap_or(false)
+  {
     return Ok(());
   }
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
-  for entry in fs::read_dir(dir).into_diagnostic()? {
-    let path = entry.into_diagnostic()?.path().assert_utf8();
+  for filename in fs.read_dir_sync(dir)? {
+    let path = dir.join(&filename);
     let path_str = path.as_str();
 
     if let Some(exclude) = exclude
@@ -409,11 +416,22 @@ fn visit_dirs(
       continue;
     }
 
-    if path.is_dir() {
+    if fs
+      .metadata_sync(&path)
+      .map(|m| m.is_directory)
+      .unwrap_or(false)
+    {
       if options.context_options.recursive {
-        visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
+        visit_dirs(
+          ctx,
+          &path,
+          dependencies,
+          options,
+          resolve_options,
+          fs.clone(),
+        )?;
       }
-    } else if path.file_name().is_some_and(|name| name.starts_with('.')) {
+    } else if filename.starts_with('.') {
       // ignore hidden files
     } else {
       if let Some(include) = include
