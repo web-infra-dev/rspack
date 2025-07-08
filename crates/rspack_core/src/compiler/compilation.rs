@@ -41,7 +41,7 @@ use super::{
 };
 use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
-  cache::Cache,
+  cache::{persistent::storage::MemoryGCStorage, Cache},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
@@ -350,7 +350,7 @@ impl Compilation {
       hot_index: 0,
       runtime_template: RuntimeTemplate::new(options.output.environment),
       records,
-      options,
+      options: options.clone(),
       other_module_graph: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
@@ -389,7 +389,12 @@ impl Compilation {
       module_graph_cache_artifact: Default::default(),
       module_static_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
-      chunk_content_hash_artifact: Default::default(),
+      chunk_content_hash_artifact: ChunkContentHashArtifact::new(MemoryGCStorage::new(
+        match &options.cache {
+          CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
+          CacheOptions::Disabled => 0, // FIXME: this should be removed in future
+        },
+      )),
       build_time_executed_modules: Default::default(),
       cache,
       old_cache,
