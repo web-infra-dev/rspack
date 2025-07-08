@@ -10,7 +10,7 @@ use occasion::MakeOccasion;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPath;
-use rspack_workspace::rspack_version;
+use rspack_workspace::rspack_pkg_version;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
@@ -55,7 +55,7 @@ impl PersistentCache {
       |hasher| {
         compiler_path.hash(hasher);
         option.hash(hasher);
-        rspack_version!().hash(hasher);
+        rspack_pkg_version!().hash(hasher);
         compiler_options.name.hash(hasher);
         compiler_options.mode.hash(hasher);
       },

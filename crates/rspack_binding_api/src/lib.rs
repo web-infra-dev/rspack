@@ -163,7 +163,7 @@ impl JsCompiler {
     input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
-    tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_version!());
+    tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
     tracing::info!(name:"raw_options", options=?&options);
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {

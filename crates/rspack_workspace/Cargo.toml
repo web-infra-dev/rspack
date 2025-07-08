@@ -5,6 +5,7 @@ description             = "Rspack workspace utilities"
 documentation.workspace = true
 edition.workspace       = true
 homepage.workspace      = true
+include                 = ["src/*"]
 license.workspace       = true
 name                    = "rspack_workspace"
 repository.workspace    = true
