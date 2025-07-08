@@ -67,4 +67,6 @@ jobs:
           size-threshold: 51200
 
       - name: Debug
-        uses: .github/actions/debugger/action.yml
+        uses: ./.github/actions/debugger
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
