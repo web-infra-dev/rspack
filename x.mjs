@@ -318,8 +318,11 @@ program
 		const args = [
 			"workspaces",
 			"publish",
-			"--publish-as-is", // Publish crates from the current commit without versioning
-			"--locked" // Assert that `Cargo.lock` will remain unchanged
+			"--publish-as-is" // Publish crates from the current commit without versioning
+			// Commented `--locked` flag
+			// because some dev-deps refer to workspace members with versions rspack_swc_plugin_ts_collector
+			// and these workspace members are to be removed in release. This would cause `Cargo.lock` to be updated.
+			// "--locked" // Assert that `Cargo.lock` will remain unchanged
 		];
 
 		if (options.token) {

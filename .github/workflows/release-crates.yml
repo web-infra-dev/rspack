@@ -22,7 +22,9 @@ jobs:
   release_crates:
     environment: crate
     name: Release Crates
-    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
     needs: [rust_tests]
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
@@ -37,8 +39,16 @@ jobs:
           save-if: true
           key: release
 
+      - uses: cargo-bins/cargo-binstall@8aac5aa2bf0dfaa2863eccad9f43c68fe40e5ec8 # v1.14.1
+
       - name: Install cargo-workspaces
-        run: cargo install cargo-workspaces --locked
+        run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
+
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Publish Crates
         run: |
