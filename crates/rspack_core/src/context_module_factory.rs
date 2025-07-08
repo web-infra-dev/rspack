@@ -11,9 +11,9 @@ use tracing::instrument;
 
 use crate::{
   resolve, BoxDependency, CompilationId, ContextElementDependency, ContextModule,
-  ContextModuleOptions, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
-  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
+  ContextModuleOptions, DependencyCategory, DependencyId, DependencyType, ErrorSpan, FactoryMeta,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  RawModule, ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
 
@@ -313,13 +313,19 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Ignored) => {
         let ident = format!("{}/{}", data.context, specifier);
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-        let raw_module = RawModule::new(
+        let mut raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
           format!("{specifier} (ignored)"),
           Default::default(),
         )
         .boxed();
+
+        raw_module.set_factory_meta(FactoryMeta {
+          side_effect_free: Some(true),
+          ..Default::default()
+        });
+
         data.add_file_dependencies(file_dependencies);
         data.add_missing_dependencies(missing_dependencies);
         return Ok((ModuleFactoryResult::new_with_module(raw_module), None));

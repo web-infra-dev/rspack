@@ -18,11 +18,12 @@ use crate::{
   stringify_loaders_and_resource, AssetInlineGeneratorOptions, AssetResourceGeneratorOptions,
   BoxLoader, BoxModule, CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
   CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyRange, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  DependencyRange, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -346,13 +347,18 @@ impl NormalModuleFactory {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let raw_module = RawModule::new(
+            let mut raw_module = RawModule::new(
               "/* (ignored) */".to_owned(),
               module_identifier,
               format!("{resource} (ignored)"),
               Default::default(),
             )
             .boxed();
+
+            raw_module.set_factory_meta(FactoryMeta {
+              side_effect_free: Some(true),
+              ..Default::default()
+            });
 
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
@@ -866,7 +872,7 @@ impl NormalModuleFactory {
         );
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-        let raw_module = RawModule::new(
+        let mut raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
           format!(
@@ -876,6 +882,11 @@ impl NormalModuleFactory {
           Default::default(),
         )
         .boxed();
+
+        raw_module.set_factory_meta(FactoryMeta {
+          side_effect_free: Some(true),
+          ..Default::default()
+        });
 
         return Ok(ModuleFactoryResult::new_with_module(raw_module));
       }
