@@ -1,0 +1,18 @@
+{
+  "name": "rspack-basic-example",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "build": "./run-build.sh",
+    "test": "node --test test.js",
+    "test:validate": "node --test test-validate.js"
+  },
+  "dependencies": {
+    "@rspack/core": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "lodash-es": "^4.17.21"
+  }
+}
