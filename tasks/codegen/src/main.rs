@@ -62,12 +62,12 @@ fn generate_workspace_versions(out_path: &str) -> Result<()> {
   let content = format!(
     r#"//! This is a generated file. Don't modify it by hand! Run 'cargo codegen' to re-generate the file.
 /// The version of the `swc_core` package used in the current workspace.
-pub fn rspack_swc_core_version() -> &'static str {{
+pub const fn rspack_swc_core_version() -> &'static str {{
   "{swc_core_version}"
 }}
 
 /// The version of the JavaScript `@rspack/core` package.
-pub fn rspack_pkg_version() -> &'static str {{
+pub const fn rspack_pkg_version() -> &'static str {{
   "{rspack_version}"
 }}
 "#
