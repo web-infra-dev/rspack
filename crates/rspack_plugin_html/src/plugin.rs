@@ -63,7 +63,7 @@ async fn generate_html(
 ) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
   let public_path = config.get_public_path(compilation, filename).await;
 
-  let mut template = HtmlTemplate::new(config, compilation)?;
+  let mut template = HtmlTemplate::new(config, compilation).await?;
 
   let template_file_name = compilation
     .options

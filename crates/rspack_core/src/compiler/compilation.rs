@@ -1542,7 +1542,8 @@ impl Compilation {
       }
       compilation
         .chunk_graph
-        .generate_dot(compilation, "after-code-splitting");
+        .generate_dot(compilation, "after-code-splitting")
+        .await;
       logger.time_end(start);
       Ok(compilation)
     })
