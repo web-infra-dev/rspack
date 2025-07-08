@@ -33,7 +33,7 @@ impl ChunkRenderCacheArtifact {
     F: Future<Output = Result<(BoxSource, Vec<Diagnostic>)>>,
   {
     let Some(storage) = &self.storage else {
-      panic!("ChunkContentHashArtifact storage is not set");
+      panic!("ChunkRenderCacheArtifact storage is not set");
     };
     let Some(content_hash) =
       chunk.content_hash_by_source_type(&compilation.chunk_hashes_artifact, source_type)
