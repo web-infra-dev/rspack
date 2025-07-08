@@ -624,7 +624,7 @@ describe("MultiCompiler", function () {
 		const watchCallbacksUndelayed = [];
 		let firstRun = true;
 		compiler.watchFileSystem = {
-			async watch(
+			watch(
 				files,
 				directories,
 				missing,
