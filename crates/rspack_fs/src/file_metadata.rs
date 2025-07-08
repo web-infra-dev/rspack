@@ -32,7 +32,7 @@ impl TryFrom<Metadata> for FileMetadata {
         if err.kind() == ErrorKind::Unsupported {
           0_u64
         } else {
-          return Err(err.into());
+          return Err(err);
         }
       }
     };
