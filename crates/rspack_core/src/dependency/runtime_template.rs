@@ -8,10 +8,65 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
-  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, UsedName,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, ModuleType,
+  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, UsedName,
 };
+
+/// Check if a module is a shared module or descendant of a shared module
+fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
+  // Check if the module itself is a shared module
+  if let Some(module) = module_graph.module_by_identifier(module_id) {
+    // Check if it has a shared_key or consume_shared_key in BuildMeta
+    if module.build_meta().shared_key.is_some() || module.build_meta().consume_shared_key.is_some()
+    {
+      return true;
+    }
+
+    // Check if the module is ConsumeShared or ProvideShared type
+    if module.module_type() == &ModuleType::ConsumeShared
+      || module.module_type() == &ModuleType::ProvideShared
+    {
+      return true;
+    }
+  }
+
+  // Check all issuer modules recursively
+  let mut visited = HashSet::default();
+  let mut queue = vec![*module_id];
+
+  while let Some(current_id) = queue.pop() {
+    if !visited.insert(current_id) {
+      continue;
+    }
+
+    // Check all incoming connections (issuers)
+    for connection in module_graph.get_incoming_connections(&current_id) {
+      if let Some(issuer_id) = connection.original_module_identifier {
+        if let Some(issuer_module) = module_graph.module_by_identifier(&issuer_id) {
+          // Check if issuer is a ConsumeShared or ProvideShared module
+          if issuer_module.module_type() == &ModuleType::ConsumeShared
+            || issuer_module.module_type() == &ModuleType::ProvideShared
+          {
+            return true;
+          }
+
+          // Check if issuer has shared metadata
+          if issuer_module.build_meta().shared_key.is_some()
+            || issuer_module.build_meta().consume_shared_key.is_some()
+          {
+            return true;
+          }
+
+          // Add to queue to check its issuers
+          queue.push(issuer_id);
+        }
+      }
+    }
+  }
+
+  false
+}
 
 pub fn runtime_condition_expression(
   chunk_graph: &ChunkGraph,
@@ -400,30 +455,30 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  // TODO: Re-enable PURE annotations for ConsumeShared modules
-  // let is_pure = compilation
-  //   .get_module_graph()
-  //   .dependency_by_id(id)
-  //   .is_some_and(|dep| {
-  //     // Check dependency type and ConsumeShared ancestry
-  //     let dep_type = dep.dependency_type();
-  //     let is_relevant_import = matches!(
-  //       dep_type.as_str(),
-  //       "esm import" | "esm import specifier" | "cjs require"
-  //     ) && import_var != "__webpack_require__";
-  //
-  //     if is_relevant_import {
-  //       let module_graph = compilation.get_module_graph();
-  //       is_consume_shared_descendant(&module_graph, &module.identifier())
-  //     } else {
-  //       false
-  //     }
-  //   });
-  //
-  // let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
+  // Check if this is a descendant of a ConsumeShared module
+  let is_pure = compilation
+    .get_module_graph()
+    .dependency_by_id(id)
+    .is_some_and(|dep| {
+      // Check dependency type and ConsumeShared ancestry
+      let dep_type = dep.dependency_type();
+      let is_relevant_import = matches!(
+        dep_type.as_str(),
+        "esm import" | "esm import specifier" | "cjs require"
+      ) && import_var != "__webpack_require__";
+
+      if is_relevant_import {
+        let module_graph = compilation.get_module_graph();
+        is_consume_shared_descendant(&module_graph, &module.identifier())
+      } else {
+        false
+      }
+    });
+
+  let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
 
   let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
+    "/* ESM import */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
     RuntimeGlobals::REQUIRE
   );
 
