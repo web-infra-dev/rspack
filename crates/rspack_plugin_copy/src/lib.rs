@@ -19,7 +19,7 @@ use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, Logger, PathData, Plugin,
 };
-use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
@@ -269,10 +269,7 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{absolute_filename}'..."));
     // TODO inputFileSystem
 
-    #[cfg(not(target_family = "wasm"))]
-    let data = tokio::fs::read(absolute_filename.clone()).await;
-    #[cfg(target_family = "wasm")]
-    let data = std::fs::read(absolute_filename.clone());
+    let data = compilation.input_filesystem.read(&absolute_filename).await;
 
     let source_vec = match data {
       Ok(data) => {
@@ -281,7 +278,7 @@ impl CopyRspackPlugin {
         data
       }
       Err(e) => {
-        let e: Error = DiagnosticError::from(e.boxed()).into();
+        let e: Error = e.into();
         diagnostics
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
