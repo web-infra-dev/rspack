@@ -14,7 +14,7 @@ version                 = "0.1.0"
 [dependencies]
 miette    = { workspace = true, features = ["fancy"] }
 thiserror = { workspace = true }
-toml      = { version = "0.8.19" }
+toml      = { workspace = true }
 
 [lints]
 workspace = true

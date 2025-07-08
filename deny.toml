@@ -281,6 +281,9 @@ skip-tree = [
 
 [bans.workspace-dependencies]
 duplicates = 'deny'
+include-path-dependencies = true
+unused = "deny"
+
 
 # This section is considered when running `cargo deny check sources`.
 # More documentation about the 'sources' section can be found here:
