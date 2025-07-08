@@ -51,7 +51,7 @@ jobs:
         run: |
           unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
           rustup target add x86_64-unknown-linux-gnu
-          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
+          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:profiling
 
       - name: Upload artifact
         uses: ./.github/actions/artifact/upload
@@ -65,3 +65,6 @@ jobs:
         with:
           # 50k 50*1024
           size-threshold: 51200
+
+      - name: Debug
+        uses: .github/actions/debugger/action.yml
