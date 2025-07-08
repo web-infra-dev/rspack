@@ -5,7 +5,6 @@ mod cacheable_dyn;
 mod hook;
 mod merge;
 mod plugin;
-mod rspack_version;
 mod runtime_module;
 mod source_map_config;
 
@@ -101,10 +100,4 @@ pub fn disable_cacheable_dyn(
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
   cacheable_dyn::disable_cacheable_dyn(tokens)
-}
-
-#[proc_macro]
-pub fn rspack_version(_tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  let version = rspack_version::rspack_version();
-  quote::quote! { #version }.into()
 }
