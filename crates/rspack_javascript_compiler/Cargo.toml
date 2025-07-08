@@ -38,7 +38,7 @@ swc_core = { workspace = true, features = [
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
-url = "2.5.0"
+url = { workspace = true }
 
 rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }
@@ -52,4 +52,4 @@ workspace = true
 stacker = { workspace = true }
 
 [build-dependencies]
-cargo_toml = { version = "0.21.0" }
+cargo_toml = { workspace = true }
