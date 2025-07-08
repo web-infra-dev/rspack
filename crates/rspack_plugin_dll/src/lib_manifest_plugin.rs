@@ -4,7 +4,7 @@ use rspack_core::{
   Filename, LibIdentOptions, PathData, Plugin, PluginContext, PrefetchExportsInfoMode,
   ProvidedExports, SourceType,
 };
-use rspack_error::{miette::IntoDiagnostic, Error, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
@@ -184,15 +184,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
   for (filename, json) in manifests {
     let path = Utf8Path::new(&filename);
     if let Some(dir) = path.parent() {
-      intermediate_filesystem
-        .create_dir_all(dir)
-        .await
-        .into_diagnostic()?;
+      intermediate_filesystem.create_dir_all(dir).await?;
     }
-    intermediate_filesystem
-      .write(path, json.as_bytes())
-      .await
-      .into_diagnostic()?;
+    intermediate_filesystem.write(path, json.as_bytes()).await?;
   }
 
   Ok(())

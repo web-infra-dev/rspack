@@ -20,4 +20,6 @@ mod memory_fs;
 pub use memory_fs::{MemoryFileSystem, MemoryReadStream, MemoryWriteStream};
 
 mod error;
-pub use error::{Error, Result, RspackResultToFsResultExt};
+pub use error::{
+  Error, FsResultToIoResultExt, IoResultToFsResultExt, Result, RspackResultToFsResultExt,
+};
