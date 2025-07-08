@@ -78,14 +78,14 @@ export class Watching {
 		});
 	}
 
-	async watch(
+	watch(
 		files: WatcherIncrementalDependencies,
 		dirs: WatcherIncrementalDependencies,
 		missing: WatcherIncrementalDependencies
 	) {
 		this.pausedWatcher = undefined;
 		// SAFETY: `watchFileSystem` is expected to be initialized.
-		this.watcher = await this.compiler.watchFileSystem!.watch(
+		this.watcher = this.compiler.watchFileSystem!.watch(
 			files,
 			dirs,
 			missing,

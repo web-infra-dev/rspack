@@ -8965,7 +8965,7 @@ type WatchFiles = {
 // @public (undocumented)
 interface WatchFileSystem {
     // (undocumented)
-    watch(files: WatcherIncrementalDependencies, directories: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Promise<Watcher>;
+    watch(files: WatcherIncrementalDependencies, directories: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
 }
 
 // @public (undocumented)
@@ -9008,7 +9008,7 @@ export class Watching {
     // (undocumented)
     suspended: boolean;
     // (undocumented)
-    watch(files: WatcherIncrementalDependencies, dirs: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies): Promise<void>;
+    watch(files: WatcherIncrementalDependencies, dirs: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies): void;
     // (undocumented)
     watcher?: Watcher;
     // (undocumented)

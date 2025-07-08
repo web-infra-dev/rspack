@@ -37,17 +37,20 @@ pub struct FsEvent {
   pub kind: FsEventKind,
 }
 
-#[async_trait::async_trait]
+pub trait EventAggregateHandler {
+  fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
+
+  fn on_error(&self, _error: rspack_error::Error) {
+    // Default implementation does nothing.
+  }
+}
+
 pub trait EventHandler {
-  async fn on_event_handle(
-    &self,
-    _changed_files: HashSet<String>,
-    _deleted_files: HashSet<String>,
-  ) -> Result<()>;
-  async fn on_change(&self, _changed_file: String) -> Result<()> {
+  fn on_change(&self, _changed_file: String) -> rspack_error::Result<()> {
     Ok(())
   }
-  async fn on_delete(&self, _deleted_file: String) -> Result<()> {
+
+  fn on_delete(&self, _deleted_file: String) -> rspack_error::Result<()> {
     Ok(())
   }
 }
@@ -88,13 +91,19 @@ impl FsWatcher {
     files: PathUpdater,
     directories: PathUpdater,
     missing: PathUpdater,
-    event_handler: Box<dyn EventHandler + Send + Sync>,
-  ) -> Result<()> {
+    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
+    event_handler: Box<dyn EventHandler + Send>,
+  ) {
     self.scanner.scan();
-    self.wait_for_event(files, directories, missing).await?;
-    self.executor.wait_for_execute(event_handler).await;
+    if let Err(e) = self.wait_for_event(files, directories, missing).await {
+      event_aggregate_handler.on_error(e);
+      return;
+    };
 
-    Ok(())
+    self
+      .executor
+      .wait_for_execute(event_aggregate_handler, event_handler)
+      .await;
   }
 
   pub async fn close(&mut self) -> Result<()> {
@@ -120,7 +129,7 @@ impl FsWatcher {
     self
       .path_manager
       .update_paths(files, directories, missing)
-      .await;
+      .await?;
 
     let analyzer = RecommendedAnalyzer::new(self.path_manager.access());
     let watch_patterns = analyzer.analyze();

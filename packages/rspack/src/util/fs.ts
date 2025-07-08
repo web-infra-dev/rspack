@@ -711,5 +711,5 @@ export interface WatchFileSystem {
 			removedFiles: Set<string>
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
-	): Promise<Watcher>;
+	): Watcher;
 }

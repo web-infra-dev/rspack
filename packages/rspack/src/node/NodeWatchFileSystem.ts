@@ -31,7 +31,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		};
 	}
 
-	async watch(
+	watch(
 		_files: WatcherIncrementalDependencies,
 		_directories: WatcherIncrementalDependencies,
 		_missing: WatcherIncrementalDependencies,
@@ -45,7 +45,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			removedFiles: Set<string>
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
-	): Promise<Watcher> {
+	): Watcher {
 		const files = _files.all;
 		const directories = _directories.all;
 		const missing = _missing.all;

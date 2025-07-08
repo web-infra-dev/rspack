@@ -2,11 +2,12 @@ use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
 use async_trait::async_trait;
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
+use rspack_error::Result;
 use rspack_paths::ArcPath;
 
 #[async_trait]
 pub trait Ignored: Send + Sync {
-  async fn ignore(&self, path: &str) -> bool;
+  async fn ignore(&self, path: &str) -> Result<bool>;
 }
 
 /// An iterator that chains together references to all files, directories, and missing paths
@@ -103,13 +104,17 @@ impl PathUpdater {
   ///
   /// * `paths` - A reference to the set of paths to update.
   /// * `ignored` - An optional reference to an ignored paths filter.
-  pub async fn update(self, paths: &HashSet<ArcPath>, ignored: &Option<Box<dyn Ignored>>) {
+  pub async fn update(
+    self,
+    paths: &HashSet<ArcPath>,
+    ignored: &Option<Box<dyn Ignored>>,
+  ) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
     for added in added_paths {
       if let Some(ignored) = ignored {
-        if ignored.ignore(&added).await {
+        if ignored.ignore(&added).await? {
           continue;
         }
       }
@@ -120,6 +125,7 @@ impl PathUpdater {
     for removed in removed_paths {
       paths.remove(&ArcPath::from(PathBuf::from(removed)));
     }
+    Ok(())
   }
 }
 
@@ -149,10 +155,14 @@ impl PathManager {
     files: PathUpdater,
     directories: PathUpdater,
     missing: PathUpdater,
-  ) {
-    files.update(&self.files, &self.ignored).await;
-    directories.update(&self.directories, &self.ignored).await;
-    missing.update(&self.missing, &self.ignored).await;
+  ) -> Result<()> {
+    tokio::try_join!(
+      files.update(&self.files, &self.ignored),
+      directories.update(&self.directories, &self.ignored),
+      missing.update(&self.missing, &self.ignored),
+    )?;
+
+    Ok(())
   }
 
   /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
@@ -167,6 +177,7 @@ mod tests {
 
   use async_trait::async_trait;
   use dashmap::DashSet as HashSet;
+  use rspack_error::Result;
 
   use super::*;
 
@@ -176,8 +187,8 @@ mod tests {
 
   #[async_trait]
   impl Ignored for TestIgnored {
-    async fn ignore(&self, path: &str) -> bool {
-      self.ignored.iter().any(|ignore| path.contains(ignore))
+    async fn ignore(&self, path: &str) -> Result<bool> {
+      Ok(self.ignored.iter().any(|ignore| path.contains(ignore)))
     }
   }
 
@@ -196,7 +207,7 @@ mod tests {
       ignored: vec!["node_modules".to_string(), ".git".to_string()],
     });
 
-    updater.update(&paths, &Some(ignored)).await;
+    updater.update(&paths, &Some(ignored)).await.unwrap();
 
     let mut path_iter = paths.into_iter();
     assert_eq!(
@@ -250,7 +261,10 @@ mod tests {
       added: vec!["src/page/index.ts".to_string()],
       removed: vec![],
     };
-    path_manager.update_paths(files, directories, missing).await;
+    path_manager
+      .update_paths(files, directories, missing)
+      .await
+      .unwrap();
 
     let accessor = path_manager.access();
     let mut all_paths = accessor

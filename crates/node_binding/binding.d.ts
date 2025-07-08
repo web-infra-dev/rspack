@@ -443,14 +443,7 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
-  /**
-   * # Safety
-   *
-   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-   * It's important to ensure that the watcher is not used in any other places before this function is finished.
-   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-   */
-  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, changedFiles: string[], removedFiles: string[]) => void, callbackUndelayed: (path: string) => void): Promise<void>
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
   /**
    * # Safety
    *
@@ -460,6 +453,11 @@ export declare class NativeWatcher {
    */
   close(): Promise<void>
   pause(): void
+}
+
+export declare class NativeWatchResult {
+  changedFiles: Array<string>
+  removedFiles: Array<string>
 }
 
 

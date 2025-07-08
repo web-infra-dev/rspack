@@ -1,7 +1,7 @@
 use std::boxed::Box;
 
 use async_trait::async_trait;
-use napi::bindgen_prelude::FnArgs;
+use napi::bindgen_prelude::*;
 use napi_derive::*;
 use rspack_fs::{FsWatcher, FsWatcherOptions, Ignored, PathUpdater};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -12,17 +12,10 @@ struct SafetyIgnored {
 
 #[async_trait]
 impl Ignored for SafetyIgnored {
-  async fn ignore(&self, path: &str) -> bool {
-    self
-      .f
-      .call_with_sync(path.to_string())
-      .await
-      .unwrap_or_default()
+  async fn ignore(&self, path: &str) -> rspack_error::Result<bool> {
+    self.f.call_with_sync(path.to_string()).await
   }
 }
-
-type JsCallback = ThreadsafeFunction<FnArgs<(Option<napi::Error>, Vec<String>, Vec<String>)>, ()>;
-type JsCallbackUndelayed = ThreadsafeFunction<String, ()>;
 
 #[napi(object, object_to_js = false)]
 pub struct NativeWatcherOptions {
@@ -35,6 +28,12 @@ pub struct NativeWatcherOptions {
   #[napi(ts_type = "(path: string) => boolean")]
   /// A function that will be called with the path of a file or directory that is ignored.
   pub ignored: Option<ThreadsafeFunction<String, bool>>,
+}
+
+#[napi]
+pub struct NativeWatchResult {
+  pub changed_files: Vec<String>,
+  pub removed_files: Vec<String>,
 }
 
 #[napi]
@@ -67,28 +66,25 @@ impl NativeWatcher {
   }
 
   #[napi]
-  /// # Safety
-  ///
-  /// This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
-  /// It's important to ensure that the watcher is not used in any other places before this function is finished.
-  /// You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
-  pub async unsafe fn watch(
+  pub fn watch(
     &mut self,
+    reference: Reference<NativeWatcher>,
     files: (Vec<String>, Vec<String>),
     directories: (Vec<String>, Vec<String>),
     missing: (Vec<String>, Vec<String>),
-    #[napi(
-      ts_arg_type = "(err: Error | null, changedFiles: string[], removedFiles: string[]) => void"
-    )]
-    callback: JsCallback,
-    #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: JsCallbackUndelayed,
+    #[napi(ts_arg_type = "(err: Error | null, result: NativeWatchResult) => void")]
+    callback: Function<'static>,
+    #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: Function<'static>,
+    env: Env,
   ) -> napi::Result<()> {
     if self.closed {
       return Err(napi::Error::from_reason(
         "The native watcher has been closed, cannot watch again.",
       ));
     }
-    let js_event_handler = JsEventHandler::new(callback, callback_undelayed);
+
+    let js_event_handler = JsEventHandler::new(callback)?;
+    let js_event_handler_undelayed = JsEventHandlerUndelayed::new(callback_undelayed)?;
 
     let file_updater = PathUpdater {
       added: files.0,
@@ -105,16 +101,21 @@ impl NativeWatcher {
       removed: missing.1,
     };
 
-    self
-      .watcher
-      .watch(
-        file_updater,
-        directories_updater,
-        missing_updater,
-        Box::new(js_event_handler),
-      )
-      .await
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    reference.share_with(env, |native_watcher| {
+      napi::bindgen_prelude::spawn(async move {
+        native_watcher
+          .watcher
+          .watch(
+            file_updater,
+            directories_updater,
+            missing_updater,
+            Box::new(js_event_handler),
+            Box::new(js_event_handler_undelayed),
+          )
+          .await
+      });
+      Ok(())
+    })?;
 
     Ok(())
   }
@@ -147,38 +148,92 @@ impl NativeWatcher {
 }
 
 struct JsEventHandler {
-  callback: JsCallback,
-  callback_undelayed: JsCallbackUndelayed,
+  inner: napi::threadsafe_function::ThreadsafeFunction<
+    NativeWatchResult,
+    napi::Unknown<'static>,
+    NativeWatchResult,
+    Status,
+    true,
+    true,
+    1,
+  >,
 }
 
 impl JsEventHandler {
-  fn new(callback: JsCallback, callback_undelayed: JsCallbackUndelayed) -> Self {
-    Self {
-      callback,
-      callback_undelayed,
-    }
+  fn new(callback: Function<'static>) -> napi::Result<Self> {
+    let callback = callback
+      .build_threadsafe_function::<NativeWatchResult>()
+      .callee_handled::<true>()
+      .max_queue_size::<1>()
+      .weak::<true>()
+      .build_callback(
+        move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
+      )?;
+
+    Ok(Self { inner: callback })
   }
 }
 
-#[async_trait::async_trait]
-impl rspack_fs::EventHandler for JsEventHandler {
-  async fn on_event_handle(
+impl rspack_fs::EventAggregateHandler for JsEventHandler {
+  fn on_event_handle(
     &self,
     changed_files: std::collections::HashSet<String>,
     deleted_files: std::collections::HashSet<String>,
-  ) -> rspack_error::Result<()> {
+  ) {
     let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
     let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();
-
-    self
-      .callback
-      .call_with_sync(FnArgs {
-        data: (None, changed_files_vec, deleted_files_vec),
-      })
-      .await
+    let result = NativeWatchResult {
+      changed_files: changed_files_vec,
+      removed_files: deleted_files_vec,
+    };
+    self.inner.call(
+      Ok(result),
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
   }
 
-  async fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
-    self.callback_undelayed.call_with_sync(changed_file).await
+  fn on_error(&self, error: rspack_error::Error) {
+    // Handle error, maybe log it or notify the user
+    let error_message = format!("Watcher error: {error}");
+    self.inner.call(
+      Err(napi::Error::from_reason(error_message)),
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+  }
+}
+
+struct JsEventHandlerUndelayed {
+  inner: napi::threadsafe_function::ThreadsafeFunction<
+    String,
+    napi::Unknown<'static>,
+    String,
+    Status,
+    false,
+    false,
+    1,
+  >,
+}
+
+impl JsEventHandlerUndelayed {
+  fn new(callback: Function<'static>) -> napi::Result<Self> {
+    let callback = callback
+      .build_threadsafe_function::<String>()
+      .weak::<false>()
+      .max_queue_size::<1>()
+      .build_callback(
+        move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
+      )?;
+
+    Ok(Self { inner: callback })
+  }
+}
+
+impl rspack_fs::EventHandler for JsEventHandlerUndelayed {
+  fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
+    self.inner.call(
+      changed_file,
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+    Ok(())
   }
 }

@@ -57,7 +57,7 @@ const ignoredToFunction = (ignored: Watchpack.WatchOptions["ignored"]) => {
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
 
-	async watch(
+	watch(
 		files: WatcherIncrementalDependencies,
 		directories: WatcherIncrementalDependencies,
 		missing: WatcherIncrementalDependencies,
@@ -71,7 +71,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			removedFiles: Set<string>
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
-	): Promise<Watcher> {
+	): Watcher {
 		if (
 			(!files.added || typeof files.added[Symbol.iterator] !== "function") &&
 			(!files.removed || typeof files.removed[Symbol.iterator] !== "function")
@@ -101,11 +101,12 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
 		const nativeWatcher = this.getNativeWatcher(options);
 
-		await nativeWatcher.watch(
+		nativeWatcher.watch(
 			[Array.from(files.added), Array.from(files.removed)],
 			[Array.from(directories.added), Array.from(directories.removed)],
 			[Array.from(missing.added), Array.from(missing.removed)],
-			(err: Error | null, changedFiles: string[], removedFiles: string[]) => {
+			(err: Error | null, result) => {
+				const { changedFiles, removedFiles } = result;
 				// TODO: add fileTimeInfoEntries and contextTimeInfoEntries
 				callback(
 					err,

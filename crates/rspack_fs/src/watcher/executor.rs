@@ -11,8 +11,8 @@ use tokio::sync::{
   Mutex,
 };
 
-use super::{EventHandler, FsEventKind};
-use crate::watcher::FsEvent;
+use super::{EventAggregateHandler, FsEventKind};
+use crate::watcher::{EventHandler, FsEvent};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -96,7 +96,7 @@ impl Executor {
 
   /// Abort all executor.
   async fn abort(&mut self) {
-    if let Some(execute_aggregate_handle) = &mut self.execute_aggregate_handle {
+    if let Some(execute_aggregate_handle) = std::mem::take(&mut self.execute_aggregate_handle) {
       execute_aggregate_handle.abort();
       // Wait for the aggregate executor to finish
       // Awaiting a cancelled task might complete as usual if the task was already completed at the time it was cancelled, but most likely it will fail with a [cancelled] JoinError.
@@ -104,8 +104,9 @@ impl Executor {
       if let Err(err) = execute_aggregate_handle.await {
         debug_assert!(err.is_cancelled());
       }
+      self.aggregate_running.store(false, Ordering::Relaxed);
     }
-    if let Some(execute_handle) = &mut self.execute_handle {
+    if let Some(execute_handle) = std::mem::take(&mut self.execute_handle) {
       execute_handle.abort();
       // Wait for the executor to finish
       if let Err(err) = execute_handle.await {
@@ -120,7 +121,11 @@ impl Executor {
   }
 
   /// Execute the watcher executor loop.
-  pub async fn wait_for_execute(&mut self, event_handler: Box<dyn EventHandler + Send + Sync>) {
+  pub async fn wait_for_execute(
+    &mut self,
+    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
+    event_handler: Box<dyn EventHandler + Send>,
+  ) {
     if !self.start_waiting {
       let files_data = Arc::clone(&self.files_data);
 
@@ -163,14 +168,16 @@ impl Executor {
     // abort the previous handlers if they exist
     self.abort().await;
 
-    self.run_execute_handler(event_handler);
+    self.run_execute_handler(event_aggregate_handler, event_handler);
   }
 
-  fn run_execute_handler(&mut self, event_handler: Box<dyn EventHandler + Send + Sync>) {
-    let event_handler = Arc::new(event_handler);
-
+  fn run_execute_handler(
+    &mut self,
+    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
+    event_handler: Box<dyn EventHandler + Send>,
+  ) {
     self.execute_aggregate_handle = Some(create_execute_aggregate_task(
-      Arc::clone(&event_handler),
+      event_aggregate_handler,
       Arc::clone(&self.exec_aggregate_rx),
       Arc::clone(&self.files_data),
       self.aggregate_timeout as u64,
@@ -185,7 +192,7 @@ impl Executor {
 }
 
 fn create_execute_task(
-  event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
+  event_handler: Box<dyn EventHandler + Send>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
@@ -195,12 +202,12 @@ fn create_execute_task(
           let path = event.path.to_string_lossy().to_string();
           match event.kind {
             super::FsEventKind::Change | super::FsEventKind::Create => {
-              if event_handler.on_change(path).await.is_err() {
+              if event_handler.on_change(path).is_err() {
                 break;
               }
             }
             super::FsEventKind::Remove => {
-              if event_handler.on_delete(path).await.is_err() {
+              if event_handler.on_delete(path).is_err() {
                 break;
               }
             }
@@ -216,7 +223,7 @@ fn create_execute_task(
 }
 
 fn create_execute_aggregate_task(
-  event_handler: Arc<Box<dyn EventHandler + Send + Sync>>,
+  event_handler: Box<dyn EventAggregateHandler + Send>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   files: ThreadSafety<FilesData>,
   aggregate_timeout: u64,
@@ -248,9 +255,7 @@ fn create_execute_aggregate_task(
       };
 
       // Call the event handler with the changed and deleted files
-      let _ = event_handler
-        .on_event_handle(files.changed, files.deleted)
-        .await;
+      event_handler.on_event_handle(files.changed, files.deleted);
       running.store(false, Ordering::Relaxed);
     }
   };
