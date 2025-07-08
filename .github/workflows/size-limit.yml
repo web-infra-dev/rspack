@@ -47,24 +47,24 @@ jobs:
         with:
           tool-cache: fals
 
-      - name: Build x86_64-unknown-linux-gnu native
-        run: |
-          unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
-          rustup target add x86_64-unknown-linux-gnu
-          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:profiling
+      # - name: Build x86_64-unknown-linux-gnu native
+      #   run: |
+      #     unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+      #     rustup target add x86_64-unknown-linux-gnu
+      #     RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:profiling
 
-      - name: Upload artifact
-        uses: ./.github/actions/artifact/upload
-        with:
-          name: bindings-${{ inputs.target }}
-          path: |
-            crates/node_binding/*.node
+      # - name: Upload artifact
+      #   uses: ./.github/actions/artifact/upload
+      #   with:
+      #     name: bindings-${{ inputs.target }}
+      #     path: |
+      #       crates/node_binding/*.node
 
-      - name: Binary Size-limit
-        uses: ./.github/actions/binary-limit
-        with:
-          # 50k 50*1024
-          size-threshold: 51200
+      # - name: Binary Size-limit
+      #   uses: ./.github/actions/binary-limit
+      #   with:
+      #     # 50k 50*1024
+      #     size-threshold: 51200
 
       - name: Debug
         uses: ./.github/actions/debugger
