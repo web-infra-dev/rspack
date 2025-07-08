@@ -4,7 +4,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset},
 };
-use rspack_collections::Identifiable;
+use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
@@ -13,9 +13,9 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
-  BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState,
+  Context, DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
@@ -149,6 +149,16 @@ impl Module for RawModule {
     self.source_str.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
+  }
+
+  fn get_side_effects_connection_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
+  ) -> ConnectionState {
+    ConnectionState::Active(false)
   }
 }
 
