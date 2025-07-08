@@ -35,6 +35,9 @@ jobs:
       - name: Setup Rust Target
         run: rustup target add x86_64-unknown-linux-gnu
 
+      - name: Run Cargo codegen
+        run: cargo codegen
+
       - name: Trim paths
         run: |
           echo $'\n' >> .cargo/config.toml
