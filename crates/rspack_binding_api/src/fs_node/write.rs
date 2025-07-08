@@ -89,10 +89,7 @@ impl WritableFileSystem for NodeFileSystem {
       .to_fs_result()?;
     match res {
       Either::A(files) => Ok(files),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "output file system call read dir failed:",
-      )),
+      Either::B(_) => Err(Error::other("output file system call read dir failed:")),
     }
   }
 
@@ -109,10 +106,7 @@ impl WritableFileSystem for NodeFileSystem {
     match res {
       Either3::A(data) => Ok(data.to_vec()),
       Either3::B(str) => Ok(str.into_bytes()),
-      Either3::C(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "output file system call read file failed:",
-      )),
+      Either3::C(_) => Err(Error::other("output file system call read file failed:")),
     }
   }
 
@@ -121,10 +115,7 @@ impl WritableFileSystem for NodeFileSystem {
     let res = self.0.stat.call_with_promise(file).await.to_fs_result()?;
     match res {
       Either::A(stat) => Ok(FileMetadata::from(stat)),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "output file system call stat failed:",
-      )),
+      Either::B(_) => Err(Error::other("output file system call stat failed:")),
     }
   }
 }
@@ -187,10 +178,7 @@ impl ReadableFileSystem for NodeFileSystem {
       .to_fs_result()?;
     match res {
       Either::A(stats) => Ok(stats.into()),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call stat failed",
-      )),
+      Either::B(_) => Err(Error::other("input file system call stat failed")),
     }
   }
 
@@ -209,10 +197,7 @@ impl ReadableFileSystem for NodeFileSystem {
       .to_fs_result()?;
     match res {
       Either::A(stats) => Ok(stats.into()),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call lstat failed",
-      )),
+      Either::B(_) => Err(Error::other("input file system call lstat failed")),
     }
   }
 
@@ -226,10 +211,7 @@ impl ReadableFileSystem for NodeFileSystem {
       .to_fs_result()?;
     match res {
       Either::A(str) => Ok(Utf8PathBuf::from(str)),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call realpath failed",
-      )),
+      Either::B(_) => Err(Error::other("input file system call realpath failed")),
     }
   }
 
@@ -243,10 +225,7 @@ impl ReadableFileSystem for NodeFileSystem {
       .to_fs_result()?;
     match res {
       Either::A(list) => Ok(list),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call read_dir failed",
-      )),
+      Either::B(_) => Err(Error::other("input file system call read_dir failed")),
     }
   }
   #[instrument(skip(self), level = "debug")]
@@ -272,10 +251,7 @@ impl NodeReadStream {
 
     match res {
       Either::A(fd) => Ok(Self { fd, pos: 0, fs }),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "file system call read open failed:",
-      )),
+      Either::B(_) => Err(Error::other("file system call read open failed:")),
     }
   }
 }
@@ -295,10 +271,7 @@ impl ReadStream for NodeReadStream {
         self.pos += buffer.len();
         Ok(buffer.to_vec())
       }
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "file system call read failed:",
-      )),
+      Either::B(_) => Err(Error::other("file system call read failed:")),
     }
   }
 
@@ -315,10 +288,7 @@ impl ReadStream for NodeReadStream {
         self.pos += buffer.len() + 1;
         Ok(buffer.to_vec())
       }
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "file system call read until failed:",
-      )),
+      Either::B(_) => Err(Error::other("file system call read until failed:")),
     }
   }
   async fn read_to_end(&mut self) -> Result<Vec<u8>> {
@@ -334,10 +304,7 @@ impl ReadStream for NodeReadStream {
         self.pos += buffer.len();
         Ok(buffer.to_vec())
       }
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "file system call read to end failed:",
-      )),
+      Either::B(_) => Err(Error::other("file system call read to end failed:")),
     }
   }
   async fn skip(&mut self, offset: usize) -> Result<()> {
@@ -371,10 +338,7 @@ impl NodeWriteStream {
 
     match res {
       Either::A(fd) => Ok(Self { fd, pos: 0, fs }),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "file system call write open failed:",
-      )),
+      Either::B(_) => Err(Error::other("file system call write open failed:")),
     }
   }
 }
@@ -399,10 +363,7 @@ impl WriteStream for NodeWriteStream {
         self.pos += size as usize;
         Ok(size as usize)
       }
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "file system call write failed:",
-      )),
+      Either::B(_) => Err(Error::other("file system call write failed:")),
     }
   }
   async fn write_all(&mut self, buf: &[u8]) -> Result<()> {
