@@ -11,8 +11,9 @@
 import assert from "node:assert";
 
 import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
-import { DynamicEntryPlugin, EntryPlugin } from "../builtin-plugin";
 import type { EntryOptions } from "../builtin-plugin";
+import { DynamicEntryPlugin } from "../builtin-plugin/DynamicEntryPlugin";
+import { EntryPlugin } from "../builtin-plugin/EntryPlugin";
 
 export class EntryOptionPlugin {
 	/**
