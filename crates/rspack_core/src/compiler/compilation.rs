@@ -48,8 +48,8 @@ use crate::{
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkContentHashArtifact, ChunkGraph, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact,
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
   CompilationLogger, CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact,
   DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
@@ -263,8 +263,8 @@ pub struct Compilation {
   // artiface for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
-  // artifact for chunk_content_hash
-  pub chunk_content_hash_artifact: ChunkContentHashArtifact,
+  // artifact for chunk render cache
+  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -389,7 +389,7 @@ impl Compilation {
       module_graph_cache_artifact: Default::default(),
       module_static_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
-      chunk_content_hash_artifact: ChunkContentHashArtifact::new(MemoryGCStorage::new(
+      chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
         match &options.cache {
           CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future

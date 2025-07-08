@@ -423,7 +423,7 @@ async fn render_manifest(
     .await?;
 
   let (source, more_diagnostics) = compilation
-    .chunk_content_hash_artifact
+    .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SourceType::Css, || async {
       let (source, diagnostics) = self
         .render_chunk(

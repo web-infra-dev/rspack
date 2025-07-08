@@ -6,11 +6,11 @@ use rspack_sources::BoxSource;
 use crate::{cache::persistent::storage::MemoryGCStorage, Chunk, Compilation, SourceType};
 
 #[derive(Debug, Default)]
-pub struct ChunkContentHashArtifact {
+pub struct ChunkRenderCacheArtifact {
   storage: Option<MemoryGCStorage<BoxSource>>,
 }
 
-impl ChunkContentHashArtifact {
+impl ChunkRenderCacheArtifact {
   pub fn new(storage: MemoryGCStorage<BoxSource>) -> Self {
     Self {
       storage: Some(storage),

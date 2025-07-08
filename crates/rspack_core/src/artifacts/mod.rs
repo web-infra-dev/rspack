@@ -5,8 +5,8 @@ use crate::{chunk_graph_chunk::ChunkId, ChunkRenderResult, ChunkUkey, ModuleId, 
 
 mod cgm_hash_artifact;
 mod cgm_runtime_requirement_artifact;
-mod chunk_content_hash_artifact;
 mod chunk_hashes_artifact;
+mod chunk_render_cache_artifact;
 mod code_generation_results;
 mod module_graph_cache_artifact;
 mod module_static_cache_artifact;
@@ -14,8 +14,8 @@ mod side_effects_do_optimize_artifact;
 
 pub use cgm_hash_artifact::*;
 pub use cgm_runtime_requirement_artifact::*;
-pub use chunk_content_hash_artifact::*;
 pub use chunk_hashes_artifact::*;
+pub use chunk_render_cache_artifact::*;
 pub use code_generation_results::*;
 pub use module_graph_cache_artifact::*;
 pub use module_static_cache_artifact::*;
