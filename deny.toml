@@ -157,7 +157,7 @@ registries = [
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "deny"
 # Lint level for when a crate version requirement is `*`
-wildcards = "allow"
+wildcards = "deny"
 # The graph highlighting used when creating dotgraphs for crates
 # with multiple versions
 # * lowest-version - The path to the lowest versioned duplicate is highlighted
@@ -229,7 +229,6 @@ skip = [
     { crate = "rkyv", reason = "FIXME: need to be fixed"},
     { crate = "rkyv_derive", reason = "FIXME: need to be fixed"},
     { crate = "rustc-hash", reason = "external dependency"},
-    { crate = "semver", reason = "external dependency"},
     { crate = "syn", reason = "external dependency"},
     { crate = "thiserror", reason = "external dependency"},
     { crate = "thiserror-impl", reason = "external dependency"},
@@ -244,8 +243,32 @@ skip = [
     { crate = "windows_x86_64_gnu", reason = "external dependency"},
     { crate = "windows_x86_64_gnullvm", reason = "external dependency"},
     { crate = "windows_x86_64_msvc", reason = "external dependency"},
-    { crate = "bitflags", reason = "external dependency" },
-    { crate = "windows-sys", reason = "external dependency" },
+    { crate = "windows-sys", reason = "external dependency"},
+    { crate = "bitflags", reason = "external dependency"},
+    { crate = "bytecheck", reason = "external dependency"},
+    { crate = "bytecheck_derive", reason = "external dependency"},
+    { crate = "darling", reason = "external dependency"},
+    { crate = "darling_core", reason = "external dependency"},
+    { crate = "darling_macro", reason = "external dependency"},
+    { crate = "derive_builder", reason = "external dependency"},
+    { crate = "derive_builder_core", reason = "external dependency"},
+    { crate = "derive_builder_macro", reason = "external dependency"},
+    { crate = "derive_more", reason = "external dependency"},
+    { crate = "fixedbitset", reason = "external dependency"},
+    { crate = "gimli", reason = "external dependency"},
+    { crate = "heck", reason = "external dependency"},
+    { crate = "nom", reason = "external dependency"},
+    { crate = "object", reason = "external dependency"},
+    { crate = "petgraph", reason = "external dependency"},
+    { crate = "strsim", reason = "external dependency"},
+    { crate = "terminal_size", reason = "external dependency"},
+    { crate = "toml_edit", reason = "external dependency"},
+    { crate = "wasmparser", reason = "external dependency"},
+    { crate = "windows_i686_gnullvm", reason = "external dependency"},
+    { crate = "winnow", reason = "external dependency"},
+    { crate = "zerocopy", reason = "external dependency"},
+    { crate = "zerocopy-derive", reason = "external dependency"},
+    
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
@@ -255,6 +278,9 @@ skip-tree = [
     #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
     #{ crate = "ansi_term@0.11.0", depth = 20 },
 ]
+
+[bans.workspace-dependencies]
+duplicates = 'deny'
 
 # This section is considered when running `cargo deny check sources`.
 # More documentation about the 'sources' section can be found here:

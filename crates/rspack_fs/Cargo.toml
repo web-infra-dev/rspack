@@ -12,8 +12,8 @@ dashmap      = { workspace = true }
 dunce        = { version = "1.0.5" }
 notify       = { version = "8.1.0" }
 pnp          = { version = "0.9.0" }
-rspack_error = { path = "../rspack_error", version = "0.2.0" }
-rspack_paths = { path = "../rspack_paths", version = "0.2.0" }
+rspack_error = { workspace = true, version = "=0.2.1-alpha.0" }
+rspack_paths = { workspace = true, version = "=0.2.1-alpha.0" }
 rspack_util  = { workspace = true }
 tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing      = { workspace = true }

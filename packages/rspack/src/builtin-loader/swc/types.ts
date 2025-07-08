@@ -25,8 +25,8 @@ import type {
 	UmdConfig
 } from "@swc/types";
 import type { Assumptions } from "@swc/types/assumptions";
-import * as z from "zod/v4";
 import { numberOrInfinity } from "../../config/utils";
+import { z } from "../../config/zod";
 import { memoize } from "../../util/memoize";
 import type { CollectTypeScriptInfoOptions } from "./collectTypeScriptInfo";
 import type { PluginImportOptions } from "./pluginImport";

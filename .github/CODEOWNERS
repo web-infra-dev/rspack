@@ -15,14 +15,26 @@ pnpm-lock.yaml
 
 # Infra
 
-/.github/workflows @jerrykingxyz
-/scripts @jerrykingxyz
+Cargo.toml @quininer
+/.github/workflows @stormslowly
+/.github/actions @stormslowly
+/.github/ISSUE_TEMPLATE @chenjiahan
+/scripts @stormslowly
+/tasks @stormslowly
 
 # Crates in alphabetical order
 
-/crates/rspack
 /crates/node_binding
+/crates/rspack @h-a-n-a
 /crates/rspack_base64
+/crates/rspack_binding_api @h-a-n-a
+/crates/rspack_binding_build @h-a-n-a
+/crates/rspack_binding_builder @h-a-n-a
+/crates/rspack_binding_builder_macros @h-a-n-a
+/crates/rspack_binding_builder_testing @h-a-n-a
+/crates/rspack_browserslist @hardfist
+/crates/rspack_cacheable @jerrykingxyz
+/crates/rspack_cacheable_test @jerrykingxyz
 /crates/rspack_core
 /crates/rspack_core/src/compiler/make @jerrykingxyz
 /crates/rspack_error
@@ -38,6 +50,7 @@ pnpm-lock.yaml
 /crates/rspack_loader_swc
 /crates/rspack_loader_preact_refresh @LingyuCoder
 /crates/rspack_loader_react_refresh @ahabhgk
+/crates/rspack_loader_runner @h-a-n-a
 
 # Plugins
 
@@ -52,23 +65,28 @@ pnpm-lock.yaml
 /crates/rspack_plugin_javascript
 /crates/rspack_plugin_json
 /crates/rspack_plugin_library
+/crates/rspack_plugin_mf @ahabhgk
 /crates/rspack_plugin_progress
 /crates/rspack_plugin_real_content_hash
 /crates/rspack_plugin_remove_empty_chunks
+/crates/rspack_plugin_rsdoctor @LingyuCoder
+/crates/rspack_plugin_rslib @LingyuCoder
+/crates/rspack_plugin_rstest @LingyuCoder
 /crates/rspack_plugin_runtime
 /crates/rspack_plugin_schemes
 /crates/rspack_plugin_split_chunks @JSerFeng
 /crates/rspack_plugin_wasm
-/crates/rspack_tracing @h-a-n-a
+/crates/rspack_tracing @hardfist
+/crates/rspack_tracing_perfetto @hardfist
 /crates/rspack_util
+/crates/swc_plugin_ts_collector @ahabhgk
 
-# Packages in alphabetical order
+# npm packages in alphabetical order
 
 /packages/create-rspack @chenjiahan
-/packages/rspack
-/packages/rspack-cli
-/packages/rspack-test-tools
-/packages/rspack-tracing @h-a-n-a
+/packages/rspack @hardfist
+/packages/rspack-cli @hardfist
+/packages/rspack-test-tools @LingyuCoder
 
 # Tests
 

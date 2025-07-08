@@ -66,6 +66,18 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
       __wasmCreateOnMessageForFsProxy(__nodeFs)(data)
     }
 
+    // We have enabled `reuseWorker` so normally the workers never exit, unless there's any exception. 
+    // For Rust threads, aborting one thread means aborting the process, but actually aborting Node.js workers doesn't abort the main thread.
+    // I'm not sure whether it's the expected behavior of Node.js workers, or the behavior has been controlled by emnapi.
+    // Anyway, this code is used for fix the bug: 
+    // When the main thread holds a strong tsfn that prevents the Node.js event loop exiting,
+    // if the worker responsible for unref the tsfn terminates, then the main thread will never exits.
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        process.exit(code);
+      }
+    });
+
     // The main thread of Node.js waits for all the active handles before exiting.
     // But Rust threads are never waited without `thread::join`.
     // So here we hack the code of Node.js to prevent the workers from being referenced (active).

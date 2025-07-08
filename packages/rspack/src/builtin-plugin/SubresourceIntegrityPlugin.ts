@@ -8,10 +8,10 @@ import {
 	type RspackError
 } from "@rspack/binding";
 import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
-import * as z from "zod/v4";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { CrossOriginLoading } from "../config/types";
+import { z } from "../config/zod";
 import { memoize } from "../util/memoize";
 import { validate } from "../util/validate";
 import { create } from "./base";

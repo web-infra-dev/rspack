@@ -10,6 +10,8 @@ z.config({
 	jitless: true
 });
 
+export { z };
+
 export const getExternalsTypeSchema = memoize(
 	() =>
 		z.enum([
