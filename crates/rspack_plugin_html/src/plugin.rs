@@ -246,7 +246,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .await?;
 
     if let Some(favicon) = &config.favicon {
-      match create_favicon_asset(favicon, config, compilation) {
+      match create_favicon_asset(favicon, config, compilation).await {
         Ok(favicon) => compilation.emit_asset(favicon.0, favicon.1),
         Err(err) => {
           let error_msg = err.to_string();
