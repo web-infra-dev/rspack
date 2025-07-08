@@ -419,3 +419,5 @@ export const experiments: Experiments = {
 	CssChunkingPlugin,
 	createNativePlugin
 };
+
+export { VirtualModulesPlugin } from "./VirtualModulesPlugin";

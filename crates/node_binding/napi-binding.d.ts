@@ -328,6 +328,7 @@ export declare class JsCompiler {
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
+  getVirtualFileStore(): VirtualFileStore | null
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -474,6 +475,12 @@ export declare class ReadonlyResourceData {
 export declare class Sources {
   _get(sourceType: string): JsCompatSourceOwned | null
 }
+
+export declare class VirtualFileStore {
+  writeVirtualFileSync(path: string, content: string): void
+  batchWriteVirtualFilesSync(files: Array<JsVirtualFile>): void
+}
+export type JsVirtualFileStore = VirtualFileStore
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName | CustomPluginName
@@ -1465,6 +1472,11 @@ export interface JsTap {
   stage: number
 }
 
+export interface JsVirtualFile {
+  path: string
+  content: string
+}
+
 export interface KnownAssetInfo {
   /** if the asset can be long term cached forever (contains a hash) */
   immutable?: boolean
@@ -2345,6 +2357,7 @@ export interface RawOptions {
   amd?: string
   bail: boolean
   __references: Record<string, any>
+  __virtual_files?: Array<JsVirtualFile>
 }
 
 export interface RawOutputOptions {
