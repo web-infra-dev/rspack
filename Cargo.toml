@@ -215,6 +215,7 @@ rspack_tasks                           = { version = "=0.2.1-alpha.0", path = "c
 rspack_tracing                         = { version = "=0.2.1-alpha.0", path = "crates/rspack_tracing" }
 rspack_tracing_perfetto                = { version = "=0.2.1-alpha.0", path = "crates/rspack_tracing_perfetto" }
 rspack_util                            = { version = "=0.2.1-alpha.0", path = "crates/rspack_util" }
+rspack_workspace                       = { version = "=0.2.1-alpha.0", path = "crates/rspack_workspace" }
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }

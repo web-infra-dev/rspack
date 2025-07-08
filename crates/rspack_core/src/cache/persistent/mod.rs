@@ -9,8 +9,8 @@ pub use cacheable_context::{CacheableContext, FromContext};
 use occasion::MakeOccasion;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
-use rspack_macros::rspack_version;
 use rspack_paths::ArcPath;
+use rspack_workspace::rspack_version;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{

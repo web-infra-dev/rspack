@@ -37,6 +37,7 @@ rspack_plugin_rstest     = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
 rspack_tasks             = { workspace = true }
 rspack_util              = { workspace = true }
+rspack_workspace         = { workspace = true }
 
 rspack_tracing = { workspace = true }
 

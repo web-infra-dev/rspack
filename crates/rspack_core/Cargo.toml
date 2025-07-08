@@ -53,6 +53,7 @@ rspack_sources = { workspace = true }
 rspack_storage = { workspace = true }
 rspack_tasks = { workspace = true }
 rspack_util = { workspace = true }
+rspack_workspace = { workspace = true }
 rustc-hash = { workspace = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }

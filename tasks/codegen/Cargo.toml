@@ -1,0 +1,18 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "codegen"
+repository.workspace    = true
+version.workspace       = true
+
+[dependencies]
+anyhow     = "1.0.95"
+cargo_toml = "0.21.0"
+serde_json = "1.0.134"
+
+[lints]
+workspace = true
