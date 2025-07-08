@@ -9,7 +9,7 @@ it("should work with shared modules in Module Federation", async () => {
 	// Test ESM module imports
 	const esmModule = await import("./esm-utils.js");
 	expect(esmModule.usedUtil()).toBe("This utility is used");
-	expect(esmModule.processEsmData({ value: 10 })).toBe(10);
+	expect(esmModule.processEsmData({ value: 10 })).toBe(20); // pureFunction(1) returns 2, so 10 * 2 = 20
 	expect(esmModule.validateData("test")).toBe(true);
 	
 	// Test mixed exports module
@@ -22,5 +22,5 @@ it("should work with shared modules in Module Federation", async () => {
 	expect(pureHelper.pureFunction(5)).toBe(10);
 	expect(pureHelper.PURE_CONSTANT).toBe("pure constant value");
 	
-	// TODO: Add tree-shaking macro validation after fixing serialization issues
+	// Note: PURE annotations and tree-shaking macros are validated in the afterBuild hook
 });

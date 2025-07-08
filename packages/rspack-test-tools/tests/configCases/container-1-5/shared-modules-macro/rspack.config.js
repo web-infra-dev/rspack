@@ -21,19 +21,23 @@ module.exports = {
 			shared: {
 				"./cjs-module": {
 					singleton: true,
-					requiredVersion: "*"
+					requiredVersion: "*",
+					shareKey: "cjs-module"
 				},
 				"./esm-utils": {
 					singleton: true,
-					requiredVersion: "*"
+					requiredVersion: "*",
+					shareKey: "esm-utils"
 				},
 				"./pure-helper": {
 					singleton: true,
-					requiredVersion: "*"
+					requiredVersion: "*",
+					shareKey: "pure-helper"
 				},
 				"./mixed-exports": {
 					singleton: true,
-					requiredVersion: "*"
+					requiredVersion: "*",
+					shareKey: "mixed-exports"
 				}
 			}
 		})

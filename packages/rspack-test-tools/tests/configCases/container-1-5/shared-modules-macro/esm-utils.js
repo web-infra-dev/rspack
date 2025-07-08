@@ -1,6 +1,8 @@
 // ESM module with named exports for tree-shaking macro testing
+import { pureFunction } from "./pure-helper.js";
+
 export function usedUtil() {
-	return "used utility function";
+	return "This utility is used";
 }
 
 export function unusedUtil() {
@@ -8,7 +10,9 @@ export function unusedUtil() {
 }
 
 export function processEsmData(data) {
-	return "ESM processed: " + data;
+	// Use the imported function to ensure the import is included
+	const factor = pureFunction(1);
+	return data.value * factor;
 }
 
 export function validateData(data) {

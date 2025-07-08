@@ -2,6 +2,9 @@
 const { processCjsData } = require("./cjs-module.js");
 import { usedUtil } from "./esm-utils.js";
 
+// Named export for test
+export const namedExport = "named value";
+
 // CJS style exports
 exports.mixedFunction = function(data) {
 	return processCjsData(data) + " + " + usedUtil();
@@ -25,3 +28,8 @@ exports.unusedMixedFunction = function() {
 };
 
 module.exports.unusedModuleExportsProp = "unused property";
+
+// Default export for test
+export default {
+	defaultValue: "default export value"
+};
