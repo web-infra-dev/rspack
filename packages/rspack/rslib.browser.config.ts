@@ -18,7 +18,7 @@ export default defineConfig({
 			autoExternal: false,
 			source: {
 				entry: {
-					index: "./src/browser/index.ts"
+					index: "./src/index.ts"
 				}
 			}
 		}
@@ -60,6 +60,13 @@ export default defineConfig({
 		}
 	},
 	tools: {
+		bundlerChain: (chain, { CHAIN_ID }) => {
+			// remove the entry loader in Rslib to avoid
+			// "Cannot access 'Compiler' before initialization" error caused by circular dependency
+			chain.module
+				.rule(`Rslib:${CHAIN_ID.RULE.JS}-entry-loader`)
+				.uses.delete("rsbuild:lib-entry-module");
+		},
 		rspack: (config, { rspack }) => {
 			config.plugins.push(
 				new rspack.IgnorePlugin({
@@ -68,10 +75,6 @@ export default defineConfig({
 				new rspack.NormalModuleReplacementPlugin(
 					/src\/loader-runner\/service\.ts/,
 					path.resolve("./src/browser/service.ts")
-				),
-				new rspack.NormalModuleReplacementPlugin(
-					/src\/index\.ts/,
-					path.resolve("./src/browser/index.ts")
 				)
 			);
 		}
