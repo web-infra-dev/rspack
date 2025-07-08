@@ -41,7 +41,7 @@ insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
 itoa               = { version = "1.0.14" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
+lightningcss       = { version = "1.0.0-alpha.67", default-features = false, features = ["serde"] }
 linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.2.4", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }
