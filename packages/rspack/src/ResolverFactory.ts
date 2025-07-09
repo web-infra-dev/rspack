@@ -15,8 +15,10 @@ export class ResolverFactory {
 		resolveOptions: liteTapable.SyncWaterfallHook<
 			[ResolveOptionsWithDependencyType, { type: string }]
 		>;
-		resolver: liteTapable.SyncHook<
-			[Resolver, ResolveOptionsWithDependencyType, { type: string }]
+		resolver: liteTapable.HookMap<
+			liteTapable.SyncHook<
+				[Resolver, ResolveOptionsWithDependencyType, { type: string }]
+			>
 		>;
 	};
 
@@ -33,11 +35,10 @@ export class ResolverFactory {
 				"resolveOptions",
 				"context"
 			]),
-			resolver: new liteTapable.SyncHook([
-				"resolver",
-				"resolveOptions",
-				"context"
-			])
+			resolver: new liteTapable.HookMap(
+				() =>
+					new liteTapable.SyncHook(["resolver", "resolveOptions", "context"])
+			)
 		};
 	}
 
@@ -66,7 +67,7 @@ export class ResolverFactory {
 		const resolver = new Resolver(binding);
 
 		// Call resolver hook to allow plugins to access the created resolver
-		this.hooks.resolver.call(resolver, resolveOptionsToUse, context);
+		this.hooks.resolver.for(type).call(resolver, resolveOptionsToUse, context);
 
 		return resolver;
 	}
