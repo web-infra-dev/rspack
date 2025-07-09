@@ -1490,6 +1490,7 @@ export interface NodeFsStats {
   ctimeMs: number
   birthtimeMs: number
   size: number
+  mode: number
 }
 
 export interface PathWithInfo {
@@ -2757,6 +2758,7 @@ export interface ThreadsafeNodeFS {
   readFile: (name: string) => Promise<Buffer | string | void>
   stat: (name: string) => Promise<NodeFsStats | void>
   lstat: (name: string) => Promise<NodeFsStats | void>
+  chmod: (name: string, mode: number) => Promise<NodeFsStats | void>
   realpath: (name: string) => Promise<string | void>
   open: (name: string, flags: string) => Promise<number | void>
   rename: (from: string, to: string) => Promise<void>
