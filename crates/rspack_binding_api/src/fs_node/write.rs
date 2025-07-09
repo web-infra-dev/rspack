@@ -135,7 +135,7 @@ impl WritableFileSystem for NodeFileSystem {
       return self
         .0
         .chmod
-        .call_with_promise((file, mode).into())
+        .call_with_promise((file, mode))
         .await
         .to_fs_result();
     }

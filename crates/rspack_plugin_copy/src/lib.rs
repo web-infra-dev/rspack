@@ -666,8 +666,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for (pattern_index, source_path, dest_path) in permission_copies.iter() {
     if let Some(pattern) = self.patterns.get(*pattern_index) {
       if pattern.copy_permissions.unwrap_or(false) {
-        if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(&source_path).await
-        {
+        if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
           // Make sure the output directory exists
           if let Some(parent) = dest_path.parent() {
             compilation
@@ -689,7 +688,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
           if let Err(e) = compilation
             .output_filesystem
-            .set_permissions(&dest_path, permissions)
+            .set_permissions(dest_path, permissions)
             .await
           {
             logger.warn(format!(
