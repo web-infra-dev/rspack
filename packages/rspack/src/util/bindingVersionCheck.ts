@@ -35,6 +35,9 @@ const NodePlatformArchToAbi: Record<
 };
 
 function isMusl() {
+	if (process.report) {
+		process.report.excludeNetwork = true;
+	}
 	// @ts-expect-error getReport returns an object containing header object
 	const { glibcVersionRuntime } = process.report.getReport().header;
 	return !glibcVersionRuntime;
