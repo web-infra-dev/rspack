@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@napi-rs/wasm-runtime": "^0.2.11",
-    "@rspack/lite-tapable": "1.0.1"
+    "@rspack/lite-tapable": "1.0.1",
+    "buffer": "^6.0.3"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -29,6 +30,6 @@
   },
   "packageManager": "pnpm@10.10.0",
   "devDependencies": {
-    "memfs": "^4.17.2"
+    "memfs": "4.17.2"
   }
 }
