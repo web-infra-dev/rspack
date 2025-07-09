@@ -13,6 +13,16 @@ inputs:
     description: "Force upload to github"
     default: false
     require: false
+  if-no-files-found:
+    required: false
+    description: >
+      The desired behavior if no files are found using the provided path.
+
+      Available Options:
+        warn: Output a warning but do not fail the action
+        error: Fail the action with an error message
+        ignore: Do not output any warnings or errors, the action does not fail
+    default: "error"
 
 runs:
   using: composite
@@ -23,7 +33,7 @@ runs:
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
-        if-no-files-found: error
+        if-no-files-found: ${{ inputs.if-no-files-found }}
         overwrite: true
     - name: Upload artifact to local
       uses: lynx-infra/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 #dev
@@ -31,5 +41,5 @@ runs:
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
-        if-no-files-found: error
+        if-no-files-found: ${{ inputs.if-no-files-found }}
         overwrite: true
