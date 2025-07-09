@@ -162,9 +162,11 @@ impl FixIssuers {
   ) {
     let module_graph = artifact.get_module_graph();
     for dep_id in dep_ids {
-      let conn = module_graph
-        .connection_by_dependency_id(dep_id)
-        .expect("should have connection");
+      let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
+        // maybe factorize failed dep_id
+        continue;
+      };
+
       let parent_mid = &conn.original_module_identifier;
       let child_mid = conn.module_identifier();
       // peresistent cache recovery module graph will lose some module and mgm.
