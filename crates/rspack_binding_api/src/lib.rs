@@ -124,6 +124,10 @@ use tracing_subscriber::{
 };
 pub use utils::*;
 
+// Export Rust workspace version
+#[napi]
+pub const RSPACK_BINDING_WORKSPACE_VERSION: &str = rspack_workspace::rspack_workspace_version!();
+
 thread_local! {
   pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
