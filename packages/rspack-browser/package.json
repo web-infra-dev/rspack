@@ -27,8 +27,5 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack"
   },
-  "packageManager": "pnpm@10.10.0",
-  "devDependencies": {
-    "memfs": "^4.17.2"
-  }
+  "packageManager": "pnpm@10.10.0"
 }
