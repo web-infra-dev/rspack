@@ -4772,7 +4772,6 @@ dependencies = [
  "rspack_paths",
  "rustc-hash 2.1.1",
  "sugar_path",
- "tokio",
  "tracing",
 ]
 

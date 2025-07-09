@@ -312,8 +312,8 @@ impl ReadableFileSystem for NativeFileSystem {
     Ok(res)
   }
   #[instrument(skip(self), level = "debug")]
-  async fn permissions(&self, path: &Utf8Path) -> Result<FilePermissions> {
-    Ok(FilePermissions::default_file())
+  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
+    Ok(None)
   }
 }
 
