@@ -69,7 +69,7 @@ parcel_sourcemap    = { version = "2.1.1", default-features = false }
 paste               = { version = "1.0.15", default-features = false }
 path-clean          = { version = "1.0.1", default-features = false }
 pathdiff            = { version = "0.2.3", default-features = false }
-pretty_assertions   = { version = "1.4.1", default-features = false }
+pretty_assertions   = { version = "1.4.1", default-features = false, features = ["std"] }
 proc-macro2         = { version = "1.0.92", default-features = false }
 prost               = { version = "0.13", default-features = false }
 quote               = { version = "1.0.38", default-features = false }
