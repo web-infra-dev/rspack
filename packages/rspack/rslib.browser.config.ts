@@ -18,7 +18,7 @@ export default defineConfig({
 			autoExternal: false,
 			source: {
 				entry: {
-					index: "./src/index.ts"
+					index: "./src/browser/index.ts"
 				}
 			}
 		}
