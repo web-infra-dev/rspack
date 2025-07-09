@@ -53,7 +53,8 @@
     "wasm": {
       "initialMemory": 16384,
       "browser": {
-        "fs": true
+        "fs": true,
+        "asyncInit": true
       }
     }
   },
