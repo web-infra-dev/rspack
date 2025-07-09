@@ -3,7 +3,8 @@ import path from "node:path";
 import {
 	util,
 	type MultiRspackOptions,
-	type RspackOptions
+	type RspackOptions,
+	checkIsMultiRspackOptions
 } from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
@@ -70,6 +71,14 @@ export async function loadExtendedConfig(
 	cwd: string,
 	options: RspackCLIOptions
 ): Promise<RspackOptions | MultiRspackOptions> {
+	if (checkIsMultiRspackOptions(config)) {
+		// If the config is an array, we need to handle each item separately
+		const extendedConfigs = (await Promise.all(
+			config.map(item => loadExtendedConfig(item, configPath, cwd, options))
+		)) as MultiRspackOptions;
+		extendedConfigs.parallelism = config.parallelism;
+		return extendedConfigs;
+	}
 	// If there's no extends property, return the config as is
 	if (!("extends" in config) || !config.extends) {
 		return config;

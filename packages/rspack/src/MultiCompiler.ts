@@ -48,6 +48,10 @@ export interface MultiCompilerOptions {
 export type MultiRspackOptions = ReadonlyArray<RspackOptions> &
 	MultiCompilerOptions;
 
+export const checkIsMultiRspackOptions = (
+	config: RspackOptions | MultiRspackOptions
+): config is MultiRspackOptions => Array.isArray(config);
+
 export class MultiCompiler {
 	compilers: Compiler[];
 	dependencies: WeakMap<Compiler, string[]>;
