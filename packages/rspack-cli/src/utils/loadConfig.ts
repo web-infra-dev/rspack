@@ -3,8 +3,7 @@ import path from "node:path";
 import {
 	util,
 	type MultiRspackOptions,
-	type RspackOptions,
-	checkIsMultiRspackOptions
+	type RspackOptions
 } from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
@@ -56,6 +55,10 @@ export type LoadedRspackConfig =
 			env: Record<string, any>,
 			argv?: Record<string, any>
 	  ) => RspackOptions | MultiRspackOptions);
+
+const checkIsMultiRspackOptions = (
+	config: RspackOptions | MultiRspackOptions
+): config is MultiRspackOptions => Array.isArray(config);
 
 /**
  * Loads and merges configurations from the 'extends' property

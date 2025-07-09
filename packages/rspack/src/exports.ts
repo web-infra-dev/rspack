@@ -14,7 +14,7 @@ export type {
 export { Compilation } from "./Compilation";
 export { Compiler } from "./Compiler";
 export type { MultiCompilerOptions, MultiRspackOptions } from "./MultiCompiler";
-export { MultiCompiler, checkIsMultiRspackOptions } from "./MultiCompiler";
+export { MultiCompiler } from "./MultiCompiler";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
 export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
