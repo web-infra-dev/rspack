@@ -56,7 +56,10 @@ export default defineConfig({
 		define: {
 			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
 			RSPACK_VERSION: JSON.stringify(require("./package.json").version),
-			IS_BROWSER: JSON.stringify(true)
+			IS_BROWSER: JSON.stringify(true),
+			// In `@rspack/browser`, runtime code like loaders and hmr should be written into something like memfs ahead of time.
+			// Requiring these files should resolve to `@rspack/browser/xx`
+			__dirname: JSON.stringify("@rspack/browser")
 		}
 	},
 	tools: {
