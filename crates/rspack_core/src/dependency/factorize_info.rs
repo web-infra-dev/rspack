@@ -11,7 +11,7 @@ use super::{BoxDependency, DependencyId};
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct FactorizeInfo {
-  /// The dependeny ids which have same origin module and target module.
+  /// The dependency ids which have same origin module and target module.
   ///
   /// The process dependencies task in make will merge the dependencies which will has
   /// same origin module and target module as a single factorize task, and we will add
