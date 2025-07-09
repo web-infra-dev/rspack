@@ -18,6 +18,12 @@ enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
+
+#[derive(Debug, Clone)]
+enum ProcessModuleReferencedExports {
+  Map(HashMap<String, ExtendedReferencedExport>),
+  ExtendRef(Vec<ExtendedReferencedExport>),
+}
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,
@@ -47,6 +53,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     for exports_info in self.exports_info_module_map.keys() {
       exports_info.set_has_use_info(mg);
     }
+
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
     let mut global_runtime: Option<RuntimeSpec> = None;
@@ -76,12 +83,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     self.compilation.entries = entries;
 
     while let Some((module_id, runtime)) = q.dequeue() {
+      self.compilation.module_graph_cache_artifact.freeze();
       self.process_module(
         ModuleOrAsyncDependenciesBlock::Module(module_id),
         runtime,
         false,
         &mut q,
       );
+      self.compilation.module_graph_cache_artifact.unfreeze();
     }
   }
 
@@ -92,33 +101,35 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     q: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
-    #[derive(Debug, Clone)]
-    enum ProcessModuleReferencedExports {
-      Map(HashMap<String, ExtendedReferencedExport>),
-      ExtendRef(Vec<ExtendedReferencedExport>),
-    }
-
     let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
+    let mut dependencies = vec![];
+
     let mut queue = VecDeque::new();
     queue.push_back(block_id);
-    while let Some(module_id) = queue.pop_front() {
+    while let Some(block_id) = queue.pop_front() {
       let module_graph = self.compilation.get_module_graph();
-      let (blocks, dependencies) = match module_id {
+      let (blocks, block_dependencies) = match block_id {
         ModuleOrAsyncDependenciesBlock::Module(module) => {
           let block = module_graph
             .module_by_identifier(&module)
             .expect("should have module");
-          (block.get_blocks(), block.get_dependencies())
+          (
+            block.get_blocks().to_vec(),
+            block.get_dependencies().to_vec(),
+          )
         }
         ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(async_dependencies_block_id) => {
           let block = module_graph
             .block_by_id(&async_dependencies_block_id)
             .expect("should have module");
-          (block.get_blocks(), block.get_dependencies())
+          (
+            block.get_blocks().to_vec(),
+            block.get_dependencies().to_vec(),
+          )
         }
       };
-      let (block_id_list, dep_id_list) = (blocks.to_vec(), dependencies.to_vec());
-      for block_id in block_id_list {
+      dependencies.extend(block_dependencies);
+      for block_id in blocks {
         let module_graph = self.compilation.get_module_graph();
         let block = module_graph
           .block_by_id(&block_id)
@@ -139,118 +150,119 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           ));
         }
       }
-      for dep_id in dep_id_list.into_iter() {
-        let module_graph = self.compilation.get_module_graph();
-        let module_graph_cache = &self.compilation.module_graph_cache_artifact;
-        let connection = module_graph.connection_by_dependency_id(&dep_id);
+    }
 
-        let connection = if let Some(connection) = connection {
-          connection
-        } else {
+    for dep_id in dependencies.into_iter() {
+      let module_graph = self.compilation.get_module_graph();
+      let module_graph_cache = &self.compilation.module_graph_cache_artifact;
+      let connection = module_graph.connection_by_dependency_id(&dep_id);
+
+      let connection = if let Some(connection) = connection {
+        connection
+      } else {
+        continue;
+      };
+      let active_state =
+        connection.active_state(&module_graph, runtime.as_ref(), module_graph_cache);
+
+      match active_state {
+        ConnectionState::Active(false) => {
           continue;
-        };
-        let active_state =
-          connection.active_state(&module_graph, runtime.as_ref(), module_graph_cache);
-
-        match active_state {
-          ConnectionState::Active(false) => {
-            continue;
-          }
-          ConnectionState::TransitiveOnly => {
-            self.process_module(
-              ModuleOrAsyncDependenciesBlock::Module(*connection.module_identifier()),
-              runtime.clone(),
-              false,
-              q,
-            );
-            continue;
-          }
-          _ => {}
         }
-        let old_referenced_exports = map.remove(connection.module_identifier());
-        let dep = module_graph
-          .dependency_by_id(&dep_id)
-          .expect("should have dep");
-
-        let referenced_exports = if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(&module_graph, module_graph_cache, runtime.as_ref())
-        } else if dep.as_context_dependency().is_some() {
-          vec![ExtendedReferencedExport::Array(vec![])]
-        } else {
+        ConnectionState::TransitiveOnly => {
+          self.process_module(
+            ModuleOrAsyncDependenciesBlock::Module(*connection.module_identifier()),
+            runtime.clone(),
+            false,
+            q,
+          );
           continue;
-        };
+        }
+        _ => {}
+      }
+      let old_referenced_exports = map.remove(connection.module_identifier());
+      let dep = module_graph
+        .dependency_by_id(&dep_id)
+        .expect("should have dep");
 
-        if old_referenced_exports.is_none()
-          || matches!(old_referenced_exports, Some(ProcessModuleReferencedExports::ExtendRef(ref v)) if is_no_exports_referenced(v))
-          || is_exports_object_referenced(&referenced_exports)
-        {
+      let referenced_exports = if let Some(md) = dep.as_module_dependency() {
+        md.get_referenced_exports(&module_graph, module_graph_cache, runtime.as_ref())
+      } else if dep.as_context_dependency().is_some() {
+        vec![ExtendedReferencedExport::Array(vec![])]
+      } else {
+        continue;
+      };
+
+      if old_referenced_exports.is_none()
+        || matches!(old_referenced_exports, Some(ProcessModuleReferencedExports::ExtendRef(ref v)) if is_no_exports_referenced(v))
+        || is_exports_object_referenced(&referenced_exports)
+      {
+        map.insert(
+          *connection.module_identifier(),
+          ProcessModuleReferencedExports::ExtendRef(referenced_exports),
+        );
+      } else if let Some(old_referenced_exports) = old_referenced_exports {
+        if is_no_exports_referenced(&referenced_exports) {
           map.insert(
             *connection.module_identifier(),
-            ProcessModuleReferencedExports::ExtendRef(referenced_exports),
+            old_referenced_exports.clone(),
           );
-        } else if let Some(old_referenced_exports) = old_referenced_exports {
-          if is_no_exports_referenced(&referenced_exports) {
-            map.insert(
-              *connection.module_identifier(),
-              old_referenced_exports.clone(),
-            );
-            continue;
-          }
+          continue;
+        }
 
-          let mut exports_map = match old_referenced_exports {
-            ProcessModuleReferencedExports::Map(map) => map,
-            ProcessModuleReferencedExports::ExtendRef(ref_items) => {
-              let mut exports_map = HashMap::default();
-              for item in ref_items.iter() {
-                match item {
-                  ExtendedReferencedExport::Array(arr) => {
-                    exports_map.insert(join_atom(arr.iter(), "\n"), item.clone());
-                  }
-                  ExtendedReferencedExport::Export(export) => {
-                    exports_map.insert(join_atom(export.name.iter(), "\n"), item.clone());
-                  }
+        let mut exports_map = match old_referenced_exports {
+          ProcessModuleReferencedExports::Map(map) => map,
+          ProcessModuleReferencedExports::ExtendRef(ref_items) => {
+            let mut exports_map = HashMap::default();
+            for item in ref_items.iter() {
+              match item {
+                ExtendedReferencedExport::Array(arr) => {
+                  exports_map.insert(join_atom(arr.iter(), "\n"), item.clone());
+                }
+                ExtendedReferencedExport::Export(export) => {
+                  exports_map.insert(join_atom(export.name.iter(), "\n"), item.clone());
                 }
               }
-              exports_map
             }
-          };
+            exports_map
+          }
+        };
 
-          for mut item in referenced_exports.into_iter() {
-            match item {
-              ExtendedReferencedExport::Array(ref arr) => {
-                let key = join_atom(arr.iter(), "\n");
-                exports_map.entry(key).or_insert(item);
-              }
-              ExtendedReferencedExport::Export(ref mut export) => {
-                let key = join_atom(export.name.iter(), "\n");
-                match exports_map.entry(key) {
-                  Entry::Occupied(mut occ) => {
-                    let old_item = occ.get();
-                    match old_item {
-                      ExtendedReferencedExport::Array(_) => {
-                        occ.insert(item);
-                      }
-                      ExtendedReferencedExport::Export(old_item) => {
-                        occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
-                          name: std::mem::take(&mut export.name),
-                          can_mangle: export.can_mangle && old_item.can_mangle,
-                          can_inline: export.can_inline && old_item.can_inline,
-                        }));
-                      }
+        for mut item in referenced_exports.into_iter() {
+          match item {
+            ExtendedReferencedExport::Array(ref arr) => {
+              let key = join_atom(arr.iter(), "\n");
+              exports_map.entry(key).or_insert(item);
+            }
+            ExtendedReferencedExport::Export(ref mut export) => {
+              let key = join_atom(export.name.iter(), "\n");
+              match exports_map.entry(key) {
+                Entry::Occupied(mut occ) => {
+                  let old_item = occ.get();
+                  match old_item {
+                    ExtendedReferencedExport::Array(_) => {
+                      occ.insert(item);
+                    }
+                    ExtendedReferencedExport::Export(old_item) => {
+                      occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
+                        name: std::mem::take(&mut export.name),
+                        can_mangle: export.can_mangle && old_item.can_mangle,
+                        can_inline: export.can_inline && old_item.can_inline,
+                      }));
                     }
                   }
-                  Entry::Vacant(vac) => {
-                    vac.insert(item);
-                  }
+                }
+                Entry::Vacant(vac) => {
+                  vac.insert(item);
                 }
               }
             }
           }
-          map.insert(
-            *connection.module_identifier(),
-            ProcessModuleReferencedExports::Map(exports_map),
-          );
         }
+        map.insert(
+          *connection.module_identifier(),
+          ProcessModuleReferencedExports::Map(exports_map),
+        );
       }
     }
 
