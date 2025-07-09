@@ -8,6 +8,9 @@ let localFileExisted = false
 let loadError = null
 
 function isMusl() {
+  if (process.report) {
+    process.report.excludeNetwork = true
+  }
   const { glibcVersionRuntime } = process.report.getReport().header
   return !glibcVersionRuntime
 }
