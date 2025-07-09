@@ -4,13 +4,12 @@ use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkGroupOrderKey,
-  ChunkUkey, Compilation, CrossOriginLoading, PublicPath, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
-  get_chunk_runtime_requirements, is_neutral_platform,
+  get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
 };
@@ -104,8 +103,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
-    let is_neutral_platform = is_neutral_platform(compilation);
-
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
     let with_external_install_chunk =
       runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
@@ -113,7 +110,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
+      && compilation.options.output.environment.supports_document()
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Prefetch,
@@ -121,7 +118,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
+      && compilation.options.output.environment.supports_document()
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Preload,
@@ -179,17 +176,12 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
-        let output_dir = if matches!(compilation.options.output.public_path, PublicPath::Auto) {
-          serde_json::to_string(&root_output_dir).expect("should able to serde_json::to_string")
-        } else {
-          RuntimeGlobals::PUBLIC_PATH.to_string()
-        };
         compilation.runtime_template.render(
           &self.template(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
             "_import_function_name":&compilation.options.output.import_function_name,
-            "_output_dir": &output_dir,
+            "_output_dir": &root_output_dir,
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
@@ -260,7 +252,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_link_prefetch": &res.code,
             "_js_matcher": &js_matcher,
-            "_is_neutral_platform": is_neutral_platform,
           })),
         )?;
 
@@ -323,7 +314,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
             "_link_preload": &res.code,
-            "_is_neutral_platform": is_neutral_platform,
           })),
         )?;
 
