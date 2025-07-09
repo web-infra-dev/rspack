@@ -467,7 +467,7 @@ impl<'a> JavaScriptTransformer<'a> {
           }) {
             // swc errors includes plugin error;
             let error_msg = err.to_pretty_string();
-            let swc_core_version = rspack_workspace::rspack_swc_core_version();
+            let swc_core_version = rspack_workspace::rspack_swc_core_version!();
             // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
             let help_msg = formatdoc!{"
               The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
