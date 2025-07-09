@@ -48,7 +48,7 @@
     "bench:ci": "pnpm run bench:prepare && cargo codspeed run && pnpm --filter bench run bench",
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
-  "homepage": "https://rspack.rs",
+  "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",
