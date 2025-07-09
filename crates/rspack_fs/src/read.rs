@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-use crate::{Error, FileMetadata, Result};
+use crate::{Error, FileMetadata, FilePermissions, Result};
 
 #[async_trait::async_trait]
 pub trait ReadableFileSystem: Debug + Send + Sync {
@@ -46,4 +46,10 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
   /// Returns a Vec of entry names in the directory
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>>;
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>>;
+
+  /// In [std::fs], the file permission is saved in file metadata.
+  /// We use this extra function to improve performance because it's rarely used.
+  ///
+  /// Returns `None` if the filesystem doesn't support permissions.
+  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>>;
 }

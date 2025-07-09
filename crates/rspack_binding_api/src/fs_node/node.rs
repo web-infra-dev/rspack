@@ -33,6 +33,8 @@ pub struct ThreadsafeNodeFS {
   pub stat: ThreadsafeFunction<String, Promise<Either<NodeFsStats, ()>>>,
   #[napi(ts_type = "(name: string) => Promise<NodeFsStats | void>")]
   pub lstat: ThreadsafeFunction<String, Promise<Either<NodeFsStats, ()>>>,
+  #[napi(ts_type = "(name: string, mode: number) => Promise<NodeFsStats | void>")]
+  pub chmod: ThreadsafeFunction<(String, u32), Promise<()>>,
   #[napi(ts_type = "(name: string) => Promise<string | void>")]
   pub realpath: ThreadsafeFunction<String, Promise<Either<String, ()>>>,
   #[napi(ts_type = "(name: string, flags: string) => Promise<number | void>")]
@@ -63,6 +65,7 @@ pub struct NodeFsStats {
   pub ctime_ms: u32,
   pub birthtime_ms: u32,
   pub size: u32,
+  pub mode: u32,
 }
 
 impl From<NodeFsStats> for FileMetadata {

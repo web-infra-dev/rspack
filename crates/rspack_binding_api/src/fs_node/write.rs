@@ -6,8 +6,9 @@ use napi::{
   Either,
 };
 use rspack_fs::{
-  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
-  ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem, WriteStream,
+  Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
+  ReadStream, ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem,
+  WriteStream,
 };
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use tracing::instrument;
@@ -126,6 +127,19 @@ impl WritableFileSystem for NodeFileSystem {
         "output file system call stat failed:",
       )),
     }
+  }
+
+  async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
+    if let Some(mode) = perm.into_mode() {
+      let file = path.as_str().to_string();
+      return self
+        .0
+        .chmod
+        .call_with_promise((file, mode).into())
+        .await
+        .to_fs_result();
+    }
+    Ok(())
   }
 }
 
@@ -252,6 +266,22 @@ impl ReadableFileSystem for NodeFileSystem {
   #[instrument(skip(self), level = "debug")]
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     block_on(ReadableFileSystem::read_dir(self, dir))
+  }
+  #[instrument(skip(self), level = "debug")]
+  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
+    let res = self
+      .0
+      .stat
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(stats) => Ok(Some(FilePermissions::from_mode(stats.mode))),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call stat failed",
+      )),
+    }
   }
 }
 
