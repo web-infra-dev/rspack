@@ -33,8 +33,6 @@ pub struct ThreadsafeNodeFS {
   pub stat: ThreadsafeFunction<String, Promise<Either<NodeFsStats, ()>>>,
   #[napi(ts_type = "(name: string) => Promise<NodeFsStats | void>")]
   pub lstat: ThreadsafeFunction<String, Promise<Either<NodeFsStats, ()>>>,
-  #[napi(ts_type = "(name: string, mode: number) => Promise<void>")]
-  pub chmod: ThreadsafeFunction<(String, u32), Promise<()>>,
   #[napi(ts_type = "(name: string) => Promise<string | void>")]
   pub realpath: ThreadsafeFunction<String, Promise<Either<String, ()>>>,
   #[napi(ts_type = "(name: string, flags: string) => Promise<number | void>")]
@@ -53,6 +51,9 @@ pub struct ThreadsafeNodeFS {
   pub read_until: ReadUtil,
   #[napi(ts_type = "(fd: number, position: number) => Promise<Buffer | void>")]
   pub read_to_end: ReadToEnd,
+  // The following functions are not supported by webpack, so they are optional
+  #[napi(ts_type = "(name: string, mode: number) => Promise<void>")]
+  pub chmod: Option<ThreadsafeFunction<(String, u32), Promise<()>>>,
 }
 
 #[napi(object, object_to_js = false)]

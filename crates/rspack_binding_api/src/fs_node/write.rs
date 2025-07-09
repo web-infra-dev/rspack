@@ -130,14 +130,11 @@ impl WritableFileSystem for NodeFileSystem {
   }
 
   async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
-    if let Some(mode) = perm.into_mode() {
+    if let Some(mode) = perm.into_mode()
+      && let Some(chmod) = &self.0.chmod
+    {
       let file = path.as_str().to_string();
-      return self
-        .0
-        .chmod
-        .call_with_promise((file, mode))
-        .await
-        .to_fs_result();
+      return chmod.call_with_promise((file, mode)).await.to_fs_result();
     }
     Ok(())
   }
