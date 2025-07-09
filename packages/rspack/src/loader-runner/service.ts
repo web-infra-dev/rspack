@@ -190,7 +190,7 @@ function checkCloneableProps(obj: any, loaderName: string) {
 			.join("\n");
 
 		throw new Error(
-			`${loaderName}'s options are not cloneable which is not supported with parallelLoader:\n${errorMsg}`
+			`${loaderName}'s options are not cloneable which is not supported with parallelLoader, consider disable parallel for this loader or remove non-cloneable prop in options:\n${errorMsg}`
 		);
 	}
 }
