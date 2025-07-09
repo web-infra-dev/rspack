@@ -1,5 +1,6 @@
 use std::{
   hash::Hash,
+  path::Path,
   ptr::NonNull,
   sync::{Arc, RwLock},
 };
@@ -1452,12 +1453,42 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
           .map(|issuer| issuer.to_string())
           .unwrap_or_default(),
         issuer_layer: data.issuer_layer.clone(),
+        file_dependencies: data
+          .file_dependencies
+          .iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        context_dependencies: data
+          .context_dependencies
+          .iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        missing_dependencies: data
+          .missing_dependencies
+          .iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
       })
       .await
     {
       Ok((ret, resolve_data)) => {
         dependency.set_request(resolve_data.request);
         data.context = resolve_data.context.into();
+        data.file_dependencies = resolve_data
+          .file_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
+        data.context_dependencies = resolve_data
+          .context_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
+        data.missing_dependencies = resolve_data
+          .missing_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
         Ok(ret)
       }
       Err(err) => Err(err),
@@ -1489,12 +1520,45 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
           .map(|issuer| issuer.to_string())
           .unwrap_or_default(),
         issuer_layer: data.issuer_layer.clone(),
+        file_dependencies: data
+          .file_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        context_dependencies: data
+          .context_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        missing_dependencies: data
+          .missing_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
       })
       .await
     {
       Ok(resolve_data) => {
         dependency.set_request(resolve_data.request);
         data.context = resolve_data.context.into();
+        data.file_dependencies = resolve_data
+          .file_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
+        data.context_dependencies = resolve_data
+          .context_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
+        data.missing_dependencies = resolve_data
+          .missing_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
         // only supports update resolve request for now
         Ok(None)
       }
@@ -1527,12 +1591,45 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
           .map(|issuer| issuer.to_string())
           .unwrap_or_default(),
         issuer_layer: data.issuer_layer.clone(),
+        file_dependencies: data
+          .file_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        context_dependencies: data
+          .context_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
+        missing_dependencies: data
+          .missing_dependencies
+          .clone()
+          .into_iter()
+          .map(|item| item.to_string_lossy().to_string())
+          .collect::<Vec<_>>(),
       })
       .await
     {
       Ok(resolve_data) => {
         dependency.set_request(resolve_data.request);
         data.context = resolve_data.context.into();
+        data.file_dependencies = resolve_data
+          .file_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
+        data.context_dependencies = resolve_data
+          .context_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
+        data.missing_dependencies = resolve_data
+          .missing_dependencies
+          .into_iter()
+          .map(|item| Path::new(&item).into())
+          .collect();
         // only supports update resolve request for now
         Ok(None)
       }

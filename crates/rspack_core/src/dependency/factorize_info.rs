@@ -38,9 +38,9 @@ impl FactorizeInfo {
     diagnostics: Vec<Diagnostic>,
   ) -> Self {
     let diagnostics = if diagnostics.is_empty() {
-      Some(diagnostics)
-    } else {
       None
+    } else {
+      Some(diagnostics)
     };
     Self {
       related_dep_ids,

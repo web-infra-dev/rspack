@@ -6,7 +6,10 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.done.tap("DonePlugin", stats => {
-					expect(Array.from(stats.compilation.missingDependencies)).toEqual([
+					let missingDependencies = Array.from(
+						stats.compilation.missingDependencies
+					).filter(item => !item.endsWith("package.json"));
+					expect(missingDependencies).toEqual([
 						path.resolve(__dirname, "./lang")
 					]);
 				});

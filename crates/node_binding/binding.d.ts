@@ -673,6 +673,9 @@ export interface JsBeforeResolveArgs {
   context: string
   issuer: string
   issuerLayer?: string
+  fileDependencies: Array<string>
+  missingDependencies: Array<string>
+  contextDependencies: Array<string>
 }
 
 export interface JsBuildMeta {
@@ -833,6 +836,9 @@ export interface JsFactorizeArgs {
   context: string
   issuer: string
   issuerLayer?: string
+  fileDependencies: Array<string>
+  missingDependencies: Array<string>
+  contextDependencies: Array<string>
 }
 
 export interface JsFactoryMeta {
@@ -991,6 +997,9 @@ export interface JsResolveArgs {
   context: string
   issuer: string
   issuerLayer?: string
+  fileDependencies: Array<string>
+  missingDependencies: Array<string>
+  contextDependencies: Array<string>
 }
 
 export interface JsResolveForSchemeArgs {

@@ -24,13 +24,18 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 						},
 						request: resolveData.request,
 						context: resolveData.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
+						fileDependencies: resolveData.fileDependencies,
+						missingDependencies: resolveData.missingDependencies,
+						contextDependencies: resolveData.contextDependencies
 					};
 					const ret = await queried.promise(normalizedResolveData);
 					resolveData.request = normalizedResolveData.request;
 					resolveData.context = normalizedResolveData.context;
+					resolveData.fileDependencies = normalizedResolveData.fileDependencies;
+					resolveData.missingDependencies =
+						normalizedResolveData.missingDependencies;
+					resolveData.contextDependencies =
+						normalizedResolveData.contextDependencies;
 					return [ret, resolveData];
 				};
 			}
@@ -52,13 +57,18 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 						},
 						request: resolveData.request,
 						context: resolveData.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
+						fileDependencies: resolveData.fileDependencies,
+						missingDependencies: resolveData.missingDependencies,
+						contextDependencies: resolveData.contextDependencies
 					};
 					await queried.promise(normalizedResolveData);
 					resolveData.request = normalizedResolveData.request;
 					resolveData.context = normalizedResolveData.context;
+					resolveData.fileDependencies = normalizedResolveData.fileDependencies;
+					resolveData.missingDependencies =
+						normalizedResolveData.missingDependencies;
+					resolveData.contextDependencies =
+						normalizedResolveData.contextDependencies;
 					return resolveData;
 				};
 			}
@@ -80,13 +90,18 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 						},
 						request: resolveData.request,
 						context: resolveData.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
+						fileDependencies: resolveData.fileDependencies,
+						missingDependencies: resolveData.missingDependencies,
+						contextDependencies: resolveData.contextDependencies
 					};
 					await queried.promise(normalizedResolveData);
 					resolveData.request = normalizedResolveData.request;
 					resolveData.context = normalizedResolveData.context;
+					resolveData.fileDependencies = normalizedResolveData.fileDependencies;
+					resolveData.missingDependencies =
+						normalizedResolveData.missingDependencies;
+					resolveData.contextDependencies =
+						normalizedResolveData.contextDependencies;
 					return resolveData;
 				};
 			}
