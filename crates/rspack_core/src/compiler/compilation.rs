@@ -41,7 +41,7 @@ use super::{
 };
 use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
-  cache::{persistent::storage::MemoryGCStorage, Cache},
+  cache::Cache,
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
@@ -54,10 +54,11 @@ use crate::{
   CompilationLogger, CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact,
   DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, Logger, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  Filename, ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));

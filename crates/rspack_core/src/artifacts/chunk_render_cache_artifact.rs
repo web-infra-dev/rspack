@@ -3,7 +3,7 @@ use rspack_collections::Identifier;
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
 
-use crate::{cache::persistent::storage::MemoryGCStorage, Chunk, Compilation, SourceType};
+use crate::{Chunk, Compilation, MemoryGCStorage, SourceType};
 
 #[derive(Debug, Default)]
 pub struct ChunkRenderCacheArtifact {
