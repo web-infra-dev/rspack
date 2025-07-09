@@ -628,6 +628,9 @@ interface CatchClause extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
+export const checkIsMultiRspackOptions: (config: RspackOptions | MultiRspackOptions) => config is MultiRspackOptions;
+
+// @public (undocumented)
 type ChokidarWatchOptions = {
     [key: string]: any;
 };
@@ -6216,6 +6219,7 @@ declare namespace rspackExports {
         MultiCompilerOptions,
         MultiRspackOptions,
         MultiCompiler,
+        checkIsMultiRspackOptions,
         RspackOptionsApply,
         RspackOptionsApply as WebpackOptionsApply,
         Chunk,
