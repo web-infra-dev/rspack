@@ -44,7 +44,13 @@ export default defineConfig({
 			]
 		}
 	},
-	plugins: [pluginNodePolyfill()],
+	plugins: [
+		pluginNodePolyfill({
+			overrides: {
+				fs: path.resolve("./src/browser/fs")
+			}
+		})
+	],
 	source: {
 		tsconfigPath: "./tsconfig.browser.json",
 		define: {
