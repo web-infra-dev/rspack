@@ -2,8 +2,9 @@ const fs = require("node:fs");
 
 /**
  * @param {import("@octokit/rest")} github
+ * @param {Number} limit
  */
-module.exports = async function action({ github, context }) {
+module.exports = async function action({ github, context, limit }) {
 	const commits = await github.rest.repos.listCommits({
 		owner: context.repo.owner,
 		repo: context.repo.repo,
@@ -38,9 +39,19 @@ module.exports = async function action({ github, context }) {
 		"./crates/node_binding/rspack.linux-x64-gnu.node"
 	).size;
 
-	const comment = compareBinarySize(headSize, baseSize, baseCommit);
+	console.log(`Base commit size: ${baseSize}`);
+	console.log(`Head commit size: ${headSize}`);
+
+	const comment = compareBinarySize(headSize, baseSize, context, baseCommit);
 
 	await commentToPullRequest(github, context, comment);
+
+	const increasedSize = headSize - baseSize;
+	if (increasedSize > limit) {
+		throw new Error(
+			`Binary size increased by ${increasedSize} bytes, exceeding the limit of ${limit} bytes`
+		);
+	}
 };
 
 async function commentToPullRequest(github, context, comment) {
@@ -85,11 +96,12 @@ const SIZE_LIMIT_HEADING = "## 📦 Binary Size-limit";
 const DATA_URL_BASE =
 	"https://raw.githubusercontent.com/web-infra-dev/rspack-ecosystem-benchmark/data";
 
-function compareBinarySize(headSize, baseSize, baseCommit) {
+function compareBinarySize(headSize, baseSize, context, baseCommit) {
 	const message = baseCommit.commit.message.split("\n")[0];
 	const author = baseCommit.commit.author.name;
+	const headSha = context.payload.pull_request?.head.sha || context.sha;
 
-	const info = `> Comparing binary size with Commit: [${message} by ${author}](${baseCommit.html_url})\n\n`;
+	const info = `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n`;
 
 	const diff = headSize - baseSize;
 	const percentage = (Math.abs(diff / baseSize) * 100).toFixed(2);

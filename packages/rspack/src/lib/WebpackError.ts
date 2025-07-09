@@ -17,7 +17,7 @@ export class WebpackError extends Error {
 	loc?: DependencyLocation;
 	file?: string;
 	chunk?: Chunk;
-	module?: Module;
+	module?: null | Module;
 	details?: string;
 	hideStack?: boolean;
 }

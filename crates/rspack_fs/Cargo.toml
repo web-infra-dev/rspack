@@ -4,14 +4,14 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_fs"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 
 [dependencies]
 async-trait  = { workspace = true }
-dunce        = { version = "1.0.5" }
-pnp          = { version = "0.9.0" }
-rspack_error = { path = "../rspack_error", version = "0.2.0" }
-rspack_paths = { path = "../rspack_paths", version = "0.2.0" }
+dunce        = { workspace = true }
+pnp          = { workspace = true }
+rspack_error = { workspace = true }
+rspack_paths = { workspace = true }
 tokio        = { workspace = true, features = ["rt", "macros", "sync"] }
 tracing      = { workspace = true }
 

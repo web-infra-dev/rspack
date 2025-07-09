@@ -4,7 +4,7 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_wasm"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,7 +25,7 @@ serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["__ecma"] }
 tokio              = { workspace = true }
 tracing            = { workspace = true }
-wasmparser         = "0.222.0"
+wasmparser         = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "rspack_hash", "tokio"]

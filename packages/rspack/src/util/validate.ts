@@ -1,5 +1,5 @@
 import { createErrorMap, fromZodError } from "zod-validation-error/v4";
-import type { z } from "zod/v4";
+import type { z } from "../config/zod";
 
 export class ValidationError extends Error {
 	constructor(message: string) {

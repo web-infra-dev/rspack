@@ -2,6 +2,7 @@ use std::fmt::{self, Debug};
 
 pub use itoa::Buffer;
 use rspack_cacheable::cacheable;
+use swc_core::common::{SourceMap, Span};
 
 #[macro_export]
 macro_rules! itoa {
@@ -39,6 +40,21 @@ pub struct RealDependencyLocation {
 impl RealDependencyLocation {
   pub fn new(start: SourcePosition, end: Option<SourcePosition>) -> Self {
     Self { start, end }
+  }
+
+  pub fn from_span(span: &Span, source_map: &SourceMap) -> Self {
+    let start_char_pos = source_map.lookup_char_pos(span.lo);
+    let end_char_pos = source_map.lookup_char_pos(span.hi);
+    RealDependencyLocation::new(
+      SourcePosition {
+        line: start_char_pos.line,
+        column: start_char_pos.col_display,
+      },
+      Some(SourcePosition {
+        line: end_char_pos.line,
+        column: end_char_pos.col_display,
+      }),
+    )
   }
 }
 
@@ -97,6 +113,12 @@ impl fmt::Display for SyntheticDependencyLocation {
 pub enum DependencyLocation {
   Real(RealDependencyLocation),
   Synthetic(SyntheticDependencyLocation),
+}
+
+impl DependencyLocation {
+  pub fn from_span(span: &Span, source_map: &SourceMap) -> Self {
+    DependencyLocation::Real(RealDependencyLocation::from_span(span, source_map))
+  }
 }
 
 impl fmt::Display for DependencyLocation {

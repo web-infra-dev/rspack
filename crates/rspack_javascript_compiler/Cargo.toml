@@ -8,13 +8,13 @@ homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_javascript_compiler"
 repository.workspace    = true
-version                 = "0.1.0"
+version.workspace       = true
 
 [dependencies]
 anyhow = { workspace = true }
-base64 = { version = "0.22.1" }
+base64 = { workspace = true }
 indoc = { workspace = true }
-jsonc-parser = { version = "0.26.2", features = ["serde"] }
+jsonc-parser = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -38,18 +38,16 @@ swc_core = { workspace = true, features = [
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
-url = "2.5.0"
+url = { workspace = true }
 
 rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }
 rspack_sources   = { workspace = true }
 rspack_util      = { workspace = true }
+rspack_workspace = { workspace = true }
 
 [lints]
 workspace = true
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }
-
-[build-dependencies]
-cargo_toml = { version = "0.21.0" }

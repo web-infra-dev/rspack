@@ -4,13 +4,13 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_progress"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 async-trait        = { workspace = true }
 futures            = { workspace = true }
-indicatif          = "0.17.9"
+indicatif          = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }

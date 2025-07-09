@@ -9,11 +9,11 @@
  */
 
 import type { JsBuildMeta } from "@rspack/binding";
-import * as z from "zod/v4";
 import type { CompilationParams } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { DllReferenceAgencyPlugin } from "../builtin-plugin";
 import { numberOrInfinity } from "../config/utils";
+import { z } from "../config/zod";
 import { makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { validate } from "../util/validate";

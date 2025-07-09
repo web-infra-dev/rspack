@@ -9,7 +9,6 @@ use std::{
 };
 
 use dashmap::DashSet;
-use futures::future::join_all;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -1459,7 +1458,17 @@ impl Compilation {
           .all_dependencies
           .iter()
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| dependency.get_diagnostics(&module_graph, module_graph_cache))
+          .filter_map(|dependency| {
+            dependency
+              .get_diagnostics(&module_graph, module_graph_cache)
+              .map(|diagnostics| {
+                diagnostics.into_iter().map(|diagnostic| {
+                  diagnostic
+                    .with_module_identifier(Some(*module_identifier))
+                    .with_loc(dependency.loc())
+                })
+              })
+          })
           .flatten()
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)
@@ -2252,23 +2261,50 @@ impl Compilation {
       .iter()
       .filter(|key| !unordered_runtime_chunks.contains(key))
       .collect();
+
     // create hash for runtime modules in other chunks
-    for chunk in &other_chunks {
-      for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
-        let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        let digest = runtime_module.get_runtime_hash(self, None).await?;
-        self
-          .runtime_modules_hash
-          .insert(*runtime_module_identifier, digest);
-      }
+    let other_chunk_runtime_module_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+      other_chunks
+        .iter()
+        .flat_map(|chunk| self.chunk_graph.get_chunk_runtime_modules_iterable(chunk))
+        .for_each(|runtime_module_identifier| {
+          let s = unsafe { token.used((&self, runtime_module_identifier)) };
+          s.spawn(|(compilation, runtime_module_identifier)| async {
+            let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
+            let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+            Ok((*runtime_module_identifier, digest))
+          });
+        })
+    })
+    .await
+    .into_iter()
+    .map(|res| res.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    for res in other_chunk_runtime_module_hashes {
+      let (runtime_module_identifier, digest) = res?;
+      self
+        .runtime_modules_hash
+        .insert(runtime_module_identifier, digest);
     }
+
     // create hash for other chunks
-    let other_chunks_hash_results: Vec<Result<(ChunkUkey, ChunkHashResult)>> =
-      join_all(other_chunks.into_iter().map(|chunk| async {
-        let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
-        Ok((*chunk, hash_result))
-      }))
-      .await;
+    let other_chunks_hash_results = rspack_futures::scope::<_, Result<_>>(|token| {
+      for chunk in other_chunks {
+        let s = unsafe { token.used((&self, chunk, &plugin_driver)) };
+        s.spawn(|(compilation, chunk, plugin_driver)| async {
+          let hash_result = compilation
+            .process_chunk_hash(*chunk, plugin_driver)
+            .await?;
+          Ok((*chunk, hash_result))
+        });
+      }
+    })
+    .await
+    .into_iter()
+    .map(|res| res.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
     try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
@@ -2379,16 +2415,29 @@ impl Compilation {
     // Therefore, create hashes one by one in sequence.
     let start = logger.time("hashing: hash runtime chunks");
     for runtime_chunk_ukey in runtime_chunks {
-      for runtime_module_identifier in self
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
-      {
-        let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        let digest = runtime_module.get_runtime_hash(self, None).await?;
+      let runtime_module_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
         self
-          .runtime_modules_hash
-          .insert(*runtime_module_identifier, digest);
+          .chunk_graph
+          .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
+          .for_each(|runtime_module_identifier| {
+            let s = unsafe { token.used((&self, runtime_module_identifier)) };
+            s.spawn(|(compilation, runtime_module_identifier)| async {
+              let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
+              let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+              Ok((*runtime_module_identifier, digest))
+            });
+          })
+      })
+      .await
+      .into_iter()
+      .map(|res| res.to_rspack_result())
+      .collect::<Result<Vec<_>>>()?;
+
+      for res in runtime_module_hashes {
+        let (mid, digest) = res?;
+        self.runtime_modules_hash.insert(mid, digest);
       }
+
       let chunk_hash_result = self
         .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
         .await?;

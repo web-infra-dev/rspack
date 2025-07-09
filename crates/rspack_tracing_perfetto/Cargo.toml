@@ -8,12 +8,12 @@ homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_tracing_perfetto"
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [dependencies]
-bytes               = { version = "*" }
-micromegas-perfetto = { version = "*" }
-prost               = "0.13"
+bytes               = { workspace = true }
+micromegas-perfetto = { workspace = true }
+prost               = { workspace = true }
 tracing             = { workspace = true }
 tracing-subscriber  = { workspace = true }
 [lints]

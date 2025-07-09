@@ -27,6 +27,7 @@ permissions:
 jobs:
   build:
     name: Test Linux
+    if: github.repository == 'web-infra-dev/rspack'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -38,6 +39,7 @@ jobs:
       prefer_docker: false
 
   create-comment:
+    if: github.repository == 'web-infra-dev/rspack'
     runs-on: ubuntu-latest
     outputs:
       comment-id: ${{ steps.create-comment.outputs.result }}
@@ -71,6 +73,7 @@ jobs:
             return comment.id
 
   bench:
+    if: github.repository == 'web-infra-dev/rspack'
     needs: [build]
     runs-on: [self-hosted, benchmark]
     outputs:
@@ -129,9 +132,9 @@ jobs:
           RSPACK_DIR="$RSPACK_DIR" GITHUB_ACTOR=x-access-token node bin/upload.js ${{ secrets.PERF_DATA_TOKEN }} ${{ github.sha }}
 
   comment-compare-results:
+    if: github.repository == 'web-infra-dev/rspack' && !cancelled()
     runs-on: ubuntu-latest
     needs: [create-comment, bench]
-    if: ${{ !cancelled() }}
     steps:
       - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:

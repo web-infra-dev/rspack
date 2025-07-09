@@ -7,9 +7,8 @@ edition.workspace       = true
 homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_binding_api"
-publish                 = false
 repository.workspace    = true
-version                 = "0.2.0"
+version.workspace       = true
 
 [features]
 debug_tool    = ["rspack_core/debug_tool"]
@@ -38,6 +37,7 @@ rspack_plugin_rstest     = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
 rspack_tasks             = { workspace = true }
 rspack_util              = { workspace = true }
+rspack_workspace         = { workspace = true }
 
 rspack_tracing = { workspace = true }
 
@@ -49,7 +49,7 @@ tracing-subscriber = { workspace = true }
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
 
-color-backtrace = "0.7.0"
+color-backtrace = { workspace = true }
 
 derive_more                            = { workspace = true, features = ["debug"] }
 futures                                = { workspace = true }
@@ -65,7 +65,6 @@ rspack_loader_react_refresh            = { workspace = true }
 rspack_loader_runner                   = { workspace = true }
 rspack_loader_swc                      = { workspace = true }
 rspack_loader_testing                  = { workspace = true }
-rspack_macros                          = { workspace = true }
 rspack_napi_macros                     = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
