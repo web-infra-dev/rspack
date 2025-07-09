@@ -1,5 +1,16 @@
 use color_backtrace::{default_output_stream, BacktracePrinter};
 
+#[cfg(target_family = "wasm")]
+pub fn install_wasm_panic_handler() {
+  use std::{fs::File, io::Write, os::fd::FromRawFd};
+
+  std::panic::set_hook(Box::new(|info| {
+    let msg = info.to_string();
+    let mut file = unsafe { File::from_raw_fd(2) };
+    file.write_all(msg.as_bytes()).unwrap();
+  }));
+}
+
 pub fn install_panic_handler() {
   let panic_handler = BacktracePrinter::default()
     .message("Panic occurred at runtime. Please file an issue on GitHub with the backtrace below: https://github.com/web-infra-dev/rspack/issues")

@@ -63,6 +63,9 @@ const {
 export default __napiModule.exports
 export const Assets = __napiModule.exports.Assets
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
+export const Chunk = __napiModule.exports.Chunk
+export const ChunkGraph = __napiModule.exports.ChunkGraph
+export const ChunkGroup = __napiModule.exports.ChunkGroup
 export const Chunks = __napiModule.exports.Chunks
 export const CodeGenerationResult = __napiModule.exports.CodeGenerationResult
 export const CodeGenerationResults = __napiModule.exports.CodeGenerationResults
@@ -76,9 +79,6 @@ export const EntryDependency = __napiModule.exports.EntryDependency
 export const EntryOptionsDto = __napiModule.exports.EntryOptionsDto
 export const EntryOptionsDTO = __napiModule.exports.EntryOptionsDTO
 export const ExternalModule = __napiModule.exports.ExternalModule
-export const JsChunk = __napiModule.exports.JsChunk
-export const JsChunkGraph = __napiModule.exports.JsChunkGraph
-export const JsChunkGroup = __napiModule.exports.JsChunkGroup
 export const JsCompilation = __napiModule.exports.JsCompilation
 export const JsCompiler = __napiModule.exports.JsCompiler
 export const JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData
@@ -111,13 +111,3 @@ export const RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
 export const syncTraceEvent = __napiModule.exports.syncTraceEvent
 export const transform = __napiModule.exports.transform
 export const transformSync = __napiModule.exports.transformSync
-
-export const MODULE_IDENTIFIER_SYMBOL = "MODULE_IDENTIFIER_SYMBOL";
-export const MODULE_BUILD_INFO_SYMBOL = "MODULE_BUILD_INFO_SYMBOL";
-export const COMPILATION_HOOKS_MAP_SYMBOL = "COMPILATION_HOOKS_MAP_SYMBOL";
-export const BUILD_INFO_ASSETS_SYMBOL = "BUILD_INFO_ASSETS_SYMBOL";
-export const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL = "BUILD_INFO_FILE_DEPENDENCIES_SYMBOL";
-export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL = "BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL";
-export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL = "BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL";
-export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL = "BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL";
-export const COMMIT_CUSTOM_FIELDS_SYMBOL = "COMMIT_CUSTOM_FIELDS_SYMBOL";
