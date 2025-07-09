@@ -564,6 +564,12 @@ export interface CssChunkingPluginOptions {
   exclude?: RegExp
 }
 
+/**
+ * Expected version of @rspack/core to the current binding version
+ * @internal
+ */
+export const EXPECTED_RSPACK_CORE_VERSION: string
+
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAddingRuntimeModule {
@@ -2715,8 +2721,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
-
-export const RSPACK_BINDING_WORKSPACE_VERSION: string
 
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function

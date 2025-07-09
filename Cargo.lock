@@ -2809,6 +2809,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd02a8ea3974a47a795a239f8831e5186c265c8624a4e56d538836c47305b312"
 dependencies = [
  "convert_case 0.8.0",
+ "ctor",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -2824,6 +2825,7 @@ dependencies = [
  "convert_case 0.8.0",
  "proc-macro2",
  "quote",
+ "semver",
  "syn 2.0.95",
 ]
 
