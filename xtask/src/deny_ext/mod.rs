@@ -1,15 +1,10 @@
 use std::{fs, path::Path};
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-  println!("Checking workspace dependencies...");
 
-  enforce_workspace_version()?;
-
-  println!("✅ All checks passed!");
-  Ok(())
-}
+use anyhow::Context;
+use clap::Args;
 
 /// enforce every workspace member to use workspace=true for their dependencies
-fn enforce_workspace_version() -> Result<(), Box<dyn std::error::Error>> {
+fn enforce_workspace_version() -> anyhow::Result<()> {
   let workspace_root = find_workspace_root()?;
   let workspace_manifest_path = workspace_root.join("Cargo.toml");
 
@@ -22,14 +17,14 @@ fn enforce_workspace_version() -> Result<(), Box<dyn std::error::Error>> {
     .get("workspace")
     .and_then(|w| w.get("dependencies"))
     .and_then(|d| d.as_table())
-    .ok_or("No workspace dependencies found")?;
+    .with_context(|| "No workspace dependencies found")?;
 
   // Get workspace members
   let workspace_members = workspace_toml
     .get("workspace")
     .and_then(|w| w.get("members"))
     .and_then(|m| m.as_array())
-    .ok_or("No workspace members found")?;
+    .with_context(|| "No workspace members found")?;
 
   let mut errors = Vec::new();
   let mut checked_crates = 0;
@@ -37,7 +32,7 @@ fn enforce_workspace_version() -> Result<(), Box<dyn std::error::Error>> {
 
   // Check each workspace member
   for member in workspace_members {
-    let member_path = member.as_str().ok_or("Invalid member path")?;
+    let member_path = member.as_str().with_context(|| "Invalid member path")?;
 
     // Skip if it's a glob pattern, we need to resolve it
     if member_path.contains('*') {
@@ -80,7 +75,7 @@ fn enforce_workspace_version() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!(
       "\nSummary: {checked_crates} crates checked, {total_dependencies} dependencies analyzed"
     );
-    return Err("Some dependencies are not using workspace=true".into());
+    anyhow::bail!("Some dependencies are not using workspace=true");
   }
 
   println!("Summary: {checked_crates} crates checked, {total_dependencies} dependencies analyzed");
@@ -92,7 +87,7 @@ fn check_crate_dependencies(
   manifest_path: &Path,
   workspace_deps: &toml::map::Map<String, toml::Value>,
   errors: &mut Vec<String>,
-) -> Result<usize, Box<dyn std::error::Error>> {
+) -> anyhow::Result<usize> {
   let content = fs::read_to_string(manifest_path)?;
   let toml_value: toml::Value = toml::from_str(&content)?;
 
@@ -198,7 +193,7 @@ fn check_dependency_section(
   count
 }
 
-fn find_workspace_root() -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+fn find_workspace_root() -> anyhow::Result<std::path::PathBuf> {
   let mut current_dir = std::env::current_dir()?;
   loop {
     let manifest_path = current_dir.join("Cargo.toml");
@@ -220,5 +215,19 @@ fn find_workspace_root() -> Result<std::path::PathBuf, Box<dyn std::error::Error
     }
   }
 
-  Err("Could not find workspace root".into())
+  anyhow::bail!("Could not find workspace root")
+}
+
+#[derive(Debug, Args)]
+pub struct DenyExtCmd;
+
+impl DenyExtCmd {
+  pub fn run(self) -> anyhow::Result<()> {
+    println!("Checking workspace dependencies...");
+
+    enforce_workspace_version()?;
+
+    println!("✅ All checks passed!");
+    Ok(())
+  }
 }
