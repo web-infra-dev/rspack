@@ -117,9 +117,10 @@ impl SwcLoader {
           loader_context.emit_diagnostic(
             miette::miette! {
               severity = miette::Severity::Warning,
-              "To ensure the accuracy of the collected TypeScript information, `rspackExperiments.collectTypeScriptInfo` can only be used when `builtin:swc-loader` is employed as the last normal loader. For now `rspackExperiments.collectTypeScriptInfo` is overridden to disabled. If you want to suppress this warning, either turn off `rspackExperiments.collectTypeScriptInfo` in the configuration or place `builtin:swc-loader` as the first element in the `use` array.\nLoaders: {}\nCurrent loader index: {}",
+              "To ensure the accuracy of the collected TypeScript information, `rspackExperiments.collectTypeScriptInfo` can only be used when `builtin:swc-loader` is employed as the last normal loader. For now `rspackExperiments.collectTypeScriptInfo` is overridden to disabled. If you want to suppress this warning, either turn off `rspackExperiments.collectTypeScriptInfo` in the configuration or place `builtin:swc-loader` as the first element in the `use` array.\nLoaders: {}\nLoader index: {}\nResource: {}",
               loader_context.request().to_string(),
               loader_context.loader_index,
+              loader_context.resource(),
             }.into(),
           );
           return;
