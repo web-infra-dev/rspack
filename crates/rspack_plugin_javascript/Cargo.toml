@@ -51,6 +51,7 @@ swc_core = { workspace = true, features = [
 ] }
 swc_ecma_lexer = { workspace = true }
 swc_node_comments = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 url = { workspace = true }
 

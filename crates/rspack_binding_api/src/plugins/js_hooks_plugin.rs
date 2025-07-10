@@ -438,7 +438,8 @@ async fn js_hooks_adapter_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks
     .chunk_hash
     .intercept(self.register_javascript_modules_chunk_hash_taps.clone());
