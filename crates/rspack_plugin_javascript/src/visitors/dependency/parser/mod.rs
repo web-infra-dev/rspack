@@ -228,7 +228,7 @@ pub struct JavascriptParser<'parser> {
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: FxHashMap<String, String>,
   pub(crate) comments: Option<&'parser dyn Comments>,
-  pub(crate) build_meta: &'parser mut BuildMeta,
+  pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
