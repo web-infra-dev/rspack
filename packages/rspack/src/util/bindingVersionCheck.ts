@@ -36,6 +36,7 @@ const NodePlatformArchToAbi: Record<
 
 function isMusl() {
 	if (process.report) {
+		// @ts-expect-error excludeNetwork is not officially typed but exists in Node.js
 		process.report.excludeNetwork = true;
 	}
 	// @ts-expect-error getReport returns an object containing header object
