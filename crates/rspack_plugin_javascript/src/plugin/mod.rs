@@ -64,23 +64,27 @@ struct WithHash<T> {
 
 #[derive(Debug, Default)]
 struct RenameModuleCache {
-  inlined_modules_to_info: IdentifierDashMap<WithHash<InlinedModuleInfo>>,
-  non_inlined_modules_through_idents: IdentifierDashMap<WithHash<Vec<ConcatenatedModuleIdent>>>,
+  inlined_modules_to_info: IdentifierDashMap<Arc<WithHash<InlinedModuleInfo>>>,
+  non_inlined_modules_through_idents:
+    IdentifierDashMap<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>>,
 }
 
 impl RenameModuleCache {
-  pub fn get_inlined_info(
-    &self,
-    ident: &Identifier,
-  ) -> Option<dashmap::mapref::one::Ref<'_, Identifier, WithHash<InlinedModuleInfo>>> {
-    self.inlined_modules_to_info.get(ident)
+  pub fn get_inlined_info(&self, ident: &Identifier) -> Option<Arc<WithHash<InlinedModuleInfo>>> {
+    self
+      .inlined_modules_to_info
+      .get(ident)
+      .map(|info| info.clone())
   }
 
   pub fn get_non_inlined_idents(
     &self,
     ident: &Identifier,
-  ) -> Option<dashmap::mapref::one::Ref<'_, Identifier, WithHash<Vec<ConcatenatedModuleIdent>>>> {
-    self.non_inlined_modules_through_idents.get(ident)
+  ) -> Option<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>> {
+    self
+      .non_inlined_modules_through_idents
+      .get(ident)
+      .map(|idents| idents.clone())
   }
 }
 
@@ -992,10 +996,10 @@ impl JsPlugin {
 
                   self.rename_module_cache.inlined_modules_to_info.insert(
                     ident,
-                    WithHash {
+                    Arc::new(WithHash {
                       hash: ChunkGraph::get_module_hash(compilation, ident, runtime).cloned(),
                       value: info.clone(),
-                    },
+                    }),
                   );
 
                   acc.inlined_modules_to_info.insert(ident, info);
@@ -1017,11 +1021,11 @@ impl JsPlugin {
                     .non_inlined_modules_through_idents
                     .insert(
                       module_ident,
-                      WithHash {
+                      Arc::new(WithHash {
                         hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
                           .cloned(),
                         value: idents_vec.clone(),
-                      },
+                      }),
                     );
                 }
               }
