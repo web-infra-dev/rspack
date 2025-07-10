@@ -1438,13 +1438,10 @@ impl CompilationAfterSeal for CompilationAfterSealTap {
 #[async_trait]
 impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
   async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
-    let dependency = data.dependencies[0]
-      .as_module_dependency_mut()
-      .expect("should be module dependency");
     match self
       .function
       .call_with_promise(JsBeforeResolveArgs {
-        request: dependency.request().to_string(),
+        request: data.request.clone(),
         context: data.context.to_string(),
         issuer: data
           .issuer
@@ -1456,7 +1453,7 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
       .await
     {
       Ok((ret, resolve_data)) => {
-        dependency.set_request(resolve_data.request);
+        data.request = resolve_data.request;
         data.context = resolve_data.context.into();
         Ok(ret)
       }
@@ -1475,13 +1472,10 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> rspack_error::Result<Option<BoxModule>> {
-    let dependency = data.dependencies[0]
-      .as_module_dependency_mut()
-      .expect("should be module dependency");
     match self
       .function
       .call_with_promise(JsFactorizeArgs {
-        request: dependency.request().to_string(),
+        request: data.request.clone(),
         context: data.context.to_string(),
         issuer: data
           .issuer
@@ -1493,7 +1487,7 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
       .await
     {
       Ok(resolve_data) => {
-        dependency.set_request(resolve_data.request);
+        data.request = resolve_data.request;
         data.context = resolve_data.context.into();
         // only supports update resolve request for now
         Ok(None)
@@ -1513,13 +1507,10 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> rspack_error::Result<Option<NormalModuleFactoryResolveResult>> {
-    let dependency = data.dependencies[0]
-      .as_module_dependency_mut()
-      .expect("should be module dependency");
     match self
       .function
       .call_with_promise(JsResolveArgs {
-        request: dependency.request().to_string(),
+        request: data.request.clone(),
         context: data.context.to_string(),
         issuer: data
           .issuer
@@ -1531,7 +1522,7 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
       .await
     {
       Ok(resolve_data) => {
-        dependency.set_request(resolve_data.request);
+        data.request = resolve_data.request;
         data.context = resolve_data.context.into();
         // only supports update resolve request for now
         Ok(None)
