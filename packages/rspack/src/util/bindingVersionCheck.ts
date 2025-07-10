@@ -95,6 +95,8 @@ export const checkVersion = () => {
 				item === `rspack.${platformArchAbi}.node` || "rspack.wasm32-wasi.wasm"
 		);
 
+		console.log("isLocal", isLocal, platformArchAbi);
+
 		if (isLocal) {
 			// Treat addon version the same as binding version if running locally
 			ADDON_VERSION = BINDING_VERSION;
@@ -129,6 +131,8 @@ export const checkVersion = () => {
 	);
 
 	if (!isMatch) {
+		console.log({ CORE_VERSION, BINDING_VERSION, ADDON_VERSION });
+
 		return (result = new Error(
 			`Unmatched version @rspack/core@${CORE_VERSION}, @rspack/binding@${BINDING_VERSION}, @rspack/binding-${platformArchAbi}@${ADDON_VERSION}.\nRspack requires these versions to be the same or you may have installed the wrong version. Otherwise, Rspack may not work properly.`
 		));
