@@ -182,19 +182,38 @@ jobs:
           cd rspack-ecosystem-ci
           pnpm i --frozen-lockfile
 
+          pnpm verdaccio --config verdaccio.yaml&
+
           mkdir -p ./workspace
           ln -s $RSPACK_DIR ./workspace/rspack
+
+          cd workspace/rspack
+          pnpm --filter @rspack/binding... 	\
+               --filter @rspack/binding-darwin-arm64... \
+               --filter @rspack/core... \
+               --filter @rspack/dev-server... \
+               --filter @rspack/test-tools... \
+               --filter @rspack/tracing... \
+              exec sh -c 'jq ".publishConfig.provenance = false" package.json > package.json.tmp && mv package.json.tmp package.json'
+
+          pnpm publish --no-git-checks --provenance=false --access public --registry=http://localhost:4873 \
+            --filter @rspack/binding... 	\
+            --filter @rspack/binding-darwin-arm64... \
+            --filter @rspack/core... \
+            --filter @rspack/dev-server... \
+            --filter @rspack/test-tools... \
+            --filter @rspack/tracing... \
 
           SUITE='${{ matrix.suite }}'
           SUITE_REF='${{ inputs.suiteRef || '-' }}'
           CONCLUSION='success'
           if [[ "$SUITE_REF" != "-" ]]; then
             # run test suite with suiteRef
-            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
+            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE with $SUITE_REF"
           else
             # run test suite
-            pnpm tsx ecosystem-ci.ts run-suites "$SUITE" || CONCLUSION='failure'
+            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE"
           fi
           echo "{\"conclusion\":\"$CONCLUSION\"}" >> "$RSPACK_DIR/$SUITE.json"
