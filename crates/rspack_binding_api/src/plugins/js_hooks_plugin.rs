@@ -489,7 +489,8 @@ async fn runtime_hooks_adapter_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
-  let mut hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks
     .create_script
     .intercept(self.register_runtime_plugin_create_script_taps.clone());

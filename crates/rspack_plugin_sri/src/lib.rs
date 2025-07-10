@@ -120,13 +120,16 @@ async fn handle_compilation(
     ));
   }
 
-  let mut runtime_plugin_hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
-  runtime_plugin_hooks
-    .create_script
-    .tap(create_script::new(self));
-  runtime_plugin_hooks
-    .link_preload
-    .tap(link_preload::new(self));
+  {
+    let runtime_plugin_hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
+    let mut runtime_plugin_hooks = runtime_plugin_hooks.write().await;
+    runtime_plugin_hooks
+      .create_script
+      .tap(create_script::new(self));
+    runtime_plugin_hooks
+      .link_preload
+      .tap(link_preload::new(self));
+  }
 
   if matches!(self.options.html_plugin, IntegrityHtmlPlugin::NativePlugin) {
     let html_plugin_hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
