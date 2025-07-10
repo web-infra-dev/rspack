@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use rspack_paths::Utf8Path;
 
 use super::{FileMetadata, Result};
+use crate::file_metadata::FilePermissions;
 
 #[async_trait::async_trait]
 pub trait WritableFileSystem: Debug + Send + Sync {
@@ -38,4 +39,7 @@ pub trait WritableFileSystem: Debug + Send + Sync {
   async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>>;
 
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata>;
+
+  /// See [std::fs::set_permissions]
+  async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()>;
 }

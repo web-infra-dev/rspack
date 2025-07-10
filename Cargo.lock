@@ -616,9 +616,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-if"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 
 [[package]]
 name = "cfg_aliases"
@@ -4518,6 +4518,7 @@ name = "rspack_fs"
 version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
+ "cfg-if",
  "dunce",
  "pnp",
  "rspack_error",
@@ -4856,7 +4857,6 @@ dependencies = [
  "rspack_paths",
  "rustc-hash 2.1.1",
  "sugar_path",
- "tokio",
  "tracing",
 ]
 
@@ -5228,6 +5228,7 @@ name = "rspack_plugin_mf"
 version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
+ "camino",
  "hashlink",
  "itertools 0.14.0",
  "regex",
@@ -5235,6 +5236,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_hash",
  "rspack_hook",
  "rspack_loader_runner",
