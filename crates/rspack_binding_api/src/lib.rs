@@ -126,6 +126,12 @@ use tracing_subscriber::{
 };
 pub use utils::*;
 
+// Export expected @rspack/core version
+/// Expected version of @rspack/core to the current binding version
+/// @internal
+#[napi]
+pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_version!();
+
 thread_local! {
   pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }

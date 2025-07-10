@@ -10,7 +10,7 @@ version.workspace = true
 async-trait  = { workspace = true }
 dashmap      = { workspace = true }
 dunce        = { workspace = true }
-notify       = { workspace = true }
+notify       = { workspace = true, features = ["macos_fsevent"] }
 pnp          = { workspace = true }
 rspack_error = { workspace = true }
 rspack_paths = { workspace = true }

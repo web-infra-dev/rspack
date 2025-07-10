@@ -583,6 +583,12 @@ export interface CssChunkingPluginOptions {
   exclude?: RegExp
 }
 
+/**
+ * Expected version of @rspack/core to the current binding version
+ * @internal
+ */
+export const EXPECTED_RSPACK_CORE_VERSION: string
+
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAddingRuntimeModule {

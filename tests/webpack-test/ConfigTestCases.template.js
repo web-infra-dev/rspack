@@ -5,7 +5,6 @@ require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
-const url = require("url");
 const { URL, pathToFileURL, fileURLToPath } = require("url");
 const { rimrafSync } = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
@@ -515,9 +514,6 @@ const describeCases = config => {
 												esmMode,
 												parentModule
 											) => {
-												if (testConfig.resolveModule) {
-													module = testConfig.resolveModule(module, i, options);
-												}
 												if (testConfig === undefined) {
 													throw new Error(
 														`_require(${module}) called after all tests from ${category.name} ${testName} have completed`
@@ -588,20 +584,10 @@ const describeCases = config => {
 																	specifier,
 																	module
 																) => {
-																	const normalizedSpecifier =
-																		specifier.startsWith("file:")
-																			? `./${path.relative(
-																				path.dirname(p),
-																				url.fileURLToPath(specifier)
-																			)}`
-																			: specifier.replace(
-																				/https:\/\/example.com\/public\/path\//,
-																				"./"
-																			);
 																	const result = await _require(
 																		path.dirname(p),
 																		options,
-																		normalizedSpecifier,
+																		specifier,
 																		"evaluated",
 																		module
 																	);

@@ -659,8 +659,7 @@ async fn render_manifest(
     .await?;
 
   let (source, more_diagnostics) = compilation
-    .old_cache
-    .chunk_render_occasion
+    .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SOURCE_TYPE[0], || async {
       let (source, diagnostics) = self
         .render_content_asset(chunk, &rendered_modules, &filename, compilation)
