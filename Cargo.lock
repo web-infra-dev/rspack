@@ -5229,6 +5229,7 @@ dependencies = [
  "rspack_hook",
  "rspack_util",
  "rustc-hash 2.1.1",
+ "tokio",
  "tracing",
 ]
 
