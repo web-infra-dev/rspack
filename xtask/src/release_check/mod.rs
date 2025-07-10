@@ -68,7 +68,7 @@ fn run_inner() -> anyhow::Result<()> {
   } else {
     let combined = diagnostics
       .into_iter()
-      .map(|e| format!("{e:?}")) // 使用 `Display` 也可以
+      .map(|e| format!("{e:?}"))
       .collect::<Vec<_>>()
       .join("\n");
     Err(anyhow::anyhow!("Multiple errors occurred:\n{}", combined))
