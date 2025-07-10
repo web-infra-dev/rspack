@@ -4987,6 +4987,7 @@ dependencies = [
  "swc_core",
  "swc_html",
  "swc_html_minifier",
+ "tokio",
  "tracing",
  "urlencoding",
 ]

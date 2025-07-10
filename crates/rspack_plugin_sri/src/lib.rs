@@ -126,7 +126,8 @@ async fn handle_compilation(
     .tap(link_preload::new(self));
 
   if matches!(self.options.html_plugin, IntegrityHtmlPlugin::NativePlugin) {
-    let mut html_plugin_hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+    let html_plugin_hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+    let mut html_plugin_hooks = html_plugin_hooks.write().await;
     html_plugin_hooks
       .before_asset_tag_generation
       .tap(before_asset_tag_generation::new(self));

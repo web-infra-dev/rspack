@@ -453,7 +453,8 @@ async fn html_hooks_adapter_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
-  let mut hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks.before_asset_tag_generation.intercept(
     self
       .register_html_plugin_before_asset_tag_generation_taps
