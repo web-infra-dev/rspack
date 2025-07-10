@@ -2875,9 +2875,10 @@ export type HashFunction = "md4" | "xxhash64" | "sha256";
 
 // @public (undocumented)
 interface HashLike {
-    	digest: (encoding?: string) => string | Buffer_2;
-
-    	update: (data: string | Buffer_2, inputEncoding?: string) => HashLike;
+    	// (undocumented)
+    digest: (encoding?: string) => string | Buffer_2;
+    	// (undocumented)
+    update: (data: string | Buffer_2, inputEncoding?: string) => HashLike;
 }
 
 // @public
@@ -4502,9 +4503,10 @@ type MakeDirectoryOptions = {
 
 // @public (undocumented)
 interface MapOptions {
-    	columns?: boolean;
-
-    	module?: boolean;
+    	// (undocumented)
+    columns?: boolean;
+    	// (undocumented)
+    module?: boolean;
 }
 
 // @public
@@ -5733,23 +5735,24 @@ type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
 interface RawSourceMap {
-    	debugId?: string;
-
-    	file: string;
-
-    	ignoreList?: number[];
-
-    	mappings: string;
-
-    	names: string[];
-
-    	sourceRoot?: string;
-
-    	sources: string[];
-
-    	sourcesContent?: string[];
-
-    	version: number;
+    	// (undocumented)
+    debugId?: string;
+    	// (undocumented)
+    file: string;
+    	// (undocumented)
+    ignoreList?: number[];
+    	// (undocumented)
+    mappings: string;
+    	// (undocumented)
+    names: string[];
+    	// (undocumented)
+    sourceRoot?: string;
+    	// (undocumented)
+    sources: string[];
+    	// (undocumented)
+    sourcesContent?: string[];
+    	// (undocumented)
+    version: number;
 }
 
 // @public (undocumented)
@@ -7121,9 +7124,10 @@ class Source {
 
 // @public (undocumented)
 interface SourceAndMap {
-    	map: null | RawSourceMap;
-
-    	source: SourceValue;
+    	// (undocumented)
+    map: null | RawSourceMap;
+    	// (undocumented)
+    source: SourceValue;
 }
 
 // @public (undocumented)
