@@ -11,9 +11,8 @@ import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { CrossOriginLoading } from "../config/types";
-import { z } from "../config/zod";
-import { memoize } from "../util/memoize";
-import { validate } from "../util/validate";
+import { getSRIPluginOptionsSchema } from "../schema/plugins";
+import { validate } from "../schema/validate";
 import { create } from "./base";
 
 const PLUGIN_NAME = "SubresourceIntegrityPlugin";
@@ -67,19 +66,6 @@ export type SubresourceIntegrityPluginOptions = {
 	htmlPlugin?: string | false;
 	enabled?: "auto" | boolean;
 };
-
-const getPluginOptionsSchema = memoize(() => {
-	const hashFunctionSchema = z.enum(["sha256", "sha384", "sha512"]);
-
-	return z.object({
-		hashFuncNames: z
-			.tuple([hashFunctionSchema])
-			.rest(hashFunctionSchema)
-			.optional(),
-		htmlPlugin: z.string().or(z.literal(false)).optional(),
-		enabled: z.literal("auto").or(z.boolean()).optional()
-	}) satisfies z.ZodType<SubresourceIntegrityPluginOptions>;
-});
 
 export type NativeSubresourceIntegrityPluginOptions = Omit<
 	RawSubresourceIntegrityPluginOptions,
@@ -324,7 +310,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 function validateSubresourceIntegrityPluginOptions(
 	options: SubresourceIntegrityPluginOptions
 ) {
-	validate(options, getPluginOptionsSchema);
+	validate(options, getSRIPluginOptionsSchema);
 }
 
 function isErrorWithCode<T extends Error>(obj: T): boolean {
