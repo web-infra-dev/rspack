@@ -1,4 +1,9 @@
-use std::{fs::Metadata, io::ErrorKind};
+use std::{
+  fs::{Metadata, Permissions},
+  io::ErrorKind,
+};
+
+use cfg_if::cfg_if;
 
 use crate::{Error, IoResultToFsResultExt, Result};
 
@@ -12,6 +17,7 @@ pub struct FileMetadata {
   pub ctime_ms: u64,
   pub size: u64,
 }
+
 impl TryFrom<Metadata> for FileMetadata {
   type Error = Error;
 
@@ -43,6 +49,7 @@ impl TryFrom<Metadata> for FileMetadata {
       .duration_since(std::time::UNIX_EPOCH)
       .expect("atime is before unix epoch")
       .as_millis() as u64;
+
     Ok(Self {
       is_directory: metadata.is_dir(),
       is_file: metadata.is_file(),
@@ -52,5 +59,51 @@ impl TryFrom<Metadata> for FileMetadata {
       ctime_ms,
       atime_ms,
     })
+  }
+}
+
+/// This is a target-agnostic file permission abstraction.
+/// Currently we only support getting and setting file permissions on unix target.
+/// If we are supporting more targets, organizing the code like [std::sys::fs] will be a better choice.
+#[derive(Debug, Clone)]
+pub struct FilePermissions(#[cfg(target_family = "unix")] u32);
+
+impl FilePermissions {
+  cfg_if! {
+      if #[cfg(target_family = "unix")] {
+        pub fn from_mode(mode: u32) -> Self {
+          Self(mode)
+        }
+
+        pub fn into_mode(self) -> Option<u32> {
+          Some(self.0)
+        }
+
+        pub fn from_std(perm: Permissions) -> Self {
+          use std::os::unix::fs::PermissionsExt;
+          Self(perm.mode())
+        }
+
+        pub fn into_std(self) -> Option<Permissions> {
+          use std::os::unix::fs::PermissionsExt;
+          Some(Permissions::from_mode(self.0))
+        }
+      } else {
+        pub fn from_mode(_mode: u32) -> Self {
+          Self()
+        }
+
+        pub fn into_mode(self) -> Option<u32> {
+          None
+        }
+
+        pub fn from_std(_perm: Permissions) -> Self {
+          Self()
+        }
+
+        pub fn into_std(self) -> Option<Permissions> {
+          None
+        }
+      }
   }
 }
