@@ -13,25 +13,21 @@ use crate::{
   RuntimeSpec, TemplateContext, UsedName,
 };
 
-/// Check if a module is a shared module or descendant of a shared module
+/// Check if a module is part of a shared bundle by checking the module graph
 fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
-  // Check if the module itself is a shared module
+  // Quick check: if the module itself has shared metadata or is a shared module type
   if let Some(module) = module_graph.module_by_identifier(module_id) {
-    // Check if it has a shared_key or consume_shared_key in BuildMeta
-    if module.build_meta().shared_key.is_some() || module.build_meta().consume_shared_key.is_some()
-    {
-      return true;
-    }
-
-    // Check if the module is ConsumeShared or ProvideShared type
-    if module.module_type() == &ModuleType::ConsumeShared
+    if module.build_meta().shared_key.is_some()
+      || module.build_meta().consume_shared_key.is_some()
+      || module.module_type() == &ModuleType::ConsumeShared
       || module.module_type() == &ModuleType::ProvideShared
     {
       return true;
     }
   }
 
-  // Check all issuer modules recursively
+  // Check if any issuer (module that imports this one) is a shared module
+  // This uses a breadth-first search to find shared modules in the dependency chain
   let mut visited = HashSet::default();
   let mut queue = vec![*module_id];
 
@@ -40,25 +36,19 @@ fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleId
       continue;
     }
 
-    // Check all incoming connections (issuers)
     for connection in module_graph.get_incoming_connections(&current_id) {
       if let Some(issuer_id) = connection.original_module_identifier {
         if let Some(issuer_module) = module_graph.module_by_identifier(&issuer_id) {
-          // Check if issuer is a ConsumeShared or ProvideShared module
-          if issuer_module.module_type() == &ModuleType::ConsumeShared
+          // If we find a shared module in the chain, this module should get PURE annotations
+          if issuer_module.build_meta().shared_key.is_some()
+            || issuer_module.build_meta().consume_shared_key.is_some()
+            || issuer_module.module_type() == &ModuleType::ConsumeShared
             || issuer_module.module_type() == &ModuleType::ProvideShared
           {
             return true;
           }
 
-          // Check if issuer has shared metadata
-          if issuer_module.build_meta().shared_key.is_some()
-            || issuer_module.build_meta().consume_shared_key.is_some()
-          {
-            return true;
-          }
-
-          // Add to queue to check its issuers
+          // Continue searching up the chain
           queue.push(issuer_id);
         }
       }
@@ -439,6 +429,8 @@ pub fn import_statement(
   request: &str,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
+  // Debug: check if this function is called
+  dbg!("import_statement called for:", request);
   if compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
@@ -455,30 +447,21 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  // Check if this is a descendant of a ConsumeShared module
-  let is_pure = compilation
+  // Apply PURE annotations only to descendants of ConsumeShared or ProvideShared modules
+  // This ensures the SWC macro transformer can remove unused __webpack_require__ calls in shared chunks
+  let is_pure = if let Some(module_identifier) = compilation
     .get_module_graph()
-    .dependency_by_id(id)
-    .is_some_and(|dep| {
-      // Check dependency type and ConsumeShared ancestry
-      let dep_type = dep.dependency_type();
-      let is_relevant_import = matches!(
-        dep_type.as_str(),
-        "esm import" | "esm import specifier" | "cjs require"
-      ) && import_var != "__webpack_require__";
-
-      if is_relevant_import {
-        let module_graph = compilation.get_module_graph();
-        is_consume_shared_descendant(&module_graph, &module.identifier())
-      } else {
-        false
-      }
-    });
+    .module_identifier_by_dependency_id(id)
+  {
+    is_consume_shared_descendant(&compilation.get_module_graph(), module_identifier)
+  } else {
+    false
+  };
 
   let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
 
   let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
+    "/* ESM import [RT1] */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
     RuntimeGlobals::REQUIRE
   );
 
@@ -493,7 +476,7 @@ pub fn import_statement(
     return (
       import_content,
       format!(
-        "/* ESM import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+        "/* ESM import [RT2] */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
         RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
       ),
     );
@@ -777,32 +760,6 @@ fn missing_module(request: &str) -> String {
 fn missing_module_statement(request: &str) -> String {
   format!("{};\n", missing_module(request))
 }
-
-// TODO: Re-enable when PURE annotations are restored
-// /// Check if a module should receive PURE annotations
-// /// Apply to ConsumeShared modules and Module Federation shared modules
-// fn is_consume_shared_descendant(
-//   module_graph: &ModuleGraph,
-//   module_identifier: &ModuleIdentifier,
-// ) -> bool {
-//   if let Some(module) = module_graph.module_by_identifier(module_identifier) {
-//     // Check if this module itself is ConsumeShared
-//     if module.module_type() == &ModuleType::ConsumeShared {
-//       return true;
-//     }
-//
-//     // Check if this module has BuildMeta indicating it's a shared module
-//     let build_meta = module.build_meta();
-//     if let Some(shared_key) = build_meta.shared_key.as_ref() {
-//       return !shared_key.is_empty();
-//     }
-//
-//     // Return false if module doesn't match ConsumeShared criteria
-//     return false;
-//   }
-//
-//   false
-// }
 
 pub fn missing_module_promise(request: &str) -> String {
   format!(
