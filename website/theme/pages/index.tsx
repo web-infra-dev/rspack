@@ -10,7 +10,7 @@ const CopyRight = () => {
             Rspack is free and open source software released under the MIT
             license.
           </p>
-          <p>© 2022-present ByteDance Inc.</p>
+          <p>© {new Date().getFullYear()} ByteDance Inc.</p>
         </div>
       </div>
     </footer>
