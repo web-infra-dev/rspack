@@ -13,7 +13,7 @@ on:
         type: choice
         options:
           - "-"
-          - modernjs
+          # - modernjs
           # - nx
           - rspress
           - rsbuild
