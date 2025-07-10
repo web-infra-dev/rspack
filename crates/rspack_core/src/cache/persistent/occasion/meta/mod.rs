@@ -17,14 +17,14 @@ struct Meta {
 /// Meta Occasion is used to save compiler state.
 #[derive(Debug)]
 pub struct MetaOccasion {
-  initializd: AtomicBool,
+  initialized: AtomicBool,
   storage: Arc<dyn Storage>,
 }
 
 impl MetaOccasion {
   pub fn new(storage: Arc<dyn Storage>) -> Self {
     Self {
-      initializd: AtomicBool::new(false),
+      initialized: AtomicBool::new(false),
       storage,
     }
   }
@@ -44,12 +44,12 @@ impl MetaOccasion {
   #[tracing::instrument("Cache::Occasion::Meta::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<()> {
     // avoid duplicate initialization
-    if self.initializd.load(std::sync::atomic::Ordering::SeqCst) {
+    if self.initialized.load(std::sync::atomic::Ordering::SeqCst) {
       return Ok(());
     }
 
     self
-      .initializd
+      .initialized
       .store(true, std::sync::atomic::Ordering::SeqCst);
 
     let Some((_, value)) = self.storage.load(SCOPE).await?.pop() else {
