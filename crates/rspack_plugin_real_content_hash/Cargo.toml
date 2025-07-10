@@ -9,7 +9,6 @@ version.workspace = true
 
 [dependencies]
 aho-corasick   = { workspace = true }
-dashmap        = { workspace = true }
 derive_more    = { workspace = true, features = ["debug"] }
 indexmap       = { workspace = true }
 once_cell      = { workspace = true }

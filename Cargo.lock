@@ -4784,7 +4784,6 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "css-module-lexer",
- "dashmap 6.1.0",
  "heck 0.5.0",
  "indexmap 2.7.1",
  "once_cell",
@@ -4968,7 +4967,6 @@ version = "0.2.1-alpha.1"
 dependencies = [
  "anyhow",
  "cow-utils",
- "dashmap 6.1.0",
  "futures",
  "itertools 0.14.0",
  "path-clean 1.0.1",
@@ -5013,7 +5011,6 @@ dependencies = [
  "async-trait",
  "bitflags 2.9.1",
  "cow-utils",
- "dashmap 6.1.0",
  "either",
  "fast-glob",
  "indexmap 2.7.1",
@@ -5216,7 +5213,6 @@ name = "rspack_plugin_real_content_hash"
 version = "0.2.1-alpha.1"
 dependencies = [
  "aho-corasick",
- "dashmap 6.1.0",
  "derive_more 1.0.0",
  "indexmap 2.7.1",
  "once_cell",
@@ -5260,7 +5256,6 @@ name = "rspack_plugin_rsdoctor"
 version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
- "dashmap 6.1.0",
  "futures",
  "indexmap 2.7.1",
  "rayon",
@@ -5311,7 +5306,6 @@ version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
  "cow-utils",
- "dashmap 6.1.0",
  "derive_more 1.0.0",
  "futures",
  "indexmap 2.7.1",
@@ -5407,7 +5401,6 @@ version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
  "cow-utils",
- "dashmap 6.1.0",
  "derive_more 1.0.0",
  "futures",
  "indexmap 2.7.1",
