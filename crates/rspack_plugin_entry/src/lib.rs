@@ -1,5 +1,7 @@
 #![feature(let_chains)]
 
+use std::sync::LazyLock;
+
 use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
@@ -8,23 +10,25 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
+type LazyDependency = LazyLock<BoxDependency, Box<dyn FnOnce() -> BoxDependency + Send>>;
+
 #[plugin]
 #[derive(Debug)]
 pub struct EntryPlugin {
   // Need "cache" the dependency to tell incremental that this entry dependency is not changed
   // so it can be reused and skip the module make
-  dependency: BoxDependency,
+  dependency: LazyDependency,
   options: EntryOptions,
 }
 
 impl EntryPlugin {
   pub fn new(context: Context, entry_request: String, options: EntryOptions) -> Self {
-    let dependency: BoxDependency = Box::new(EntryDependency::new(
-      entry_request,
-      context,
-      options.layer.clone(),
-      options.name.is_none(),
-    ));
+    let layer = options.layer.clone();
+    let name = options.name.is_none();
+    let dependency: LazyDependency = LazyLock::new(Box::new(move || {
+      Box::new(EntryDependency::new(entry_request, context, layer, name))
+    }));
+
     Self::new_inner(dependency, options)
   }
 }
