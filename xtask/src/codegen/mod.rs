@@ -6,18 +6,19 @@ use std::{
 };
 
 use anyhow::Result;
+use clap::Args;
 
 fn get_workspace_root() -> PathBuf {
   Path::new(
     &env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_owned()),
   )
   .ancestors()
-  .nth(2)
+  .nth(1)
   .unwrap()
   .to_path_buf()
 }
 
-fn main() -> Result<()> {
+fn run_impl() -> Result<()> {
   let workspace_root = get_workspace_root();
   let out_path = workspace_root.join("crates/rspack_workspace/src/generated.rs");
 
@@ -34,6 +35,9 @@ fn generate_workspace_versions(out_path: &str) -> Result<()> {
   let manifest =
     cargo_toml::Manifest::from_str(&cargo_toml_content).expect("Should parse cargo toml");
   let workspace = manifest.workspace.unwrap();
+
+  let workspace_version = workspace.package.unwrap().version.unwrap();
+
   let swc_core_version = workspace
     .dependencies
     .get("swc_core")
@@ -70,8 +74,22 @@ pub const fn rspack_swc_core_version() -> &'static str {{
 pub const fn rspack_pkg_version() -> &'static str {{
   "{rspack_version}"
 }}
+
+/// The version of the Rust workspace in the root `Cargo.toml` of the repository.
+pub const fn rspack_workspace_version() -> &'static str {{
+  "{workspace_version}"
+}}
 "#
   );
   fs::write(out_path, content)?;
   Ok(())
+}
+
+#[derive(Debug, Args)]
+pub struct CodegenCmd;
+
+impl CodegenCmd {
+  pub fn run(self) -> Result<()> {
+    run_impl()
+  }
 }

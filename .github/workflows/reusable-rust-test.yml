@@ -81,7 +81,7 @@ jobs:
       - name: Check licenses
         run: |
           cargo deny --all-features check license bans
-          cargo deny-ext
+          cargo xtask deny-ext
 
       - uses: cargo-bins/cargo-binstall@8aac5aa2bf0dfaa2863eccad9f43c68fe40e5ec8 # v1.14.1
       - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force

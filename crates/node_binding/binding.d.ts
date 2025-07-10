@@ -564,6 +564,12 @@ export interface CssChunkingPluginOptions {
   exclude?: RegExp
 }
 
+/**
+ * Expected version of @rspack/core to the current binding version
+ * @internal
+ */
+export const EXPECTED_RSPACK_CORE_VERSION: string
+
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAddingRuntimeModule {
@@ -1490,6 +1496,7 @@ export interface NodeFsStats {
   ctimeMs: number
   birthtimeMs: number
   size: number
+  mode: number
 }
 
 export interface PathWithInfo {
@@ -2764,6 +2771,7 @@ export interface ThreadsafeNodeFS {
   read: (fd: number, length: number, position: number) => Promise<Buffer | void>
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
+  chmod?: (name: string, mode: number) => Promise<void>
 }
 
 export declare function transform(source: string, options: string): Promise<TransformOutput>

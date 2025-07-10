@@ -25,53 +25,16 @@ impl<'a> FlagDependencyExportsState<'a> {
   }
 
   pub fn apply(&mut self, modules: IdentifierSet) {
-    fn add_ordered_module(
-      module_id: &ModuleIdentifier,
-      mg: &ModuleGraph,
-      ordered_modules: &mut FxIndexSet<ModuleIdentifier>,
-      candidates: &IdentifierSet,
-      visited: &mut FxHashSet<ModuleIdentifier>,
-    ) {
-      if visited.contains(module_id) {
-        return;
-      }
-      visited.insert(*module_id);
-      mg.get_incoming_connections(module_id).for_each(|i| {
-        if let Some(origin) = i.original_module_identifier {
-          if !visited.contains(&origin) {
-            add_ordered_module(&origin, mg, ordered_modules, candidates, visited);
-          }
-        }
-      });
-      if candidates.contains(module_id) {
-        ordered_modules.insert(*module_id);
-      }
-    }
-
-    let mut ordered_modules = FxIndexSet::default();
-    let mut visited = FxHashSet::default();
-    for module_id in modules.iter() {
-      add_ordered_module(
-        module_id,
-        self.mg,
-        &mut ordered_modules,
-        &modules,
-        &mut visited,
-      );
-    }
-
-    let mut batch = FxIndexSet::default();
-
-    for module_id in ordered_modules {
+    for module_id in &modules {
       // for module_id in modules {
-      let exports_info = self.mg.get_exports_info(&module_id);
+      let exports_info = self.mg.get_exports_info(module_id);
 
       // Reset exports provide info back to initial
       exports_info.reset_provide_info(self.mg);
 
       if self
         .mg
-        .module_by_identifier(&module_id)
+        .module_by_identifier(module_id)
         .expect("should have module")
         .build_meta()
         .exports_type
@@ -86,9 +49,9 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
 
       exports_info.set_has_provide_info(self.mg);
-      batch.insert(module_id);
     }
 
+    let mut batch = modules;
     let mut dependencies: IdentifierMap<IdentifierSet> = IdentifierMap::default();
     while !batch.is_empty() {
       let modules = std::mem::take(&mut batch);
@@ -101,6 +64,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         })
         .collect::<Vec<_>>();
 
+      let mut changed_modules = FxHashSet::default();
       for (module_id, exports_specs) in module_exports_specs {
         let exports_info = self.mg.get_exports_info(&module_id);
         let mut changed = false;
@@ -112,10 +76,17 @@ impl<'a> FlagDependencyExportsState<'a> {
             dependencies.entry(module_id).or_default().insert(dep_id);
           }
         }
-        if changed && let Some(set) = dependencies.get(&module_id) {
-          batch.extend(set.iter().copied());
+        if changed {
+          changed_modules.insert(module_id);
         }
       }
+      batch.extend(changed_modules.into_iter().flat_map(|m| {
+        dependencies
+          .get(&m)
+          .into_iter()
+          .flat_map(|d| d.iter())
+          .copied()
+      }));
     }
   }
 

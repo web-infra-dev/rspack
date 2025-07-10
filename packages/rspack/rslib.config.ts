@@ -72,19 +72,32 @@ const fixZodTypePlugin: RsbuildPlugin = {
 	name: "fix-zod-type",
 	setup(api) {
 		api.onAfterBuild(async () => {
-			const zodDts = path.join(api.context.distPath, "config/zod.d.ts");
+			const schemaDir = path.join(api.context.distPath, "schema");
 
-			if (!fs.existsSync(zodDts)) {
-				throw new Error(`Zod type file not found: ${zodDts}`);
+			if (!fs.existsSync(schemaDir)) {
+				throw new Error(`Schema directory not found: ${schemaDir}`);
 			}
 
-			const content = await fs.promises.readFile(zodDts, "utf-8");
-			const newContent = content.replace(
-				`import * as z from "zod/v4";`,
-				"// @ts-ignore\nimport * as z from 'zod/v4';"
-			);
+			const files = await fs.promises.readdir(schemaDir);
+			const dtsFiles = files.filter(file => file.endsWith(".d.ts"));
 
-			await fs.promises.writeFile(zodDts, newContent);
+			for (const file of dtsFiles) {
+				const filePath = path.join(schemaDir, file);
+				const content = await fs.promises.readFile(filePath, "utf-8");
+				const newContent = content
+					.replace(
+						`import * as z from "zod/v4";`,
+						`// @ts-ignore\nimport * as z from "zod/v4";`
+					)
+					.replace(
+						`import type { z } from "zod/v4";`,
+						`// @ts-ignore\nimport type { z } from "zod/v4";`
+					);
+
+				if (content !== newContent) {
+					await fs.promises.writeFile(filePath, newContent);
+				}
+			}
 		});
 	}
 };
@@ -130,15 +143,9 @@ const codmodPlugin: RsbuildPlugin = {
 		 */
 		function replaceBinding(root): Edit[] {
 			const binding = root.find(`module.exports = require("@rspack/binding");`);
-			const bindingPkg = root.find(
-				`module.exports = require("@rspack/binding/package.json");`
-			);
 			return [
 				binding.replace(
 					`module.exports = require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`
-				),
-				bindingPkg.replace(
-					`module.exports = require(process.env.RSPACK_BINDING ? require("node:path").resolve(process.env.RSPACK_BINDING, './package.json') : "@rspack/binding/package.json");`
 				)
 			];
 		}

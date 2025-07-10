@@ -1,16 +1,14 @@
 import nodePath from "node:path";
 import { createErrorMap, fromZodError } from "zod-validation-error/v4";
 import * as z from "zod/v4";
-import { getZodSwcLoaderOptionsSchema } from "../builtin-loader/swc/types";
+import type * as t from "../config/types";
 import { memoize } from "../util/memoize";
-import type * as t from "./types";
+import { getZodSwcLoaderOptionsSchema } from "./loaders";
 import { anyFunction, numberOrInfinity } from "./utils";
 
 z.config({
 	jitless: true
 });
-
-export { z };
 
 export const getExternalsTypeSchema = memoize(
 	() =>

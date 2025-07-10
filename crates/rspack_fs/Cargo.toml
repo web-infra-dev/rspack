@@ -8,6 +8,7 @@ version.workspace = true
 
 [dependencies]
 async-trait  = { workspace = true }
+cfg-if       = { workspace = true }
 dunce        = { workspace = true }
 pnp          = { workspace = true }
 rspack_error = { workspace = true }

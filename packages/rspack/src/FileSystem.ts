@@ -25,6 +25,7 @@ const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
 	readFile: ASYNC_NOOP,
 	stat: ASYNC_NOOP,
 	lstat: ASYNC_NOOP,
+	chmod: ASYNC_NOOP,
 	realpath: ASYNC_NOOP,
 	open: ASYNC_NOOP,
 	rename: ASYNC_NOOP,
@@ -45,7 +46,8 @@ function __to_binding_stat(stat: IStats): NodeFsStats {
 		mtimeMs: stat.mtimeMs ?? toMs(stat.mtime),
 		ctimeMs: stat.ctimeMs ?? toMs(stat.ctime),
 		birthtimeMs: stat.birthtimeMs ?? toMs(stat.birthtime),
-		size: stat.size
+		size: stat.size,
+		mode: stat.mode
 	};
 }
 
@@ -66,6 +68,7 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 	readFile!: (name: string) => Promise<Buffer | string | void>;
 	stat!: (name: string) => Promise<NodeFsStats | void>;
 	lstat!: (name: string) => Promise<NodeFsStats | void>;
+	chmod?: (name: string, mode: number) => Promise<void>;
 	realpath!: (name: string) => Promise<string | void>;
 	open!: (name: string, flags: string) => Promise<number | void>;
 	rename!: (from: string, to: string) => Promise<void>;
@@ -164,6 +167,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 	readFile!: (name: string) => Promise<Buffer | string | void>;
 	stat!: (name: string) => Promise<NodeFsStats | void>;
 	lstat!: (name: string) => Promise<NodeFsStats | void>;
+	chmod?: (name: string, mode: number) => Promise<void>;
 	realpath!: (name: string) => Promise<string | void>;
 	open!: (name: string, flags: string) => Promise<number | void>;
 	rename!: (from: string, to: string) => Promise<void>;
@@ -218,6 +222,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 				return res && __to_binding_stat(res);
 			};
 		});
+		this.chmod = memoizeFn(() => util.promisify(fs.chmod.bind(fs)));
 	}
 
 	static __to_binding(fs?: OutputFileSystem) {
