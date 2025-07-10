@@ -13,6 +13,7 @@ module.exports = {
 						expect(module.size()).toBe(5);
 						expect(moduleGraph.isAsync(module)).toBe(false);
 						expect(chunkGraph.getModuleChunks(module).length).toBe(1);
+						expect(Array.from(chunkGraph.getModuleChunksIterable(module)).length).toBe(1);
 						return true;
 					}
 				}
