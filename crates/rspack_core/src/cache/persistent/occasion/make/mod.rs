@@ -55,10 +55,10 @@ impl MakeOccasion {
   pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 
-    let (partial, force_build_dependencies) =
+    let (partial, force_build_dependencies, isolated_modules) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
     artifact.module_graph_partial = partial;
-    artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies);
+    artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies, isolated_modules);
 
     // regenerate statistical data
     // TODO remove set make_failed_module after all of module are cacheable

@@ -14,13 +14,18 @@ use crate::{
 
 #[derive(Debug)]
 pub enum MakeArtifactState {
-  Uninitialized(HashSet<DependencyId>),
+  Uninitialized(
+    /// force build dependencies
+    HashSet<DependencyId>,
+    /// isolated modules
+    IdentifierSet,
+  ),
   Initialized,
 }
 
 impl Default for MakeArtifactState {
   fn default() -> Self {
-    MakeArtifactState::Uninitialized(Default::default())
+    MakeArtifactState::Uninitialized(Default::default(), Default::default())
   }
 }
 
@@ -193,6 +198,7 @@ pub enum MakeParam {
   RemovedFiles(HashSet<ArcPath>),
   ForceBuildDeps(HashSet<DependencyId>),
   ForceBuildModules(IdentifierSet),
+  CheckIsolatedModules(IdentifierSet),
 }
 
 pub async fn make_module_graph(
@@ -219,8 +225,9 @@ pub async fn make_module_graph(
   if !compilation.removed_files.is_empty() {
     params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
   }
-  if let MakeArtifactState::Uninitialized(force_build_deps) = &artifact.state {
+  if let MakeArtifactState::Uninitialized(force_build_deps, isolated_modules) = &artifact.state {
     params.push(MakeParam::ForceBuildDeps(force_build_deps.clone()));
+    params.push(MakeParam::CheckIsolatedModules(isolated_modules.clone()));
   }
 
   // reset temporary data
