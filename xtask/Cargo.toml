@@ -1,7 +1,7 @@
 [package]
 authors.workspace       = true
 categories.workspace    = true
-description             = "cargo extension workflow"
+description             = "cargo extension workflow to manage rspack tasks"
 documentation.workspace = true
 edition.workspace       = true
 homepage.workspace      = true
