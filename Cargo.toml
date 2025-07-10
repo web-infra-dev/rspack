@@ -1,5 +1,5 @@
 [workspace]
-members  = ["crates/*", "tasks/*"]
+members  = ["crates/*", "xtask/*"]
 resolver = "2"                     # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
 [workspace.package]
