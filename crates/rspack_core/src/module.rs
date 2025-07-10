@@ -383,11 +383,6 @@ pub trait Module:
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    if let Some(factory_meta) = self.factory_meta() {
-      if let Some(side_effect_free) = factory_meta.side_effect_free {
-        return ConnectionState::Active(!side_effect_free);
-      }
-    }
     ConnectionState::Active(true)
   }
 
