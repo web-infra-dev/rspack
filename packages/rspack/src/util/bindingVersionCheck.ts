@@ -25,7 +25,7 @@ Help:
 `;
 	}
 
-	return `Unmatched version @rspack/core@${coreVersion} and @rspack/binding.
+	return `Unmatched version @rspack/core@${coreVersion} and @rspack/binding@${expectedCoreVersion}.
 
 Help:
 	Please ensure the version of @rspack/binding and @rspack/core is the same.
