@@ -29,10 +29,10 @@ use runtime::{create_script, handle_runtime, link_preload};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 
-static COMPILATION_INTEGRITY_MAP: LazyLock<
-  FxDashMap<CompilationId, Arc<RwLock<HashMap<String, String>>>>,
-> = LazyLock::new(Default::default);
+type CompilationIntegrityMap =
+  LazyLock<FxDashMap<CompilationId, Arc<RwLock<HashMap<String, String>>>>>;
 
+static COMPILATION_INTEGRITY_MAP: CompilationIntegrityMap = LazyLock::new(Default::default);
 static COMPILATION_CONTEXT_MAP: LazyLock<FxDashMap<CompilationId, Arc<SRICompilationContext>>> =
   LazyLock::new(Default::default);
 
