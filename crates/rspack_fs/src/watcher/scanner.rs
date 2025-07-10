@@ -24,31 +24,39 @@ impl Scanner {
   pub fn scan(&self) {
     let accessor = self.path_manager.access();
 
-    for file in accessor.files().iter() {
-      let filepath = file.deref();
-      if !filepath.exists() {
-        if let Some(tx) = &self.tx {
-          // If the file does not exist, send a delete event
-          let _ = tx.send(FsEvent {
-            path: filepath.clone(),
-            kind: FsEventKind::Remove,
-          });
+    let files = accessor.files().clone();
+    let _tx = self.tx.clone();
+    tokio::spawn(async move {
+      for file in files.iter() {
+        let filepath = file.deref();
+        if !filepath.exists() {
+          if let Some(tx) = &_tx {
+            // If the file does not exist, send a delete event
+            let _ = tx.send(FsEvent {
+              path: filepath.clone(),
+              kind: FsEventKind::Remove,
+            });
+          }
         }
       }
-    }
+    });
 
-    for dir in accessor.directories().iter() {
-      let dirpath = dir.deref();
-      if !dirpath.exists() {
-        if let Some(tx) = &self.tx {
-          // If the directory does not exist, send a delete event
-          let _ = tx.send(FsEvent {
-            path: dirpath.clone(),
-            kind: FsEventKind::Remove,
-          });
+    let directories = accessor.directories().clone();
+    let _tx = self.tx.clone();
+    tokio::spawn(async move {
+      for dir in directories.iter() {
+        let dirpath = dir.deref();
+        if !dirpath.exists() {
+          if let Some(tx) = &_tx {
+            // If the directory does not exist, send a delete event
+            let _ = tx.send(FsEvent {
+              path: dirpath.clone(),
+              kind: FsEventKind::Remove,
+            });
+          }
         }
       }
-    }
+    });
   }
 
   pub fn close(&mut self) {

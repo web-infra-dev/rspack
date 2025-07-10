@@ -9,27 +9,25 @@ use crate::watcher::path_manager::PathAccessor;
 /// which directories should be watched individually (non-recursively).
 /// This is typically used on platforms where recursive watching is not
 /// available or not desired, so each directory is watched separately.
-pub struct WatcherDirectoriesAnalyzer<'a> {
-  path_accessor: PathAccessor<'a>,
-}
+#[derive(Default)]
+pub struct WatcherDirectoriesAnalyzer;
 
-impl<'a> Analyzer<'a> for WatcherDirectoriesAnalyzer<'a> {
-  fn new(path_accessor: PathAccessor<'a>) -> Self {
-    Self { path_accessor }
-  }
-
-  fn analyze(&self) -> Vec<WatchPattern> {
-    self.find_watch_directories().into_iter().collect()
+impl Analyzer for WatcherDirectoriesAnalyzer {
+  fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
+    self
+      .find_watch_directories(path_accessor)
+      .into_iter()
+      .collect()
   }
 }
 
 const DIRECTORY_WATCH_DEPTH: u32 = 2;
 
-impl<'a> WatcherDirectoriesAnalyzer<'a> {
+impl WatcherDirectoriesAnalyzer {
   /// Finds all directories that should be watched individually (non-recursively).
-  fn find_watch_directories(&self) -> HashSet<WatchPattern> {
+  fn find_watch_directories<'a>(&self, path_accessor: PathAccessor<'a>) -> HashSet<WatchPattern> {
     let mut patterns = HashSet::default();
-    let all = self.path_accessor.all();
+    let all = path_accessor.all();
     for path in all {
       if let Some((dir, deep)) = self.find_exists_path(path) {
         // Insert the parent directory of the file
@@ -66,58 +64,88 @@ impl<'a> WatcherDirectoriesAnalyzer<'a> {
 
 #[cfg(test)]
 mod tests {
-  use dashmap::DashSet as HashSet;
-
   use super::*;
+  use crate::watcher::path_manager::{PathManager, PathUpdater};
 
-  #[test]
-  fn test_find_watch_directories() {
-    let files = HashSet::with_capacity(3);
+  #[tokio::test]
+  async fn test_find_watch_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let file_0 = ArcPath::from(current_dir.join("Cargo.toml"));
-    let file_1 = ArcPath::from(current_dir.join("src"));
-    let file_2 = ArcPath::from(current_dir.join("src/lib.rs"));
+    let path_manager = PathManager::default();
+    let file_updater = PathUpdater {
+      added: vec![
+        current_dir.join("Cargo.toml").to_string_lossy().to_string(),
+        current_dir.join("src/lib.rs").to_string_lossy().to_string(),
+      ],
+      removed: vec![],
+    };
 
-    files.insert(file_0.clone());
-    files.insert(file_1.clone());
-    files.insert(file_2.clone());
-    let directories = HashSet::with_capacity(1);
-    let missing = HashSet::new();
-    let path_accessor = PathAccessor::new(&files, &directories, &missing);
-    let analyzer = WatcherDirectoriesAnalyzer::new(path_accessor);
-    let watch_patterns = analyzer.analyze();
+    let directory_updater = PathUpdater {
+      added: vec![current_dir.join("src").to_string_lossy().to_string()],
+      removed: vec![],
+    };
+
+    let missing_updater = PathUpdater {
+      added: vec![],
+      removed: vec![],
+    };
+
+    path_manager
+      .update_paths(file_updater, directory_updater, missing_updater)
+      .await
+      .unwrap();
+    let analyzer = WatcherDirectoriesAnalyzer::default();
+    let watch_patterns = analyzer.analyze(path_manager.access());
 
     assert_eq!(watch_patterns.len(), 2);
     assert!(watch_patterns.contains(&{
       WatchPattern {
-        path: ArcPath::from(current_dir),
+        path: ArcPath::from(current_dir.clone()),
         mode: notify::RecursiveMode::NonRecursive,
       }
     }));
     assert!(watch_patterns.contains(&WatchPattern {
-      path: file_1,
+      path: ArcPath::from(current_dir.join("src")),
       mode: notify::RecursiveMode::NonRecursive
     }));
   }
 
-  #[test]
-  fn test_find_non_exists_watcher_directories() {
-    let files = HashSet::with_capacity(3);
+  #[tokio::test]
+  async fn test_find_non_exists_watcher_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let file_0 = ArcPath::from(current_dir.join("Cargo.toml"));
-    let file_1 = ArcPath::from(current_dir.join("src/a/b/c/d.rs"));
-    files.insert(file_0.clone());
-    files.insert(file_1.clone());
-    let directories = HashSet::new();
     let dir_0 = ArcPath::from(current_dir.join("src"));
-    let dir_1 = ArcPath::from(current_dir.join("src/b/c/d/e"));
 
-    directories.insert(dir_0.clone());
-    directories.insert(dir_1.clone());
-    let missing = HashSet::new();
-    let path_accessor = PathAccessor::new(&files, &directories, &missing);
-    let analyzer = WatcherDirectoriesAnalyzer::new(path_accessor);
-    let watch_patterns = analyzer.analyze();
+    let path_manager = PathManager::new(None);
+    let file_updater = PathUpdater {
+      added: vec![
+        current_dir.join("Cargo.toml").to_string_lossy().to_string(),
+        current_dir
+          .join("src/a/b/c/d.rs")
+          .to_string_lossy()
+          .to_string(),
+      ],
+      removed: vec![],
+    };
+    let directory_updater = PathUpdater {
+      added: vec![
+        current_dir.join("src").to_string_lossy().to_string(),
+        current_dir
+          .join("src/b/c/d/e")
+          .to_string_lossy()
+          .to_string(),
+      ],
+      removed: vec![],
+    };
+    let missing_updater = PathUpdater {
+      added: vec![],
+      removed: vec![],
+    };
+    path_manager
+      .update_paths(file_updater, directory_updater, missing_updater)
+      .await
+      .unwrap();
+
+    let analyzer = WatcherDirectoriesAnalyzer::default();
+    let watch_patterns = analyzer.analyze(path_manager.access());
 
     assert_eq!(watch_patterns.len(), 3);
     assert!(watch_patterns.contains(&WatchPattern {

@@ -66,6 +66,7 @@ pub struct FsWatcher {
   disk_watcher: DiskWatcher,
   executor: Executor,
   scanner: Scanner,
+  analyzer: RecommendedAnalyzer,
 }
 
 impl FsWatcher {
@@ -83,6 +84,7 @@ impl FsWatcher {
       executor,
       path_manager,
       scanner,
+      analyzer: RecommendedAnalyzer::default(),
     }
   }
 
@@ -94,6 +96,7 @@ impl FsWatcher {
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
   ) {
+    self.path_manager.reset();
     self.scanner.scan();
     if let Err(e) = self.wait_for_event(files, directories, missing).await {
       event_aggregate_handler.on_error(e);
@@ -131,8 +134,7 @@ impl FsWatcher {
       .update_paths(files, directories, missing)
       .await?;
 
-    let analyzer = RecommendedAnalyzer::new(self.path_manager.access());
-    let watch_patterns = analyzer.analyze();
+    let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;
 
     Ok(())

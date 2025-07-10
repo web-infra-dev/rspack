@@ -53,19 +53,21 @@ pub struct PathAccessor<'a> {
   files: &'a HashSet<ArcPath>,
   directories: &'a HashSet<ArcPath>,
   missing: &'a HashSet<ArcPath>,
+  incremental_manager: &'a IncrementalManager,
+  incremental_directories: &'a IncrementalManager,
+  incremental_missing: &'a IncrementalManager,
 }
 
 impl<'a> PathAccessor<'a> {
   /// Creates a new `PathAccessor` with references to the sets of files, directories, and missing paths.
-  pub fn new(
-    files: &'a HashSet<ArcPath>,
-    directories: &'a HashSet<ArcPath>,
-    missing: &'a HashSet<ArcPath>,
-  ) -> Self {
+  pub fn new(path_manager: &'a PathManager) -> Self {
     Self {
-      files,
-      directories,
-      missing,
+      files: &path_manager.files,
+      directories: &path_manager.directories,
+      missing: &path_manager.missing,
+      incremental_manager: &path_manager.incremental_files,
+      incremental_directories: &path_manager.incremental_directories,
+      incremental_missing: &path_manager.incremental_missing,
     }
   }
 
@@ -82,6 +84,21 @@ impl<'a> PathAccessor<'a> {
   /// Returns references to the set of missing paths.
   pub fn missing(&self) -> &'a HashSet<ArcPath> {
     self.missing
+  }
+
+  /// Returns references to the incremental managers for files, directories, and missing paths.
+  pub fn incremental_files(&self) -> &'a IncrementalManager {
+    self.incremental_manager
+  }
+
+  /// Returns references to the incremental manager for directories.
+  pub fn incremental_directories(&self) -> &'a IncrementalManager {
+    self.incremental_directories
+  }
+
+  /// Returns references to the incremental manager for missing paths.
+  pub fn incremental_missing(&self) -> &'a IncrementalManager {
+    self.incremental_missing
   }
 
   /// Returns an iterator that combines all files, directories, and missing paths into a single sequence.
@@ -107,6 +124,7 @@ impl PathUpdater {
   pub async fn update(
     self,
     paths: &HashSet<ArcPath>,
+    incremental_manager: &IncrementalManager,
     ignored: &Option<Box<dyn Ignored>>,
   ) -> Result<()> {
     let added_paths = self.added;
@@ -119,13 +137,50 @@ impl PathUpdater {
         }
       }
 
-      paths.insert(ArcPath::from(PathBuf::from(added)));
+      paths.insert(ArcPath::from(PathBuf::from(&added)));
+      incremental_manager.insert_added(ArcPath::from(PathBuf::from(&added)));
     }
 
     for removed in removed_paths {
-      paths.remove(&ArcPath::from(PathBuf::from(removed)));
+      paths.remove(&ArcPath::from(PathBuf::from(&removed)));
+      incremental_manager.insert_removed(ArcPath::from(PathBuf::from(&removed)));
     }
     Ok(())
+  }
+}
+
+#[derive(Default)]
+/// `IncrementalManager` is responsible for managing the incremental changes to the sets of added and removed paths.
+pub struct IncrementalManager {
+  added: HashSet<ArcPath>,
+  removed: HashSet<ArcPath>,
+}
+
+impl IncrementalManager {
+  /// clear the incremental changes.
+  pub fn clear(&self) {
+    self.added.clear();
+    self.removed.clear();
+  }
+
+  /// Inserts a path that has been added.
+  pub fn insert_added(&self, path: ArcPath) {
+    self.added.insert(path);
+  }
+
+  /// Inserts a path that has been removed.
+  pub fn insert_removed(&self, path: ArcPath) {
+    self.removed.insert(path);
+  }
+
+  /// Returns a reference to the set of added paths.
+  pub fn added(&self) -> &HashSet<ArcPath> {
+    &self.added
+  }
+
+  /// Returns a reference to the set of removed paths.
+  pub fn removed(&self) -> &HashSet<ArcPath> {
+    &self.removed
   }
 }
 
@@ -135,6 +190,9 @@ pub struct PathManager {
   pub files: HashSet<ArcPath>,
   pub directories: HashSet<ArcPath>,
   pub missing: HashSet<ArcPath>,
+  incremental_files: IncrementalManager,
+  incremental_directories: IncrementalManager,
+  incremental_missing: IncrementalManager,
   pub ignored: Option<Box<dyn Ignored>>,
 }
 
@@ -145,8 +203,17 @@ impl PathManager {
       files: HashSet::new(),
       directories: HashSet::new(),
       missing: HashSet::new(),
+      incremental_files: IncrementalManager::default(),
+      incremental_directories: IncrementalManager::default(),
+      incremental_missing: IncrementalManager::default(),
       ignored,
     }
+  }
+
+  pub fn reset(&self) {
+    self.incremental_files.clear();
+    self.incremental_directories.clear();
+    self.incremental_missing.clear();
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
@@ -157,9 +224,13 @@ impl PathManager {
     missing: PathUpdater,
   ) -> Result<()> {
     tokio::try_join!(
-      files.update(&self.files, &self.ignored),
-      directories.update(&self.directories, &self.ignored),
-      missing.update(&self.missing, &self.ignored),
+      files.update(&self.files, &self.incremental_files, &self.ignored),
+      directories.update(
+        &self.directories,
+        &self.incremental_directories,
+        &self.ignored,
+      ),
+      missing.update(&self.missing, &self.incremental_missing, &self.ignored),
     )?;
 
     Ok(())
@@ -167,7 +238,7 @@ impl PathManager {
 
   /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
   pub fn access(&self) -> PathAccessor<'_> {
-    PathAccessor::new(&self.files, &self.directories, &self.missing)
+    PathAccessor::new(self)
   }
 }
 
@@ -206,8 +277,12 @@ mod tests {
     let ignored = Box::new(TestIgnored {
       ignored: vec!["node_modules".to_string(), ".git".to_string()],
     });
+    let incremental_manager = IncrementalManager::default();
 
-    updater.update(&paths, &Some(ignored)).await.unwrap();
+    updater
+      .update(&paths, &incremental_manager, &Some(ignored))
+      .await
+      .unwrap();
 
     let mut path_iter = paths.into_iter();
     assert_eq!(
@@ -231,7 +306,12 @@ mod tests {
     let miss_0 = ArcPath::from(PathBuf::from("src/page/index.ts"));
     missing.insert(miss_0);
 
-    let accessor = PathAccessor::new(&files, &directories, &missing);
+    let mut path_manager = PathManager::new(None);
+    path_manager.files.extend(files);
+    path_manager.directories.extend(directories);
+    path_manager.missing.extend(missing);
+
+    let accessor = PathAccessor::new(&path_manager);
     let mut all_paths = vec![];
 
     for path in accessor.all() {
