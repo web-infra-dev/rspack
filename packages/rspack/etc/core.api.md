@@ -5325,6 +5325,8 @@ export type Output = {
 // @public (undocumented)
 export interface OutputFileSystem {
     // (undocumented)
+    chmod: (arg0: string, arg1: number, arg2: (arg0?: NodeJS.ErrnoException | null) => void) => void;
+    // (undocumented)
     dirname?: (arg0: string) => string;
     // (undocumented)
     join?: (arg0: string, arg1: string) => string;

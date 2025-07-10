@@ -14,7 +14,7 @@ pub use intermediate::{
 };
 
 mod file_metadata;
-pub use file_metadata::FileMetadata;
+pub use file_metadata::{FileMetadata, FilePermissions};
 
 mod macros;
 

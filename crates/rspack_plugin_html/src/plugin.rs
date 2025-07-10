@@ -63,7 +63,7 @@ async fn generate_html(
 ) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
   let public_path = config.get_public_path(compilation, filename).await;
 
-  let mut template = HtmlTemplate::new(config, compilation)?;
+  let mut template = HtmlTemplate::new(config, compilation).await?;
 
   let template_file_name = compilation
     .options
@@ -246,7 +246,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .await?;
 
     if let Some(favicon) = &config.favicon {
-      match create_favicon_asset(favicon, config, compilation) {
+      match create_favicon_asset(favicon, config, compilation).await {
         Ok(favicon) => compilation.emit_asset(favicon.0, favicon.1),
         Err(err) => {
           let error_msg = err.to_string();

@@ -6,18 +6,19 @@ use std::{
 };
 
 use anyhow::Result;
+use clap::Args;
 
 fn get_workspace_root() -> PathBuf {
   Path::new(
     &env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_owned()),
   )
   .ancestors()
-  .nth(2)
+  .nth(1)
   .unwrap()
   .to_path_buf()
 }
 
-fn main() -> Result<()> {
+fn run_impl() -> Result<()> {
   let workspace_root = get_workspace_root();
   let out_path = workspace_root.join("crates/rspack_workspace/src/generated.rs");
 
@@ -82,4 +83,13 @@ pub const fn rspack_workspace_version() -> &'static str {{
   );
   fs::write(out_path, content)?;
   Ok(())
+}
+
+#[derive(Debug, Args)]
+pub struct CodegenCmd;
+
+impl CodegenCmd {
+  pub fn run(self) -> Result<()> {
+    run_impl()
+  }
 }

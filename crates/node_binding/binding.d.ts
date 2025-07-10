@@ -1523,6 +1523,7 @@ export interface NodeFsStats {
   ctimeMs: number
   birthtimeMs: number
   size: number
+  mode: number
 }
 
 export interface PathWithInfo {
@@ -2797,6 +2798,7 @@ export interface ThreadsafeNodeFS {
   read: (fd: number, length: number, position: number) => Promise<Buffer | void>
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
+  chmod?: (name: string, mode: number) => Promise<void>
 }
 
 export declare function transform(source: string, options: string): Promise<TransformOutput>

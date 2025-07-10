@@ -8,6 +8,7 @@ version.workspace = true
 
 [dependencies]
 async-trait  = { workspace = true }
+cfg-if       = { workspace = true }
 dashmap      = { workspace = true }
 dunce        = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
