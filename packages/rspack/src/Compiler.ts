@@ -1,3 +1,4 @@
+import util from "node:util";
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compiler.js
@@ -9,6 +10,7 @@
  */
 import type * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
+import MultiStats from "./MultiStats";
 
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
@@ -33,28 +35,44 @@ import {
 	createRsdoctorPluginHooksRegisters,
 	createRuntimePluginHooksRegisters
 } from "./builtin-plugin";
-import { getRawOptions } from "./config";
-import { rspack } from "./index";
-import { unsupported } from "./util";
+import { getNormalizedRspackOptions, getRawOptions } from "./config";
+import { asArray, isNil, unsupported } from "./util";
 
 import { canInherentFromParent } from "./builtin-plugin/base";
-import { applyRspackOptionsDefaults, getPnpDefault } from "./config/defaults";
+import {
+	applyRspackOptionsBaseDefaults,
+	applyRspackOptionsDefaults,
+	getPnpDefault
+} from "./config/defaults";
 import { Logger } from "./logging/Logger";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { makePathsRelative } from "./util/identifier";
 
+import assert from "node:assert";
+import type { Callback } from "@rspack/lite-tapable";
 import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";
 import type { CompilationParams } from "./Compilation";
 import type { FileSystemInfoEntry } from "./FileSystemInfo";
+import {
+	MultiCompiler,
+	type MultiCompilerOptions,
+	type MultiRspackOptions
+} from "./MultiCompiler";
 import type {
 	EntryNormalized,
 	OutputNormalized,
+	RspackOptions,
 	RspackOptionsNormalized,
+	RspackPluginFunction,
 	RspackPluginInstance,
 	WatchOptions
 } from "./config";
+import { getRspackOptionsSchema } from "./config/zod";
+import type { Rspack } from "./index";
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+import { RspackOptionsApply } from "./rspackOptionsApply";
 import {
 	createCompilationHooksRegisters,
 	createCompilerHooksRegisters,
@@ -70,6 +88,7 @@ import type {
 	OutputFileSystem,
 	WatchFileSystem
 } from "./util/fs";
+import { validate } from "./util/validate";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -80,6 +99,130 @@ export interface AssetEmittedInfo {
 }
 
 const COMPILATION_WEAK_MAP = new WeakMap<binding.JsCompilation, Compilation>();
+
+function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
+	const compilers = options.map(createCompiler);
+	const compiler = new MultiCompiler(
+		compilers,
+		options as MultiCompilerOptions
+	);
+	for (const childCompiler of compilers) {
+		if (childCompiler.options.dependencies) {
+			compiler.setDependencies(
+				childCompiler,
+				childCompiler.options.dependencies
+			);
+		}
+	}
+
+	return compiler;
+}
+
+function createCompiler(userOptions: RspackOptions): Compiler {
+	const options = getNormalizedRspackOptions(userOptions);
+	applyRspackOptionsBaseDefaults(options);
+	assert(!isNil(options.context));
+	const compiler = new Compiler(options.context, options);
+
+	new NodeEnvironmentPlugin({
+		infrastructureLogging: options.infrastructureLogging
+	}).apply(compiler);
+
+	if (Array.isArray(options.plugins)) {
+		for (const plugin of options.plugins) {
+			if (typeof plugin === "function") {
+				(plugin as RspackPluginFunction).call(compiler, compiler);
+			} else if (plugin) {
+				plugin.apply(compiler);
+			}
+		}
+	}
+	applyRspackOptionsDefaults(compiler.options);
+
+	compiler.hooks.environment.call();
+	compiler.hooks.afterEnvironment.call();
+	new RspackOptionsApply().process(compiler.options, compiler);
+	compiler.hooks.initialize.call();
+	return compiler;
+}
+
+function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
+	return Array.isArray(o);
+}
+
+function rspack(options: MultiRspackOptions): MultiCompiler;
+function rspack(options: RspackOptions): Compiler;
+function rspack(
+	options: MultiRspackOptions | RspackOptions
+): MultiCompiler | Compiler;
+function rspack(
+	options: MultiRspackOptions,
+	callback?: Callback<Error, MultiStats>
+): null | MultiCompiler;
+function rspack(
+	options: RspackOptions,
+	callback?: Callback<Error, Stats>
+): null | Compiler;
+function rspack(
+	options: MultiRspackOptions | RspackOptions,
+	callback?: Callback<Error, MultiStats | Stats>
+): null | MultiCompiler | Compiler;
+function rspack(
+	options: MultiRspackOptions | RspackOptions,
+	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
+) {
+	try {
+		for (const o of asArray(options)) {
+			validate(o, getRspackOptionsSchema);
+		}
+	} catch (e) {
+		if (e instanceof Error && callback) {
+			callback(e);
+			return null;
+		}
+		throw e;
+	}
+	const create = () => {
+		if (isMultiRspackOptions(options)) {
+			const compiler = createMultiCompiler(options);
+			const watch = options.some(options => options.watch);
+			const watchOptions = options.map(options => options.watchOptions || {});
+			return { compiler, watch, watchOptions };
+		}
+		const compiler = createCompiler(options);
+		const watch = options.watch;
+		const watchOptions = options.watchOptions || {};
+		return { compiler, watch, watchOptions };
+	};
+
+	if (callback) {
+		try {
+			const { compiler, watch, watchOptions } = create();
+			if (watch) {
+				compiler.watch(watchOptions as any, callback as any);
+			} else {
+				compiler.run((err, stats) => {
+					compiler.close(() => {
+						callback(err, stats as any);
+					});
+				});
+			}
+			return compiler;
+		} catch (err: any) {
+			process.nextTick(() => callback(err));
+			return null;
+		}
+	} else {
+		const { compiler, watch } = create();
+		if (watch) {
+			util.deprecate(
+				() => {},
+				"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback."
+			)();
+		}
+		return compiler;
+	}
+}
 
 class Compiler {
 	#instance?: binding.JsCompiler;
@@ -130,8 +273,8 @@ class Compiler {
 		additionalPass: liteTapable.AsyncSeriesHook<[]>;
 	};
 
-	webpack: typeof rspack;
-	rspack: typeof rspack;
+	webpack: Rspack;
+	rspack: Rspack;
 	name?: string;
 	parentCompilation?: Compilation;
 	root: Compiler;
@@ -220,8 +363,8 @@ class Compiler {
 			additionalPass: new liteTapable.AsyncSeriesHook([])
 		};
 
-		this.webpack = rspack;
-		this.rspack = rspack;
+		this.webpack = rspack as any;
+		this.rspack = rspack as any;
 		this.root = this;
 		this.outputPath = "";
 
@@ -1043,4 +1186,11 @@ class Compiler {
 	}
 }
 
-export { Compiler };
+export {
+	Compiler,
+	createCompiler,
+	createMultiCompiler,
+	MultiStats,
+	rspack,
+	Stats
+};

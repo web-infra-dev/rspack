@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { type Compiler, MultiCompiler } from "../..";
+import type { Compiler } from "../../Compiler";
+import { MultiCompiler } from "../../MultiCompiler";
 import type { LazyCompilationOptions } from "../../config";
 import type { MiddlewareHandler } from "../../config/devServer";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
