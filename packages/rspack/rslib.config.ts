@@ -30,7 +30,8 @@ const commonLibConfig: LibConfig = {
 	source: {
 		define: {
 			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
-			RSPACK_VERSION: JSON.stringify(require("./package.json").version)
+			RSPACK_VERSION: JSON.stringify(require("./package.json").version),
+			IS_BROWSER: JSON.stringify(false)
 		}
 	},
 	output: {
