@@ -181,3 +181,20 @@ impl From<RawEvalDevToolModulePluginOptions> for EvalDevToolModulePluginOptions 
     }
   }
 }
+
+#[napi(object, object_to_js = false)]
+pub struct SourceMapDevToolModuleOptionsPluginOptions {
+  pub module: bool,
+  pub cheap: bool,
+}
+
+impl From<SourceMapDevToolModuleOptionsPluginOptions>
+  for rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions
+{
+  fn from(value: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
+    Self {
+      module: value.module,
+      cheap: value.cheap,
+    }
+  }
+}

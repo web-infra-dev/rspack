@@ -45,7 +45,7 @@ use rspack_plugin_css::CssPlugin;
 use rspack_plugin_css_chunking::CssChunkingPlugin;
 use rspack_plugin_devtool::{
   EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, SourceMapDevToolModuleOptionsPlugin,
-  SourceMapDevToolModuleOptionsPluginOptions, SourceMapDevToolPlugin,
+  SourceMapDevToolPlugin,
 };
 use rspack_plugin_dll::{
   DllEntryPlugin, DllReferenceAgencyPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin,
@@ -125,7 +125,8 @@ use crate::{
   RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
   RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
   RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawRslibPluginOptions,
-  RawRstestPluginOptions, RawSplitChunksOptions, SourceMapDevToolPluginOptions,
+  RawRstestPluginOptions, RawSplitChunksOptions, SourceMapDevToolModuleOptionsPluginOptions,
+  SourceMapDevToolPluginOptions,
 };
 
 #[napi(string_enum)]
@@ -182,6 +183,7 @@ pub enum BuiltinPluginName {
   JavascriptModulesPlugin,
   AsyncWebAssemblyModulesPlugin,
   AssetModulesPlugin,
+  SourceMapDevToolModuleOptionsPlugin,
   SourceMapDevToolPlugin,
   EvalSourceMapDevToolPlugin,
   EvalDevToolModulePlugin,
@@ -277,7 +279,6 @@ impl<'a> BuiltinPlugin<'a> {
       }
     };
     match name {
-      // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
         let plugin = DefinePlugin::new(
           downcast_into(self.options)
@@ -532,10 +533,12 @@ impl<'a> BuiltinPlugin<'a> {
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(
-          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
-            module: options.module,
-            cheap: !options.columns,
-          })
+          SourceMapDevToolModuleOptionsPlugin::new(
+            rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
+              module: options.module,
+              cheap: !options.columns,
+            },
+          )
           .boxed(),
         );
         plugins.push(SourceMapDevToolPlugin::new(options).boxed());
@@ -546,10 +549,12 @@ impl<'a> BuiltinPlugin<'a> {
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(
-          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
-            module: options.module,
-            cheap: !options.columns,
-          })
+          SourceMapDevToolModuleOptionsPlugin::new(
+            rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
+              module: options.module,
+              cheap: !options.columns,
+            },
+          )
           .boxed(),
         );
         plugins.push(EvalSourceMapDevToolPlugin::new(options).boxed());
@@ -606,8 +611,6 @@ impl<'a> BuiltinPlugin<'a> {
         .boxed();
         plugins.push(plugin)
       }
-
-      // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {
         let plugin_options = downcast_into::<RawHttpExternalsRspackPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
@@ -776,6 +779,13 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<CssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
+      }
+      BuiltinPluginName::SourceMapDevToolModuleOptionsPlugin => {
+        let options: rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions =
+          downcast_into::<SourceMapDevToolModuleOptionsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into();
+        plugins.push(SourceMapDevToolModuleOptionsPlugin::new(options).boxed());
       }
     }
     Ok(())

@@ -513,6 +513,7 @@ export declare enum BuiltinPluginName {
   JavascriptModulesPlugin = 'JavascriptModulesPlugin',
   AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
   AssetModulesPlugin = 'AssetModulesPlugin',
+  SourceMapDevToolModuleOptionsPlugin = 'SourceMapDevToolModuleOptionsPlugin',
   SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
   EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
   EvalDevToolModulePlugin = 'EvalDevToolModulePlugin',
@@ -2731,6 +2732,11 @@ export interface SourceMap {
   names?: Array<string | undefined | null>
   mappings?: string
   debugId?: string
+}
+
+export interface SourceMapDevToolModuleOptionsPluginOptions {
+  module: boolean
+  cheap: boolean
 }
 
 export interface SourceMapDevToolPluginOptions {
