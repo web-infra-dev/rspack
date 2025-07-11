@@ -78,10 +78,6 @@ impl ModuleDependency for CssComposeDependency {
     &self.request
   }
 
-  fn set_request(&mut self, request: String) {
-    self.request = request;
-  }
-
   fn factorize_info(&self) -> &FactorizeInfo {
     &self.factorize_info
   }

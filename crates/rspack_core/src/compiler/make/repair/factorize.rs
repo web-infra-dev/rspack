@@ -58,6 +58,15 @@ impl Task<MakeTaskContext> for FactorizeTask {
       .or(self.issuer_layer.as_ref())
       .cloned();
 
+    let request = self.dependencies[0]
+      .as_module_dependency()
+      .map(|d| d.request().to_string())
+      .or_else(|| {
+        self.dependencies[0]
+          .as_context_dependency()
+          .map(|d| d.request().to_string())
+      })
+      .unwrap_or_default();
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
@@ -66,6 +75,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       resolve_options: self.resolve_options,
       options: self.options.clone(),
       context,
+      request,
       dependencies: self.dependencies,
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,

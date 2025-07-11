@@ -150,7 +150,7 @@ impl NormalModuleFactory {
     let dependency_optional = dependency.get_optional();
 
     let importer = data.issuer_identifier;
-    let raw_request = dependency.request().to_owned();
+    let raw_request = data.request.clone();
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
@@ -165,11 +165,11 @@ impl NormalModuleFactory {
     let mut no_auto_loaders = false;
     let mut no_pre_post_auto_loaders = false;
 
-    let mut scheme = get_scheme(dependency.request());
+    let mut scheme = get_scheme(&data.request);
     let context_scheme = get_scheme(data.context.as_ref());
-    let mut unresolved_resource = dependency.request();
+    let mut unresolved_resource = data.request.as_str();
     if scheme.is_none() {
-      let mut request_without_match_resource = dependency.request();
+      let mut request_without_match_resource = data.request.as_str();
       request_without_match_resource = {
         if let Some(m) = MATCH_RESOURCE_REGEX.captures(request_without_match_resource) {
           let match_resource = {
@@ -864,20 +864,13 @@ impl NormalModuleFactory {
       if let NormalModuleFactoryResolveResult::Module(result) = result {
         return Ok(ModuleFactoryResult::new_with_module(result));
       } else {
-        let ident = format!(
-          "{}/{}",
-          &data.context,
-          data.request().expect("normal module should have request")
-        );
+        let ident = format!("{}/{}", &data.context, data.request);
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
         let mut raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!(
-            "{} (ignored)",
-            data.request().expect("normal module should have request")
-          ),
+          format!("{} (ignored)", data.request),
           Default::default(),
         )
         .boxed();
