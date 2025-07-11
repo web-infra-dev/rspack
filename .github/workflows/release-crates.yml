@@ -18,6 +18,9 @@ jobs:
   rust_tests:
     name: Run Rust Tests
     uses: ./.github/workflows/reusable-rust-test.yml
+    with:
+      # Use separated strategy to check all crates
+      cargo-check-strategy: "separated"
 
   release_crates:
     environment: crate

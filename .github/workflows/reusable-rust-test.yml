@@ -2,6 +2,12 @@ name: Reusable Rust Test
 
 on:
   workflow_call:
+    inputs:
+      cargo-check-strategy:
+        type: string
+        required: false
+        default: "all"
+        description: "Strategy for cargo check: all (default) or separated"
 
 jobs:
   check-changed:
@@ -40,8 +46,21 @@ jobs:
       - name: Run Cargo codegen
         run: cargo codegen
 
-      - name: Run Cargo Check
+      - name: Install cargo-binstall
+        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+        uses: cargo-bins/cargo-binstall@8aac5aa2bf0dfaa2863eccad9f43c68fe40e5ec8 # v1.14.1
+
+      - name: Install cargo-workspaces
+        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+        run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
+
+      - name: Run Cargo Check (all strategy)
+        if: ${{ inputs.cargo-check-strategy == 'all' }}
         run: cargo check --workspace --all-targets --locked
+
+      - name: Run Cargo Check (separated strategy)
+        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+        run: cargo workspaces exec cargo check --all-targets --locked
 
       - name: Run Clippy
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1

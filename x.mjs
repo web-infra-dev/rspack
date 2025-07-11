@@ -317,7 +317,8 @@ program
 			"workspaces",
 			"publish",
 			"--publish-as-is", // Publish crates from the current commit without versioning
-			"--allow-dirty" // Allow publishing even if the workspace is dirty. `cargo codegen` will generate `crates/rspack_workspace/src/generated.rs`
+			"--allow-dirty", // Allow publishing even if the workspace is dirty. `cargo codegen` will generate `crates/rspack_workspace/src/generated.rs`
+			"--no-verify" // Skip verification of the workspace. This was pre-checked by `release-crates.yml` with `cargo check` with `separated` strategy
 			// Commented `--locked` flag
 			// because some dev-deps refer to workspace members with versions rspack_swc_plugin_ts_collector
 			// and these workspace members are to be removed in release. This would cause `Cargo.lock` to be updated.
