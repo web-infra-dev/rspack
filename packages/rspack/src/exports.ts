@@ -342,6 +342,7 @@ import { JavaScriptTracer } from "./trace";
 
 ///// Experiments SWC /////
 import { minify, minifySync, transform, transformSync } from "./swc";
+import { SourceMapDevToolModuleOptionsPlugin } from "./builtin-plugin/SourceMapDevToolModuleOptionsPlugin";
 
 interface Experiments {
 	globalTrace: {
@@ -366,6 +367,7 @@ interface Experiments {
 	};
 	CssChunkingPlugin: typeof CssChunkingPlugin;
 	createNativePlugin: typeof createNativePlugin;
+	SourceMapDevToolModuleOptionsPlugin: typeof SourceMapDevToolModuleOptionsPlugin;
 }
 
 export const experiments: Experiments = {
@@ -410,5 +412,6 @@ export const experiments: Experiments = {
 		transformSync
 	},
 	CssChunkingPlugin,
-	createNativePlugin
+	createNativePlugin,
+	SourceMapDevToolModuleOptionsPlugin
 };
