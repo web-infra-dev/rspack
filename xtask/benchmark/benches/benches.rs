@@ -5,4 +5,4 @@ use groups::{build_chunk_graph::chunk_graph, bundle::bundle};
 
 mod groups;
 
-criterion_main!(chunk_graph, bundle);
+criterion_main!(bundle, chunk_graph);
