@@ -1045,7 +1045,7 @@ export async function runLoaders(
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
 						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = serializeObject(sourceMap);
+						context.sourceMap = sourceMap;
 						context.additionalData = additionalData || undefined;
 						break;
 					}

@@ -3,8 +3,7 @@ use std::{hash::Hash, sync::Arc};
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource, RawSource,
-  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
+  RawStringSource, ReplaceSource, Source, SourceExt, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -26,7 +25,7 @@ impl<'s> From<JsCompatSource<'s>> for BoxSource {
     match value.source {
       Either::A(string) => {
         if let Some(map) = value.map {
-          match SourceMap::from_slice(map.as_ref()).ok() {
+          match rspack_core::rspack_sources::SourceMap::from_slice(map.as_ref()).ok() {
             Some(source_map) => SourceMapSource::new(WithoutOriginalOptions {
               value: string,
               name: "inmemory://from js",
@@ -55,7 +54,7 @@ impl From<JsCompatSourceOwned> for BoxSource {
     match value.source {
       Either::A(string) => {
         if let Some(map) = value.map {
-          match SourceMap::from_slice(map.as_ref()).ok() {
+          match rspack_core::rspack_sources::SourceMap::from_slice(map.as_ref()).ok() {
             Some(source_map) => SourceMapSource::new(WithoutOriginalOptions {
               value: string,
               name: "inmemory://from js",
@@ -323,4 +322,77 @@ fn to_webpack_map(source: &dyn Source) -> Result<Option<String>> {
   let map = source.map(&MapOptions::default());
 
   map.map(|m| m.to_json()).transpose().to_napi_result()
+}
+
+#[napi(object)]
+pub struct SourceMap {
+  pub file: Option<String>,
+  pub sources: Option<Vec<Option<String>>>,
+  pub source_root: Option<String>,
+  pub sources_content: Option<Vec<Option<String>>>,
+  pub names: Option<Vec<Option<String>>>,
+  pub mappings: String,
+  pub debug_id: Option<String>,
+}
+
+impl From<&rspack_core::rspack_sources::SourceMap> for SourceMap {
+  fn from(value: &rspack_core::rspack_sources::SourceMap) -> Self {
+    SourceMap {
+      file: value.file().map(|file| file.to_string()),
+      sources: Some(
+        value
+          .sources()
+          .iter()
+          .map(|source| Some(source.to_string()))
+          .collect::<Vec<_>>(),
+      ),
+      source_root: value
+        .source_root()
+        .map(|source_root| source_root.to_string()),
+      sources_content: Some(
+        value
+          .sources_content()
+          .iter()
+          .map(|content| Some(content.to_string()))
+          .collect::<Vec<_>>(),
+      ),
+      names: Some(
+        value
+          .names()
+          .iter()
+          .map(|name| Some(name.to_string()))
+          .collect::<Vec<_>>(),
+      ),
+      mappings: value.mappings().to_string(),
+      debug_id: value.get_debug_id().map(|id| id.to_string()),
+    }
+  }
+}
+
+impl From<SourceMap> for rspack_core::rspack_sources::SourceMap {
+  fn from(value: SourceMap) -> Self {
+    let sources = value
+      .sources
+      .unwrap_or_default()
+      .into_iter()
+      .map(|source| source.unwrap_or_default())
+      .collect::<Vec<_>>();
+    let sources_content = value
+      .sources_content
+      .unwrap_or_default()
+      .into_iter()
+      .map(|source| source.unwrap_or_default())
+      .collect::<Vec<_>>();
+    let names = value
+      .names
+      .unwrap_or_default()
+      .into_iter()
+      .map(|name| name.unwrap_or_default())
+      .collect::<Vec<_>>();
+    let mut map =
+      rspack_core::rspack_sources::SourceMap::new(value.mappings, sources, sources_content, names);
+    map.set_source_root(value.source_root);
+    map.set_debug_id(value.debug_id);
+    map
+  }
 }
