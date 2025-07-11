@@ -1,0 +1,31 @@
+{
+  "name": "rspack-basic-example",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "build": "cp -r ./cjs-modules ./node_modules/@cjs-test && pnpm --dir ../.. build:cli:dev && pnpm build:app",
+    "build:app": "rspack build",
+    "build:quiet": "rspack build 2>/dev/null",
+    "test": "pnpm test:unit && pnpm test:integration && pnpm test:snapshots",
+    "test:unit": "rstest run tests/unit",
+    "test:integration": "node tests/integration/test-macro-evaluation.test.cjs",
+    "test:validate": "rstest run tests/unit/test-validate.test.js",
+    "test:snapshots": "rstest run tests/snapshots",
+    "test:snapshots:update": "rstest run tests/snapshots --update",
+    "test:all": "pnpm test",
+    "test:runner": "node tests/test-runner.js",
+    "test:runner:update": "node tests/test-runner.js --update-snapshots",
+    "test:cjs": "node tests/integration/test-cjs-integration.cjs"
+  },
+  "dependencies": {
+    "@rspack/core": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "lodash-es": "^4.17.21"
+  },
+  "devDependencies": {
+    "@rstest/core": "^0.0.3"
+  }
+}
