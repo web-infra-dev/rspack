@@ -1029,7 +1029,7 @@ export async function runLoaders(
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
 						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = sourceMap;
+						context.sourceMap = sourceMap || undefined;
 						context.additionalData = additionalData || undefined;
 						break;
 					}
@@ -1069,7 +1069,7 @@ export async function runLoaders(
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);
-				context.sourceMap = sourceMap;
+				context.sourceMap = sourceMap || undefined;
 				context.additionalData = additionalData || undefined;
 				context.__internal__utf8Hint = typeof content === "string";
 
