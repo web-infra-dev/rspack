@@ -26,11 +26,11 @@ import {
 	applyRspackOptionsDefaults,
 	getNormalizedRspackOptions
 } from "./config";
-import { getRspackOptionsSchema } from "./config/zod";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
+import { getRspackOptionsSchema } from "./schema/config";
+import { validate } from "./schema/validate";
 import { asArray, isNil } from "./util";
-import { validate } from "./util/validate";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);

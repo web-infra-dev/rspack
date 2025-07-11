@@ -6,7 +6,6 @@ mod version;
 use std::{hash::Hash, path::PathBuf, sync::Arc};
 
 pub use cacheable_context::{CacheableContext, FromContext};
-use occasion::MakeOccasion;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPath;
@@ -14,6 +13,7 @@ use rspack_workspace::rspack_pkg_version;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
+  occasion::{MakeOccasion, MetaOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{create_storage, Storage, StorageOptions},
 };
@@ -37,6 +37,7 @@ pub struct PersistentCache {
   storage: Arc<dyn Storage>,
   snapshot: Snapshot,
   make_occasion: MakeOccasion,
+  meta_occasion: MetaOccasion,
   async_mode: bool,
 }
 
@@ -66,10 +67,12 @@ impl PersistentCache {
       input_filesystem: input_filesystem.clone(),
     });
     let make_occasion = MakeOccasion::new(storage.clone(), context);
+    let meta_occasion = MetaOccasion::new(storage.clone());
     Self {
       snapshot: Snapshot::new(option.snapshot.clone(), input_filesystem, storage.clone()),
       storage,
       make_occasion,
+      meta_occasion,
       async_mode,
     }
   }
@@ -78,6 +81,9 @@ impl PersistentCache {
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
   async fn before_compile(&self, compilation: &mut Compilation) -> Result<bool> {
+    // TODO move meta_occasion.recovery to a init fn of Cache trait and call init after create cache.
+    self.meta_occasion.recovery().await?;
+
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
     if !compilation.is_rebuild {
@@ -92,6 +98,10 @@ impl Cache for PersistentCache {
   }
 
   async fn after_compile(&self, compilation: &Compilation) -> Result<()> {
+    // save meta
+    self.meta_occasion.save();
+
+    // save snapshot
     // TODO add a all_dependencies to collect dependencies
     let (_, file_added, file_removed) = compilation.file_dependencies();
     let (_, context_added, context_removed) = compilation.context_dependencies();

@@ -171,6 +171,11 @@ impl Compiler {
         new_compilation.chunk_render_artifact =
           std::mem::take(&mut self.compilation.chunk_render_artifact);
       }
+      new_compilation.chunk_render_cache_artifact =
+        std::mem::take(&mut self.compilation.chunk_render_cache_artifact);
+      new_compilation
+        .chunk_render_cache_artifact
+        .start_next_generation();
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.

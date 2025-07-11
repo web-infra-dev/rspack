@@ -12,6 +12,10 @@ Asset 模块是一种特殊的模块类型，用来处理静态资源，例如�
 
 - [资源模块](/guide/features/asset-module)
 
+## async chunk
+
+Async chunk 指的是被异步加载的 [chunk](#chunk)，当你使用动态导入时，Rspack 会将该模块打包到 async chunk 中。
+
 ## bundle splitting
 
 Bundle splitting 是一种允许你将代码分割或合并到多个 bundle 的技术，这对于并行请求和更好的浏览器缓存很有用，它不用于减少初始化 bundle 的大小。
@@ -29,7 +33,7 @@ Rspack 中的内置模块类型指的是那些不需要依赖 loader 和 plugin 
 
 ## chunk
 
-Chunk 是一组绑定在一起的模块。rspack 会将相互关联的模块打包成一个 chunk，然后生成对应的文件。
+Chunk 是一组绑定在一起的模块。Rspack 会将相互关联的模块打包成一个 chunk，然后生成对应的文件。
 
 ## chunk graph（chunk 图）
 
@@ -44,6 +48,10 @@ Code splitting 是一种技术，它允许你将你的代码分割成多个块�
 ## dependency
 
 Dependency 是从模块编译后的代码解析出来的，它用于存储模块的导入关系，以便递归生成模块图。在生成产物代码时，它可以注入模块的导入和导出相关代码，也可以用于代码替换和注入运行时依赖。
+
+## initial chunk
+
+Initial chunk 是被同步加载的 [chunk](#chunk)，包含页面的入口模块和被静态导入的模块。
 
 ## loader
 

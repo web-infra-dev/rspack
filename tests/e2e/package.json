@@ -7,7 +7,7 @@
     "test:CI": "CI=1 npm run test"
   },
   "devDependencies": {
-    "@babel/core": "^7.27.4",
+    "@babel/core": "^7.28.0",
     "@babel/preset-react": "^7.27.1",
     "@playwright/test": "1.53.2",
     "core-js": "3.43.0",

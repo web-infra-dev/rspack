@@ -564,6 +564,12 @@ export interface CssChunkingPluginOptions {
   exclude?: RegExp
 }
 
+/**
+ * Expected version of @rspack/core to the current binding version
+ * @internal
+ */
+export const EXPECTED_RSPACK_CORE_VERSION: string
+
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAddingRuntimeModule {
@@ -913,7 +919,7 @@ export interface JsLoaderContext {
   content: null | Buffer
   additionalData?: any
   __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
+  sourceMap?: SourceMap
   cacheable: boolean
   fileDependencies: Array<string>
   contextDependencies: Array<string>
@@ -1490,6 +1496,7 @@ export interface NodeFsStats {
   ctimeMs: number
   birthtimeMs: number
   size: number
+  mode: number
 }
 
 export interface PathWithInfo {
@@ -2716,6 +2723,16 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
+export interface SourceMap {
+  file?: string
+  sources?: Array<string | undefined | null>
+  sourceRoot?: string
+  sourcesContent?: Array<string | undefined | null>
+  names?: Array<string | undefined | null>
+  mappings?: string
+  debugId?: string
+}
+
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean
@@ -2764,6 +2781,7 @@ export interface ThreadsafeNodeFS {
   read: (fd: number, length: number, position: number) => Promise<Buffer | void>
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
+  chmod?: (name: string, mode: number) => Promise<void>
 }
 
 export declare function transform(source: string, options: string): Promise<TransformOutput>

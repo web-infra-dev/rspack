@@ -19,6 +19,28 @@ Object.defineProperty(ChunkGraph.prototype, "getOrderedChunkModulesIterable", {
 	}
 });
 
+Object.defineProperty(ChunkGraph.prototype, "getModuleChunksIterable", {
+	enumerable: true,
+	configurable: true,
+	value(this: ChunkGraph, module: Module): Iterable<Chunk> {
+		return this.getModuleChunks(module);
+	}
+});
+
+Object.defineProperty(ChunkGraph.prototype, "getOrderedChunkModulesIterable", {
+	enumerable: true,
+	configurable: true,
+	value(
+		this: ChunkGraph,
+		chunk: Chunk,
+		compareFn: (a: Module, b: Module) => number
+	): Iterable<Module> {
+		const modules = this.getChunkModules(chunk);
+		modules.sort(compareFn);
+		return modules;
+	}
+});
+
 Object.defineProperty(ChunkGraph.prototype, "getModuleHash", {
 	enumerable: true,
 	configurable: true,
@@ -29,6 +51,7 @@ Object.defineProperty(ChunkGraph.prototype, "getModuleHash", {
 
 declare module "@rspack/binding" {
 	interface Chunk {
+		getModuleChunksIterable(module: Module): Iterable<Chunk>;
 		getOrderedChunkModulesIterable(
 			chunk: Chunk,
 			compareFn: (a: Module, b: Module) => number

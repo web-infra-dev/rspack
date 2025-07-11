@@ -21,8 +21,5 @@ rustc-hash   = { workspace = true }
 sugar_path   = { workspace = true }
 tracing      = { workspace = true }
 
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["fs"] }
-
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
