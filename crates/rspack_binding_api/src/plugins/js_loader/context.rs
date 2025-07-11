@@ -3,10 +3,11 @@ use std::{collections::HashMap, ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 
-use crate::{ModuleObject, RspackError, SourceMap};
+use crate::{ModuleObject, RspackError};
 
 #[napi(object)]
 #[derive(Hash)]
@@ -99,7 +100,7 @@ pub struct JsLoaderContext {
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
-  pub source_map: Option<SourceMap>,
+  pub source_map: Option<Buffer>,
   pub cacheable: bool,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
@@ -144,7 +145,13 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .additional_data()
         .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
         .cloned(),
-      source_map: cx.source_map().map(Into::into),
+      source_map: cx
+        .source_map()
+        .cloned()
+        .map(|v| v.to_json())
+        .transpose()
+        .to_rspack_result()?
+        .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
       file_dependencies: cx
         .file_dependencies
