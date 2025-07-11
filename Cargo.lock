@@ -805,6 +805,7 @@ dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
+ "unicode-width 0.2.0",
  "windows-sys 0.59.0",
 ]
 
@@ -2339,6 +2340,7 @@ dependencies = [
  "console",
  "number_prefix",
  "portable-atomic",
+ "unicode-width 0.2.0",
  "web-time",
 ]
 
@@ -4867,7 +4869,6 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "css-module-lexer",
- "dashmap 6.1.0",
  "heck 0.5.0",
  "indexmap 2.7.1",
  "once_cell",
@@ -5051,7 +5052,6 @@ version = "0.2.1-alpha.1"
 dependencies = [
  "anyhow",
  "cow-utils",
- "dashmap 6.1.0",
  "futures",
  "itertools 0.14.0",
  "path-clean 1.0.1",
@@ -5070,6 +5070,7 @@ dependencies = [
  "swc_core",
  "swc_html",
  "swc_html_minifier",
+ "tokio",
  "tracing",
  "urlencoding",
 ]
@@ -5095,7 +5096,6 @@ dependencies = [
  "async-trait",
  "bitflags 2.9.1",
  "cow-utils",
- "dashmap 6.1.0",
  "either",
  "fast-glob",
  "indexmap 2.7.1",
@@ -5125,6 +5125,7 @@ dependencies = [
  "swc_core",
  "swc_ecma_lexer",
  "swc_node_comments",
+ "tokio",
  "tracing",
  "url",
 ]
@@ -5297,7 +5298,6 @@ name = "rspack_plugin_real_content_hash"
 version = "0.2.1-alpha.1"
 dependencies = [
  "aho-corasick",
- "dashmap 6.1.0",
  "derive_more 1.0.0",
  "indexmap 2.7.1",
  "once_cell",
@@ -5310,6 +5310,7 @@ dependencies = [
  "rspack_hook",
  "rspack_util",
  "rustc-hash 2.1.1",
+ "tokio",
  "tracing",
 ]
 
@@ -5340,7 +5341,6 @@ name = "rspack_plugin_rsdoctor"
 version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
- "dashmap 6.1.0",
  "futures",
  "indexmap 2.7.1",
  "rayon",
@@ -5391,7 +5391,6 @@ version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
  "cow-utils",
- "dashmap 6.1.0",
  "derive_more 1.0.0",
  "futures",
  "indexmap 2.7.1",
@@ -5487,7 +5486,6 @@ version = "0.2.1-alpha.1"
 dependencies = [
  "async-trait",
  "cow-utils",
- "dashmap 6.1.0",
  "derive_more 1.0.0",
  "futures",
  "indexmap 2.7.1",

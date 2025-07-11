@@ -1,6 +1,10 @@
-use std::{borrow::Cow, hash::BuildHasherDefault, iter::once, sync::atomic::AtomicU32};
+use std::{
+  borrow::Cow,
+  hash::BuildHasherDefault,
+  iter::once,
+  sync::{atomic::AtomicU32, Arc},
+};
 
-use dashmap::mapref::one::Ref;
 use indexmap::IndexSet;
 use rayon::prelude::*;
 use rspack_collections::{
@@ -24,7 +28,7 @@ use crate::{
 
 type ModuleDeps = HashMap<
   RuntimeSpec,
-  IdentifierDashMap<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>,
+  IdentifierDashMap<Arc<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>>,
 >;
 
 static NEXT_CACHE_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -498,12 +502,11 @@ impl CodeSplitter {
 
       let guard =
         self.outgoings_modules(&module, runtime.as_ref(), &module_graph, module_graph_cache);
-      let (modules, blocks) = guard.value();
+      let (modules, blocks) = guard.as_ref();
       let blocks = blocks.clone();
       for m in modules {
         stack.push((*m, runtime.clone(), chunk_loading));
       }
-      drop(guard);
 
       for block_id in blocks {
         index_by_block.entry(block_id).or_insert_with(|| {
@@ -745,16 +748,13 @@ impl CodeSplitter {
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Ref<ModuleIdentifier, (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
+  ) -> Arc<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
     let module_map = self.module_deps.get(runtime).expect("should have value");
 
     let guard = module_map.get(module);
-
     if let Some(ref_value) = guard {
-      return ref_value;
+      return ref_value.clone();
     }
-
-    drop(guard);
 
     let mut outgoings = IdentifierIndexMap::<Vec<&ModuleGraphConnection>>::default();
     let m = module_graph
@@ -787,7 +787,7 @@ impl CodeSplitter {
           }
           crate::ConnectionState::TransitiveOnly => {
             let transitive = self.outgoings_modules(m, runtime, module_graph, module_graph_cache);
-            let (extra_modules, extra_blocks) = transitive.value();
+            let (extra_modules, extra_blocks) = transitive.as_ref();
             modules.extend(extra_modules.iter().copied());
             blocks.extend(extra_blocks.iter().copied());
           }
@@ -797,8 +797,8 @@ impl CodeSplitter {
       }
     }
 
-    module_map.insert(*module, (modules.into_iter().collect(), blocks));
-    module_map.get(module).expect("have value")
+    module_map.insert(*module, Arc::new((modules.into_iter().collect(), blocks)));
+    module_map.get(module).expect("have value").clone()
   }
 
   // insert static dependencies into a set
@@ -845,7 +845,7 @@ impl CodeSplitter {
 
           let guard =
             self.outgoings_modules(&target_module, runtime, module_graph, module_graph_cache);
-          let (_, (outgoing_modules, blocks)) = guard.pair();
+          let (outgoing_modules, blocks) = guard.as_ref();
           let mut outgoing_modules = outgoing_modules.clone();
 
           if ctx.chunk_loading {
@@ -863,8 +863,6 @@ impl CodeSplitter {
               });
             outgoing_modules.extend(modules);
           }
-
-          drop(guard);
 
           for m in outgoing_modules.iter().rev() {
             stack.push(Task::Enter(*m));
@@ -974,7 +972,7 @@ impl CodeSplitter {
               self.module_deps.insert(runtime.clone(), Default::default());
             }
             let guard = self.outgoings_modules(&m, runtime, &module_graph, module_graph_cache);
-            let (modules, blocks) = guard.value();
+            let (modules, blocks) = guard.as_ref();
 
             for m in modules.iter().rev() {
               queue.push(Task::Enter((*m, runtime)));

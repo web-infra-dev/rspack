@@ -2,7 +2,25 @@ use std::{fs, path::Path};
 
 use anyhow::Context;
 use clap::Args;
-
+/// check every workspace dependencies has default-features=false
+fn check_setting_default_features_false(
+  workspace_deps: &toml::map::Map<String, toml::Value>,
+) -> Vec<String> {
+  let mut errors = Vec::new();
+  // Check each dependency for default-features=false
+  for (dep_name, dep_value) in workspace_deps {
+    if let Some(table) = dep_value.as_table() {
+      if !table.contains_key("default-features")
+        || table.get("default-features") != Some(&toml::Value::Boolean(false))
+      {
+        errors.push(format!(
+          "Dependency '{dep_name}' does not have default-features=false",
+        ));
+      }
+    }
+  }
+  errors
+}
 /// enforce every workspace member to use workspace=true for their dependencies
 fn enforce_workspace_version() -> anyhow::Result<()> {
   let workspace_root = find_workspace_root()?;
@@ -11,14 +29,15 @@ fn enforce_workspace_version() -> anyhow::Result<()> {
   // Read and parse the workspace Cargo.toml
   let workspace_content = fs::read_to_string(&workspace_manifest_path)?;
   let workspace_toml: toml::Value = toml::from_str(&workspace_content)?;
-
+  let mut errors = Vec::new();
   // Get workspace dependencies
   let workspace_deps = workspace_toml
     .get("workspace")
     .and_then(|w| w.get("dependencies"))
     .and_then(|d| d.as_table())
     .with_context(|| "No workspace dependencies found")?;
-
+  let default_features_errors = check_setting_default_features_false(workspace_deps);
+  errors.extend(default_features_errors);
   // Get workspace members
   let workspace_members = workspace_toml
     .get("workspace")
@@ -26,7 +45,6 @@ fn enforce_workspace_version() -> anyhow::Result<()> {
     .and_then(|m| m.as_array())
     .with_context(|| "No workspace members found")?;
 
-  let mut errors = Vec::new();
   let mut checked_crates = 0;
   let mut total_dependencies = 0;
 

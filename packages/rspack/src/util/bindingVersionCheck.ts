@@ -11,6 +11,14 @@ export const checkVersion = () => {
 		return null;
 	}
 
+	// In canary version, version bump is done after binding is built.
+	// And to export `EXPECTED_RSPACK_CORE_VERSION` in binding, it relies on the bumped version of @rspack/core.
+	// So we can't check the version of @rspack/core and @rspack/binding in canary version.
+	// Here we ignore version check for canary version.
+	if (CORE_VERSION.includes("canary")) {
+		return null;
+	}
+
 	return new Error(
 		errorMessage(CORE_VERSION, binding.EXPECTED_RSPACK_CORE_VERSION)
 	);
@@ -21,13 +29,15 @@ const errorMessage = (coreVersion: string, expectedCoreVersion: string) => {
 		return `Unmatched version @rspack/core@${coreVersion} and binding version.
 
 Help:
-	Looks like you are using a custom binding (via environment variable 'RSPACK_BINDING=${process.env.RSPACK_BINDING}'). The expected version of @rspack/core to the current binding is ${expectedCoreVersion}.
+	Looks like you are using a custom binding (via environment variable 'RSPACK_BINDING=${process.env.RSPACK_BINDING}').
+	The expected version of @rspack/core to the current binding is ${expectedCoreVersion}.
 `;
 	}
 
-	return `Unmatched version @rspack/core@${coreVersion} and @rspack/binding.
+	return `Unmatched version @rspack/core@${coreVersion} and @rspack/binding@${expectedCoreVersion}.
 
 Help:
 	Please ensure the version of @rspack/binding and @rspack/core is the same.
+	The expected version of @rspack/core to the current binding is ${expectedCoreVersion}.
 `;
 };
