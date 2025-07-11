@@ -259,9 +259,7 @@ program
 	.argument("[custom]", "custom version when bump is 'custom'")
 	.description("update crate version with cargo-workspaces")
 	.action(async (bump, custom) => {
-		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`;
-
-		// Validate bump type
+		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`; // Validate bump type
 		const validBumps = [
 			"major",
 			"minor",
@@ -289,7 +287,7 @@ program
 			"version",
 			"--exact", // Use exact version `=`
 			"--allow-branch",
-			"release-crates/*", // Specify which branches to allow from
+			"release*", // Specify which branches to allow from
 			"--no-git-push", // Do not push generated commit and tags to git remote
 			"--no-git-tag", // Do not tag versions in git, we will tag them in `crate-publish`
 			"--force",
@@ -364,7 +362,7 @@ program
 	.command("version")
 	.argument("<bump_version>", "bump version to (major|minor|patch|snapshot)")
 	.option("--pre <string>", "pre-release tag")
-	.description("bump version")
+	.description("bump version for npm and rust crates")
 	.action(version_handler);
 
 program
