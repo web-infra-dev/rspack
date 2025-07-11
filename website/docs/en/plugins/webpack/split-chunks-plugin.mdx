@@ -132,7 +132,7 @@ export default {
 When using [Module Federation](/guide/features/module-federation), if the application uses `exposes` to expose remote modules, `chunks: 'all'` cannot be used as it would break the remote module splitting.
 :::
 
-You can also provide a regular expression, which is a shorthand for `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)`.
+The `chunks` option can be set to a regular expression, which is a shorthand for `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -145,7 +145,7 @@ export default {
 };
 ```
 
-You can also provide a function for more fine-grained control. The function receives a `chunk` parameter, and returning `true` means the chunk participates in splitting (modules within it may be extracted into new chunks), while returning `false` means the chunk doesn't participate in splitting (remains as is).
+The `chunks` option can be set to a function for more fine-grained control. The function receives a `chunk` parameter, and returning `true` means the chunk participates in splitting (modules within it may be extracted into new chunks), while returning `false` means the chunk doesn't participate in splitting (remains as is).
 
 ```js title="rspack.config.mjs"
 export default {

@@ -130,7 +130,7 @@ export default {
 在使用 [模块联邦](/guide/features/module-federation) 时，如果应用使用了 `exposes` 来暴露出远程模块，则无法使用 `chunks: 'all'`，因为这会破坏远程模块的拆分。
 :::
 
-你还可以传递正则表达式，它是 `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)` 的缩写。
+`chunks` 选项可以设置为正则表达式，它是 `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)` 的缩写。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -143,7 +143,7 @@ export default {
 };
 ```
 
-你也可以提供一个函数来进行更细粒度的控制。该函数接收一个 `chunk` 参数，返回值为 `true` 表示该 chunk 参与拆分（其中的模块可能被提取到新的 chunk 中），返回值为 `false` 表示该 chunk 不参与拆分（保持原样）。
+`chunks` 选项可以设置为函数来进行更细粒度的控制。该函数接收一个 `chunk` 参数，返回值为 `true` 表示该 chunk 参与拆分（其中的模块可能被提取到新的 chunk 中），返回值为 `false` 表示该 chunk 不参与拆分（保持原样）。
 
 ```js title="rspack.config.mjs"
 export default {
