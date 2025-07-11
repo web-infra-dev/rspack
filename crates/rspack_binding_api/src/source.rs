@@ -331,7 +331,7 @@ pub struct SourceMap {
   pub source_root: Option<String>,
   pub sources_content: Option<Vec<Option<String>>>,
   pub names: Option<Vec<Option<String>>>,
-  pub mappings: String,
+  pub mappings: Option<String>,
   pub debug_id: Option<String>,
 }
 
@@ -363,7 +363,7 @@ impl From<&rspack_core::rspack_sources::SourceMap> for SourceMap {
           .map(|name| Some(name.to_string()))
           .collect::<Vec<_>>(),
       ),
-      mappings: value.mappings().to_string(),
+      mappings: Some(value.mappings().to_string()),
       debug_id: value.get_debug_id().map(|id| id.to_string()),
     }
   }
@@ -371,6 +371,7 @@ impl From<&rspack_core::rspack_sources::SourceMap> for SourceMap {
 
 impl From<SourceMap> for rspack_core::rspack_sources::SourceMap {
   fn from(value: SourceMap) -> Self {
+    let mappings = value.mappings.unwrap_or_default();
     let sources = value
       .sources
       .unwrap_or_default()
@@ -390,7 +391,7 @@ impl From<SourceMap> for rspack_core::rspack_sources::SourceMap {
       .map(|name| name.unwrap_or_default())
       .collect::<Vec<_>>();
     let mut map =
-      rspack_core::rspack_sources::SourceMap::new(value.mappings, sources, sources_content, names);
+      rspack_core::rspack_sources::SourceMap::new(mappings, sources, sources_content, names);
     map.set_source_root(value.source_root);
     map.set_debug_id(value.debug_id);
     map
