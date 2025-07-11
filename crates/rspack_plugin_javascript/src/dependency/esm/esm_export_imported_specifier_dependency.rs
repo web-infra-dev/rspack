@@ -1386,10 +1386,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     &self.request
   }
 
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
     Some(DependencyCondition::new_fn(
