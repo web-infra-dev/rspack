@@ -919,7 +919,7 @@ export interface JsLoaderContext {
   content: null | Buffer
   additionalData?: any
   __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
+  sourceMap?: SourceMap
   cacheable: boolean
   fileDependencies: Array<string>
   contextDependencies: Array<string>
@@ -2721,6 +2721,16 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
+}
+
+export interface SourceMap {
+  file?: string
+  sources?: Array<string | undefined | null>
+  sourceRoot?: string
+  sourcesContent?: Array<string | undefined | null>
+  names?: Array<string | undefined | null>
+  mappings?: string
+  debugId?: string
 }
 
 export interface SourceMapDevToolPluginOptions {
