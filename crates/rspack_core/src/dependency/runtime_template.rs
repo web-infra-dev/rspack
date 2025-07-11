@@ -429,8 +429,6 @@ pub fn import_statement(
   request: &str,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
-  // Debug: check if this function is called
-  dbg!("import_statement called for:", request);
   if compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
