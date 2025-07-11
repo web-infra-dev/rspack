@@ -44,7 +44,11 @@ module.exports = async function action({ github, context, limit }) {
 
 	const comment = compareBinarySize(headSize, baseSize, context, baseCommit);
 
-	await commentToPullRequest(github, context, comment);
+	try {
+		await commentToPullRequest(github, context, comment);
+	} catch (e) {
+		console.error("Failed to comment on pull request:", e);
+	}
 
 	const increasedSize = headSize - baseSize;
 	if (increasedSize > limit) {
