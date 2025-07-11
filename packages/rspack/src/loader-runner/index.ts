@@ -38,7 +38,13 @@ import {
 	isUseSourceMap
 } from "../config/adapterRuleUse";
 import { JavaScriptTracer } from "../trace";
-import { isNil, stringifyLoaderObject, toBuffer } from "../util";
+import {
+	isNil,
+	serializeObject,
+	stringifyLoaderObject,
+	toBuffer,
+	toObject
+} from "../util";
 import { createHash } from "../util/createHash";
 import {
 	absolutify,
@@ -211,6 +217,16 @@ export class LoaderObject {
 
 	static __to_binding(loader: LoaderObject): JsLoaderItem {
 		return loader.loaderItem;
+	}
+}
+
+class JsSourceMap {
+	static __from_binding(map?: Buffer) {
+		return isNil(map) ? undefined : toObject(map);
+	}
+
+	static __to_binding(map?: object) {
+		return serializeObject(map);
 	}
 }
 
@@ -1029,7 +1045,7 @@ export async function runLoaders(
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
 						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = sourceMap || undefined;
+						context.sourceMap = serializeObject(sourceMap);
 						context.additionalData = additionalData || undefined;
 						break;
 					}
@@ -1039,7 +1055,7 @@ export async function runLoaders(
 			}
 			case JsLoaderState.Normal: {
 				let content = context.content;
-				let sourceMap = context.sourceMap;
+				let sourceMap = JsSourceMap.__from_binding(context.sourceMap);
 				let additionalData = context.additionalData;
 
 				while (loaderContext.loaderIndex >= 0) {
@@ -1069,7 +1085,7 @@ export async function runLoaders(
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);
-				context.sourceMap = sourceMap || undefined;
+				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
 				context.additionalData = additionalData || undefined;
 				context.__internal__utf8Hint = typeof content === "string";
 
