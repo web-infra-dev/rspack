@@ -12,7 +12,7 @@ export const checkVersion = () => {
 	}
 
 	// In canary version, version bump is done after binding is built.
-	// And to export `EXPECTED_RSPACK_CORE_VERSION` in binding, it relys on the bumped version of @rspack/core.
+	// And to export `EXPECTED_RSPACK_CORE_VERSION` in binding, it relies on the bumped version of @rspack/core.
 	// So we can't check the version of @rspack/core and @rspack/binding in canary version.
 	// Here we ignore version check for canary version.
 	if (CORE_VERSION.includes("canary")) {
