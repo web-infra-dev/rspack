@@ -805,6 +805,7 @@ dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
+ "unicode-width 0.2.0",
  "windows-sys 0.59.0",
 ]
 
@@ -2339,6 +2340,7 @@ dependencies = [
  "console",
  "number_prefix",
  "portable-atomic",
+ "unicode-width 0.2.0",
  "web-time",
 ]
 
