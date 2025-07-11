@@ -12,7 +12,7 @@ version.workspace = true
 cow-utils        = { workspace = true }
 napi             = { workspace = true }
 regex-syntax     = { workspace = true }
-regress          = { workspace = true }
+regress          = { workspace = true, features = ["backend-pikevm", "std"] }
 rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }
 swc_core         = { workspace = true, features = ["ecma_ast"] }
