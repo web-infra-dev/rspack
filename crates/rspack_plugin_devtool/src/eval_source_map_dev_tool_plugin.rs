@@ -68,7 +68,8 @@ async fn eval_source_map_devtool_plugin_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks
     .render_module_content
     .tap(eval_source_map_devtool_plugin_render_module_content::new(
