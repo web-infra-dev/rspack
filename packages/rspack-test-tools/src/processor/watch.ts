@@ -25,6 +25,7 @@ export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
+	nativeWatcher?: boolean;
 }
 
 export class WatchProcessor<
@@ -250,7 +251,7 @@ export class WatchProcessor<
 
 	static overrideOptions<T extends ECompilerType>({
 		tempDir,
-		name
+		nativeWatcher
 	}: IWatchProcessorOptions<T>) {
 		return (
 			index: number,
@@ -275,6 +276,12 @@ export class WatchProcessor<
 			options.optimization ??= {};
 			options.experiments ??= {};
 			options.experiments.css ??= true;
+			if (nativeWatcher) {
+				(
+					options as TCompilerOptions<ECompilerType.Rspack>
+				).experiments!.nativeWatcher ??= true;
+			}
+
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture ??= {};
