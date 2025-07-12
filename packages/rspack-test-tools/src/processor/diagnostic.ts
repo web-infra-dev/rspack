@@ -45,6 +45,7 @@ export class DiagnosticProcessor<
 
 		const statsJson = stats.toJson({
 			all: false,
+			colors: false,
 			errors: true,
 			warnings: true
 		});
