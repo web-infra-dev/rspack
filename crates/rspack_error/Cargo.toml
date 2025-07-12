@@ -12,7 +12,7 @@ anyhow             = { workspace = true, features = ["backtrace"] }
 cow-utils          = { workspace = true }
 derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
-miette             = { workspace = true, features = ["fancy"] }
+miette             = { workspace = true, features = ["fancy", "syntect-highlighter"] }
 once_cell          = { workspace = true }
 owo-colors         = { workspace = true }
 rspack_cacheable   = { workspace = true }

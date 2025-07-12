@@ -7,6 +7,7 @@ mod diagnostic;
 mod error;
 mod ext;
 pub(crate) mod graphical;
+pub(crate) mod highlighters;
 pub(crate) mod miette_helpers;
 pub use catch_unwind::*;
 pub use diagnostic::*;
