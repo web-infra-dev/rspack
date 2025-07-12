@@ -58,10 +58,15 @@ export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
 				describe: "env passed to config function"
 			},
 			devtool: {
-				type: "boolean",
-				default: false,
-				describe: "devtool",
-				alias: "d"
+				type: "string",
+				describe:
+					"Specify a developer tool for debugging. Defaults to `cheap-module-source-map` in development and `source-map` in production.",
+				alias: "d",
+				coerce: (arg): string | boolean => {
+					if (arg === "true") return "source-map";
+					if (arg === "false" || arg.trim() === "") return false;
+					return arg;
+				}
 			}
 		})
 		.alias({ v: "version", h: "help" });
