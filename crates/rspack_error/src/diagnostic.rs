@@ -1,4 +1,9 @@
-use std::{borrow::Cow, fmt, ops::Deref, sync::Arc};
+use std::{
+  borrow::Cow,
+  fmt,
+  ops::Deref,
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
@@ -165,23 +170,29 @@ impl Diagnostic {
   }
 }
 
+static COLORED_GRAPHICAL_REPORT_HANDLER: LazyLock<GraphicalReportHandler> = LazyLock::new(|| {
+  GraphicalReportHandler::new()
+    .with_theme(GraphicalTheme::unicode())
+    .with_context_lines(2)
+    .with_width(usize::MAX)
+});
+
+static NO_COLOR_GRAPHICAL_REPORT_HANDLER: LazyLock<GraphicalReportHandler> = LazyLock::new(|| {
+  GraphicalReportHandler::new()
+    .with_theme(GraphicalTheme::unicode_nocolor())
+    .with_context_lines(2)
+    .with_width(usize::MAX)
+    .without_syntax_highlighting()
+});
+
 impl Diagnostic {
   pub fn render_report(&self, colored: bool) -> crate::Result<String> {
     let mut buf = String::new();
-    let theme = if colored {
-      GraphicalTheme::unicode()
-    } else {
-      GraphicalTheme::unicode_nocolor()
-    };
-    let h = GraphicalReportHandler::new()
-      .with_theme(theme)
-      .with_context_lines(2)
-      .with_width(usize::MAX);
 
-    let h = if !colored {
-      h.without_syntax_highlighting()
+    let h = if colored {
+      &COLORED_GRAPHICAL_REPORT_HANDLER
     } else {
-      h
+      &NO_COLOR_GRAPHICAL_REPORT_HANDLER
     };
 
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
