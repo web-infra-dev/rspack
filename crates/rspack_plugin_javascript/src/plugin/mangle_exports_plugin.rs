@@ -55,7 +55,6 @@ enum Manglable {
 #[derive(Debug)]
 struct ExportInfoCache {
   id: ExportInfo,
-  deterministic: bool,
   exports_info: Option<ExportsInfo>,
   can_mangle: Manglable,
 }
@@ -164,7 +163,6 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
 
               ExportInfoCache {
                 id: export_info_data.id(),
-                deterministic,
                 exports_info: nested_exports_info,
                 can_mangle,
               }
@@ -185,21 +183,36 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     }
   }
 
-  for identifier in module_id_list {
-    let (Some(mgm), Some(_)) = (
-      mg.module_graph_module_by_identifier(&identifier),
-      mg.module_by_identifier(&identifier),
-    ) else {
-      continue;
-    };
-    let exports_info = mgm.exports;
-    mangle_exports_info(
-      &mut mg,
-      self.deterministic,
-      exports_info,
-      &exports_info_cache,
-    );
+  let mut queue = module_id_list
+    .into_iter()
+    .filter_map(|mid| {
+      let (Some(mgm), Some(_)) = (
+        mg.module_graph_module_by_identifier(&mid),
+        mg.module_by_identifier(&mid),
+      ) else {
+        return None;
+      };
+      Some(mgm.exports)
+    })
+    .collect_vec();
+
+  while !queue.is_empty() {
+    let tasks = std::mem::take(&mut queue);
+    let batch = tasks
+      .into_par_iter()
+      .map(|exports_info| {
+        mangle_exports_info(&mg, self.deterministic, exports_info, &exports_info_cache)
+      })
+      .collect::<Vec<_>>();
+
+    for (changes, nested_exports) in batch {
+      for (export_info, name) in changes {
+        export_info.as_data_mut(&mut mg).set_used_name(name);
+      }
+      queue.extend(nested_exports);
+    }
   }
+
   Ok(())
 }
 
@@ -226,15 +239,17 @@ static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Function to mangle exports information.
 fn mangle_exports_info(
-  mg: &mut ModuleGraph,
+  mg: &ModuleGraph,
   deterministic: bool,
   exports_info: ExportsInfo,
   exports_info_cache: &FxHashMap<ExportsInfo, Vec<ExportInfoCache>>,
-) {
+) -> (Vec<(ExportInfo, Atom)>, Vec<ExportsInfo>) {
+  let mut changes = vec![];
+  let mut nested_exports = vec![];
   let mut used_names = FxHashSet::default();
   let mut mangleable_exports = Vec::new();
   let Some(export_list) = exports_info_cache.get(&exports_info) else {
-    return;
+    return (changes, nested_exports);
   };
 
   let mut mangleable_export_names = FxHashMap::default();
@@ -242,7 +257,7 @@ fn mangle_exports_info(
   for export_info in export_list {
     match &export_info.can_mangle {
       Manglable::CanNotMangle(name) => {
-        export_info.id.as_data_mut(mg).set_used_name(name.clone());
+        changes.push((export_info.id.clone(), name.clone()));
         used_names.insert(name.to_string());
       }
       Manglable::CanMangle(name) => {
@@ -253,12 +268,7 @@ fn mangle_exports_info(
     }
 
     if let Some(nested_exports_info) = export_info.exports_info {
-      mangle_exports_info(
-        mg,
-        export_info.deterministic,
-        nested_exports_info,
-        exports_info_cache,
-      );
+      nested_exports.push(nested_exports_info);
     }
   }
 
@@ -299,7 +309,7 @@ fn mangle_exports_info(
       0,
     );
     for (export_info, name) in export_info_used_name {
-      export_info.as_data_mut(mg).set_used_name(name.into());
+      changes.push((export_info, name.into()));
     }
   } else {
     let mut used_exports = Vec::new();
@@ -338,8 +348,9 @@ fn mangle_exports_info(
           }
           i += 1;
         }
-        export_info.as_data_mut(mg).set_used_name(name.into());
+        changes.push((export_info, name.into()));
       }
     }
   }
+  (changes, nested_exports)
 }
