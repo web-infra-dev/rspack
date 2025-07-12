@@ -177,6 +177,13 @@ impl Diagnostic {
       .with_theme(theme)
       .with_context_lines(2)
       .with_width(usize::MAX);
+
+    let h = if !colored {
+      h.without_syntax_highlighting()
+    } else {
+      h
+    };
+
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
   }
