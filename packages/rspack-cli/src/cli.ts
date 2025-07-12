@@ -172,7 +172,7 @@ export class RspackCLI {
 			if (typeof item.devtool === "undefined") {
 				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
-			// user parameters always has highest priority than default devtool and config devtool
+			// The CLI flag has a higher priority than the default devtool and devtool from the config.
 			if (typeof options.devtool !== "undefined") {
 				item.devtool = options.devtool as RspackOptions["devtool"];
 			}
