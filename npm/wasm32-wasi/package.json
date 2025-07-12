@@ -26,6 +26,6 @@
     "wasi-worker-browser.mjs"
   ],
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^0.2.11"
+    "@napi-rs/wasm-runtime": "^0.2.12"
   }
 }
