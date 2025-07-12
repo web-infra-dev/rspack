@@ -20,9 +20,13 @@ fn bundle_benchmark(c: &mut Criterion) {
     ("threejs", Arc::new(threejs::compiler)),
   ];
 
-  // Codspeed can only handle to up to 500 threads by default
-  let rt = runtime::Builder::new_multi_thread()
-    .max_blocking_threads(256)
+  rayon::ThreadPoolBuilder::new()
+    .use_current_thread()
+    .num_threads(1)
+    .build_global()
+    .unwrap();
+  let rt = runtime::Builder::new_current_thread()
+    .max_blocking_threads(1)
     .build()
     .unwrap();
 

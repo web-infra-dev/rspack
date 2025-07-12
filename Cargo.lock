@@ -4207,6 +4207,7 @@ name = "rspack_benchmark"
 version = "0.2.1-alpha.1"
 dependencies = [
  "criterion2",
+ "rayon",
  "rspack",
  "rspack_cacheable",
  "rspack_core",

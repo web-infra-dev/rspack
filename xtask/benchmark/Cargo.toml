@@ -13,6 +13,7 @@ default  = []
 
 [dependencies]
 criterion2   = { workspace = true }
+rayon        = { workspace = true }
 rspack       = { workspace = true, features = ["full"] }
 rspack_core  = { workspace = true }
 rspack_fs    = { workspace = true }
