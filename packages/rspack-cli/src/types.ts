@@ -30,7 +30,7 @@ export interface RspackCLIOptions {
 
 export interface RspackBuildCLIOptions extends RspackCLIOptions {
 	entry?: string[];
-	devtool?: boolean;
+	devtool?: string | boolean;
 	mode?: string;
 	watch?: boolean;
 	analyze?: boolean;
