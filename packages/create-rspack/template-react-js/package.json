@@ -15,7 +15,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "^1.4.3",
-    "@types/react": "^19.1.7",
+    "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "react-refresh": "^0.17.0"
   }
