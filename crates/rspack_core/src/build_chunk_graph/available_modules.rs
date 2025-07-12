@@ -37,7 +37,6 @@ impl AvailableModules {
 }
 
 #[instrument(skip_all)]
-#[allow(unused_variables)]
 pub fn remove_available_modules(
   compilation: &Compilation,
   ordinal_by_modules: &IdentifierMap<u64>,

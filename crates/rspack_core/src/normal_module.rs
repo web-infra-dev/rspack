@@ -2,10 +2,7 @@ use std::{
   borrow::Cow,
   hash::{BuildHasherDefault, Hash},
   ptr::NonNull,
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-  },
+  sync::Arc,
 };
 
 use dashmap::DashMap;
@@ -137,8 +134,6 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
 
-  #[allow(unused)]
-  debug_id: usize,
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
   #[cacheable(with=Skip)]
@@ -152,8 +147,6 @@ pub struct NormalModule {
   build_meta: BuildMeta,
   parsed: bool,
 }
-
-static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
   fn create_id<'request>(
@@ -206,7 +199,6 @@ impl NormalModule {
       resolve_options,
       loaders,
       source: None,
-      debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       cached_source_sizes: DashMap::default(),
       diagnostics: Default::default(),
