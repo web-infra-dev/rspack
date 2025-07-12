@@ -14,7 +14,9 @@
 /// https://github.com/zkat/miette/blob/907857058dc255caeae456e87146c629ce69cf5c/src/highlighters/mod.rs
 use std::{ops::Deref, sync::Arc};
 
-use miette::highlighters::{BlankHighlighter, Highlighter, SyntectHighlighter};
+#[cfg(not(target_family = "wasm"))]
+use miette::highlighters::SyntectHighlighter;
+use miette::highlighters::{BlankHighlighter, Highlighter};
 
 /// Arcified trait object for Highlighter. Used internally by [`crate::graphical::GraphicalReportHandler`]
 ///
@@ -28,22 +30,29 @@ impl MietteHighlighter {
     Self::from(BlankHighlighter)
   }
 
+  #[cfg(not(target_family = "wasm"))]
   pub(crate) fn syntect_truecolor() -> Self {
     Self::from(SyntectHighlighter::default())
   }
 }
 
 impl Default for MietteHighlighter {
+  #[cfg(not(target_family = "wasm"))]
   fn default() -> Self {
     use std::io::IsTerminal;
     match std::env::var("NO_COLOR") {
       _ if !std::io::stdout().is_terminal() || !std::io::stderr().is_terminal() => {
         //TODO: should use ANSI styling instead of 24-bit truecolor here
-        Self(Arc::new(SyntectHighlighter::default()))
+        MietteHighlighter::syntect_truecolor()
       }
       Ok(string) if string != "0" => MietteHighlighter::nocolor(),
-      _ => Self(Arc::new(SyntectHighlighter::default())),
+      _ => MietteHighlighter::syntect_truecolor(),
     }
+  }
+
+  #[cfg(target_family = "wasm")]
+  fn default() -> Self {
+    MietteHighlighter::nocolor()
   }
 }
 
