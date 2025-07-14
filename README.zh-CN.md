@@ -44,7 +44,7 @@ Rstack 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优�
 ## 快速上手
 
 <p>
-  <a href="https://stackblitz.com/fork/github/rspack-contrib/rspack-stackblitz-example">
+  <a target="_blank" href="https://stackblitz.com/fork/github/rspack-contrib/rspack-stackblitz-example">
     <img
       alt="Open in StackBlitz"
       src="https://developer.stackblitz.com/img/open_in_stackblitz.svg"
