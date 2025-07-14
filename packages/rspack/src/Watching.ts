@@ -13,11 +13,7 @@ import type { Callback } from "@rspack/lite-tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import type { WatchOptions } from "./config";
-import type {
-	FileSystemInfoEntry,
-	Watcher,
-	WatcherIncrementalDependencies
-} from "./util/fs";
+import type { FileSystemInfoEntry, Watcher } from "./util/fs";
 
 export class Watching {
 	watcher?: Watcher;
@@ -79,9 +75,18 @@ export class Watching {
 	}
 
 	watch(
-		files: WatcherIncrementalDependencies,
-		dirs: WatcherIncrementalDependencies,
-		missing: WatcherIncrementalDependencies
+		files: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		},
+		dirs: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		},
+		missing: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		}
 	) {
 		this.pausedWatcher = undefined;
 		// SAFETY: `watchFileSystem` is expected to be initialized.
@@ -366,23 +371,44 @@ export class Watching {
 		compilation.endTime = Date.now();
 		const cbs = this.callbacks;
 		this.callbacks = [];
-		const fileWatchDependencies: WatcherIncrementalDependencies = {
-			all: new Set([...compilation.fileDependencies]),
-			added: new Set(compilation.__internal__addedFileDependencies),
-			removed: new Set(compilation.__internal__removedFileDependencies)
+		const fileDependencies = new Set([
+			...compilation.fileDependencies
+		]) as unknown as Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
 		};
+		fileDependencies.added = new Set(
+			compilation.__internal__addedFileDependencies
+		);
+		fileDependencies.removed = new Set(
+			compilation.__internal__removedFileDependencies
+		);
 
-		const contextWatchDependencies: WatcherIncrementalDependencies = {
-			all: new Set([...compilation.contextDependencies]),
-			added: new Set(compilation.__internal__addedContextDependencies),
-			removed: new Set(compilation.__internal__removedContextDependencies)
+		const contextDependencies = new Set([
+			...compilation.contextDependencies
+		]) as unknown as Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
 		};
+		contextDependencies.added = new Set(
+			compilation.__internal__addedContextDependencies
+		);
+		contextDependencies.removed = new Set(
+			compilation.__internal__removedContextDependencies
+		);
 
-		const missingWatchDependencies: WatcherIncrementalDependencies = {
-			all: new Set([...compilation.missingDependencies]),
-			added: new Set(compilation.__internal__addedMissingDependencies),
-			removed: new Set(compilation.__internal__removedMissingDependencies)
+		const missingDependencies = new Set([
+			...compilation.missingDependencies
+		]) as unknown as Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
 		};
+		missingDependencies.added = new Set(
+			compilation.__internal__removedMissingDependencies
+		);
+		missingDependencies.removed = new Set(
+			compilation.__internal__removedMissingDependencies
+		);
 
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
@@ -391,9 +417,9 @@ export class Watching {
 			process.nextTick(() => {
 				if (!this.#closed) {
 					this.watch(
-						fileWatchDependencies,
-						contextWatchDependencies,
-						missingWatchDependencies
+						fileDependencies,
+						contextDependencies,
+						missingDependencies
 					);
 				}
 			});

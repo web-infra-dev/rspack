@@ -695,17 +695,20 @@ export interface FileSystemInfoEntry {
 	timestamp?: number;
 }
 
-export interface WatcherIncrementalDependencies {
-	all: Set<string>;
-	added: Set<string>;
-	removed: Set<string>;
-}
-
 export interface WatchFileSystem {
 	watch(
-		files: WatcherIncrementalDependencies,
-		directories: WatcherIncrementalDependencies,
-		missing: WatcherIncrementalDependencies,
+		files: Iterable<string> & {
+			added?: Iterable<String>;
+			removed?: Iterable<String>;
+		},
+		directories: Iterable<string> & {
+			added?: Iterable<String>;
+			removed?: Iterable<String>;
+		},
+		missing: Iterable<string> & {
+			added?: Iterable<String>;
+			removed?: Iterable<String>;
+		},
 		startTime: number,
 		options: WatchOptions,
 		callback: (

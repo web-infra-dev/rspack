@@ -16,7 +16,8 @@ export default {
 		{
 			name: "watchpack",
 			externals: {
-				"graceful-fs": "../graceful-fs/index.js"
+				"graceful-fs": "../graceful-fs/index.js",
+				"glob-to-regexp": "../glob-to-regexp/index.js"
 			},
 			afterBundle(task) {
 				const importStatement = "import fs from 'graceful-fs';";

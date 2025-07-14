@@ -53,6 +53,7 @@ const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
 /// `ExecEvent` represents control events for the watcher executor loop.
 /// - `Execute`: Indicates that an event (change or delete) has occurred and the handler should be triggered.
 /// - `Close`: Indicates that the event receiver has been closed and the executor should stop.
+#[derive(Debug)]
 enum ExecAggregateEvent {
   /// Trigger the execution of the event handler (e.g., after a file change or delete).
   Execute,
@@ -230,33 +231,36 @@ fn create_execute_aggregate_task(
   running: Arc<AtomicBool>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
-    let aggregate_rx = {
-      // release the lock on exec_aggregate_rx
-      // and wait for the next event
-      let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
-      match exec_aggregate_rx_guard.recv().await {
-        Some(event) => event,
-        None => return,
-      }
-    };
-
-    if let ExecAggregateEvent::Execute = aggregate_rx {
-      running.store(true, Ordering::Relaxed);
-      // Wait for the aggregate timeout before executing the handler
-      tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
-
-      // Get the files to process
-      let files = {
-        let mut files = files.lock().await;
-        if files.is_empty() {
-          return;
+    loop {
+      let aggregate_rx = {
+        // release the lock on exec_aggregate_rx
+        // and wait for the next event
+        let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
+        match exec_aggregate_rx_guard.recv().await {
+          Some(event) => event,
+          None => return,
         }
-        std::mem::take(&mut *files)
       };
 
-      // Call the event handler with the changed and deleted files
-      event_handler.on_event_handle(files.changed, files.deleted);
-      running.store(false, Ordering::Relaxed);
+      if let ExecAggregateEvent::Execute = aggregate_rx {
+        running.store(true, Ordering::Relaxed);
+        // Wait for the aggregate timeout before executing the handler
+        tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
+
+        // Get the files to process
+        let files = {
+          let mut files = files.lock().await;
+          if files.is_empty() {
+            running.store(false, Ordering::Relaxed);
+            return;
+          }
+          std::mem::take(&mut *files)
+        };
+
+        // Call the event handler with the changed and deleted files
+        event_handler.on_event_handle(files.changed, files.deleted);
+        running.store(false, Ordering::Relaxed);
+      }
     }
   };
 

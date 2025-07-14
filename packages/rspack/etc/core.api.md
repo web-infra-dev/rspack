@@ -8930,16 +8930,6 @@ class Watcher_2 extends EventEmitter {
 }
 
 // @public (undocumented)
-interface WatcherIncrementalDependencies {
-    // (undocumented)
-    added: Set<string>;
-    // (undocumented)
-    all: Set<string>;
-    // (undocumented)
-    removed: Set<string>;
-}
-
-// @public (undocumented)
 interface WatcherInfo {
     // (undocumented)
     changes: Set<string>;
@@ -8964,7 +8954,16 @@ type WatchFiles = {
 // @public (undocumented)
 interface WatchFileSystem {
     // (undocumented)
-    watch(files: WatcherIncrementalDependencies, directories: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
+    watch(files: Iterable<string> & {
+        added?: Iterable<String>;
+        removed?: Iterable<String>;
+    }, directories: Iterable<string> & {
+        added?: Iterable<String>;
+        removed?: Iterable<String>;
+    }, missing: Iterable<string> & {
+        added?: Iterable<String>;
+        removed?: Iterable<String>;
+    }, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
 }
 
 // @public (undocumented)
@@ -9007,7 +9006,16 @@ export class Watching {
     // (undocumented)
     suspended: boolean;
     // (undocumented)
-    watch(files: WatcherIncrementalDependencies, dirs: WatcherIncrementalDependencies, missing: WatcherIncrementalDependencies): void;
+    watch(files: Iterable<string> & {
+        added?: Iterable<string>;
+        removed?: Iterable<string>;
+    }, dirs: Iterable<string> & {
+        added?: Iterable<string>;
+        removed?: Iterable<string>;
+    }, missing: Iterable<string> & {
+        added?: Iterable<string>;
+        removed?: Iterable<string>;
+    }): void;
     // (undocumented)
     watcher?: Watcher;
     // (undocumented)

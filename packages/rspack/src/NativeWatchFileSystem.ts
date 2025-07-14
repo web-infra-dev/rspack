@@ -1,11 +1,6 @@
 import * as binding from "@rspack/binding";
 import type Watchpack from "watchpack";
-import type {
-	FileSystemInfoEntry,
-	WatchFileSystem,
-	Watcher,
-	WatcherIncrementalDependencies
-} from "./util/fs";
+import type { FileSystemInfoEntry, WatchFileSystem, Watcher } from "./util/fs";
 
 /**
  * The following code is modified based on
@@ -58,9 +53,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
 
 	watch(
-		files: WatcherIncrementalDependencies,
-		directories: WatcherIncrementalDependencies,
-		missing: WatcherIncrementalDependencies,
+		files: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		},
+		directories: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		},
+		missing: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		},
 		_startTime: number,
 		options: Watchpack.WatchOptions,
 		callback: (
@@ -102,9 +106,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		const nativeWatcher = this.getNativeWatcher(options);
 
 		nativeWatcher.watch(
-			[Array.from(files.added), Array.from(files.removed)],
-			[Array.from(directories.added), Array.from(directories.removed)],
-			[Array.from(missing.added), Array.from(missing.removed)],
+			[Array.from(files.added!), Array.from(files.removed!)],
+			[Array.from(directories.added!), Array.from(directories.removed!)],
+			[Array.from(missing.added!), Array.from(missing.removed!)],
 			(err: Error | null, result) => {
 				const { changedFiles, removedFiles } = result;
 				// TODO: add fileTimeInfoEntries and contextTimeInfoEntries
