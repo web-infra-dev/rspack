@@ -13,15 +13,6 @@
   <a href="https://codspeed.io/web-infra-dev/rspack"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fcodspeed.io%2Fbadge.json&style=flat-square&colorA=564341&colorB=EDED91" alt="codspeed" /></a>
 </p>
 
-<p>
-  <a href="https://stackblitz.com/fork/github/rspack-contrib/rspack-stackblitz-example">
-    <img
-      alt="Open in StackBlitz"
-      src="https://developer.stackblitz.com/img/open_in_stackblitz_small.svg"
-    />
-  </a>
-</p>
-
 English | [简体中文](./README.zh-CN.md)
 
 Rspack is a high performance JavaScript bundler written in Rust. It offers strong compatibility with the webpack ecosystem, allowing for seamless replacement of webpack, and provides lightning fast build speeds.
@@ -51,6 +42,15 @@ Rstack is a unified JavaScript toolchain built around Rspack, with high performa
 | [Rstest](https://github.com/web-infra-dev/rstest)     | Testing framework        |
 
 ## Getting started
+
+<p>
+  <a href="https://stackblitz.com/fork/github/rspack-contrib/rspack-stackblitz-example">
+    <img
+      alt="Open in StackBlitz"
+      src="https://developer.stackblitz.com/img/open_in_stackblitz.svg"
+    />
+  </a>
+</p>
 
 See [Quick start](https://rspack.rs/guide/start/quick-start).
 
