@@ -147,4 +147,8 @@ export async function version_handler(version, options) {
 
 		console.log(`Update ${newPackageJson.name}: ${newPackageJson.version}`);
 	}
+
+	await $`cargo codegen`;
+
+	console.log("Cargo codegen done");
 }
