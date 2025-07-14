@@ -552,7 +552,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .as_data_mut(&mut module_graph)
         .set_used_for_side_effects_only(runtime.as_ref());
       if changed_flag {
-        batch.push((module_id, runtime));
+        queue.enqueue((module_id, runtime));
       }
     }
   }
