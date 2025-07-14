@@ -1,6 +1,5 @@
 use std::{hash::Hash, sync::Arc};
 
-use napi::Unknown;
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource, RawSource,
@@ -355,60 +354,55 @@ impl FromNapiValue for SourceMap {
     let file: Option<String> = object.get("file").ok().unwrap_or_default();
 
     let sources = object
-      .get::<Vec<Unknown>>("sources")
+      .get::<Array>("sources")
       .ok()
       .flatten()
       .map(|raw_sources| {
-        raw_sources
-          .into_iter()
-          .map(|raw_source| {
-            raw_source
-              .coerce_to_string()
+        (0..raw_sources.len())
+          .map(|i| {
+            raw_sources
+              .get::<String>(i)
               .ok()
-              .and_then(|s| s.into_utf8().ok())
-              .and_then(|s| s.into_owned().ok())
+              .flatten()
               .unwrap_or_default()
           })
-          .collect()
+          .collect::<Vec<_>>()
       })
       .unwrap_or_default();
 
     let source_root: Option<String> = object.get("sourceRoot").ok().unwrap_or_default();
 
-    let sources_content = object
-      .get::<Vec<Unknown>>("sourcesContent")
-      .ok()
-      .flatten()
-      .map(|raw_sources_content| {
-        raw_sources_content
-          .into_iter()
-          .map(|raw_source_content| {
-            raw_source_content
-              .coerce_to_string()
-              .ok()
-              .and_then(|s| s.into_utf8().ok())
-              .and_then(|s| s.into_owned().ok())
-              .unwrap_or_default()
-          })
-          .collect()
-      });
+    let sources_content =
+      object
+        .get::<Array>("sourcesContent")
+        .ok()
+        .flatten()
+        .map(|raw_sources_content| {
+          (0..raw_sources_content.len())
+            .map(|i| {
+              raw_sources_content
+                .get::<String>(i)
+                .ok()
+                .flatten()
+                .unwrap_or_default()
+            })
+            .collect::<Vec<_>>()
+        });
 
     let names = object
-      .get::<Vec<Unknown>>("names")
+      .get::<Array>("names")
       .ok()
       .flatten()
       .map(|raw_names| {
-        raw_names
-          .into_iter()
-          .map(|raw_name| {
-            raw_name
-              .coerce_to_string()
+        (0..raw_names.len())
+          .map(|i| {
+            raw_names
+              .get::<String>(i)
               .ok()
-              .and_then(|s| s.into_utf8().ok())
-              .and_then(|s| s.into_owned().ok())
+              .flatten()
               .unwrap_or_default()
           })
-          .collect()
+          .collect::<Vec<_>>()
       })
       .unwrap_or_default();
 
