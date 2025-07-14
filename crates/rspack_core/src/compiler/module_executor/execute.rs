@@ -130,6 +130,10 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let mut has_error = false;
 
     while let Some(m) = queue.pop_front() {
+      // to avoid duplicate calculate in https://github.com/web-infra-dev/rspack/issues/10987
+      if modules.contains(&m) {
+        continue;
+      }
       modules.insert(m);
       let module = mg.module_by_identifier(&m).expect("should have module");
       let build_info = module.build_info();
@@ -168,7 +172,6 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           }
         }
       }
-
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
           let dep = mg.dependency_by_id(dep_id).expect("should dep exist");
