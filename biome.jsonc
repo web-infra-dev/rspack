@@ -16,6 +16,7 @@
 			"packages/**/etc/**/*",
 			"crates/**/*",
 			"tests/**/*",
+			"examples/**/*",
 			"packages/rspack-test-tools/template/**/*",
 			"packages/rspack-test-tools/tests/**/*",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
@@ -60,6 +61,7 @@
 		"ignore": [
 			"tests/**/*",
 			"crates/**/*",
+			"examples/**/*",
 			"packages/rspack-test-tools/template",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
 			"packages/rspack/module.d.ts",
