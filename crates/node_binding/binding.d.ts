@@ -2724,12 +2724,13 @@ export interface RegisterJsTaps {
 }
 
 export interface SourceMap {
+  version: number
   file?: string
-  sources?: Array<string | undefined | null>
   sourceRoot?: string
-  sourcesContent?: Array<string | undefined | null>
-  names?: Array<string | undefined | null>
-  mappings?: string
+  sources: Array<string>
+  sourcesContent?: Array<string>
+  names: Array<string>
+  mappings: string
   debugId?: string
 }
 

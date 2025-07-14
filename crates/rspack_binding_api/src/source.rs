@@ -1,5 +1,6 @@
 use std::{hash::Hash, sync::Arc};
 
+use napi::Unknown;
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource, RawSource,
@@ -324,46 +325,127 @@ fn to_webpack_map(source: &dyn Source) -> Result<Option<String>> {
   map.map(|m| m.to_json()).transpose().to_napi_result()
 }
 
-#[napi(object)]
+// https://github.com/tc39/ecma426
+#[napi(object, object_from_js = false)]
 pub struct SourceMap {
+  // File version (always the first entry in the object) and must be a positive integer.
+  pub version: u8,
+  // An optional name of the generated code that this source map is associated with.
   pub file: Option<String>,
-  pub sources: Option<Vec<Option<String>>>,
+  // An optional source root, useful for relocating source files on a server or removing repeated values in the “sources” entry.
+  // This value is prepended to the individual entries in the “source” field.
   pub source_root: Option<String>,
-  pub sources_content: Option<Vec<Option<String>>>,
-  pub names: Option<Vec<Option<String>>>,
-  pub mappings: Option<String>,
+  // A list of original sources used by the “mappings” entry.
+  pub sources: Vec<String>,
+  // An optional list of source content, useful when the “source” can’t be hosted.
+  // “null” may be used if some original sources should be retrieved by name.
+  pub sources_content: Option<Vec<String>>,
+  // A list of symbol names used by the “mappings” entry.
+  pub names: Vec<String>,
+  // A string with the encoded mapping data.
+  pub mappings: String,
   pub debug_id: Option<String>,
+}
+
+impl FromNapiValue for SourceMap {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let object: Object = FromNapiValue::from_napi_value(env, napi_val)?;
+
+    let version: u8 = object.get("version").ok().flatten().unwrap_or(3);
+    let file: Option<String> = object.get("file").ok().unwrap_or_default();
+
+    let sources = object
+      .get::<Vec<Unknown>>("sources")
+      .ok()
+      .flatten()
+      .map(|raw_sources| {
+        raw_sources
+          .into_iter()
+          .map(|raw_source| {
+            raw_source
+              .coerce_to_string()
+              .ok()
+              .and_then(|s| s.into_utf8().ok())
+              .and_then(|s| s.into_owned().ok())
+              .unwrap_or_default()
+          })
+          .collect()
+      })
+      .unwrap_or_default();
+
+    let source_root: Option<String> = object.get("sourceRoot").ok().unwrap_or_default();
+
+    let sources_content = object
+      .get::<Vec<Unknown>>("sourcesContent")
+      .ok()
+      .flatten()
+      .map(|raw_sources_content| {
+        raw_sources_content
+          .into_iter()
+          .map(|raw_source_content| {
+            raw_source_content
+              .coerce_to_string()
+              .ok()
+              .and_then(|s| s.into_utf8().ok())
+              .and_then(|s| s.into_owned().ok())
+              .unwrap_or_default()
+          })
+          .collect()
+      });
+
+    let names = object
+      .get::<Vec<Unknown>>("names")
+      .ok()
+      .flatten()
+      .map(|raw_names| {
+        raw_names
+          .into_iter()
+          .map(|raw_name| {
+            raw_name
+              .coerce_to_string()
+              .ok()
+              .and_then(|s| s.into_utf8().ok())
+              .and_then(|s| s.into_owned().ok())
+              .unwrap_or_default()
+          })
+          .collect()
+      })
+      .unwrap_or_default();
+
+    let mappings: String = object.get("mappings").ok().flatten().unwrap_or_default();
+    let debug_id: Option<String> = object.get("debugId").ok().unwrap_or_default();
+
+    Ok(Self {
+      version,
+      file,
+      sources,
+      source_root,
+      sources_content,
+      names,
+      mappings,
+      debug_id,
+    })
+  }
 }
 
 impl From<&rspack_core::rspack_sources::SourceMap> for SourceMap {
   fn from(value: &rspack_core::rspack_sources::SourceMap) -> Self {
+    let sources_content = value.sources_content().to_vec();
+
     SourceMap {
+      version: 3,
       file: value.file().map(|file| file.to_string()),
-      sources: Some(
-        value
-          .sources()
-          .iter()
-          .map(|source| Some(source.to_string()))
-          .collect::<Vec<_>>(),
-      ),
+      sources: value.sources().to_vec(),
       source_root: value
         .source_root()
         .map(|source_root| source_root.to_string()),
-      sources_content: Some(
-        value
-          .sources_content()
-          .iter()
-          .map(|content| Some(content.to_string()))
-          .collect::<Vec<_>>(),
-      ),
-      names: Some(
-        value
-          .names()
-          .iter()
-          .map(|name| Some(name.to_string()))
-          .collect::<Vec<_>>(),
-      ),
-      mappings: Some(value.mappings().to_string()),
+      sources_content: if sources_content.is_empty() {
+        None
+      } else {
+        Some(sources_content)
+      },
+      names: value.names().to_vec(),
+      mappings: value.mappings().to_string(),
       debug_id: value.get_debug_id().map(|id| id.to_string()),
     }
   }
@@ -371,27 +453,12 @@ impl From<&rspack_core::rspack_sources::SourceMap> for SourceMap {
 
 impl From<SourceMap> for rspack_core::rspack_sources::SourceMap {
   fn from(value: SourceMap) -> Self {
-    let mappings = value.mappings.unwrap_or_default();
-    let sources = value
-      .sources
-      .unwrap_or_default()
-      .into_iter()
-      .map(|source| source.unwrap_or_default())
-      .collect::<Vec<_>>();
-    let sources_content = value
-      .sources_content
-      .unwrap_or_default()
-      .into_iter()
-      .map(|source| source.unwrap_or_default())
-      .collect::<Vec<_>>();
-    let names = value
-      .names
-      .unwrap_or_default()
-      .into_iter()
-      .map(|name| name.unwrap_or_default())
-      .collect::<Vec<_>>();
-    let mut map =
-      rspack_core::rspack_sources::SourceMap::new(mappings, sources, sources_content, names);
+    let mut map = rspack_core::rspack_sources::SourceMap::new(
+      value.mappings,
+      value.sources,
+      value.sources_content.unwrap_or_default(),
+      value.names,
+    );
     map.set_source_root(value.source_root);
     map.set_debug_id(value.debug_id);
     map
