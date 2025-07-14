@@ -321,7 +321,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         used_exports,
         runtime,
         force_side_effects,
-        batch,
+        queue,
       );
       return;
     }
@@ -445,7 +445,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     used_exports: Vec<ExtendedReferencedExport>,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
-    batch: &mut Vec<(Identifier, Option<RuntimeSpec>)>,
+    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
     let mut module_graph = self.compilation.get_module_graph_mut();
     let mgm = module_graph
@@ -469,7 +469,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           // Namespace usage - mark all exports as used in unknown way
           let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
           if flag {
-            batch.push((module_id, runtime.clone()));
+            queue.enqueue((module_id, runtime.clone()));
           }
         } else {
           // Specific export usage - process each export in the path
@@ -513,7 +513,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                       .cloned()
                   };
                   if let Some(current_module) = current_module {
-                    batch.push((current_module, runtime.clone()));
+                    queue.enqueue((current_module, runtime.clone()));
                   }
                 }
                 current_exports_info = nested_info;
@@ -539,7 +539,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                   .cloned()
               };
               if let Some(current_module) = current_module {
-                batch.push((current_module, runtime.clone()));
+                queue.enqueue((current_module, runtime.clone()));
               }
             }
             break;
