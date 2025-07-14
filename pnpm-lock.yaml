@@ -312,9 +312,6 @@ importers:
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.17
-      glob-to-regexp:
-        specifier: ^0.4.1
-        version: 0.4.1
     devDependencies:
       '@ast-grep/napi':
         specifier: ^0.37.0
@@ -343,6 +340,9 @@ importers:
       enhanced-resolve:
         specifier: 5.18.2
         version: 5.18.2
+      glob-to-regexp:
+        specifier: ^0.4.1
+        version: 0.4.1
       graceful-fs:
         specifier: ^4.2.11
         version: 4.2.11(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)

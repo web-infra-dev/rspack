@@ -1,5 +1,4 @@
 import * as binding from "@rspack/binding";
-import globToRegExp from "glob-to-regexp";
 import type Watchpack from "watchpack";
 import type {
 	FileSystemInfoEntry,
@@ -21,6 +20,7 @@ const stringToRegexp = (ignored: string) => {
 	if (ignored.length === 0) {
 		return;
 	}
+	const globToRegExp: typeof import("glob-to-regexp") = require("glob-to-regexp");
 	const { source } = globToRegExp(ignored, { globstar: true, extended: true });
 	return `${source.slice(0, -1)}(?:$|\\/)`;
 };

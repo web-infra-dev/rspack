@@ -8,6 +8,7 @@ export default {
 		"@swc/types",
 		"graceful-fs",
 		"browserslist-load-config",
+		"glob-to-regexp",
 		{
 			name: "webpack-sources",
 			copyDts: true
