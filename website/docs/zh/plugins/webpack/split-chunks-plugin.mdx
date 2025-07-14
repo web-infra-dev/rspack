@@ -5,13 +5,17 @@ import { ApiMeta } from '../../../../components/ApiMeta';
 
 # SplitChunksPlugin
 
-## 默认值
+SplitChunksPlugin 是一个内置插件，用于将代码拆分成多个 [chunk](/misc/glossary#chunk)，以优化应用的加载性能，实现更好的缓存策略和并行加载效果。
 
-开箱即用的 `SplitChunksPlugin` 对于大部分用户来说非常友好。
+SplitChunksPlugin 可以通过 [optimization.splitChunks](/config/optimization#optimizationsplitchunks) 选项进行配置，通常你不需要手动注册该插件。
+
+## 默认行为
+
+Rspack 内置了开箱即用的 `SplitChunksPlugin` 配置，适用于大部分场景。
 
 默认情况下，它只会影响到按需加载的 chunk，因为初始 chunk 会影响到项目的 HTML 文件中的脚本标签。
 
-rspack 将根据以下条件自动拆分 chunk：
+Rspack 将根据以下条件自动拆分 chunk：
 
 - 新的 chunk 可以被共享，或者模块来自于 `node_modules` 文件夹
 - 新的 chunk 体积大于 20kb（在进行 min+gz 之前的体积）
@@ -20,7 +24,7 @@ rspack 将根据以下条件自动拆分 chunk：
 
 ## 配置
 
-rspack 为希望对该功能进行更多控制的开发者提供了一组选项。
+Rspack 为希望对该功能进行更多控制的开发者提供了一组选项。
 
 :::warning
 Rspack 的默认配置符合 Web 性能最佳实践，但是项目的最佳策略可能有所不同。如果要更改配置，则应评估所做更改的影响，以确保有真正的收益。
@@ -90,22 +94,91 @@ export default {
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.chunks
 
-- **类型：** `string 'initial' | 'all' | 'async'`
+- **类型：**
+
+```ts
+type OptimizationSplitChunksChunks =
+  | 'initial'
+  | 'async'
+  | 'all'
+  | RegExp
+  | ((chunk: Chunk) => boolean);
+```
+
 - **默认值：** `'async'`
 
-这表明将选择哪些 chunk 进行优化。当提供一个字符串，有效值为 `all` ，`async` 和 `initial`。设置为 `all` 可能会更强大，因为这意味着 chunk 可以在异步和非异步 chunk 之间共享。
+此选项用于控制哪些 chunk 参与代码拆分。当传入字符串时，可选值包括 `all`、`async` 和 `initial`。
 
-或者，也可以提供一个函数来进行更多控制。返回值将显示是否包含该 Chunk。
+- `all`：拆分所有类型的 chunks，包括 [initial chunks](/misc/glossary#initial-chunk) 和 [async chunks](/misc/glossary#async-chunk)。
+- `initial`：仅拆分 initial chunks。
+- `async`：仅拆分 async chunks。
 
-还可以传递正则表达式，它是 `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)` 的缩写。
+通常来说，设置为 `all` 会有助于减少被重复打包的模块，因为这意味着 chunks 可以被 initial chunks 和 async chunks 共享。
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     splitChunks: {
       // include all types of chunks
       chunks: 'all',
+    },
+  },
+};
+```
+
+:::tip
+在使用 [模块联邦](/guide/features/module-federation) 时，如果应用使用了 `exposes` 来暴露出远程模块，则无法使用 `chunks: 'all'`，因为这会破坏远程模块的拆分。
+:::
+
+`chunks` 选项可以设置为正则表达式，它是 `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)` 的缩写。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      // 等价于 `chunks: (chunk) => typeof chunk.name === "string" && /foo/.test(chunk.name)`
+      chunks: /foo/,
+    },
+  },
+};
+```
+
+`chunks` 选项可以设置为函数来进行更细粒度的控制。该函数接收一个 `chunk` 参数，返回值为 `true` 表示该 chunk 参与拆分（其中的模块可能被提取到新的 chunk 中），返回值为 `false` 表示该 chunk 不参与拆分（保持原样）。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks(chunk) {
+        // exclude `foo` chunk
+        return chunk.name !== 'foo';
+      },
+    },
+  },
+};
+```
+
+:::warning
+使用函数形式的 `chunks` 会显著降低构建性能，因为该函数需要对每个模块进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
+:::
+
+你可以为每个 cacheGroup 单独配置 `chunks`，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        groupA: {
+          chunks: 'all',
+        },
+        groupB: {
+          chunks: 'initial',
+        },
+        groupC: {
+          chunks: 'async',
+        },
+      },
     },
   },
 };
@@ -399,7 +472,7 @@ export default {
 控制此缓存组选择的模块。省略它会选择所有模块。它可以匹配绝对模块资源路径或 chunk 名称。匹配 chunk 名称时，将选择 chunk 中的所有模块。
 
 :::warning
-使用函数形式的 `test` 会显著降低构建性能，因为该函数需要对每个 module 进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
+使用函数形式的 `test` 会显著降低构建性能，因为该函数需要对每个模块进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
 :::
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.enforce

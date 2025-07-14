@@ -4,7 +4,7 @@ mod drive;
 
 use std::{
   hash::{BuildHasherDefault, Hasher},
-  sync::LazyLock,
+  sync::{Arc, LazyLock},
 };
 
 use aho_corasick::{AhoCorasick, MatchKind};
@@ -23,35 +23,34 @@ use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use tokio::sync::RwLock;
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
 pub static QUOTE_META: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<RealContentHashPluginHooks>>> =
-  LazyLock::new(Default::default);
+static COMPILATION_HOOKS_MAP: LazyLock<
+  FxDashMap<CompilationId, Arc<RwLock<RealContentHashPluginHooks>>>,
+> = LazyLock::new(Default::default);
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct RealContentHashPlugin;
 
 impl RealContentHashPlugin {
-  pub fn get_compilation_hooks(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<RealContentHashPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<RealContentHashPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
     COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
+      .clone()
   }
 
-  pub fn get_compilation_hooks_mut(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<RealContentHashPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<RealContentHashPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
 
@@ -208,6 +207,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .collect::<Vec<_>>();
               asset_contents.dedup();
               let updated_hash = hooks
+                .read()
+                .await
                 .update_hash
                 .call(compilation, &asset_contents, &old_hash)
                 .await?;

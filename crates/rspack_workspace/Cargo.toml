@@ -1,0 +1,16 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+description             = "Rspack workspace utilities"
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_workspace"
+repository.workspace    = true
+version.workspace       = true
+
+[dependencies]
+
+[lints]
+workspace = true

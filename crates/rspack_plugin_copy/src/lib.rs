@@ -2,7 +2,6 @@
 use std::{
   borrow::Cow,
   fmt::Display,
-  fs,
   hash::Hash,
   ops::DerefMut,
   path::{Path, PathBuf, MAIN_SEPARATOR},
@@ -19,7 +18,7 @@ use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, Logger, PathData, Plugin,
 };
-use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
@@ -269,10 +268,7 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{absolute_filename}'..."));
     // TODO inputFileSystem
 
-    #[cfg(not(target_family = "wasm"))]
-    let data = tokio::fs::read(absolute_filename.clone()).await;
-    #[cfg(target_family = "wasm")]
-    let data = std::fs::read(absolute_filename.clone());
+    let data = compilation.input_filesystem.read(&absolute_filename).await;
 
     let source_vec = match data {
       Ok(data) => {
@@ -281,7 +277,7 @@ impl CopyRspackPlugin {
         data
       }
       Err(e) => {
-        let e: Error = DiagnosticError::from(e.boxed()).into();
+        let e: Error = e.into();
         diagnostics
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
@@ -385,11 +381,11 @@ impl CopyRspackPlugin {
 
     logger.debug(format!("getting stats for '{abs_from}'..."));
 
-    let from_type = if let Ok(meta) = fs::metadata(&abs_from) {
-      if meta.is_dir() {
+    let from_type = if let Ok(meta) = compilation.input_filesystem.metadata(&abs_from).await {
+      if meta.is_directory {
         logger.debug(format!("determined '{abs_from}' is a directory"));
         FromType::Dir
-      } else if meta.is_file() {
+      } else if meta.is_file {
         logger.debug(format!("determined '{abs_from}' is a file"));
         FromType::File
       } else {
@@ -670,13 +666,16 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for (pattern_index, source_path, dest_path) in permission_copies.iter() {
     if let Some(pattern) = self.patterns.get(*pattern_index) {
       if pattern.copy_permissions.unwrap_or(false) {
-        if let Ok(metadata) = fs::metadata(source_path) {
-          let permissions = metadata.permissions();
+        if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
           // Make sure the output directory exists
           if let Some(parent) = dest_path.parent() {
-            fs::create_dir_all(parent).unwrap_or_else(|e| {
-              logger.warn(format!("Failed to create directory {parent:?}: {e}"));
-            });
+            compilation
+              .output_filesystem
+              .create_dir_all(parent)
+              .await
+              .unwrap_or_else(|e| {
+                logger.warn(format!("Failed to create directory {parent:?}: {e}"));
+              });
           }
 
           // Make sure the file exists before trying to set permissions
@@ -687,7 +686,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             continue;
           }
 
-          if let Err(e) = fs::set_permissions(dest_path, permissions) {
+          if let Err(e) = compilation
+            .output_filesystem
+            .set_permissions(dest_path, permissions)
+            .await
+          {
             logger.warn(format!(
               "Failed to copy permissions from {source_path:?} to {dest_path:?}: {e}"
             ));

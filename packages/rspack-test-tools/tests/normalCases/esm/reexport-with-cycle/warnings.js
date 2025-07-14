@@ -1,0 +1,1 @@
+module.exports = []; // should not have any warnings

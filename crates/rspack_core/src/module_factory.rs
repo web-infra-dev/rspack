@@ -21,6 +21,7 @@ pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Arc<Resolve>>,
   #[cacheable(with=As<FromContext>)]
   pub options: Arc<CompilerOptions>,
+  pub request: String,
   pub context: Context,
   pub dependencies: Vec<BoxDependency>,
   pub issuer: Option<Box<str>>,
@@ -36,17 +37,6 @@ pub struct ModuleFactoryCreateData {
 }
 
 impl ModuleFactoryCreateData {
-  pub fn request(&self) -> Option<&str> {
-    self.dependencies[0]
-      .as_module_dependency()
-      .map(|d| d.request())
-      .or_else(|| {
-        self.dependencies[0]
-          .as_context_dependency()
-          .map(|d| d.request())
-      })
-  }
-
   pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {
     self.file_dependencies.insert(file.into());
   }

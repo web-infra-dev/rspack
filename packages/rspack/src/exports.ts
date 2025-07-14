@@ -85,7 +85,7 @@ export const config: Config = {
 
 export type * from "./config";
 
-import { ValidationError } from "./util/validate";
+import { ValidationError } from "./schema/validate";
 
 export { ValidationError };
 

@@ -18,8 +18,10 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks
+    .write()
+    .await
     .render_module_content
     .tap(render_module_content::new(self));
   Ok(())

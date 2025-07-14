@@ -8,8 +8,9 @@ use std::{
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
-  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  file_metadata::FilePermissions, Error, FileMetadata, IntermediateFileSystem,
+  IntermediateFileSystemExtras, IoResultToFsResultExt, ReadStream, ReadableFileSystem, Result,
+  WritableFileSystem, WriteStream,
 };
 
 fn current_time() -> u64 {
@@ -228,6 +229,10 @@ impl WritableFileSystem for MemoryFileSystem {
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
     ReadableFileSystem::metadata(self, file).await
   }
+
+  async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()> {
+    Ok(())
+  }
 }
 
 #[async_trait::async_trait]
@@ -277,6 +282,10 @@ impl ReadableFileSystem for MemoryFileSystem {
 
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     self._read_dir(dir)
+  }
+
+  async fn permissions(&self, _path: &Utf8Path) -> Result<Option<FilePermissions>> {
+    Ok(None)
   }
 }
 

@@ -116,6 +116,11 @@ export interface OutputFileSystem {
 		arg0: string,
 		arg1: (arg0?: null | NodeJS.ErrnoException, arg1?: string | Buffer) => void
 	) => void;
+	chmod: (
+		arg0: string,
+		arg1: number,
+		arg2: (arg0?: NodeJS.ErrnoException | null) => void
+	) => void;
 	join?: (arg0: string, arg1: string) => string;
 	relative?: (arg0: string, arg1: string) => string;
 	dirname?: (arg0: string) => string;

@@ -171,7 +171,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   self.inner_impl(compilation).await?;
   compilation
     .chunk_graph
-    .generate_dot(compilation, "after-split-chunks");
+    .generate_dot(compilation, "after-split-chunks")
+    .await;
   Ok(None)
 }
 

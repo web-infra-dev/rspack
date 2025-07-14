@@ -11,7 +11,6 @@ default = []
 [dependencies]
 anyhow            = { workspace = true }
 cow-utils         = { workspace = true }
-dashmap           = { workspace = true }
 futures           = { workspace = true }
 itertools         = { workspace = true }
 path-clean        = { workspace = true }
@@ -30,6 +29,7 @@ sugar_path        = { workspace = true }
 swc_core          = { workspace = true }
 swc_html          = { workspace = true }
 swc_html_minifier = { workspace = true, features = ["custom-css-minifier"] }
+tokio             = { workspace = true, features = ["sync"] }
 tracing           = { workspace = true }
 urlencoding       = { workspace = true }
 

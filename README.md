@@ -43,6 +43,15 @@ Rstack is a unified JavaScript toolchain built around Rspack, with high performa
 
 ## Getting started
 
+<p>
+  <a target="_blank" href="https://stackblitz.com/fork/github/rspack-contrib/rspack-stackblitz-example">
+    <img
+      alt="Open in StackBlitz"
+      src="https://developer.stackblitz.com/img/open_in_stackblitz.svg"
+    />
+  </a>
+</p>
+
 See [Quick start](https://rspack.rs/guide/start/quick-start).
 
 ## Contribution

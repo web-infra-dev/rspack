@@ -8,8 +8,8 @@ use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use tracing::instrument;
 
 use crate::{
-  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
-  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
+  IoResultToFsResultExt, ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 #[derive(Debug)]
 struct NativeFileSystemOptions {
@@ -73,6 +73,13 @@ impl WritableFileSystem for NativeFileSystem {
     let metadata = tokio::fs::metadata(file).await.to_fs_result()?;
     FileMetadata::try_from(metadata)
   }
+  #[instrument(skip(self), level = "debug")]
+  async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
+    if let Some(perm) = perm.into_std() {
+      return tokio::fs::set_permissions(path, perm).await.to_fs_result();
+    }
+    Ok(())
+  }
 }
 
 #[cfg(target_family = "wasm")]
@@ -118,6 +125,10 @@ impl WritableFileSystem for NativeFileSystem {
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
     let metadata = fs::metadata(file).to_fs_result()?;
     FileMetadata::try_from(metadata)
+  }
+  #[instrument(skip(self), level = "debug")]
+  async fn set_permissions(&self, _path: &Utf8Path, perm: FilePermissions) -> Result<()> {
+    Ok(())
   }
 }
 
@@ -226,6 +237,11 @@ impl ReadableFileSystem for NativeFileSystem {
     }
     Ok(res)
   }
+  #[instrument(skip(self), level = "debug")]
+  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
+    let meta = tokio::fs::metadata(path).await.to_fs_result()?;
+    Ok(Some(FilePermissions::from_std(meta.permissions())))
+  }
 }
 
 #[cfg(target_family = "wasm")]
@@ -294,6 +310,10 @@ impl ReadableFileSystem for NativeFileSystem {
       res.push(entry.file_name().to_string_lossy().to_string());
     }
     Ok(res)
+  }
+  #[instrument(skip(self), level = "debug")]
+  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
+    Ok(None)
   }
 }
 

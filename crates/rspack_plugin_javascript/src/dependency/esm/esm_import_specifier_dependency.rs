@@ -278,10 +278,6 @@ impl ModuleDependency for ESMImportSpecifierDependency {
     &self.request
   }
 
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
   fn get_condition(&self) -> Option<DependencyCondition> {
     let inline_const_condition = InlineValueDependencyCondition::new(self.id);
     if let Some(used_by_exports_condition) =

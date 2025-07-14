@@ -200,8 +200,6 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
-    let referenced_properties_in_destructuring =
-      parser.destructuring_assignment_properties_for(&call_expr.span());
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -213,7 +211,9 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       true,
       direct_import,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      referenced_properties_in_destructuring,
+      // we don't need to pass destructuring properties here, since this is a call expr,
+      // pass destructuring properties here won't help for tree shaking.
+      None,
       settings.attributes,
       Some(parser.source_map.clone()),
     );

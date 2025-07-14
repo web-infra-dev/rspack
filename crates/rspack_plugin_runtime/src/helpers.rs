@@ -327,14 +327,3 @@ pub fn get_chunk_runtime_requirements<'a>(
 ) -> &'a RuntimeGlobals {
   ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
 }
-
-pub fn is_neutral_platform(compilation: &Compilation) -> bool {
-  // webpack uses `this.compilation.compiler.platform.node`
-  !compilation.options.output.environment.supports_document()
-    && !compilation
-      .options
-      .resolve
-      .condition_names
-      .as_ref()
-      .is_some_and(|c| c.contains(&"node".to_string()))
-}

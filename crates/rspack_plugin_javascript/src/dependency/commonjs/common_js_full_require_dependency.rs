@@ -113,10 +113,6 @@ impl ModuleDependency for CommonJsFullRequireDependency {
     &self.request
   }
 
-  fn set_request(&mut self, request: String) {
-    self.request = request;
-  }
-
   fn get_optional(&self) -> bool {
     self.optional
   }

@@ -1,12 +1,12 @@
 use std::{
   borrow::Cow,
   collections::HashMap,
-  env, fs,
+  env,
   hash::{DefaultHasher, Hash, Hasher},
   path::{Path, PathBuf},
 };
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -325,7 +325,7 @@ fn url_encode_path(file_path: &str) -> String {
   )
 }
 
-pub fn create_favicon_asset(
+pub async fn create_favicon_asset(
   favicon: &str,
   config: &HtmlRspackPluginOptions,
   compilation: &Compilation,
@@ -336,9 +336,13 @@ pub fn create_favicon_asset(
     .to_string_lossy()
     .to_string();
 
-  let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(favicon);
+  let resolved_favicon = compilation.options.context.as_path().join(favicon);
 
-  fs::read(resolved_favicon)
+  compilation
+    .input_filesystem
+    .read(&resolved_favicon)
+    .await
+    .map_err(|err| anyhow!(err))
     .context(format!(
       "HtmlRspackPlugin: could not load file `{}` from `{}`",
       favicon, &compilation.options.context

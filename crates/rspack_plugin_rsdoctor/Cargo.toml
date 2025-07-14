@@ -9,7 +9,6 @@ version.workspace = true
 
 [dependencies]
 async-trait        = { workspace = true }
-dashmap            = { workspace = true }
 futures            = { workspace = true }
 indexmap           = { workspace = true }
 rayon              = { workspace = true }

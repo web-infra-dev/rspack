@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use cow_utils::CowUtils;
 use rspack_core::SpanExt;
 
@@ -80,18 +82,22 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       }
       let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
       // mock js replace
-      let s = if arg1.is_string() {
+      let s: Cow<'_, str> = if arg1.is_string() {
         param
           .string()
           .cow_replacen(arg1.string(), arg2.string().as_str(), 1)
       } else if arg1.regexp().1.contains('g') {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        regexp.replace_all(param.string().as_ref(), arg2.string())
+        Cow::Owned(regexp.replace_all(param.string().as_ref(), arg2.string()))
       } else {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        regexp.replace(param.string().as_ref(), arg2.string())
+        Cow::Owned(
+          regexp
+            .replace(param.string().as_ref(), arg2.string())
+            .to_owned(),
+        )
       };
       res.set_string(s.to_string());
       res.set_side_effects(param.could_have_side_effects());
@@ -194,7 +200,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       } else if arg.is_regexp() {
         let raw = arg.regexp();
         let regex = eval_regexp_to_regexp(&raw.0, &raw.1);
-        regex.split(param.string()).map(|s| s.to_owned()).collect()
+        param.string().split(&regex).map(|s| s.to_owned()).collect()
       } else {
         return None;
       };
@@ -209,7 +215,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
 }
 
 #[inline]
-fn eval_regexp_to_regexp(expr: &str, flags: &str) -> regex::Regex {
+fn eval_regexp_to_regexp(expr: &str, flags: &str) -> regress::Regex {
   let mut re = String::new();
   for ch in flags.chars() {
     match ch {
@@ -225,7 +231,7 @@ fn eval_regexp_to_regexp(expr: &str, flags: &str) -> regex::Regex {
   } else {
     format!("(?{re}){expr}")
   };
-  regex::Regex::new(&re).expect("should an valid regexp")
+  regress::Regex::new(&re).expect("should an valid regexp")
 }
 
 fn mock_javascript_slice(str: &str, number: f64) -> String {

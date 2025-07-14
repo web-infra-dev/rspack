@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleFactory,
+  ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  NormalModuleFactory,
 };
 use rspack_error::Result;
 
@@ -37,6 +38,7 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
       compilation_id: data.compilation_id,
       resolve_options: proxy_data.resolve_options.clone(),
       options: data.options.clone(),
+      request: dep.request().to_string(),
       context: proxy_data.context.clone(),
       dependencies: vec![Box::new(dep)],
       issuer: proxy_data.issuer.clone(),

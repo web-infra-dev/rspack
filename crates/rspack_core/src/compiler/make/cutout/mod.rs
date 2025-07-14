@@ -69,6 +69,11 @@ impl Cutout {
         MakeParam::ForceBuildModules(modules) => {
           force_build_modules.extend(modules);
         }
+        MakeParam::CheckIsolatedModules(modules) => {
+          for mid in modules {
+            self.fix_issuers.add_need_check_module(mid);
+          }
+        }
       };
     }
 

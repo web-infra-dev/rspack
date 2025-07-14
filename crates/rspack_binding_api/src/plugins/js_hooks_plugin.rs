@@ -438,7 +438,8 @@ async fn js_hooks_adapter_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks
     .chunk_hash
     .intercept(self.register_javascript_modules_chunk_hash_taps.clone());
@@ -452,7 +453,8 @@ async fn html_hooks_adapter_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
-  let mut hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks.before_asset_tag_generation.intercept(
     self
       .register_html_plugin_before_asset_tag_generation_taps
@@ -487,7 +489,8 @@ async fn runtime_hooks_adapter_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
-  let mut hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks
     .create_script
     .intercept(self.register_runtime_plugin_create_script_taps.clone());
@@ -506,7 +509,8 @@ async fn rsdoctor_hooks_adapter_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
-  let mut hooks = RsdoctorPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = RsdoctorPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks
     .module_graph
     .intercept(self.register_rsdoctor_plugin_module_graph_taps.clone());

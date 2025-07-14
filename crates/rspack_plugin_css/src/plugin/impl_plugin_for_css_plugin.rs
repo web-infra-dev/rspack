@@ -26,6 +26,7 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::sync::RwLock;
 
 use crate::{
   dependency::{
@@ -39,29 +40,27 @@ use crate::{
   CssPlugin,
 };
 
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<CssModulesPluginHooks>>> =
-  LazyLock::new(Default::default);
+static COMPILATION_HOOKS_MAP: LazyLock<
+  FxDashMap<CompilationId, Arc<RwLock<CssModulesPluginHooks>>>,
+> = LazyLock::new(Default::default);
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
 }
 
 impl CssPlugin {
-  pub fn get_compilation_hooks(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<CssModulesPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<CssModulesPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
     COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
+      .clone()
   }
 
-  pub fn get_compilation_hooks_mut(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<CssModulesPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<CssModulesPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 
   fn get_chunk_unused_local_idents(
@@ -220,6 +219,8 @@ impl CssPlugin {
 
               let chunk_ukey = chunk.ukey().as_u32().into();
               hooks
+                .read()
+                .await
                 .render_module_package
                 .call(
                   compilation,
@@ -423,8 +424,7 @@ async fn render_manifest(
     .await?;
 
   let (source, more_diagnostics) = compilation
-    .old_cache
-    .chunk_render_occasion
+    .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SourceType::Css, || async {
       let (source, diagnostics) = self
         .render_chunk(

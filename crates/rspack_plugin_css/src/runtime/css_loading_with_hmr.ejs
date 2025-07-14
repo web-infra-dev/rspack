@@ -15,8 +15,8 @@ var applyHandler = <%- basicFunction("options") %> {
 			while (newTags.length) {
 				var info = newTags.pop();
 				var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[0]);
-				chunkModuleIds.forEach(function (id) {
-					moduleIds.push(id)
+				chunkModuleIds.forEach(function(id) {
+				    moduleIds.push(id)
 				});
 			}
 			return moduleIds;
@@ -62,11 +62,11 @@ __webpack_require__.hmrC.css = <%- basicFunction("chunkIds, removedChunks, remov
 									if (link.parentNode) link.parentNode.removeChild(link);
 									return resolve();
 								}
-							} catch (e) { }
+							} catch (e) {}
 							var factories = {};
 							loadCssChunkData(factories, link, chunkId);
-							Object.keys(factories).forEach(function (id) {
-								(updatedModulesList.push(id));
+							Object.keys(factories).forEach(function(id) {
+							    (updatedModulesList.push(id));
 							});
 							link.sheet.disabled = true;
 							oldTags.push(oldTag);

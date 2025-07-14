@@ -110,7 +110,6 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 pub use rslib::*;
-use rspack_macros::rspack_version;
 use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
 pub use rstest::*;
 pub use runtime::*;
@@ -124,6 +123,12 @@ use tracing_subscriber::{
   layer::SubscriberExt, reload, util::SubscriberInitExt, EnvFilter, Layer, Registry,
 };
 pub use utils::*;
+
+// Export expected @rspack/core version
+/// Expected version of @rspack/core to the current binding version
+/// @internal
+#[napi]
+pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_version!();
 
 thread_local! {
   pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
@@ -164,7 +169,7 @@ impl JsCompiler {
     input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
-    tracing::info!(name:"rspack_version", version = rspack_version!());
+    tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
     tracing::info!(name:"raw_options", options=?&options);
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {

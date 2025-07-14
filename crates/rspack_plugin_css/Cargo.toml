@@ -9,7 +9,6 @@ version.workspace = true
 async-trait           = { workspace = true }
 cow-utils             = { workspace = true }
 css-module-lexer      = { workspace = true }
-dashmap               = { workspace = true }
 heck                  = { workspace = true }
 indexmap              = { workspace = true }
 once_cell             = { workspace = true }

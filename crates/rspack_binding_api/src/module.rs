@@ -304,12 +304,11 @@ impl Module {
 impl Module {
   #[napi]
   pub fn readable_identifier(&mut self) -> napi::Result<String> {
-    let (_, module) = self.as_ref()?;
+    let (compilation, module) = self.as_ref()?;
     Ok(
       module
-        .get_context()
-        .map(|ctx| module.readable_identifier(ctx.as_ref()).to_string())
-        .unwrap_or_default(),
+        .readable_identifier(&compilation.options.context)
+        .to_string(),
     )
   }
 

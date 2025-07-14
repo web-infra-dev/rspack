@@ -34,32 +34,28 @@ impl IgnorePlugin {
     Self::new_inner(options)
   }
 
-  async fn check_ignore(&self, request: Option<&str>, context: &str) -> Result<Option<bool>> {
+  async fn check_ignore(&self, request: &str, context: &str) -> Result<Option<bool>> {
     if let Some(check_resource) = &self.options.check_resource {
-      if let Some(request) = request {
-        match check_resource {
-          CheckResourceContent::Fn(check) => {
-            if check(request, context)
-              .await
-              .with_context(|| "IgnorePlugin: failed to call `checkResource`")?
-            {
-              return Ok(Some(false));
-            }
+      match check_resource {
+        CheckResourceContent::Fn(check) => {
+          if check(request, context)
+            .await
+            .with_context(|| "IgnorePlugin: failed to call `checkResource`")?
+          {
+            return Ok(Some(false));
           }
         }
       }
     }
 
     if let Some(resource_reg_exp) = &self.options.resource_reg_exp {
-      if let Some(request) = request {
-        if resource_reg_exp.test(request) {
-          if let Some(context_reg_exp) = &self.options.context_reg_exp {
-            if context_reg_exp.test(context) {
-              return Ok(Some(false));
-            }
-          } else {
+      if resource_reg_exp.test(request) {
+        if let Some(context_reg_exp) = &self.options.context_reg_exp {
+          if context_reg_exp.test(context) {
             return Ok(Some(false));
           }
+        } else {
+          return Ok(Some(false));
         }
       }
     }
@@ -70,7 +66,7 @@ impl IgnorePlugin {
 
 #[plugin_hook(NormalModuleFactoryBeforeResolve for IgnorePlugin)]
 async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-  self.check_ignore(data.request(), &data.context).await
+  self.check_ignore(&data.request, &data.context).await
 }
 
 #[plugin_hook(ContextModuleFactoryBeforeResolve for IgnorePlugin)]
@@ -78,7 +74,7 @@ async fn cmf_before_resolve(&self, data: BeforeResolveResult) -> Result<BeforeRe
   match data {
     BeforeResolveResult::Ignored => Ok(BeforeResolveResult::Ignored),
     BeforeResolveResult::Data(d) => {
-      if let Some(false) = self.check_ignore(Some(&d.request), &d.context).await? {
+      if let Some(false) = self.check_ignore(&d.request, &d.context).await? {
         Ok(BeforeResolveResult::Ignored)
       } else {
         Ok(BeforeResolveResult::Data(d))

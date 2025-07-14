@@ -1,7 +1,7 @@
 import type { Compiler } from "../Compiler";
 import type { ExternalsType } from "../config";
-import { getExternalsTypeSchema } from "../config/zod";
-import { isValidate } from "../util/validate";
+import { getExternalsTypeSchema } from "../schema/config";
+import { isValidate } from "../schema/validate";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";

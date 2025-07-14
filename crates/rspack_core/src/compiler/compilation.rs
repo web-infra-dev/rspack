@@ -49,15 +49,16 @@ use crate::{
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats,
+  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact,
+  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -263,6 +264,9 @@ pub struct Compilation {
   // artiface for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
+  // artifact for chunk render cache
+  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
+
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub cache: Arc<dyn Cache>,
@@ -347,7 +351,7 @@ impl Compilation {
       hot_index: 0,
       runtime_template: RuntimeTemplate::new(options.output.environment),
       records,
-      options,
+      options: options.clone(),
       other_module_graph: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
@@ -386,6 +390,12 @@ impl Compilation {
       module_graph_cache_artifact: Default::default(),
       module_static_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
+      chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
+        match &options.cache {
+          CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
+          CacheOptions::Disabled => 0, // FIXME: this should be removed in future
+        },
+      )),
       build_time_executed_modules: Default::default(),
       cache,
       old_cache,
@@ -1532,7 +1542,8 @@ impl Compilation {
       }
       compilation
         .chunk_graph
-        .generate_dot(compilation, "after-code-splitting");
+        .generate_dot(compilation, "after-code-splitting")
+        .await;
       logger.time_end(start);
       Ok(compilation)
     })

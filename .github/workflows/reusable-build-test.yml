@@ -66,7 +66,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 60
     strategy:
-      fail-fast: true # for better utilize ci runners
+      fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
       matrix:
         node: ${{ fromJSON(
           inputs.target == 'wasm32-wasip1-threads'

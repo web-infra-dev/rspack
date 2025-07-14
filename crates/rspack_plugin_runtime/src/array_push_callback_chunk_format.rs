@@ -29,7 +29,8 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   hooks.render_chunk.tap(render_chunk::new(self));
   Ok(())
@@ -157,6 +158,8 @@ async fn render_chunk(
           source: start_up_source,
         };
         hooks
+          .read()
+          .await
           .render_startup
           .call(
             compilation,

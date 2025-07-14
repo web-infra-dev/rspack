@@ -75,10 +75,6 @@ impl ContextDependency for RequireResolveContextDependency {
     &self.resource_identifier
   }
 
-  fn set_request(&mut self, request: String) {
-    self.options.request = request;
-  }
-
   fn get_optional(&self) -> bool {
     self.optional
   }

@@ -27,8 +27,6 @@ pub trait ModuleDependency: Dependency {
     false
   }
 
-  fn set_request(&mut self, _request: String) {}
-
   fn get_optional(&self) -> bool {
     false
   }

@@ -5,9 +5,13 @@ import { ApiMeta } from '../../../../components/ApiMeta';
 
 # SplitChunksPlugin
 
-## Default
+SplitChunksPlugin is a built-in plugin that splits code into multiple [chunks](/misc/glossary#chunk) to optimize application loading performance and achieve better caching strategies and parallel loading.
 
-Out of the box `SplitChunksPlugin` should work well for most users.
+SplitChunksPlugin can be configured through the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) option, and you typically don't need to manually register this plugin.
+
+## Default behavior
+
+Rspack has a built-in configuration for `SplitChunksPlugin` that works well for most scenarios.
 
 By default it only affects on-demand chunks, because changing initial chunks would affect the script tags the HTML file should include to run the project.
 
@@ -92,24 +96,91 @@ export default {
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.chunks
 
-- **Type:** `'initial' | 'all' | 'async' | RegExp | ((chunk: Chunk) => bool)`
+- **Type:**
+
+```ts
+type OptimizationSplitChunksChunks =
+  | 'initial'
+  | 'async'
+  | 'all'
+  | RegExp
+  | ((chunk: Chunk) => boolean);
+```
+
 - **Default:** `'async'`
 
-This indicates which chunks will be selected for optimization.
+This option controls which chunks should be selected for code splitting. When a string is provided, the possible values are `all`, `async` and `initial`.
 
-When a string is provided, valid values are `all`, `async`, and `initial`. Providing `all` can be particularly powerful, because it means that chunks can be shared even between async and non-async chunks.
+- `all`: Split all types of chunks, including [initial chunks](/misc/glossary#initial-chunk) and [async chunks](/misc/glossary#async-chunk).
+- `initial`: Only split initial chunks.
+- `async`: Only split async chunks.
 
-Alternatively, you may provide a function for more control. The return value will indicate whether to include each chunk.
-
-You can also pass a regular expression, which is a short for `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)`.
+Generally, setting it to `all` can help reduce duplicate modules being bundled, as it means chunks can be shared between initial chunks and async chunks.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     splitChunks: {
       // include all types of chunks
       chunks: 'all',
+    },
+  },
+};
+```
+
+:::tip
+When using [Module Federation](/guide/features/module-federation), if the application uses `exposes` to expose remote modules, `chunks: 'all'` cannot be used as it would break the remote module splitting.
+:::
+
+The `chunks` option can be set to a regular expression, which is a shorthand for `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)`.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      // equivalent to `chunks: (chunk) => typeof chunk.name === "string" && /foo/.test(chunk.name)`
+      chunks: /foo/,
+    },
+  },
+};
+```
+
+The `chunks` option can be set to a function for more fine-grained control. The function receives a `chunk` parameter, and returning `true` means the chunk participates in splitting (modules within it may be extracted into new chunks), while returning `false` means the chunk doesn't participate in splitting (remains as is).
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks(chunk) {
+        // exclude `foo` chunk
+        return chunk.name !== 'foo';
+      },
+    },
+  },
+};
+```
+
+:::warning
+Using the function type of `chunks` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
+:::
+
+You can configure `chunks` individually for each cacheGroup, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        groupA: {
+          chunks: 'all',
+        },
+        groupB: {
+          chunks: 'initial',
+        },
+        groupC: {
+          chunks: 'async',
+        },
+      },
     },
   },
 };

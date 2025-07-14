@@ -171,14 +171,19 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
-  js_hooks
-    .render_module_package
-    .tap(render_js_module_package::new(self));
-  js_hooks.chunk_hash.tap(chunk_hash::new(self));
+  {
+    let js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+    let mut js_hooks = js_hooks.write().await;
+    js_hooks
+      .render_module_package
+      .tap(render_js_module_package::new(self));
+    js_hooks.chunk_hash.tap(chunk_hash::new(self));
+  }
 
-  let mut css_hooks = CssPlugin::get_compilation_hooks_mut(compilation.id());
+  let css_hooks = CssPlugin::get_compilation_hooks_mut(compilation.id());
   css_hooks
+    .write()
+    .await
     .render_module_package
     .tap(render_css_module_package::new(self));
 

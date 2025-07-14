@@ -12,6 +12,10 @@ An "asset module" is a special module type used to process static assets, such a
 
 - [Asset modules](/guide/features/asset-module)
 
+## async chunk
+
+An async chunk refers to a [chunk](#chunk) that is loaded asynchronously. When you use dynamic imports, Rspack will bundle the module into an async chunk.
+
 ## bundle
 
 Historically bundlers produced a single output file called a "bundle." The concept of chunks was introduced later as part of a feature for automatically decomposing bundles into smaller files that can be loaded on demand.
@@ -48,6 +52,10 @@ Code splitting is a technique that allows you to split your code into multiple c
 ## dependency
 
 Dependency is parsed from the transformed code of a module. It is used to store the import relationships of modules for recursively generating the module graph. When code generation, it can inject code of module imports and exports. It can also be used for code replacement and injecting runtime requirements.
+
+## initial chunk
+
+Initial chunk is a [chunk](#chunk) that is loaded synchronously, including the entry module of the page and the modules imported statically.
 
 ## loader
 

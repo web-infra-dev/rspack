@@ -145,6 +145,8 @@ pub async fn render_module(
   };
 
   hooks
+    .read()
+    .await
     .render_module_content
     .call(
       compilation,
@@ -241,6 +243,8 @@ pub async fn render_module(
     };
 
     hooks
+      .read()
+      .await
       .render_module_container
       .call(
         compilation,
@@ -254,6 +258,8 @@ pub async fn render_module(
     let mut post_module_package = post_module_container;
 
     hooks
+      .read()
+      .await
       .render_module_package
       .call(
         compilation,
@@ -268,6 +274,8 @@ pub async fn render_module(
     sources.boxed()
   } else {
     hooks
+      .read()
+      .await
       .render_module_package
       .call(
         compilation,

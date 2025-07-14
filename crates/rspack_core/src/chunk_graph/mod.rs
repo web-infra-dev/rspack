@@ -164,20 +164,25 @@ impl ChunkGraph {
     write!(&mut dot, "}}")?;
     Ok(dot)
   }
-  pub fn generate_dot(&self, compilation: &Compilation, dotfile_name: &str) {
+  pub async fn generate_dot(&self, compilation: &Compilation, dotfile_name: &str) {
     // do not generate dot file if there is no query
     if !has_query() {
       return;
     }
     let result = self.to_dot(compilation).expect("to_dot failed");
-    std::fs::write(
-      format!(
-        "{}-{}.dot",
-        compilation.compiler_id().as_u32(),
-        dotfile_name
-      ),
-      &result,
-    )
-    .expect("write dot file failed");
+    compilation
+      .output_filesystem
+      .write(
+        format!(
+          "{}-{}.dot",
+          compilation.compiler_id().as_u32(),
+          dotfile_name
+        )
+        .as_str()
+        .into(),
+        result.as_bytes(),
+      )
+      .await
+      .expect("write dot file failed");
   }
 }

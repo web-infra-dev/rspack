@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use indexmap::IndexSet;
+use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 use tracing::instrument;
@@ -41,8 +43,8 @@ pub fn remove_available_modules(
   ordinal_by_modules: &IdentifierMap<u64>,
   chunks: &mut [(bool, CacheableChunkItem)],
   roots: &mut [usize],
-  chunk_parents: &mut [Vec<usize>],
-  chunk_children: &mut [Vec<usize>],
+  chunk_parents: &[IndexSet<usize>],
+  chunk_children: &[IndexSet<usize>],
 ) {
   let mut chunk_incomings: Vec<HashSet<usize>> = chunk_parents
     .iter()
@@ -109,6 +111,7 @@ pub fn remove_available_modules(
 
       // if we reach here, means all incomings have calculated (if no cycle)
       //, we can continue calculate children
+      pending.remove(&chunk_index);
 
       let curr_chunk_modules = chunk.chunk_desc.chunk_modules_ordinal();
       let child_available = curr_parents_modules.union(curr_chunk_modules);
@@ -144,92 +147,54 @@ pub fn remove_available_modules(
   }
 
   let module_graph = compilation.get_module_graph();
-  let mut removed = HashSet::default();
-  let mut disconnect_children = HashSet::default();
-  let mut completely_removed_children = vec![];
 
-  for (chunk_index, available) in available_modules.iter().enumerate() {
-    removed.clear();
-    disconnect_children.clear();
+  available_modules
+    .par_iter()
+    .enumerate()
+    .for_each(|(chunk_index, available)| {
+      let mut removed = HashSet::default();
+      let chunk =
+      // Safety:
+      // we only modify a chunk at a time
+        unsafe {
+          let ptr = &chunks[chunk_index].1.chunk_desc as *const ChunkDesc as *mut ChunkDesc;
+          ptr.as_mut_unchecked()
+        };
 
-    let chunk = &mut chunks[chunk_index].1.chunk_desc;
-    let Some(available) = available else {
-      continue;
-    };
+      let Some(available) = available else {
+        return;
+      };
 
-    chunk.chunk_modules_mut().retain(|module_identifier| {
-      let module = ordinal_by_modules
-        .get(module_identifier)
-        .copied()
-        .expect("should have module ordinal");
+      chunk.chunk_modules_mut().retain(|module_identifier| {
+        let module = ordinal_by_modules
+          .get(module_identifier)
+          .copied()
+          .expect("should have module ordinal");
 
-      let in_parent = available.is_module_available(module);
+        let in_parent = available.is_module_available(module);
 
-      if in_parent {
-        let module = module_graph
-          .module_by_identifier(module_identifier)
-          .expect("should have module");
-        removed.extend(module.get_blocks().iter().copied());
-      }
+        if in_parent {
+          let module = module_graph
+            .module_by_identifier(module_identifier)
+            .expect("should have module");
+          removed.extend(module.get_blocks().iter().copied());
+        }
 
-      !in_parent
-    });
-
-    if let ChunkDesc::Entry(box entry_chunk) = chunk {
-      entry_chunk.entry_modules.retain(|m| {
-        !available.is_module_available(*ordinal_by_modules.get(m).expect("should have module"))
+        !in_parent
       });
-    }
 
-    if removed.is_empty() || entry_with_depend_on.contains(&chunk_index) {
-      continue;
-    }
-
-    let outgoings = chunk.outgoings_mut();
-    for remove_id in &removed {
-      outgoings.swap_remove(remove_id);
-    }
-
-    let chunk = &chunks[chunk_index].1.chunk_desc;
-    let outgoings = chunk.outgoings();
-
-    chunk_children[chunk_index].iter().for_each(|child| {
-      let child_chunk = &chunks[*child].1.chunk_desc;
-
-      // if all incomings from current chunk are removed, we can remove this child
-      if child_chunk.incomings().iter().all(|incoming| {
-        // if all incomings are not from current chunk, we disconnect them
-        !outgoings.contains(incoming)
-      }) {
-        disconnect_children.insert(*child);
+      if let ChunkDesc::Entry(box entry_chunk) = chunk {
+        entry_chunk.entry_modules.retain(|m| {
+          !available.is_module_available(*ordinal_by_modules.get(m).expect("should have module"))
+        });
       }
+
+      if removed.is_empty() || entry_with_depend_on.contains(&chunk_index) {
+        return;
+      }
+
+      chunk
+        .outgoings_mut()
+        .retain(|remove_id| !removed.contains(remove_id));
     });
-
-    // there are children are disconnected, we should consider if they are completely removed
-    // if so, we should make sure all its children are also removed
-    // a-->b-->c, if `b` is removed, we should remove `c`
-    if !disconnect_children.is_empty() {
-      chunk_children[chunk_index].retain(|child| !disconnect_children.contains(child));
-
-      for dead_child in &disconnect_children {
-        chunk_parents[*dead_child].retain(|parent| *parent != chunk_index);
-
-        if chunk_parents[*dead_child].is_empty() {
-          completely_removed_children.push(*dead_child);
-        }
-      }
-
-      while let Some(removed_chunk) = completely_removed_children.pop() {
-        let children = std::mem::take(&mut chunk_children[removed_chunk]);
-
-        for child in children {
-          chunk_parents[child].retain(|parent| *parent != removed_chunk);
-
-          if chunk_parents[child].is_empty() {
-            completely_removed_children.push(child);
-          }
-        }
-      }
-    }
-  }
 }

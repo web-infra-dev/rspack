@@ -523,9 +523,7 @@ async fn runtime_requirement_in_tree(
   if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
   {
-    if let Some(chunk_filename) = self.options.chunk_filename.template()
-      && chunk_filename.contains("hash")
-    {
+    if self.options.chunk_filename.has_hash_placeholder() {
       runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
@@ -661,8 +659,7 @@ async fn render_manifest(
     .await?;
 
   let (source, more_diagnostics) = compilation
-    .old_cache
-    .chunk_render_occasion
+    .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SOURCE_TYPE[0], || async {
       let (source, diagnostics) = self
         .render_content_asset(chunk, &rendered_modules, &filename, compilation)

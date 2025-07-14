@@ -90,6 +90,7 @@ impl ResolveInnerOptions<'_> {
 /// Internal caches are shared.
 #[derive(Debug)]
 pub struct Resolver {
+  inner_fs: Arc<dyn ReadableFileSystem>,
   resolver: rspack_resolver::ResolverGeneric<BoxFS>,
 }
 
@@ -100,9 +101,12 @@ impl Resolver {
 
   fn new_rspack_resolver(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
     let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
-    let boxfs = BoxFS::new(fs);
+    let boxfs = BoxFS::new(fs.clone());
     let resolver = rspack_resolver::ResolverGeneric::new_with_file_system(boxfs, options);
-    Self { resolver }
+    Self {
+      inner_fs: fs,
+      resolver,
+    }
   }
 
   /// Clear cache for all resolver instances
@@ -124,7 +128,10 @@ impl Resolver {
     );
 
     let resolver = resolver.clone_with_options(options);
-    Self { resolver }
+    Self {
+      inner_fs: self.inner_fs.clone(),
+      resolver,
+    }
   }
 
   /// Return the options from the resolver
@@ -182,6 +189,10 @@ impl Resolver {
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
     }
+  }
+
+  pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {
+    self.inner_fs.clone()
   }
 }
 

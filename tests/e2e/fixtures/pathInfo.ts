@@ -30,6 +30,11 @@ async function calcPathInfo(
 		await fs.remove(tempProjectDir);
 	}
 	await fs.copy(testProjectDir, tempProjectDir);
+	for (const modulePath of Object.keys(require.cache)) {
+		if (modulePath.startsWith(tempProjectDir)) {
+			delete require.cache[modulePath];
+		}
+	}
 
 	return {
 		testFile,

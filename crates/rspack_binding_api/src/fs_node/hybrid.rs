@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_fs::{FileMetadata, NativeFileSystem, ReadableFileSystem, Result};
+use rspack_fs::{FileMetadata, FilePermissions, NativeFileSystem, ReadableFileSystem, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 
@@ -65,7 +65,12 @@ impl ReadableFileSystem for HybridFileSystem {
   async fn read_dir(&self, path: &Utf8Path) -> Result<Vec<String>> {
     self.pick_fs_for_path(path).read_dir(path).await
   }
+
   fn read_dir_sync(&self, path: &Utf8Path) -> Result<Vec<String>> {
     self.pick_fs_for_path(path).read_dir_sync(path)
+  }
+
+  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
+    self.pick_fs_for_path(path).permissions(path).await
   }
 }

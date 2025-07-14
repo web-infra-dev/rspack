@@ -19,6 +19,7 @@ pub use fs_trim::*;
 mod hash;
 mod identifier;
 mod iterator_consumer;
+mod memory_gc;
 mod module_rules;
 mod property_access;
 mod property_name;
@@ -32,6 +33,7 @@ mod to_path;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
+pub use memory_gc::MemoryGCStorage;
 
 pub use self::{
   comment::*,
