@@ -650,7 +650,7 @@ describe("MultiCompiler", function () {
 			) {
 				watchCallbacks.push(callback);
 				watchCallbacksUndelayed.push(callbackUndelayed);
-				if (firstRun && files.all.has(path.join(__dirname, "fixtures", "a.js"))) {
+				if (firstRun && files.has(path.join(__dirname, "fixtures", "a.js"))) {
 					process.nextTick(() => {
 						callback(null, new Map(), new Map(), new Set(), new Set());
 					});
