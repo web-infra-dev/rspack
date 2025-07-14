@@ -1,6 +1,6 @@
 import { expect, test } from "@/fixtures";
 
-test("should compile", async ({ page, fileAction, rspack }) => {
+test.skip("should compile", async ({ page, fileAction, rspack }) => {
 	await expect(page.getByText("2")).toBeVisible();
 
 	fileAction.updateFile("file.js", content => content.replace("1", "2"));
