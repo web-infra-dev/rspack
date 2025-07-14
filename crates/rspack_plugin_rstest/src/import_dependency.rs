@@ -84,7 +84,7 @@ pub fn module_id_rstest(
   }
 }
 
-const WEBPACK_REQUIRE_IMPORT_ACTUAL: &str = "__webpack_require__.import_actual";
+const WEBPACK_REQUIRE_IMPORT_ACTUAL: &str = "__webpack_require__.rstest_import_actual";
 
 // To support use `__webpack_require__.import_actual` for `importActual`.
 fn module_namespace_promise_rstest(
