@@ -27,7 +27,7 @@ thiserror          = { workspace = true }
 unicode-width = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-miette = { workspace = true, features = ["fancy-no-syscall"] }
+miette = { workspace = true, features = ["fancy", "derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-miette = { workspace = true, features = ["fancy", "syntect-highlighter"] }
+miette = { workspace = true, features = ["fancy", "derive", "syntect-highlighter"] }

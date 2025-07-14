@@ -91,14 +91,13 @@ export async function version_handler(version, options) {
 		} else {
 			nextVersion = semver.inc(lastVersion, version);
 		}
+		// Rust crate version is major version of `@rspack/core` - 1
+		const nextCrateVersion = nextVersion.replace(
+			/^(\d+)/,
+			(match, major) => Number.parseInt(major) - 1
+		);
+		await $`${path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../x")} crate-version custom ${nextCrateVersion}`;
 	}
-
-	// Rust crate version is major version of `@rspack/core` - 1
-	const nextCrateVersion = nextVersion.replace(
-		/^(\d+)/,
-		(match, major) => Number.parseInt(major) - 1
-	);
-	await $`${path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../x")} crate-version custom ${nextCrateVersion}`;
 
 	const packageFiles = await glob("{packages,npm,crates}/*/package.json", {
 		cwd: root,
@@ -147,4 +146,8 @@ export async function version_handler(version, options) {
 
 		console.log(`Update ${newPackageJson.name}: ${newPackageJson.version}`);
 	}
+
+	await $`cargo codegen`;
+
+	console.log("Cargo codegen done");
 }
