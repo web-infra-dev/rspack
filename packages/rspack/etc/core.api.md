@@ -87,6 +87,7 @@ import { Server as Server_2 } from 'tls';
 import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse } from 'http';
+import { SourceMapDevToolModuleOptionsPluginOptions } from '@rspack/binding';
 import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
@@ -2390,6 +2391,8 @@ interface Experiments_2 {
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
+    // (undocumented)
+    SourceMapDevToolModuleOptionsPlugin: typeof SourceMapDevToolModuleOptionsPlugin;
     // (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
@@ -7147,6 +7150,17 @@ interface SourceMap {
     // (undocumented)
     version: number;
 }
+
+// @public (undocumented)
+const SourceMapDevToolModuleOptionsPlugin: {
+    new (options: SourceMapDevToolModuleOptionsPluginOptions): {
+        name: string;
+        _args: [options: SourceMapDevToolModuleOptionsPluginOptions];
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 export const SourceMapDevToolPlugin: {
