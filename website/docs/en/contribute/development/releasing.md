@@ -25,7 +25,8 @@ During the release, the following binary artifacts for the target platforms are 
 ### Release steps
 
 1. Create a new branch, for example `release/v1.0.0`.
-2. Update the version using the `pnpm x version` command on the branch.
+2. Execute `cargo codegen` command to generate `crates/rspack_workspace/src/generated.rs` file.
+3. Update the version using the `pnpm x version` command on the branch.
 
 ```bash
 # Release a patch version
@@ -47,7 +48,7 @@ pnpm x version patch --pre beta
 pnpm x version patch --pre rc
 ```
 
-3. Commit the code and push to the remote branch.
+4. Commit the code and push to the remote branch.
 
 ```bash
 git add .
@@ -55,11 +56,11 @@ git commit -m "chore: release v1.0.0"
 git push origin release/vx.y.z
 ```
 
-4. Create a PR with the title `chore: release v1.0.0`.
-5. Run the [Ecosystem CI workflow](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml) to ensure all ecosystem projects are working properly.
-6. Run the full release workflow on the release branch.
-7. After the release, merge the PR to the `main` branch.
-8. Generate the [GitHub release note](https://github.com/web-infra-dev/rspack/releases), and add highlights information.
+5. Create a PR with the title `chore: release v1.0.0`.
+6. Run the [Ecosystem CI workflow](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml) to ensure all ecosystem projects are working properly.
+7. Run the full release workflow on the release branch.
+8. After the release, merge the PR to the `main` branch.
+9. Generate the [GitHub release note](https://github.com/web-infra-dev/rspack/releases), and add highlights information.
 
 ## Canary release
 

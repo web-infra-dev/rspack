@@ -25,7 +25,8 @@ Latest 是最新的稳定版本，遵循 Semantic Versioning 语义化版本号�
 ### 发布步骤
 
 1. 创建一个新分支，例如 `release/v1.0.0`。
-2. 在分支上使用 `pnpm x version` 命令更新版本号。
+2. 执行 `cargo codegen` 命令生成 `crates/rspack_workspace/src/generated.rs` 文件。
+3. 在分支上使用 `pnpm x version` 命令更新版本号。
 
 ```bash
 # 发布 patch 版本
@@ -47,7 +48,7 @@ pnpm x version patch --pre beta
 pnpm x version patch --pre rc
 ```
 
-3. 提交代码并推送到远程分支。
+4. 提交代码并推送到远程分支。
 
 ```bash
 git add .
@@ -55,11 +56,11 @@ git commit -m "chore: release v1.0.0"
 git push origin release/vx.y.z
 ```
 
-4. 创建一个 PR，标题为 `chore: release v1.0.0`。
-5. 执行 [Ecosystem CI 工作流](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml)，确保所有生态项目都能正常工作。
-6. 在 release 分支上执行全量发布工作流。
-7. 发布完成后，合并 PR 到 `main` 分支。
-8. 生成 GitHub [release note](https://github.com/web-infra-dev/rspack/releases)，补充 highlights 信息。
+5. 创建一个 PR，标题为 `chore: release v1.0.0`。
+6. 执行 [Ecosystem CI 工作流](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml)，确保所有生态项目都能正常工作。
+7. 在 release 分支上执行全量发布工作流。
+8. 发布完成后，合并 PR 到 `main` 分支。
+9. 生成 GitHub [release note](https://github.com/web-infra-dev/rspack/releases)，补充 highlights 信息。
 
 ## Canary 发布
 
