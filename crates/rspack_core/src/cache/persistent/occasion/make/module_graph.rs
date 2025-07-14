@@ -121,7 +121,7 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
-) -> Result<(ModuleGraphPartial, HashSet<DependencyId>)> {
+) -> Result<(ModuleGraphPartial, HashSet<DependencyId>, IdentifierSet)> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new([None, None], Some(&mut partial));
@@ -176,7 +176,20 @@ pub async fn recovery_module_graph(
     }
   }
 
+  let mut isolated_modules: IdentifierSet = Default::default();
+  // TODO save entry to avoid clean module which used at add_include.
+  for (mid, mgm) in mg.module_graph_modules() {
+    let Some(issuer) = mgm.issuer().identifier() else {
+      isolated_modules.insert(mid);
+      continue;
+    };
+    if mg.module_by_identifier(issuer).is_none() {
+      isolated_modules.insert(mid);
+    }
+  }
+
   tracing::debug!("recovery {} module", mg.modules().len());
   tracing::debug!("recovery failed {} deps", force_build_dependencies.len());
-  Ok((partial, force_build_dependencies))
+  tracing::debug!("isolated modules {} ", isolated_modules.len());
+  Ok((partial, force_build_dependencies, isolated_modules))
 }

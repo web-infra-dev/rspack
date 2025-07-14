@@ -259,9 +259,7 @@ program
 	.argument("[custom]", "custom version when bump is 'custom'")
 	.description("update crate version with cargo-workspaces")
 	.action(async (bump, custom) => {
-		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`;
-
-		// Validate bump type
+		await $`which cargo-workspaces || echo "cargo-workspaces is not installed, please install it first with \`cargo install cargo-workspaces\`"`; // Validate bump type
 		const validBumps = [
 			"major",
 			"minor",
@@ -289,7 +287,7 @@ program
 			"version",
 			"--exact", // Use exact version `=`
 			"--allow-branch",
-			"release-crates/*", // Specify which branches to allow from
+			"release*", // Specify which branches to allow from
 			"--no-git-push", // Do not push generated commit and tags to git remote
 			"--no-git-tag", // Do not tag versions in git, we will tag them in `crate-publish`
 			"--force",
@@ -319,7 +317,14 @@ program
 			"workspaces",
 			"publish",
 			"--publish-as-is", // Publish crates from the current commit without versioning
-			"--locked" // Assert that `Cargo.lock` will remain unchanged
+			"--publish-interval", // Number of seconds to wait between publish attempts
+			"5", // 5 seconds to wait between publish attempts to make sure the previous crate is published
+			"--no-remove-dev-deps", // Do not remove dev-dependencies from `Cargo.lock`, otherwise the `Cargo.toml` will be updated and dirty check will fail
+			"--no-verify" // Skip verification of the workspace. This was pre-checked by `release-crates.yml` with `cargo check` with `separated` strategy
+			// Commented `--locked` flag
+			// because some dev-deps refer to workspace members with versions rspack_swc_plugin_ts_collector
+			// and these workspace members are to be removed in release. This would cause `Cargo.lock` to be updated.
+			// "--locked" // Assert that `Cargo.lock` will remain unchanged
 		];
 
 		if (options.token) {
@@ -360,7 +365,7 @@ program
 	.command("version")
 	.argument("<bump_version>", "bump version to (major|minor|patch|snapshot)")
 	.option("--pre <string>", "pre-release tag")
-	.description("bump version")
+	.description("bump version for npm and rust crates")
 	.action(version_handler);
 
 program

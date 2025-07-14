@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-wasm32-wasi",
-  "version": "1.4.4",
+  "version": "1.4.7-alpha.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.wasi.cjs",
@@ -26,6 +26,6 @@
     "wasi-worker-browser.mjs"
   ],
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^0.2.11"
+    "@napi-rs/wasm-runtime": "^0.2.12"
   }
 }

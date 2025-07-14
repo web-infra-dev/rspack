@@ -1,8 +1,6 @@
 import { Compilation } from "../../Compilation";
-import { anyFunction } from "../../config/utils";
-import { z } from "../../config/zod";
-import { memoize } from "../../util/memoize";
-import { validate } from "../../util/validate";
+import { getHtmlPluginOptionsSchema } from "../../schema/plugins";
+import { validate } from "../../schema/validate";
 
 const compilationOptionsMap: WeakMap<Compilation, HtmlRspackPluginOptions> =
 	new WeakMap();
@@ -108,52 +106,8 @@ export type HtmlRspackPluginOptions = {
 	[key: string]: any;
 };
 
-const getPluginOptionsSchema = memoize(() => {
-	const templateRenderFunction =
-		anyFunction satisfies z.ZodType<TemplateRenderFunction>;
-	const templateParamFunction =
-		anyFunction satisfies z.ZodType<TemplateParamFunction>;
-
-	return z
-		.object({
-			filename: z.string().or(anyFunction),
-			template: z.string().refine(val => !val.includes("!"), {
-				error: "HtmlRspackPlugin does not support template path with loader yet"
-			}),
-			templateContent: z.string().or(templateRenderFunction),
-			templateParameters: z
-				.record(z.string(), z.string())
-				.or(z.boolean())
-				.or(templateParamFunction),
-			inject: z.enum(["head", "body"]).or(z.boolean()),
-			publicPath: z.string(),
-			base: z.string().or(
-				z
-					.strictObject({
-						href: z.string(),
-						target: z.enum(["_self", "_blank", "_parent", "_top"])
-					})
-					.partial()
-			),
-			scriptLoading: z.enum(["blocking", "defer", "module", "systemjs-module"]),
-			chunks: z.string().array(),
-			excludeChunks: z.string().array(),
-			chunksSortMode: z.enum(["auto", "manual"]),
-			sri: z.enum(["sha256", "sha384", "sha512"]),
-			minify: z.boolean(),
-			title: z.string(),
-			favicon: z.string(),
-			meta: z.record(
-				z.string(),
-				z.string().or(z.record(z.string(), z.string()))
-			),
-			hash: z.boolean()
-		})
-		.partial() satisfies z.ZodType<HtmlRspackPluginOptions>;
-});
-
 export function validateHtmlPluginOptions(options: HtmlRspackPluginOptions) {
-	return validate(options, getPluginOptionsSchema);
+	return validate(options, getHtmlPluginOptionsSchema);
 }
 
 export const getPluginOptions = (compilation: Compilation, uid: number) => {

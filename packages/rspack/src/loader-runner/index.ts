@@ -985,6 +985,7 @@ export async function runLoaders(
 		if (parallelism) {
 			result =
 				(await pool.run(
+					loaderName,
 					{
 						loaderContext: getWorkerLoaderContext(),
 						loaderState,

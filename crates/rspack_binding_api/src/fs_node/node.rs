@@ -51,6 +51,9 @@ pub struct ThreadsafeNodeFS {
   pub read_until: ReadUtil,
   #[napi(ts_type = "(fd: number, position: number) => Promise<Buffer | void>")]
   pub read_to_end: ReadToEnd,
+  // The following functions are not supported by webpack, so they are optional
+  #[napi(ts_type = "(name: string, mode: number) => Promise<void>")]
+  pub chmod: Option<ThreadsafeFunction<(String, u32), Promise<()>>>,
 }
 
 #[napi(object, object_to_js = false)]
@@ -63,6 +66,7 @@ pub struct NodeFsStats {
   pub ctime_ms: u32,
   pub birthtime_ms: u32,
   pub size: u32,
+  pub mode: u32,
 }
 
 impl From<NodeFsStats> for FileMetadata {

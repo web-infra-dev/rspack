@@ -5,9 +5,7 @@ use rspack_core::{
   basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkGroupOrderKey,
   ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_plugin_runtime::{
-  chunk_has_css, get_chunk_runtime_requirements, is_neutral_platform, stringify_chunks,
-};
+use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rustc_hash::FxHashSet as HashSet;
 
 #[impl_runtime_module]
@@ -108,9 +106,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       let environment = &compilation.options.output.environment;
-      let is_neutral_platform = is_neutral_platform(compilation);
       let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-        && (environment.supports_document() || is_neutral_platform)
+        && environment.supports_document()
         && chunk.has_child_by_order(
           compilation,
           &ChunkGroupOrderKey::Prefetch,
@@ -118,7 +115,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &chunk_has_css,
         );
       let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-        && (environment.supports_document() || is_neutral_platform)
+        && environment.supports_document()
         && chunk.has_child_by_order(
           compilation,
           &ChunkGroupOrderKey::Preload,

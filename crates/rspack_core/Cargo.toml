@@ -14,7 +14,7 @@ bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
 derive_more = { workspace = true, features = ["debug"] }
-dyn-clone = "1.0.17"
+dyn-clone = { workspace = true }
 either = { workspace = true }
 futures = { workspace = true }
 hashlink = { workspace = true }
@@ -25,7 +25,7 @@ itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
 napi = { workspace = true, optional = true }
-num-bigint = "0.4.6"
+num-bigint = { workspace = true }
 once_cell = { workspace = true }
 paste = { workspace = true }
 rayon = { workspace = true }
@@ -53,6 +53,7 @@ rspack_sources = { workspace = true }
 rspack_storage = { workspace = true }
 rspack_tasks = { workspace = true }
 rspack_util = { workspace = true }
+rspack_workspace = { workspace = true }
 rustc-hash = { workspace = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
@@ -80,7 +81,7 @@ tracing = { workspace = true }
 ustr = { workspace = true }
 
 [dev-dependencies]
-pretty_assertions = { version = "1.4.1" }
+pretty_assertions = { workspace = true }
 
 [lints]
 workspace = true

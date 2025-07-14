@@ -46,13 +46,14 @@ use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
   ecma::transforms::base::resolver,
 };
+use tokio::sync::RwLock;
 
 use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
 };
 
 static COMPILATION_HOOKS_MAP: LazyLock<
-  FxDashMap<CompilationId, Box<JavascriptModulesPluginHooks>>,
+  FxDashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>,
 > = LazyLock::new(Default::default);
 
 #[derive(Debug, Clone)]
@@ -63,23 +64,27 @@ struct WithHash<T> {
 
 #[derive(Debug, Default)]
 struct RenameModuleCache {
-  inlined_modules_to_info: IdentifierDashMap<WithHash<InlinedModuleInfo>>,
-  non_inlined_modules_through_idents: IdentifierDashMap<WithHash<Vec<ConcatenatedModuleIdent>>>,
+  inlined_modules_to_info: IdentifierDashMap<Arc<WithHash<InlinedModuleInfo>>>,
+  non_inlined_modules_through_idents:
+    IdentifierDashMap<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>>,
 }
 
 impl RenameModuleCache {
-  pub fn get_inlined_info(
-    &self,
-    ident: &Identifier,
-  ) -> Option<dashmap::mapref::one::Ref<'_, Identifier, WithHash<InlinedModuleInfo>>> {
-    self.inlined_modules_to_info.get(ident)
+  pub fn get_inlined_info(&self, ident: &Identifier) -> Option<Arc<WithHash<InlinedModuleInfo>>> {
+    self
+      .inlined_modules_to_info
+      .get(ident)
+      .map(|info| info.clone())
   }
 
   pub fn get_non_inlined_idents(
     &self,
     ident: &Identifier,
-  ) -> Option<dashmap::mapref::one::Ref<'_, Identifier, WithHash<Vec<ConcatenatedModuleIdent>>>> {
-    self.non_inlined_modules_through_idents.get(ident)
+  ) -> Option<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>> {
+    self
+      .non_inlined_modules_through_idents
+      .get(ident)
+      .map(|idents| idents.clone())
   }
 }
 
@@ -104,21 +109,18 @@ pub struct JsPlugin {
 }
 
 impl JsPlugin {
-  pub fn get_compilation_hooks(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<JavascriptModulesPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<JavascriptModulesPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
     COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
+      .clone()
   }
 
-  pub fn get_compilation_hooks_mut(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<JavascriptModulesPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<JavascriptModulesPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
@@ -352,7 +354,12 @@ impl JsPlugin {
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-          let bailout = hooks.inline_in_runtime_bailout.call(compilation).await?;
+          let bailout = hooks
+            .read()
+            .await
+            .inline_in_runtime_bailout
+            .call(compilation)
+            .await?;
           if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
             allow_inline_startup = false;
@@ -555,6 +562,8 @@ impl JsPlugin {
     }
     if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
       if let Some(strict_bailout) = hooks
+        .read()
+        .await
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)
         .await?
@@ -693,6 +702,8 @@ impl JsPlugin {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
           hooks
+            .read()
+            .await
             .embed_in_runtime_bailout
             .call(compilation, m, chunk)
             .await?
@@ -743,6 +754,8 @@ impl JsPlugin {
         source: startup_sources.boxed(),
       };
       hooks
+        .read()
+        .await
         .render_startup
         .call(
           compilation,
@@ -762,6 +775,8 @@ impl JsPlugin {
         source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
       };
       hooks
+        .read()
+        .await
         .render_startup
         .call(
           compilation,
@@ -791,6 +806,8 @@ impl JsPlugin {
       source: final_source,
     };
     hooks
+      .read()
+      .await
       .render
       .call(compilation, chunk_ukey, &mut render_source)
       .await?;
@@ -979,10 +996,10 @@ impl JsPlugin {
 
                   self.rename_module_cache.inlined_modules_to_info.insert(
                     ident,
-                    WithHash {
+                    Arc::new(WithHash {
                       hash: ChunkGraph::get_module_hash(compilation, ident, runtime).cloned(),
                       value: info.clone(),
-                    },
+                    }),
                   );
 
                   acc.inlined_modules_to_info.insert(ident, info);
@@ -1004,11 +1021,11 @@ impl JsPlugin {
                     .non_inlined_modules_through_idents
                     .insert(
                       module_ident,
-                      WithHash {
+                      Arc::new(WithHash {
                         hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
                           .cloned(),
                         value: idents_vec.clone(),
-                      },
+                      }),
                     );
                 }
               }
@@ -1160,6 +1177,8 @@ impl JsPlugin {
     let mut sources = ConcatSource::default();
     if !all_strict && chunk_modules.iter().all(|m| m.build_info().strict) {
       if let Some(strict_bailout) = hooks
+        .read()
+        .await
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)
         .await?
@@ -1185,6 +1204,8 @@ impl JsPlugin {
       source: chunk_modules_source,
     };
     hooks
+      .read()
+      .await
       .render_chunk
       .call(compilation, chunk_ukey, &mut render_source)
       .await?;
@@ -1197,6 +1218,8 @@ impl JsPlugin {
       source: source_with_fragments,
     };
     hooks
+      .read()
+      .await
       .render
       .call(compilation, chunk_ukey, &mut render_source)
       .await?;
@@ -1215,7 +1238,13 @@ impl JsPlugin {
     hasher: &mut RspackHash,
   ) -> Result<()> {
     let hooks = Self::get_compilation_hooks(compilation.id());
-    hooks.chunk_hash.call(compilation, chunk_ukey, hasher).await
+    hooks
+      .read()
+      .await
+      .chunk_hash
+      .call(compilation, chunk_ukey, hasher)
+      .await?;
+    Ok(())
   }
 
   #[inline]
