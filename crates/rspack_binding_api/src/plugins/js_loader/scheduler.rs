@@ -143,7 +143,15 @@ pub(crate) fn merge_loader_context(
       Some(content)
     }
   };
-  let source_map = from.source_map.map(Into::into);
+  let source_map = match from.source_map {
+    Some(map) => Some(match map {
+      Either::A(str) => {
+        rspack_core::rspack_sources::SourceMap::from_json(&str).into_diagnostic()?
+      }
+      Either::B(map) => map.into(),
+    }),
+    None => None,
+  };
   let additional_data = from.additional_data.take().map(|data| {
     let mut additional = AdditionalData::default();
     additional.insert(data);

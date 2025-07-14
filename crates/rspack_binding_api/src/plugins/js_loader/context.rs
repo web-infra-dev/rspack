@@ -99,7 +99,7 @@ pub struct JsLoaderContext {
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
-  pub source_map: Option<SourceMap>,
+  pub source_map: Option<Either<String, SourceMap>>,
   pub cacheable: bool,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
@@ -144,7 +144,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .additional_data()
         .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
         .cloned(),
-      source_map: cx.source_map().map(Into::into),
+      source_map: cx.source_map().map(|map| Either::B(map.into())),
       cacheable: cx.cacheable,
       file_dependencies: cx
         .file_dependencies

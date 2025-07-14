@@ -919,7 +919,7 @@ export interface JsLoaderContext {
   content: null | Buffer
   additionalData?: any
   __internal__parseMeta: Record<string, string>
-  sourceMap?: SourceMap
+  sourceMap?: string | SourceMap
   cacheable: boolean
   fileDependencies: Array<string>
   contextDependencies: Array<string>

@@ -346,6 +346,12 @@ pub struct SourceMap {
   pub debug_id: Option<String>,
 }
 
+impl ValidateNapiValue for SourceMap {
+  unsafe fn validate(env: sys::napi_env, napi_val: sys::napi_value) -> Result<sys::napi_value> {
+    Object::validate(env, napi_val)
+  }
+}
+
 impl FromNapiValue for SourceMap {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     let object: Object = FromNapiValue::from_napi_value(env, napi_val)?;
