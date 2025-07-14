@@ -24,10 +24,10 @@
     "dev": "rslib build -w"
   },
   "dependencies": {
-    "create-rstack": "1.5.1"
+    "create-rstack": "1.5.4"
   },
   "devDependencies": {
-    "@rslib/core": "0.10.0",
+    "@rslib/core": "0.10.5",
     "typescript": "^5.8.3"
   },
   "publishConfig": {

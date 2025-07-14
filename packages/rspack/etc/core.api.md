@@ -3442,7 +3442,9 @@ interface JsFormatOptions_2 {
     asciiOnly?: boolean;
     beautify?: boolean;
     braces?: boolean;
-    comments?: false | "some" | "all";
+    comments?: false | "some" | "all" | {
+        regex: string;
+    };
     ecma?: TerserEcmaVersion_2;
     indentLevel?: number;
     indentStart?: number;
@@ -8069,7 +8071,6 @@ interface TransformConfig {
     decoratorMetadata?: boolean;
     decoratorVersion?: "2021-12" | "2022-03";
     legacyDecorator?: boolean;
-    nativeClassProperties?: boolean;
     optimizer?: OptimizerConfig;
     react?: ReactConfig;
     // (undocumented)

@@ -5,7 +5,7 @@ mod integrity;
 mod runtime;
 mod util;
 
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use asset::{detect_unresolved_integrity, handle_assets, update_hash};
 use config::SRICompilationContext;
@@ -27,11 +27,13 @@ use rspack_plugin_runtime::RuntimePlugin;
 use rspack_util::fx_hash::FxDashMap;
 use runtime::{create_script, handle_runtime, link_preload};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::RwLock;
 
-static COMPILATION_INTEGRITY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<String, String>>> =
-  LazyLock::new(Default::default);
+type CompilationIntegrityMap =
+  LazyLock<FxDashMap<CompilationId, Arc<RwLock<HashMap<String, String>>>>>;
 
-static COMPILATION_CONTEXT_MAP: LazyLock<FxDashMap<CompilationId, SRICompilationContext>> =
+static COMPILATION_INTEGRITY_MAP: CompilationIntegrityMap = LazyLock::new(Default::default);
+static COMPILATION_CONTEXT_MAP: LazyLock<FxDashMap<CompilationId, Arc<SRICompilationContext>>> =
   LazyLock::new(Default::default);
 
 #[plugin]
@@ -45,33 +47,31 @@ impl SubresourceIntegrityPlugin {
     Self::new_inner(options)
   }
 
-  pub fn get_compilation_sri_context(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, SRICompilationContext> {
+  pub fn get_compilation_sri_context(id: CompilationId) -> Arc<SRICompilationContext> {
     COMPILATION_CONTEXT_MAP
       .get(&id)
       .expect("should have sri context")
+      .clone()
   }
 
   pub fn set_compilation_sri_context(id: CompilationId, ctx: SRICompilationContext) {
-    COMPILATION_CONTEXT_MAP.insert(id, ctx);
+    COMPILATION_CONTEXT_MAP.insert(id, Arc::new(ctx));
   }
 
-  pub fn get_compilation_integrities(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, HashMap<String, String>> {
+  pub fn get_compilation_integrities(id: CompilationId) -> Arc<RwLock<HashMap<String, String>>> {
     if !COMPILATION_INTEGRITY_MAP.contains_key(&id) {
       COMPILATION_INTEGRITY_MAP.insert(id, Default::default());
     }
     COMPILATION_INTEGRITY_MAP
       .get(&id)
       .expect("should have compilation integrities")
+      .clone()
   }
 
   pub fn get_compilation_integrities_mut(
     id: CompilationId,
-  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, HashMap<String, String>> {
-    COMPILATION_INTEGRITY_MAP.entry(id).or_default()
+  ) -> Arc<RwLock<HashMap<String, String>>> {
+    COMPILATION_INTEGRITY_MAP.entry(id).or_default().clone()
   }
 }
 
@@ -101,11 +101,14 @@ async fn handle_compilation(
   };
   SubresourceIntegrityPlugin::set_compilation_sri_context(compilation.id(), ctx);
 
-  let mut real_content_hash_plugin_hooks =
-    RealContentHashPlugin::get_compilation_hooks_mut(compilation.id());
-  real_content_hash_plugin_hooks
-    .update_hash
-    .tap(update_hash::new(self));
+  {
+    let real_content_hash_plugin_hooks =
+      RealContentHashPlugin::get_compilation_hooks_mut(compilation.id());
+    let mut real_content_hash_plugin_hooks = real_content_hash_plugin_hooks.write().await;
+    real_content_hash_plugin_hooks
+      .update_hash
+      .tap(update_hash::new(self));
+  }
 
   if matches!(
     compilation.options.output.cross_origin_loading,
@@ -117,16 +120,20 @@ async fn handle_compilation(
     ));
   }
 
-  let mut runtime_plugin_hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
-  runtime_plugin_hooks
-    .create_script
-    .tap(create_script::new(self));
-  runtime_plugin_hooks
-    .link_preload
-    .tap(link_preload::new(self));
+  {
+    let runtime_plugin_hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
+    let mut runtime_plugin_hooks = runtime_plugin_hooks.write().await;
+    runtime_plugin_hooks
+      .create_script
+      .tap(create_script::new(self));
+    runtime_plugin_hooks
+      .link_preload
+      .tap(link_preload::new(self));
+  }
 
   if matches!(self.options.html_plugin, IntegrityHtmlPlugin::NativePlugin) {
-    let mut html_plugin_hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+    let html_plugin_hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
+    let mut html_plugin_hooks = html_plugin_hooks.write().await;
     html_plugin_hooks
       .before_asset_tag_generation
       .tap(before_asset_tag_generation::new(self));

@@ -60,8 +60,6 @@ impl ModuleDependency for ContainerExposedDependency {
     &self.request
   }
 
-  fn set_request(&mut self, _request: String) {}
-
   fn factorize_info(&self) -> &FactorizeInfo {
     &self.factorize_info
   }

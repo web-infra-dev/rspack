@@ -1,7 +1,7 @@
 use std::{
   borrow::Cow,
   path::{Path, PathBuf},
-  sync::LazyLock,
+  sync::{Arc, LazyLock},
 };
 
 use cow_utils::CowUtils;
@@ -11,6 +11,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
+use tokio::sync::RwLock;
 
 use crate::{
   asset::{create_favicon_asset, create_html_asset, HtmlPluginAssetTags, HtmlPluginAssets},
@@ -22,7 +23,7 @@ use crate::{
   BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
 };
 
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<HtmlPluginHooks>>> =
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Arc<RwLock<HtmlPluginHooks>>>> =
   LazyLock::new(Default::default);
 
 #[plugin]
@@ -36,21 +37,18 @@ impl HtmlRspackPlugin {
     Self::new_inner(config)
   }
 
-  pub fn get_compilation_hooks(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<HtmlPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<HtmlPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
     COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
+      .clone()
   }
 
-  pub fn get_compilation_hooks_mut(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<HtmlPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<HtmlPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
 
@@ -59,7 +57,7 @@ async fn generate_html(
   html_file_name: &Filename,
   config: &HtmlRspackPluginOptions,
   compilation: &mut Compilation,
-  hooks: &HtmlPluginHooks,
+  hooks: Arc<RwLock<HtmlPluginHooks>>,
 ) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
   let public_path = config.get_public_path(compilation, filename).await;
 
@@ -81,6 +79,8 @@ async fn generate_html(
   .await?;
 
   let before_generation_data = hooks
+    .read()
+    .await
     .before_asset_tag_generation
     .call(BeforeAssetTagGenerationData {
       assets: assets_info.0,
@@ -94,6 +94,8 @@ async fn generate_html(
     HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets, &assets_info.1);
 
   let alter_asset_tags_data = hooks
+    .read()
+    .await
     .alter_asset_tags
     .call(AlterAssetTagsData {
       asset_tags,
@@ -108,6 +110,8 @@ async fn generate_html(
     HtmlPluginAssetTags::to_groups(config, alter_asset_tags_data.asset_tags);
 
   let alter_asset_tag_groups_data = hooks
+    .read()
+    .await
     .alter_asset_tag_groups
     .call(AlterAssetTagGroupsData {
       head_tags,
@@ -133,6 +137,8 @@ async fn generate_html(
   let template_execution_result = template.render(config).await?;
 
   let mut after_template_execution_data = hooks
+    .read()
+    .await
     .after_template_execution
     .call(AfterTemplateExecutionData {
       html: template_execution_result,
@@ -218,7 +224,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &output_file_name,
       config,
       compilation,
-      &hooks,
+      hooks.clone(),
     )
     .await
     {
@@ -236,6 +242,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     };
 
     let mut before_emit_data = hooks
+      .read()
+      .await
       .before_emit
       .call(BeforeEmitData {
         html,
@@ -267,6 +275,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     compilation.emit_asset(html_asset.0.clone(), html_asset.1);
 
     let _ = hooks
+      .read()
+      .await
       .after_emit
       .call(AfterEmitData {
         output_name: html_asset.0.to_string(),
