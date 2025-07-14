@@ -10,8 +10,8 @@ use napi::{
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
   Env, JsValue, Status, Unknown, ValueType,
 };
-use oneshot::Receiver;
 use rspack_error::{Error, Result};
+use tokio::sync::oneshot::{self, Receiver};
 
 use crate::{JsCallback, NapiErrorToRspackErrorExt};
 
@@ -63,7 +63,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<
 
 impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   async fn resolve_error(&self, err: napi::Error) -> Error {
-    let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
+    let (tx, rx) = oneshot::channel::<rspack_error::Error>();
     ERROR_RESOLVER
       .get()
       // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.
