@@ -340,9 +340,9 @@ import {
 import { createNativePlugin } from "./builtin-plugin";
 import { JavaScriptTracer } from "./trace";
 
+import { SourceMapDevToolModuleOptionsPlugin } from "./builtin-plugin/SourceMapDevToolModuleOptionsPlugin";
 ///// Experiments SWC /////
 import { minify, minifySync, transform, transformSync } from "./swc";
-import { SourceMapDevToolModuleOptionsPlugin } from "./builtin-plugin/SourceMapDevToolModuleOptionsPlugin";
 
 interface Experiments {
 	globalTrace: {

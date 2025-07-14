@@ -595,10 +595,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     Some(ErrorSpan::new(self.range_src.start, self.range_src.end))
   }
 
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::new_fn(
       ESMImportSideEffectDependencyCondition,

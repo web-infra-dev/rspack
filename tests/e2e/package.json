@@ -18,16 +18,16 @@
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.0.0",
     "fs-extra": "^11.3.0",
-    "postcss": "^8.5.4",
+    "postcss": "^8.5.6",
     "postcss-loader": "^8.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-refresh": "^0.17.0",
     "typescript": "^5.8.3",
     "tailwindcss": "^3.4.17",
-    "vue": "^3.5.16",
+    "vue": "^3.5.17",
     "vue-loader": "^17.4.2",
     "css-loader": "^7.1.2",
-    "ws": "^8.18.2"
+    "ws": "^8.18.3"
   }
 }
