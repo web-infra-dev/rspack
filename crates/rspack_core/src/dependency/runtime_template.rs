@@ -459,7 +459,7 @@ pub fn import_statement(
   let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
 
   let import_content = format!(
-    "/* ESM import [RT1] */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
+    "/* ESM import */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
     RuntimeGlobals::REQUIRE
   );
 
@@ -474,7 +474,7 @@ pub fn import_statement(
     return (
       import_content,
       format!(
-        "/* ESM import [RT2] */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+        "/* ESM import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
         RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
       ),
     );
