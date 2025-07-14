@@ -404,7 +404,7 @@ export class Watching {
 			removed?: Iterable<string>;
 		};
 		missingDependencies.added = new Set(
-			compilation.__internal__removedMissingDependencies
+			compilation.__internal__addedMissingDependencies
 		);
 		missingDependencies.removed = new Set(
 			compilation.__internal__removedMissingDependencies
