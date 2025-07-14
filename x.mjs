@@ -317,6 +317,8 @@ program
 			"workspaces",
 			"publish",
 			"--publish-as-is", // Publish crates from the current commit without versioning
+			"--publish-interval", // Number of seconds to wait between publish attempts
+			"5", // 5 seconds to wait between publish attempts to make sure the previous crate is published
 			"--no-remove-dev-deps", // Do not remove dev-dependencies from `Cargo.lock`, otherwise the `Cargo.toml` will be updated and dirty check will fail
 			"--no-verify" // Skip verification of the workspace. This was pre-checked by `release-crates.yml` with `cargo check` with `separated` strategy
 			// Commented `--locked` flag
