@@ -130,11 +130,10 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let mut has_error = false;
 
     while let Some(m) = queue.pop_front() {
-      // to avoid duplicate calculate in https://github.com/web-infra-dev/rspack/issues/10987
-      if modules.contains(&m) {
+      // to avoid duplicate calculations in https://github.com/web-infra-dev/rspack/issues/10987
+      if !modules.insert(m) {
         continue;
       }
-      modules.insert(m);
       let module = mg.module_by_identifier(&m).expect("should have module");
       let build_info = module.build_info();
       execute_result
