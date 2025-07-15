@@ -1,5 +1,4 @@
 import { containers } from "./containers";
-
 const { PlatformProvider } = containers;
 
 const Index = () => {

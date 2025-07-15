@@ -1,4 +1,3 @@
-import { aaa, routes } from "./a.js";
-
+import { routes, aaa } from "./a.js";
 routes;
 aaa.result;

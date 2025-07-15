@@ -1,2 +1,2 @@
-const a = "index";
+let a = "index";
 require(`./child/${a}.js`);

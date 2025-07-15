@@ -10,7 +10,7 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.thisCompilation.tap("test", compilation => {
 					compilation.hooks.afterSeal.tap("test", () => {
-						const entrypoint = compilation.entrypoints.get("main");
+						let entrypoint = compilation.entrypoints.get("main");
 
 						compilation.chunkGraph
 							.getChunkModules(entrypoint.chunks[0])

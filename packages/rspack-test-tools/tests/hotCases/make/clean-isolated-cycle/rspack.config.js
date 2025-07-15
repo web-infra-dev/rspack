@@ -1,6 +1,6 @@
 function check_issuer(modules) {
 	let available = [];
-	const map = {};
+	let map = {};
 	for (const m of modules) {
 		map[m.identifier] = m.issuer;
 	}
@@ -8,7 +8,7 @@ function check_issuer(modules) {
 		if (available.includes(m.identifier)) {
 			continue;
 		}
-		const paths = [];
+		let paths = [];
 		let current = m.identifier;
 		while (true) {
 			if (!current) {
@@ -28,10 +28,10 @@ function assert_cycle_module_count(modules, count) {
 	let cycle1_count = 0;
 	let cycle2_count = 0;
 	for (const m of modules) {
-		if (/[/\\]cycle1[/\\]/.test(m.identifier)) {
+		if (/[\/\\]cycle1[\/\\]/.test(m.identifier)) {
 			cycle1_count++;
 		}
-		if (/[/\\]cycle2[/\\]/.test(m.identifier)) {
+		if (/[\/\\]cycle2[\/\\]/.test(m.identifier)) {
 			cycle2_count++;
 		}
 	}
@@ -51,7 +51,7 @@ module.exports = {
 			apply(compiler) {
 				let time = 0;
 				compiler.hooks.done.tap("PLUGIN", stats => {
-					const { modules } = stats.toJson({ modules: true });
+					let { modules } = stats.toJson({ modules: true });
 					if (time == 0) {
 						assert_cycle_module_count(modules, 3);
 					}

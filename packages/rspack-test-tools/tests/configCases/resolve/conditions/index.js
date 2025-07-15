@@ -1,5 +1,5 @@
-import entryValue from "exports-field";
 import mappedValue from "exports-field/dist/main";
+import entryValue from "exports-field";
 
 it("conditionNames should works", () => {
 	expect(mappedValue).toBe("lib/lib2/main");

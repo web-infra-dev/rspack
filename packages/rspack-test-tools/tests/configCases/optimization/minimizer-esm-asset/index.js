@@ -1,6 +1,6 @@
+import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 it("minimizing an asset file of esm type should success", () => {
 	const worker = new URL("./pkg/pkg.js", import.meta.url);

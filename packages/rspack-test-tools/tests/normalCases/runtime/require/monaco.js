@@ -64,6 +64,7 @@ let __insane_func;
 	{
 		1: [
 			function (require, module, exports) {
+				"use strict";
 
 				var toMap = require("./toMap");
 				var uris = [
@@ -84,6 +85,7 @@ let __insane_func;
 		],
 		2: [
 			function (require, module, exports) {
+				"use strict";
 
 				var defaults = {
 					allowedAttributes: {
@@ -149,6 +151,7 @@ let __insane_func;
 		],
 		3: [
 			function (require, module, exports) {
+				"use strict";
 
 				var toMap = require("./toMap");
 				var voids = [
@@ -173,6 +176,7 @@ let __insane_func;
 		],
 		4: [
 			function (require, module, exports) {
+				"use strict";
 
 				var he = require("he");
 				var assign = require("assignment");
@@ -199,6 +203,7 @@ let __insane_func;
 		],
 		5: [
 			function (require, module, exports) {
+				"use strict";
 
 				module.exports = function lowercase(string) {
 					return typeof string === "string" ? string.toLowerCase() : string;
@@ -208,6 +213,7 @@ let __insane_func;
 		],
 		6: [
 			function (require, module, exports) {
+				"use strict";
 
 				function assignment(result) {
 					var stack = Array.prototype.slice.call(arguments, 1);
@@ -237,6 +243,7 @@ let __insane_func;
 		],
 		7: [
 			function (require, module, exports) {
+				"use strict";
 
 				var he = require("he");
 				var lowercase = require("./lowercase");
@@ -395,6 +402,7 @@ let __insane_func;
 		],
 		8: [
 			function (require, module, exports) {
+				"use strict";
 
 				var he = require("he");
 				var lowercase = require("./lowercase");
@@ -545,6 +553,7 @@ let __insane_func;
 		],
 		9: [
 			function (require, module, exports) {
+				"use strict";
 
 				var escapes = {
 					"&": "&amp;",
@@ -596,6 +605,7 @@ let __insane_func;
 		],
 		10: [
 			function (require, module, exports) {
+				"use strict";
 
 				function toMap(list) {
 					return list.reduce(asKey, {});

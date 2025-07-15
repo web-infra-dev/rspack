@@ -1,6 +1,6 @@
 it("should pass the path to the loader", () => {
 	const path = require("path");
-	const result = require("./a");
+	let result = require("./a");
 	expect(result).toEqual({
 		resourcePath: path.join(
 			__dirname,

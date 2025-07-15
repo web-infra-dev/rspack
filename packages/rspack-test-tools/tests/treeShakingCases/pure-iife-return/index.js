@@ -1,9 +1,9 @@
 import { A, B } from "./b";
 
-const obj = /*#__PURE__*/ (() => {
+let obj = /*#__PURE__*/ (() => {
 	return B;
 })();
 
-const obj2 = (() => {
+let obj2 = (() => {
 	console.log(A);
 })();

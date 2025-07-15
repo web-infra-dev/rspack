@@ -1,4 +1,4 @@
-import { other, Test, val2c } from "./concatenated-shared";
+import { other, val2c, Test } from "./concatenated-shared";
 
 it("should have the correct value", () => {
 	expect(other).toBe("other");

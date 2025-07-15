@@ -1,5 +1,6 @@
-import jQuery from './jquery';
 import * as lib from "./lib";
+
+import jQuery from './jquery';
 
 it("should be able to define a local module with a name", function () {
 	expect(lib.foo).toBe('foo');

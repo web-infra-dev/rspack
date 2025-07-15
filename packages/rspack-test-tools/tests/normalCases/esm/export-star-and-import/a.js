@@ -1,3 +1,3 @@
 export default 1;
-export const a = "a";
-export const b = "b";
+export let a = "a";
+export let b = "b";

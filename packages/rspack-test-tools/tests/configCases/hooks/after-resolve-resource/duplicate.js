@@ -1,7 +1,7 @@
-import fs from "fs";
 import a from "./a";
 import b from "./b"; // b.js will be transform to c.js
 import c from "./c";
+import fs from "fs";
 
 it("should remove duplicate request modules generate by after resolve hook", () => {
   expect(a).toBe("a");

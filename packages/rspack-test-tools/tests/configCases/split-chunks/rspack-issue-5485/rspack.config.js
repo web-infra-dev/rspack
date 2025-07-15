@@ -15,11 +15,11 @@ module.exports = {
 			minSize: 0,
 			cacheGroups: {
 				lib_1: {
-					test: /lib[/\\]a.js/,
+					test: /lib[\/\\]a.js/,
 					name: "lib1"
 				},
 				lib_2: {
-					test: /lib[/\\]a.js/,
+					test: /lib[\/\\]a.js/,
 					name: "lib2"
 				}
 			}

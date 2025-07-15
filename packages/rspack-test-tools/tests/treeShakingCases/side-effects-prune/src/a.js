@@ -1,4 +1,4 @@
-import { b, test } from "./d.js";
+import { test, b } from "./d.js";
 
 export const a = () => {
 	test();

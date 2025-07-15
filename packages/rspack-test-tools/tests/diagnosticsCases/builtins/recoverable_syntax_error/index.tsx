@@ -1,1 +1,1 @@
-const c = <test>() => {}</test>;
+let c = <test>() => {}</test>;

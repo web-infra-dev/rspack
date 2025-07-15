@@ -1,5 +1,4 @@
 import a_extern from "./a";
-
 const a = {
 	set b(b) {
 		this.c = this._get();

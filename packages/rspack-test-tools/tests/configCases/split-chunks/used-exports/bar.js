@@ -1,5 +1,5 @@
-import fs from 'fs'
 import { bar } from './shared.js';
+import fs from 'fs'
 
 bar;
 it('foo', () => {

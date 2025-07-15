@@ -20,7 +20,7 @@ class Plugin {
 			});
 		});
 		compiler.hooks.done.tap(pluginName, stats => {
-			const json = stats.toJson();
+			let json = stats.toJson();
 			expect(json.errors.length === 0);
 			expect(called).toBe(true);
 		});

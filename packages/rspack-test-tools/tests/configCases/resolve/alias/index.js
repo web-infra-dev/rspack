@@ -1,7 +1,7 @@
 import value from "@b";
+import value2 from "xx";
 import value3 from "alias";
 import value4 from "ignored";
-import value2 from "xx";
 import * as noAlias from "./no-alias";
 
 it("alias should work", () => {

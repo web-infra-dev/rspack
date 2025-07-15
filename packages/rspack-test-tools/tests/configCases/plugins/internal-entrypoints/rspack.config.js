@@ -15,10 +15,10 @@ module.exports = {
 					compilation.hooks.processAssets.tapPromise(
 						"processAssets1",
 						async assets => {
-							const inspect = new ConcatSource();
-							for (const [n, cg] of compilation.entrypoints) {
+							let inspect = new ConcatSource();
+							for (let [n, cg] of compilation.entrypoints) {
 								inspect.add(`entry name: ${n}\n`);
-								for (const file of cg.getFiles()) {
+								for (let file of cg.getFiles()) {
 									inspect.add(`  file: ${file}\n`);
 								}
 							}

@@ -18,7 +18,7 @@ it("should builtins define works", () => {
 	expect(NUMBER).toBe(100.05);
 	expect(ZERO).toBe(0);
 
-	const ZERO_OBJ = { ZERO: 0 };
+	let ZERO_OBJ = { ZERO: 0 };
 	expect(ZERO_OBJ.ZERO).toBe(0);
 	expect(ZERO_OBJ[ZERO]).toBe(undefined);
 	expect(ZERO_OBJ[0]).toBe(undefined);
@@ -90,7 +90,7 @@ it("should builtins define works", () => {
 
 	const DO_NOT_CONVERTED = 201;
 	expect(DO_NOT_CONVERTED).toBe(201);
-	const { DO_NOT_CONVERTED2 } = { DO_NOT_CONVERTED2: 202 };
+	let { DO_NOT_CONVERTED2 } = { DO_NOT_CONVERTED2: 202 };
 	expect(DO_NOT_CONVERTED2).toBe(202);
 	const { c: DO_NOT_CONVERTED3 } = { c: 203 };
 	expect(DO_NOT_CONVERTED3).toBe(203);
@@ -100,7 +100,7 @@ it("should builtins define works", () => {
 		error_count += 1;
 	} catch (err) {}
 	expect(error_count).toBe(4);
-	const DO_NOT_CONVERTED4 = 204;
+	let DO_NOT_CONVERTED4 = 204;
 
 	const USELESS = {
 		ZERO: 0
@@ -115,9 +115,16 @@ it("should builtins define works", () => {
 		const B = ZERO;
 		expect(B).toBe(0);
 
-		const IN_BLOCK = 2;
+		let IN_BLOCK = 2;
 		expect(IN_BLOCK).toBe(2);
+
+		{
+			{
+				{
 					expect(SHOULD_CONVERTED).toBe(205);
+				}
+			}
+		}
 	}
 
 	try {

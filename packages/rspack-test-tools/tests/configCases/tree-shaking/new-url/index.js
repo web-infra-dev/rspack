@@ -1,6 +1,5 @@
 import { a } from "./a";
 import { b } from "./b";
-
 const fs = require("fs");
 const path = require("path");
 

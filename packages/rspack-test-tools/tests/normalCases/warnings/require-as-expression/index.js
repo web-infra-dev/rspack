@@ -1,6 +1,6 @@
 it("should add warning on using as expression", () => {
-	const _require1 = require;
+	let _require1 = require;
 	expect(typeof _require1).toBe("function");
-	const _require2 = () => require;
+	let _require2 = () => require;
 	expect(_require2.toString()).toBe("() => __webpack_require__(/*! . */ \"./warnings/require-as-expression sync recursive\")")
 });

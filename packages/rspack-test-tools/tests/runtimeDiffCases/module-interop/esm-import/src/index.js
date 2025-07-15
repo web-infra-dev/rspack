@@ -1,12 +1,12 @@
 import defaultExport from "./esm/default";
-import defaultExport4, * as defaultExport5 from "./esm/default-multiple-rename";
-import { default as defaultExport2 } from "./esm/default-rename";
-import defaultExport3, { h as _h, g } from "./esm/export-default-multiple";
-import { c, d } from "./esm/export-multiple";
-import { f as _f, e } from "./esm/export-multiple-rename";
-import { b as _b } from "./esm/export-rename";
-import { a } from "./esm/export-single";
 import * as starExport from "./esm/star";
+import { a } from "./esm/export-single";
+import { b as _b } from "./esm/export-rename";
+import { default as defaultExport2 } from "./esm/default-rename";
+import { c, d } from "./esm/export-multiple";
+import { e, f as _f } from "./esm/export-multiple-rename";
+import defaultExport3, { g, h as _h } from "./esm/export-default-multiple";
+import defaultExport4, * as defaultExport5 from "./esm/default-multiple-rename";
 import "./esm/unuse";
 
 // prevent global use strict

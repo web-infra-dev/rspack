@@ -14,7 +14,7 @@ assert.deepStrictEqual(UNDEFINED, undefined);
 // assert.equal(typeof FUNCTION, "function");
 assert.deepStrictEqual(NUMBER, 100.05);
 assert.deepStrictEqual(ZERO, 0);
-const ZERO_OBJ = { ZERO: 0 };
+let ZERO_OBJ = { ZERO: 0 };
 assert.deepStrictEqual(ZERO_OBJ.ZERO, 0);
 assert.deepStrictEqual(ZERO_OBJ[ZERO], undefined);
 assert.deepStrictEqual(ZERO_OBJ[0], undefined);
@@ -87,7 +87,7 @@ assert.deepStrictEqual(P1.P2.P4.P4, undefined);
 
 const DO_NOT_CONVERTED = 201;
 assert.deepStrictEqual(DO_NOT_CONVERTED, 201);
-const { DO_NOT_CONVERTED2 } = { DO_NOT_CONVERTED2: 202 };
+let { DO_NOT_CONVERTED2 } = { DO_NOT_CONVERTED2: 202 };
 assert.deepStrictEqual(DO_NOT_CONVERTED2, 202);
 const { c: DO_NOT_CONVERTED3 } = { c: 203 };
 assert.deepStrictEqual(DO_NOT_CONVERTED3, 203);
@@ -97,7 +97,7 @@ try {
 	error_count += 1;
 } catch (err) {}
 assert.deepStrictEqual(error_count, 4);
-const DO_NOT_CONVERTED4 = 204;
+let DO_NOT_CONVERTED4 = 204;
 
 const USELESS = {
 	ZERO: 0
@@ -112,9 +112,16 @@ const USELESS = {
 	const B = ZERO;
 	assert.deepStrictEqual(B, 0);
 
-	const IN_BLOCK = 2;
+	let IN_BLOCK = 2;
 	assert.deepStrictEqual(IN_BLOCK, 2);
+
+	{
+		{
+			{
 				assert.deepStrictEqual(SHOULD_CONVERTED, 205);
+			}
+		}
+	}
 }
 
 try {

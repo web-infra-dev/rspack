@@ -1,9 +1,9 @@
 it("context module(sync) + cjs require + tagged template", function (done) {
-	const a = "child/index";
-	const module = require(String.raw`./${a}.js`);
+	let a = "child/index";
+	let module = require(String.raw`./${a}.js`);
 	expect(module.value).toBe("dynamic");
 
-	const tagFunc = function () {
+	let tagFunc = function () {
 		return "fail";
 	};
 	expect(function () {

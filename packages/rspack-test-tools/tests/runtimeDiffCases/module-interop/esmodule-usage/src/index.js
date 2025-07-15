@@ -1,4 +1,4 @@
-import { __esModule as __esModuleA, a } from "./a";
+import { a, __esModule as __esModuleA } from "./a";
 import { b } from "./b";
 
 require("./no-strict");

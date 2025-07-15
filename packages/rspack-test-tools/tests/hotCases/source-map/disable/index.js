@@ -1,5 +1,5 @@
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 import value from './file'
 
 let prevFullhash = __webpack_hash__;

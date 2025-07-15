@@ -1,6 +1,6 @@
+import { lib } from "./lib";
 import fs from 'node:fs';
 import path from 'node:path';
-import { lib } from "./lib";
 
 it("compiled success and generator should ignored", () => {
 	expect(lib).toEqual(42);

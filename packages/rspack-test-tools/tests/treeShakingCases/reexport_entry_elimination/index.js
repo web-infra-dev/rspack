@@ -1,3 +1,2 @@
-import { b, c } from "./a.js";
-
+import { c, b } from "./a.js";
 b;

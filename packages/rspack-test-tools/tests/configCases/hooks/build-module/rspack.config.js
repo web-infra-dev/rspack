@@ -3,7 +3,7 @@ const pluginName = "plugin";
 
 class Plugin {
 	apply(compiler) {
-		const identifiers = [];
+		let identifiers = [];
 		compiler.hooks.compilation.tap(pluginName, compilation => {
 			compilation.hooks.buildModule.tap(pluginName, m => {
 				identifiers.push(m.identifier());

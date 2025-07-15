@@ -11,7 +11,7 @@ module.exports.aaa = [
 
 var aaa = {};
 
-for (const k of module.exports.aaa) {
+for (let k of module.exports.aaa) {
 	aaa[k.name] = module.exports.aaa[k.index].name;
 }
 

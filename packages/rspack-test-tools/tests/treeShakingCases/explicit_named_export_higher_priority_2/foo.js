@@ -1,2 +1,2 @@
-export * from "./bar";
 export { a } from "./baz";
+export * from "./bar";

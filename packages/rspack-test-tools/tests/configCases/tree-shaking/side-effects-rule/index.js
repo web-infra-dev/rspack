@@ -1,5 +1,4 @@
 import { c } from "./package";
-
 const fs = require("fs");
 
 it("should override sideEffects in package.json", () => {

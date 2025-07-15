@@ -46,7 +46,7 @@ const checkStub = async (stub, sourceContent, ident = true) => {
 };
 
 const positionFor = (content, text) => {
-	const lines = content.split(/\r?\n/);
+	let lines = content.split(/\r?\n/);
 	for (let i = 0; i < lines.length; i++) {
 		const column = lines[i].indexOf(text);
 		if (column >= 0) return { line: i + 1, column };

@@ -27,7 +27,7 @@ module.exports = {
 					segments: segments
 				};
 			}
-			const { paths } = getPaths(context);
+			let { paths } = getPaths(context);
 			expect(paths).not.toContain(undefined);
 			if (request === "a") {
 				expect(paths).toEqual(["data:text/", "data:text/"]);

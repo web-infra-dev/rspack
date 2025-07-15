@@ -2,9 +2,9 @@ const assert = require("assert");
 class ErrorPlugin {
 	apply(compiler) {
 		compiler.hooks.thisCompilation.tap("DummyPlugin", compilation => {
-			const error = new Error("error test");
+			let error = new Error("error test");
 			compilation.errors.push(error);
-			const tempError = [...compilation.errors];
+			let tempError = [...compilation.errors];
 			assert(tempError.length === 1);
 		});
 	}

@@ -1,6 +1,5 @@
-import * as path from "path";
 import { c } from "./package";
-
+import * as path from "path";
 const fs = require("fs");
 
 it("should only import assets that included in chunks", () => {

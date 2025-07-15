@@ -1,5 +1,5 @@
 it("should pass fragment to the loader", () => {
-	const result = require("./a#resourcefragment");
+	let result = require("./a#resourcefragment");
 	expect(result).toEqual({
 		resourceFragment: "#resourcefragment",
 		// Formatted by prettier
@@ -8,7 +8,7 @@ it("should pass fragment to the loader", () => {
 });
 
 it("should pass empty fragment to the loader", () => {
-	const result = require("./b");
+	let result = require("./b");
 	expect(result).toEqual({
 		resourceFragment: "",
 		// Formatted by prettier

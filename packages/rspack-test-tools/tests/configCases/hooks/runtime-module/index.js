@@ -1,6 +1,6 @@
+import { a } from "./chunk";
 import fs from "fs";
 import path from "path";
-import { a } from "./chunk";
 
 it("should modify runtime module source in main", () => {
 	expect(__webpack_require__.test).toBeTruthy();

@@ -1,6 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
 import url from "node:url";
+import path from "node:path";
 
 export default function () {
 	console.info("hello world");

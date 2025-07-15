@@ -1,4 +1,4 @@
-import { Colors, Something } from "./export";
+import { Something, Colors } from "./export";
 
 Colors;
 Something;

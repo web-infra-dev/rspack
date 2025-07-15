@@ -1,6 +1,6 @@
 import * as c from "./data/c.json";
 import * as d from "./data/d.json";
-import { aa, bb } from "./data/e.json";
+import { bb, aa } from "./data/e.json";
 import f, { named } from "./data/f.json";
 import g, { named as gnamed } from "./data/g.json";
 

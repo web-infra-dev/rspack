@@ -1,8 +1,7 @@
 // change import order should rebuild chunk graph
-
+import value from './value'
 import lib from "./lib"
 import { v1 } from './re-exports'
-import value from './value'
 
 it("should have correct result", () => {
   expect(lib).toBe(42);

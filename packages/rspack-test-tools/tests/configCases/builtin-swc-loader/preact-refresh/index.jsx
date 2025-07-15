@@ -4,6 +4,6 @@ function component () {
 
 it('should work with preact-refresh', () => {
   const fs = require("fs")
-  const map = fs.readFileSync(__filename + ".map", "utf-8")
+  let map = fs.readFileSync(__filename + ".map", "utf-8")
   expect(map).toContain(STUB)
 })

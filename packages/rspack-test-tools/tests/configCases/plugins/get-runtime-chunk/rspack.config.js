@@ -6,7 +6,7 @@ const table = {
 function plugin(compiler) {
 	compiler.hooks.compilation.tap("plugin", compilation => {
 		compilation.hooks.processAssets.tap("plugin", () => {
-			for (const [name, entrypoint] of compilation.entrypoints.entries()) {
+			for (let [name, entrypoint] of compilation.entrypoints.entries()) {
 				const runtimeChunk = entrypoint.getRuntimeChunk();
 				expect(runtimeChunk.name).toBe(table[name]);
 			}

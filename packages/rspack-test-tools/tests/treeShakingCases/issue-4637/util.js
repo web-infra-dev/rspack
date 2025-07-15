@@ -1,7 +1,7 @@
 import { _ } from "@swc/helpers/_/_create_class";
-
 var ConsoleExporterWeb;
 ConsoleExporterWeb = (function () {
+	"use strict";
 	function ConsoleExporterWeb() {
 		this.stoped = false;
 	}

@@ -8,7 +8,7 @@ module.exports = {
 	entry: async () => {
 		const context = compiler.context;
 		const files = await fs.promises.readdir(context);
-		const entries = files.filter(f => f.startsWith("index"));
+		let entries = files.filter(f => f.startsWith("index"));
 		entries.sort();
 		return entries.reduce((acc, e, i) => {
 			acc[`bundle${i}`] = path.resolve(context, e);

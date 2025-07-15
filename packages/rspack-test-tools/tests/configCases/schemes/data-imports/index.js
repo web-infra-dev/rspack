@@ -1,5 +1,5 @@
-import b from "data:text/javascript,export default 'b';";
 import a from 'data:text/javascript,export default "a";';
+import b from "data:text/javascript,export default 'b';";
 import c from "data:text/javascript,export default `c`;";
 import "data:text/css,.red{color: red;}";
 import "./index.css";

@@ -1,5 +1,6 @@
-import def, { x, z } from "pmodule";
 import { log } from "pmodule/tracker";
+import { x, z } from "pmodule";
+import def from "pmodule";
 
 def.should.be.eql("def");
 x.should.be.eql("x");

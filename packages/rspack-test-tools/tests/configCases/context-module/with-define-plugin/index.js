@@ -1,4 +1,4 @@
 it("should not include foo.js", async () => {
-    const a1 = 'a1';
+    let a1 = 'a1';
     expect(require(`./${process.env.DIR}/` + a1)).toBe("a1");
 });

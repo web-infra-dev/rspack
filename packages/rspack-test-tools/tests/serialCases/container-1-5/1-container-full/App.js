@@ -1,6 +1,6 @@
+import React from "react";
 import ComponentA from "containerA/ComponentA";
 import ComponentB from "containerB/ComponentB";
-import React from "react";
 import LocalComponentB from "./ComponentB";
 
 export default () => {

@@ -1,6 +1,6 @@
 import lib from "./lib"
-import { v1 } from './re-exports'
 import value from './value'
+import { v1 } from './re-exports'
 
 it("should have correct result", () => {
   expect(lib).toBe(42);

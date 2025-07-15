@@ -1,6 +1,6 @@
 const TOP_OF_FILE = 1
 
-import { bar, foo } from './src/barrel'
+import { foo, bar } from './src/barrel'
 
 rs.mock('./src/foo', () => {
   return { value: 'mockedFoo' }

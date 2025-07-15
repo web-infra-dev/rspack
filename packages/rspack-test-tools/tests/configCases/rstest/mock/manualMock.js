@@ -1,5 +1,5 @@
-import { fill } from 'lodash-es'
 import { foo } from './src/barrel'
+import { fill } from 'lodash-es'
 
 rs.mock('./src/foo')
 rs.mock('lodash-es')

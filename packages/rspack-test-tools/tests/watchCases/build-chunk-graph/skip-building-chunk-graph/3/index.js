@@ -1,7 +1,7 @@
+import value from './value'
 import lib from "./lib"
 // import member from same modules should not rebuild chunk graph
 import { v1, v2 } from './re-exports'
-import value from './value'
 
 it("should have correct result", () => {
   expect(lib).toBe(42);

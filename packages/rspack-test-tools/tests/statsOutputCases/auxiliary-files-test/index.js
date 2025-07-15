@@ -1,2 +1,2 @@
-import rawModule from './raw.png'
 import stringModule from './stringModule'
+import rawModule from './raw.png'

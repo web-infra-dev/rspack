@@ -1,4 +1,4 @@
-
+"use strict";
 
 it("should hoist exports", function () {
 	var result = require("./foo").results;

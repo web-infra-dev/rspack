@@ -34,7 +34,7 @@ module.exports = {
 		});
 	},
 	async check(context) {
-		const second_asset_mtime = fs.statSync(
+		let second_asset_mtime = fs.statSync(
 			path.join(context.getDist("main.js"))
 		)?.mtime;
 		expect(first_asset_mtime).not.toEqual(second_asset_mtime);
