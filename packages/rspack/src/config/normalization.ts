@@ -10,8 +10,8 @@
 
 import path from "node:path";
 import util from "node:util";
-import type { Compilation } from "../Compilation";
 import type { HttpUriPluginOptions } from "../builtin-plugin";
+import type { Compilation } from "../Compilation";
 import type WebpackError from "../lib/WebpackError";
 import type {
 	Amd,
@@ -61,8 +61,8 @@ import type {
 	Loader,
 	Mode,
 	Name,
-	NoParseOption,
 	Node,
+	NoParseOption,
 	Optimization,
 	OptimizationRuntimeChunk,
 	OutputModule,
@@ -644,6 +644,7 @@ export interface ExperimentsNormalized {
 	inlineConst?: boolean;
 	inlineEnum?: boolean;
 	typeReexportsPresence?: boolean;
+	nativeWatcher?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

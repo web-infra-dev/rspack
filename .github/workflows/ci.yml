@@ -136,8 +136,17 @@ jobs:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true'
+          && github.event_name == 'pull_request'
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
+
+      - name: Test check
+        if: ${{ needs.check-changed.outputs.code_changed == 'true'
+          && github.event_name != 'pull_request'
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped' }}
+        run: echo "Tess Failed" && exit 1
+
       - name: No check to Run test
         run: echo "Success"
 

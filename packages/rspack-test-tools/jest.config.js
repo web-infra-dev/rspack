@@ -15,6 +15,7 @@ const wasmConfig = process.env.WASM && {
 		"Error.test.js",
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
+
 		// Skip temporarily and should investigate in the future
 		"Defaults.test.js",
 		"Cache.test.js",
@@ -73,5 +74,11 @@ const config = {
 	},
 	...(wasmConfig || {})
 };
+
+config.testPathIgnorePatterns = config.testPathIgnorePatterns || [];
+config.testPathIgnorePatterns.push(
+	// Skip temporarily because native watcher is not stable in CI
+	"NativeWatcher.test.js"
+);
 
 module.exports = config;

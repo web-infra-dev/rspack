@@ -441,6 +441,25 @@ export declare class ModuleGraphConnection {
   get originModule(): Module | null
 }
 
+export declare class NativeWatcher {
+  constructor(options: NativeWatcherOptions)
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  /**
+   * # Safety
+   *
+   * This function is unsafe because it uses `&mut self` to call the watcher asynchronously.
+   * It's important to ensure that the watcher is not used in any other places before this function is finished.
+   * You must ensure that the watcher not call watch, close or pause in the same time, otherwise it may lead to undefined behavior.
+   */
+  close(): Promise<void>
+  pause(): void
+}
+
+export declare class NativeWatchResult {
+  changedFiles: Array<string>
+  removedFiles: Array<string>
+}
+
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
@@ -563,6 +582,12 @@ export interface CssChunkingPluginOptions {
   maxSize?: number
   exclude?: RegExp
 }
+
+/**
+ * Expected version of @rspack/core to the current binding version
+ * @internal
+ */
+export const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
@@ -1481,6 +1506,14 @@ export declare function minify(source: string, options: string): Promise<Transfo
 
 export declare function minifySync(source: string, options: string): TransformOutput
 
+export interface NativeWatcherOptions {
+  followSymlinks?: boolean
+  pollInterval?: number
+  aggregateTimeout?: number
+  /** A function that will be called with the path of a file or directory that is ignored. */
+  ignored?: (path: string) => boolean
+}
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -1490,6 +1523,7 @@ export interface NodeFsStats {
   ctimeMs: number
   birthtimeMs: number
   size: number
+  mode: number
 }
 
 export interface PathWithInfo {
@@ -2764,6 +2798,7 @@ export interface ThreadsafeNodeFS {
   read: (fd: number, length: number, position: number) => Promise<Buffer | void>
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
+  chmod?: (name: string, mode: number) => Promise<void>
 }
 
 export declare function transform(source: string, options: string): Promise<TransformOutput>

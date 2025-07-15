@@ -1,6 +1,11 @@
 mod read;
 pub use read::ReadableFileSystem;
 
+mod watcher;
+pub use watcher::{
+  EventAggregateHandler, EventHandler, FsWatcher, FsWatcherOptions, Ignored, PathUpdater,
+};
+
 mod write;
 pub use write::WritableFileSystem;
 mod intermediate;
@@ -9,7 +14,7 @@ pub use intermediate::{
 };
 
 mod file_metadata;
-pub use file_metadata::FileMetadata;
+pub use file_metadata::{FileMetadata, FilePermissions};
 
 mod macros;
 

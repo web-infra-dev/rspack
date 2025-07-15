@@ -24,7 +24,6 @@ export function createDiagnosticArray(
 		deleteCount?: number,
 		...newItems: RspackError[]
 	): RspackError[] {
-		// biome-ignore lint/style/noArguments:
 		switch (arguments.length) {
 			case 0:
 				return [];

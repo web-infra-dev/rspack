@@ -8,15 +8,16 @@ version.workspace = true
 
 [dependencies]
 async-trait  = { workspace = true }
-dunce        = { version = "1.0.5" }
-pnp          = { version = "0.9.0" }
-rspack_error = { path = "../rspack_error", version = "0.2.0" }
-rspack_paths = { path = "../rspack_paths", version = "0.2.0" }
-tokio        = { workspace = true, features = ["rt", "macros", "sync"] }
+cfg-if       = { workspace = true }
+dashmap      = { workspace = true }
+dunce        = { workspace = true }
+notify       = { workspace = true, features = ["macos_fsevent"] }
+pnp          = { workspace = true }
+rspack_error = { workspace = true }
+rspack_paths = { workspace = true }
+rspack_util  = { workspace = true }
+tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing      = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
-
-[dev-dependencies]
-tokio = { workspace = true, features = ["time"] }

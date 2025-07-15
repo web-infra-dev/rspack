@@ -1,4 +1,3 @@
-mod meta;
 mod module_graph;
 
 use std::sync::Arc;
@@ -12,6 +11,7 @@ use crate::{
   FactorizeInfo, FileCounter,
 };
 
+/// Make Occasion is used to save MakeArtifact
 #[derive(Debug)]
 pub struct MakeOccasion {
   context: Arc<CacheableContext>,
@@ -49,24 +49,16 @@ impl MakeOccasion {
       &self.storage,
       &self.context,
     );
-
-    meta::save_meta(&self.storage);
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 
-    // TODO can call recovery with multi thread
-    // TODO return DeserializeError not panic
-    meta::recovery_meta(&self.storage).await?;
-    //    artifact.make_failed_dependencies = make_failed_dependencies;
-    //    artifact.make_failed_module = make_failed_module;
-
-    let (partial, force_build_dependencies) =
+    let (partial, force_build_dependencies, isolated_modules) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
     artifact.module_graph_partial = partial;
-    artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies);
+    artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies, isolated_modules);
 
     // regenerate statistical data
     // TODO remove set make_failed_module after all of module are cacheable

@@ -6,7 +6,7 @@ import {
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 export type CircularDependencyRspackPluginOptions = {
 	/**

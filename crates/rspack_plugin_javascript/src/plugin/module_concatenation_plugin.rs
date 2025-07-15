@@ -3,6 +3,7 @@ use std::{
   borrow::Cow,
   collections::{hash_map::DefaultHasher, VecDeque},
   hash::Hasher,
+  sync::Arc,
 };
 
 use rayon::prelude::*;
@@ -97,7 +98,7 @@ impl ConcatConfiguration {
 #[plugin]
 #[derive(Debug, Default)]
 pub struct ModuleConcatenationPlugin {
-  bailout_reason_map: IdentifierDashMap<Cow<'static, str>>,
+  bailout_reason_map: IdentifierDashMap<Arc<Cow<'static, str>>>,
 }
 
 #[derive(Default)]
@@ -165,14 +166,17 @@ impl ModuleConcatenationPlugin {
   }
 
   fn set_inner_bailout_reason(&self, module: &ModuleIdentifier, reason: Cow<'static, str>) {
-    self.bailout_reason_map.insert(*module, reason);
+    self.bailout_reason_map.insert(*module, Arc::new(reason));
   }
 
   fn get_inner_bailout_reason(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> Option<dashmap::mapref::one::Ref<'_, rspack_collections::Identifier, Cow<'static, str>>> {
-    self.bailout_reason_map.get(module_id)
+  ) -> Option<Arc<Cow<'static, str>>> {
+    self
+      .bailout_reason_map
+      .get(module_id)
+      .map(|reason| reason.clone())
   }
 
   pub fn get_imports(

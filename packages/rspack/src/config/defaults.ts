@@ -11,13 +11,12 @@
 import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
-
-import { ASSET_MODULE_TYPE, JSON_MODULE_TYPE } from "../ModuleTypeConstants";
-import { Template } from "../Template";
 import {
 	LightningCssMinimizerRspackPlugin,
 	SwcJsMinimizerRspackPlugin
 } from "../builtin-plugin";
+import { ASSET_MODULE_TYPE, JSON_MODULE_TYPE } from "../ModuleTypeConstants";
+import { Template } from "../Template";
 import { isNil } from "../util";
 import { assertNotNill } from "../util/assertNotNil";
 import { cleverMerge } from "../util/cleverMerge";
@@ -685,14 +684,10 @@ const applyOutputDefaults = (
 	D(output, "compareBeforeEmit", true);
 	F(output, "path", () => path.join(process.cwd(), "dist"));
 	F(output, "pathinfo", () => development);
-	D(output, "crossOriginLoading", false);
-	F(output, "scriptType", () => (output.module ? "module" : false));
 	D(
 		output,
 		"publicPath",
-		(tp && (tp.document || tp.importScripts)) || output.scriptType === "module"
-			? "auto"
-			: ""
+		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
 
 	// IGNORE(output.hashFunction): Rspack uses faster xxhash64 by default
@@ -806,8 +801,10 @@ const applyOutputDefaults = (
 	D(output, "importMetaName", "import.meta");
 	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
+	D(output, "crossOriginLoading", false);
 	D(output, "workerPublicPath", "");
 	D(output, "sourceMapFilename", "[file].map[query]");
+	F(output, "scriptType", () => (output.module ? "module" : false));
 	D(output, "charset", !futureDefaults);
 	D(output, "chunkLoadTimeout", 120000);
 
@@ -1177,7 +1174,7 @@ const A = <T, P extends keyof T>(
 	if (value === undefined) {
 		obj[prop] = factory();
 	} else if (Array.isArray(value)) {
-		let newArray = undefined;
+		let newArray: any;
 		for (let i = 0; i < value.length; i++) {
 			const item = value[i];
 			if (item === "...") {

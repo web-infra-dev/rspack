@@ -16,13 +16,13 @@ use rspack_core::{
   ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
   ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
-  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfo, ExportsInfoGetter,
+  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, StarReexportsInfo,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -262,7 +262,7 @@ impl ESMExportImportedSpecifierDependency {
       module_graph,
       module_graph_cache,
       runtime,
-      Some(exports_info),
+      &exports_info_data,
       imported_module_identifier,
     );
 
@@ -317,26 +317,9 @@ impl ESMExportImportedSpecifierDependency {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
-    exports_info: Option<ExportsInfo>,
+    exports_info: &PrefetchedExportsInfoWrapper<'_>,
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
-    let exports_info = exports_info
-      .map(|exports_info_id| {
-        ExportsInfoGetter::prefetch(
-          &exports_info_id,
-          module_graph,
-          PrefetchExportsInfoMode::Default,
-        )
-      })
-      .unwrap_or_else(|| {
-        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
-        module_graph.get_prefetched_exports_info(
-          module_graph
-            .get_parent_module(&self.id)
-            .expect("should have parent module"),
-          PrefetchExportsInfoMode::Default,
-        )
-      });
     let imported_exports_info = module_graph
       .get_prefetched_exports_info(imported_module_identifier, PrefetchExportsInfoMode::Default);
 
@@ -1403,10 +1386,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     &self.request
   }
 
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
     Some(DependencyCondition::new_fn(
@@ -1456,13 +1435,14 @@ fn determine_export_assignments(
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
       let exports_info = module_graph
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
-      for (_name, export_info) in exports_info.exports() {
+        .get_exports_info(module_identifier)
+        .as_data(module_graph);
+
+      for export_info in exports_info.exports().values() {
         // SAFETY: This is safe because a real export can't export empty string
         let export_info_name = export_info.name().expect("export name is empty");
         if matches!(export_info.provided(), Some(ExportProvided::Provided))
           && export_info_name != "default"
-          && !names.contains(export_info_name)
         {
           names.insert(export_info_name.clone());
         }

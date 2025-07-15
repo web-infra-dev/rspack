@@ -11,9 +11,9 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-bytes               = { version = "*" }
-micromegas-perfetto = { version = "*" }
-prost               = "0.13"
+bytes               = { workspace = true }
+micromegas-perfetto = { workspace = true }
+prost               = { workspace = true }
 tracing             = { workspace = true }
 tracing-subscriber  = { workspace = true }
 [lints]

@@ -60,10 +60,6 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
     &self.request
   }
 
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-
   fn weak(&self) -> bool {
     true
   }

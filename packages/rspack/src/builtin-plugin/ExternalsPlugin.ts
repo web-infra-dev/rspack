@@ -7,7 +7,7 @@ import {
 
 import type { Compiler, ExternalItem, ExternalItemValue, Externals } from "..";
 import { Resolver } from "../Resolver";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 export class ExternalsPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ExternalsPlugin;

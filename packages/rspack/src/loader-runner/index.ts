@@ -8,15 +8,15 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 const LOADER_PROCESS_NAME = "Loader Analysis";
-import querystring from "node:querystring";
 
 import assert from "node:assert";
+import querystring from "node:querystring";
 import {
+	formatDiagnostic,
 	type JsLoaderContext,
 	type JsLoaderItem,
 	JsLoaderState,
-	JsRspackSeverity,
-	formatDiagnostic
+	JsRspackSeverity
 } from "@rspack/binding";
 import {
 	OriginalSource,
@@ -28,15 +28,15 @@ import {
 import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { NormalModule } from "../NormalModule";
-import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
 	type Diagnostic,
-	type LoaderContext,
 	isUseSimpleSourceMap,
-	isUseSourceMap
+	isUseSourceMap,
+	type LoaderContext
 } from "../config/adapterRuleUse";
+import { NormalModule } from "../NormalModule";
+import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import { JavaScriptTracer } from "../trace";
 import {
 	isNil,
@@ -571,7 +571,6 @@ export async function runLoaders(
 	loaderContext.rootContext = compiler.context;
 	loaderContext.emitError = function emitError(e) {
 		if (!(e instanceof Error)) {
-			// biome-ignore lint/style/noParameterAssign: based on webpack's logic
 			e = new NonErrorEmittedError(e);
 		}
 		const error = new ModuleError(e, {
@@ -587,7 +586,6 @@ export async function runLoaders(
 	};
 	loaderContext.emitWarning = function emitWarning(e) {
 		if (!(e instanceof Error)) {
-			// biome-ignore lint/style/noParameterAssign: based on webpack's logic
 			e = new NonErrorEmittedError(e);
 		}
 		const warning = new ModuleWarning(e, {
@@ -607,7 +605,7 @@ export async function runLoaders(
 		sourceMap?,
 		assetInfo?
 	) {
-		let source: Source | undefined = undefined;
+		let source: Source | undefined;
 		if (sourceMap) {
 			if (
 				typeof sourceMap === "string" &&
@@ -985,6 +983,7 @@ export async function runLoaders(
 		if (parallelism) {
 			result =
 				(await pool.run(
+					loaderName,
 					{
 						loaderContext: getWorkerLoaderContext(),
 						loaderState,

@@ -8,7 +8,6 @@ pub trait ContextDependency: Dependency {
   fn options(&self) -> &ContextOptions;
   fn get_context(&self) -> Option<&str>;
   fn resource_identifier(&self) -> &str;
-  fn set_request(&mut self, request: String);
 
   fn get_optional(&self) -> bool {
     false

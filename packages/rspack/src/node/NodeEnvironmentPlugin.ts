@@ -14,9 +14,10 @@ import fs from "graceful-fs";
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
 import {
-	type LoggerConsole,
-	createConsoleLogger
+	createConsoleLogger,
+	type LoggerConsole
 } from "../logging/createConsoleLogger";
+import NativeWatchFileSystem from "../NativeWatchFileSystem";
 import type { InputFileSystem } from "../util/fs";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
@@ -53,7 +54,12 @@ export default class NodeEnvironmentPlugin {
 		compiler.inputFileSystem = inputFileSystem;
 		compiler.outputFileSystem = fs;
 		compiler.intermediateFileSystem = null;
-		compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
+
+		if (compiler.options.experiments.nativeWatcher) {
+			compiler.watchFileSystem = new NativeWatchFileSystem();
+		} else {
+			compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
+		}
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {
 				compiler.fsStartTime = Date.now();
