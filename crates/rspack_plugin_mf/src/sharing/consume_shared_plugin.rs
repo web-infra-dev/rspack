@@ -982,6 +982,12 @@ impl ConsumeSharedPlugin {
         // Set effective shared key if we have one
         if let Some(effective_key) = effective_keys.get(module_id) {
           build_meta.effective_shared_key = Some(effective_key.clone());
+
+          // IMPORTANT: Also set consume_shared_key if not already set
+          // This is needed for macro generation in ConsumeSharedExportsDependency
+          if build_meta.consume_shared_key.is_none() {
+            build_meta.consume_shared_key = Some(effective_key.clone());
+          }
         }
       }
     }
