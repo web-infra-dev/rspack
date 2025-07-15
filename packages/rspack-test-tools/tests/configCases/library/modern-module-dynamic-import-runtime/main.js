@@ -1,5 +1,5 @@
-import { react } from 'react' // 'module' + 'import' externalized
 import { angular } from 'angular' // 'module' externalized
+import { react } from 'react' // 'module' + 'import' externalized
 
 export const main = async () => {
 	const dyn = await import('./dyn.js') // lazy dynamic import

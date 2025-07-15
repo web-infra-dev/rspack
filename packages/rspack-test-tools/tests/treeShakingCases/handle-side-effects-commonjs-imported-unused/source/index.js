@@ -15,7 +15,7 @@ class Response {
 	}
 }
 function test() {
-	let res = new Response();
+	const res = new Response();
 	return res;
 }
 const result = test();

@@ -6,7 +6,7 @@ module.exports = {
 			apply(compiler) {
 				let isFirst = true;
 				compiler.hooks.done.tap("PLUGIN", stats => {
-					let { modules } = stats.toJson({ modules: true });
+					const { modules } = stats.toJson({ modules: true });
 					let hasModuleA1 = false;
 					let hasModuleA2 = false;
 					let hasModuleB = false;

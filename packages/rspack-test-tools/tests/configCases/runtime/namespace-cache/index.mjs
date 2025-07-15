@@ -1,7 +1,5 @@
-import * as utils from './proxy.js'
-import value from './proxy.js'
-
 import fs from 'fs'
+import value, * as utils from './proxy.js'
 
 it('should not contain duplicate initFragment for namespace_cache', () => {
   const { foo } = utils;

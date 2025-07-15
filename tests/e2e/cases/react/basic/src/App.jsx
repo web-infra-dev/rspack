@@ -1,5 +1,5 @@
-import React from 'react'
 import ComponentInNodeModules from "foo"
+import React from 'react'
 import { ContextComponent } from './CountProvider'
 import { ReactRefreshFinder } from './ReactRefreshFinder'
 import { SameExportName as SameExportName1 } from './SameExportName1'

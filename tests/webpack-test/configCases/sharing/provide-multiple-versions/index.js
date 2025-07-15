@@ -1,5 +1,5 @@
-import { version } from "shared";
 import { version as innerVersion } from "my-module";
+import { version } from "shared";
 
 it("should provide both shared versions, but not the unused one", async () => {
 	await __webpack_init_sharing__("default");

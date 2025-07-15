@@ -1,6 +1,6 @@
+import importDx from "./dx-importer";
 import { x, xUsed, yUsed } from "./module";
 import { x as xRe, xUsed as xUsedRe, yUsed as yUsedRe } from "./reexport";
-import importDx from "./dx-importer";
 
 it("should use only one export", () => {
 	expect(x).toBe("x");

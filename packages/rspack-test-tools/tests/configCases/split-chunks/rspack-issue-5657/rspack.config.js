@@ -9,7 +9,7 @@ module.exports = {
 			chunks: "all",
 			cacheGroups: {
 				lib: {
-					test: /[\/\\]src\/lib[\/\\]/,
+					test: /[/\\]src\/lib[/\\]/,
 					minSize: 0,
 					maxSize: 50,
 					minChunks: 1

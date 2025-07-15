@@ -89,7 +89,7 @@ it("should not provide for function defined variable", function () {
 });
 
 it("should not provide for defined variable", function () {
-	let bbb = {};
+	const bbb = {};
 	expect(bbb.ccc).toBe(undefined);
 
 	aaa(aaa);

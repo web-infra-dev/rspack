@@ -6,6 +6,7 @@
  */ 
 import * as i0 from "@angular/core";
 import * as i1 from "./app.component";
+
 var styles_AppComponent = [];
 var RenderType_AppComponent = i0.ɵcrt({ encapsulation: 2, styles: styles_AppComponent, data: {} });
 export { RenderType_AppComponent as RenderType_AppComponent };

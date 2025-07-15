@@ -1,4 +1,4 @@
-import {mixin1, mixin2, mixin3, getField, A, B, C, Y, mixin4} from "./dep2";
+import {A, B, C, getField, mixin1, mixin2, mixin3, mixin4, Y } from "./dep2";
 
 export const A1 = class A1 extends A {
 	render() {return new E();}

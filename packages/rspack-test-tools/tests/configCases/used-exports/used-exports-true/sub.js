@@ -1,4 +1,4 @@
-import { b, aUsed, bUsed } from "./lib";
+import { aUsed, b, bUsed } from "./lib";
 
 it("should only import assets that included in chunks", () => {
 	expect(b).toBe(3);

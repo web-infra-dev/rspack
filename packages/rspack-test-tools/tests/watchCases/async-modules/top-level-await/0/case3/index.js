@@ -1,5 +1,5 @@
 import "./a"
-import { isAsyncModule, hasAsyncModuleRuntime } from "../utils"
+import { hasAsyncModuleRuntime, isAsyncModule } from "../utils"
 
 module; // bailout inline entry modules optimization
 const fs = __non_webpack_require__("fs");

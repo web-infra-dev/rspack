@@ -1,5 +1,5 @@
 
-import { something, other } from "./b";
+import { other, something } from "./b";
 
 export {
 	something as other,

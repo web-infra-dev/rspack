@@ -2,11 +2,11 @@ import util from "node:util";
 import type { NodeFsStats, ThreadsafeNodeFS } from "@rspack/binding";
 
 import {
-	type IStats,
 	type InputFileSystem,
 	type IntermediateFileSystem,
-	type OutputFileSystem,
+	type IStats,
 	mkdirp,
+	type OutputFileSystem,
 	rmrf
 } from "./util/fs";
 import { memoizeFn } from "./util/memoize";

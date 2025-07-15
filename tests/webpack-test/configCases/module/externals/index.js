@@ -1,6 +1,7 @@
 import imported from "./imported.mjs";
-import value from "./module";
 import { metaUrl } from "./meta";
+import value from "./module";
+
 const localMetaUrl = import.meta.url;
 
 it("should allow to use externals in concatenated modules", () => {

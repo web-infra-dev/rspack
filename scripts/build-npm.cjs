@@ -13,13 +13,6 @@ const CpuToNodeArch = {
 	armv7: "arm"
 };
 
-const NodeArchToCpu = {
-	x64: "x86_64",
-	arm64: "aarch64",
-	ia32: "i686",
-	arm: "armv7"
-};
-
 const SysToNodePlatform = {
 	linux: "linux",
 	freebsd: "freebsd",
@@ -30,10 +23,6 @@ const SysToNodePlatform = {
 const AbiToNodeLibc = {
 	gnu: "glibc",
 	musl: "musl"
-};
-
-const UniArchsByPlatform = {
-	darwin: ["x64", "arm64"]
 };
 
 /**
@@ -102,7 +91,7 @@ const NPM = path.resolve(__dirname, "../npm");
 try {
 	// Error tolerant if the directory already exists
 	fs.mkdirSync(NPM);
-} catch (e) {}
+} catch { }
 
 // Releasing bindings
 const releasingPackages = [];
@@ -186,7 +175,7 @@ for (const binding of bindings) {
 	const output = path.join(NPM, platformArchABI);
 	try {
 		fs.mkdirSync(output);
-	} catch (e) {}
+	} catch { }
 
 	const coreJson = require(
 		path.resolve(__dirname, "../packages/rspack/package.json")

@@ -1,5 +1,5 @@
-import React from "react";
 import { formatRelative, subDays } from "date-fns";
+import React from "react";
 
 const Component = ({ locale }) => (
 	<div style={{ border: "5px solid darkred" }}>

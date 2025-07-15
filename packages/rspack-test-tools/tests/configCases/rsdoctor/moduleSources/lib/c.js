@@ -1,2 +1,2 @@
-let e = exports;
+const e = exports;
 e.Out = 42;

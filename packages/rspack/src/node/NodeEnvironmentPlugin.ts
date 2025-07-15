@@ -12,12 +12,12 @@ import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
 import fs from "graceful-fs";
 
 import type { Compiler } from "..";
-import NativeWatchFileSystem from "../NativeWatchFileSystem";
 import type { InfrastructureLogging } from "../config";
 import {
-	type LoggerConsole,
-	createConsoleLogger
+	createConsoleLogger, 
+	type LoggerConsole
 } from "../logging/createConsoleLogger";
+import NativeWatchFileSystem from "../NativeWatchFileSystem";
 import type { InputFileSystem } from "../util/fs";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";

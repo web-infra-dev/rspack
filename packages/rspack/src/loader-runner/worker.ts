@@ -10,17 +10,17 @@ import { absolutify, contextify } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import loadLoader from "./loadLoader";
 import {
+	isWorkerResponseErrorMessage,
+	isWorkerResponseMessage,
 	RequestSyncType,
 	RequestType,
+	serializeError, 
 	type WorkerError,
 	type WorkerMessage,
 	type WorkerRequestMessage,
 	type WorkerRequestSyncMessage,
 	type WorkerResponseErrorMessage,
-	type WorkerResponseMessage,
-	isWorkerResponseErrorMessage,
-	isWorkerResponseMessage,
-	serializeError
+	type WorkerResponseMessage
 } from "./service";
 import { convertArgs, runSyncOrAsync } from "./utils";
 

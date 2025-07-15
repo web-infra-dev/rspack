@@ -1,5 +1,5 @@
-import * as classes from "./style.module.css";
 import legacyClasses from "./legacy/index.css";
+import * as classes from "./style.module.css";
 
 it("should have consistent hash", () => {
 	expect(classes["container-main"]).toBe(`${/* md4("./style.module.css") */ "_7ea850e6088d2566f677"}-container-main`)

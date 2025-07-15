@@ -1,6 +1,6 @@
 import fakeValue from "fake";
-import fileValue from "@/file";
 import baseUrlFileValue from "src/file";
+import fileValue from "@/file";
 import fileValueWithQuery1 from "@/file?a=b";
 import fileValueWithQuery2 from "@/file?a=c";
 

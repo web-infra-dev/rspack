@@ -1,1 +1,1 @@
-export { w, identity } from "./module?chunk";
+export { identity, w } from "./module?chunk";

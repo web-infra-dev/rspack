@@ -1,5 +1,6 @@
-import value from "./file"
 import a from "./a"
+import value from "./file"
+
 const req = require.context("./foo", false, /^.*\.js$/);
 it("should ignore change to file and directory", function() {
 	expect(a).toBe(+WATCH_STEP);

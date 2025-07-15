@@ -1,6 +1,6 @@
 exports.abc = {};
 
-for (let i of [
+for (const i of [
 	{
 		name: "a"
 	},

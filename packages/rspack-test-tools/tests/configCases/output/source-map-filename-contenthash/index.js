@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+
 import("./chunk");
 
 it("source-map-filename-contenthash should have correct name", async function () {
@@ -6,7 +7,7 @@ it("source-map-filename-contenthash should have correct name", async function ()
 	maps.sort();
 	expect(maps.length).toBe(2);
 	expect(maps.every(m => {
-		let name = m.replace(".js.map", "").split("-");
+		const name = m.replace(".js.map", "").split("-");
 		return name[0] !== name[1];
 	})).toBeTruthy();
 });

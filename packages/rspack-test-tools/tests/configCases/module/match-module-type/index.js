@@ -1,8 +1,7 @@
-import INLINE_SVG from "./img.svg?inline";
-import RESOURCE_SVG from "./img.svg";
-
-import RESOURCE_PNG from "./img.png?inline";
 import RESOURCE_PNG_2 from "./img.png";
+import RESOURCE_PNG from "./img.png?inline";
+import RESOURCE_SVG from "./img.svg";
+import INLINE_SVG from "./img.svg?inline";
 
 // FIXME: We should align this with target `Node`, currently the `__webpack_require__.p` is not defined for the `Node`.
 const RESOURCE_REGEX = /\.(svg|png)/;

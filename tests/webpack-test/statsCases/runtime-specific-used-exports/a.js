@@ -1,6 +1,6 @@
+import importDx from "./dx-importer";
 import { x } from "./module";
 import { x as xRe } from "./reexport";
-import importDx from "./dx-importer";
 
 (async () => {
 	const dx = await importDx();

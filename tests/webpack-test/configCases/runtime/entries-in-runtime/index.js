@@ -1,5 +1,5 @@
-import path from "path";
 import fs from "fs";
+import path from "path";
 
 it("should not have references to chunks of unrelated entrypoints in runtime", () => {
 	const content = fs.readFileSync(

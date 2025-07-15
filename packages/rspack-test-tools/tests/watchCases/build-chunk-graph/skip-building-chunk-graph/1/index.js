@@ -1,6 +1,6 @@
 import lib from "./lib"
-import value from './value'
 import { v1 } from './re-exports'
+import value from './value'
 
 it("should have correct result", () => {
 	// add specifier dependency should not rebuild chunk graph

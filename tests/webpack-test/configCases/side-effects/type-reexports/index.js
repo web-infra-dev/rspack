@@ -1,5 +1,5 @@
-import { a, b } from "./module";
 import * as empty from "./empty";
+import { a, b } from "./module";
 
 it("should skip over module", () => {
 	empty.a = "not a";

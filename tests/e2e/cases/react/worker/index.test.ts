@@ -1,4 +1,4 @@
-import { test, expect } from "@/fixtures";
+import { expect, test } from "@/fixtures";
 
 test("should successfully render the page", async ({ page }) => {
 	expect(await page.textContent("button")).toBe("+");

@@ -1,1 +1,1 @@
-export { value, ns } from "./package";
+export { ns, value } from "./package";

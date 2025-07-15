@@ -1,87 +1,87 @@
-import { ResizeObserver as RO } from "resize-observer";
 import * as employeeData from "Source_Data/employee";
 import * as servicesData from "Source_Data/services";
-import * as SplitViewPage from "Source_Framework/splitview/page";
-import * as SplitViewMenu from "Source_Framework/splitview/menu";
-import {
-	TC as pageTC,
-	getDeleteDialogText
-} from "Source_Framework/splitview/text";
-import * as UiListPicker from "Source_Framework/uilistpicker/UiListPicker";
-import { CookieStorage } from "Source_ODS/cookiestorage";
-import { removeTextEditor } from "Source_Framework/uirichtextedit";
-import { UiElementCheckbox, UiElementRadio } from "Source_Framework/uielement";
-import { switchButtonIcon } from "Source_ODS/UiButton/icon";
-import { setButtonText } from "Source_ODS/UiButton/text";
-import { replacePage } from "Source_Framework/pagelinks";
-import { getSession } from "Source_ODS/ods";
-import { UiButton, UiSelectButton } from "Source_ODS/UiButton";
-import { buttonClasses } from "Source_Framework/defaultButtons";
-import { UiForm } from "Source_Framework/uiform";
-import * as Breadcrumb from "Source_Framework/breadcrumb";
-import * as _ from "Source_ODS/lodash";
-import { DomElement } from "Source_ODS/DomElement";
-import { getUrlParameter, setUrlParameter } from "Source_ODS/url";
-import { addFixedTooltip } from "Source_ODS/tooltip";
-import { showLoadingWarning, showWarningDialog } from "Source_ODS/ui";
-import { checkIsNonemptyObject, isString, isUndefined } from "Source_ODS/types";
-import { UiDialog, confirmDialog } from "Source_ODS/UiDialog";
-import { ModuleNameEnum } from "Source_Framework/common/moduleDispatcher";
-import { showEmployeeAssignDialog } from "Source_Framework/common/employeeassignment";
-import { buttonPdfPreview } from "Source_Framework/common/pdf_preview";
-import { createTaskProgress } from "Source_Framework/common/taskprogress";
-import { CALLBACK_EVENTS } from "Source_Framework/uitable";
+import { STATUS } from "Source_Framework/backend/jsonData";
 import {
 	getFilterPara,
-	saveUniversalTableLayout,
 	loadDefaultLayout,
-	saveDefaultLayoutForAgency
+	saveDefaultLayoutForAgency, 
+	saveUniversalTableLayout
 } from "Source_Framework/backend/universalData";
+import * as Breadcrumb from "Source_Framework/breadcrumb";
 import { selectColumns } from "Source_Framework/common/columnsDialog";
-import { STATUS } from "Source_Framework/backend/jsonData";
+import { showEmployeeAssignDialog } from "Source_Framework/common/employeeassignment";
+import { genericJobSelectionDialog } from "Source_Framework/common/las_mod_jobselection";
+import { ModuleNameEnum } from "Source_Framework/common/moduleDispatcher";
+import { buttonPdfPreview } from "Source_Framework/common/pdf_preview";
 import {
 	buttonStatusChange,
 	HeaderDataEnum
 } from "Source_Framework/common/statuschange";
-import { genericJobSelectionDialog } from "Source_Framework/common/las_mod_jobselection";
-import { TC } from "./text";
+import { createTaskProgress } from "Source_Framework/common/taskprogress";
+import { buttonClasses } from "Source_Framework/defaultButtons";
+import { replacePage } from "Source_Framework/pagelinks";
+import * as SplitViewMenu from "Source_Framework/splitview/menu";
+import * as SplitViewPage from "Source_Framework/splitview/page";
+import {
+	getDeleteDialogText, 
+	TC as pageTC
+} from "Source_Framework/splitview/text";
+import { UiElementCheckbox, UiElementRadio } from "Source_Framework/uielement";
+import { UiForm } from "Source_Framework/uiform";
+import * as UiListPicker from "Source_Framework/uilistpicker/UiListPicker";
+import { removeTextEditor } from "Source_Framework/uirichtextedit";
+import { CALLBACK_EVENTS } from "Source_Framework/uitable";
+import { TITLE as CETITLE } from "Source_Modules/las_mod_ceheader/bec";
+import { TITLE as CITITLE } from "Source_Modules/las_mod_ciheader/bec";
+import { TITLE as ORDERTITLE } from "Source_Modules/las_mod_order/bec";
+import { TITLE as SITITLE } from "Source_Modules/las_mod_siheader/bec";
+import { urlGotoSiFromJobService } from "Source_Modules/las_mod_siheader/url";
+import { CookieStorage } from "Source_ODS/cookiestorage";
+import { DomElement } from "Source_ODS/DomElement";
+import * as _ from "Source_ODS/lodash";
+import { getSession } from "Source_ODS/ods";
+import { addFixedTooltip } from "Source_ODS/tooltip";
+import { checkIsNonemptyObject, isString, isUndefined } from "Source_ODS/types";
+import { UiButton, UiSelectButton } from "Source_ODS/UiButton";
+import { switchButtonIcon } from "Source_ODS/UiButton/icon";
+import { setButtonText } from "Source_ODS/UiButton/text";
+import { confirmDialog, UiDialog } from "Source_ODS/UiDialog";
+import { showLoadingWarning, showWarningDialog } from "Source_ODS/ui";
+import { getUrlParameter, setUrlParameter } from "Source_ODS/url";
+import { ResizeObserver as RO } from "resize-observer";
+import { openDialogForNewPositionSi } from "./addPositionToSi";
+import { autoSumsDialog } from "./autoSums";
 import { BEC } from "./bec";
-import { POSITIONTYPES } from "./positionTypes";
-import { SETTINGS } from "./settings";
-import * as preferences from "./preferences";
-import * as privileges from "./privileges";
 import * as buttons from "./buttons";
+import { buttonInsertService, insertServiceDialog } from "./ciPosFromJob";
+import {
+	buttonCopyFromOrderToJob,
+	buttonCopySelect,
+	copyFromOrderToJob, 
+	copyPosition,
+	duplicatePosition
+} from "./copy";
+import { buttonCreateOrder, onCreateOrder } from "./createOrder";
+import { defineLayoutDialog } from "./defineLayout";
 import * as form from "./form";
 import * as formHelper from "./formHelper";
-import { createTableWidget, createTableWidgetForManualSort } from "./table";
-import { setTechnicalTextButton } from "./techText";
-import { openDialogForNewPositionSi } from "./addPositionToSi";
-import { buttonInsertService, insertServiceDialog } from "./ciPosFromJob";
-import { shiftPosition } from "./shiftPosition";
-import { autoSumsDialog } from "./autoSums";
-import { defineLayoutDialog } from "./defineLayout";
 import { buttonInsertFromTemplate, setInsertData } from "./insertFromTemplate";
 import { buttonMove, movePosition } from "./movePosition";
-import {
-	buttonCopySelect,
-	duplicatePosition,
-	copyPosition,
-	buttonCopyFromOrderToJob,
-	copyFromOrderToJob
-} from "./copy";
-import { convertData } from "./save";
-import { buttonCreateOrder, onCreateOrder } from "./createOrder";
+import { showNchInfoDialog } from "./nchInfoDialog";
 import {
 	buttonConnectOrderPos,
 	buttonCopyJobToOrderPos,
 	jobToOrderPos
 } from "./orderPosFromJobPos";
-import { showNchInfoDialog } from "./nchInfoDialog";
-import { urlGotoSiFromJobService } from "Source_Modules/las_mod_siheader/url";
-import { TITLE as SITITLE } from "Source_Modules/las_mod_siheader/bec";
-import { TITLE as CETITLE } from "Source_Modules/las_mod_ceheader/bec";
-import { TITLE as ORDERTITLE } from "Source_Modules/las_mod_order/bec";
-import { TITLE as CITITLE } from "Source_Modules/las_mod_ciheader/bec";
+import { POSITIONTYPES } from "./positionTypes";
+import * as preferences from "./preferences";
+import * as privileges from "./privileges";
+import { convertData } from "./save";
+import { SETTINGS } from "./settings";
+import { shiftPosition } from "./shiftPosition";
+import { createTableWidget, createTableWidgetForManualSort } from "./table";
+import { setTechnicalTextButton } from "./techText";
+import { TC } from "./text";
 
 const _positionSettings = {
 		parent: {

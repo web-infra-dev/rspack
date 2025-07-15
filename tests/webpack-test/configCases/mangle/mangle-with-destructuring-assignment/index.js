@@ -1,8 +1,8 @@
 import path from "path";
-import * as module from "./module";
-import { obj3, obj3CanMangle, obj4, obj4CanMangle } from "./reexport?side-effects" // enable side effects to ensure reexport is not skipped
 import data from "./data.json";
 import data2 from "./data.json?2";
+import * as module from "./module";
+import { obj3, obj3CanMangle, obj4, obj4CanMangle } from "./reexport?side-effects" // enable side effects to ensure reexport is not skipped
 
 it("should mangle export when destructuring module", () => {
 	const { obj: { a, b }, objCanMangle } = module

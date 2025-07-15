@@ -12,7 +12,7 @@ module.exports = {
 						compilation.hooks.processAssets.tap(
 							"ensure-chunk.groupsIterable-and-group.getParents-work",
 							() => {
-								let chunks = [...compilation.chunks];
+								const chunks = [...compilation.chunks];
 								assert(chunks.length > 0);
 								for (const chunk of chunks) {
 									assert(typeof chunk.groupsIterable !== "undefined");

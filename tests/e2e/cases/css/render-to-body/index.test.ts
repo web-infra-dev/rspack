@@ -1,4 +1,4 @@
-import { test, expect } from "@/fixtures";
+import { expect, test } from "@/fixtures";
 
 test("should update body css", async ({ page, fileAction, rspack }) => {
 	await expect(page.locator("body")).toHaveCSS("display", "block");

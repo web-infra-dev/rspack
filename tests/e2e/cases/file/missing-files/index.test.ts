@@ -1,4 +1,4 @@
-import { test, expect } from "@/fixtures";
+import { expect, test } from "@/fixtures";
 
 test("missing files should be able to recover if being added back", async ({
 	page,

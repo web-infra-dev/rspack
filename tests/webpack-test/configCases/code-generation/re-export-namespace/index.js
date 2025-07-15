@@ -1,8 +1,8 @@
-import { obj1 }  from './module1';
+import data from "./data";
 import * as m_1 from './module1';
+import { obj1 }  from './module1';
 import * as m_2 from './module2';
 import * as m_3 from './module3';
-import data from "./data";
 
 const { expectSourceToContain } = require("../../../helpers/expectSource");
 

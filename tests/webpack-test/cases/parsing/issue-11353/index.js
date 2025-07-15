@@ -1,7 +1,7 @@
 "use strict";
 
-import generator from "./generator_function.js";
 import asyncGenerator from "./async_generator_function";
+import generator from "./generator_function.js";
 
 it('should correctly import generator function', () => {
 	expect(typeof generator).toBe("function");

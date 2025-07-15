@@ -1,7 +1,7 @@
 class MyPlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("MyPlugin", compilation => {
-			let cache = compilation.getCache("MyPlugin");
+			const cache = compilation.getCache("MyPlugin");
 			expect(cache).not.toBeNull();
 		});
 	}

@@ -8,10 +8,10 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import asyncLib from "./util/asyncLib";
 
 import type { Callback } from "@rspack/lite-tapable";
 import type { MultiCompiler } from "./MultiCompiler";
+import asyncLib from "./util/asyncLib";
 import type { Watching } from "./Watching";
 
 class MultiWatching {

@@ -74,7 +74,7 @@ const config = {
 			apply(compiler) {
 				compiler.hooks.compilation.tap("_", compilation => {
 					compilation.hooks.processAssets.tap("_", assets => {
-						let names = Object.keys(assets);
+						const names = Object.keys(assets);
 						names.forEach(name => {
 							assets[name] = new RawSource("");
 						});

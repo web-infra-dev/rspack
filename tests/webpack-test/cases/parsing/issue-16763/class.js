@@ -1,4 +1,4 @@
-import { a as C, a as B } from "./a.js";
+import { a as B, a as C } from "./a.js";
 
 let staticBlockValue;
 let staticPrivateBlockValue;

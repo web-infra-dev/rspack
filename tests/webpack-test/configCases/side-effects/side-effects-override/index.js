@@ -1,7 +1,7 @@
-import { log as plog } from "pmodule/tracker";
+import n from "nmodule";
 import { log as nlog } from "nmodule/tracker";
 import p from "pmodule";
-import n from "nmodule";
+import { log as plog } from "pmodule/tracker";
 
 it("should be able to override side effects", function() {
 	expect(p).toBe("def");

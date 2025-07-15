@@ -2,5 +2,6 @@
 
 import { notExist } from "./a";
 import { notExist2 } from "./b";
+
 notExist; 
 notExist2;

@@ -10,13 +10,13 @@ import type { Compilation } from "../../Compilation";
 import type { Compiler } from "../../Compiler";
 import { create } from "../base";
 import {
-	type HtmlRspackPluginHooks,
 	cleanPluginHooks,
-	getPluginHooks
+	getPluginHooks,
+	type HtmlRspackPluginHooks
 } from "./hooks";
 import {
-	type HtmlRspackPluginOptions,
 	cleanPluginOptions,
+	type HtmlRspackPluginOptions,
 	setPluginOptions,
 	validateHtmlPluginOptions
 } from "./options";
@@ -104,7 +104,7 @@ const HtmlRspackPluginImpl = create(
 		}
 
 		let templateContent = c.templateContent;
-		let templateFn = undefined;
+		let templateFn: ((data: string) => Promise<string>) | undefined;
 		if (typeof templateContent === "function") {
 			templateFn = async (data: string) => {
 				try {
@@ -169,7 +169,7 @@ const HtmlRspackPluginImpl = create(
 			templateParameters = rawTemplateParameters;
 		}
 
-		let filenames: Set<string> | undefined = undefined;
+		let filenames: Set<string> | undefined;
 		if (typeof c.filename === "string") {
 			filenames = new Set();
 			if (c.filename.includes("[name]")) {

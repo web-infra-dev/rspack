@@ -1,8 +1,8 @@
 "use strict"
 
-import d, {a, b as B} from "./abc"
 
 import * as abc from "./abc"
+import d, {a, b as B} from "./abc"
 
 function x() { throw new Error("should not be executed"); }
 it("should have this = undefined on imported non-strict functions", function() {
@@ -14,9 +14,9 @@ it("should have this = undefined on imported non-strict functions", function() {
 	B().toBe("undefined")
 })
 
-import C2, { C } from "./new"
 
 import * as New from "./new"
+import C2, { C } from "./new"
 
 it("should be possible to use new correctly", function() {
 	x

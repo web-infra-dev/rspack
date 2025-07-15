@@ -1,5 +1,5 @@
 // require("./c.js");
-import { a, c, b } from "./c.js";
+import { a, b, c } from "./c.js";
 
 a;
 b;

@@ -1,11 +1,11 @@
 import {
-	noop,
-	reassign,
-	rest,
 	item1,
 	items,
+	noop,
+	notExist // not exist, 
+	reassign,
 	rename,
-	notExist // not exist
+	rest
 } from "./a.js";
 
 noop(reassign, rest, item1, items);

@@ -1,5 +1,4 @@
-import { createRequire as _createRequire } from "module";
-import { createRequire as __createRequire, builtinModules } from "module";
+import { createRequire as __createRequire, createRequire as _createRequire, builtinModules } from "module";
 
 it("should evaluate require/createRequire", () => {
 	expect(

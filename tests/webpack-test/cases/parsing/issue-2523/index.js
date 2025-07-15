@@ -1,6 +1,4 @@
-import A from "./module";
-import { B } from "./module";
-import { c } from "./module";
+import A, { B, c } from "./module";
 
 it("should allow to export a class", function() {
 	expect((typeof A)).toBe("function");

@@ -1,7 +1,7 @@
 import d from "dll/d";
-import { x1, y2 } from "./e";
 import { x2, y1 } from "dll/e";
 import { B } from "dll/h";
+import { x1, y2 } from "./e";
 
 it("should load a module from dll", function() {
 	expect(require("dll/a")).toBe("a");

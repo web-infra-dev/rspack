@@ -1,5 +1,5 @@
-import X, { A, B } from "./module";
 import * as M from "./module";
+import X, { A, B } from "./module";
 
 it("should support spread operator", function() {
 	var o1 = { ...X };

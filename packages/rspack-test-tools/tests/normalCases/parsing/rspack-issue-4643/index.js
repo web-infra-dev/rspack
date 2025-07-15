@@ -13,7 +13,7 @@ it("should handle default exports when used as function", function () {
 });
 
 it("should handle default exports when used as class", function () {
-	let ins = new c();
+	const ins = new c();
 	expect(ins.value()).toBe("c");
 });
 

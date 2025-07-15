@@ -1,4 +1,5 @@
 import { foo } from "./a"
+
 foo()
 
 var a = {
@@ -18,6 +19,7 @@ export default a
 foo()
 
 export * from "./a.js"
+
 foo()
 
 debugger

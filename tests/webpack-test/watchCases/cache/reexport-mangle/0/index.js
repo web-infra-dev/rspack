@@ -1,4 +1,4 @@
-import { foo, bar } from "./module";
+import { bar, foo } from "./module";
 import value from "./other-user";
 
 it("should invalidate when mangled name change", () => {

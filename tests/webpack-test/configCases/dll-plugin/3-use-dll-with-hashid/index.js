@@ -1,6 +1,6 @@
 import d from "../0-create-dll/d";
-import { x1, y2 } from "./e";
 import { x2, y1 } from "../0-create-dll/e";
+import { x1, y2 } from "./e";
 
 it("should load a module from dll", function() {
 	expect(require("../0-create-dll/a")).toBe("a");

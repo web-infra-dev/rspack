@@ -17,6 +17,7 @@ it('should work with json-logic-js', function () {
 });
 
 import webpackUmdOutput from './webpack-umd-output';
+
 it('should work with webpack umd output', function () {
 	expect(webpackUmdOutput).toStrictEqual({ version: '0.0.0' });
 });

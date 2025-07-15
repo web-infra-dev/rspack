@@ -6,13 +6,13 @@ class Plugin {
 		let called = 0;
 		compiler.hooks.compilation.tap(pluginName, compilation => {
 			compilation.hooks.chunkAsset.tap(pluginName, (chunk, name) => {
-				let files = [...chunk.files];
+				const files = [...chunk.files];
 				assert(files.includes("bundle0.js"));
 				called++;
 			});
 		});
 		compiler.hooks.done.tap(pluginName, stats => {
-			let json = stats.toJson();
+			const json = stats.toJson();
 			assert(json.errors.length === 0, `${json.errors}`);
 			assert(called === 1);
 		});

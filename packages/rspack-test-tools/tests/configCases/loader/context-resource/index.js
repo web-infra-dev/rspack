@@ -1,6 +1,6 @@
 it("should pass the resource to the loader", () => {
 	const path = require("path");
-	let result = require("./a?resourcequery#resourcefragment");
+	const result = require("./a?resourcequery#resourcefragment");
 	expect(result).toEqual({
 		resource: path.join(
 			__dirname,

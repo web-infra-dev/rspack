@@ -1,9 +1,9 @@
-import * as constants from "./constants.js";
-import * as reexported from "./re-export.js";
-import * as destructing from "./constants.destructing.js";
-import * as sideEffects from "./constants.side-effects.js";
-import * as reexportedSideEffects from "./re-export.side-effects.js";
 import * as constantsCjs from "./constants.cjs";
+import * as destructing from "./constants.destructing.js";
+import * as constants from "./constants.js";
+import * as sideEffects from "./constants.side-effects.js";
+import * as reexported from "./re-export.js";
+import * as reexportedSideEffects from "./re-export.side-effects.js";
 
 const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
 

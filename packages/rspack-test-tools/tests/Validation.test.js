@@ -1,9 +1,9 @@
 describe("Validation", () => {
 	const createTestCase = (name, config, fn, strategy, fn2) => {
 		it(`should fail validation for ${name}`, () => {
-			let prevStrategy = process.env.RSPACK_CONFIG_VALIDATE;
+			const prevStrategy = process.env.RSPACK_CONFIG_VALIDATE;
 			process.env.RSPACK_CONFIG_VALIDATE = strategy;
-			let errors = [];
+			const errors = [];
 			console.error = (...args) => {
 				errors.push(...args);
 			};

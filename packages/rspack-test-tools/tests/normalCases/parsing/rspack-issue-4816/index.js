@@ -64,7 +64,7 @@ it("should keep the variable in dead branch", () => {
 		const g = function e() {};
 		var obj = { y: 3, z: 4 };
 		if (true) {
-			let a = 1;
+			const a = 1;
 			var x = 2;
 			var { y, z } = obj;
 		}
@@ -76,7 +76,6 @@ it("should keep the variable in dead branch", () => {
 	}
 
 	function f4() {
-		"use strict";
 		if (/a/ === /a/) {
 			function f5() {}
 		}
@@ -132,7 +131,7 @@ it("should try to evaluate new RegExp()", function () {
 	}
 
 	expectAOnly(
-		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$", ""))
+		require.context("./regexp", false, /(?<!filtered)\.js$/)
 	);
 	expectAOnly(
 		require.context(
@@ -142,10 +141,10 @@ it("should try to evaluate new RegExp()", function () {
 		)
 	);
 	expectAOnly(
-		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$"))
+		require.context("./regexp", false, /(?<!filtered)\.js$/)
 	);
 	expectAOnly(
-		require.context(`./regexp`, false, new RegExp("(?<!filtered)\\.js$"))
+		require.context(`./regexp`, false, /(?<!filtered)\.js$/)
 	);
 });
 

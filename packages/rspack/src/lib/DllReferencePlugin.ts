@@ -9,9 +9,9 @@
  */
 
 import type { JsBuildMeta } from "@rspack/binding";
+import { DllReferenceAgencyPlugin } from "../builtin-plugin";
 import type { CompilationParams } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { DllReferenceAgencyPlugin } from "../builtin-plugin";
 import { getDllReferencePluginOptionsSchema } from "../schema/plugins";
 import { validate } from "../schema/validate";
 import { makePathsRelative } from "../util/identifier";

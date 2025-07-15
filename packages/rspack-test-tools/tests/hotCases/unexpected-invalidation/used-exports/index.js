@@ -1,5 +1,5 @@
-import { ghi } from "./subject";
 import value from "./module";
+import { ghi } from "./subject";
 
 it("should not invalidate subject in unrelated locations", done => {
 	expect(ghi).toBe(42);

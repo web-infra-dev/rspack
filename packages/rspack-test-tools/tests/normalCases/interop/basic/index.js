@@ -1,5 +1,4 @@
-import a_default from "./a";
-import * as a_all from "./a";
+import a_default, * as a_all from "./a";
 import * as esm from "./esm";
 
 it("should exports __esModule", function () {

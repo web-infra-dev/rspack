@@ -1,4 +1,4 @@
-import { test, expect } from "@/fixtures";
+import { expect, test } from "@/fixtures";
 
 test("should successfully render vue3", async ({ page }) => {
 	expect(await page.textContent("h1")).toBe("vue3");

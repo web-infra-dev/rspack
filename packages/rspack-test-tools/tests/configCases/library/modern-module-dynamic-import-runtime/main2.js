@@ -1,6 +1,7 @@
 // Similar to main1.js, but without async chunk for testing.
-import { react } from 'react' // 'module' + 'import' externalized
+
 import { angular } from 'angular' // 'module' externalized
+import { react } from 'react' // 'module' + 'import' externalized
 
 export const main = async () => {
 	const reactNs = await import('react') // 'module' + 'import' externalized

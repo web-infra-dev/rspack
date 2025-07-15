@@ -10,10 +10,10 @@ it("parse error module should have 'throw error'", () => {
 	}
 
 	const output = fs.readFileSync(path.resolve(__dirname, "main.js"), "utf-8");
-	let nonRecCode = /".\/non-recoverable.js":.*\n(.*)/.exec(
+	const nonRecCode = /".\/non-recoverable.js":.*\n(.*)/.exec(
 		output
 	)[1];
-	let recCode = /".\/recoverable.js":.*\n(.*)/.exec(output)[1];
+	const recCode = /".\/recoverable.js":.*\n(.*)/.exec(output)[1];
 	expect(nonRecCode.includes("throw new Error")).toBe(true);
 	expect(recCode.includes("throw new Error")).toBe(true);
 });

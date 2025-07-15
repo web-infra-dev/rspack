@@ -1,6 +1,6 @@
 import d from "./not-supports-const.js"
 
-let stub = d;
+const stub = d;
 
 it('should not have TDZ error', () => {
   expect(stub).toBe(undefined);

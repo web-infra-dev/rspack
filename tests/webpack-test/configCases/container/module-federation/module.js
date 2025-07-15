@@ -1,10 +1,10 @@
 import abc from "abc/system-hello-world";
-import def, { module } from "def/system-hello-world";
 import def2, { module as module2 } from "def/system-hello/other/world";
+import def, { module } from "def/system-hello-world";
 import other from "other/other";
 import otherSelf from "other/self";
-import self from "self/self";
 import selfOther from "self/other";
+import self from "self/self";
 
 export function test() {
 	expect(abc).toBe("abc ./system-hello-world");

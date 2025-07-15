@@ -1,5 +1,5 @@
 it("should support regex with escape well", () => {
-	let info = "..";
+	const info = "..";
 	try {
 		const hooks = require(info + "/nr-hooks");
 		console.log("hooks:", hooks);

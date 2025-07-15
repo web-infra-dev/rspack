@@ -1,4 +1,4 @@
-import { value, add } from "./counter";
+import { add, value } from "./counter";
 import Foo from "./es2022";
 
 it("should compile and run", () => {

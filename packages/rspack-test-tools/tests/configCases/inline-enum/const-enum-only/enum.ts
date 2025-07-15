@@ -3,7 +3,7 @@ export enum E1 {
   B,
 }
 
-export const enum E2 {
+export enum E2 {
   A,
   B,
 }

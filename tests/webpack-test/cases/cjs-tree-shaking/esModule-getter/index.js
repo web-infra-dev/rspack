@@ -1,5 +1,5 @@
-import def, { named, __esModule } from "./module";
 import * as ns from "./module";
+import def, { __esModule, named } from "./module";
 
 it("should allow to import module with getters", () => {
 	expect(def).toBe("default");

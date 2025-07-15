@@ -37,15 +37,15 @@ process.stdin.on("end", () => {
 		process.exit(-1);
 	}
 
-	let extractedTestInfo = extractTestMetric(jsonObj);
-	let renderedTestMD = renderAllTestsToMarkdown(jsonObj);
+	const extractedTestInfo = extractTestMetric(jsonObj);
+	const renderedTestMD = renderAllTestsToMarkdown(jsonObj);
 	if (!isCI) {
 		console.log(renderedTestMD)
 		Object.entries(extractedTestInfo).forEach(([k, v]) => {
 			console.log(`${k}: ${v}`);
 		});
 	} else {
-		let json = JSON.stringify(extractedTestInfo)
+		const json = JSON.stringify(extractedTestInfo)
 		console.log(json)
 		const rootPath = path.resolve(__dirname, "../../../")
 		fs.writeFileSync(path.resolve(rootPath, "out.json"), json)

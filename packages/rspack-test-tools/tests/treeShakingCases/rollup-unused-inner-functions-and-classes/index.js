@@ -1,4 +1,4 @@
-import { foo, bar, bog, boo, baz } from "./stuff";
+import { bar, baz, bog, boo, foo } from "./stuff";
 
 bar();
 var f = baz();

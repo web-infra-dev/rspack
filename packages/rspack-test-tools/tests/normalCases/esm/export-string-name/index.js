@@ -1,5 +1,5 @@
-import { "string name" as stringNameExport, normalExport } from "./a";
 import * as namespace from "./a";
+import { normalExport, "string name" as stringNameExport } from "./a";
 
 it("should work well when export named with string name", function () {
   expect(normalExport).toBe("normal");

@@ -1,6 +1,5 @@
 import value from "./dep";
-import value2 from "./dep2";
-import * as dep2 from "./dep2";
+import value2, * as dep2 from "./dep2";
 import Super from "./super";
 
 const derived = value;

@@ -1,3 +1,3 @@
-import { something, b } from "./app";
+import { b, something } from "./app";
 
 something();

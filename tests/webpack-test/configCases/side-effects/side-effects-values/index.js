@@ -1,7 +1,7 @@
-import { log as booleanValueModuleLog } from "boolean-value-module/tracker";
 import booleanValueModule from "boolean-value-module";
-import { log as globValueModuleLog } from "glob-value-module/tracker";
+import { log as booleanValueModuleLog } from "boolean-value-module/tracker";
 import globValueModule from "glob-value-module";
+import { log as globValueModuleLog } from "glob-value-module/tracker";
 
 it("should handle a boolean", function() {
 	expect(booleanValueModule).toBe("def");

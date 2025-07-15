@@ -1,6 +1,5 @@
-import { umdData } from "./umd.js";
 import * as umdStar from "./umd.js";
-import umdDef from "./umd.js";
+import umdDef, { umdData } from "./umd.js";
 
 it("should get correct values when importing named exports from a umd module from mjs", function () {
 	expect(umdDef).toEqual({

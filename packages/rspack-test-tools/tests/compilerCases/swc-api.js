@@ -2,11 +2,11 @@
 module.exports = {
 	description: "should load @swc/plugin-remove-console successfully and transform code using rspack inner swc api",
 	async check(_, compiler, __) {
-		let swc = compiler.rspack.experiments.swc;
+		const swc = compiler.rspack.experiments.swc;
 
 		async function check_transform_api(transformApi) {
-			let source = 'function main() { console.log("Hello Rspack") }; main();';
-			let result = await transformApi(source, {
+			const source = 'function main() { console.log("Hello Rspack") }; main();';
+			const result = await transformApi(source, {
 				filename: "index.js",
 				minify: true,
 				jsc: {

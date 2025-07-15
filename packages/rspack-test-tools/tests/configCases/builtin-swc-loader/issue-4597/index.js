@@ -1,4 +1,5 @@
 import { Button } from "aaaaa";
+
 const fs = __non_webpack_require__("fs");
 
 it("should generate css successfully", () => {

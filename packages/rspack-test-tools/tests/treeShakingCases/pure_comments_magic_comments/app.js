@@ -1,4 +1,5 @@
 import { answer } from "./answer";
+
 function res() {
 	answer;
 }

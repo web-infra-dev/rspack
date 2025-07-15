@@ -1,9 +1,7 @@
-import semver from 'semver';
-
-import { useLang } from 'rspress/runtime';
-
 import { Table } from '@builtIns/Table';
 import { useLocation } from '@hooks/useLocation';
+import { useLang } from 'rspress/runtime';
+import semver from 'semver';
 
 function useDeprecatedVersion() {
   const { query } = useLocation();

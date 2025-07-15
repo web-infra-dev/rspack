@@ -1,4 +1,4 @@
-import { test, expect } from "@/fixtures";
+import { expect, test } from "@/fixtures";
 
 test("render should work", async ({ page }) => {
 	expect(await page.textContent(".header")).toBe("Hello World");

@@ -1,4 +1,4 @@
-import { foo, bar } from "foo";
+import { bar, foo } from "foo";
 
 it("should not invalidate managed item if package version stays equal", () => {
 	expect(foo).toBe("foo");

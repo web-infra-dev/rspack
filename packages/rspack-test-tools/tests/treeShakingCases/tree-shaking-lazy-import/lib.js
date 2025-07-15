@@ -1,4 +1,5 @@
 import test from "./test";
+
 function myanswer() {
 	test;
 }

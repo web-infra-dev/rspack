@@ -1,9 +1,9 @@
 import * as enums from "./enum";
-import * as reexported from "./re-export";
 import * as destructing from "./enum.destructing";
-import * as sideEffects from "./enum.side-effects";
-import * as reexportedSideEffects from "./re-export.side-effects";
 import * as notOnlyPropertiesUsed from "./enum.not-only-properties-used";
+import * as sideEffects from "./enum.side-effects";
+import * as reexported from "./re-export";
+import * as reexportedSideEffects from "./re-export.side-effects";
 
 const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
 

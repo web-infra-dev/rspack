@@ -1,4 +1,4 @@
-"use strict";
+
 
 require("../../dist/helper/legacy/warmup-webpack");
 const path = require("path");

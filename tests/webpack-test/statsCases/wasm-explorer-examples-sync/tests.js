@@ -1,9 +1,9 @@
+import * as duff from "./duff.wasm";
+import * as fact from "./fact.wasm";
+import * as fastMath from "./fast-math.wasm";
+import * as popcnt from "./popcnt.wasm";
 import * as Q_rsqrt from "./Q_rsqrt.wasm";
 import * as testFunction from "./testFunction.wasm";
-import * as fact from "./fact.wasm";
-import * as popcnt from "./popcnt.wasm";
-import * as fastMath from "./fast-math.wasm";
-import * as duff from "./duff.wasm";
 
 export function run_Q_rsqrt() {
 	const result = Q_rsqrt._Z7Q_rsqrtf(1/1764);

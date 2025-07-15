@@ -1,4 +1,5 @@
-import { moduleId, setToString, toString, abc, a, $1, __1 } from "./module";
+import { __1, $1, a, abc, moduleId, setToString, toString } from "./module";
+
 const moduleId2 = require("./commonjs").moduleId;
 const toString2 = require("./commonjs").toString;
 const setToString2 = require("./commonjs").setToString;

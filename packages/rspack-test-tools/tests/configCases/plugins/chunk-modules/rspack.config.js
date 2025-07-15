@@ -27,7 +27,7 @@ module.exports = {
 			compiler.hooks.compilation.tap("plugin", compilation => {
 				compilation.hooks.processAssets.tap("plugin", () => {
 					const chunkModules = {};
-					for (let chunk of compilation.chunks) {
+					for (const chunk of compilation.chunks) {
 						const modules = [
 							...compilation.chunkGraph.getChunkModulesIterable(chunk)
 						].sort(compareByIdentifier);

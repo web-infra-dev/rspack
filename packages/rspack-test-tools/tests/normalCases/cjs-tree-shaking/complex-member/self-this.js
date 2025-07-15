@@ -11,7 +11,7 @@ this.aaa = [
 
 var aaa = {};
 
-for (let k of this.aaa) {
+for (const k of this.aaa) {
 	aaa[k.name] = this.aaa[k.index].name;
 }
 

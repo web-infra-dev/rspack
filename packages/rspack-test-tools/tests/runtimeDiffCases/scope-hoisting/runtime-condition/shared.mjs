@@ -1,5 +1,5 @@
+import { bar, foo } from "./utils.cjs";
 import { num } from './value.mjs'
-import { foo, bar } from "./utils.cjs";
 
 num;
 export const foo1 = foo

@@ -13,7 +13,7 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.thisCompilation.tap("test", compilation => {
 					compilation.hooks.afterSeal.tap("test", () => {
-						let entrypoint = compilation.entrypoints.get("main");
+						const entrypoint = compilation.entrypoints.get("main");
 
 						entrypoint.chunks.forEach(chunk => {
 							const entryOptions = chunk.getEntryOptions();

@@ -23,7 +23,7 @@ it("should map to the original content if `module` enabled", async () => {
 });
 
 const positionFor = (content, text) => {
-	let lines = content.split(/\r?\n/);
+	const lines = content.split(/\r?\n/);
 	for (let i = 0; i < lines.length; i++) {
 		const column = lines[i].indexOf(text);
 		if (column >= 0) return { line: i + 1, column };

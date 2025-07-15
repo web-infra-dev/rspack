@@ -2,12 +2,12 @@ const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
 const { EntryPlugin } = require("@rspack/core");
 
-let stubCompilerName = jest.fn();
+const stubCompilerName = jest.fn();
 
 let cachedChildCompiler;
 let cachedChildCompilation;
-let stubCompiler = jest.fn();
-let stubCompilation = jest.fn();
+const stubCompiler = jest.fn();
+const stubCompilation = jest.fn();
 
 const CHILD_COMPILER_NAME = "NEW_CHILD_COMPILER";
 
@@ -19,7 +19,7 @@ class MyPlugin {
 	 */
 	apply(compiler) {
 		compiler.hooks.make.tapAsync("Plugin", (compilation, callback) => {
-			let childCompiler = compilation.createChildCompiler(
+			const childCompiler = compilation.createChildCompiler(
 				CHILD_COMPILER_NAME,
 				{},
 				[]

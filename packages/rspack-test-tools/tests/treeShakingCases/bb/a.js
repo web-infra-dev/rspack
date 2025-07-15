@@ -1,4 +1,5 @@
-import { d, c } from "./b.js";
+import { c, d } from "./b.js";
+
 export * from "./c.js";
 export const a = 3;
 

@@ -1,9 +1,9 @@
 import path from "node:path";
 
 import {
+	compareFile, 
 	type IFormatCodeOptions,
-	type IFormatCodeReplacement,
-	compareFile
+	type IFormatCodeReplacement
 } from "../compare";
 import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 import {

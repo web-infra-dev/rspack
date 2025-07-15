@@ -14,7 +14,7 @@ class Plugin {
 			expect(p).toBe("xxx1");
 		});
 		compiler.hooks.done.tap(pluginName, stats => {
-			let json = stats.toJson();
+			const json = stats.toJson();
 			expect(json.errors.length === 0);
 			expect(called).toBe(true);
 		});

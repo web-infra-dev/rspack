@@ -1,8 +1,4 @@
 import {
-	b,
-	_2
-} from "./path2";
-import {
 	aUsed,
 	bUsed,
 	cUsed
@@ -13,6 +9,10 @@ import {
 	fUsed
 } from "root2";
 import {addFiles, isSame} from "./helper";
+import {
+	_2, 
+	b
+} from "./path2";
 
 // should be the same as 3.js and reuse defaultVendors
 it("should use only current entrypoint exports", () => {

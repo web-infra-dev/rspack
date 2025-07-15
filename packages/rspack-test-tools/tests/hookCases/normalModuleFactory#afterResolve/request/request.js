@@ -1,6 +1,6 @@
+import fs from "fs";
 import a from "./a";
 import b from "./b";
-import fs from "fs";
 
 it("should modify request by after resolve hook", () => {
 	expect(a).toBe("a");

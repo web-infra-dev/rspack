@@ -12,8 +12,8 @@ module.exports = {
 						stage: Compilation.PROCESS_ASSETS_STAGE_REPORT
 					},
 					() => {
-						let chunks = [...compilation.chunks];
-						let auxiliaryFiles = [...chunks[0].auxiliaryFiles];
+						const chunks = [...compilation.chunks];
+						const auxiliaryFiles = [...chunks[0].auxiliaryFiles];
 						expect(Array.from(auxiliaryFiles)).toEqual(["bundle0.js.map"]);
 					}
 				);

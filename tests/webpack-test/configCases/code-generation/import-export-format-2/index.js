@@ -1,8 +1,10 @@
 import { foo as cjsexport_harmonyimport } from "./cjs-module";
-import theDefault, { bar as harmonyexport_harmonyimport } from "./harmony-module";
 import theDefaultExpression from "./export-default-expression";
+import theDefault, { bar as harmonyexport_harmonyimport } from "./harmony-module";
+
 const { harmonyexport_cjsimport } = require("./harmony-module").bar;
 const harmonyexport_cjsimportdefault = require("./export-default-expression").default;
+
 import { baz as harmonyexport_harmonyimport_2 } from "./harmony-module-2";
 
 import * as mod3 from "./harmony-module-3";

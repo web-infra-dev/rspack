@@ -8,15 +8,15 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
-import { mergeEtags } from "./cache/mergeEtags.js";
 
 import type { Cache, CallbackCache, Etag } from "./Cache";
-import type WebpackError from "./WebpackError";
 import type {
-	HashConstructor,
-	HashableObject
+	HashableObject, 
+	HashConstructor
 } from "./cache/getLazyHashedEtag";
+import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
+import { mergeEtags } from "./cache/mergeEtags.js";
+import type WebpackError from "./WebpackError";
 
 type CallbackNormalErrorCache<T> = (
 	err?: WebpackError | null,

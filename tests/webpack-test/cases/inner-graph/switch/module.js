@@ -1,4 +1,4 @@
-import { Block, Inline, Document } from "./some-module";
+import { Block, Document, Inline } from "./some-module";
 
 function getType(obj) {
 	return obj.type;

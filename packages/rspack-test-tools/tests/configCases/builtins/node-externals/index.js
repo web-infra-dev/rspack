@@ -1,4 +1,5 @@
 const fs_cjs = require("fs");
+
 import fs_esm from "fs";
 
 it("node external should works", () => {

@@ -1,12 +1,12 @@
 import * as binding from "@rspack/binding";
+import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import type { Module } from "../Module";
 import {
-	RuntimeGlobals,
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals,
-	isReservedRuntimeGlobal
+	isReservedRuntimeGlobal, 
+	RuntimeGlobals
 } from "../RuntimeGlobals";
-import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
 

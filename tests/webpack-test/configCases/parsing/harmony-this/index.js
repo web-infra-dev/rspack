@@ -1,10 +1,9 @@
 "use strict";
 
-import {extendThisClass, returnThisArrow, returnThisMember, that} from "./abc";
-import d, {a, b as B, C as _C, D as _D, E, F, f1, f2, f3, G} from "./abc";
-import {bindThis, callThis, applyThis} from "./issue-7213";
 
 import * as abc from "./abc";
+import d, {C as _C, D as _D, a, b as B, E, extendThisClass, F, f1, f2, f3, G, returnThisArrow, returnThisMember, that} from "./abc";
+import {applyThis, bindThis, callThis } from "./issue-7213";
 
 it("should have this = undefined on ES modules", () => {
 	expect((typeof that)).toBe("undefined");
@@ -64,9 +63,9 @@ it("should have this = undefined on imported non-strict functions", () => {
 	expect(Object.keys(thing)).toEqual(Object.keys(abc));
 });
 
-import C2, { C } from "./new";
 
 import * as New from "./new";
+import C2, { C } from "./new";
 
 it("should be possible to use new correctly", () => {
 	expect(new C()).toEqual({ok: true});

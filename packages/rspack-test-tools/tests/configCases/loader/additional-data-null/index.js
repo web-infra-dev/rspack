@@ -1,4 +1,4 @@
 it("should pass null as additional data", () => {
-	let result = require("./a");
+	const result = require("./a");
 	expect(result.value).toEqual("a");
 });

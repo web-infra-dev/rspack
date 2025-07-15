@@ -1,4 +1,4 @@
-import { used, unused } from "./reference";
+import { unused, used } from "./reference";
 
 export function test() {
 	return {

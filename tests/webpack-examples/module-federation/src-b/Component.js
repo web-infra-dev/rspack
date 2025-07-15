@@ -1,5 +1,6 @@
-import React from "react";
 import { formatRelative, subDays } from "date-fns";
+import React from "react";
+
 // date-fns is a shared module, but used as usual
 // exposing modules act as async boundary,
 // so no additional async boundary need to be added here

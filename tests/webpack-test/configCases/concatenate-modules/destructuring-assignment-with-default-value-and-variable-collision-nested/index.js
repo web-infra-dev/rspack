@@ -1,5 +1,5 @@
-import * as modA from "./module-a";
 import config from "./config";
+import * as modA from "./module-a";
 
 const {
 	deeply: {

@@ -1,4 +1,5 @@
 import { destroyMaybe as i } from "./util.js";
+
 class j {
 	constructor() {
     // should automatically insert semicolon

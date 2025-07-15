@@ -1,4 +1,5 @@
 let value = require("./module.js");
+
 import {a} from "./lib/a.js";
 
 it("should compile", (done) => {

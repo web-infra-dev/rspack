@@ -1,18 +1,18 @@
 "use strict";
 
 import { x, y } from "./a";
-import { d2, usedD1, usedD2 } from "./d.js";
 import { b1, usedB1, usedB2, usedB3, usedB4 } from "./b.js";
+import cjs from "./cjs2";
+import { d2, usedD1, usedD2 } from "./d.js";
 import { usedE1, usedE2 } from "./e.js";
 import { h } from "./h.js";
 import * as m from "./m";
 import { object as obj } from "./m";
-import cjs from "./cjs2";
 import * as o from "./o";
 import * as p from "./p";
 import * as q from "./q";
-import * as so from "./side-effect-free/o";
 import * as sm from "./side-effect-free/m";
+import * as so from "./side-effect-free/o";
 import json1 from "./some.json";
 import json2 from "./some1.json";
 import weirdCjs from "./weird-cjs";

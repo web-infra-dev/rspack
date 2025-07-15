@@ -1,9 +1,9 @@
-import value from "./package";
 import aaa from "./aaa";
 import bbb from "./bbb";
 import ccc from "./ccc";
 import ddd from "./ddd";
 import { a, b, c, d, e } from "./loader!./loader";
+import value from "./package";
 
 it("should use byDependency defaults", () => {
 	expect(value).toBe("module");

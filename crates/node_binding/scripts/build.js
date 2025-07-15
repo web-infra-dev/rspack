@@ -15,7 +15,7 @@ const { spawn } = require("child_process");
 
 const CARGO_SAFELY_EXIT_CODE = 0;
 
-let watch = process.argv.includes("--watch");
+const watch = process.argv.includes("--watch");
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -29,7 +29,7 @@ build().then((value) => {
 
 async function build() {
 	return new Promise((resolve, reject) => {
-		let args = [
+		const args = [
 			"build",
 			"--platform",
 			"--dts",
@@ -40,8 +40,8 @@ async function build() {
 			"--pipe",
 			`"node ${path.resolve(__dirname, "dts-header.js")}"`
 		];
-		let features = [];
-		let envs = { ...process.env };
+		const features = [];
+		const envs = { ...process.env };
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
@@ -78,7 +78,7 @@ async function build() {
 
 		console.log(`Run command: napi ${args.join(" ")}`);
 
-		let cp = spawn("napi", args, {
+		const cp = spawn("napi", args, {
 			stdio: "inherit",
 			shell: true,
 			env: envs,
@@ -89,7 +89,7 @@ async function build() {
 			if (code === CARGO_SAFELY_EXIT_CODE) {
 
 				// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
-				let dts = path.resolve(__dirname, "../binding.d.ts");
+				const dts = path.resolve(__dirname, "../binding.d.ts");
 				writeFileSync(dts,
 					readFileSync(dts, "utf8")
 						.replaceAll("const enum", "enum")

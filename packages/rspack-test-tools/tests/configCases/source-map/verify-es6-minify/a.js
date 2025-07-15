@@ -1,4 +1,5 @@
 import { b0 } from "./b-dir/b";
+
 function a0() {
 	a1("*a0*");
 }

@@ -1,4 +1,5 @@
 import { defaults } from "./Layout";
+
 class Test {
 	test = defaults.test + 20000;
 }

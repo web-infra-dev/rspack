@@ -32,17 +32,12 @@ export const ContextReplacementPlugin = create(
 			// rawOptions.newContentCreateContextMap = newContentRecursive;
 		} else {
 			if (typeof newContentResource !== "string") {
-				// biome-ignore lint/style/noParameterAssign: based on webpack's logic
 				newContentRegExp = newContentRecursive;
-				// biome-ignore lint/style/noParameterAssign: based on webpack's logic
 				newContentRecursive = newContentResource;
-				// biome-ignore lint/style/noParameterAssign: based on webpack's logic
 				newContentResource = undefined;
 			}
 			if (typeof newContentRecursive !== "boolean") {
-				// biome-ignore lint/style/noParameterAssign: based on webpack's logic
 				newContentRegExp = newContentRecursive;
-				// biome-ignore lint/style/noParameterAssign: based on webpack's logic
 				newContentRecursive = undefined;
 			}
 			rawOptions.newContentResource = newContentResource;

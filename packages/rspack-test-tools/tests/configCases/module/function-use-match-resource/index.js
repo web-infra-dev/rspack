@@ -1,4 +1,4 @@
-import { A, B, __info__, __context__ } from "__label__?A=A#B=B!=!./lib";
+import { __context__, __info__, A, B } from "__label__?A=A#B=B!=!./lib";
 
 it("use entry arguments should be correct", () => {
 	expect(A).toBe('A');

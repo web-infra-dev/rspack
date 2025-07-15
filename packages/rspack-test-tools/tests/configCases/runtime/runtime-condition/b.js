@@ -1,4 +1,4 @@
-import { other, val2c, Test } from "./shared";
+import { other, Test, val2c } from "./shared";
 
 it("should have correct runtime id", () => {
 	expect(other).toBe("other");

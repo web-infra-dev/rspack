@@ -1,4 +1,4 @@
-let foo = {},
+const foo = {},
 	bar = {};
 module.exports = {
 	module: {

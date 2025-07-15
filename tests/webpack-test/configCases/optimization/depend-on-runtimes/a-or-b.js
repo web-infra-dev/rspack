@@ -1,4 +1,4 @@
-import { w, used } from "./module";
+import { used, w } from "./module";
 
 export default it =>
 	it("should have the correct exports", () => {

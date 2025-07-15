@@ -2,8 +2,8 @@ class MyPlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("Plugin", compilation => {
 			compilation.hooks.processAssets.tap("Plugin", () => {
-				let list = compilation.getAssets();
-				let map = compilation.assets;
+				const list = compilation.getAssets();
+				const map = compilation.assets;
 
 				expect(Object.keys(map)).toHaveLength(list.length);
 

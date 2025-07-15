@@ -1,5 +1,5 @@
-import { Foo, Bar as FirstBar } from "./first"
-import { Foo as SecondFoo, Bar } from "./second"
+import { Bar as FirstBar, Foo } from "./first"
+import { Bar, Foo as SecondFoo } from "./second"
 
 it("should renamed class reference in inner scope", function() {
 	var a = new Foo().test();

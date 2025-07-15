@@ -11,7 +11,7 @@ exports.aaa = [
 
 var aaa = {};
 
-for (let k of exports.aaa) {
+for (const k of exports.aaa) {
 	aaa[k.name] = exports.aaa[k.index].name;
 }
 

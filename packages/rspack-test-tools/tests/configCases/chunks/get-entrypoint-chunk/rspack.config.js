@@ -13,10 +13,10 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.thisCompilation.tap("test", compilation => {
 					compilation.hooks.afterSeal.tap("test", () => {
-						let entrypoint = compilation.entrypoints.get("main");
-						let entrypointChunk = entrypoint.getEntrypointChunk();
+						const entrypoint = compilation.entrypoints.get("main");
+						const entrypointChunk = entrypoint.getEntrypointChunk();
 						expect(entrypointChunk.name).toBe("main");
-						let chunks = entrypointChunk.getAllReferencedChunks();
+						const chunks = entrypointChunk.getAllReferencedChunks();
 						expect([...chunks].map(c => c.name)).toEqual([
 							"runtime~main",
 							"main",

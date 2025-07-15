@@ -1,12 +1,20 @@
 const ModuleExportsDefaultTest = require("./module-exports-default").default;
 const Test1 = require("./exports-default?1").default;
+
 import Test2 from "./exports-default?2";
+
 const Test3 = require("./exports-default-flagged?3").default;
+
 import Test4 from "./exports-default-flagged?4";
+
 const Test5 = require("./exports-default-bailout?5").default;
+
 import Test6 from "./exports-default-bailout?6";
+
 const Test7 = require("./exports-default-bailout-flagged?7").default;
+
 import Test8 from "./exports-default-bailout-flagged?8";
+
 const moduleExportsDefaultTest = new ModuleExportsDefaultTest();
 const test1 = new Test1();
 const test2 = new Test2.default();

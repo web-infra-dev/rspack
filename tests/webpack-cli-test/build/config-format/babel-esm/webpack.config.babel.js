@@ -1,6 +1,7 @@
 /* eslint-disable */
-import { fileURLToPath } from "url";
+
 import path from "path";
+import { fileURLToPath } from "url";
 
 export default {
   mode: "development",

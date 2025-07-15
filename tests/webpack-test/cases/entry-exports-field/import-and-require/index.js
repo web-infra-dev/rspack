@@ -1,4 +1,5 @@
 import d1 from "pck";
+
 const d2 = require("pck");
 
 it("require and import for the same request", () => {

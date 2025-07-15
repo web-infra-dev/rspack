@@ -1,6 +1,6 @@
-import { createRequire as func_create_require, builtinModules as builtin } from "module";
 import external from "external-module";
 import externalOther from "external-other-module";
+import { builtinModules as builtin, createRequire as func_create_require } from "module";
 import baz from "./baz.js";
 
 it("should work with __non_webpack_require__ and ES modules", function () {

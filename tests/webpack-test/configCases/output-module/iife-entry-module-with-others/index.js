@@ -1,4 +1,5 @@
 import { value as value1 } from './module1'
+
 const value2 = require('./module2')
 const value3 = require('./module3')
 const value4 = require('./module4')

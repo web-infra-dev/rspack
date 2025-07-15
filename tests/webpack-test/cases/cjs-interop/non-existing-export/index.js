@@ -1,5 +1,5 @@
-import { named } from "./module";
 import { named as named2 } from "./esModule";
+import { named } from "./module";
 
 it("should emit errors", () => {
 	expect(named).toBe(undefined);

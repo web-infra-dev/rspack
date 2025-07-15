@@ -8,11 +8,11 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { NormalModule } from "../NormalModule";
-import * as ModuleFilenameHelpers from "./ModuleFilenameHelpers";
 
 import type { Compiler } from "../Compiler";
+import { NormalModule } from "../NormalModule";
 import type { MatchObject } from "./ModuleFilenameHelpers";
+import * as ModuleFilenameHelpers from "./ModuleFilenameHelpers";
 
 type LoaderOptionsPluginOptions = MatchObject & {
 	[key: string]: unknown;

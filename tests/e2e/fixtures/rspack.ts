@@ -3,9 +3,9 @@ import type { Fixtures, PlaywrightTestArgs } from "@playwright/test";
 import {
 	type Compiler,
 	type Configuration,
-	rspack,
+	experiments, 
 	type RspackOptions as RspackConfig,
-	experiments
+	rspack
 } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import type { PathInfoFixtures } from "./pathInfo";

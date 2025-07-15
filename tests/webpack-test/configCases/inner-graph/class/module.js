@@ -1,12 +1,12 @@
 import {
 	deepEqual,
-	equal,
-	strictEqual,
-	notEqual,
-	maybeEqual,
 	definiteEqual,
+	equal,
 	getNameA,
-	getNameB
+	getNameB, 
+	maybeEqual,
+	notEqual,
+	strictEqual
 } from "./assert";
 
 function fun1() {

@@ -1,6 +1,5 @@
-import { a, a as aa } from "./module";
-import b from "./module";
 import * as c from "./module";
+import b, { a, a as aa } from "./module";
 
 it("should import into object shorthand", function() {
 	var o = {

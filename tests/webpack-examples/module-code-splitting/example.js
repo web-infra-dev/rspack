@@ -1,4 +1,4 @@
-import { resetCounter, print } from "./methods";
+import { print, resetCounter } from "./methods";
 
 setTimeout(async () => {
 	const counter = await import("./counter");

@@ -19,7 +19,7 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.compilation.tap("MyPlugin", compilation => {
 					compilation.hooks.processAssets.tap("MyPlugin", assets => {
-						let list = Object.keys(assets);
+						const list = Object.keys(assets);
 						const png = list.find(item => item.endsWith("png"));
 						const asset = compilation.getAsset(png);
 						const buf = asset.source.buffer();

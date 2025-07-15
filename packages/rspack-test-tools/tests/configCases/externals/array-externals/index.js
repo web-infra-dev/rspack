@@ -2,6 +2,7 @@ import "./inject";
 
 import foo from "foo";
 import raz from "raz";
+
 const myos = require("myos");
 const bar = require("bar");
 const baz = require("baz");

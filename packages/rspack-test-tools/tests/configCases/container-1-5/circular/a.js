@@ -1,2 +1,2 @@
 export default "a";
-export { default as b, a as ba } from "container2/b";
+export { a as ba, default as b } from "container2/b";

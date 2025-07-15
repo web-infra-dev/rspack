@@ -1,5 +1,6 @@
 const moduleValue = require("./module");
 const external = require("external");
+
 import referencer from "./referencer";
 
 it("should keep the module hash when usage changes", done => {

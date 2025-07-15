@@ -1,6 +1,6 @@
 import path from "node:path";
-import fs from "fs-extra";
 import type { Fixtures } from "@playwright/test";
+import fs from "fs-extra";
 import type { RspackFixtures } from "./rspack";
 
 type FileAction = {

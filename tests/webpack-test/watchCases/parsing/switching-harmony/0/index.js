@@ -1,7 +1,7 @@
-import hh from "./hh";
-import hc from "./hc";
-import ch from "./ch";
 import cc from "./cc";
+import ch from "./ch";
+import hc from "./hc";
+import hh from "./hh";
 
 it("should flag modules correctly", function() {
 	expect(hh).toBe("hh" + WATCH_STEP);

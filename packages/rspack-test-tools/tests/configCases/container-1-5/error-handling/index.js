@@ -1,6 +1,6 @@
-"use strict";
 
-let warnings = [];
+
+const warnings = [];
 let oldWarn;
 
 beforeEach(done => {

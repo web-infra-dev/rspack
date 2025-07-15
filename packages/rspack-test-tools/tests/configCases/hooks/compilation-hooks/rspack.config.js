@@ -3,7 +3,7 @@ const pluginName = "plugin";
 
 class Plugin {
 	apply(compiler) {
-		let order = [];
+		const order = [];
 
 		compiler.hooks.beforeCompile.tap(pluginName, () => {
 			order.push("hooks.beforeCompile");
@@ -19,7 +19,7 @@ class Plugin {
 		});
 
 		compiler.hooks.done.tap(pluginName, stats => {
-			let json = stats.toJson();
+			const json = stats.toJson();
 			strict(json.errors.length === 0, `${json.errors}`);
 			deepEqual(order, [
 				"hooks.beforeCompile",

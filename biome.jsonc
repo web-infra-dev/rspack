@@ -21,17 +21,20 @@
 				"useArrowFunction": "off",
 				"noStaticOnlyClass": "off",
 				"noThisInStatic": "off",
-				"noBannedTypes": "off"
+				"noBannedTypes": "off",
+				"noArguments": "off"
 			},
 			"correctness": {
 				"noConstructorReturn": "off",
-				"noVoidTypeReturn": "off"
+				"noVoidTypeReturn": "off",
+				"noUnusedFunctionParameters": "off"
 			},
 			"style": {
 				"noNonNullAssertion": "off"
 			},
 			"performance": {
-				"noDelete": "off"
+				"noDelete": "off",
+				"noDynamicNamespaceImportAccess": "off"
 			},
 			"suspicious": {
 				"noFallthroughSwitchClause": "off",
@@ -41,18 +44,26 @@
 				"noControlCharactersInRegex": "off",
 				"noExplicitAny": "off"
 			}
-		},
+		}
+	},
+	"files": {
 		"includes": [
-			"**",
+			"**/packages/**/*",
+			"**/examples/**/*",
+			"**/scripts/**/*",
+			"**/website/**/*",
+			"**/npm/**/*",
 			"!**/tests/**/*",
-			"!**/crates/**/*",
+			"!**/*.d.ts",
+			"!**/*.vue",
 			"!**/packages/rspack-test-tools/template",
 			"!**/packages/rspack-test-tools/src/helper/legacy/**/*",
-			"!**/packages/rspack/module.d.ts",
+			"!**/packages/rspack-test-tools/template/*",
 			// --- ignore runtime code in browser
 			"!**/packages/rspack/hot",
 			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
-		]
+		],
+		"ignoreUnknown": true
 	},
 	"vcs": {
 		"enabled": true,

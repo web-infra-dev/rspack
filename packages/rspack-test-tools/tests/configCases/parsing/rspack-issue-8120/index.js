@@ -4,7 +4,7 @@ const path = __non_webpack_require__("node:path");
 const { NODE_ENV, PUBLIC_URL } = process.env.test;
 
 it("should work", function () {
-	let js = fs.readFileSync(path.resolve(__dirname, "./bundle0.js"), "utf-8");
+	const js = fs.readFileSync(path.resolve(__dirname, "./bundle0.js"), "utf-8");
 
 	expect(
 		js.includes(

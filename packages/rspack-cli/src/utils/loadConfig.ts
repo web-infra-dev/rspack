@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-	util,
 	type MultiRspackOptions,
-	type RspackOptions
+	type RspackOptions,
+	util
 } from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
@@ -128,7 +128,7 @@ export async function loadExtendedConfig(
 			// It's a node module
 			try {
 				resolvedPath = require.resolve(extendPath, { paths: [baseDir, cwd] });
-			} catch (error) {
+			} catch {
 				throw new Error(`Cannot find module '${extendPath}' to extend from.`);
 			}
 		}

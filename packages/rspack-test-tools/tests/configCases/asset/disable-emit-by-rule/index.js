@@ -1,7 +1,7 @@
-import url from "../_images/file.png";
-import url2 from "../_images/file.jpg";
 import fs from "fs";
 import path from "path";
+import url2 from "../_images/file.jpg";
+import url from "../_images/file.png";
 
 it("should not output asset when emit is false", () => {
 	expect(url).toEqual("images/file.png");

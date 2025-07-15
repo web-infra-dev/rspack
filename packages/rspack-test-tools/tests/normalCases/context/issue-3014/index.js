@@ -1,4 +1,4 @@
 it("issue-3014", function () {
-	let answer = require(`./answer`);
+	const answer = require(`./answer`);
 	expect(answer).toBe(42);
 });

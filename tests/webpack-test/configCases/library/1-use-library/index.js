@@ -1,6 +1,5 @@
-import d from "library";
-import { a, b, external } from "library";
 import * as imoprtStar from "library";
+import d, { a, b, external } from "library";
 
 it(
 	"should be able to import harmony exports from library (" + NAME + ")",

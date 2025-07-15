@@ -3,7 +3,7 @@ const { createFsFromVolume, Volume } = require("memfs");
 class MyPlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("Plugin", compilation => {
-			let assets = compilation.getAssets();
+			const assets = compilation.getAssets();
 			expect(assets.length).toBe(0);
 			const { RawSource } = require("webpack-sources");
 			compilation.emitAsset(
@@ -11,7 +11,7 @@ class MyPlugin {
 				new RawSource(`module.exports = "This is dd"`)
 			);
 			compilation.hooks.processAssets.tap("Plugin", assets => {
-				let names = Object.keys(assets);
+				const names = Object.keys(assets);
 
 				expect(names.length).toBe(2); // ["main.js", "dd.js"]
 				expect(names.includes("main.js")).toBeTruthy();

@@ -9,7 +9,7 @@ const c1 = typeof __webpack_layer__;
 const c2 = typeof __RUNTIME_TYPE__;
 
 it("should work", function () {
-	let js = fs.readFileSync(path.resolve(__dirname, "./bundle0.js"), "utf-8");
+	const js = fs.readFileSync(path.resolve(__dirname, "./bundle0.js"), "utf-8");
 	js.replace(/\s+/g, " ");
 
 	expect(js.includes("const a1 = true ? 'yes' : 0;")).toBeTruthy();

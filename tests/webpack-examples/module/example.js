@@ -1,5 +1,6 @@
 import { increment as inc, value } from "./counter";
-import { resetCounter, print } from "./methods";
+import { print, resetCounter } from "./methods";
+
 print(value);
 inc();
 inc();

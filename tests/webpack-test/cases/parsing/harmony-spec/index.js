@@ -1,5 +1,5 @@
-import { value, add } from "./live";
-import { value as value2, add as add2 } from "./live-es5";
+import { add, value } from "./live";
+import { add as add2, value as value2 } from "./live-es5";
 import { getLog } from "./order-tracker";
 import "./order-c";
 import cycleValue from "./export-cycle-a";
@@ -35,4 +35,4 @@ it("should allow to import live variables from itself", function() {
 	expect(data).toEqual([undefined, 1, 2]);
 });
 
-import { value as valueEval, evalInModule } from "./eval";
+import { evalInModule, value as valueEval } from "./eval";

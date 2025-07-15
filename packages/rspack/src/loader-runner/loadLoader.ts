@@ -9,9 +9,9 @@
  */
 
 import type Url from "node:url";
-import type { LoaderObject } from ".";
 import type { LoaderDefinitionFunction } from "../config";
 import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
+import type { LoaderObject } from ".";
 import LoaderLoadingError from "./LoaderLoadingError";
 
 type ModuleObject = {
@@ -21,7 +21,7 @@ type ModuleObject = {
 };
 type LoaderModule = ModuleObject | Function;
 
-let url: undefined | typeof Url = undefined;
+let url: undefined | typeof Url ;
 
 export default function loadLoader(
 	loader: LoaderObject,

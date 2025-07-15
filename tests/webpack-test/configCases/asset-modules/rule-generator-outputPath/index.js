@@ -1,6 +1,6 @@
-import url from "../_images/file.png";
 import fs from "fs";
 import path from "path";
+import url from "../_images/file.png";
 
 it("should emit asset with module.generator.asset.outputPath", () => {
 	expect(url).toEqual("https://cdn/assets/file.png");

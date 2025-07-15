@@ -1,5 +1,5 @@
-let contentHashes = [];
-let files = [];
+const contentHashes = [];
+const files = [];
 
 /** @type {import("../../../..").THookCaseConfig} */
 module.exports = {

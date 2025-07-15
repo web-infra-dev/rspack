@@ -1,11 +1,11 @@
 import {
 	count,
-	mult,
 	inc,
 	incTruthy,
-	setCount,
+	incUsed, 
+	mult,
 	multUsed,
-	incUsed
+	setCount
 } from "./a";
 
 it("logical 'and' should work", () => {

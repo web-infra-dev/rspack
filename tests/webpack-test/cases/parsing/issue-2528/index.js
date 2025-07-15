@@ -1,7 +1,7 @@
-import { foo } from './module';
 import impA from "./helperA";
 import impB from "./helperB";
 import impC from "./helperC";
+import { foo } from './module';
 
 var notExportedAsync = function () {
 	var ref = impA(impB.mark(function _callee2() {

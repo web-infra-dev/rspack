@@ -1,28 +1,19 @@
-import { data } from "./cjs.js";
 import * as star from "./cjs.js";
-import def from "./cjs.js";
+import def, { data } from "./cjs.js";
+import jsonDef, * as jsonStar from "./data.json";
+import * as dynamicStar from "./dynamic.js";
+import dynamicDef, { data as dynamicData } from "./dynamic.js";
+import * as dynamicFlaggedStar from "./dynamicFlagged.js";
+import dynamicFlaggedDef, { data as dynamicFlaggedData } from "./dynamicFlagged.js";
+import * as flaggedStar from "./flagged.js";
+import flaggedDef, { data as flaggedData } from "./flagged.js";
+import * as reexport from "./reexport.mjs";
 import {
-	ns,
+	data as data2, 
 	default as def1,
 	def as def2,
-	data as data2
+	ns
 } from "./reexport.mjs";
-import * as reexport from "./reexport.mjs";
-
-import { data as dynamicData } from "./dynamic.js";
-import * as dynamicStar from "./dynamic.js";
-import dynamicDef from "./dynamic.js";
-
-import { data as flaggedData } from "./flagged.js";
-import * as flaggedStar from "./flagged.js";
-import flaggedDef from "./flagged.js";
-
-import { data as dynamicFlaggedData } from "./dynamicFlagged.js";
-import * as dynamicFlaggedStar from "./dynamicFlagged.js";
-import dynamicFlaggedDef from "./dynamicFlagged.js";
-
-import * as jsonStar from "./data.json";
-import jsonDef from "./data.json";
 
 it("should get correct values when importing named exports from a CommonJs module from mjs", function () {
 	expect(typeof data).toBe("string");

@@ -1,5 +1,5 @@
-import { load } from "./parent-file";
 import update from "../../update";
+import { load } from "./parent-file";
 
 it("should bubble update from a nested dependency", () => {
 	return load().then(value => {

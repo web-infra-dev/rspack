@@ -3,7 +3,7 @@ const mockFn = jest.fn();
 class MyPlugin {
 	apply(compiler) {
 		compiler.hooks.afterCompile.tap("Plugin", compilation => {
-			let c = compilation.namedChunks.get("d");
+			const c = compilation.namedChunks.get("d");
 			expect(c.name).toBe("d");
 			mockFn();
 		});

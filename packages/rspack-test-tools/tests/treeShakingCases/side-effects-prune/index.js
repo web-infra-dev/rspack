@@ -1,4 +1,4 @@
-import { something, a } from "./app";
+import { a, something } from "./app";
 
 something();
 // a;

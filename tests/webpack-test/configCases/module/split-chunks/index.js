@@ -1,5 +1,5 @@
-import value from "./separate";
 import { test as t } from "external-self";
+import value from "./separate";
 
 it("should compile", () => {
 	expect(value).toBe(42);

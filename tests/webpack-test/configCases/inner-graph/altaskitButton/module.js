@@ -2,31 +2,31 @@
  * Copy from @atlaskit/button
  */
 
-import _extends from 'babel-runtime/helpers/extends';
 import _Object$getPrototypeOf from 'babel-runtime/core-js/object/get-prototype-of';
 import _classCallCheck from 'babel-runtime/helpers/classCallCheck';
 import _createClass from 'babel-runtime/helpers/createClass';
-import _possibleConstructorReturn from 'babel-runtime/helpers/possibleConstructorReturn';
+import _extends from 'babel-runtime/helpers/extends';
 import _inherits from 'babel-runtime/helpers/inherits';
+import _possibleConstructorReturn from 'babel-runtime/helpers/possibleConstructorReturn';
 import _taggedTemplateLiteral from 'babel-runtime/helpers/taggedTemplateLiteral';
 
 var _templateObject = _taggedTemplateLiteral(['\n  ', ';\n'], ['\n  ', ';\n']),
     _templateObject2 = _taggedTemplateLiteral(['\n  a& {\n    ', ';\n  }\n'], ['\n  a& {\n    ', ';\n  }\n']),
     _templateObject3 = _taggedTemplateLiteral(['&,a&,&:hover,&:active,&:focus{', '}'], ['&,a&,&:hover,&:active,&:focus{', '}']);
 
+import { withAnalyticsContext, withAnalyticsEvents } from '@atlaskit/analytics-next';
 import React, { Component } from 'react';
 import styled from 'styled-components';
-import { withAnalyticsEvents, withAnalyticsContext } from '@atlaskit/analytics-next';
 
 import { name, version } from '../../package.json';
-import withDeprecationWarnings from './withDeprecationWarnings';
-import getButtonProps from './getButtonProps';
-import CustomComponentProxy from './CustomComponentProxy';
-import getButtonStyles from '../styled/getButtonStyles';
 import ButtonContent from '../styled/ButtonContent';
 import ButtonWrapper from '../styled/ButtonWrapper';
+import getButtonStyles from '../styled/getButtonStyles';
 import IconWrapper from '../styled/IconWrapper';
 import LoadingSpinner from '../styled/LoadingSpinner';
+import CustomComponentProxy from './CustomComponentProxy';
+import getButtonProps from './getButtonProps';
+import withDeprecationWarnings from './withDeprecationWarnings';
 
 var StyledButton = styled.button(_templateObject, getButtonStyles);
 StyledButton.displayName = 'StyledButton';

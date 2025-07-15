@@ -1,6 +1,6 @@
 import {
-	staticProp as importedStaticProp,
-	prop as importedProp
+	prop as importedProp, 
+	staticProp as importedStaticProp
 } from "./module";
 
 export const staticProp = "value";

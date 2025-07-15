@@ -1,7 +1,7 @@
-import value from "promise-external";
+import request from "import-external";
 import value2 from "module-promise-external";
 import value3 from "object-promise-external";
-import request from "import-external";
+import value from "promise-external";
 
 it("should allow async externals (in strict esm)", () => {
 	expect(value).toBe(42);

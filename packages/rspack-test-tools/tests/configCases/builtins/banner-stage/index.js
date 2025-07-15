@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+
 import png from "./empty.png";
+
 import("./b.js").then(res => {
 	// xxxx
 });
