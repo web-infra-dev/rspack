@@ -10,7 +10,10 @@ use napi::{
   sys::{self, napi_env},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
-use oneshot::Receiver;
+#[cfg(not(feature = "browser"))]
+use oneshot::{channel, Receiver};
+#[cfg(feature = "browser")]
+use rspack_browser::oneshot::{channel, Receiver};
 use rspack_error::{Error, Result};
 
 use crate::{JsCallback, NapiErrorToRspackErrorExt};
@@ -76,7 +79,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   }
 
   fn call_with_return<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
-    let (tx, rx) = oneshot::channel::<Result<D>>();
+    let (tx, rx) = channel::<Result<D>>();
     self
       .inner
       .call_with_return_value(value, ThreadsafeFunctionCallMode::NonBlocking, {
