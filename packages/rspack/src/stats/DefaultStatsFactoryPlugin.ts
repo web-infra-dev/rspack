@@ -18,17 +18,17 @@ import type {
 import type { Chunk } from "../Chunk";
 import type { NormalizedStatsOptions } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { DeadlockRiskError } from "../RspackError";
 import type { StatsOptions } from "../config";
 import {
-	LogType,
-	type LogTypeEnum,
 	getLogTypeBitFlag,
-	getLogTypesBitFlag
+	getLogTypesBitFlag,
+	LogType,
+	type LogTypeEnum
 } from "../logging/Logger";
+import { DeadlockRiskError } from "../RspackError";
 import {
-	type Comparator,
 	compareIds as _compareIds,
+	type Comparator,
 	compareNumbers,
 	compareSelect
 } from "../util/comparators";
@@ -692,8 +692,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context.cachedGetWarnings = compilation => {
 					return (
 						map.get(compilation) ||
-						// biome-ignore lint/style/noCommaOperator: based on webpack's logic
-						(warnings => (map.set(compilation, warnings), warnings))(
+						(warnings => {
+							map.set(compilation, warnings);
+							return warnings;
+						})(
 							compilation
 								.__internal_getInner()
 								.createStatsWarnings(

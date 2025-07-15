@@ -1,13 +1,13 @@
 import type { JsBuildMeta } from "@rspack/binding";
 import * as z from "zod/v4";
-import type { IgnorePluginOptions } from "../builtin-plugin/IgnorePlugin";
-import type { RsdoctorPluginOptions } from "../builtin-plugin/RsdoctorPlugin";
-import type { SubresourceIntegrityPluginOptions } from "../builtin-plugin/SubresourceIntegrityPlugin";
 import type {
 	HtmlRspackPluginOptions,
 	TemplateParamFunction,
 	TemplateRenderFunction
 } from "../builtin-plugin/html-plugin";
+import type { IgnorePluginOptions } from "../builtin-plugin/IgnorePlugin";
+import type { RsdoctorPluginOptions } from "../builtin-plugin/RsdoctorPlugin";
+import type { SubresourceIntegrityPluginOptions } from "../builtin-plugin/SubresourceIntegrityPlugin";
 import type { DllPluginOptions } from "../lib/DllPlugin";
 import type {
 	DllReferencePluginOptions,

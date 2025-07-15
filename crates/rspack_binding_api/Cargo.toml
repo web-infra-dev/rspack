@@ -11,9 +11,10 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-debug_tool    = ["rspack_core/debug_tool"]
-plugin        = ["rspack_loader_swc/plugin"]
-sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+color-backtrace = ["dep:color-backtrace"]
+debug_tool      = ["rspack_core/debug_tool"]
+plugin          = ["rspack_loader_swc/plugin"]
+sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
 anyhow                   = { workspace = true }
@@ -49,7 +50,7 @@ tracing-subscriber = { workspace = true }
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
 
-color-backtrace = { workspace = true }
+color-backtrace = { workspace = true, optional = true }
 
 derive_more                            = { workspace = true, features = ["debug"] }
 futures                                = { workspace = true }

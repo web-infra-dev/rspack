@@ -19,18 +19,25 @@ export { MultiCompiler } from "./MultiCompiler";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
-export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "@rspack/binding";
-export type { ResolveData, ResourceDataWithData } from "./Module";
-export { MultiStats } from "./MultiStats";
-export { Module } from "./Module";
-export { NormalModule } from "./NormalModule";
-export { ContextModule } from "./ContextModule";
+export {
+	AsyncDependenciesBlock,
+	Dependency,
+	EntryDependency
+} from "@rspack/binding";
+export type { Chunk } from "./Chunk";
 export { ConcatenatedModule } from "./ConcatenatedModule";
+export { ContextModule } from "./ContextModule";
 export { ExternalModule } from "./ExternalModule";
-export type { NormalModuleFactory } from "./NormalModuleFactory";
+export type { ResolveData, ResourceDataWithData } from "./Module";
+export { Module } from "./Module";
 export type { default as ModuleGraph } from "./ModuleGraph";
+export { MultiStats } from "./MultiStats";
+export { NormalModule } from "./NormalModule";
+export type { NormalModuleFactory } from "./NormalModuleFactory";
+export type { RspackError, RspackSeverity } from "./RspackError";
 export { RuntimeGlobals } from "./RuntimeGlobals";
+export { RuntimeModule } from "./RuntimeModule";
 export type {
 	StatsAsset,
 	StatsChunk,
@@ -38,16 +45,8 @@ export type {
 	StatsError,
 	StatsModule
 } from "./Stats";
-export { StatsErrorCode } from "./stats/statsFactoryUtils";
 export { Stats } from "./Stats";
-export { RuntimeModule } from "./RuntimeModule";
-export {
-	EntryDependency,
-	Dependency,
-	AsyncDependenciesBlock
-} from "@rspack/binding";
-
-export type { RspackError, RspackSeverity } from "./RspackError";
+export { StatsErrorCode } from "./stats/statsFactoryUtils";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
@@ -94,45 +93,50 @@ import { createHash } from "./util/createHash";
 
 export const util = { createHash, cleverMerge };
 
-export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
-export type { OutputFileSystem } from "./util/fs";
-
 ///// Internal Plugins /////
-export type { BannerPluginArgument } from "./builtin-plugin";
-export type { ProvidePluginOptions } from "./builtin-plugin";
-export type { DefinePluginOptions } from "./builtin-plugin";
-export type { ProgressPluginArgument } from "./builtin-plugin";
-export type { EntryOptions } from "./builtin-plugin";
-export { BannerPlugin } from "./builtin-plugin";
-export { IgnorePlugin, type IgnorePluginOptions } from "./builtin-plugin";
-export { ProvidePlugin } from "./builtin-plugin";
-export { DefinePlugin } from "./builtin-plugin";
-export { ProgressPlugin } from "./builtin-plugin";
-export { EntryPlugin } from "./builtin-plugin";
-export { DynamicEntryPlugin } from "./builtin-plugin";
-export { ExternalsPlugin } from "./builtin-plugin";
-export { HotModuleReplacementPlugin } from "./builtin-plugin";
-export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
-export { WarnCaseSensitiveModulesPlugin } from "./builtin-plugin";
-export { RuntimePlugin } from "./builtin-plugin";
+export type {
+	BannerPluginArgument,
+	DefinePluginOptions,
+	EntryOptions,
+	ProgressPluginArgument,
+	ProvidePluginOptions
+} from "./builtin-plugin";
+export {
+	BannerPlugin,
+	DefinePlugin,
+	DynamicEntryPlugin,
+	EntryPlugin,
+	ExternalsPlugin,
+	HotModuleReplacementPlugin,
+	IgnorePlugin,
+	type IgnorePluginOptions,
+	NoEmitOnErrorsPlugin,
+	ProgressPlugin,
+	ProvidePlugin,
+	RuntimePlugin,
+	WarnCaseSensitiveModulesPlugin
+} from "./builtin-plugin";
 export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
 export {
 	DllReferencePlugin,
 	type DllReferencePluginOptions,
-	type DllReferencePluginOptionsSourceType,
 	type DllReferencePluginOptionsContent,
-	type DllReferencePluginOptionsManifest
+	type DllReferencePluginOptionsManifest,
+	type DllReferencePluginOptionsSourceType
 } from "./lib/DllReferencePlugin";
+export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
+export type { OutputFileSystem } from "./util/fs";
 
 import {
 	FetchCompileAsyncWasmPlugin,
-	SubresourceIntegrityPlugin,
-	lazyCompilationMiddleware
+	lazyCompilationMiddleware,
+	SubresourceIntegrityPlugin
 } from "./builtin-plugin";
+
 interface Web {
 	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
 }
@@ -204,14 +208,16 @@ interface Webworker {
 
 export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
-import { LimitChunkCountPlugin } from "./builtin-plugin";
-import { RuntimeChunkPlugin } from "./builtin-plugin";
-import { SplitChunksPlugin } from "./builtin-plugin";
-import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
-import { RsdoctorPlugin } from "./builtin-plugin";
-import { RstestPlugin } from "./builtin-plugin";
-import { RslibPlugin } from "./builtin-plugin";
-import { CssChunkingPlugin } from "./builtin-plugin";
+import {
+	CssChunkingPlugin,
+	LimitChunkCountPlugin,
+	RemoveDuplicateModulesPlugin,
+	RsdoctorPlugin,
+	RslibPlugin,
+	RstestPlugin,
+	RuntimeChunkPlugin,
+	SplitChunksPlugin
+} from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -228,9 +234,11 @@ export const optimize: Optimize = {
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
+
 import { ModuleFederationPluginV1 } from "./container/ModuleFederationPluginV1";
 
 export type { ModuleFederationPluginV1Options } from "./container/ModuleFederationPluginV1";
+
 import { ContainerPlugin } from "./container/ContainerPlugin";
 import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 
@@ -262,16 +270,16 @@ import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
 
 export type {
+	ConsumeSharedPluginOptions,
 	Consumes,
 	ConsumesConfig,
-	ConsumeSharedPluginOptions,
 	ConsumesItem,
 	ConsumesObject
 } from "./sharing/ConsumeSharedPlugin";
 export type {
+	ProvideSharedPluginOptions,
 	Provides,
 	ProvidesConfig,
-	ProvideSharedPluginOptions,
 	ProvidesItem,
 	ProvidesObject
 } from "./sharing/ProvideSharedPlugin";
@@ -288,30 +296,10 @@ export const sharing = {
 	SharePlugin
 };
 
-///// Rspack Postfixed Internal Plugins /////
-export type { RsdoctorPluginData, RsdoctorPluginHooks } from "./builtin-plugin";
-export type { HtmlRspackPluginOptions } from "./builtin-plugin";
-export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
-export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
-export type { CircularDependencyRspackPluginOptions } from "./builtin-plugin";
-export type { CopyRspackPluginOptions } from "./builtin-plugin";
-export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
-export type { EvalDevToolModulePluginOptions } from "./builtin-plugin";
 export type {
-	CssExtractRspackLoaderOptions,
-	CssExtractRspackPluginOptions
-} from "./builtin-plugin";
-export { HtmlRspackPlugin } from "./builtin-plugin";
-export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
-export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
-export { CircularDependencyRspackPlugin } from "./builtin-plugin";
-export { CopyRspackPlugin } from "./builtin-plugin";
-export { SourceMapDevToolPlugin } from "./builtin-plugin";
-export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
-export { EvalDevToolModulePlugin } from "./builtin-plugin";
-export { CssExtractRspackPlugin } from "./builtin-plugin";
-export { ContextReplacementPlugin } from "./builtin-plugin";
-
+	FeatureOptions as LightningcssFeatureOptions,
+	LoaderOptions as LightningcssLoaderOptions
+} from "./builtin-loader/lightningcss/index";
 ///// Rspack Postfixed Internal Loaders /////
 export type {
 	SwcLoaderEnvConfig,
@@ -323,13 +311,33 @@ export type {
 	SwcLoaderTransformConfig,
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
-
+///// Rspack Postfixed Internal Plugins /////
 export type {
-	LoaderOptions as LightningcssLoaderOptions,
-	FeatureOptions as LightningcssFeatureOptions
-} from "./builtin-loader/lightningcss/index";
-
-export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
+	CircularDependencyRspackPluginOptions,
+	CopyRspackPluginOptions,
+	CssExtractRspackLoaderOptions,
+	CssExtractRspackPluginOptions,
+	EvalDevToolModulePluginOptions,
+	HtmlRspackPluginOptions,
+	LightningCssMinimizerRspackPluginOptions,
+	RsdoctorPluginData,
+	RsdoctorPluginHooks,
+	SourceMapDevToolPluginOptions,
+	SubresourceIntegrityPluginOptions,
+	SwcJsMinimizerRspackPluginOptions
+} from "./builtin-plugin";
+export {
+	CircularDependencyRspackPlugin,
+	ContextReplacementPlugin,
+	CopyRspackPlugin,
+	CssExtractRspackPlugin,
+	EvalDevToolModulePlugin,
+	EvalSourceMapDevToolPlugin,
+	HtmlRspackPlugin,
+	LightningCssMinimizerRspackPlugin,
+	SourceMapDevToolPlugin,
+	SwcJsMinimizerRspackPlugin
+} from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import {
@@ -338,10 +346,9 @@ import {
 	syncTraceEvent
 } from "@rspack/binding";
 import { createNativePlugin } from "./builtin-plugin";
-import { JavaScriptTracer } from "./trace";
-
 ///// Experiments SWC /////
 import { minify, minifySync, transform, transformSync } from "./swc";
+import { JavaScriptTracer } from "./trace";
 
 interface Experiments {
 	globalTrace: {

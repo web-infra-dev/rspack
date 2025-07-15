@@ -1,6 +1,6 @@
 import * as binding from "@rspack/binding";
+import { getRawResolve, type Resolve } from "./config";
 import { Resolver } from "./Resolver";
-import { type Resolve, getRawResolve } from "./config";
 
 type ResolveOptionsWithDependencyType = Resolve & {
 	dependencyCategory?: string;

@@ -1,0 +1,18 @@
+=== Performance Comparison ===
+Date: Mon Jul 14 22:51:31 PDT 2025
+
+Testing WITH Module Federation sharing...
+  Run 1: 1217ms
+  Run 2: 471ms
+  Run 3: 384ms
+
+Testing WITHOUT Module Federation sharing...
+  Run 1: 427ms
+  Run 2: 331ms
+  Run 3: 465ms
+
+=== Key Functions to Analyze ===
+1. is_consume_shared_descendant - BFS traversal bottleneck
+2. Module Federation plugin initialization
+3. Shared module dependency resolution
+4. Runtime template generation

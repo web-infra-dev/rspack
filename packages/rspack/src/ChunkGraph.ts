@@ -1,8 +1,7 @@
 import { ChunkGraph } from "@rspack/binding";
-import type { RuntimeSpec } from "./util/runtime";
-
 import type { Chunk } from "./Chunk";
 import type { Module } from "./Module";
+import type { RuntimeSpec } from "./util/runtime";
 import { toJsRuntimeSpec } from "./util/runtime";
 
 Object.defineProperty(ChunkGraph.prototype, "getOrderedChunkModulesIterable", {

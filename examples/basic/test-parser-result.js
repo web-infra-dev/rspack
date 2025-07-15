@@ -7311,9 +7311,10 @@
 						case regexpTag:
 						case stringTag:
 							return object == other + "";
-						case mapTag:
+						case mapTag: {
 							var convert = _mapToArray_js__WEBPACK_IMPORTED_MODULE_4__.Z;
-						case setTag:
+						}
+						case setTag: {
 							var isPartial = bitmask & COMPARE_PARTIAL_FLAG;
 							convert ||
 								(convert = _setToArray_js__WEBPACK_IMPORTED_MODULE_5__.Z);
@@ -7336,6 +7337,7 @@
 							);
 							stack["delete"](object);
 							return result;
+						}
 						case symbolTag:
 							if (symbolValueOf) {
 								return symbolValueOf.call(object) == symbolValueOf.call(other);
@@ -21067,7 +21069,7 @@
 				var reEmptyStringLeading = /\b__p \+= '';/g,
 					reEmptyStringMiddle = /\b(__p \+=) '' \+/g,
 					reEmptyStringTrailing = /(__e\(.*?\)|\b__t\)) \+\n'';/g;
-				var reForbiddenIdentifierChars = /[()=,{}\[\]\/\s]/;
+				var reForbiddenIdentifierChars = /[()=,{}[\]/\s]/;
 				var reEsTemplate = /\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g;
 				var reNoMatch = /($^)/;
 				var reUnescapedString = /['\n\r\u2028\u2029\\]/g;

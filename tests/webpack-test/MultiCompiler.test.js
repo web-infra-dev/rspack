@@ -26,7 +26,22 @@ const createMultiCompiler = options => {
 	);
 	compiler.outputFileSystem = createFsFromVolume(new Volume());
 	compiler.watchFileSystem = {
-		watch(a, b, c, d, e, f, g) { }
+		watch(a, b, c, d, e, f, g) {
+			// watch should return a watcher instance
+			// watcher instance should have close, pause and getInfo methods
+			return {
+				close: () => { },
+				pause: () => { },
+				getInfo: () => {
+					return {
+						changes: new Set(),
+						removals: new Set(),
+						fileTimeInfoEntries: new Map(),
+						directoryTimeInfoEntries: new Map(),
+					};
+				}
+			}
+		}
 	};
 	return compiler;
 };
@@ -640,6 +655,21 @@ describe("MultiCompiler", function () {
 						callback(null, new Map(), new Map(), new Set(), new Set());
 					});
 					firstRun = false;
+				}
+
+				// watch should return a watcher instance
+				// watcher instance should have close, pause and getInfo methods
+				return {
+					close: () => { },
+					pause: () => { },
+					getInfo: () => {
+						return {
+							changes: new Set(),
+							removals: new Set(),
+							fileTimeInfoEntries: new Map(),
+							directoryTimeInfoEntries: new Map(),
+						};
+					}
 				}
 			}
 		};

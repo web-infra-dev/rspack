@@ -2,7 +2,7 @@ import type { Compiler } from "../Compiler";
 import type { EntryRuntime, ExternalsType, LibraryOptions } from "../config";
 import { getExternalsTypeSchema } from "../schema/config";
 import { isValidate } from "../schema/validate";
-import { SharePlugin, type Shared } from "../sharing/SharePlugin";
+import { type Shared, SharePlugin } from "../sharing/SharePlugin";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 import { ContainerPlugin, type Exposes } from "./ContainerPlugin";
 import {

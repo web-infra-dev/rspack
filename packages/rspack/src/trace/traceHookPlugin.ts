@@ -1,6 +1,7 @@
-import { JavaScriptTracer } from ".";
 // adjust from webpack's ProfilingPlugin https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/debug/ProfilingPlugin.js#L1
 import type { Compiler } from "../exports";
+import { JavaScriptTracer } from ".";
+
 const PLUGIN_NAME = "TraceHookPlugin";
 // needs same as rust plugin side
 const PLUGIN_PROCESS_NAME = "Plugin Analysis";

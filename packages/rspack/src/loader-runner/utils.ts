@@ -1,10 +1,10 @@
 import path from "node:path";
 import { promisify } from "node:util";
-import type { LoaderObject } from ".";
 import type {
 	LoaderContext,
 	LoaderContextCallback
 } from "../config/adapterRuleUse";
+import type { LoaderObject } from ".";
 import loadLoaderRaw from "./loadLoader";
 
 const decoder = new TextDecoder();

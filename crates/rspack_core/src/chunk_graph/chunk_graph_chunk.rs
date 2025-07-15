@@ -119,8 +119,8 @@ impl ChunkGraph {
       .or_default();
   }
 
-  pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) {
-    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey);
+  pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) -> Option<ChunkGraphChunk> {
+    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey)
   }
 
   pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
@@ -248,10 +248,6 @@ impl ChunkGraph {
     chunk_ukey: &ChunkUkey,
   ) -> Option<&mut ChunkGraphChunk> {
     self.chunk_graph_chunk_by_chunk_ukey.get_mut(chunk_ukey)
-  }
-
-  pub fn remove_chunk_graph_chunk(&mut self, chunk_ukey: &ChunkUkey) -> Option<ChunkGraphChunk> {
-    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey)
   }
 
   pub fn connect_chunk_and_entry_module(

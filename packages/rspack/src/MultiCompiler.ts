@@ -10,10 +10,10 @@
 
 import * as liteTapable from "@rspack/lite-tapable";
 import type { CompilationParams, Compiler, RspackOptions, Stats } from ".";
-import MultiStats from "./MultiStats";
-import MultiWatching from "./MultiWatching";
 import type { WatchOptions } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import MultiStats from "./MultiStats";
+import MultiWatching from "./MultiWatching";
 import ArrayQueue from "./util/ArrayQueue";
 import asyncLib from "./util/asyncLib";
 import type {

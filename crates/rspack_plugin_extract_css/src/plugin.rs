@@ -588,18 +588,24 @@ async fn content_hash(
   }
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  let used_modules = self
-    .sort_modules(chunk, &rendered_modules, compilation, &module_graph)
-    .0
-    .into_iter();
+  let (used_modules, diagnostics) =
+    self.sort_modules(chunk, &rendered_modules, compilation, &module_graph);
 
-  let mut hasher = hashes
+  let hasher = hashes
     .entry(SOURCE_TYPE[0])
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   used_modules
+    .iter()
     .map(|m| ChunkGraph::get_module_hash(compilation, m.identifier(), chunk.runtime()))
-    .for_each(|current| current.hash(&mut hasher));
+    .for_each(|current| current.hash(hasher));
+
+  " ".hash(hasher);
+  if let Some(diagnostics) = diagnostics {
+    diagnostics.iter().for_each(|curr| {
+      curr.fallback_module.hash(hasher);
+    });
+  }
 
   Ok(())
 }

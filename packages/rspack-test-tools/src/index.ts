@@ -6,7 +6,7 @@ export * from "./processor";
 export * from "./reporter";
 export * from "./runner";
 export * from "./test/context";
+export * from "./test/creator";
 export * from "./test/simple";
 export * from "./test/tester";
-export * from "./test/creator";
 export * from "./type";

@@ -11,9 +11,11 @@ pub use container::{
   module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
 };
 pub use sharing::{
+  consume_shared_module::ConsumeSharedModule,
   consume_shared_plugin::{
     ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
   },
+  provide_shared_module::ProvideSharedModule,
   provide_shared_plugin::{ProvideOptions, ProvideSharedPlugin, ProvideVersion},
   share_runtime_module::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,

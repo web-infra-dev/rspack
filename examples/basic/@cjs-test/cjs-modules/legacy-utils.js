@@ -1,23 +1,23 @@
 // CommonJS module with various export patterns (browser-compatible)
 // Simulated path and fs modules for browser environment
 const path = {
-	normalize: p => p.replace(/[\/\\]+/g, "/").replace(/\/+$/, "") || "/",
+	normalize: p => p.replace(/[/\\]+/g, "/").replace(/\/+$/, "") || "/",
 	join: (...paths) =>
 		paths
 			.filter(Boolean)
 			.join("/")
-			.replace(/[\/\\]+/g, "/"),
-	dirname: p => p.replace(/[\/\\][^\/\\]*$/, "") || "/",
-	basename: p => p.split(/[\/\\]/).pop() || "",
+			.replace(/[/\\]+/g, "/"),
+	dirname: p => p.replace(/[/\\][^/\\]*$/, "") || "/",
+	basename: p => p.split(/[/\\]/).pop() || "",
 	extname: p => {
-		const m = p.match(/\.[^.\/\\]*$/);
+		const m = p.match(/\.[^./\\]*$/);
 		return m ? m[0] : "";
 	},
 	resolve: (...paths) =>
 		`/${paths
 			.filter(Boolean)
 			.join("/")
-			.replace(/[\/\\]+/g, "/")}`,
+			.replace(/[/\\]+/g, "/")}`,
 	isAbsolute: p => p.startsWith("/"),
 	relative: (from, to) => to // Simplified for browser
 };
