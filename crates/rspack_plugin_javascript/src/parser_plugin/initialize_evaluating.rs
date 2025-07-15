@@ -216,22 +216,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
 
 #[inline]
 fn eval_regexp_to_regexp(expr: &str, flags: &str) -> regress::Regex {
-  let mut re = String::new();
-  for ch in flags.chars() {
-    match ch {
-      'i' => re.push('i'),
-      'm' => re.push('m'),
-      's' => re.push('s'),
-      'x' => re.push('x'),
-      _ => (),
-    }
-  }
-  let re = if re.is_empty() {
-    expr.to_string()
-  } else {
-    format!("(?{re}){expr}")
-  };
-  regress::Regex::new(&re).expect("should an valid regexp")
+  regress::Regex::with_flags(expr, flags).expect("should be an valid regexp")
 }
 
 fn mock_javascript_slice(str: &str, number: f64) -> String {

@@ -1,6 +1,4 @@
-/* global __resourceQuery */
 
-"use strict";
 
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
 

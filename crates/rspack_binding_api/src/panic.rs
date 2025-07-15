@@ -1,7 +1,8 @@
-use color_backtrace::{default_output_stream, BacktracePrinter};
-
 pub fn install_panic_handler() {
-  let panic_handler = BacktracePrinter::default()
+  #[cfg(feature = "color-backtrace")]
+  {
+    use color_backtrace::{default_output_stream, BacktracePrinter};
+    let panic_handler = BacktracePrinter::default()
     .message("Panic occurred at runtime. Please file an issue on GitHub with the backtrace below: https://github.com/web-infra-dev/rspack/issues")
     .add_frame_filter(Box::new(|frames| {
       static NAME_PREFIXES: &[&str] = &[
@@ -48,15 +49,28 @@ pub fn install_panic_handler() {
     .print_addresses(false)
     // .install(default_output_stream());
     .into_panic_handler(default_output_stream());
-
-  std::panic::set_hook(Box::new(move |panic| {
-    #[cfg(debug_assertions)]
-    {
-      use rspack_core::debug_info::DEBUG_INFO;
-      if let Ok(info) = DEBUG_INFO.lock() {
-        eprintln!("{info}");
+    std::panic::set_hook(Box::new(move |panic| {
+      #[cfg(debug_assertions)]
+      {
+        use rspack_core::debug_info::DEBUG_INFO;
+        if let Ok(info) = DEBUG_INFO.lock() {
+          eprintln!("{info}");
+        }
       }
-    }
-    panic_handler(panic);
-  }))
+      panic_handler(panic);
+    }))
+  }
+  #[cfg(not(feature = "color-backtrace"))]
+  {
+    std::panic::set_hook(Box::new(|panic| {
+      #[cfg(debug_assertions)]
+      {
+        use rspack_core::debug_info::DEBUG_INFO;
+        if let Ok(info) = DEBUG_INFO.lock() {
+          eprintln!("{info}");
+        }
+      }
+      eprintln!("Panic occurred at runtime. Please file an issue on GitHub with the backtrace below: https://github.com/web-infra-dev/rspack/issues: {panic}");
+    }));
+  }
 }

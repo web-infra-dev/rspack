@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack-dev-server/blob/master/LICENSE
  */
 import type { Compiler, MultiCompiler, MultiStats, Stats, Watching } from "..";
+
 type Logger = ReturnType<Compiler["getInfrastructureLogger"]>;
 type MultiWatching = MultiCompiler["watch"];
 type BasicServer = import("net").Server | import("tls").Server;
@@ -194,8 +195,8 @@ type ProxyConfigArray = (
 )[];
 type Callback = (stats?: Stats | MultiStats | undefined) => any;
 type DevMiddlewareContext<
-	RequestInternal extends IncomingMessage = IncomingMessage,
-	ResponseInternal extends ServerResponse = ServerResponse
+	_RequestInternal extends IncomingMessage = IncomingMessage,
+	_ResponseInternal extends ServerResponse = ServerResponse
 > = {
 	state: boolean;
 	stats: Stats | MultiStats | undefined;

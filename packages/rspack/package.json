@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.4.7-alpha.1",
+  "version": "1.4.8",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -60,7 +60,9 @@
     "typescript": "^5.8.3",
     "watchpack": "^2.4.4",
     "webpack-sources": "3.3.3",
+    "glob-to-regexp": "^0.4.1",
     "zod": "^3.25.76",
+    "@types/glob-to-regexp": "^0.4.4",
     "zod-validation-error": "3.5.3"
   },
   "dependencies": {

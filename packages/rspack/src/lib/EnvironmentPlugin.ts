@@ -9,9 +9,8 @@
  */
 
 import { DefinePlugin } from "../builtin-plugin";
-import WebpackError from "./WebpackError";
-
 import type { Compiler } from "../Compiler";
+import WebpackError from "./WebpackError";
 
 // Waiting to adapt > import("./DefinePlugin").CodeValue
 type CodeValue = any;

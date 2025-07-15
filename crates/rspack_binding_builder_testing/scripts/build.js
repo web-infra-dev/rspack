@@ -25,14 +25,14 @@ build().then((value) => {
 
 async function build() {
 	return new Promise((resolve, reject) => {
-		let args = [
+		const args = [
 			"build",
 			"--platform",
 			"--no-js",
 			"--no-dts-header",
 		];
-		let features = [];
-		let envs = { ...process.env };
+		const features = [];
+		const envs = { ...process.env };
 
 		if (!process.env.DISABLE_PLUGIN) {
 			args.push("--no-default-features");
@@ -51,7 +51,7 @@ async function build() {
 
 		console.log(`Run command: napi ${args.join(" ")}`);
 
-		let cp = spawn("napi", args, {
+		const cp = spawn("napi", args, {
 			stdio: "inherit",
 			shell: true,
 			env: envs,

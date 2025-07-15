@@ -1,5 +1,5 @@
 import type fs from "node:fs";
-import { Volume, createFsFromVolume } from "memfs";
+import { createFsFromVolume, Volume } from "memfs";
 
 import type {
 	ECompilerType,

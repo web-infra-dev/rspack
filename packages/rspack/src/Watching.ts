@@ -75,9 +75,18 @@ export class Watching {
 	}
 
 	watch(
-		files: Iterable<string>,
-		dirs: Iterable<string>,
-		missing: Iterable<string>
+		files: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		},
+		dirs: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		},
+		missing: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		}
 	) {
 		this.pausedWatcher = undefined;
 		// SAFETY: `watchFileSystem` is expected to be initialized.
@@ -324,7 +333,9 @@ export class Watching {
 	 */
 	private _done(error: Error | null, compilation?: Compilation) {
 		this.running = false;
-		let stats: undefined | Stats = undefined;
+
+		// biome-ignore lint/style/useConst: skip
+		let stats: undefined | Stats;
 
 		const handleError = (err: Error, cbs?: Callback<Error, void>[]) => {
 			this.compiler.hooks.failed.call(err);
@@ -362,9 +373,44 @@ export class Watching {
 		compilation.endTime = Date.now();
 		const cbs = this.callbacks;
 		this.callbacks = [];
-		const fileDependencies = new Set([...compilation.fileDependencies]);
-		const contextDependencies = new Set([...compilation.contextDependencies]);
-		const missingDependencies = new Set([...compilation.missingDependencies]);
+		const fileDependencies = new Set([
+			...compilation.fileDependencies
+		]) as unknown as Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		};
+		fileDependencies.added = new Set(
+			compilation.__internal__addedFileDependencies
+		);
+		fileDependencies.removed = new Set(
+			compilation.__internal__removedFileDependencies
+		);
+
+		const contextDependencies = new Set([
+			...compilation.contextDependencies
+		]) as unknown as Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		};
+		contextDependencies.added = new Set(
+			compilation.__internal__addedContextDependencies
+		);
+		contextDependencies.removed = new Set(
+			compilation.__internal__removedContextDependencies
+		);
+
+		const missingDependencies = new Set([
+			...compilation.missingDependencies
+		]) as unknown as Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		};
+		missingDependencies.added = new Set(
+			compilation.__internal__addedMissingDependencies
+		);
+		missingDependencies.removed = new Set(
+			compilation.__internal__removedMissingDependencies
+		);
 
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);

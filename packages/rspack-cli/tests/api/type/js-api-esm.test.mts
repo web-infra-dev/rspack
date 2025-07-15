@@ -1,7 +1,7 @@
+import assert from "node:assert";
 import rspackEsmDefaultImport, {
 	rspack as rspackEsmNamedImport
 } from "@rspack/core";
-import assert from "node:assert";
 
 type IsFunction<T> = T extends (...args: any[]) => any ? true : false;
 

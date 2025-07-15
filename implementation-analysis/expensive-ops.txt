@@ -1,0 +1,10367 @@
+=== Expensive Operations Count ===
+File: crates/rspack_plugin_entry/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_ids/src/named_chunk_ids_plugin.rs
+  String allocations: 8
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 1
+
+File: crates/rspack_ids/src/id_helpers.rs
+  String allocations: 17
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_ids/src/named_module_ids_plugin.rs
+  String allocations: 7
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 1
+
+File: crates/rspack_ids/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_ids/src/natural_module_ids_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_ids/src/natural_chunk_ids_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_ids/src/occurrence_chunk_ids_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 1
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_ids/src/deterministic_chunk_ids_plugin.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_ids/src/deterministic_module_ids_plugin.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dynamic_entry/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_swc/src/lib.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_swc/src/options.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_swc/src/transformer.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_swc/src/plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 2
+
+File: crates/rspack_loader_swc/src/collect_ts_info.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_progress/src/lib.rs
+  String allocations: 12
+  Vec allocations: 9
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 9
+
+File: crates/rspack_napi/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/ext/js_string_ext.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/ext/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/callback.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/threadsafe_js_value_ref.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 2
+
+File: crates/rspack_napi/src/js_values/weak_ref.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/js_values/threadsafe_one_shot_value_ref.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/js_values/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/js_values/value_ref.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/js_values/one_shot_instance_ref.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/js_values/one_shot_value_ref.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/errors.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/threadsafe_function.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi/src/utils.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_builder_testing/build.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_builder_testing/src/lib.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_schemes/src/http_uri/http_cache.rs
+  String allocations: 25
+  Vec allocations: 0
+0
+  HashMap allocations: 1
+  Clone operations: 17
+  Mutex locks: 2
+
+File: crates/rspack_plugin_schemes/src/http_uri/lockfile.rs
+  String allocations: 13
+  Vec allocations: 0
+0
+  HashMap allocations: 1
+  Clone operations: 4
+  Mutex locks: 2
+
+File: crates/rspack_plugin_schemes/src/http_uri/mod.rs
+  String allocations: 11
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_schemes/src/file_uri.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_schemes/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_schemes/src/data_uri.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_swc_js_minimizer/src/lib.rs
+  String allocations: 15
+  Vec allocations: 1
+  HashMap allocations: 1
+  Clone operations: 4
+  Mutex locks: 4
+
+File: crates/rspack_plugin_ensure_chunk_conditions/src/lib.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/injector.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/config.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/asset.rs
+  String allocations: 16
+  Vec allocations: 2
+  HashMap allocations: 1
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/drive.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/sri.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/tag.rs
+  String allocations: 34
+  Vec allocations: 7
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/plugin.rs
+  String allocations: 15
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 6
+
+File: crates/rspack_plugin_html/src/template.rs
+  String allocations: 21
+  Vec allocations: 5
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_html/src/parser.rs
+  String allocations: 4
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/runtime/mod.rs
+  String allocations: 28
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/plugin/impl_plugin_for_css_plugin.rs
+  String allocations: 5
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 1
+
+File: crates/rspack_plugin_css/src/plugin/drive.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/plugin/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/parser_and_generator/mod.rs
+  String allocations: 18
+  Vec allocations: 7
+  HashMap allocations: 0
+0
+  Clone operations: 12
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/dependency/export.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/dependency/self_reference.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/dependency/compose.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/dependency/import.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/dependency/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/dependency/local_ident.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/dependency/url.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css/src/utils.rs
+  String allocations: 28
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_hook/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/runtime.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/wasm_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/parser_and_generator.rs
+  String allocations: 19
+  Vec allocations: 8
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/dependency/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/dependency/wasm_import_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/ast/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_wasm/src/loading_plugin.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_lightning_css_minimizer/src/lib.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 2
+
+File: crates/rspack_allocator/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rslib/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rslib/src/plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rslib/src/parser_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_runner/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_runner/src/runner.rs
+  String allocations: 19
+  Vec allocations: 8
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_runner/src/scheme.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_runner/src/loader.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_runner/src/plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_runner/src/context.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_runner/src/content.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/build.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/clean_options.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/options/library.rs
+  String allocations: 3
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/options/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/options/entry.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/options/raw_resolve.rs
+  String allocations: 1
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_stats.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_devtool.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_split_chunks/raw_split_chunk_chunks.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_split_chunks/raw_split_chunk_cache_group_test.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_split_chunks/raw_split_chunk_name.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_split_chunks/mod.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 10
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_split_chunks/raw_split_chunk_size.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_module/mod.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_output.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_experiments/raw_incremental.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_experiments/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_experiments/raw_cache/raw_storage.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_experiments/raw_cache/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_experiments/raw_cache/raw_snapshot.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_experiments/raw_rspack_future.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_dynamic_entry.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_external.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_copy.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_swc_js_minimizer.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_http_uri.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_lightning_css_minimizer.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_circular_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_html.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_css_extract.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_ignore.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_banner.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_runtime_chunk.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_mf.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_size_limits.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_sri.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/mod.rs
+  String allocations: 55
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_lazy_compilation.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_progress.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_dll.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/css_chunking.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_bundle_info.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_ids.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_builtins/raw_limit_chunk_count.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_optimization.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_node.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_mode.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/raw_options/raw_cache.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/chunk_group.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/runtime.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/chunk.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/module_graph.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/context_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/panic.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 1
+
+File: crates/rspack_binding_api/src/resolver_factory.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 9
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/async_dependency_block.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/html.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/error.rs
+  String allocations: 17
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/plugins/js_cleanup_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/plugins/js_hooks_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 98
+  Mutex locks: 4
+
+File: crates/rspack_binding_api/src/plugins/buildtime_plugins.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/plugins/js_loader/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 1
+
+File: crates/rspack_binding_api/src/plugins/js_loader/scheduler.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 3
+
+File: crates/rspack_binding_api/src/plugins/js_loader/resolver.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 2
+
+File: crates/rspack_binding_api/src/plugins/js_loader/context.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/plugins/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/plugins/context_replacement.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/plugins/interceptor.rs
+  String allocations: 20
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 25
+  Mutex locks: 5
+
+File: crates/rspack_binding_api/src/compiler.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/lib.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 2
+
+File: crates/rspack_binding_api/src/asset.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/browserslist.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/resource_data.rs
+  String allocations: 5
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/dependencies/entry_dependency.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/dependencies/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/module_graph_connection.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/rslib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/asset_condition.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/source.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/build_info.rs
+  String allocations: 8
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/rsdoctor.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 2
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/fs_node/hybrid.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/fs_node/write.rs
+  String allocations: 19
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/fs_node/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/fs_node/node.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/filename.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/allocator.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/trace_event.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/module.rs
+  String allocations: 8
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/codegen_result.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/identifier.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/normal_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/resolver.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/exports_info.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/stats.rs
+  String allocations: 8
+  Vec allocations: 13
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/rstest.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/modules/concatenated_module.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/modules/normal_module.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/modules/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/modules/context_module.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/modules/external_module.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/modules/macros.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/compilation/diagnostics.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/compilation/code_generation_results.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/compilation/entries.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/compilation/mod.rs
+  String allocations: 10
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 25
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/compilation/dependencies.rs
+  String allocations: 12
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/compilation/chunks.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/location.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/diagnostic.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/path_data.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/chunk_graph.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/swc.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/utils.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_api/src/define_symbols.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_location/src/lib.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_limit_chunk_count/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 1
+
+File: crates/rspack_plugin_limit_chunk_count/src/chunk_combination.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_import/tests/member_case.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_import/src/legacy_case.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_import/src/lib.rs
+  String allocations: 13
+  Vec allocations: 5
+  HashMap allocations: 0
+0
+  Clone operations: 10
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_import/src/visit.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/hook.rs
+  String allocations: 5
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/cacheable/impl_with.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/cacheable/impl_disable.rs
+  String allocations: 1
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/cacheable/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/cacheable/impl.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/cacheable/args.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/cacheable_dyn.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/source_map_config.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/merge.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/runtime_module.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros/src/plugin.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_collections/src/ukey.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_collections/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_collections/src/identifier.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_module_info_header/src/lib.rs
+  String allocations: 13
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 2
+
+File: crates/rspack_loader_lightningcss/src/config.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_lightningcss/src/lib.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 2
+
+File: crates/rspack_loader_lightningcss/src/plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_worker/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rsdoctor/src/module_graph.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rsdoctor/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rsdoctor/src/drive.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rsdoctor/src/data.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rsdoctor/src/plugin.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 5
+
+File: crates/rspack_plugin_rsdoctor/src/chunk_graph.rs
+  String allocations: 3
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_remove_empty_chunks/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 1
+
+File: crates/rspack_plugin_sri/src/runtime.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_sri/src/util.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_sri/src/html.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 2
+
+File: crates/rspack_plugin_sri/src/config.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_sri/src/lib.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 3
+
+File: crates/rspack_plugin_sri/src/asset.rs
+  String allocations: 15
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 9
+  Mutex locks: 6
+
+File: crates/rspack_plugin_sri/src/integrity.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_builder_macros/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_builder_macros/src/register_plugin.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/common_js_chunk_format.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 2
+
+File: crates/rspack_plugin_runtime/src/bundler_info.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/module_chunk_format.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 2
+
+File: crates/rspack_plugin_runtime/src/jsonp_chunk_loading.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/import_scripts_chunk_loading.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/common_js_chunk_loading.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/drive.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/helpers.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/startup_chunk_dependencies.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/array_push_callback_chunk_format.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 2
+
+File: crates/rspack_plugin_runtime/src/chunk_prefetch_preload.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_plugin.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 11
+  Mutex locks: 1
+
+File: crates/rspack_plugin_runtime/src/runtime_module_from_js.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/module_chunk_loading.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/has_own_property.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/get_chunk_update_filename.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/runtime_id.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/load_script.rs
+  String allocations: 14
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 1
+
+File: crates/rspack_plugin_runtime/src/runtime_module/amd_define.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/ensure_chunk.rs
+  String allocations: 5
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/compat_get_default_export.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/make_namespace_object.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/jsonp_chunk_loading.rs
+  String allocations: 37
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 2
+
+File: crates/rspack_plugin_runtime/src/runtime_module/import_scripts_chunk_loading.rs
+  String allocations: 24
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/global.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/async_module.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/get_main_filename.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/chunk_prefetch_preload_function.rs
+  String allocations: 5
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/base_uri.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/startup_entrypoint.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/chunk_name.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/public_path.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/esm_module_decorator.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/chunk_prefetch_trigger.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/create_script.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/auto_public_path.rs
+  String allocations: 5
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/node_module_decorator.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/get_chunk_filename.rs
+  String allocations: 20
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/nonce.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/get_full_hash.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/rspack_unique_id.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/chunk_prefetch_startup.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/define_property_getters.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/get_trusted_types_policy.rs
+  String allocations: 8
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/rspack_version.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/amd_options.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/startup_chunk_dependencies.rs
+  String allocations: 10
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/require_js_chunk_loading.rs
+  String allocations: 26
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/export_webpack_require.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/system_context.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/chunk_preload_trigger.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/on_chunk_loaded.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/readfile_chunk_loading.rs
+  String allocations: 26
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/create_script_url.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/utils.rs
+  String allocations: 25
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/relative_url.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime/src/runtime_module/module_chunk_loading.rs
+  String allocations: 29
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 2
+
+File: crates/rspack_plugin_runtime/src/runtime_module/create_fake_namespace_object.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_circular_dependencies/src/lib.rs
+  String allocations: 8
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/convert.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/error.rs
+  String allocations: 1
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/catch_unwind.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/miette_helpers.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/ext.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/graphical.rs
+  String allocations: 44
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/emitter.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 2
+
+File: crates/rspack_error/src/macros.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_error/src/diagnostic.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_preact_refresh/src/lib.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_preact_refresh/src/plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_banner/src/lib.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_runtime_chunk/src/lib.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_library/src/modern_module/reexport_star_external_dependency.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_library/src/modern_module/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_library/src/modern_module/import_dependency.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_library/src/system_library_plugin.rs
+  String allocations: 10
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 1
+
+File: crates/rspack_plugin_library/src/amd_library_plugin.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 1
+
+File: crates/rspack_plugin_library/src/umd_library_plugin.rs
+  String allocations: 31
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 1
+
+File: crates/rspack_plugin_library/src/assign_library_plugin.rs
+  String allocations: 20
+  Vec allocations: 5
+  HashMap allocations: 0
+0
+  Clone operations: 9
+  Mutex locks: 1
+
+File: crates/rspack_plugin_library/src/modern_module_library_plugin.rs
+  String allocations: 9
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 1
+
+File: crates/rspack_plugin_library/src/lib.rs
+  String allocations: 3
+  Vec allocations: 7
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_library/src/export_property_library_plugin.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 1
+
+File: crates/rspack_plugin_library/src/module_library_plugin.rs
+  String allocations: 6
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 1
+
+File: crates/rspack_plugin_library/src/utils.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_hmr/src/lib.rs
+  String allocations: 4
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 18
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_hmr/src/hot_module_replacement.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_ts_collector/tests/fixture.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_ts_collector/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_ts_collector/src/enums.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/swc_plugin_ts_collector/src/type_exports.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 15
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_inner.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_tuple2.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_owned.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_tuple3.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/unsupported.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_map.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/rspack_sources.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/rspack_resolver.rs
+  String allocations: 0
+0
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/ustr.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/camino.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/json.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/lightningcss.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/serde_json.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_preset/swc.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/inline.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_string.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_vec.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_cacheable.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with/as_ref_str.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/with_case.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/cacheable/with_attr_and_generics.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/cacheable/hashable.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/cacheable/with_attr.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/cacheable/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/cacheable/omit_bounds.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/cacheable/basic.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/cacheable_dyn.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable_dyn.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable/with_attr_and_generics.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable/hashable.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable/with_attr.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable/omit_bounds.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable/basic.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/disable_cacheable/manual.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/disable_cacheable/with_macro.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/disable_cacheable/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro/manual_cacheable_dyn_with_generics.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/macro_case.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable_test/tests/context.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_asset/src/lib.rs
+  String allocations: 18
+  Vec allocations: 4
+  HashMap allocations: 1
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_asset/src/asset_exports_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_merge_duplicate_chunks/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 1
+
+File: crates/rspack/tests/errors.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack/tests/loader.rs
+  String allocations: 10
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack/tests/defaults.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack/tests/basic.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack/src/lib.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack/src/builder/builder_context.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack/src/builder/externals.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack/src/builder/browserslist_target.rs
+  String allocations: 2
+  Vec allocations: 39
+  HashMap allocations: 1
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack/src/builder/mod.rs
+  String allocations: 99
+  Vec allocations: 53
+  HashMap allocations: 0
+0
+  Clone operations: 31
+  Mutex locks: 0
+0
+
+File: crates/rspack/src/builder/devtool.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack/src/builder/target.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_real_content_hash/src/lib.rs
+  String allocations: 7
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 11
+  Mutex locks: 1
+
+File: crates/rspack_plugin_real_content_hash/src/drive.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_builder/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_warn_sensitive_module/src/lib.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_context_replacement/src/lib.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 12
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_extract_css/src/runtime.rs
+  String allocations: 13
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_extract_css/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_extract_css/src/css_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_extract_css/src/css_module.rs
+  String allocations: 6
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_extract_css/src/plugin.rs
+  String allocations: 12
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_extract_css/src/parser_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 12
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_css_chunking/src/lib.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 1
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_entry/dll_entry_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_entry/dll_entry_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_entry/dll_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_entry/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_entry/dll_module.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/lib_manifest_plugin.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/flag_all_modules_as_used_plugin.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_reference/delegated_plugin.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 10
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_reference/delegated_source_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_reference/delegated_module.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_reference/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_dll/src/dll_reference/dll_reference_agency_plugin.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 13
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_inner.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_tuple2.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_owned.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_tuple3.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/unsupported.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_map.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/rspack_resolver.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/ustr.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/camino.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/rspack_sources/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/json.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/lightningcss.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/smol_str.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/serde_json.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_preset/swc.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/inline.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_string.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_vec.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_cacheable.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/with/as_ref_str.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/serialize.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/utils/owned_or_ref.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/utils/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/dyn/vtable_ptr.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/dyn/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/dyn/validation.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/deserialize.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_cacheable/src/context.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_tasks/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/error.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/memory_fs.rs
+  String allocations: 1
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 13
+
+File: crates/rspack_fs/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/write.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/intermediate.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/file_metadata.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/read.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/macros.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_fs/src/native_fs.rs
+  String allocations: 5
+  Vec allocations: 7
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros_test/tests/hook.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros_test/tests/ui/hook/unnamed_struct.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros_test/tests/merge.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros_test/tests/runtime_module.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros_test/tests/compiletest.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_macros_test/tests/plugin.rs
+  String allocations: 7
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_react_refresh/src/lib.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_loader_react_refresh/src/plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/options/chunk_name.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/options/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/options/cache_group_test.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/options/cache_group.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/plugin/chunk.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 3
+
+File: crates/rspack_plugin_split_chunks/src/plugin/min_size.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/plugin/mod.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/plugin/max_size.rs
+  String allocations: 8
+  Vec allocations: 11
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 3
+
+File: crates/rspack_plugin_split_chunks/src/plugin/max_request.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/plugin/module_group.rs
+  String allocations: 8
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 20
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/common.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_split_chunks/src/module_group.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/tests/multi.rs
+  String allocations: 18
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/tests/error.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/tests/release.rs
+  String allocations: 16
+  Vec allocations: 8
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 2
+
+File: crates/rspack_storage/tests/build.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/tests/dev.rs
+  String allocations: 17
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/tests/lock.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 1
+
+File: crates/rspack_storage/tests/expire.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/error.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/manager/queue.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 3
+
+File: crates/rspack_storage/src/pack/manager/mod.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 17
+  Mutex locks: 11
+
+File: crates/rspack_storage/src/pack/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 3
+
+File: crates/rspack_storage/src/pack/data/options.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/data/pack.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/data/scope.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/data/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/data/meta.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/write_pack.rs
+  String allocations: 7
+  Vec allocations: 19
+  HashMap allocations: 0
+0
+  Clone operations: 10
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/util.rs
+  String allocations: 10
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/read_pack.rs
+  String allocations: 4
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/write_scope.rs
+  String allocations: 15
+  Vec allocations: 9
+  HashMap allocations: 0
+0
+  Clone operations: 16
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/mod.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/validate_scope.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 15
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/read_scope.rs
+  String allocations: 12
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/split/handle_file.rs
+  String allocations: 8
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 11
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/pack/strategy/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/fs/error.rs
+  String allocations: 6
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_storage/src/fs/mod.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_binding_build/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/provide_shared_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/consume_shared_plugin.rs
+  String allocations: 10
+  Vec allocations: 0
+0
+  HashMap allocations: 1
+  Clone operations: 25
+  Mutex locks: 6
+
+File: crates/rspack_plugin_mf/src/sharing/provide_shared_plugin.rs
+  String allocations: 16
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 16
+  Mutex locks: 10
+
+File: crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs
+  String allocations: 68
+  Vec allocations: 12
+  HashMap allocations: 1
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/consume_shared_runtime_module.rs
+  String allocations: 6
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/provide_shared_module.rs
+  String allocations: 2
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/consume_shared_module.rs
+  String allocations: 8
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/consume_shared_fallback_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/share_runtime_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/provide_shared_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/share_runtime_module.rs
+  String allocations: 7
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/sharing/provide_for_shared_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/lib.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/container_exposed_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/container_entry_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/remote_to_external_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/container_entry_module.rs
+  String allocations: 8
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/remote_module.rs
+  String allocations: 3
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/remote_runtime_module.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/container_reference_plugin.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/fallback_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/container_entry_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/fallback_item_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/module_federation_runtime_plugin.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/container_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/expose_runtime_module.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/fallback_module.rs
+  String allocations: 3
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_mf/src/container/fallback_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_copy/src/lib.rs
+  String allocations: 38
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 12
+  Mutex locks: 7
+
+File: crates/rspack_plugin_rstest/src/module_path_name_dependency.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rstest/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rstest/src/mock_method_dependency.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rstest/src/plugin.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 1
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rstest/src/import_dependency.rs
+  String allocations: 13
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rstest/src/mock_module_id_dependency.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_rstest/src/parser_plugin.rs
+  String allocations: 23
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_browserslist/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_browserslist/src/lightningcss.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_browserslist/src/load_config.rs
+  String allocations: 5
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_tracing/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_tracing/src/tracer.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_tracing/src/stdout.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_tracing/src/perfetto.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/node_path.rs
+  String allocations: 14
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/number_hash.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 1
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/size.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/test.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/tracing_preset.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/source_map.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/debug_tool.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/env.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/lib.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/queue.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/merge.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/asset_condition.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/atom.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/comparators.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/ext.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/identifier.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/itoa.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/diff_mode.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/location.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/fx_hash.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_util/src/swc.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi_macros/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi_macros/src/tagged_union.rs
+  String allocations: 5
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_napi_macros/src/field_names.rs
+  String allocations: 3
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_no_emit_on_errors/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_hash/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_devtool/src/source_map_dev_tool_plugin.rs
+  String allocations: 18
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 11
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_devtool/src/mapped_assets_cache.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_devtool/src/eval_dev_tool_module_plugin.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 1
+
+File: crates/rspack_plugin_devtool/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_devtool/src/eval_source_map_dev_tool_plugin.rs
+  String allocations: 11
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 1
+
+File: crates/rspack_plugin_devtool/src/module_filename_helpers.rs
+  String allocations: 20
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_devtool/src/generate_debug_id.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_devtool/src/source_map_dev_tool_module_options_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_ignore/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_workspace/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_workspace/src/generated.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/debug_info.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/clean_options.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/cache.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/optimizations.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/resolve/value_type.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/resolve/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/resolve/clever_merge.rs
+  String allocations: 14
+  Vec allocations: 27
+  HashMap allocations: 2
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/externals.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/experiments/cache.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/experiments/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/plugins.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/filename.rs
+  String allocations: 10
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/output.rs
+  String allocations: 12
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/compiler_options.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/node.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/module.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/stats.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/entry.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/mode.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/options/context.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/chunk_group.rs
+  String allocations: 1
+  Vec allocations: 5
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/reserved_names.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/runtime.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/chunk.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/cgm_runtime_requirement_artifact.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/chunk_render_cache_artifact.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/cgm_hash_artifact.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/module_static_cache_artifact.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 3
+
+File: crates/rspack_core/src/artifacts/code_generation_results.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/side_effects_do_optimize_artifact.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/chunk_hashes_artifact.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/artifacts/module_graph_cache_artifact.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 9
+
+File: crates/rspack_core/src/logger.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/concatenated_module.rs
+  String allocations: 68
+  Vec allocations: 20
+  HashMap allocations: 0
+0
+  Clone operations: 81
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/init_fragment.rs
+  String allocations: 19
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/entrypoint.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/context_module_factory.rs
+  String allocations: 24
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 33
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/diagnostics.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/ukey.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/incremental/mutations.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/incremental/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 3
+
+File: crates/rspack_core/src/cache/persistent/snapshot/strategy.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/snapshot/option.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/snapshot/mod.rs
+  String allocations: 1
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/version.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/storage/memory.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 3
+
+File: crates/rspack_core/src/cache/persistent/storage/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/cacheable_context.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/occasion/meta/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/occasion/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/occasion/make/module_graph.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/persistent/occasion/make/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/memory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/cache/disable.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/self_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/fake_namespace_object.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/parser_and_generator.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/plugin/plugin_driver.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 1
+
+File: crates/rspack_core/src/plugin/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/plugin/context.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/normal_module.rs
+  String allocations: 10
+  Vec allocations: 12
+  HashMap allocations: 0
+0
+  Clone operations: 12
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/const_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/dependency_trait.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/cached_const_dependency.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/loader_import.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/runtime_template.rs
+  String allocations: 77
+  Vec allocations: 12
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/context_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/span.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/dependency_category.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/context_element_dependency.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/dependency_type.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/module_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/factorize_info.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/static_exports_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/entry.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/dependency_template.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/dependency_location.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/runtime_requirements_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependency/dependency_id.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/raw_module.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/dependencies_block.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/task_loop.rs
+  String allocations: 2
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/runtime.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/module_rules.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/comment.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/property_access.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/remove_bom.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/property_name.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/extract_url_and_global.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/concatenation_scope.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/fs_trim.rs
+  String allocations: 1
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/queue.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/compile_boolean_matcher.rs
+  String allocations: 27
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/source.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/mod.rs
+  String allocations: 5
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/find_graph_roots.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/to_path.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/identifier.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/fast_actions.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/template.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/memory_gc.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/file_counter/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 9
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/file_counter/incremental_info.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/hash.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/iterator_consumer/rayon_fut.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/iterator_consumer/rayon.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/iterator_consumer/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/iterator_consumer/future.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/utils/concatenated_module_visitor.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/runtime_template.rs
+  String allocations: 36
+  Vec allocations: 0
+0
+  HashMap allocations: 1
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/binding/cell.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/binding/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/binding/napi_allocator.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/export_info.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/exports_info_setter.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/exports_info_getter.rs
+  String allocations: 0
+0
+  Vec allocations: 9
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/referenced_export.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/exports_info.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/target.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/export_info_getter.rs
+  String allocations: 6
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/export_info_setter.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/exports/utils.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/build_chunk_graph/available_modules.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/build_chunk_graph/new_code_splitter.rs
+  String allocations: 4
+  Vec allocations: 19
+  HashMap allocations: 0
+0
+  Clone operations: 63
+  Mutex locks: 6
+
+File: crates/rspack_core/src/build_chunk_graph/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/build_chunk_graph/incremental.rs
+  String allocations: 1
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 12
+  Mutex locks: 1
+
+File: crates/rspack_core/src/build_chunk_graph/code_splitter.rs
+  String allocations: 29
+  Vec allocations: 8
+  HashMap allocations: 0
+0
+  Clone operations: 27
+  Mutex locks: 4
+
+File: crates/rspack_core/src/runtime_module.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/context_module.rs
+  String allocations: 27
+  Vec allocations: 7
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/external_module.rs
+  String allocations: 66
+  Vec allocations: 5
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/module_graph/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/module_graph/module.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/module_graph/connection.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/loader/loader_runner.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/loader/rspack_loader.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/loader/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/storage/memory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/storage/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/local/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/local/code_splitting_cache.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 17
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/occasion/process_runtime_requirements.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/occasion/chunk_render.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/occasion/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/old_cache/occasion/code_generate.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/module.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/chunk_graph/mod.rs
+  String allocations: 9
+  Vec allocations: 1
+  HashMap allocations: 1
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/chunk_graph/chunk_graph_chunk.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/chunk_graph/chunk_graph_module.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/normal_module_factory.rs
+  String allocations: 12
+  Vec allocations: 9
+  HashMap allocations: 0
+0
+  Clone operations: 19
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/module_profile.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/ignore_error_module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/self_module.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/rebuild.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 22
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/mod.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 44
+  Mutex locks: 1
+
+File: crates/rspack_core/src/compiler/make/cutout/fix_build_meta.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/cutout/fix_issuers.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/cutout/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/repair/add.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/repair/build.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/repair/factorize.rs
+  String allocations: 3
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/repair/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 27
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/make/repair/process_dependencies.rs
+  String allocations: 1
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/compilation.rs
+  String allocations: 12
+  Vec allocations: 17
+  HashMap allocations: 0
+0
+  Clone operations: 39
+  Mutex locks: 5
+
+File: crates/rspack_core/src/compiler/module_executor/module_tracker.rs
+  String allocations: 0
+0
+  Vec allocations: 10
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/module_executor/execute.rs
+  String allocations: 5
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 11
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/module_executor/ctrl.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/module_executor/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/module_executor/overwrite.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/module_executor/entry.rs
+  String allocations: 0
+0
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/compiler/module_executor/context.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/module_factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/stats/mod.rs
+  String allocations: 17
+  Vec allocations: 22
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/stats/struct.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/stats/utils.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/resolver/boxfs.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/resolver/factory.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/resolver/resolver_impl.rs
+  String allocations: 16
+  Vec allocations: 11
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/resolver/mod.rs
+  String allocations: 13
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_core/src/runtime_globals.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_size_limits/src/lib.rs
+  String allocations: 6
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_base64/src/lib.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_remove_duplicate_modules/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 2
+
+File: crates/rspack_loader_testing/src/lib.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_paths/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_web_worker_template/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_lazy_compilation/src/factory.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 11
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_lazy_compilation/src/backend.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_lazy_compilation/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_lazy_compilation/src/module.rs
+  String allocations: 7
+  Vec allocations: 7
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_lazy_compilation/src/dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_lazy_compilation/src/plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 1
+
+File: crates/rspack_plugin_json/src/json_exports_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_json/src/lib.rs
+  String allocations: 8
+  Vec allocations: 8
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_json/src/utils.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_externals/src/http_externals_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_externals/src/node_target_plugin.rs
+  String allocations: 56
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_externals/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_externals/src/plugin.rs
+  String allocations: 7
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 9
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_externals/src/electron_target_plugin.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/swc_visitor/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/swc_visitor/hygiene.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/swc_visitor/dropped_comments_preserver.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/util.rs
+  String allocations: 3
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/context_dependency_helper.rs
+  String allocations: 22
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/parser/walk_block_pre.rs
+  String allocations: 4
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 18
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/parser/call_hooks_name.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/parser/walk_pre.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/parser/mod.rs
+  String allocations: 9
+  Vec allocations: 10
+  HashMap allocations: 0
+0
+  Clone operations: 18
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/parser/estree.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/parser/walk.rs
+  String allocations: 13
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 41
+  Mutex locks: 3
+
+File: crates/rspack_plugin_javascript/src/visitors/dependency/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/scope_info.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/visitors/semicolon.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/runtime.rs
+  String allocations: 23
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 9
+  Mutex locks: 4
+
+File: crates/rspack_plugin_javascript/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/mangle_exports_plugin.rs
+  String allocations: 2
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/flag_dependency_exports_plugin.rs
+  String allocations: 1
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 7
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs
+  String allocations: 31
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 31
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/api_plugin.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 1
+
+File: crates/rspack_plugin_javascript/src/plugin/drive.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/mod.rs
+  String allocations: 38
+  Vec allocations: 14
+  HashMap allocations: 0
+0
+  Clone operations: 23
+  Mutex locks: 10
+
+File: crates/rspack_plugin_javascript/src/plugin/flag_dependency_usage_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 17
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/impl_plugin_for_js_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 28
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs
+  String allocations: 5
+  Vec allocations: 19
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/plugin/infer_async_modules_plugin.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 1
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/trait.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/hot_module_replacement_plugin.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/esm_top_level_this_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/check_var_decl.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/url_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/require_context_dependency_parser_plugin.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/require_ensure_dependencies_block_parse_plugin.rs
+  String allocations: 2
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/initialize_evaluating.rs
+  String allocations: 23
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/import_parser_plugin.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/api_plugin.rs
+  String allocations: 10
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/webpack_included_plugin.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/define_plugin/mod.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/define_plugin/parser.rs
+  String allocations: 22
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 10
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/worker_plugin.rs
+  String allocations: 14
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/use_strict_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/javascript_meta_info_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/exports_info_api_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/import_meta_plugin.rs
+  String allocations: 17
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/import_meta_context_dependency_parser_plugin.rs
+  String allocations: 5
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/esm_detection_parser_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/amd/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/amd/amd_plugin.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/amd/amd_define_dependency_parser_plugin.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/amd/amd_require_dependencies_block_parser_plugin.rs
+  String allocations: 2
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/esm_export_dependency_parser_plugin.rs
+  String allocations: 5
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 17
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/const/logic_expr.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/const/if_stmt.rs
+  String allocations: 3
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/const/mod.rs
+  String allocations: 6
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/drive.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/override_strict_plugin.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/common_js_exports_parse_plugin.rs
+  String allocations: 3
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/common_js_imports_parse_plugin.rs
+  String allocations: 15
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/provide_plugin.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/compatibility_plugin.rs
+  String allocations: 12
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 6
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/common_js_plugin.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/node_stuff_plugin.rs
+  String allocations: 24
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/esm_import_dependency_parser_plugin.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 10
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/inline_const.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/inner_graph/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/inner_graph/state.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_plugin/inner_graph/plugin.rs
+  String allocations: 2
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 24
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/parser_and_generator/mod.rs
+  String allocations: 4
+  Vec allocations: 7
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/pure_expression_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/context/require_context_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/context/import_context_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/context/require_resolve_context_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/context/common_js_require_context_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/context/mod.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/context/amd_require_context_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/context/import_meta_context_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/module_argument_dependency.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/import_eager_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_export_imported_specifier_dependency.rs
+  String allocations: 31
+  Vec allocations: 31
+  HashMap allocations: 0
+0
+  Clone operations: 18
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_import_specifier_dependency.rs
+  String allocations: 3
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_compatibility_dependency.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/external_module_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_export_header_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_export_specifier_dependency.rs
+  String allocations: 3
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 8
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/mod.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_import_dependency.rs
+  String allocations: 20
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_evaluated_import_specifier_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/import_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/provide_dependency.rs
+  String allocations: 7
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/esm/esm_export_expression_dependency.rs
+  String allocations: 28
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 5
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/hmr/esm_accept_dependency.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/hmr/import_meta_hot_accept.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/hmr/import_meta_hot_decline.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/hmr/module_hot_accept.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/hmr/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/hmr/module_hot_decline.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/export_info_dependency.rs
+  String allocations: 8
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/url/mod.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/local_module.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/local_module_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/amd_require_array_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/amd_define_dependency.rs
+  String allocations: 26
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/amd_require_dependency.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/unsupported_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/amd/amd_require_item_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/is_included_dependency.rs
+  String allocations: 1
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/worker/create_script_url_dependency.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/worker/mod.rs
+  String allocations: 4
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/common_js_exports_dependency.rs
+  String allocations: 11
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/consume_shared_exports_dependency.rs
+  String allocations: 17
+  Vec allocations: 6
+  HashMap allocations: 0
+0
+  Clone operations: 9
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/require_ensure_dependency.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/require_header_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/require_ensure_item_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/common_js_export_require_dependency.rs
+  String allocations: 9
+  Vec allocations: 13
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/require_resolve_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/module_decorator_dependency.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/common_js_require_dependency.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/common_js_self_reference_dependency.rs
+  String allocations: 4
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/require_resolve_header_dependency.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/dependency/commonjs/common_js_full_require_dependency.rs
+  String allocations: 4
+  Vec allocations: 3
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/mod.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/object_properties.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/mangle_exports.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_source.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_binary_expr.rs
+  String allocations: 7
+  Vec allocations: 9
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_tpl_expr.rs
+  String allocations: 3
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_array_expr.rs
+  String allocations: 0
+0
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_member_expr.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_new_expr.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/mod.rs
+  String allocations: 8
+  Vec allocations: 1
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_call_expr.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_unary_expr.rs
+  String allocations: 9
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_lit_expr.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 1
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/utils/eval/eval_cond_expr.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_plugin_javascript/src/webpack_comment.rs
+  String allocations: 56
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_regex/tests/main.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_regex/src/lib.rs
+  String allocations: 5
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_regex/src/algo.rs
+  String allocations: 3
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_regex/src/napi.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_tracing_perfetto/src/lib.rs
+  String allocations: 12
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 2
+  Mutex locks: 0
+0
+
+File: crates/rspack_tracing_perfetto/src/idl_helpers.rs
+  String allocations: 2
+  Vec allocations: 1
+  HashMap allocations: 1
+  Clone operations: 1
+  Mutex locks: 2
+
+File: crates/rspack_futures/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_futures/src/scope.rs
+  String allocations: 0
+0
+  Vec allocations: 4
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/examples/minify.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/examples/transform.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/error.rs
+  String allocations: 2
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/ast.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/compiler/stringify.rs
+  String allocations: 6
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 4
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/compiler/minify.rs
+  String allocations: 1
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 10
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/compiler/mod.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/compiler/parse.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 3
+  Mutex locks: 0
+0
+
+File: crates/rspack_javascript_compiler/src/compiler/transform.rs
+  String allocations: 12
+  Vec allocations: 2
+  HashMap allocations: 0
+0
+  Clone operations: 12
+  Mutex locks: 0
+0
+
+File: crates/node_binding/build.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+
+File: crates/node_binding/src/lib.rs
+  String allocations: 0
+0
+  Vec allocations: 0
+0
+  HashMap allocations: 0
+0
+  Clone operations: 0
+0
+  Mutex locks: 0
+0
+

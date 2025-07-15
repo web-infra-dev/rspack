@@ -1,13 +1,12 @@
 import path from "node:path";
 import { Compilation, Compiler, sources } from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
+import { createSnapshotSerializer as createPathSerializer } from "path-serializer";
 import {
 	type PrettyFormatOptions,
 	format as prettyFormat
 } from "pretty-format";
-
-import { createSnapshotSerializer as createPathSerializer } from "path-serializer";
-import { type TTestContextOptions, TestContext } from "../test/context";
+import { TestContext, type TTestContextOptions } from "../test/context";
 import type {
 	ECompilerType,
 	ITestContext,

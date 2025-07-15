@@ -1,5 +1,6 @@
 const rspackCjsDefaultRequire = require("@rspack/core");
 const { rspack: rspackCjsNamedRequire } = require("@rspack/core");
+
 import assert from "node:assert";
 
 type IsFunction<T> = T extends (...args: any[]) => any ? true : false;

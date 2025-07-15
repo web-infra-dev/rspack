@@ -3,12 +3,11 @@ import {
 	BuiltinPluginName,
 	type RawProvideOptions
 } from "@rspack/binding";
-
-import type { Compiler } from "../Compiler";
 import {
-	RspackBuiltinPlugin,
-	createBuiltinPlugin
+	createBuiltinPlugin,
+	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
+import type { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "./ShareRuntimePlugin";
 

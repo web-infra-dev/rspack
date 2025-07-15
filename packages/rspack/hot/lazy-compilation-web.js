@@ -1,6 +1,4 @@
-/* global __resourceQuery */
 
-"use strict";
 
 if (typeof EventSource !== "function") {
 	throw new Error(

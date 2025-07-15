@@ -1,12 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-
+import createFakeWorker from "../../../helper/legacy/createFakeWorker";
+import CurrentScript from "../../../helper/legacy/currentScript";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
 import FakeDocument, {
 	type FakeElement
 } from "../../../helper/legacy/FakeDocument";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
-import CurrentScript from "../../../helper/legacy/currentScript";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
 import type { TBasicRunnerFile, TRunnerRequirer } from "../../type";

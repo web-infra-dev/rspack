@@ -2,13 +2,13 @@ const path = require("path");
 const fs = require("fs");
 
 console.log(__dirname);
-let abslutePathBindingList = fs
+const abslutePathBindingList = fs
 	.readdirSync(".")
 	.filter(p => {
 		return p.endsWith(".node");
 	})
 	.map(p => {
-		let [_, platform] = p.split(".");
+		const [_, platform] = p.split(".");
 		return {
 			platform: platform,
 			path: path.join(__dirname, "..", p),
@@ -17,8 +17,8 @@ let abslutePathBindingList = fs
 	});
 
 abslutePathBindingList.forEach(bindingInfo => {
-	let npmPath = path.join(__dirname, "../../../npm");
-	let packagePath = path.join(npmPath, bindingInfo.platform);
+	const npmPath = path.join(__dirname, "../../../npm");
+	const packagePath = path.join(npmPath, bindingInfo.platform);
 	fs.copyFileSync(
 		bindingInfo.path,
 		path.join(packagePath, bindingInfo.fileName)

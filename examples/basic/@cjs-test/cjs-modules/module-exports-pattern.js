@@ -58,7 +58,7 @@ function slugify(text) {
 		.toLowerCase()
 		.trim()
 		.replace(/\s+/g, "-")
-		.replace(/[^\w\-]+/g, "");
+		.replace(/[^\w-]+/g, "");
 }
 
 function capitalize(text) {

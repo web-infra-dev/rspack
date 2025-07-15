@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { rspack } from "@rspack/core";
+
 const defaultRustTraceLayer = "perfetto";
 
 export async function applyProfile(
@@ -34,11 +35,9 @@ export async function applyProfile(
 				? defaultRustTracePerfettoOutput
 				: defaultRustTraceLoggerOutput;
 
-		// biome-ignore lint/style/noParameterAssign: setting default value makes sense
 		traceOutput = defaultTraceOutput;
 	} else if (traceOutput !== "stdout" && traceOutput !== "stderr") {
 		// if traceOutput is not stdout or stderr, we need to ensure the directory exists
-		// biome-ignore lint/style/noParameterAssign: setting default value makes sense
 		traceOutput = path.resolve(defaultOutputDir, traceOutput);
 	}
 

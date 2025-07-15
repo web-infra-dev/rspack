@@ -18,7 +18,7 @@ export async function getLastVersion(root) {
 			}
 		});
 		return result.default.version;
-	} catch (e) {
+	} catch (_e) {
 		// Node < 20
 		const result = await import(pkgPath, {
 			assert: {

@@ -15,7 +15,7 @@ const readPackageUp = (cwd = process.cwd()): { type?: "module" } | null => {
 	}
 	try {
 		return JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-	} catch (error) {
+	} catch {
 		return null;
 	}
 };

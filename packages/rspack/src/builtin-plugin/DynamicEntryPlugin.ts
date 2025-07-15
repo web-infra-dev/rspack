@@ -7,8 +7,8 @@ import {
 import type { Compiler } from "../Compiler";
 import type { EntryDynamicNormalized } from "../config";
 import EntryOptionPlugin from "../lib/EntryOptionPlugin";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 import { getRawEntryOptions } from "./EntryPlugin";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
 export class DynamicEntryPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.DynamicEntryPlugin;

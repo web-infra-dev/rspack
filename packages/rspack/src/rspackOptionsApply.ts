@@ -54,8 +54,8 @@ import {
 	NamedModuleIdsPlugin,
 	NaturalChunkIdsPlugin,
 	NaturalModuleIdsPlugin,
-	NoEmitOnErrorsPlugin,
 	NodeTargetPlugin,
+	NoEmitOnErrorsPlugin,
 	OccurrenceChunkIdsPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
@@ -67,9 +67,9 @@ import {
 	SplitChunksPlugin,
 	WorkerPlugin
 } from "./builtin-plugin";
+import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
-import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";
 import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";

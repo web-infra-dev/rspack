@@ -8,10 +8,10 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { Compiler } from "../Compiler";
 import { LibManifestPlugin } from "../builtin-plugin";
 import { DllEntryPlugin } from "../builtin-plugin/DllEntryPlugin";
 import { FlagAllModulesAsUsedPlugin } from "../builtin-plugin/FlagAllModulesAsUsedPlugin";
+import type { Compiler } from "../Compiler";
 import { getDllPluginOptionsSchema } from "../schema/plugins";
 import { validate } from "../schema/validate";
 

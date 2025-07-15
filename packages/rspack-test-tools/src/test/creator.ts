@@ -7,8 +7,8 @@ import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	ITestProcessor,
 	ITester,
+	ITestProcessor,
 	TRunnerFactory,
 	TTestConfig
 } from "../type";
@@ -130,7 +130,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			let stepSignalResolve = null;
 			const stepSignal = new Promise<Error>((resolve, reject) => {
 				stepSignalResolve = resolve;
-			}).catch(e => {
+			}).catch(() => {
 				// prevent unhandled rejection
 			});
 			const description =
@@ -172,7 +172,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						return Promise.reject();
 					}
 				},
-				e => {
+				() => {
 					// bailout
 					stepSignalResolve!();
 					return Promise.reject();
@@ -181,7 +181,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		}
 
 		chain
-			.catch(e => {
+			.catch(() => {
 				// bailout error
 				// prevent unhandled rejection
 			})

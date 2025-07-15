@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.4.7-alpha.1",
+  "version": "1.4.8",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -58,7 +58,7 @@
     "pnpm": "10.10.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "^2.1.1",
     "@continuous-auth/client": "^2.3.2",
     "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "7.52.8",
@@ -88,7 +88,6 @@
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",
-      "rollup-plugin-dts": "patches/rollup-plugin-dts.patch",
       "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"
     },
     "onlyBuiltDependencies": [

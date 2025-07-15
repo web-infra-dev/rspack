@@ -287,7 +287,7 @@ program
 			"version",
 			"--exact", // Use exact version `=`
 			"--allow-branch",
-			"release*", // Specify which branches to allow from
+			"{release*,chore/release*}", // Specify which branches to allow from
 			"--no-git-push", // Do not push generated commit and tags to git remote
 			"--no-git-tag", // Do not tag versions in git, we will tag them in `crate-publish`
 			"--force",

@@ -147,6 +147,16 @@ impl ChunkGraph {
       .unwrap_or_else(|| panic!("Module({module_identifier}) should be added before using"))
   }
 
+  /// Returns a reference to the `ChunkGraphModule` associated with the given `module_identifier`, if it exists.
+  pub(crate) fn get_chunk_graph_module(
+    &self,
+    module_identifier: ModuleIdentifier,
+  ) -> Option<&ChunkGraphModule> {
+    self
+      .chunk_graph_module_by_module_identifier
+      .get(&module_identifier)
+  }
+
   pub(crate) fn get_chunk_graph_module_mut(
     &mut self,
     module_identifier: ModuleIdentifier,
@@ -164,9 +174,11 @@ impl ChunkGraph {
     &chunk_graph_module.chunks
   }
 
+  /// Returns the number of chunks that the specified module is part of.
   pub fn get_number_of_module_chunks(&self, module_identifier: ModuleIdentifier) -> usize {
-    let cgm = self.expect_chunk_graph_module(module_identifier);
-    cgm.chunks.len()
+    self
+      .get_chunk_graph_module(module_identifier)
+      .map_or(0, |cgm| cgm.chunks.len())
   }
 
   pub fn set_module_runtime_requirements(

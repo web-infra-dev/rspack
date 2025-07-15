@@ -1,3 +1,4 @@
+import type { IncomingMessage } from "node:http";
 import path from "node:path";
 import {
 	type BuiltinPlugin,
@@ -5,10 +6,8 @@ import {
 	type RawHttpUriPluginOptions
 } from "@rspack/binding";
 import type { Compiler } from "../Compiler";
-
-import type { IncomingMessage } from "node:http";
 import { memoize } from "../util/memoize";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 export type HttpUriPluginOptionsAllowedUris = (string | RegExp)[];
 
 export type HttpUriPluginOptions = {

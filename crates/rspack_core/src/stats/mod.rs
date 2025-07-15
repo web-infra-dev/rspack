@@ -948,18 +948,22 @@ impl Stats<'_> {
         self
           .compilation
           .chunk_graph
-          .expect_chunk_graph_module(mgm.module_identifier)
-          .chunks
-          .iter()
-          .filter_map(|k| {
-            self
-              .compilation
-              .chunk_by_ukey
-              .expect_get(k)
-              .id(&self.compilation.chunk_ids_artifact)
-              .map(|id| id.as_str())
+          .get_chunk_graph_module(mgm.module_identifier)
+          .map(|cgm| {
+            cgm
+              .chunks
+              .iter()
+              .filter_map(|k| {
+                self
+                  .compilation
+                  .chunk_by_ukey
+                  .expect_get(k)
+                  .id(&self.compilation.chunk_ids_artifact)
+                  .map(|id| id.as_str())
+              })
+              .collect::<Vec<_>>()
           })
-          .collect()
+          .unwrap_or_default()
       };
       chunks.sort_unstable();
       stats.chunks = Some(chunks);

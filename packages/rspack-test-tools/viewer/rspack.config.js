@@ -1,4 +1,4 @@
-const { rspack, experiments } = require("../../rspack");
+const { rspack } = require("../../rspack");
 const path = require("node:path");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 

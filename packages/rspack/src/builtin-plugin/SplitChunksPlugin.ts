@@ -9,13 +9,13 @@ import {
 
 import type { Chunk } from "../Chunk";
 import type { Compiler } from "../Compiler";
-import type { Module } from "../Module";
 import type {
 	OptimizationSplitChunksCacheGroup,
 	OptimizationSplitChunksOptions
 } from "../config";
+import type { Module } from "../Module";
 import { JsSplitChunkSizes } from "../util/SplitChunkSize";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 export class SplitChunksPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.SplitChunksPlugin;

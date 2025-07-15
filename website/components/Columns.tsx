@@ -1,5 +1,5 @@
-import { Children } from 'react';
 import type { CSSProperties, PropsWithChildren } from 'react';
+import { Children } from 'react';
 
 interface Props {
   titles?: string[];

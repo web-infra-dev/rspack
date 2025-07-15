@@ -34,11 +34,11 @@ import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	type ComposeJsUseOptions,
+	createRawModuleRuleUses,
 	type LoaderContext,
 	type LoaderDefinition,
 	type LoaderDefinitionFunction,
-	type PitchLoaderDefinitionFunction,
-	createRawModuleRuleUses
+	type PitchLoaderDefinitionFunction
 } from "./adapterRuleUse";
 import type {
 	ExperimentsNormalized,

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { MessageChannel } from "node:worker_threads";
-// biome-ignore lint: Biome does not support this
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: Biome does not support this
 import type { Tinypool } from "tinypool" with { "resolution-mode": "import" };
 
 let pool: Promise<Tinypool> | undefined;
@@ -216,7 +216,7 @@ export const run = async (
 			const pendingRequests: Map<number, Promise<any>> = new Map();
 			mainPort.on("message", (message: WorkerMessage) => {
 				if (isWorkerDoneMessage(message)) {
-					Promise.allSettled(pendingRequests.values()).then(p => {
+					Promise.allSettled(pendingRequests.values()).then(() => {
 						mainPort.close();
 						mainSyncPort.close();
 						resolve(message.data);

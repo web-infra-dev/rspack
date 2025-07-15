@@ -9,8 +9,8 @@
  */
 
 import type { Compiler } from "../Compiler";
-import { NormalModule } from "../NormalModule";
 import type { Target } from "../config";
+import { NormalModule } from "../NormalModule";
 
 export class LoaderTargetPlugin {
 	/**

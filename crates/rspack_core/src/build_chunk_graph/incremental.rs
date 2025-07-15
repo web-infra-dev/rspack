@@ -145,20 +145,6 @@ impl CodeSplitter {
 
     // remove cgc and cgm
     for chunk_ukey in chunk_group.chunks.iter() {
-      self.mask_by_chunk.remove(chunk_ukey);
-
-      if let Some(chunk_graph_chunk) = chunk_graph.remove_chunk_graph_chunk(chunk_ukey) {
-        for &module_identifier in chunk_graph_chunk.modules() {
-          let Some(cgm) = chunk_graph.get_chunk_graph_module_mut(module_identifier) else {
-            continue;
-          };
-
-          if cgm.chunks.remove(chunk_ukey) && cgm.chunks.is_empty() {
-            chunk_graph.remove_module(module_identifier)
-          }
-        }
-      };
-
       let Some(chunk) = compilation.chunk_by_ukey.get_mut(chunk_ukey) else {
         continue;
       };
@@ -169,6 +155,26 @@ impl CodeSplitter {
           compilation.named_chunks.remove(name);
         }
         compilation.chunk_by_ukey.remove(chunk_ukey);
+
+        // remove cgc and cgm
+        if let Some(chunk_graph_chunk) = chunk_graph.remove_chunk(chunk_ukey) {
+          for &module_identifier in chunk_graph_chunk.modules() {
+            let Some(cgm) = chunk_graph.get_chunk_graph_module_mut(module_identifier) else {
+              continue;
+            };
+
+            if cgm.chunks.remove(chunk_ukey) && cgm.chunks.is_empty() {
+              chunk_graph.remove_module(module_identifier)
+            }
+          }
+        };
+
+        // remove mask
+        self.mask_by_chunk.remove(chunk_ukey);
+
+        // try to remove runtime chunk, runtime chunk is also included by chunk_group.chunks
+        self.runtime_chunks.remove(chunk_ukey);
+
         if let Some(mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
         }
@@ -177,11 +183,6 @@ impl CodeSplitter {
 
     // remove chunk group
     compilation.chunk_group_by_ukey.remove(&chunk_group_ukey);
-
-    // remove runtime chunk
-    if let Some(runtime_chunk) = chunk_group.runtime_chunk {
-      self.runtime_chunks.remove(&runtime_chunk);
-    }
 
     let mut edges = vec![];
     for (parent, _) in &chunk_group_info.parents {

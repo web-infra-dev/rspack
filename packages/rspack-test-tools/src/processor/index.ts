@@ -1,5 +1,6 @@
 export * from "./basic";
 export * from "./builtin";
+export * from "./cache";
 export * from "./config";
 export * from "./defaults";
 export * from "./diagnostic";
@@ -17,4 +18,3 @@ export * from "./snapshot";
 export * from "./stats";
 export * from "./stats-api";
 export * from "./watch";
-export * from "./cache";
