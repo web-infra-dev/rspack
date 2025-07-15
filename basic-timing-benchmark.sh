@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore rspack
 
 echo "🔍 Basic Example Timing Benchmark (CI-style)"
 echo "============================================"

@@ -21,9 +21,10 @@
   },
   "dependencies": {
     "@rspack/core": "workspace:*",
+    "lodash-es": "^4.17.21",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "lodash-es": "^4.17.21"
+    "three": "0.169.0"
   },
   "devDependencies": {
     "@rstest/core": "^0.0.3"

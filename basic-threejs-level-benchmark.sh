@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore threejs rspack
 
 echo "🔍 Basic Example - ThreeJS-Level Performance Benchmark"
 echo "====================================================="

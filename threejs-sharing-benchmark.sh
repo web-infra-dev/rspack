@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore threejs gltf draco rgbe jsm
 
 echo "🔍 Three.js Module Federation Sharing Benchmark"
 echo "=============================================="
