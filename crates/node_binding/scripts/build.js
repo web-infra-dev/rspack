@@ -60,6 +60,9 @@ async function build() {
 			features.push("plugin");
 		}
 		args.push("--no-dts-cache");
+		if (!values.profile || values.profile === "dev") {
+			features.push("color-backtrace");
+		}
 		if (values.profile === "release-debug" &&
 			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
 		) {
