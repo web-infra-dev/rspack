@@ -11,6 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
+browser         = ["rspack_napi/browser"]
 color-backtrace = ["dep:color-backtrace"]
 debug_tool      = ["rspack_core/debug_tool"]
 plugin          = ["rspack_loader_swc/plugin"]

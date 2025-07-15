@@ -4059,6 +4059,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_browser"
+version = "0.4.9"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
 name = "rspack_browserslist"
 version = "0.4.9"
 dependencies = [
@@ -4455,6 +4462,7 @@ version = "0.4.9"
 dependencies = [
  "napi",
  "oneshot",
+ "rspack_browser",
  "rspack_error",
  "serde_json",
  "tokio",
