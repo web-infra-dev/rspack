@@ -35,7 +35,7 @@ module.exports = {
 		removeAvailableModules: true,
 		removeEmptyChunks: true,
 		mergeDuplicateChunks: true,
-		moduleIds: "named",
+		moduleIds: "natural",
 		chunkIds: "named",
 		// Tree-shaking related optimizations
 		realContentHash: true

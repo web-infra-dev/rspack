@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
-  ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilerEmit, CompilerOptions,
-  DependenciesBlock, DependencyType, ExtendedReferencedExport, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin, PluginContext,
+  ApplyContext, AssetInfo, ChunkGraph, Compilation, CompilationAfterProcessAssets,
+  CompilationAsset, CompilerOptions, DependenciesBlock, DependencyType, ExtendedReferencedExport,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin, PluginContext,
 };
 use rspack_error::{Error, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -20,6 +20,8 @@ pub struct SimpleModuleExports {
   pub unused_exports: Vec<String>,
   /// Possibly unused exports
   pub possibly_unused_exports: Vec<String>,
+  /// Entry module ID that the provide/consume shared fallback connects to in split chunks
+  pub entry_module_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -104,12 +106,18 @@ impl ShareUsagePlugin {
                 }
               }
 
+              // Get the actual module ID (numeric) instead of the identifier
+              let entry_module_id =
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, fallback_id)
+                  .map(|id| id.to_string());
+
               usage_map.insert(
                 share_key,
                 SimpleModuleExports {
                   used_exports: final_used_exports,
                   unused_exports: final_unused_exports,
                   possibly_unused_exports: Vec::new(),
+                  entry_module_id,
                 },
               );
             } else {
@@ -120,6 +128,7 @@ impl ShareUsagePlugin {
                   used_exports: Vec::new(),
                   unused_exports: Vec::new(),
                   possibly_unused_exports: Vec::new(),
+                  entry_module_id: None,
                 },
               );
             }
@@ -998,8 +1007,8 @@ impl ShareUsagePlugin {
   }
 }
 
-#[plugin_hook(CompilerEmit for ShareUsagePlugin)]
-async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilationAfterProcessAssets for ShareUsagePlugin)]
+async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let usage_data = self.analyze_consume_shared_usage(compilation);
 
   let report = ShareUsageReport {
@@ -1028,7 +1037,11 @@ impl Plugin for ShareUsagePlugin {
   }
 
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx.context.compiler_hooks.emit.tap(emit::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .after_process_assets
+      .tap(after_process_assets::new(self));
     Ok(())
   }
 }
