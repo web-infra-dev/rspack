@@ -59,6 +59,9 @@ async function build() {
 			args.push("--no-default-features");
 			features.push("plugin");
 		}
+		if (process.env.BROWSER) {
+			features.push("browser")
+		}
 		args.push("--no-dts-cache");
 		if (values.profile === "release-debug" &&
 			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
