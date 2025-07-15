@@ -10,7 +10,7 @@ version.workspace = true
 [dependencies]
 async-trait          = { workspace = true }
 derive_more          = { workspace = true, features = ["debug"] }
-lightningcss         = { workspace = true, features = ["sourcemap", "into_owned"] }
+lightningcss         = { path = "../rspack_monomorphized_lightningcss", package = "rspack_monomorphized_lightningcss", features = ["sourcemap", "into_owned"] }
 parcel_sourcemap     = { workspace = true }
 rspack_browserslist  = { workspace = true }
 rspack_cacheable     = { workspace = true }

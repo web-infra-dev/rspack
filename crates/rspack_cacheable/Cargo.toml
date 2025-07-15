@@ -16,7 +16,7 @@ hashlink        = { workspace = true }
 indexmap        = { workspace = true }
 inventory       = { workspace = true }
 json            = { workspace = true }
-lightningcss    = { workspace = true }
+lightningcss    = { path = "../rspack_monomorphized_lightningcss", package = "rspack_monomorphized_lightningcss" }
 once_cell       = { workspace = true }
 rkyv            = { workspace = true }
 rspack_macros   = { workspace = true }
