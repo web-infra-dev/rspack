@@ -2713,6 +2713,12 @@ export type Experiments = {
 	 * @default false
 	 */
 	inlineConst?: boolean;
+
+	/**
+	 * Enable native watcher
+	 * @default false
+	 */
+	nativeWatcher?: boolean;
 	/**
 	 * Enable inline enum feature
 	 * @default false

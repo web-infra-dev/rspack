@@ -930,3 +930,28 @@ export default {
 实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
 
 详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+
+## experiments.nativeWatcher
+
+<ApiMeta addedVersion="1.4.7" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+默认情况下，Rspack 使用 Watchpack 来监听文件变化，这在大多数情况下都能正常工作，但在某些特定的环境下可能会出现问题。
+例如在大量文件变化时，Watchpack 可能会出现性能问题, 更多详情请参考 [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223)。
+
+如果你使用默认的 watcher 出现性能问题，可以尝试启用 `nativeWatcher`。
+
+启用 `nativeWatcher` 后，Rspack 将使用 Rust Native 文件系统监听文件变化，实现增量监听文件变更能力，这提供更好的性能和稳定性。
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    // Other watch options...
+  }
+  experiments: {
+    nativeWatcher: true,
+  },
+};
+```
