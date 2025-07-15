@@ -219,80 +219,80 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasPureAnnotations": false,
     "hasWebpackRequire": false,
     "macroCount": 7,
-    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_data-processor_js"], { "./cjs-modules/data-processor.js": /*!**************************",
-    "size": 3185,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_data-processor_js"], { 690: /*!***************************************!*\\ !*** ./cjs-",
+    "size": 3155,
   },
   "cjs-modules_legacy-utils_js.js": {
     "hasMacroComments": true,
     "hasPureAnnotations": false,
     "hasWebpackRequire": false,
     "macroCount": 11,
-    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_legacy-utils_js"], { "./cjs-modules/legacy-utils.js": /*!******************************",
-    "size": 4035,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_legacy-utils_js"], { 689: /*!*************************************!*\\ !*** ./cjs-modu",
+    "size": 4007,
   },
   "cjs-modules_module-exports-pattern_js.js": {
     "hasMacroComments": false,
     "hasPureAnnotations": false,
     "hasWebpackRequire": false,
     "macroCount": 0,
-    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_module-exports-pattern_js"], { "./cjs-modules/module-exports-pattern.js": /*!**********",
-    "size": 5368,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_module-exports-pattern_js"], { 691: /*!***********************************************!",
+    "size": 5330,
   },
   "cjs-modules_pure-cjs-helper_js.js": {
     "hasMacroComments": true,
     "hasPureAnnotations": false,
     "hasWebpackRequire": false,
     "macroCount": 9,
-    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_pure-cjs-helper_js"], { "./cjs-modules/pure-cjs-helper.js": /*!************************",
-    "size": 2981,
+    "preview": "(self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["cjs-modules_pure-cjs-helper_js"], { 688: /*!****************************************!*\\ !*** ./cj",
+    "size": 2950,
   },
   "main.js": {
     "hasMacroComments": false,
-    "hasPureAnnotations": false,
+    "hasPureAnnotations": true,
     "hasWebpackRequire": true,
     "macroCount": 0,
-    "preview": "(() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js":",
-    "size": 1247704,
+    "preview": "(() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ 7: /*!*************************************************************************************************************************",
+    "size": 1221658,
   },
   "remoteEntry.js": {
     "hasMacroComments": false,
     "hasPureAnnotations": false,
     "hasWebpackRequire": true,
     "macroCount": 0,
-    "preview": "var basic_example; (() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ "../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/d",
-    "size": 273861,
+    "preview": "var basic_example; (() => { // webpackBootstrap "use strict"; var __webpack_modules__ = ({ 7: /*!******************************************************************************************************",
+    "size": 248781,
   },
   "shared_api_js.js": {
     "hasMacroComments": true,
-    "hasPureAnnotations": false,
+    "hasPureAnnotations": true,
     "hasWebpackRequire": true,
-    "macroCount": 5,
-    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], { "./shared/api.js": /*!***********************!*\\ !*** ./shared/a",
-    "size": 4660,
+    "macroCount": 9,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], { 683: /*!***********************!*\\ !*** ./shared/api.js ***! \\",
+    "size": 4941,
   },
   "shared_components_js.js": {
     "hasMacroComments": true,
     "hasPureAnnotations": false,
     "hasWebpackRequire": true,
     "macroCount": 7,
-    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], { "./shared/components.js": /*!******************************",
-    "size": 2644,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], { 686: /*!******************************!*\\ !*** ./shared/c",
+    "size": 2623,
   },
   "shared_utils_js.js": {
     "hasMacroComments": true,
-    "hasPureAnnotations": false,
+    "hasPureAnnotations": true,
     "hasWebpackRequire": true,
-    "macroCount": 9,
-    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], { "./shared/config.js": /*!**************************!*\\ !*** ./",
-    "size": 4898,
+    "macroCount": 13,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], { 684: /*!**************************!*\\ !*** ./shared/config.js",
+    "size": 5177,
   },
   "vendors-node_modules_pnpm_lodash-es_4_17_21_node_modules_lodash-es_lodash_js.js": {
     "hasMacroComments": true,
-    "hasPureAnnotations": false,
+    "hasPureAnnotations": true,
     "hasWebpackRequire": true,
-    "macroCount": 322,
-    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_lodash-es_4_17_21_node_modules_lodash-es_lodash_js"], { "../",
-    "size": 1543932,
+    "macroCount": 343,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_lodash-es_4_17_21_node_modules_lodash-es_lodash_js"], { 243:",
+    "size": 1354422,
   },
   "vendors-node_modules_pnpm_react-dom_19_1_0_react_19_1_0_node_modules_react-dom_index_js.js": {
     "hasMacroComments": false,
@@ -300,15 +300,15 @@ exports[`ConsumeShared Share Chunks Snapshots > all dist chunk file structure 1`
     "hasWebpackRequire": true,
     "macroCount": 0,
     "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_react-dom_19_1_0_react_19_1_0_node_modules_react-dom_index_j",
-    "size": 20113,
+    "size": 19775,
   },
   "vendors-node_modules_pnpm_react_19_1_0_node_modules_react_index_js.js": {
     "hasMacroComments": false,
     "hasPureAnnotations": false,
     "hasWebpackRequire": true,
     "macroCount": 0,
-    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_react_19_1_0_node_modules_react_index_js"], { "../../node_mo",
-    "size": 46233,
+    "preview": ""use strict"; (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["vendors-node_modules_pnpm_react_19_1_0_node_modules_react_index_js"], { 680: /*!*****",
+    "size": 46009,
   },
 }
 `;
@@ -381,6 +381,10 @@ exports[`ConsumeShared Share Chunks Snapshots > macro annotations extracted 1`] 
     "/* @common:if [condition="treeShake.api-lib.default"] */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */",
     "/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ fetchWithTimeout /* @common:endif */",
     "/* @common:if [condition="treeShake.api-lib.default"] */ /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({ fetchWithTimeout, ApiClient, createApiClient }) /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ DEFAULT_TIMEOUT /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.deepClone"] */ deepClone /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.generateId"] */ generateId /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ validateEmail /* @common:endif */",
   ],
   "shared_components_js.js": [
     "/* @common:if [condition="treeShake.component-lib.Button"] */ Button /* @common:endif */",
@@ -392,6 +396,10 @@ exports[`ConsumeShared Share Chunks Snapshots > macro annotations extracted 1`] 
     "/* @common:if [condition="treeShake.component-lib.default"] */ /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({ Button, Modal, createCard, Tooltip, createAlert }) /* @common:endif */",
   ],
   "shared_utils_js.js": [
+    "/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ DEFAULT_TIMEOUT /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.deepClone"] */ deepClone /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.generateId"] */ generateId /* @common:endif */",
+    "/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ validateEmail /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.capitalize"] */ capitalize /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.debounce"] */ debounce /* @common:endif */",
     "/* @common:if [condition="treeShake.utility-lib.deepClone"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.I8 /* @common:endif */",
@@ -409,9 +417,9 @@ exports[`ConsumeShared Share Chunks Snapshots > main chunk webpack runtime 1`] =
 "(() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js": 
+7: 
 /*!************************************************************************************************************************************!*\\
-  !*** ../../node_modules/.pnpm/@module-federation+error-codes@0.15.0/node_modules/@module-federation/error-codes/dist/index.cjs.js ***!
+  !*** ../../node_modules/.pnpm/@module-federation+error-codes@0.16.0/node_modules/@module-federation/error-codes/dist/index.cjs.js ***!
   \\************************************************************************************************************************************/
 (function (__unused_webpack_module, exports) {
 
@@ -426,6 +434,7 @@ const RUNTIME_007 = 'RUNTIME-007';
 const RUNTIME_008 = 'RUNTIME-008';
 const TYPE_001 = 'TYPE-001';
 const BUILD_001 = 'BUILD-001';
+const BUILD_002 = 'BUILD-002';
 
 const getDocsUrl = (errorCode)=>{
     const type = errorCode.split('-')[0].toLowerCase();
@@ -468,11 +477,13 @@ const typeDescMap = {
     [TYPE_001]: 'Failed to generate type declaration. Execute the below cmd to reproduce and fix the error.'
 };
 const buildDescMap = {
-    [BUILD_001]: 'Failed to find expose module.'
+    [BUILD_001]: 'Failed to find expose module.',
+    [BUILD_002]: 'PublicPath is required in prod mode.'
 };
 const errorDescMap = _extends({}, runtimeDescMap, typeDescMap, buildDescMap);
 
 exports.BUILD_001 = BUILD_001;
+exports.BUILD_002 = BUILD_002;
 exports.RUNTIME_001 = RUNTIME_001;
 exports.RUNTIME_002 = RUNTIME_002;
 exports.RUNTIME_003 = RUNTIME_003;
@@ -490,7 +501,7 @@ exports.typeDescMap = typeDescMap;
 
 
 }),
-"../../node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-client.development.js": 
+14: 
 /*!*************************************************************************************************************************!*\\
   !*** ../../node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-client.development.js ***!
   \\*************************************************************************************************************************/
@@ -530,13 +541,16 @@ var __webpack_unused_export__;
       else {
         for (var i = 0; i < newPath.length - 1; i++)
           if (oldPath[i] !== newPath[i]) {
-            console.war"
+            console.warn(
+              "copyWithRename() expects paths to be the same except for the deepest key"
+            );
+            "
 `;
 
 exports[`ConsumeShared Share Chunks Snapshots > shared API chunk content 1`] = `
 ""use strict";
 (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_api_js"], {
-"./shared/api.js": 
+683: 
 /*!***********************!*\\
   !*** ./shared/api.js ***!
   \\***********************/
@@ -548,8 +562,8 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (/* @common:if [condition="treeShake.api-lib.default"] */ __WEBPACK_DEFAULT_EXPORT__ /* @common:endif */),
   fetchWithTimeout: () => (/* @common:if [condition="treeShake.api-lib.fetchWithTimeout"] */ fetchWithTimeout /* @common:endif */)
 });
-/* ESM import */var _config_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./config.js */ "./shared/config.js");
-/* ESM import */var _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./nested-utils.js */ "./shared/nested-utils.js");
+/* ESM import */var _config_js__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__(/*! ./config.js */ 684);
+/* ESM import */var _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__ = /* #__PURE__ */ __webpack_require__(/*! ./nested-utils.js */ 685);
 
 // Shared API utilities
 
@@ -612,13 +626,13 @@ const createApiClient = (baseUrl, headers) => {
 
 
 }),
-"./shared/config.js": 
+684: 
 /*!**************************!*\\
   !*** ./shared/config.js ***!
   \\**************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  EH: () => (DEFAULT_TIMEOUT)
+  EH: () => (/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ DEFAULT_TIMEOUT /* @common:endif */)
 });
 // Shared configuration module
 const API_ENDPOINTS = (/* unused pure expression or super */ null && ({
@@ -643,15 +657,15 @@ const getApiUrl = endpoint => {
 
 
 }),
-"./shared/nested-utils.js": 
+685: 
 /*!********************************!*\\
   !*** ./shared/nested-utils.js ***!
   \\********************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  I8: () => (deepClone),
-  Ox: () => (generateId),
-  oH: () => (validateEmail)
+  I8: () => (/* @common:if [condition="treeShake.utility-lib.deepClone"] */ deepClone /* @common:endif */),
+  Ox: () => (/* @common:if [condition="treeShake.utility-lib.generateId"] */ generateId /* @common:endif */),
+  oH: () => (/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ validateEmail /* @common:endif */)
 });
 // Nested utility functions to test PURE annotations
 const validateEmail = email => {
@@ -700,7 +714,7 @@ const sortBy = (array, key) => {
 exports[`ConsumeShared Share Chunks Snapshots > shared components chunk content 1`] = `
 ""use strict";
 (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_components_js"], {
-"./shared/components.js": 
+686: 
 /*!******************************!*\\
   !*** ./shared/components.js ***!
   \\******************************/
@@ -799,13 +813,13 @@ const createAlert = (message, type = "info") => {
 exports[`ConsumeShared Share Chunks Snapshots > shared utilities chunk content 1`] = `
 ""use strict";
 (self["webpackChunkrspack_basic_example"] = self["webpackChunkrspack_basic_example"] || []).push([["shared_utils_js"], {
-"./shared/config.js": 
+684: 
 /*!**************************!*\\
   !*** ./shared/config.js ***!
   \\**************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  EH: () => (DEFAULT_TIMEOUT)
+  EH: () => (/* @common:if [condition="treeShake.utility-lib.DEFAULT_TIMEOUT"] */ DEFAULT_TIMEOUT /* @common:endif */)
 });
 // Shared configuration module
 const API_ENDPOINTS = (/* unused pure expression or super */ null && ({
@@ -830,15 +844,15 @@ const getApiUrl = endpoint => {
 
 
 }),
-"./shared/nested-utils.js": 
+685: 
 /*!********************************!*\\
   !*** ./shared/nested-utils.js ***!
   \\********************************/
 (function (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  I8: () => (deepClone),
-  Ox: () => (generateId),
-  oH: () => (validateEmail)
+  I8: () => (/* @common:if [condition="treeShake.utility-lib.deepClone"] */ deepClone /* @common:endif */),
+  Ox: () => (/* @common:if [condition="treeShake.utility-lib.generateId"] */ generateId /* @common:endif */),
+  oH: () => (/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ validateEmail /* @common:endif */)
 });
 // Nested utility functions to test PURE annotations
 const validateEmail = email => {
@@ -880,7 +894,7 @@ const sortBy = (array, key) => {
 
 
 }),
-"./shared/utils.js": 
+687: 
 /*!*************************!*\\
   !*** ./shared/utils.js ***!
   \\*************************/
@@ -896,8 +910,8 @@ __webpack_require__.d(__webpack_exports__, {
   processWithHelper: () => (/* @common:if [condition="treeShake.utility-lib.processWithHelper"] */ processWithHelper /* @common:endif */),
   validateEmail: () => (/* @common:if [condition="treeShake.utility-lib.validateEmail"] */ /* reexport safe */ _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__.oH /* @common:endif */)
 });
-/* ESM import */var _config_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./config.js */ "./shared/config.js");
-/* ESM import */var _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./nested-utils.js */ "./shared/nested-utils.js");
+/* ESM import */var _config_js__WEBPACK_IMPORTED_MODULE_0__ = /* #__PURE__ */ __webpack_require__(/*! ./config.js */ 684);
+/* ESM import */var _nested_utils_js__WEBPACK_IMPORTED_MODULE_1__ = /* #__PURE__ */ __webpack_require__(/*! ./nested-utils.js */ 685);
 
 // Shared utility functions
 
