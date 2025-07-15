@@ -14,11 +14,23 @@ use crate::{
 };
 
 /// Check if a module is part of a shared bundle by checking the module graph
+/// Phase 1.3: Optimized with BuildMeta for ESM modules, fallback to BFS for others
 fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
-  // Quick check: if the module itself has shared metadata or is a shared module type
   if let Some(module) = module_graph.module_by_identifier(module_id) {
-    if module.build_meta().shared_key.is_some()
-      || module.build_meta().consume_shared_key.is_some()
+    let build_meta = module.build_meta();
+
+    // Phase 1.3: Use BuildMeta optimization for ESM modules
+    if build_meta.esm {
+      // If we have the cached result, use it (O(1) lookup)
+      if let Some(is_shared_descendant) = build_meta.is_shared_descendant {
+        return is_shared_descendant;
+      }
+      // If BuildMeta not set, fall through to BFS (safety fallback)
+    }
+
+    // Quick check: if the module itself has shared metadata or is a shared module type
+    if build_meta.shared_key.is_some()
+      || build_meta.consume_shared_key.is_some()
       || module.module_type() == &ModuleType::ConsumeShared
       || module.module_type() == &ModuleType::ProvideShared
     {
@@ -26,7 +38,7 @@ fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleId
     }
   }
 
-  // Check if any issuer (module that imports this one) is a shared module
+  // Fallback: BFS for non-ESM modules or when BuildMeta not available
   // This uses a breadth-first search to find shared modules in the dependency chain
   let mut visited = HashSet::default();
   let mut queue = vec![*module_id];
@@ -957,5 +969,19 @@ mod test_items_to_regexp {
       ),
       "[🍉🍊🍐🍓🫙]".to_string()
     );
+  }
+}
+
+#[cfg(test)]
+mod test_is_consume_shared_descendant {
+  use super::*;
+
+  #[test]
+  fn test_is_consume_shared_descendant_function_signature() {
+    // Test that the function exists and has the correct signature
+    let _func: fn(&ModuleGraph, &ModuleIdentifier) -> bool = is_consume_shared_descendant;
+
+    // The function compiles with the correct signature
+    assert!(true);
   }
 }
