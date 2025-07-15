@@ -66,6 +66,9 @@ async function build() {
 			features.push("sftrace-setup");
 			envs.RUSTFLAGS = "-Zinstrument-xray=always";
 		}
+		if(values.profile === "release"){
+			features.push("info-level");
+		}
 		if (features.length) {
 			args.push("--features " + features.join(","));
 		}

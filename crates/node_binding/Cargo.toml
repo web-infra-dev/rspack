@@ -14,15 +14,17 @@ crate-type = ["cdylib"]
 debug_tool    = ["rspack_binding_api/debug_tool"]
 plugin        = ["rspack_binding_api/plugin"]
 sftrace-setup = ["rspack_binding_api/sftrace-setup"]
+info-level    = ["tracing/release_max_level_info"]
 
 [package.metadata.cargo-shear]
 # Adding napi-derive as a dependency to workaround an issue where `dts` will no longer work without it.
-ignored = ["napi-derive"]
+ignored = ["napi-derive", "tracing"]
 
 [dependencies]
 rspack_binding_api = { workspace = true }
 
 napi-derive = { workspace = true, features = ["compat-mode", "type-def"] }
+tracing = { workspace = true }
 
 [build-dependencies]
 rspack_binding_build = { workspace = true }
