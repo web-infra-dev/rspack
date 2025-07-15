@@ -884,7 +884,7 @@ impl ConsumeSharedPlugin {
               build_meta.esm,
               build_meta.consume_shared_key.clone(),
               build_meta.shared_key.clone(),
-              module.module_type().clone(),
+              *module.module_type(),
             ),
           )
         })
