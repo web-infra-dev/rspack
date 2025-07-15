@@ -14,7 +14,7 @@ import type Watchpack from "watchpack";
 import type {
 	FileSystemInfoEntry,
 	InputFileSystem,
-	Watcher, 
+	Watcher,
 	WatchFileSystem
 } from "../util/fs";
 

@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-
 import type { Compiler } from "../Compiler";
 import { NormalModule } from "../NormalModule";
 import type { MatchObject } from "./ModuleFilenameHelpers";

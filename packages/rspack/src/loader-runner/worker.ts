@@ -14,7 +14,7 @@ import {
 	isWorkerResponseMessage,
 	RequestSyncType,
 	RequestType,
-	serializeError, 
+	serializeError,
 	type WorkerError,
 	type WorkerMessage,
 	type WorkerRequestMessage,

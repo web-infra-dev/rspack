@@ -21,7 +21,7 @@ export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { ChunkGroup } from "@rspack/binding";
 export {
-	AsyncDependenciesBlock, 
+	AsyncDependenciesBlock,
 	Dependency,
 	EntryDependency
 } from "@rspack/binding";
@@ -93,16 +93,35 @@ import { createHash } from "./util/createHash";
 
 export const util = { createHash, cleverMerge };
 
-
 ///// Internal Plugins /////
-export type { BannerPluginArgument, DefinePluginOptions, EntryOptions, ProgressPluginArgument, ProvidePluginOptions } from "./builtin-plugin";
-export { BannerPlugin, DefinePlugin, DynamicEntryPlugin, EntryPlugin, ExternalsPlugin, HotModuleReplacementPlugin, IgnorePlugin, type IgnorePluginOptions, NoEmitOnErrorsPlugin, ProgressPlugin, ProvidePlugin, RuntimePlugin, WarnCaseSensitiveModulesPlugin } from "./builtin-plugin";
+export type {
+	BannerPluginArgument,
+	DefinePluginOptions,
+	EntryOptions,
+	ProgressPluginArgument,
+	ProvidePluginOptions
+} from "./builtin-plugin";
+export {
+	BannerPlugin,
+	DefinePlugin,
+	DynamicEntryPlugin,
+	EntryPlugin,
+	ExternalsPlugin,
+	HotModuleReplacementPlugin,
+	IgnorePlugin,
+	type IgnorePluginOptions,
+	NoEmitOnErrorsPlugin,
+	ProgressPlugin,
+	ProvidePlugin,
+	RuntimePlugin,
+	WarnCaseSensitiveModulesPlugin
+} from "./builtin-plugin";
 export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
 export {
 	DllReferencePlugin,
 	type DllReferencePluginOptions,
 	type DllReferencePluginOptionsContent,
-	type DllReferencePluginOptionsManifest, 
+	type DllReferencePluginOptionsManifest,
 	type DllReferencePluginOptionsSourceType
 } from "./lib/DllReferencePlugin";
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
@@ -114,7 +133,7 @@ export type { OutputFileSystem } from "./util/fs";
 
 import {
 	FetchCompileAsyncWasmPlugin,
-	lazyCompilationMiddleware, 
+	lazyCompilationMiddleware,
 	SubresourceIntegrityPlugin
 } from "./builtin-plugin";
 
@@ -189,7 +208,16 @@ interface Webworker {
 
 export const webworker: Webworker = { WebWorkerTemplatePlugin };
 
-import { CssChunkingPlugin, LimitChunkCountPlugin, RemoveDuplicateModulesPlugin, RsdoctorPlugin, RslibPlugin, RstestPlugin, RuntimeChunkPlugin, SplitChunksPlugin } from "./builtin-plugin";
+import {
+	CssChunkingPlugin,
+	LimitChunkCountPlugin,
+	RemoveDuplicateModulesPlugin,
+	RsdoctorPlugin,
+	RslibPlugin,
+	RstestPlugin,
+	RuntimeChunkPlugin,
+	SplitChunksPlugin
+} from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -268,9 +296,8 @@ export const sharing = {
 	SharePlugin
 };
 
-
 export type {
-	FeatureOptions as LightningcssFeatureOptions, 
+	FeatureOptions as LightningcssFeatureOptions,
 	LoaderOptions as LightningcssLoaderOptions
 } from "./builtin-loader/lightningcss/index";
 ///// Rspack Postfixed Internal Loaders /////
@@ -285,10 +312,32 @@ export type {
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
 ///// Rspack Postfixed Internal Plugins /////
-export type { CircularDependencyRspackPluginOptions, CopyRspackPluginOptions, 
+export type {
+	CircularDependencyRspackPluginOptions,
+	CopyRspackPluginOptions,
 	CssExtractRspackLoaderOptions,
-	CssExtractRspackPluginOptions, EvalDevToolModulePluginOptions, HtmlRspackPluginOptions, LightningCssMinimizerRspackPluginOptions, RsdoctorPluginData, RsdoctorPluginHooks, SourceMapDevToolPluginOptions, SubresourceIntegrityPluginOptions, SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
-export { CircularDependencyRspackPlugin, ContextReplacementPlugin, CopyRspackPlugin, CssExtractRspackPlugin, EvalDevToolModulePlugin, EvalSourceMapDevToolPlugin, HtmlRspackPlugin, LightningCssMinimizerRspackPlugin, SourceMapDevToolPlugin, SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
+	CssExtractRspackPluginOptions,
+	EvalDevToolModulePluginOptions,
+	HtmlRspackPluginOptions,
+	LightningCssMinimizerRspackPluginOptions,
+	RsdoctorPluginData,
+	RsdoctorPluginHooks,
+	SourceMapDevToolPluginOptions,
+	SubresourceIntegrityPluginOptions,
+	SwcJsMinimizerRspackPluginOptions
+} from "./builtin-plugin";
+export {
+	CircularDependencyRspackPlugin,
+	ContextReplacementPlugin,
+	CopyRspackPlugin,
+	CssExtractRspackPlugin,
+	EvalDevToolModulePlugin,
+	EvalSourceMapDevToolPlugin,
+	HtmlRspackPlugin,
+	LightningCssMinimizerRspackPlugin,
+	SourceMapDevToolPlugin,
+	SwcJsMinimizerRspackPlugin
+} from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import {

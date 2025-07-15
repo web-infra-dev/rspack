@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-
 import type { Callback } from "@rspack/lite-tapable";
 import type { MultiCompiler } from "./MultiCompiler";
 import asyncLib from "./util/asyncLib";

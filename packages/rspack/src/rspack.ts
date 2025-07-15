@@ -15,7 +15,7 @@ import { Compiler } from "./Compiler";
 import {
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
-	getNormalizedRspackOptions, 
+	getNormalizedRspackOptions,
 	type RspackOptions,
 	type RspackPluginFunction
 } from "./config";

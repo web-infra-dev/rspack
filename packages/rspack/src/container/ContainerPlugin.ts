@@ -4,7 +4,7 @@ import {
 	type RawContainerPluginOptions
 } from "@rspack/binding";
 import {
-	createBuiltinPlugin, 
+	createBuiltinPlugin,
 	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
 import type { Compiler } from "../Compiler";

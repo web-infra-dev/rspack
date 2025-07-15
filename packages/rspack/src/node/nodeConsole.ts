@@ -21,7 +21,7 @@ export default function ({
 	appendOnly?: boolean;
 	stream: NodeJS.WritableStream;
 }): LoggerConsole {
-	let currentStatusMessage: string[] | undefined ;
+	let currentStatusMessage: string[] | undefined;
 	let hasStatusMessage = false;
 	let currentIndent = "";
 	let currentCollapsed = 0;

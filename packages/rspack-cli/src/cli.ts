@@ -8,7 +8,7 @@ import {
 	type MultiRspackOptions,
 	type MultiStats,
 	type RspackOptions,
-	rspack, 
+	rspack,
 	type Stats,
 	ValidationError
 } from "@rspack/core";

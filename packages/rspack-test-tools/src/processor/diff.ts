@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import {
-	compareFile, 
+	compareFile,
 	type IFormatCodeOptions,
 	type IFormatCodeReplacement
 } from "../compare";

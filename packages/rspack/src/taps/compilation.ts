@@ -4,7 +4,7 @@ import type { Module } from "../Module";
 import {
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals,
-	isReservedRuntimeGlobal, 
+	isReservedRuntimeGlobal,
 	RuntimeGlobals
 } from "../RuntimeGlobals";
 import { createHash } from "../util/createHash";

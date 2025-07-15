@@ -4,7 +4,7 @@ import {
 	type RawConsumeSharedPluginOptions
 } from "@rspack/binding";
 import {
-	createBuiltinPlugin, 
+	createBuiltinPlugin,
 	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
 import type { Compiler } from "../Compiler";

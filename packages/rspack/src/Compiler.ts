@@ -13,7 +13,7 @@ import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";
 import {
 	createRsdoctorPluginHooksRegisters,
-	createRuntimePluginHooksRegisters, 
+	createRuntimePluginHooksRegisters,
 	JsLoaderRspackPlugin
 } from "./builtin-plugin";
 import { canInherentFromParent } from "./builtin-plugin/base";

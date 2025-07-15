@@ -21,7 +21,7 @@ type ModuleObject = {
 };
 type LoaderModule = ModuleObject | Function;
 
-let url: undefined | typeof Url ;
+let url: undefined | typeof Url;
 
 export default function loadLoader(
 	loader: LoaderObject,

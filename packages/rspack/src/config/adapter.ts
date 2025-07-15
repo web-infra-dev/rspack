@@ -34,7 +34,7 @@ import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	type ComposeJsUseOptions,
-	createRawModuleRuleUses, 
+	createRawModuleRuleUses,
 	type LoaderContext,
 	type LoaderDefinition,
 	type LoaderDefinitionFunction,

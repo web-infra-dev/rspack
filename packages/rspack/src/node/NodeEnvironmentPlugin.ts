@@ -14,7 +14,7 @@ import fs from "graceful-fs";
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
 import {
-	createConsoleLogger, 
+	createConsoleLogger,
 	type LoggerConsole
 } from "../logging/createConsoleLogger";
 import NativeWatchFileSystem from "../NativeWatchFileSystem";

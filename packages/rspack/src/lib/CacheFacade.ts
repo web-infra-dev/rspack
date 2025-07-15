@@ -8,10 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-
 import type { Cache, CallbackCache, Etag } from "./Cache";
 import type {
-	HashableObject, 
+	HashableObject,
 	HashConstructor
 } from "./cache/getLazyHashedEtag";
 import { getter as getLazyHashedEtag } from "./cache/getLazyHashedEtag.js";
