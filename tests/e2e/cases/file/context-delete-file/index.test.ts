@@ -1,4 +1,4 @@
-import { expect, test } from "@/fixtures";
+import { test, expect } from "@/fixtures";
 
 test("delete file should work", async ({
 	page,

@@ -1,6 +1,6 @@
-import propTypes from "prop-types";
 import react from "react";
 import reactDOM from "react-dom";
+import propTypes from "prop-types";
 
 it("should load modules correctly", () => {
 	expect(react).toBe("react");

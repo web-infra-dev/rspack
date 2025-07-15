@@ -1,5 +1,5 @@
-import config from "./config";
 import modA from "./module-a";
+import config from "./config";
 
 const { variableClash = "defaultValue" } = config;
 

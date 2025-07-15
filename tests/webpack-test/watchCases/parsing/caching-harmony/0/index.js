@@ -1,5 +1,5 @@
-import cm from "./changing-module";
 import m from "./module";
+import cm from "./changing-module";
 
 it("should flag ES modules correctly", function() {
 	expect(m).toBe("module" + WATCH_STEP);

@@ -1,11 +1,11 @@
-import text from "http://localhost:9990/asset.txt";
-import { fallback } from "http://localhost:9990/fallback.js";
-import cachedCssContent from "http://localhost:9990/index.css?cache";
-import noCacheCssContent from "http://localhost:9990/index.css?no-cache";
 import cssContent from "http://localhost:9990/index.css?query#fragment";
+import noCacheCssContent from "http://localhost:9990/index.css?no-cache";
+import cachedCssContent from "http://localhost:9990/index.css?cache";
+import { value, value2 } from "http://localhost:9990/resolve.js";
+import { fallback } from "http://localhost:9990/fallback.js";
 import redirect1 from "http://localhost:9990/redirect";
 import redirect2 from "http://localhost:9990/redirect.js";
-import { value, value2 } from "http://localhost:9990/resolve.js";
+import text from "http://localhost:9990/asset.txt";
 import textUrl from "http://localhost:9990/url.js";
 import codeOfConduct1 from "https://raw.githubusercontent.com//webpack//webpack//main/CODE_OF_CONDUCT.md";
 import codeOfConduct2 from "https://raw.githubusercontent.com/webpack/webpack/main/CODE_OF_CONDUCT.md";

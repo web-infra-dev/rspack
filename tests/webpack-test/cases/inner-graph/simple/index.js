@@ -1,12 +1,12 @@
 import {
+	exportUsed,
 	export2Used,
 	export3Used,
 	export4Used,
 	export5Used,
-	export6Used, 
-	exportUsed
+	export6Used
 } from "./inner";
-import { f1, fWithDefault, pureUsed } from "./module";
+import { f1, pureUsed, fWithDefault } from "./module";
 
 it("export should be unused when only unused functions use it", () => {
 	f1();

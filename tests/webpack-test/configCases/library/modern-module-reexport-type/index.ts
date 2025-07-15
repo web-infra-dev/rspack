@@ -1,4 +1,4 @@
-import { T, value } from './re-export'
+import { value, T } from './re-export'
 
 export { value, T }
 

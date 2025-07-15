@@ -1,5 +1,5 @@
-import jpg from "./images/file.jpg";
 import png from "./images/file.png";
+import jpg from "./images/file.jpg";
 import svg from "./images/file.svg";
 
 const container = document.createElement("div");

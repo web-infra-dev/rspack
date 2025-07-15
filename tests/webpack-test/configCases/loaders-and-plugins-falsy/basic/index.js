@@ -1,6 +1,6 @@
+import foo from "./foo.js?external";
 import bar from "./bar.js";
 import baz from "./baz.js?custom-use";
-import foo from "./foo.js?external";
 import other from "./other.js";
 
 it("should work with falsy plugins and loaders", function() {

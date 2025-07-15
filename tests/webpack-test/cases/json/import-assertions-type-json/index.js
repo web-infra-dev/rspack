@@ -1,7 +1,5 @@
 import c from "../data/c.json" assert { type: "json" };
-
 import unknownJson from "../data/unknown" assert { type: "json" };
-
 import unknownJs from "../data/unknown";
 
 it("should be possible to import json data with import assertion", function () {

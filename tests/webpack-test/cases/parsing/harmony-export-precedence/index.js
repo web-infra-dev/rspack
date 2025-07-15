@@ -1,4 +1,6 @@
-import defaultImport, { a, b, c, d, e } from "./a";
+import { a, b, c, d, e } from "./a";
+
+import defaultImport from "./a";
 
 it("should prefer local exports", function() {
 	expect(a()).toBe("a1");

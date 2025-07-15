@@ -1,5 +1,5 @@
-import path from "path";
 import { fileURLToPath } from "url";
+import path from "path";
 
 export default {
   entry: "./a.js",

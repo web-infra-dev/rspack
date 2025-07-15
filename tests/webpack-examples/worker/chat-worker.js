@@ -1,4 +1,4 @@
-import { add, history } from "./chat-module";
+import { history, add } from "./chat-module";
 
 onconnect = function (e) {
 	for (const port of e.ports) {

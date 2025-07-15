@@ -1,2 +1,3 @@
+export { a as b } from "./module";
+export { b as a } from "./module";
 export * from "./module";
-export { a as b, b as a } from "./module";

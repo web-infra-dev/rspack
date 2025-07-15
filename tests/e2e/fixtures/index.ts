@@ -1,7 +1,7 @@
 import { test as base, expect } from "@playwright/test";
-import { fileActionFixtures } from "./fileAction";
 import { pathInfoFixtures } from "./pathInfo";
-import { type RspackOptions, rspackFixtures } from "./rspack";
+import { rspackFixtures, type RspackOptions } from "./rspack";
+import { fileActionFixtures } from "./fileAction";
 
 const test = base
 	.extend(pathInfoFixtures)

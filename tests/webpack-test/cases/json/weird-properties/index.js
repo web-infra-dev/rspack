@@ -1,5 +1,5 @@
-import someGlobals from "./globals.json";
 import globals from "./globals.json?all";
+import someGlobals from "./globals.json";
 
 it("should be able to read all properties", () => {
 	const walk = o => {

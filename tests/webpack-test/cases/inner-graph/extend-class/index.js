@@ -1,11 +1,10 @@
 import {
 	exportsInfoForA,
 	exportsInfoForB,
-	exportsInfoForBaseError,
-	exportsInfoForBaseError1,
-	exportsInfoForBaseError2,
-	exportsInfoForBaseError3,
 	exportsInfoForC,
+	exportsInfoForY,
+	exportsInfoForZ,
+	exportsInfoForW,
 	exportsInfoForJ,
 	exportsInfoForK,
 	exportsInfoForMixin1,
@@ -13,10 +12,11 @@ import {
 	exportsInfoForMixin3,
 	exportsInfoForMixin4,
 	exportsInfoForMixin5,
-	exportsInfoForSuperClass, 
-	exportsInfoForW,
-	exportsInfoForY,
-	exportsInfoForZ
+	exportsInfoForBaseError,
+	exportsInfoForBaseError1,
+	exportsInfoForBaseError2,
+	exportsInfoForBaseError3,
+	exportsInfoForSuperClass
 } from "./dep2";
 
 it("should load modules correctly", () => {

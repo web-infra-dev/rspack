@@ -1,15 +1,26 @@
-import threeIsOdd, { even } from "circularEven";
-import { fn, one, test1, test2, two } from "exportKinds";
-import * as abc from "abc";
 import {a, b as B} from "abc";
-import * as commonjs from "commonjs";
-import Thing, { Other } from "commonjs";
-import * as commonjsTrans from "commonjs-trans";
-import Thing2, { Other as Other2 } from "commonjs-trans";
-import defaultExport from "def";
-import { specA, specB } from "exports-specifier";
+
+import * as abc from "abc";
+
+import { fn } from "exportKinds";
+
+import { one, two } from "exportKinds";
+
+import { test1, test2 } from "exportKinds";
+
 import { a as rea, b as reb, c as rec, o as reo, two as retwo, def as Thing3 } from "reexport";
 import { a as rea2 } from "reexport2";
+
+import threeIsOdd, { even } from "circularEven";
+
+import { specA, specB } from "exports-specifier";
+
+import Thing, { Other } from "commonjs";
+import * as commonjs from "commonjs";
+import Thing2, { Other as Other2 } from "commonjs-trans";
+import * as commonjsTrans from "commonjs-trans";
+
+import defaultExport from "def";
 
 import "unused";
 

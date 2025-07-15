@@ -1,4 +1,4 @@
-import { deepEqual, equal as eq } from "./assert";
+import { equal as eq, deepEqual } from "./assert";
 
 function myFunction() {
 	function it() {

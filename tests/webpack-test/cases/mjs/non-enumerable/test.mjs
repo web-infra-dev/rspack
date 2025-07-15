@@ -1,6 +1,9 @@
-import d1, * as m1 from "./analyzable-module.js";
-import d3, * as m3 from "./esModule.js";
-import d2, * as m2 from "./weird-module.js";
+import * as m1 from "./analyzable-module.js";
+import * as m2 from "./weird-module.js";
+import * as m3 from "./esModule.js";
+import d1 from "./analyzable-module.js";
+import d2 from "./weird-module.js";
+import d3 from "./esModule.js";
 
 it("should include non-enumerable properties (mjs)", () => {
 	const ns = m1;

@@ -1,5 +1,5 @@
 import * as style from "./style.module.css";
-import { ident, local1, local2, local3, local4 } from "./style.module.css";
+import { local1, local2, local3, local4, ident } from "./style.module.css";
 
 export default {
 	global: style.global,

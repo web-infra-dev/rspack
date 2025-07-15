@@ -1,7 +1,6 @@
 // copy from rambda/es/allPass.js
-
-import curryN from "./curryN";
 import _curry1 from "./internal/_curry1";
+import curryN from "./curryN";
 import max from "./max";
 import pluck from "./pluck";
 import reduce from "./reduce";

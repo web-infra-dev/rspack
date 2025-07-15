@@ -1,4 +1,4 @@
-import { expect, test } from "@/fixtures";
+import { test, expect } from "@/fixtures";
 
 test("html should refresh after reload", async ({ page, fileAction }) => {
 	await expect(page).toHaveTitle("123");

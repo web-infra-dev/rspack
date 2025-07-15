@@ -1,4 +1,4 @@
-import { expect, test } from "@/fixtures";
+import { test, expect } from "@/fixtures";
 
 test("asset emitted hook should only emit modified assets", async ({
 	page,

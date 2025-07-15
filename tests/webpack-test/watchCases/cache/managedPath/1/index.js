@@ -1,4 +1,4 @@
-import { bar, foo } from "foo";
+import { foo, bar } from "foo";
 
 it("should invalidate resolving if inner node_modules appears", () => {
 	expect(foo).toBe("foo");

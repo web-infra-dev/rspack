@@ -1,4 +1,5 @@
-import foo3, { foo, foo2 } from "./foo";
+import { foo, foo2 } from "./foo";
+import foo3 from "./foo";
 
 export default {
 	foo: foo,

@@ -1,6 +1,6 @@
 import "./module";
-import * as r2 from "./root2";
 import f, { ns } from "./root2";
+import * as r2 from "./root2";
 
 it("should be able to import a secondary root", () => {
 	expect(f()).toBe("ok");

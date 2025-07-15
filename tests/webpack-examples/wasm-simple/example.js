@@ -1,10 +1,10 @@
 import { add } from "./add.wasm";
 import {
+	add as mathAdd,
 	factorial,
 	factorialJavascript,
 	fibonacci,
-	fibonacciJavascript, 
-	add as mathAdd
+	fibonacciJavascript
 } from "./math";
 
 console.log(add(22, 2200));

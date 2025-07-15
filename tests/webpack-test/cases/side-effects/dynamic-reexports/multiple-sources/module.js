@@ -1,2 +1,2 @@
-export * from "./a";
 export * from "./module2";
+export * from "./a";

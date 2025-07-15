@@ -1,4 +1,4 @@
-import { A, a, B, b, C, c, D, d, E, e, F, f, X } from "./module";
+import { a, b, c, d, e, f, A, B, C, D, E, F, X } from "./module";
 
 class Unused {
 	[a()]() {

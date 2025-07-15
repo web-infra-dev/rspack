@@ -1,6 +1,6 @@
 import path from "node:path";
-import type { Fixtures } from "@playwright/test";
 import fs from "fs-extra";
+import type { Fixtures } from "@playwright/test";
 
 type PathInfo = {
 	testFile: string;

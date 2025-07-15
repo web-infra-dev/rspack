@@ -2,7 +2,6 @@ require("./module");
 require("./reexport");
 
 import { value } from "./reexport2";
-
 const { value: value2, own } = require("./reexport2");
 
 it("should not crash", () => {

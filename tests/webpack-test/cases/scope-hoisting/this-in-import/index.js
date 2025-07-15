@@ -1,5 +1,5 @@
-import { obj2 } from "./cjs.js";
 import { obj } from "./module.js";
+import { obj2 } from "./cjs.js";
 
 it("should have correct this in called function", () => {
 	const r = obj.func();

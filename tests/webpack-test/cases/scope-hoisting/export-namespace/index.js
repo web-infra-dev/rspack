@@ -1,5 +1,4 @@
 import { ns as ns1 } from "./module1";
-
 const ns2 = require("./module2").ns;
 
 it("should allow to export a namespace object (concated)", function() {

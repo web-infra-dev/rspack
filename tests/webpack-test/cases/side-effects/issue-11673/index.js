@@ -1,6 +1,5 @@
 import { Worker } from "worker_threads";
 import { X } from "./module";
-
 // test
 
 it("should compile", done => {

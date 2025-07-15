@@ -1,9 +1,9 @@
 import "./module1";
 import {
 	isWebpackIncludedFunction,
-	notPresented, 
+	used,
 	unused,
-	used
+	notPresented
 } from "./module2";
 
 it("__webpack_is_included__ should be a function", () => {

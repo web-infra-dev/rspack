@@ -1,7 +1,7 @@
-import data2 from 'data:application/json,{"__proto__":{}}';
-import data4 from 'data:application/json,{"a":"__proto__"}';
 import data from './data.json';
+import data2 from 'data:application/json,{"__proto__":{}}';
 import data3 from './data1.json';
+import data4 from 'data:application/json,{"a":"__proto__"}';
 
 it("should preserves `__proto__` properties", () => {
 	expect(Object.getPrototypeOf(data) === Object.getPrototypeOf({})).toBe(true);

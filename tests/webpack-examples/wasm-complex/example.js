@@ -1,4 +1,4 @@
-import { get, getNumber, set } from "./magic.js";
+import { get, set, getNumber } from "./magic.js";
 
 // accessing memory
 console.log(get());

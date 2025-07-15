@@ -1,4 +1,4 @@
-import {expect, test } from "@/fixtures";
+import {test, expect} from "@/fixtures";
 
 test("should inject innerHTML for added asset tags", async ({
     page

@@ -1,4 +1,4 @@
-import { expect, test } from "@/fixtures";
+import { test, expect } from "@/fixtures";
 
 test("render should work", async ({ page }) => {
 	await expect(page.locator(".header")).toHaveText("Hello World");

@@ -1,6 +1,6 @@
-import otherStylesheet from "./other-stylesheet";
 import stylesheet from "./stylesheet";
 import stylesheet1 from "./stylesheet?1";
+import otherStylesheet from "./other-stylesheet";
 
 it("should be able to use build-time code", () => {
 	expect(stylesheet).toBe(

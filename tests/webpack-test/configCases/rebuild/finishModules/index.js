@@ -1,5 +1,4 @@
 import { doThings, foo, valueFromA } from "./a";
-
 it("should compile", function (done) {
 	expect(doThings("ok")).toBe("ok");
 

@@ -1,7 +1,5 @@
 import * as tracing_1 from "@effect-ts/tracing-utils";
-
 const fileName_1 = "(@effect-ts/core): _src/Option/operations.ts";
-
 import * as O from "@effect-ts/system/Option";
 import { makeAssociative } from "../Associative";
 import { left, right } from "../Either";

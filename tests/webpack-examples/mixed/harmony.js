@@ -1,6 +1,5 @@
 // ES6 Modules
-
-import amd from "./amd";
 import commonjs from "./commonjs";
+import amd from "./amd";
 
 export default 456;

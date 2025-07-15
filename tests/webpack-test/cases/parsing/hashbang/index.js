@@ -4,7 +4,6 @@ it("should load a file with hashbang", function () {
 });
 
 import result from "./file.mjs";
-
 it("should load a module with hashbang", function () {
 	expect(result).toEqual("ok");
 });

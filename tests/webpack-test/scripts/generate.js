@@ -32,8 +32,8 @@ const repoUrl = 'https://github.com/web-infra-dev/rspack.git';
 		]);
 	}
 	const cwd = process.cwd();
-	const dataPath = path.resolve(targetDir, "result.json");
-	const indexPath = path.resolve(targetDir, "index.txt");
+	let dataPath = path.resolve(targetDir, "result.json");
+	let indexPath = path.resolve(targetDir, "index.txt");
 
 	let historyJson = "{}";
 	let indexContent = "";

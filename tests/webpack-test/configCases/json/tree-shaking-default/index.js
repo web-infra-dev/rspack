@@ -1,5 +1,5 @@
-import packageJson from "../../../../package.json";
 import data, { nestedArray } from "./data";
+import packageJson from "../../../../package.json";
 
 it("should have to correct values", () => {
 	expect(data.nested.key).toBe("value");

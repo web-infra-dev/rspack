@@ -1,4 +1,4 @@
-import { used, x } from "./module";
+import { x, used } from "./module";
 
 it("should have the correct exports", () => {
 	expect(x).toBe("x");

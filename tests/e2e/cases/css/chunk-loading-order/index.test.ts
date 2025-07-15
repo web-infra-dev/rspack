@@ -1,4 +1,4 @@
-import { expect, test } from "@/fixtures";
+import { test, expect } from "@/fixtures";
 
 test("should be red", async ({ page }) => {
 	await expect(page.locator("#status")).toHaveText("ok");

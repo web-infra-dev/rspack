@@ -1,6 +1,6 @@
 import value from "./module";
-import value3 from "./other-module";
 import value2 from "./unrelated";
+import value3 from "./other-module";
 
 it("should work when modules change ids", async () => {
 	expect(value).toBe(42);

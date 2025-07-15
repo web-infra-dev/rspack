@@ -1,4 +1,4 @@
-import { a, aa, b, bb } from './json.js'
+import { a, b, aa, bb } from './json.js'
 
 it("should reexport json data correctly", () => {
 	expect(aa).toEqual({ a: "A" });

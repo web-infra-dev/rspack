@@ -1,5 +1,5 @@
-import { checkIsNonemptyString } from "./types";
 import uuid from "./uuid";
+import { checkIsNonemptyString } from "./types";
 
 export function UiSelectButton() {
 	checkIsNonemptyString();

@@ -1,6 +1,6 @@
-import value from "./reexport-async-unknown.js?default";
-import { a, b, c } from "./reexport-async-unknown.js?named";
 import * as ns from "./reexport-async-unknown.js?ns";
+import { a, b, c } from "./reexport-async-unknown.js?named";
+import value from "./reexport-async-unknown.js?default";
 
 function nsObj(m) {
 	Object.defineProperty(m, Symbol.toStringTag, { value: "Module" });

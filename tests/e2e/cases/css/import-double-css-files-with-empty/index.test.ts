@@ -1,4 +1,4 @@
-import { expect, test } from "@/fixtures";
+import { test, expect } from "@/fixtures";
 
 test("should render correct style", async ({ page }) => {
 	await expect(page.locator("body")).toHaveCSS(

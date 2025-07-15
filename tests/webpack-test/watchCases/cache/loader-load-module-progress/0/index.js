@@ -1,4 +1,4 @@
-import a, { random, value } from "./mod.js";
+import a, { value, random } from "./mod.js";
 import { value as unrelated } from "./unrelated";
 
 it("should have to correct values and validate on change", () => {

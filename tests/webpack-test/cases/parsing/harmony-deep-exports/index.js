@@ -1,8 +1,8 @@
-import cj2, { cjs3DefaultProvidedInfo } from "./cjs2";
-import esm1, { esmDefaultProvidedInfo } from "./esm1";
 import * as C from "./reexport-namespace";
 import { counter } from "./reexport-namespace";
 import * as C2 from "./reexport-namespace-again";
+import cj2, { cjs3DefaultProvidedInfo } from "./cjs2";
+import esm1, { esmDefaultProvidedInfo } from "./esm1";
 
 it("default providedInfo should be correct for cjs", () => {
 	expect(cj2.a).toBe(1);

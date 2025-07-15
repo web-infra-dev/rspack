@@ -1,4 +1,4 @@
-import { A, B, W, Z } from "./dep2";
+import { A, B, Z, W } from "./dep2";
 
 export const A1 = class A1 extends A {
 	render() {return new E();}

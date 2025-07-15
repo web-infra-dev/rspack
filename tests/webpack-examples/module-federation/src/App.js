@@ -1,7 +1,7 @@
-import { de } from "date-fns/locale";
+import React from "react";
 import ComponentB from "mfe-b/Component"; // <- these are remote modules,
 import ComponentC from "mfe-c/Component"; // <- but they are used as usual packages
-import React from "react";
+import { de } from "date-fns/locale";
 
 // remote modules can also be used with import() which lazy loads them as usual
 const ComponentD = React.lazy(() => import("mfe-c/Component2"));

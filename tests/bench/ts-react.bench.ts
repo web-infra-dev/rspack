@@ -1,6 +1,6 @@
-import { type Chunk, type ChunkGroup, type Compilation, Module, ModuleGraph, NormalModule, rspack } from "@rspack/core";
 import * as path from "path";
-import { type BenchmarkAPI, beforeAll, describe, bench as vitestBench } from "vitest";
+import { type Chunk, type ChunkGroup, type Compilation, Module, ModuleGraph, NormalModule, rspack } from "@rspack/core";
+import { beforeAll, bench as vitestBench, describe, type BenchmarkAPI } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
 const BARREL_OPTIMIZATION_PREFIX = '__barrel_optimize__';

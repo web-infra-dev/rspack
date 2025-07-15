@@ -1,5 +1,5 @@
-import * as m from "./module";
 import value, { identity } from "./module";
+import * as m from "./module";
 
 it("should parse and translate identifiers correctly", function() {
 	expect(identity(value)).toBe(1234);

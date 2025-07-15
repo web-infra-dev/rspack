@@ -1,4 +1,4 @@
-import { a, b, c } from "dep";
+import { b, a, c } from "dep";
 
 c.cc();
 b.bbb();

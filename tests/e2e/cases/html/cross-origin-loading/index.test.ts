@@ -1,4 +1,4 @@
-import { expect, test } from "@/fixtures";
+import { test, expect } from "@/fixtures";
 
 test("should set crossOrigin to anonymous for script tag correctly", async ({
 	page

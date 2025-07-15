@@ -1,4 +1,4 @@
-import { a, f3, x, y, z } from "./module";
+import { x, y, z, a, f3 } from "./module";
 
 it("should be able to handle circular referenced", () => {
 	expect(x()).toEqual([y, z]);

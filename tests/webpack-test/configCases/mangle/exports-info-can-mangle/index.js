@@ -1,6 +1,6 @@
 import { aaa, aaaCanMangle } from "./a";
 import * as b from "./b"
-import { ca, ca_aaaCanMangle, caCanMangle, cb, cb_bbbCanMangle, cbCanMangle } from "./c";
+import { ca, cb, caCanMangle, cbCanMangle, ca_aaaCanMangle, cb_bbbCanMangle } from "./c";
 
 it("__webpack_exports_info__.xxx.canMangle should be correct", () => {
 	expect(aaa).toBe("aaa");

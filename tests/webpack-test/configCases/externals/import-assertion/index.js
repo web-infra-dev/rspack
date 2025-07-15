@@ -1,7 +1,5 @@
 import * as staticPkg from "./static-package.json" assert { type: "json" };
-
 import * as staticPkgStr from "./static-package-str.json" assert { "type": "json" };
-
 import * as staticPkgModuleImport from "./static-package-module-import.json" assert { type: "json" };
 
 it("should allow async externals", async () => {

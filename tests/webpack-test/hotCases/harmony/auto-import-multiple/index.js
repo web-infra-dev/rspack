@@ -1,5 +1,5 @@
-import value2 from "./commonjs";
 import { value } from "./file";
+import value2 from "./commonjs";
 
 it("should auto-import multiple ES6 imported values on accept", (done) => {
 	expect(value).toBe(1);

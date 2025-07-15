@@ -1,9 +1,9 @@
+import * as C from "./reexport-namespace";
+import { counter } from "./reexport-namespace";
 import { exportsInfo } from "./counter";
 import { exportsInfo as exportsInfo2 } from "./counter2";
 import * as counter3 from "./counter3";
 import * as counter4 from "./counter4";
-import * as C from "./reexport-namespace";
-import { counter } from "./reexport-namespace";
 
 it("expect tree-shake unused exports #1", () => {
 	const { D } = C;

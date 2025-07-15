@@ -1,6 +1,6 @@
+import * as style1 from "./style.module.css?namespace";
 import style2 from "./style.module.css?default";
 import { foo } from "./style.module.css?named";
-import * as style1 from "./style.module.css?namespace";
 
 it("should able to import with default and named exports", () => {
 	expect(style1.default).toEqual(nsObj({ foo: '_style_module_css_namespace-foo' }));

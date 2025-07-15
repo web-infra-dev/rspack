@@ -27,8 +27,8 @@ const [, , token, commit_sha] = process.argv;
 		]);
 	}
 	const cwd = process.cwd();
-	const dataPath = path.resolve(targetDir, "result.json");
-	const indexPath = path.resolve(targetDir, "index.txt");
+	let dataPath = path.resolve(targetDir, "result.json");
+	let indexPath = path.resolve(targetDir, "index.txt");
 
 	let historyJson = "{}";
 	let indexContent = "";
@@ -44,15 +44,15 @@ const [, , token, commit_sha] = process.argv;
 		try {
 			await run("git", ["reset", "--hard", "origin/gh-pages"]);
 			await run("git", ["pull", "--rebase"]);
-			const historyData = JSON.parse(historyJson);
-			const indexList = indexContent.split("\n");
-			const lastestMainCommit = indexList[indexList.length - 1];
+			let historyData = JSON.parse(historyJson);
+			let indexList = indexContent.split("\n");
+			let lastestMainCommit = indexList[indexList.length - 1];
 
-			const latestMainCommitData = historyData[lastestMainCommit];
+			let latestMainCommitData = historyData[lastestMainCommit];
 			console.log(latestMainCommitData);
 
-			const currentCompatibility = currentData["Tests Compatibility"];
-			const lastestMainCommitCompatibility =
+			let currentCompatibility = currentData["Tests Compatibility"];
+			let lastestMainCommitCompatibility =
 				latestMainCommitData["Tests Compatibility"];
 
 			if (currentCompatibility !== lastestMainCommitCompatibility) {
@@ -60,7 +60,7 @@ const [, , token, commit_sha] = process.argv;
 				if (currentCompatibility > lastestMainCommitCompatibility) {
 					icon = "✅ ⏫";
 				}
-				const diff =
+				let diff =
 					+currentCompatibility.slice(0, -1) -
 					+lastestMainCommitCompatibility.slice(0, -1);
 				let markdown = csvToMarkdown(

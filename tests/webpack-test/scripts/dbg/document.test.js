@@ -338,7 +338,7 @@ for (let i = 0; i < optionsArr.length; i++) {
             ", "
           )}) {${content}\n})`;
 
-          const oldCurrentScript = document.currentScript;
+          let oldCurrentScript = document.currentScript;
           document.currentScript = new CurrentScript(subPath);
           const fn = runInNewContext
             ? vm.runInNewContext(code, globalContext, p)

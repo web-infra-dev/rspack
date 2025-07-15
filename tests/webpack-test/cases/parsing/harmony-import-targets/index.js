@@ -1,4 +1,4 @@
-import {f, x } from "./x";
+import {x, f} from "./x";
 
 it("should import into object literal", function() {
 	(expect({ x: x })).toEqual({x: 1});

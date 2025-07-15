@@ -1,5 +1,5 @@
-import bar from "./bar.js";
 import foo from "./foo.js";
+import bar from "./bar.js";
 
 it("should not contain non javascript chunk in the main bundle", () => {
 	const fs = require("fs");

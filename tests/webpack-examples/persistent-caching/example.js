@@ -8,5 +8,4 @@ import "core-js";
 import "date-fns";
 import "lodash";
 import * as _ from "lodash-es";
-
 console.log(_);

@@ -1,6 +1,6 @@
-import jpg from "../_images/file.jpg";
 import png from "../_images/file.png";
 import svg from "../_images/file.svg";
+import jpg from "../_images/file.jpg";
 
 it("should generate various asset types by a custom encoder", () => {
 	expect(png).toMatch(/^data:mimetype\/png;base64,[0-9a-zA-Z+/]+=*$/);

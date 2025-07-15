@@ -1,8 +1,4 @@
-import {
-	value2 as value2Checked, 
-	value as valueChecked
-} from "./checked-export";
-import { value, valueUsed } from "./dedupe-target";
+import { unused, unprovided } from "./unused";
 import {
 	value as valueStatic,
 	valueUsed as valueUsedStatic
@@ -11,19 +7,23 @@ import {
 	value as valueSide,
 	valueUsed as valueUsedSide
 } from "./dedupe-target-with-side";
+import { value, valueUsed } from "./dedupe-target";
 import * as DefaultExport from "./default-export";
 import {
-	default as Default1, 
+	value as valueDirect,
 	value2 as value2Direct,
-	value as valueDirect
+	default as Default1
 } from "./direct-export";
+import {
+	value as valueChecked,
+	value2 as value2Checked
+} from "./checked-export";
 import Default2 from "./dynamic-reexport-default";
 import {
-	value2 as value2MultipleSources, 
-	value as valueMultipleSources
+	value as valueMultipleSources,
+	value2 as value2MultipleSources
 } from "./multiple-sources";
 import { a, b } from "./swapped";
-import { unprovided, unused } from "./unused";
 
 it("should dedupe static reexport target", () => {
 	expect(valueStatic).toBe(42);

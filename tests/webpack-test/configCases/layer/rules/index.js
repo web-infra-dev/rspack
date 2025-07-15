@@ -1,8 +1,20 @@
-import { object as dynamicModules } from "./dynamic-module-layer"
-import { object as direct, external1 as entryLayerExternal1, external2 as entryLayerExternal2, __loaderValue as entryLayerValue } from "./module";
-import { direct as layerDirect, external1 as layerExternal1, external2 as layerExternal2, reexported as layerReexported, __loaderValue as layerValue } from "./module-layer-change";
-import { direct as otherLayerDirect, reexported as otherLayerReexported, __loaderValue as otherLayerValue } from "./module-other-layer-change";
+import { object as direct } from "./module";
 import { object as reexported } from "./reexport";
+import { __loaderValue as entryLayerValue } from "./module";
+import { external1 as entryLayerExternal1 } from "./module";
+import { external2 as entryLayerExternal2 } from "./module";
+
+import { direct as layerDirect } from "./module-layer-change";
+import { reexported as layerReexported } from "./module-layer-change";
+import { __loaderValue as layerValue } from "./module-layer-change";
+import { external1 as layerExternal1 } from "./module-layer-change";
+import { external2 as layerExternal2 } from "./module-layer-change";
+
+import { direct as otherLayerDirect } from "./module-other-layer-change";
+import { reexported as otherLayerReexported } from "./module-other-layer-change";
+import { __loaderValue as otherLayerValue } from "./module-other-layer-change";
+
+import { object as dynamicModules } from "./dynamic-module-layer"
 
 it("should allow to duplicate modules with layers", () => {
 	expect(direct).toBe(reexported);

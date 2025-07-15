@@ -1,4 +1,4 @@
-import { results, trackA } from "./tracker.js";
+import { trackA, results } from "./tracker.js";
 import "./b.js";
 import "./wasm.wat";
 
