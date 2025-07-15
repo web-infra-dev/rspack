@@ -60,6 +60,9 @@ async function build() {
 			args.push("--no-default-features");
 			features.push("plugin");
 		}
+		if (process.env.BROWSER) {
+			features.push("browser")
+		}
 		args.push("--no-dts-cache");
 		if (!values.profile || values.profile === "dev") {
 			features.push("color-backtrace");
