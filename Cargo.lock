@@ -4845,6 +4845,7 @@ dependencies = [
  "napi-derive",
  "rspack_binding_api",
  "rspack_binding_build",
+ "tracing",
 ]
 
 [[package]]
