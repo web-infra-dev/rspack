@@ -318,7 +318,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         BuildMetaExportsType::Unset
       );
       if need_insert {
-        let flag = mgm_exports_info.set_used_without_info(&mut module_graph, runtime.as_ref());
+        let flag = mgm_exports_info
+          .as_data_mut(&mut module_graph)
+          .set_used_without_info(runtime.as_ref());
         if flag {
           queue.enqueue((module_id, None));
         }
@@ -333,7 +335,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
         };
         if used_exports.is_empty() {
-          let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
+          let flag = mgm_exports_info
+            .as_data_mut(&mut module_graph)
+            .set_used_in_unknown_way(runtime.as_ref());
 
           if flag {
             queue.enqueue((module_id, runtime.clone()));
@@ -342,20 +346,21 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           let mut current_exports_info = mgm_exports_info;
           let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
-            let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
-            if !can_mangle {
-              export_info
+            let (nested_info, export_info) = {
+              let export_info = current_exports_info
                 .as_data_mut(&mut module_graph)
-                .set_can_mangle_use(Some(false));
-            }
-            if !can_inline {
-              export_info
-                .as_data_mut(&mut module_graph)
-                .set_inlinable(Inlinable::NoByUse);
-            }
+                .get_export_info(&used_export);
+              if !can_mangle {
+                export_info.set_can_mangle_use(Some(false));
+              }
+              if !can_inline {
+                export_info.set_inlinable(Inlinable::NoByUse);
+              }
+              (export_info.exports_info(), export_info.id())
+            };
+
             let last_one = i == len - 1;
             if !last_one {
-              let nested_info = export_info.as_data(&module_graph).exports_info();
               if let Some(nested_info) = nested_info {
                 let changed_flag = export_info
                   .as_data_mut(&mut module_graph)

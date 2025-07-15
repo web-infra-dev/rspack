@@ -26,29 +26,30 @@ impl<'a> FlagDependencyExportsState<'a> {
 
   pub fn apply(&mut self, modules: IdentifierSet) {
     for module_id in &modules {
-      // for module_id in modules {
-      let exports_info = self.mg.get_exports_info(module_id);
-
-      // Reset exports provide info back to initial
-      exports_info.reset_provide_info(self.mg);
-
-      if self
+      let exports_type = self
         .mg
         .module_by_identifier(module_id)
         .expect("should have module")
         .build_meta()
-        .exports_type
-        == BuildMetaExportsType::Unset
-      {
-        let other_exports_info = exports_info.as_data(self.mg).other_exports_info();
-        if !matches!(other_exports_info.provided(), Some(ExportProvided::Unknown)) {
-          exports_info.set_has_provide_info(self.mg);
-          exports_info.set_unknown_exports_provided(self.mg, false, None, None, None, None);
+        .exports_type;
+      // for module_id in modules {
+      let exports_info = self.mg.get_exports_info(module_id).as_data_mut(self.mg);
+
+      // Reset exports provide info back to initial
+      exports_info.reset_provide_info();
+
+      if exports_type == BuildMetaExportsType::Unset {
+        if !matches!(
+          exports_info.other_exports_info().provided(),
+          Some(ExportProvided::Unknown)
+        ) {
+          exports_info.set_has_provide_info();
+          exports_info.set_unknown_exports_provided(false, None, None, None, None);
           continue;
         }
       }
 
-      exports_info.set_has_provide_info(self.mg);
+      exports_info.set_has_provide_info();
     }
 
     let mut batch = modules;
@@ -108,21 +109,22 @@ impl<'a> FlagDependencyExportsState<'a> {
     if let Some(hide_export) = &export_desc.hide_export {
       for name in hide_export.iter() {
         exports_info
-          .get_export_info(self.mg, name)
           .as_data_mut(self.mg)
+          .get_export_info(name)
           .unset_target(&dep_id);
       }
     }
     match exports {
       ExportsOfExportsSpec::UnknownExports => {
-        changed |= exports_info.set_unknown_exports_provided(
-          self.mg,
-          global_can_mangle.unwrap_or_default(),
-          export_desc.exclude_exports.as_ref(),
-          global_from.map(|_| dep_id),
-          global_from.map(|_| dep_id),
-          *global_priority,
-        );
+        changed |= exports_info
+          .as_data_mut(self.mg)
+          .set_unknown_exports_provided(
+            global_can_mangle.unwrap_or_default(),
+            export_desc.exclude_exports.as_ref(),
+            global_from.map(|_| dep_id),
+            global_from.map(|_| dep_id),
+            *global_priority,
+          );
       }
       ExportsOfExportsSpec::NoExports => {}
       ExportsOfExportsSpec::Names(ele) => {
@@ -309,49 +311,48 @@ pub fn merge_exports(
         spec.inlinable.as_ref(),
       ),
     };
-    let export_info = exports_info.get_export_info(mg, &name);
-    let export_info_data = export_info.as_data_mut(mg);
-    if let Some(provided) = export_info_data.provided()
+    let export_info = exports_info.as_data_mut(mg).get_export_info(&name);
+    if let Some(provided) = export_info.provided()
       && matches!(
         provided,
         ExportProvided::NotProvided | ExportProvided::Unknown
       )
     {
-      export_info_data.set_provided(Some(ExportProvided::Provided));
+      export_info.set_provided(Some(ExportProvided::Provided));
       changed = true;
     }
 
-    if Some(false) != export_info_data.can_mangle_provide() && can_mangle == Some(false) {
-      export_info_data.set_can_mangle_provide(Some(false));
+    if Some(false) != export_info.can_mangle_provide() && can_mangle == Some(false) {
+      export_info.set_can_mangle_provide(Some(false));
       changed = true;
     }
 
     if let Some(inlined) = inlinable
-      && !export_info_data.inlinable().can_inline()
+      && !export_info.inlinable().can_inline()
     {
-      export_info_data.set_inlinable(Inlinable::Inlined(inlined.clone()));
+      export_info.set_inlinable(Inlinable::Inlined(inlined.clone()));
       changed = true;
     }
 
-    if terminal_binding && !export_info_data.terminal_binding() {
-      export_info_data.set_terminal_binding(true);
+    if terminal_binding && !export_info.terminal_binding() {
+      export_info.set_terminal_binding(true);
       changed = true;
     }
 
     if let Some(exports) = exports {
       // create nested exports info
-      let nested_exports_info = if export_info_data.exports_info_owned() {
-        export_info_data
+      let nested_exports_info = if export_info.exports_info_owned() {
+        export_info
           .exports_info()
           .expect("should have exports_info when exports_info is true")
       } else {
         let new_exports_info = ExportsInfoData::default();
         let new_exports_info_id = new_exports_info.id();
-        export_info_data.set_exports_info(Some(new_exports_info_id));
-        export_info_data.set_exports_info_owned(true);
+        export_info.set_exports_info(Some(new_exports_info_id));
+        export_info.set_exports_info_owned(true);
         mg.set_exports_info(new_exports_info_id, new_exports_info);
 
-        new_exports_info_id.set_has_provide_info(mg);
+        new_exports_info_id.as_data_mut(mg).set_has_provide_info();
         new_exports_info_id
       };
 
@@ -369,10 +370,10 @@ pub fn merge_exports(
 
     // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
     // because `create_nested_exports_info` needs `&mut ModuleGraph`
-    let export_info_data = export_info.as_data_mut(mg);
+    let export_info = exports_info.as_data_mut(mg).get_export_info(&name);
     if let Some(from) = from {
       changed |= if hidden {
-        export_info_data.unset_target(&dep_id)
+        export_info.unset_target(&dep_id)
       } else {
         let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
         let export_name = if let Some(from) = from_export {
@@ -380,7 +381,7 @@ pub fn merge_exports(
         } else {
           Some(&fallback)
         };
-        export_info_data.set_target(
+        export_info.set_target(
           Some(dep_id),
           Some(from.dependency_id),
           export_name,
@@ -390,9 +391,12 @@ pub fn merge_exports(
     }
 
     // Recalculate target exportsInfo
-    let export_info_data = export_info.as_data(mg);
+    let export_info = exports_info
+      .as_data(mg)
+      .named_exports(&name)
+      .expect("should have export info");
 
-    let target = get_target(export_info_data, mg);
+    let target = get_target(export_info, mg);
 
     let mut target_exports_info = None;
     if let Some(target) = target {
@@ -411,16 +415,16 @@ pub fn merge_exports(
       dependencies.push((target.module, *module_id));
     }
 
-    let export_info_data = export_info.as_data_mut(mg);
-    if export_info_data.exports_info_owned() {
-      if export_info_data.exports_info() != target_exports_info
+    let export_info = exports_info.as_data_mut(mg).get_export_info(&name);
+    if export_info.exports_info_owned() {
+      if export_info.exports_info() != target_exports_info
         && let Some(target_exports_info) = target_exports_info
       {
-        export_info_data.set_exports_info(Some(target_exports_info));
+        export_info.set_exports_info(Some(target_exports_info));
         changed = true;
       }
-    } else if export_info_data.exports_info() != target_exports_info {
-      export_info_data.set_exports_info(target_exports_info);
+    } else if export_info.exports_info() != target_exports_info {
+      export_info.set_exports_info(target_exports_info);
       changed = true;
     }
   }
