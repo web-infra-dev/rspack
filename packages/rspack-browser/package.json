@@ -21,6 +21,13 @@
     "@rspack/lite-tapable": "1.0.1",
     "buffer": "^6.0.3"
   },
+  "devDependencies": {
+    "@rspack/binding": "workspace:*",
+    "memfs": "4.17.2"
+  },
+  "peerDependencies": {
+    "@rspack/binding": "workspace:*"
+  },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -28,8 +35,5 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack"
   },
-  "packageManager": "pnpm@10.10.0",
-  "devDependencies": {
-    "memfs": "4.17.2"
-  }
+  "packageManager": "pnpm@10.10.0"
 }
