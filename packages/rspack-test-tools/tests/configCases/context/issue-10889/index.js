@@ -8,6 +8,6 @@ it('should parse invalid regex syntax', () => {
 	const f = ''.replace(/a/y, '');
 	const h = ''.replace(/abc/, '');
 
-	console.log('regex:', a, b, c, d, e, f, h)
+	console.log('regex:', a, b, c, d, f, h)
 })
 
