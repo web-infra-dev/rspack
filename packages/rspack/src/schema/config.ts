@@ -1425,7 +1425,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			useInputFileSystem: useInputFileSystem,
 			inlineConst: z.boolean(),
 			inlineEnum: z.boolean(),
-			typeReexportsPresence: z.boolean()
+			typeReexportsPresence: z.boolean(),
+			nativeWatcher: z.boolean()
 		})
 		.partial() satisfies z.ZodType<t.Experiments>;
 	//#endregion

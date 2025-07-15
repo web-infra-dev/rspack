@@ -1,6 +1,11 @@
 mod read;
 pub use read::ReadableFileSystem;
 
+mod watcher;
+pub use watcher::{
+  EventAggregateHandler, EventHandler, FsWatcher, FsWatcherOptions, Ignored, PathUpdater,
+};
+
 mod write;
 pub use write::WritableFileSystem;
 mod intermediate;
