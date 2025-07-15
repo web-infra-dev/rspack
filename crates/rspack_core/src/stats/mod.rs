@@ -963,7 +963,7 @@ impl Stats<'_> {
               })
               .collect::<Vec<_>>()
           })
-          .unwrap_or(vec![])
+          .unwrap_or_default()
       };
       chunks.sort_unstable();
       stats.chunks = Some(chunks);

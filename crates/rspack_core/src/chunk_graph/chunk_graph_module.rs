@@ -176,8 +176,7 @@ impl ChunkGraph {
   pub fn get_number_of_module_chunks(&self, module_identifier: ModuleIdentifier) -> usize {
     self
       .get_chunk_graph_module(module_identifier)
-      .map(|cgm| cgm.chunks.len())
-      .unwrap_or(0)
+      .map_or(0, |cgm| cgm.chunks.len())
   }
 
   pub fn set_module_runtime_requirements(
