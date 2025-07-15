@@ -209,6 +209,14 @@ pub struct BuildMeta {
 
   #[serde(skip_serializing_if = "Option::is_none")]
   pub shared_key: Option<String>,
+
+  /// Cached result of shared descendant check to avoid expensive BFS traversals
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub is_shared_descendant: Option<bool>,
+
+  /// Unified shared key for both ESM and CommonJS (effective key after resolution)
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub effective_shared_key: Option<String>,
 }
 
 // webpack build info
@@ -811,5 +819,21 @@ mod test {
     let b = b.as_ref();
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());
+  }
+
+  #[test]
+  fn test_build_meta_shared_fields() {
+    use super::BuildMeta;
+
+    // Test BuildMeta with new shared detection fields compiles and works
+    let mut build_meta = BuildMeta::default();
+    build_meta.is_shared_descendant = Some(true);
+    build_meta.effective_shared_key = Some("lodash-es".to_string());
+
+    assert_eq!(build_meta.is_shared_descendant, Some(true));
+    assert_eq!(
+      build_meta.effective_shared_key,
+      Some("lodash-es".to_string())
+    );
   }
 }

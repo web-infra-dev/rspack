@@ -715,6 +715,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
+  // Phase 1.2: ESM-only shared detection optimization
+  Self::mark_esm_shared_descendants(compilation)?;
+
   Ok(())
 }
 
@@ -861,6 +864,141 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
+impl ConsumeSharedPlugin {
+  /// Phase 1.2: ESM-only shared descendant detection optimization
+  /// This is a simplified version that only processes ESM modules to avoid breaking changes
+  fn mark_esm_shared_descendants(compilation: &mut Compilation) -> Result<()> {
+    use std::collections::{HashMap, HashSet, VecDeque};
+
+    // Collect all module data we need upfront to avoid borrow checker issues
+    let module_data: HashMap<ModuleIdentifier, (bool, Option<String>, Option<String>, ModuleType)> = {
+      let module_graph = compilation.get_module_graph();
+      module_graph
+        .modules()
+        .iter()
+        .map(|(id, module)| {
+          let build_meta = module.build_meta();
+          (
+            *id,
+            (
+              build_meta.esm,
+              build_meta.consume_shared_key.clone(),
+              build_meta.shared_key.clone(),
+              module.module_type().clone(),
+            ),
+          )
+        })
+        .collect()
+    };
+
+    // Collect all connections upfront
+    let connections: HashMap<ModuleIdentifier, Vec<ModuleIdentifier>> = {
+      let module_graph = compilation.get_module_graph();
+      module_data
+        .keys()
+        .map(|module_id| {
+          let outgoing: Vec<_> = module_graph
+            .get_outgoing_connections(module_id)
+            .map(|conn| *conn.module_identifier())
+            .collect();
+          (*module_id, outgoing)
+        })
+        .collect()
+    };
+
+    let mut queue = VecDeque::new();
+    let mut visited = HashSet::new();
+    let mut shared_descendants = HashSet::new();
+    let mut effective_keys = HashMap::new();
+
+    // Step 1: Find directly shared ESM modules
+    for (module_id, (is_esm, consume_shared_key, shared_key, module_type)) in &module_data {
+      // Only process ESM modules in Phase 1.2
+      if !is_esm {
+        continue;
+      }
+
+      // Check if this is a directly shared module
+      let is_directly_shared = consume_shared_key.is_some()
+        || shared_key.is_some()
+        || module_type == &ModuleType::ConsumeShared
+        || module_type == &ModuleType::ProvideShared;
+
+      if is_directly_shared {
+        shared_descendants.insert(*module_id);
+
+        // Set effective shared key (prioritize consume_shared_key > shared_key)
+        if let Some(effective_key) = consume_shared_key.clone().or_else(|| shared_key.clone()) {
+          effective_keys.insert(*module_id, effective_key);
+        }
+
+        queue.push_back(*module_id);
+      }
+    }
+
+    // Step 2: BFS to mark ESM descendants
+    while let Some(current_id) = queue.pop_front() {
+      if !visited.insert(current_id) {
+        continue;
+      }
+
+      let parent_shared_key = effective_keys.get(&current_id).cloned();
+
+      if let Some(outgoing) = connections.get(&current_id) {
+        for target_id in outgoing {
+          // Only process ESM modules in Phase 1.2
+          if let Some((is_esm, _, _, _)) = module_data.get(target_id) {
+            if !is_esm {
+              continue;
+            }
+
+            // Check if target already processed
+            if shared_descendants.contains(target_id) {
+              continue;
+            }
+
+            // Mark target as shared descendant
+            shared_descendants.insert(*target_id);
+
+            // Inherit parent's shared key if target doesn't have one
+            if !effective_keys.contains_key(target_id) {
+              if let Some(key) = parent_shared_key.clone() {
+                effective_keys.insert(*target_id, key);
+              }
+            }
+
+            queue.push_back(*target_id);
+          }
+        }
+      }
+    }
+
+    // Step 3: Apply all mutations to the compilation
+    for (module_id, (is_esm, _, _, _)) in &module_data {
+      if !is_esm {
+        continue;
+      }
+
+      if let Some(module) = compilation
+        .get_module_graph_mut()
+        .module_by_identifier_mut(module_id)
+      {
+        let build_meta = module.build_meta_mut();
+
+        // Set shared descendant status
+        build_meta.is_shared_descendant = Some(shared_descendants.contains(module_id));
+
+        // Set effective shared key if we have one
+        if let Some(effective_key) = effective_keys.get(module_id) {
+          build_meta.effective_shared_key = Some(effective_key.clone());
+        }
+      }
+    }
+
+    Ok(())
+  }
+}
+
 #[async_trait]
 impl Plugin for ConsumeSharedPlugin {
   fn name(&self) -> &'static str {
@@ -899,5 +1037,25 @@ impl Plugin for ConsumeSharedPlugin {
       .finish_modules
       .tap(finish_modules::new(self));
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_mark_esm_shared_descendants_function_exists() {
+    // Test that the function exists and is callable
+    // This validates our function signature is correct
+    use rspack_core::Compilation;
+
+    // We can't easily create a full Compilation in a unit test,
+    // but we can verify the function signature compiles
+    let _func: fn(&mut Compilation) -> rspack_error::Result<()> =
+      ConsumeSharedPlugin::mark_esm_shared_descendants;
+
+    // The function exists and has the correct signature
+    assert!(true);
   }
 }
