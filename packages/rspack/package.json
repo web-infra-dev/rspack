@@ -45,7 +45,7 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@ast-grep/napi": "^0.37.0",
+    "@ast-grep/napi": "^0.38.7",
     "@rsbuild/core": "^1.4.6",
     "@rslib/core": "0.10.5",
     "@swc/types": "0.1.23",
