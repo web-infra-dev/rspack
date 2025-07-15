@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.8.0/schema.json",
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"formatter": {
 		"enabled": false
 	},
@@ -9,22 +9,7 @@
 			"allowTrailingCommas": true
 		}
 	},
-	"organizeImports": {
-		"enabled": true,
-		"ignore": [
-			"packages/rspack/src/config/schema.check.js",
-			"packages/**/etc/**/*",
-			"crates/**/*",
-			"tests/**/*",
-			"packages/rspack-test-tools/template/**/*",
-			"packages/rspack-test-tools/tests/**/*",
-			"packages/rspack-test-tools/src/helper/legacy/**/*",
-			"tests/e2e/**/*",
-			// --- ignore runtime code in browser
-			"packages/rspack/hot",
-			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
-		]
-	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
 		"enabled": true,
 		"rules": {
@@ -36,17 +21,20 @@
 				"useArrowFunction": "off",
 				"noStaticOnlyClass": "off",
 				"noThisInStatic": "off",
-				"noBannedTypes": "off"
+				"noBannedTypes": "off",
+				"noArguments": "off"
 			},
 			"correctness": {
 				"noConstructorReturn": "off",
-				"noVoidTypeReturn": "off"
+				"noVoidTypeReturn": "off",
+				"noUnusedFunctionParameters": "off"
 			},
 			"style": {
 				"noNonNullAssertion": "off"
 			},
 			"performance": {
-				"noDelete": "off"
+				"noDelete": "off",
+				"noDynamicNamespaceImportAccess": "off"
 			},
 			"suspicious": {
 				"noFallthroughSwitchClause": "off",
@@ -56,17 +44,26 @@
 				"noControlCharactersInRegex": "off",
 				"noExplicitAny": "off"
 			}
-		},
-		"ignore": [
-			"tests/**/*",
-			"crates/**/*",
-			"packages/rspack-test-tools/template",
-			"packages/rspack-test-tools/src/helper/legacy/**/*",
-			"packages/rspack/module.d.ts",
+		}
+	},
+	"files": {
+		"includes": [
+			"**/packages/**/*",
+			"**/examples/**/*",
+			"**/scripts/**/*",
+			"**/website/**/*",
+			"**/npm/**/*",
+			"!**/tests/**/*",
+			"!**/*.d.ts",
+			"!**/*.vue",
+			"!**/packages/rspack-test-tools/template",
+			"!**/packages/rspack-test-tools/src/helper/legacy/**/*",
+			"!**/packages/rspack-test-tools/template/*",
 			// --- ignore runtime code in browser
-			"packages/rspack/hot",
-			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
-		]
+			"!**/packages/rspack/hot",
+			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
+		],
+		"ignoreUnknown": true
 	},
 	"vcs": {
 		"enabled": true,

@@ -1,7 +1,6 @@
+import path from "node:path";
 import fs from "fs-extra";
 import { diffLinesRaw, diffStringsUnified } from "jest-diff";
-
-import path from "node:path";
 import { parseModules } from "../helper";
 import {
 	ECompareResultType,
@@ -10,7 +9,7 @@ import {
 	type TFileCompareResult,
 	type TModuleCompareResult
 } from "../type";
-import { type IFormatCodeOptions, formatCode } from "./format-code";
+import { formatCode, type IFormatCodeOptions } from "./format-code";
 import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
 declare global {

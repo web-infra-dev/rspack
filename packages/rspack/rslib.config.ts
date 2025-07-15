@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { type Edit, Lang, parse } from "@ast-grep/napi";
 import type { RsbuildPlugin } from "@rsbuild/core";
-import { type LibConfig, defineConfig, rsbuild, rspack } from "@rslib/core";
+import { defineConfig, type LibConfig, rsbuild, rspack } from "@rslib/core";
 import prebundleConfig from "./prebundle.config.mjs";
 
 const merge = rsbuild.mergeRsbuildConfig;

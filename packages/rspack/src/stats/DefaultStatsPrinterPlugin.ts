@@ -9,8 +9,8 @@
  */
 
 import type { Compiler } from "../Compiler";
-import { formatSize } from "../util/SizeFormatHelpers";
 import { compareIds } from "../util/comparators";
+import { formatSize } from "../util/SizeFormatHelpers";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import type { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 
@@ -350,7 +350,7 @@ const SIMPLE_PRINTERS: Record<
 		const [prefix, resource] = getModuleName(name);
 		return `${prefix || ""}${bold(resource || "")}`;
 	},
-	"module.identifier": identifier => undefined,
+	"module.identifier": _identifier => undefined,
 	"module.layer": (layer, { formatLayer }) =>
 		layer ? formatLayer(layer) : undefined,
 	"module.sizes": printSizes,
@@ -427,9 +427,9 @@ const SIMPLE_PRINTERS: Record<
 	},
 	"module.optimizationBailout[]": (optimizationBailout, { yellow }) =>
 		yellow(optimizationBailout),
-	"module.issuerPath": (issuerPath, { module }) =>
+	"module.issuerPath": (_issuerPath, { module }) =>
 		module.profile ? undefined : "",
-	"module.profile": profile => undefined,
+	"module.profile": _profile => undefined,
 	"module.filteredModules": (filteredModules, { module: { modules } }) =>
 		filteredModules > 0
 			? `${moreCount(modules, filteredModules)} nested ${plural(
@@ -621,7 +621,7 @@ const SIMPLE_PRINTERS: Record<
 		message.includes("\u001b[") ? message : bold(formatError(message)),
 	"error.details": (details, { formatError }) => formatError(details),
 	"error.stack": stack => stack,
-	"error.moduleTrace": moduleTrace => undefined,
+	"error.moduleTrace": _moduleTrace => undefined,
 	"error.separator!": () => "\n",
 
 	"loggingEntry(error).loggingEntry.message": (message, { red }) =>

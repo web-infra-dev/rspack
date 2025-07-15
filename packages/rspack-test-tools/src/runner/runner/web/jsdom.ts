@@ -3,8 +3,8 @@ import path from "node:path";
 import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 
 import { escapeSep } from "../../../helper";
-import EventSource from "../../../helper/legacy/EventSourceForNode";
 import createFakeWorker from "../../../helper/legacy/createFakeWorker";
+import EventSource from "../../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
 import type { TBasicRunnerFile, TRunnerRequirer } from "../../type";

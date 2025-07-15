@@ -1,12 +1,12 @@
 import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import type { Module } from "../Module";
-import type ModuleGraph from "../ModuleGraph";
-import type { HttpUriPluginOptions } from "../builtin-plugin/HttpUriPlugin";
 import type { Chunk } from "../exports";
 import type WebpackError from "../lib/WebpackError";
+import type { Module } from "../Module";
+import type ModuleGraph from "../ModuleGraph";
 import type { ResolveCallback } from "./adapterRuleUse";
 import type { DevServerOptions } from "./devServer";
 

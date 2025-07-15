@@ -1,5 +1,5 @@
-import { resolve } from "path";
 import { readFile } from "fs/promises";
+import { resolve } from "path";
 import { run } from "../../../utils/test-utils";
 
 describe("rspack extends feature", () => {
