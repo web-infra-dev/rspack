@@ -715,8 +715,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  // Phase 1.2: ESM-only shared detection optimization
-  Self::mark_esm_shared_descendants(compilation)?;
+  // Phase 2: Unified shared detection optimization for all modules
+  Self::mark_shared_descendants(compilation)?;
 
   Ok(())
 }
@@ -865,9 +865,9 @@ async fn additional_tree_runtime_requirements(
 }
 
 impl ConsumeSharedPlugin {
-  /// Phase 1.2: ESM-only shared descendant detection optimization
-  /// This is a simplified version that only processes ESM modules to avoid breaking changes
-  fn mark_esm_shared_descendants(compilation: &mut Compilation) -> Result<()> {
+  /// Phase 2: Unified shared descendant detection optimization for ESM and CommonJS
+  /// Processes both ESM and CommonJS modules to maximize performance benefits
+  fn mark_shared_descendants(compilation: &mut Compilation) -> Result<()> {
     use std::collections::{HashMap, HashSet, VecDeque};
 
     // Collect all module data we need upfront to avoid borrow checker issues
@@ -911,12 +911,9 @@ impl ConsumeSharedPlugin {
     let mut shared_descendants = HashSet::new();
     let mut effective_keys = HashMap::new();
 
-    // Step 1: Find directly shared ESM modules
-    for (module_id, (is_esm, consume_shared_key, shared_key, module_type)) in &module_data {
-      // Only process ESM modules in Phase 1.2
-      if !is_esm {
-        continue;
-      }
+    // Step 1: Find directly shared modules (both ESM and CommonJS)
+    for (module_id, (_is_esm, consume_shared_key, shared_key, module_type)) in &module_data {
+      // Phase 2: Process all modules, not just ESM
 
       // Check if this is a directly shared module
       let is_directly_shared = consume_shared_key.is_some()
@@ -936,7 +933,7 @@ impl ConsumeSharedPlugin {
       }
     }
 
-    // Step 2: BFS to mark ESM descendants
+    // Step 2: BFS to mark all descendants (ESM and CommonJS)
     while let Some(current_id) = queue.pop_front() {
       if !visited.insert(current_id) {
         continue;
@@ -946,12 +943,8 @@ impl ConsumeSharedPlugin {
 
       if let Some(outgoing) = connections.get(&current_id) {
         for target_id in outgoing {
-          // Only process ESM modules in Phase 1.2
-          if let Some((is_esm, _, _, _)) = module_data.get(target_id) {
-            if !is_esm {
-              continue;
-            }
-
+          // Phase 2: Process all modules regardless of type
+          if let Some((_is_esm, _, _, _)) = module_data.get(target_id) {
             // Check if target already processed
             if shared_descendants.contains(target_id) {
               continue;
@@ -974,10 +967,8 @@ impl ConsumeSharedPlugin {
     }
 
     // Step 3: Apply all mutations to the compilation
-    for (module_id, (is_esm, _, _, _)) in &module_data {
-      if !is_esm {
-        continue;
-      }
+    for (module_id, (_is_esm, _, _, _)) in &module_data {
+      // Phase 2: Apply to all modules, not just ESM
 
       if let Some(module) = compilation
         .get_module_graph_mut()
@@ -1045,7 +1036,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_mark_esm_shared_descendants_function_exists() {
+  fn test_mark_shared_descendants_function_exists() {
     // Test that the function exists and is callable
     // This validates our function signature is correct
     use rspack_core::Compilation;
@@ -1053,7 +1044,7 @@ mod tests {
     // We can't easily create a full Compilation in a unit test,
     // but we can verify the function signature compiles
     let _func: fn(&mut Compilation) -> rspack_error::Result<()> =
-      ConsumeSharedPlugin::mark_esm_shared_descendants;
+      ConsumeSharedPlugin::mark_shared_descendants;
 
     // The function exists and has the correct signature
     assert!(true);

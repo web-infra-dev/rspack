@@ -14,19 +14,17 @@ use crate::{
 };
 
 /// Check if a module is part of a shared bundle by checking the module graph
-/// Phase 1.3: Optimized with BuildMeta for ESM modules, fallback to BFS for others
+/// Phase 2: Optimized with BuildMeta for all modules, fallback to BFS when needed
 fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
   if let Some(module) = module_graph.module_by_identifier(module_id) {
     let build_meta = module.build_meta();
 
-    // Phase 1.3: Use BuildMeta optimization for ESM modules
-    if build_meta.esm {
-      // If we have the cached result, use it (O(1) lookup)
-      if let Some(is_shared_descendant) = build_meta.is_shared_descendant {
-        return is_shared_descendant;
-      }
-      // If BuildMeta not set, fall through to BFS (safety fallback)
+    // Phase 2: Use BuildMeta optimization for all modules (ESM and CommonJS)
+    // If we have the cached result, use it (O(1) lookup)
+    if let Some(is_shared_descendant) = build_meta.is_shared_descendant {
+      return is_shared_descendant;
     }
+    // If BuildMeta not set, fall through to BFS (safety fallback)
 
     // Quick check: if the module itself has shared metadata or is a shared module type
     if build_meta.shared_key.is_some()
