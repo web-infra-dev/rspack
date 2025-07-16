@@ -80,6 +80,8 @@ jobs:
   release_crates:
     name: Release Crates
     if: ${{ github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: write
     uses: ./.github/workflows/release-crates.yml
     with:
       dry_run: ${{ inputs.dry_run }}
