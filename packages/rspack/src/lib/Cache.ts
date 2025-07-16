@@ -23,7 +23,7 @@ export interface Etag {
 
 export type CallbackCache<T> = (err?: WebpackError | null, result?: T) => void;
 
-type GotHandler<T = any> = (
+type GotHandler = (
 	result: any | null,
 	callback: (error: Error | null) => void
 ) => void;
@@ -77,7 +77,7 @@ export class Cache {
 	 * @returns
 	 */
 	get<T>(identifier: string, etag: Etag | null, callback: CallbackCache<T>) {
-		const gotHandlers: GotHandler<any>[] = [];
+		const gotHandlers: GotHandler[] = [];
 
 		this.hooks.get.callAsync(identifier, etag, gotHandlers, (err, res) => {
 			if (err) {

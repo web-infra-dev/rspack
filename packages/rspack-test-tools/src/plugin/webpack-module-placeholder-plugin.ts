@@ -5,7 +5,6 @@ const {
 	CachedSource,
 	PrefixSource
 } = require("webpack-sources");
-const path = require("node:path");
 
 function createRenderRuntimeModulesFn(Template) {
 	return function renderRuntimeModules(runtimeModules, renderContext) {

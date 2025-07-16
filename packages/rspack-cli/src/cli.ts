@@ -1,17 +1,17 @@
 import path from "node:path";
 import util from "node:util";
 import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
+import * as rspackCore from "@rspack/core";
 import {
 	type Compiler,
 	type MultiCompiler,
 	type MultiRspackOptions,
 	type MultiStats,
 	type RspackOptions,
+	rspack,
 	type Stats,
-	ValidationError,
-	rspack
+	ValidationError
 } from "@rspack/core";
-import * as rspackCore from "@rspack/core";
 import { createColors, isColorSupported } from "colorette";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";

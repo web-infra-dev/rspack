@@ -1,9 +1,8 @@
+import { join } from "node:path";
 import {
 	BuiltinPluginName,
 	type RawCssExtractPluginOption
 } from "@rspack/binding";
-
-import { join } from "node:path";
 import type { Compiler } from "../..";
 import { MODULE_TYPE } from "./loader";
 import { PLUGIN_NAME } from "./utils";

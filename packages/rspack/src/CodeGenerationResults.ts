@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import { JsSource } from "./util/source";
 
 Object.defineProperty(binding.Sources.prototype, "get", {

@@ -1,4 +1,4 @@
-import type * as binding from "@rspack/binding";
+import type binding from "@rspack/binding";
 
 export type { RspackError } from "@rspack/binding";
 export type RspackSeverity = binding.JsRspackSeverity;

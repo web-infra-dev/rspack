@@ -1,6 +1,5 @@
-import { useLang, withBase } from 'rspress/runtime';
-
 import { useCallback } from 'react';
+import { useLang, withBase } from 'rspress/runtime';
 import { EN_US } from './enUS';
 import { ZH_CN } from './zhCN';
 

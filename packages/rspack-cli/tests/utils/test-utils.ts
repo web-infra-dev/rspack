@@ -1,6 +1,4 @@
-/* eslint-disable node/no-unpublished-require */
 
-"use strict";
 
 const os = require("os");
 const { stripVTControlCharacters: stripAnsi } = require("node:util");

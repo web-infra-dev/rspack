@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import * as binding from "@rspack/binding";
+
 import type {
 	AssetInfo,
 	ChunkGroup,
@@ -18,15 +18,28 @@ import type {
 	JsPathData,
 	JsRuntimeModule
 } from "@rspack/binding";
+import binding from "@rspack/binding";
+
 export type { AssetInfo } from "@rspack/binding";
+
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
+import type { EntryOptions, EntryPlugin } from "./builtin-plugin";
 import type { Chunk } from "./Chunk";
 import type { ChunkGraph } from "./ChunkGraph";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
+import type {
+	OutputNormalized,
+	RspackOptionsNormalized,
+	RspackPluginInstance,
+	StatsOptions,
+	StatsValue
+} from "./config";
 import type { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
+import WebpackError from "./lib/WebpackError";
+import { Logger, LogType } from "./logging/Logger";
 import type { Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleCompilationHooks } from "./NormalModule";
@@ -40,16 +53,6 @@ import {
 	type StatsError,
 	type StatsModule
 } from "./Stats";
-import type { EntryOptions, EntryPlugin } from "./builtin-plugin";
-import type {
-	OutputNormalized,
-	RspackOptionsNormalized,
-	RspackPluginInstance,
-	StatsOptions,
-	StatsValue
-} from "./config";
-import WebpackError from "./lib/WebpackError";
-import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { AsyncTask } from "./util/AsyncTask";
@@ -882,6 +885,30 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		() => this.#inner.dependencies().fileDependencies,
 		d => this.#inner.addFileDependencies(d)
 	);
+
+	get __internal__addedFileDependencies() {
+		return this.#inner.dependencies().addedFileDependencies;
+	}
+
+	get __internal__removedFileDependencies() {
+		return this.#inner.dependencies().removedFileDependencies;
+	}
+
+	get __internal__addedContextDependencies() {
+		return this.#inner.dependencies().addedContextDependencies;
+	}
+
+	get __internal__removedContextDependencies() {
+		return this.#inner.dependencies().removedContextDependencies;
+	}
+
+	get __internal__addedMissingDependencies() {
+		return this.#inner.dependencies().addedMissingDependencies;
+	}
+
+	get __internal__removedMissingDependencies() {
+		return this.#inner.dependencies().removedMissingDependencies;
+	}
 
 	contextDependencies = createFakeCompilationDependencies(
 		() => this.#inner.dependencies().contextDependencies,

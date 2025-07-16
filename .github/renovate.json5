@@ -41,7 +41,6 @@
 				"inventory"
 			],
 			matchUpdateTypes: ["patch"],
-			rangeStrategy: "auto",
 		},
 		{
 			groupName: "swc",

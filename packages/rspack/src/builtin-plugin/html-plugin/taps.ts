@@ -1,6 +1,6 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import type { CreatePartialRegisters } from "../../taps/types";
-import { type HtmlRspackPluginOptions, getPluginOptions } from "./options";
+import { getPluginOptions, type HtmlRspackPluginOptions } from "./options";
 import { HtmlRspackPlugin } from "./plugin";
 
 export const createHtmlPluginHooksRegisters: CreatePartialRegisters<

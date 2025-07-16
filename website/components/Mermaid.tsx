@@ -3,6 +3,7 @@ import './Mermaid.scss';
 
 import mermaid, { type MermaidConfig } from 'mermaid';
 import { useEffect, useId, useState } from 'react';
+
 interface Props {
   style?: CSSProperties;
   title?: string;
@@ -38,7 +39,7 @@ export default function Mermaid({
       );
 
       setSvg(svg);
-    } catch (error) {
+    } catch (_error) {
       setRenderError(true);
     }
   }

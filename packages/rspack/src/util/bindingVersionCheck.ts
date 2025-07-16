@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 
 const CORE_VERSION = RSPACK_VERSION;
 

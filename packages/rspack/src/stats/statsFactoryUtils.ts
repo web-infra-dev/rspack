@@ -1,4 +1,4 @@
-import type * as binding from "@rspack/binding";
+import type binding from "@rspack/binding";
 
 import type { JsOriginRecord } from "@rspack/binding";
 import type { Compilation } from "../Compilation";
@@ -456,8 +456,8 @@ export const spaceLimited = (
 			filteredChildren: getTotalItems(itemsAndGroups)
 		};
 	}
-	let children: any[] | undefined = undefined;
-	let filteredChildren: number | undefined = undefined;
+	let children: any[] | undefined;
+	let filteredChildren: number | undefined;
 	// This are the groups, which take 1+ lines each
 	const groups: ItemChildren = [];
 	// The sizes of the groups are stored in groupSizes

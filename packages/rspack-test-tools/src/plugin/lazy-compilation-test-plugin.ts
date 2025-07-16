@@ -1,8 +1,6 @@
 import { createServer } from "node:http";
-import type { Socket } from "node:net";
-import type { AddressInfo } from "node:net";
-import { type Compiler, MultiCompiler } from "@rspack/core";
-import { experiments } from "@rspack/core";
+import type { AddressInfo, Socket } from "node:net";
+import { type Compiler, experiments, MultiCompiler } from "@rspack/core";
 
 export class LazyCompilationTestPlugin {
 	apply(compiler: Compiler | MultiCompiler) {

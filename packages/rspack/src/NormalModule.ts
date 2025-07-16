@@ -1,10 +1,10 @@
 import util from "node:util";
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
 import type { Compilation } from "./Compilation";
-import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
+import type { Module } from "./Module";
 import { JsSource } from "./util/source";
 
 Object.defineProperty(binding.NormalModule.prototype, "identifier", {
