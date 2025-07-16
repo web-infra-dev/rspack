@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore rspack
 
 # Quick profiling for threejs performance regression
 set -e

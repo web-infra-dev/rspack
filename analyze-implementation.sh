@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore rspack shak oneline flamegraph hotspots
 
 # Analyze the current swc-macro implementation for performance issues
 set -e

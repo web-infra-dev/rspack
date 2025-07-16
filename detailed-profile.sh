@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore rspack dtrace execname ustack
 
 echo "🔍 Detailed Function-Level Performance Analysis"
 echo "=============================================="
