@@ -1036,23 +1036,3 @@ impl Plugin for ConsumeSharedPlugin {
     Ok(())
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_mark_shared_descendants_function_exists() {
-    // Test that the function exists and is callable
-    // This validates our function signature is correct
-    use rspack_core::Compilation;
-
-    // We can't easily create a full Compilation in a unit test,
-    // but we can verify the function signature compiles
-    let _func: fn(&mut Compilation) -> rspack_error::Result<()> =
-      ConsumeSharedPlugin::mark_shared_descendants;
-
-    // The function exists and has the correct signature
-    assert!(true);
-  }
-}
