@@ -25,6 +25,11 @@ on:
         description: "Push tags to repository"
         required: false
         default: true
+      test:
+        type: boolean
+        description: "Run tests before release"
+        required: false
+        default: true
     secrets:
       CARGO_REGISTRY_TOKEN:
         description: "Cargo registry token for publishing crates"
@@ -33,6 +38,9 @@ on:
 jobs:
   rust_tests:
     name: Run Rust Tests
+    # Always run tests if workflow is called from dispatching
+    # Otherwise, only run tests if test input is true
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_call' && inputs.test == true) }}
     uses: ./.github/workflows/reusable-rust-test.yml
     with:
       # Use separated strategy to check all crates
@@ -45,7 +53,7 @@ jobs:
       contents: write
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
     needs: [rust_tests]
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_call' && (inputs.test == false || needs.rust_tests.result == 'success'))) }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4

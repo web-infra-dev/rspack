@@ -17,7 +17,7 @@ on:
           - rc
       test:
         type: boolean
-        description: "Run tests before release"
+        description: "Run Npm tests before release"
         required: true
         default: true
       dry_run:
@@ -77,9 +77,17 @@ jobs:
       test: ${{ inputs.test }}
       profile: "release"
 
+  rust_tests:
+    name: Run Rust Tests
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: ./.github/workflows/reusable-rust-test.yml
+    with:
+      # Use separated strategy to check all crates
+      cargo-check-strategy: "separated"
+
   release_crates:
     name: Release Crates
-    needs: build
+    needs: [build, rust_tests]
     if: ${{ github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: write
@@ -87,6 +95,7 @@ jobs:
     with:
       dry_run: ${{ inputs.dry_run }}
       push_tags: ${{ inputs.push_tags }}
+      test: false
     secrets: inherit
 
   release:
