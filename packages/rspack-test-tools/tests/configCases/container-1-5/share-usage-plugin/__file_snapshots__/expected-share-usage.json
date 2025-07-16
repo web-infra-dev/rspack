@@ -1,14 +1,26 @@
 {
   "lodash-es": {
-    "used_exports": ["map", "filter", "isEmpty", "isArray", "isObject"],
-    "unused_exports": ["uniq", "debounce"],
+    "used_exports": ["map", "filter", "isEmpty", "isArray", "isObject", "clone", "merge", "reduce"],
+    "unused_exports": ["uniq", "debounce", "groupBy", "partition", "cloneDeep", "mergeWith", "sortBy"],
     "possibly_unused_exports": [],
     "entry_module_id": "42"
   },
   "react": {
-    "used_exports": ["createElement"],
-    "unused_exports": [],
+    "used_exports": ["createElement", "default"],
+    "unused_exports": ["useState", "useEffect"],
     "possibly_unused_exports": [],
     "entry_module_id": "24"
+  },
+  "local-cjs-module": {
+    "used_exports": ["usedLocalFunction", "constantValue", "nestedObject"],
+    "unused_exports": ["unusedLocalFunction", "unusedConstant", "directProperty"],
+    "possibly_unused_exports": [],
+    "entry_module_id": "101"
+  },
+  "local-esm-module": {
+    "used_exports": ["usedLocalUtil", "USED_LOCAL_CONSTANT", "default"],
+    "unused_exports": ["unusedLocalUtil", "UNUSED_LOCAL_CONSTANT"],
+    "possibly_unused_exports": [],
+    "entry_module_id": "102"
   }
 }

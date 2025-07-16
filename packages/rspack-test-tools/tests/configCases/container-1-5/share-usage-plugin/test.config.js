@@ -2,7 +2,7 @@ const validateShareUsage = require("./validate-share-usage");
 
 module.exports = {
 	description:
-		"ShareUsagePlugin should auto-generate usage analysis JSON with valid module IDs",
+		"ShareUsagePlugin should accurately track used/unused exports for CJS, ESM, and local shared modules",
 	options(context) {
 		return {
 			experiments: {
@@ -19,13 +19,11 @@ module.exports = {
 	diffStats: true,
 	nonEsmThis: "(global || {})",
 	afterBuild(context) {
-		// STRICT validation - must have valid share-usage.json with module IDs
+		// Run strict validation with proper assertions
 		try {
-			console.log("🔍 Validating ShareUsagePlugin output...");
 			validateShareUsage(context.getDist());
 			return Promise.resolve();
 		} catch (err) {
-			console.error("❌ STRICT VALIDATION FAILED:", err.message);
 			return Promise.reject(err);
 		}
 	}

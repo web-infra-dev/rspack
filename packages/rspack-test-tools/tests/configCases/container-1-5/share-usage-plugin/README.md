@@ -1,66 +1,101 @@
 # ShareUsagePlugin Test
 
-This test validates the ShareUsagePlugin functionality when it becomes available through the JavaScript API.
+This test validates that ShareUsagePlugin correctly tracks used and unused exports from shared modules in Module Federation configurations.
 
-## Current Status
+## Test Coverage
 
-The ShareUsagePlugin is implemented in Rust (`rspack_plugin_mf/src/sharing/share_usage_plugin.rs`) but not yet exposed through the JavaScript API. This test directory contains the structure and validation logic ready for when the plugin becomes available.
+### Import Pattern Coverage
+- **ESM imports**: `import { map, filter } from "lodash-es"`
+- **CommonJS requires**: `const { map, groupBy } = require("lodash-es")`
+- **Default imports**: `import React from "react"`
+- **Mixed imports**: `import defaultExport, { useState } from "react"`
+- **Re-exports**: `export { default as ReactDefault } from "react"`
 
-## Test Structure
+### Module Type Coverage
+- **External npm packages**: lodash-es, react
+- **Local CJS modules**: Various `module.exports` patterns
+- **Local ESM modules**: Named exports, default exports, constants
 
-- `rspack.config.js` - Configuration with Module Federation and shared modules
-- `index.js` - Main test file with imports to trigger ConsumeShared dependencies  
-- `utils.js` - Utility module with additional shared imports
-- `components.js` - Component module using React
-- `validate-share-usage.js` - Validation logic for the generated `share-usage.json`
-- `test.config.js` - Test configuration with post-build validation
+### Export Pattern Coverage
+- **CJS patterns**:
+  - Object literal: `module.exports = { func1, func2 }`
+  - Direct property: `module.exports.property = value`
+- **ESM patterns**:
+  - Named exports: `export function util() {}`
+  - Default export: `export default function() {}`
+  - Const exports: `export const CONSTANT = "value"`
 
-## Expected Behavior
+## Test Files
 
-When ShareUsagePlugin is enabled, it should:
+- `rspack.config.js` - Module Federation config with npm and local shared modules
+- `index.js` - Main test with comprehensive import patterns
+- `utils.js` - Uses lodash-es functions (isEmpty, isArray, isObject)
+- `components.js` - Uses React.createElement
+- `cjs-test-module.js` - Tests CommonJS require patterns
+- `esm-test-module.js` - Tests ESM import/export patterns
+- `local-cjs-module.js` - Local CJS module with various export patterns
+- `local-esm-module.js` - Local ESM module with various export patterns
+- `validate-share-usage.js` - Strict assertion-based validation
+- `test.config.js` - Test configuration with afterBuild validation
 
-1. Generate a `share-usage.json` file in the output directory
-2. Analyze ConsumeShared module usage and track:
-   - `used_exports`: Actually used exports from shared modules
-   - `unused_exports`: Imported but unused exports  
-   - `possibly_unused_exports`: Exports with unclear usage patterns
-   - `entry_module_id`: Module ID for the fallback module
+## Validation Assertions
 
-## JSON Structure
+The test uses strict assertions (no console logs) to verify:
 
-After the metadata removal changes, the expected JSON structure is:
+1. **File Generation**: share-usage.json is created by ShareUsagePlugin
+2. **Module Coverage**: All 4 shared modules are tracked (lodash-es, react, local modules)
+3. **Export Accuracy**: 
+   - Used exports are correctly identified
+   - Unused but imported exports are tracked
+   - No false positives/negatives
+4. **Module ID Assignment**: Each module has a valid entry_module_id
+5. **Macro Compatibility**: Export names are valid JavaScript identifiers
+
+## Expected JSON Structure
 
 ```json
 {
   "lodash-es": {
-    "used_exports": ["map", "filter", "isEmpty", "isArray", "isObject"],
-    "unused_exports": ["uniq", "debounce"],
+    "used_exports": ["map", "filter", "isEmpty", "isArray", "isObject", "clone", "merge"],
+    "unused_exports": ["uniq", "debounce", "groupBy", "partition", "cloneDeep", "mergeWith"],
     "possibly_unused_exports": [],
     "entry_module_id": "42"
   },
   "react": {
-    "used_exports": ["createElement"],
-    "unused_exports": [],
+    "used_exports": ["createElement", "default"],
+    "unused_exports": ["useState", "useEffect"],
     "possibly_unused_exports": [],
     "entry_module_id": "24"
+  },
+  "local-cjs-module": {
+    "used_exports": ["usedLocalFunction", "constantValue"],
+    "unused_exports": ["unusedLocalFunction", "unusedConstant"],
+    "possibly_unused_exports": [],
+    "entry_module_id": "101"
+  },
+  "local-esm-module": {
+    "used_exports": ["usedLocalUtil", "USED_LOCAL_CONSTANT", "default"],
+    "unused_exports": ["unusedLocalUtil", "UNUSED_LOCAL_CONSTANT"],
+    "possibly_unused_exports": [],
+    "entry_module_id": "102"
   }
 }
 ```
 
-**Important**: `entry_module_id` should always contain a string module ID (like "42", "24") when a fallback module is found. It will only be `null` when no fallback module is found, which would be an error condition in normal Module Federation usage.
+## ShareUsagePlugin Integration
 
-## Running the Test
+ShareUsagePlugin is automatically applied by ShareRuntimePlugin, which is enabled when using Module Federation. The plugin:
 
-To enable this test once ShareUsagePlugin is available:
+1. Analyzes ConsumeShared module usage during compilation
+2. Tracks imports from both CommonJS and ESM modules
+3. Identifies which exports are actually used vs just imported
+4. Generates share-usage.json in the output directory
 
-1. Add ShareUsagePlugin to the JavaScript API bindings
-2. Update `rspack.config.js` to include the ShareUsagePlugin
-3. Run: `pnpm test --testNamePattern="share-usage-plugin"`
+## Usage for Tree-Shaking Macros
 
-## Unit Tests
-
-Unit tests for the ShareUsagePlugin data structures and serialization are available in the Rust code:
-
-```bash
-cargo test -p rspack_plugin_mf share_usage_plugin::tests
+The generated JSON enables conditional macros like:
+```javascript
+/* @common:if [condition="treeShake.lodash-es.map"] */
+// Code that uses lodash map
+/* @common:endif */
 ```
