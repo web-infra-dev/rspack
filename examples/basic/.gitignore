@@ -1,3 +1,9 @@
 node_modules/
 !node_modules/@cjs-test/
 !node_modules/cjs-modules/
+
+# Build artifacts
+dist*/
+build/
+*.bundle.js
+*.bundle.js.map

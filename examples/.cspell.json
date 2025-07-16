@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "ignorePaths": [
+    "**/dist*/**",
+    "**/node_modules/**",
+    "**/*.min.js",
+    "**/*.bundle.js",
+    "**/build/**",
+    "**/target/**",
+    "**/*.map",
+    "**/share-usage.json"
+  ],
+  "words": [
+    "threejs",
+    "gltf",
+    "draco",
+    "rgbe",
+    "jsm",
+    "metalness",
+    "clearcoat",
+    "roughness",
+    "rspack",
+    "colinear",
+    "wraper"
+  ],
+  "caseSensitive": false,
+  "allowCompoundWords": true
+}
