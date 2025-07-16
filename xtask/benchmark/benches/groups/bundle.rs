@@ -20,6 +20,7 @@ fn bundle_benchmark(c: &mut Criterion) {
     ("threejs", Arc::new(threejs::compiler)),
   ];
 
+  // Make benchmark more stable with as few threads as possible
   rayon::ThreadPoolBuilder::new()
     .use_current_thread()
     .num_threads(1)
