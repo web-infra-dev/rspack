@@ -482,12 +482,15 @@ impl CodeSplitter {
         .copied(),
     );
 
-    for m in removed_modules {
-      for module_map in self.block_modules_runtime_map.values_mut() {
-        module_map.swap_remove(&DependenciesBlockIdentifier::Module(m));
-      }
+    if !removed_modules.is_empty() {
+      // TODO:
+      // if we have removed module, we should invalidate its
+      // incomings, but we cannot get its incomings at present,
+      self.block_modules_runtime_map.clear();
 
-      self.invalidate_from_module(m, compilation)?;
+      for m in removed_modules {
+        self.invalidate_from_module(m, compilation)?;
+      }
     }
 
     for m in affected_modules {
