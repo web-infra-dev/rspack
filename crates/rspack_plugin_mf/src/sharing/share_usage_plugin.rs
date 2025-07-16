@@ -298,10 +298,10 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
 
   if compilation.assets().contains_key(filename) {
     let mut counter = 1;
-    let mut unique_filename = format!("{}.{}", filename, counter);
+    let mut unique_filename = format!("{filename}.{counter}");
     while compilation.assets().contains_key(&unique_filename) {
       counter += 1;
-      unique_filename = format!("{}.{}", filename, counter);
+      unique_filename = format!("{filename}.{counter}");
     }
     compilation.assets_mut().insert(
       unique_filename,
