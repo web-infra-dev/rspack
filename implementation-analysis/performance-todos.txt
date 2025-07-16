@@ -1,3 +1,0 @@
-crates/rspack/src/builder/builder_context.rs:89:  // TODO: support performance
-crates/rspack/src/builder/builder_context.rs:314:      // TODO: support performance
-crates/rspack_plugin_javascript/src/dependency/esm/esm_import_dependency.rs:25:// TODO: find a better way to implement this for performance
