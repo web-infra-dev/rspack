@@ -58,7 +58,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **类型：** `RegExp | string | string[]`
+- **类型：** `RegExp | string | (string | RegExp)[]`
 - **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 监听时排除匹配到的路径。监听大量文件可能会导致 CPU 或内存使用率过高。
@@ -107,6 +107,17 @@ export default {
   //...
   watchOptions: {
     ignored: [path.posix.resolve(__dirname, './ignored-dir')],
+  },
+};
+```
+
+你还可以在数组中混合使用字符串和正则表达式：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    ignored: [/\.git/, '**/node_modules', '**/.cache'],
   },
 };
 ```
