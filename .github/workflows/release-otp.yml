@@ -77,6 +77,15 @@ jobs:
       test: ${{ inputs.test }}
       profile: "release"
 
+  release_crates:
+    name: Release Crates
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: ./.github/workflows/release-crates.yml
+    with:
+      dry_run: ${{ inputs.dry_run }}
+      push_tags: ${{ inputs.push_tags }}
+    secrets: inherit
+
   release:
     name: Release
     environment: npm
