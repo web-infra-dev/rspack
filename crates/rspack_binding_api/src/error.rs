@@ -3,7 +3,7 @@ use std::{fmt::Display, ptr};
 use napi::{
   bindgen_prelude::{External, FromNapiValue, JsObjectValue, Object, ToNapiValue},
   sys::{self, napi_env, napi_value},
-  Env, JsValue, Property, PropertyAttributes, Status, Unknown,
+  Env, JsValue, Property, PropertyAttributes, Status, Unknown, ValueType,
 };
 use napi_derive::napi;
 use rspack_core::Compilation;
@@ -169,7 +169,26 @@ impl ToNapiValue for RspackError {
 
 impl FromNapiValue for RspackError {
   unsafe fn from_napi_value(env: napi_env, napi_val: napi_value) -> napi::Result<RspackError> {
-    let obj = Object::from_napi_value(env, napi_val)?;
+    let unknown = Unknown::from_napi_value(env, napi_val)?;
+    if unknown.get_type()? != ValueType::Object {
+      let message = unknown.coerce_to_string()?.into_utf8()?.into_owned()?;
+      return Ok(Self {
+        severity: None,
+        name: "Error".to_string(),
+        message,
+        details: None,
+        stack: None,
+        module: None,
+        loc: None,
+        hide_stack: None,
+        file: None,
+        error: None,
+        parent_error_name: None,
+        rust_diagnostic: None,
+      });
+    }
+
+    let obj = Object::from_unknown(unknown)?;
     let name: String = obj
       .get("name")
       .map_err(|mut err| {

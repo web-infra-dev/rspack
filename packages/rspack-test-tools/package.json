@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -46,7 +46,7 @@
     "@babel/generator": "7.28.0",
     "@babel/parser": "7.28.0",
     "@babel/traverse": "7.28.0",
-    "@babel/types": "7.28.0",
+    "@babel/types": "7.28.1",
     "cross-env": "^7.0.3",
     "csv-to-markdown-table": "^1.5.0",
     "deepmerge": "^4.3.1",
