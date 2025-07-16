@@ -1,5 +1,5 @@
 #!/bin/bash
-# cspell:ignore rspack
+# cspell:ignore rspack stddev threejs
 
 echo "🔍 Basic Example Timing Benchmark (CI-style)"
 echo "============================================"

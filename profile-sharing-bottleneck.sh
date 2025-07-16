@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore rspack
 
 echo "🔍 Module Federation Sharing Performance Profiling"
 echo "================================================="

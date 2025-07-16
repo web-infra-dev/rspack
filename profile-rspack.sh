@@ -1,4 +1,5 @@
 #!/bin/bash
+# cspell:ignore rspack
 
 # Rspack Performance Profiling Script
 set -e
