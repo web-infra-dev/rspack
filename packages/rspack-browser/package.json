@@ -25,9 +25,6 @@
     "@rspack/binding": "workspace:*",
     "memfs": "4.17.2"
   },
-  "peerDependencies": {
-    "@rspack/binding": "workspace:*"
-  },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
