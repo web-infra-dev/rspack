@@ -84,12 +84,12 @@ export function createAdvancedMaterials() {
         standard: new THREE.MeshStandardMaterial({
             color: 0x2194ce,
             roughness: 0.5,
-            metalness: 0.5
+            metallic: 0.5
         }),
         physical: new THREE.MeshPhysicalMaterial({
             color: 0xff0000,
             roughness: 0.2,
-            metalness: 0.8,
+            metallic: 0.8,
             clearcoat: 1.0,
             clearcoatRoughness: 0.1
         }),
