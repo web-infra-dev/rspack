@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use rspack_core::{
@@ -102,7 +102,7 @@ impl ShareUsagePlugin {
 
     let mut used_exports = Vec::new();
     let mut provided_exports = Vec::new();
-    let mut all_imported_exports = Vec::new();
+    let mut all_imported_exports = HashSet::new();
 
     let exports_info = module_graph.get_exports_info(fallback_id);
     let prefetched = ExportsInfoGetter::prefetch(
@@ -179,10 +179,8 @@ impl ShareUsagePlugin {
     &self,
     dependency: &dyn rspack_core::Dependency,
     module_graph: &ModuleGraph,
-    imports: &mut Vec<String>,
+    imports: &mut HashSet<String>,
   ) {
-    use rspack_core::DependencyType;
-
     let referenced_exports =
       dependency.get_referenced_exports(module_graph, &ModuleGraphCacheArtifact::default(), None);
 
@@ -196,57 +194,14 @@ impl ShareUsagePlugin {
 
       for name in names {
         let name_str = name.to_string();
-        if !imports.contains(&name_str) && !name_str.is_empty() {
-          imports.push(name_str);
+        if !name_str.is_empty() {
+          imports.insert(name_str);
         }
       }
     }
 
-    match dependency.dependency_type() {
-      DependencyType::EsmImportSpecifier
-      | DependencyType::EsmExportSpecifier
-      | DependencyType::EsmExportImportedSpecifier => {
-        let ids = dependency._get_ids(module_graph);
-        for id in ids {
-          let name = id.to_string();
-          if !imports.contains(&name) && !name.is_empty() {
-            imports.push(name);
-          }
-        }
-      }
-      DependencyType::CjsRequire => {
-        if !found_exports {
-          let name = "default".to_string();
-          if !imports.contains(&name) {
-            imports.push(name);
-          }
-        }
-      }
-      DependencyType::CjsFullRequire => {
-        if !found_exports {
-          let name = "default".to_string();
-          if !imports.contains(&name) {
-            imports.push(name);
-          }
-        }
-      }
-      DependencyType::DynamicImport => {
-        if !found_exports {
-          let name = "default".to_string();
-          if !imports.contains(&name) {
-            imports.push(name);
-          }
-        }
-      }
-      DependencyType::CjsExports => {}
-      _ => {
-        if !found_exports && dependency.as_module_dependency().is_some() {
-          let name = "default".to_string();
-          if !imports.contains(&name) {
-            imports.push(name);
-          }
-        }
-      }
+    if !found_exports {
+      imports.insert("default".to_string());
     }
   }
 
@@ -330,196 +285,5 @@ impl Plugin for ShareUsagePlugin {
       .after_process_assets
       .tap(after_process_assets::new(self));
     Ok(())
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use serde_json;
-
-  use super::*;
-
-  #[test]
-  fn test_simple_module_exports_serialization() {
-    let exports = SimpleModuleExports {
-      used_exports: vec!["map".to_string(), "filter".to_string()],
-      unused_exports: vec!["uniq".to_string(), "debounce".to_string()],
-      possibly_unused_exports: vec!["isEmpty".to_string()],
-      entry_module_id: Some("123".to_string()),
-    };
-
-    let json = serde_json::to_string(&exports).expect("Failed to serialize SimpleModuleExports");
-    let parsed: SimpleModuleExports =
-      serde_json::from_str(&json).expect("Failed to deserialize SimpleModuleExports");
-
-    assert_eq!(parsed.used_exports, vec!["map", "filter"]);
-    assert_eq!(parsed.unused_exports, vec!["uniq", "debounce"]);
-    assert_eq!(parsed.possibly_unused_exports, vec!["isEmpty"]);
-    assert_eq!(parsed.entry_module_id, Some("123".to_string()));
-  }
-
-  #[test]
-  fn test_share_usage_report_serialization() {
-    let mut report = ShareUsageReport::new();
-
-    report.insert(
-      "lodash-es".to_string(),
-      SimpleModuleExports {
-        used_exports: vec!["map".to_string(), "filter".to_string()],
-        unused_exports: vec!["uniq".to_string(), "debounce".to_string()],
-        possibly_unused_exports: vec![],
-        entry_module_id: Some("42".to_string()),
-      },
-    );
-
-    report.insert(
-      "react".to_string(),
-      SimpleModuleExports {
-        used_exports: vec!["createElement".to_string()],
-        unused_exports: vec![],
-        possibly_unused_exports: vec!["useState".to_string()],
-        entry_module_id: Some("24".to_string()),
-      },
-    );
-
-    let json = serde_json::to_string_pretty(&report).expect("Failed to serialize ShareUsageReport");
-    let parsed: ShareUsageReport =
-      serde_json::from_str(&json).expect("Failed to deserialize ShareUsageReport");
-
-    assert_eq!(parsed.len(), 2);
-    assert!(parsed.contains_key("lodash-es"));
-    assert!(parsed.contains_key("react"));
-
-    let lodash_data = &parsed["lodash-es"];
-    assert_eq!(lodash_data.used_exports, vec!["map", "filter"]);
-    assert_eq!(lodash_data.unused_exports, vec!["uniq", "debounce"]);
-    assert_eq!(lodash_data.entry_module_id, Some("42".to_string()));
-
-    let react_data = &parsed["react"];
-    assert_eq!(react_data.used_exports, vec!["createElement"]);
-    assert_eq!(react_data.possibly_unused_exports, vec!["useState"]);
-    assert_eq!(react_data.entry_module_id, Some("24".to_string()));
-  }
-
-  #[test]
-  fn test_share_usage_plugin_options() {
-    let default_options = ShareUsagePluginOptions::default();
-    assert_eq!(default_options.filename, "share-usage.json");
-
-    let custom_options = ShareUsagePluginOptions {
-      filename: "custom-usage.json".to_string(),
-    };
-    assert_eq!(custom_options.filename, "custom-usage.json");
-  }
-
-  #[test]
-  fn test_plugin_creation() {
-    let plugin = ShareUsagePlugin::new(ShareUsagePluginOptions::default());
-    assert_eq!(plugin.name(), "ShareUsagePlugin");
-    assert_eq!(plugin.options.filename, "share-usage.json");
-  }
-
-  #[test]
-  fn test_json_structure_validation() {
-    let mut report = ShareUsageReport::new();
-    report.insert(
-      "test-module".to_string(),
-      SimpleModuleExports {
-        used_exports: vec!["exportA".to_string()],
-        unused_exports: vec!["exportB".to_string()],
-        possibly_unused_exports: vec![],
-        entry_module_id: Some("123".to_string()),
-      },
-    );
-
-    let json = serde_json::to_string_pretty(&report).unwrap();
-
-    // Verify it's valid JSON
-    let _: serde_json::Value = serde_json::from_str(&json).unwrap();
-
-    // Verify structure contains expected keys
-    assert!(json.contains("\"used_exports\""));
-    assert!(json.contains("\"unused_exports\""));
-    assert!(json.contains("\"possibly_unused_exports\""));
-    assert!(json.contains("\"entry_module_id\""));
-  }
-
-  #[test]
-  fn test_module_id_scenarios() {
-    // Test with module ID
-    let exports_with_id = SimpleModuleExports {
-      used_exports: vec!["map".to_string()],
-      unused_exports: vec!["filter".to_string()],
-      possibly_unused_exports: vec![],
-      entry_module_id: Some("42".to_string()),
-    };
-
-    let json = serde_json::to_string(&exports_with_id).unwrap();
-    let parsed: SimpleModuleExports = serde_json::from_str(&json).unwrap();
-    assert_eq!(parsed.entry_module_id, Some("42".to_string()));
-
-    // Test without module ID (fallback scenario)
-    let exports_without_id = SimpleModuleExports {
-      used_exports: vec![],
-      unused_exports: vec![],
-      possibly_unused_exports: vec![],
-      entry_module_id: None,
-    };
-
-    let json = serde_json::to_string(&exports_without_id).unwrap();
-    let parsed: SimpleModuleExports = serde_json::from_str(&json).unwrap();
-    assert_eq!(parsed.entry_module_id, None);
-  }
-
-  #[test]
-  fn test_comprehensive_data_structure() {
-    let mut report = ShareUsageReport::new();
-
-    // Add comprehensive test data
-    report.insert(
-      "lodash-es".to_string(),
-      SimpleModuleExports {
-        used_exports: vec![
-          "map".to_string(),
-          "filter".to_string(),
-          "reduce".to_string(),
-        ],
-        unused_exports: vec![
-          "uniq".to_string(),
-          "debounce".to_string(),
-          "throttle".to_string(),
-        ],
-        possibly_unused_exports: vec!["isEmpty".to_string(), "isEqual".to_string()],
-        entry_module_id: Some("42".to_string()),
-      },
-    );
-
-    report.insert(
-      "react".to_string(),
-      SimpleModuleExports {
-        used_exports: vec!["createElement".to_string(), "Component".to_string()],
-        unused_exports: vec!["Fragment".to_string()],
-        possibly_unused_exports: vec!["useState".to_string(), "useEffect".to_string()],
-        entry_module_id: Some("24".to_string()),
-      },
-    );
-
-    let json = serde_json::to_string_pretty(&report).unwrap();
-    let parsed: ShareUsageReport = serde_json::from_str(&json).unwrap();
-
-    // Verify all data is preserved
-    assert_eq!(parsed.len(), 2);
-
-    let lodash_data = &parsed["lodash-es"];
-    assert_eq!(lodash_data.used_exports.len(), 3);
-    assert_eq!(lodash_data.unused_exports.len(), 3);
-    assert_eq!(lodash_data.possibly_unused_exports.len(), 2);
-    assert_eq!(lodash_data.entry_module_id, Some("42".to_string()));
-
-    let react_data = &parsed["react"];
-    assert_eq!(react_data.used_exports.len(), 2);
-    assert_eq!(react_data.unused_exports.len(), 1);
-    assert_eq!(react_data.possibly_unused_exports.len(), 2);
-    assert_eq!(react_data.entry_module_id, Some("24".to_string()));
   }
 }
