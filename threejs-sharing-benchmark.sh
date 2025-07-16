@@ -1,5 +1,5 @@
 #!/bin/bash
-# cspell:ignore threejs gltf draco rgbe jsm
+# cspell:ignore threejs gltf draco rgbe jsm metalness clearcoat roughness
 
 echo "🔍 Three.js Module Federation Sharing Benchmark"
 echo "=============================================="
