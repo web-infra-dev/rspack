@@ -470,16 +470,14 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
       let info = module_graph
-        .get_exports_info(&module_identifier)
-        .as_data_mut(&mut module_graph)
+        .get_mutable_exports_info(&module_identifier)
         .get_export_info(&(export.as_str()).into());
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
     } else {
-      let info = module_graph
-        .get_exports_info(&module_identifier)
-        .as_data_mut(&mut module_graph);
-      info.set_used_in_unknown_way(Some(&runtime));
+      module_graph
+        .get_mutable_exports_info(&module_identifier)
+        .set_used_in_unknown_way(Some(&runtime));
     }
   }
   Ok(())

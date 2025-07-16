@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
   incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
-  ExportsInfo, ModuleGraph, Plugin, PluginContext, RuntimeSpec,
+  Plugin, PluginContext, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -98,13 +98,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .get_chunk_modules(&chunk_ukey, &module_graph)
             .into_par_iter()
             .all(|module| {
-              let exports_info = module_graph.get_exports_info(&module.identifier());
-              is_equally_used(
-                &exports_info,
-                &module_graph,
-                chunk.runtime(),
-                other_chunk.runtime(),
-              )
+              let exports_info = module_graph.get_prefetched_exports_info(
+                &module.identifier(),
+                PrefetchExportsInfoMode::Default,
+              );
+              is_equally_used(&exports_info, chunk.runtime(), other_chunk.runtime())
             });
           if !is_all_equal {
             continue 'outer;
@@ -166,12 +164,10 @@ impl Plugin for MergeDuplicateChunksPlugin {
 }
 
 fn is_equally_used(
-  exports_info: &ExportsInfo,
-  mg: &ModuleGraph,
+  info: &PrefetchedExportsInfoWrapper<'_>,
   a: &RuntimeSpec,
   b: &RuntimeSpec,
 ) -> bool {
-  let info = exports_info.as_data(mg);
   let other_exports_info = info.other_exports_info();
   if other_exports_info.get_used(Some(a)) != other_exports_info.get_used(Some(b)) {
     return false;
@@ -180,8 +176,7 @@ fn is_equally_used(
   if side_effects_only_info.get_used(Some(a)) != side_effects_only_info.get_used(Some(b)) {
     return false;
   }
-  for export_info in info.exports().values() {
-    let export_info_data = export_info;
+  for (_, export_info_data) in info.exports() {
     if export_info_data.get_used(Some(a)) != export_info_data.get_used(Some(b)) {
       return false;
     }

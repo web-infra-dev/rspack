@@ -33,7 +33,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         .build_meta()
         .exports_type;
       // for module_id in modules {
-      let exports_info = self.mg.get_exports_info(module_id).as_data_mut(self.mg);
+      let exports_info = self.mg.get_mutable_exports_info(module_id);
 
       // Reset exports provide info back to initial
       exports_info.reset_provide_info();

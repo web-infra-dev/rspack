@@ -693,21 +693,13 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
-  let exports_info =
-    mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+  let exports_info = mg.get_prefetched_exports_info(&identifier, PrefetchExportsInfoMode::Default);
 
   exports
     .iter()
     .filter(|(name, _)| {
-      let export_info = exports_info
-        .as_ref()
-        .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
-
-      if let Some(export_info) = export_info {
-        export_info.get_used(runtime) != UsageState::Unused
-      } else {
-        true
-      }
+      let export_info = exports_info.get_read_only_export_info(&Atom::from(name.as_str()));
+      export_info.get_used(runtime) != UsageState::Unused
     })
     .map(|(name, exports)| (name.as_str(), exports))
     .collect()
@@ -729,22 +721,14 @@ fn get_unused_local_ident(
     .iter()
     .map(|(name, _)| Atom::from(name.as_str()))
     .collect::<Vec<_>>();
-  let exports_info =
-    mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+  let exports_info = mg.get_prefetched_exports_info(&identifier, PrefetchExportsInfoMode::Default);
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports_names
       .iter()
       .filter(|name| {
-        let export_info = exports_info
-          .as_ref()
-          .map(|info| info.get_read_only_export_info(name));
-
-        if let Some(export_info) = export_info {
-          matches!(export_info.get_used(runtime), UsageState::Unused)
-        } else {
-          false
-        }
+        let export_info = exports_info.get_read_only_export_info(name);
+        matches!(export_info.get_used(runtime), UsageState::Unused)
       })
       .filter_map(|export_name| local_names.get(export_name.as_str()).cloned())
       .collect(),

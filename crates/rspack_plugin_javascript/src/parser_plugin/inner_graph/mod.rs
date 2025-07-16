@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ExportsInfo,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, UsageState,
-  UsedByExports,
+  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, RuntimeSpec, UsageState, UsedByExports,
 };
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
@@ -28,29 +28,27 @@ impl DependencyConditionFn for UsedByExportsDependencyCondition {
     let module_identifier = mg
       .get_parent_module(&self.dependency_id)
       .expect("should have parent module");
+    let exports_info =
+      mg.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
     ConnectionState::Active(is_connection_active(
-      mg.get_exports_info(module_identifier),
+      &exports_info,
       &self.used_by_exports,
-      mg,
       runtime,
     ))
   }
 }
 
 fn is_connection_active(
-  exports_info: ExportsInfo,
+  exports_info: &PrefetchedExportsInfoWrapper<'_>,
   used_by_exports: &FxHashSet<Atom>,
-  mg: &ModuleGraph,
   runtime: Option<&RuntimeSpec>,
 ) -> bool {
   fn is_export_active(
     name: &Atom,
-    exports_info: &ExportsInfo,
-    mg: &ModuleGraph,
+    exports_info: &PrefetchedExportsInfoWrapper<'_>,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    let exports_info = exports_info.as_data(mg);
-    if let Some(export_info) = exports_info.named_exports(name) {
+    if let Some(export_info) = exports_info.named_export(name) {
       return export_info.get_used(runtime) != UsageState::Unused;
     }
     exports_info.other_exports_info().get_used(runtime) != UsageState::Unused
@@ -58,7 +56,7 @@ fn is_connection_active(
 
   used_by_exports
     .iter()
-    .any(|name| is_export_active(name, &exports_info, mg, runtime))
+    .any(|name| is_export_active(name, exports_info, runtime))
 }
 
 // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338

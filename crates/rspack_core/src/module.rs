@@ -456,46 +456,40 @@ fn get_exports_type_impl(
 
         let name = Atom::from("__esModule");
         let exports_info =
-          mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
-        if let Some(export_info) = exports_info
-          .as_ref()
-          .map(|info| info.get_read_only_export_info(&name))
-        {
-          if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-            handle_default(default_object)
-          } else {
-            let Some(target) = get_target(export_info, mg) else {
+          mg.get_prefetched_exports_info(&identifier, PrefetchExportsInfoMode::Default);
+        let export_info = exports_info.get_read_only_export_info(&name);
+        if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
+          handle_default(default_object)
+        } else {
+          let Some(target) = get_target(export_info, mg) else {
+            return ExportsType::Dynamic;
+          };
+          if target
+            .export
+            .and_then(|t| {
+              if t.len() == 1 {
+                t.first().cloned()
+              } else {
+                None
+              }
+            })
+            .is_some_and(|v| v == "__esModule")
+          {
+            let Some(target_exports_type) = mg
+              .module_by_identifier(&target.module)
+              .map(|m| m.build_meta().exports_type)
+            else {
               return ExportsType::Dynamic;
             };
-            if target
-              .export
-              .and_then(|t| {
-                if t.len() == 1 {
-                  t.first().cloned()
-                } else {
-                  None
-                }
-              })
-              .is_some_and(|v| v == "__esModule")
-            {
-              let Some(target_exports_type) = mg
-                .module_by_identifier(&target.module)
-                .map(|m| m.build_meta().exports_type)
-              else {
-                return ExportsType::Dynamic;
-              };
-              match target_exports_type {
-                BuildMetaExportsType::Flagged => ExportsType::Namespace,
-                BuildMetaExportsType::Namespace => ExportsType::Namespace,
-                BuildMetaExportsType::Default => handle_default(default_object),
-                _ => ExportsType::Dynamic,
-              }
-            } else {
-              ExportsType::Dynamic
+            match target_exports_type {
+              BuildMetaExportsType::Flagged => ExportsType::Namespace,
+              BuildMetaExportsType::Namespace => ExportsType::Namespace,
+              BuildMetaExportsType::Default => handle_default(default_object),
+              _ => ExportsType::Dynamic,
             }
+          } else {
+            ExportsType::Dynamic
           }
-        } else {
-          ExportsType::DefaultWithNamed
         }
       }
     }

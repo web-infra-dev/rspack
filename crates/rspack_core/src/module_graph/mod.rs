@@ -1016,14 +1016,24 @@ impl<'a> ModuleGraph<'a> {
       .exports
   }
 
-  pub fn get_prefetched_exports_info_optional<'b>(
-    &'b self,
+  pub fn get_mutable_exports_info(
+    &mut self,
     module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
-    self
+  ) -> &mut ExportsInfoData {
+    let id = self
       .module_graph_module_by_identifier(module_identifier)
-      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
+      .expect("should have mgm")
+      .exports;
+    self
+      .loop_partials_mut(
+        |p| p.exports_info_map.contains_key(&id),
+        |p, search_result| {
+          p.exports_info_map.insert(id, search_result);
+        },
+        |p| p.exports_info_map.get(&id).cloned(),
+        |p| p.exports_info_map.get_mut(&id),
+      )
+      .expect("should have exports info")
   }
 
   pub fn get_prefetched_exports_info<'b>(
@@ -1037,12 +1047,8 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
-      .try_get_exports_info_by_id(id)
+      .loop_partials(|p| p.exports_info_map.get(id))
       .expect("should have exports info")
-  }
-
-  pub fn try_get_exports_info_by_id(&self, id: &ExportsInfo) -> Option<&ExportsInfoData> {
-    self.loop_partials(|p| p.exports_info_map.get(id))
   }
 
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {

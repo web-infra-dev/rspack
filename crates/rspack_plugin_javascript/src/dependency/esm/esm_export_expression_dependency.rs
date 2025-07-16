@@ -5,9 +5,9 @@ use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam,
-  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -179,13 +179,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
       if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
-      } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(
-          &mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
-        ),
-        *runtime,
-        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
-      ) && let UsedName::Normal(used) = used
+      } else if let Some(used) = mg
+        .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default)
+        .get_used_name(*runtime, std::slice::from_ref(&JS_DEFAULT_KEYWORD))
+        && let UsedName::Normal(used) = used
       {
         init_fragments.push(Box::new(ESMExportInitFragment::new(
           module.get_exports_argument(),
@@ -218,13 +215,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
-      } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(
-          &mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
-        ),
-        *runtime,
-        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
-      ) {
+      } else if let Some(used) = mg
+        .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default)
+        .get_used_name(*runtime, std::slice::from_ref(&JS_DEFAULT_KEYWORD))
+      {
         if let UsedName::Normal(used) = used {
           runtime_requirements.insert(RuntimeGlobals::EXPORTS);
           if supports_const {
