@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import type { ResolveData } from "../Module";
 import type { NormalModuleCreateData } from "../NormalModuleFactory";
 import type { CreatePartialRegisters } from "./types";

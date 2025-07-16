@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import type { Source } from "webpack-sources";
 import { JsSource } from "./util/source";
 
