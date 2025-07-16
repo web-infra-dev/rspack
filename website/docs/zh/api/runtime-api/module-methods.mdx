@@ -130,11 +130,29 @@ import(
 
 - **类型：** `boolean`
 
-设置为 true 时，禁用动态导入解析。
+设置为 `true` 时，Rspack 将跳过对该动态导入的静态分析和打包处理。具体表现为：
 
-:::warning
-当 webpackIgnore 为 true 时，不会将代码分离成为独立的 chunk。
-:::
+1. 构建时不会分析该模块的依赖关系
+2. 该模块不会被打包为独立的 chunk 文件
+3. 导入操作将在运行时由浏览器原生 `import()` 执行
+
+这在需要从外部 CDN 动态加载 ESM 格式的第三方库时特别有用，例如：
+
+```js
+import('https://esm.sh/react' /* webpackIgnore: true */).then(React => {
+  console.log(React.version); // 19.0.0
+});
+```
+
+`webpackIgnore` 同样适用于 `new URL()` 语法。默认情况下，Rspack 会解析 `new URL()` 中的模块标识符，并将其引用的模块打包到构建产物中。当你需要 Rspack 跳过某个 `new URL()` 的处理时，可以添加 `webpackIgnore: true` 注释：
+
+```js
+// Rspack 会处理这个 URL，将 './index.css' 打包到构建产物中
+const url1 = new URL('./index.css', import.meta.url);
+
+// Rspack 会忽略这个 URL，保持原始的模块标识符
+const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
+```
 
 ##### webpackMode
 

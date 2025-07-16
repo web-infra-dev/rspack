@@ -131,11 +131,29 @@ import(
 
 - **Type:** `boolean`
 
-Disables dynamic import parsing when set to true.
+When set to `true`, Rspack will skip analysis and bundling processing for the dynamic import. This results in:
 
-:::warning
-Note that setting webpackIgnore to true opts out of code splitting.
-:::
+1. The module's dependencies will not be analyzed during build time
+2. The module will not be bundled into a separate chunk file
+3. The import operation will be executed by the browser's native `import()` at runtime
+
+This is particularly useful for dynamically loading ESM third-party libraries from external CDNs, for example:
+
+```js
+import('https://esm.sh/react' /* webpackIgnore: true */).then(React => {
+  console.log(React.version); // 19.0.0
+});
+```
+
+`webpackIgnore` also applies to the `new URL()` syntax. By default, Rspack will parse module identifiers in `new URL()` and bundle the referenced module into the build output. When you need Rspack to skip processing a particular `new URL()`, you can add the `webpackIgnore: true` comment:
+
+```js
+// Rspack will process this URL and bundle './index.css' into the build output
+const url1 = new URL('./index.css', import.meta.url);
+
+// Rspack will ignore this URL and preserve the original module identifier
+const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
+```
 
 ##### webpackMode
 
