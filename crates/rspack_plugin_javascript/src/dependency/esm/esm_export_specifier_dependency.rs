@@ -7,9 +7,9 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
-  ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
-  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, SharedSourceMap, TSEnumValue, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -179,11 +179,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
           &module.identifier(),
           PrefetchExportsInfoMode::Nested(export_name),
         );
-        let enum_member_used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          *runtime,
-          export_name,
-        );
+        let enum_member_used_name = exports_info.get_used_name(*runtime, export_name);
         matches!(enum_member_used_name, Some(UsedName::Inlined(_)))
       });
       if all_enum_member_inlined {
@@ -193,11 +189,8 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
 
     let exports_info = module_graph
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
-    let Some(used_name) = ExportsInfoGetter::get_used_name(
-      GetUsedNameParam::WithNames(&exports_info),
-      *runtime,
-      std::slice::from_ref(&dep.name),
-    ) else {
+    let Some(used_name) = exports_info.get_used_name(*runtime, std::slice::from_ref(&dep.name))
+    else {
       return;
     };
     let used_name = match used_name {

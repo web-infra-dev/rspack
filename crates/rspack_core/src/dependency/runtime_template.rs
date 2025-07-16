@@ -6,11 +6,11 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
-  FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
-  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, UsedName,
+  DependencyId, Environment, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  UsedName,
 };
 
 pub fn runtime_condition_expression(
@@ -214,14 +214,14 @@ pub fn export_from_import(
     .as_deref()
     .unwrap_or(export_name);
   if !export_name.is_empty() {
-    let used_name = match ExportsInfoGetter::get_used_name(
-      GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
+    let used_name = match compilation
+      .get_module_graph()
+      .get_prefetched_exports_info(
         &module_identifier,
         PrefetchExportsInfoMode::Nested(export_name),
-      )),
-      *runtime,
-      export_name,
-    ) {
+      )
+      .get_used_name(*runtime, export_name)
+    {
       Some(UsedName::Normal(used_name)) => used_name,
       Some(UsedName::Inlined(inlined)) => {
         return format!(

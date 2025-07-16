@@ -46,13 +46,12 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+    let exports_info = ExportsInfoGetter::prefetch(
       &self.exports_info,
       &module_graph,
-      runtime.as_ref(),
-      false,
+      PrefetchExportsInfoMode::Default,
     );
-    Ok(exports_info.is_used())
+    Ok(exports_info.is_used(runtime.as_ref()))
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
@@ -62,13 +61,12 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+    let exports_info = ExportsInfoGetter::prefetch(
       &self.exports_info,
       &module_graph,
-      runtime.as_ref(),
-      false,
+      PrefetchExportsInfoMode::Default,
     );
-    Ok(exports_info.is_module_used())
+    Ok(exports_info.is_module_used(runtime.as_ref()))
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
@@ -81,7 +79,8 @@ impl JsExportsInfo {
     Ok(
       self
         .exports_info
-        .set_used_in_unknown_way(&mut module_graph, runtime.as_ref()),
+        .as_data_mut(&mut module_graph)
+        .set_used_in_unknown_way(runtime.as_ref()),
     )
   }
 

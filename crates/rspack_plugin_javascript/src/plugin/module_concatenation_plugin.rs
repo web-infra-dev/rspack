@@ -15,10 +15,10 @@ use rspack_core::{
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
-  ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
-  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin,
+  PluginContext, PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -991,14 +991,10 @@ impl ModuleConcatenationPlugin {
       .chain(possible_inners.iter())
       .par_bridge()
       .map(|module_id| {
-        let exports_info = module_graph.get_exports_info(module_id);
-        let exports_info_data = ExportsInfoGetter::prefetch(
-          &exports_info,
-          &module_graph,
-          PrefetchExportsInfoMode::Default,
-        );
+        let exports_info =
+          module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
         let provided_names = matches!(
-          exports_info_data.get_provided_exports(),
+          exports_info.get_provided_exports(),
           ProvidedExports::ProvidedNames(_)
         );
         let module = module_graph
@@ -1064,13 +1060,9 @@ impl ModuleConcatenationPlugin {
         .expect("should have module");
       let module_graph = compilation.get_module_graph();
       let module_graph_cache = &compilation.module_graph_cache_artifact;
-      let exports_info = module_graph.get_exports_info(current_root);
-      let exports_info_data = ExportsInfoGetter::prefetch(
-        &exports_info,
-        &module_graph,
-        PrefetchExportsInfoMode::Default,
-      );
-      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info_data.is_module_used(r));
+      let exports_info =
+        module_graph.get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
+      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(runtime.clone()),
         RuntimeCondition::Boolean(false) => None,

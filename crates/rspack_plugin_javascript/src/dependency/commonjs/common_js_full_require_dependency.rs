@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   module_id, property_access, to_normal_comment, AsContextDependency, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::atoms::Atom;
 
@@ -169,29 +169,11 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
       && let used = {
-        if dep.names.is_empty() {
-          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-            &module_graph.get_exports_info(&imported_module.module_identifier),
-            &module_graph,
-            *runtime,
-            false,
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info),
-            *runtime,
-            &dep.names,
-          )
-        } else {
-          let exports_info = module_graph.get_prefetched_exports_info(
-            &imported_module.module_identifier,
-            PrefetchExportsInfoMode::Nested(&dep.names),
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            *runtime,
-            &dep.names,
-          )
-        }
+        let exports_info = module_graph.get_prefetched_exports_info(
+          &imported_module.module_identifier,
+          PrefetchExportsInfoMode::Nested(&dep.names),
+        );
+        exports_info.get_used_name(*runtime, &dep.names)
       }
       && let Some(used) = used
     {

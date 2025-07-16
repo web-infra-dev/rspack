@@ -84,6 +84,10 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     self.get_exports_in_exports_info(&self.entry)
   }
 
+  pub fn named_export(&self, name: &Atom) -> Option<&ExportInfoData> {
+    self.get_named_export_in_exports_info(&self.entry, name)
+  }
+
   fn get_other_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
     let data = self
       .exports
@@ -448,35 +452,44 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
     key
   }
-}
 
-/**
- * The used info of the exports info
- * This should be used when you need to call `get_used_name` or `is_used` or `is_module_used`
- * that should avoid the unnecessary prefetch of the whole named exports
- */
-#[derive(Debug, Clone)]
-pub struct PrefetchedExportsInfoUsed<'a> {
-  // if this exports info is used
-  is_used: bool,
-  // if this exports info is used or this module is used
-  is_module_used: bool,
-  // the data wrapper of the exports info
-  // only when you need to get the used info and the full exports info data
-  data: Option<PrefetchedExportsInfoWrapper<'a>>,
-}
-
-impl<'a> PrefetchedExportsInfoUsed<'a> {
-  pub fn is_used(&self) -> bool {
-    self.is_used
-  }
-
-  pub fn is_module_used(&self) -> bool {
-    self.is_module_used
-  }
-
-  pub fn data(&self) -> Option<&PrefetchedExportsInfoWrapper<'a>> {
-    self.data.as_ref()
+  /// `Option<UsedName>` correspond to webpack `string | string[] | false`
+  pub fn get_used_name(&self, runtime: Option<&RuntimeSpec>, names: &[Atom]) -> Option<UsedName> {
+    if names.is_empty() {
+      if !self.is_used(runtime) {
+        return None;
+      }
+      return Some(UsedName::Normal(vec![]));
+    }
+    if names.len() == 1 {
+      let name = &names[0];
+      let info = self.get_read_only_export_info(name);
+      let used_name = info.get_used_name(Some(name), runtime);
+      return used_name.map(|name| match name {
+        UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
+        UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
+      });
+    }
+    let export_info = self.get_read_only_export_info(&names[0]);
+    let first = export_info.get_used_name(Some(&names[0]), runtime)?;
+    let mut arr = match first {
+      UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+      UsedNameItem::Str(first) => vec![first],
+    };
+    if let Some(exports_info) = &export_info.exports_info()
+      && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
+    {
+      let nested_exports_info = self.redirect(*exports_info, true);
+      let nested = nested_exports_info.get_used_name(runtime, &names[1..])?;
+      let nested = match nested {
+        UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+        UsedName::Normal(names) => names,
+      };
+      arr.extend(nested);
+      return Some(UsedName::Normal(arr));
+    }
+    arr.extend(names.iter().skip(1).cloned());
+    Some(UsedName::Normal(arr))
   }
 }
 
@@ -551,122 +564,4 @@ impl ExportsInfoGetter {
       mode,
     }
   }
-
-  pub fn prefetch_used_info_without_name<'a>(
-    id: &ExportsInfo,
-    mg: &'a ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-    full_data: bool,
-  ) -> PrefetchedExportsInfoUsed<'a> {
-    if full_data {
-      let data = Self::prefetch(id, mg, PrefetchExportsInfoMode::Default);
-      let is_used = data.is_used(runtime);
-      let is_module_used = data.is_module_used(runtime);
-      PrefetchedExportsInfoUsed {
-        is_used,
-        is_module_used,
-        data: Some(data),
-      }
-    } else {
-      fn is_exports_info_used(
-        info: &ExportsInfo,
-        runtime: Option<&RuntimeSpec>,
-        mg: &ModuleGraph,
-      ) -> bool {
-        let exports_info = info.as_data(mg);
-        if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
-          return true;
-        }
-
-        for export_info in exports_info.exports().values() {
-          if export_info.get_used(runtime) != UsageState::Unused {
-            return true;
-          }
-        }
-        false
-      }
-
-      let is_used = is_exports_info_used(id, runtime, mg);
-      let is_module_used = if is_used {
-        true
-      } else {
-        !matches!(
-          id.as_data(mg).side_effects_only_info().get_used(runtime),
-          UsageState::Unused
-        )
-      };
-
-      PrefetchedExportsInfoUsed {
-        is_used,
-        is_module_used,
-        data: None,
-      }
-    }
-  }
-
-  /// `Option<UsedName>` correspond to webpack `string | string[] | false`
-  pub fn get_used_name(
-    info: GetUsedNameParam<'_>,
-    runtime: Option<&RuntimeSpec>,
-    names: &[Atom],
-  ) -> Option<UsedName> {
-    match info {
-      GetUsedNameParam::WithoutNames(info) => {
-        if !names.is_empty() {
-          unreachable!();
-        }
-        if !info.is_used {
-          return None;
-        }
-        Some(UsedName::Normal(vec![]))
-      }
-      GetUsedNameParam::WithNames(info) => {
-        if names.is_empty() {
-          if !info.is_used(runtime) {
-            return None;
-          }
-          return Some(UsedName::Normal(vec![]));
-        }
-        if names.len() == 1 {
-          let name = &names[0];
-          let info = info.get_read_only_export_info(name);
-          let used_name = info.get_used_name(Some(name), runtime);
-          return used_name.map(|name| match name {
-            UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
-            UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
-          });
-        }
-        let export_info = info.get_read_only_export_info(&names[0]);
-        let first = export_info.get_used_name(Some(&names[0]), runtime)?;
-        let mut arr = match first {
-          UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
-          UsedNameItem::Str(first) => vec![first],
-        };
-        if let Some(exports_info) = &export_info.exports_info()
-          && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
-        {
-          let nested_exports_info: PrefetchedExportsInfoWrapper<'_> =
-            info.redirect(*exports_info, true);
-          let nested = Self::get_used_name(
-            GetUsedNameParam::WithNames(&nested_exports_info),
-            runtime,
-            &names[1..],
-          )?;
-          let nested = match nested {
-            UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
-            UsedName::Normal(names) => names,
-          };
-          arr.extend(nested);
-          return Some(UsedName::Normal(arr));
-        }
-        arr.extend(names.iter().skip(1).cloned());
-        Some(UsedName::Normal(arr))
-      }
-    }
-  }
-}
-
-pub enum GetUsedNameParam<'a> {
-  WithoutNames(&'a PrefetchedExportsInfoUsed<'a>),
-  WithNames(&'a PrefetchedExportsInfoWrapper<'a>),
 }

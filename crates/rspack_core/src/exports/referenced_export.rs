@@ -99,11 +99,10 @@ pub fn collect_referenced_export_items<'a>(
     }
     already_visited.insert(export_info_id);
 
-    let exports_info = module_graph.get_exports_info_by_id(
-      &export_info
-        .exports_info()
-        .expect("should have exports info"),
-    );
+    let exports_info = export_info
+      .exports_info()
+      .expect("should have exports info")
+      .as_data(module_graph);
 
     if !export_info.exports_info_owned() {
       for export_info in exports_info.exports().values() {
