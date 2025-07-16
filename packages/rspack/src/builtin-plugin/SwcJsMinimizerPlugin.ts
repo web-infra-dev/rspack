@@ -24,6 +24,7 @@ export type SwcJsMinimizerRspackPluginOptions = {
 	extractComments?: ExtractCommentsOptions | undefined;
 	minimizerOptions?: {
 		minify?: boolean;
+		ecma?: TerserEcmaVersion;
 		compress?: TerserCompressOptions | boolean;
 		mangle?: TerserMangleOptions | boolean;
 		format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
@@ -273,6 +274,7 @@ export const SwcJsMinimizerRspackPlugin = create(
 	): RawSwcJsMinimizerRspackPluginOptions => {
 		let compress = options?.minimizerOptions?.compress ?? true;
 		const mangle = options?.minimizerOptions?.mangle ?? true;
+		const ecma = options?.minimizerOptions?.ecma ?? 2015;
 		const format = {
 			comments: false, // terser and swc use different default value: 'some'
 			...options?.minimizerOptions?.format
@@ -299,6 +301,7 @@ export const SwcJsMinimizerRspackPlugin = create(
 			minimizerOptions: {
 				compress,
 				mangle,
+				ecma,
 				format,
 				minify: options?.minimizerOptions?.minify,
 				module: options?.minimizerOptions?.module
