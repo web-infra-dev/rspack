@@ -175,7 +175,7 @@ export class MaterialLibrary {
             new this.THREE.MeshBasicMaterial({ color: 0xff0000 }),
             new this.THREE.MeshStandardMaterial({ color: 0x00ff00, roughness: 0.5 }),
             new this.THREE.MeshPhongMaterial({ color: 0x0000ff }),
-            new this.THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1, roughness: 0 }),
+            new this.THREE.MeshPhysicalMaterial({ color: 0xffffff, metallic: 1, roughness: 0 }),
             new this.THREE.MeshToonMaterial({ color: 0xff00ff })
         ];
     }

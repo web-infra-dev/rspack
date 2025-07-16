@@ -977,9 +977,7 @@ mod test_is_consume_shared_descendant {
   #[test]
   fn test_is_consume_shared_descendant_function_signature() {
     // Test that the function exists and has the correct signature
-    let _func: fn(&ModuleGraph, &ModuleIdentifier) -> bool = is_consume_shared_descendant;
-
-    // The function compiles with the correct signature
-    assert!(true);
+    // Verify function signature compiles correctly
+    let _: fn(&ModuleGraph, &ModuleIdentifier) -> bool = is_consume_shared_descendant;
   }
 }
