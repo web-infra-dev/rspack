@@ -3,7 +3,7 @@ use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
+use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
@@ -143,17 +143,15 @@ pub(crate) fn merge_loader_context(
       Some(content)
     }
   };
-  let source_map = from
-    .source_map
-    .as_ref()
-    .map(|s| {
-      rspack_core::rspack_sources::SourceMap::from_json(
-        // SAFETY: `sourceMap` is serialized by JavaScript from a JSON object. This is an invariant should be followed on the JavaScript side.
-        unsafe { str::from_utf8_unchecked(s) },
-      )
-    })
-    .transpose()
-    .to_rspack_result()?;
+  let source_map = match from.source_map {
+    Some(map) => Some(match map {
+      Either::A(str) => {
+        rspack_core::rspack_sources::SourceMap::from_json(&str).into_diagnostic()?
+      }
+      Either::B(map) => map.into(),
+    }),
+    None => None,
+  };
   let additional_data = from.additional_data.take().map(|data| {
     let mut additional = AdditionalData::default();
     additional.insert(data);
