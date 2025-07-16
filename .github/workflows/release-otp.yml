@@ -79,6 +79,7 @@ jobs:
 
   release_crates:
     name: Release Crates
+    needs: build
     if: ${{ github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: write
