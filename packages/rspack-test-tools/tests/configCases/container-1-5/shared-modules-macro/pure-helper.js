@@ -21,6 +21,14 @@ export function hashString(str) {
 	return hash.toString();
 }
 
+// Function expected by the test
+export function pureFunction(value) {
+	return value * 2;
+}
+
+// Constant expected by the test
+export const PURE_CONSTANT = "pure constant value";
+
 // Unused pure functions
 export function unusedPureFunction() {
 	return "unused pure function";
