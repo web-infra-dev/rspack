@@ -8,64 +8,23 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, ModuleType,
-  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, UsedName,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
+  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, UsedName,
 };
 
-/// Check if a module is part of a shared bundle by checking the module graph
-/// Phase 2: Optimized with BuildMeta for all modules, fallback to BFS when needed
+/// Check if a module is part of a shared bundle using BuildMeta only
+/// This relies on the Module Federation plugin to populate BuildMeta.is_shared_descendant
 fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
   if let Some(module) = module_graph.module_by_identifier(module_id) {
     let build_meta = module.build_meta();
 
-    // Phase 2: Use BuildMeta optimization for all modules (ESM and CommonJS)
-    // If we have the cached result, use it (O(1) lookup)
-    if let Some(is_shared_descendant) = build_meta.is_shared_descendant {
-      return is_shared_descendant;
-    }
-    // If BuildMeta not set, fall through to BFS (safety fallback)
-
-    // Quick check: if the module itself has shared metadata or is a shared module type
-    if build_meta.shared_key.is_some()
-      || build_meta.consume_shared_key.is_some()
-      || module.module_type() == &ModuleType::ConsumeShared
-      || module.module_type() == &ModuleType::ProvideShared
-    {
-      return true;
-    }
+    // Use BuildMeta value (populated by Module Federation plugin)
+    // If not populated, assume false (no PURE annotations)
+    build_meta.is_shared_descendant.unwrap_or(false)
+  } else {
+    false
   }
-
-  // Fallback: BFS for non-ESM modules or when BuildMeta not available
-  // This uses a breadth-first search to find shared modules in the dependency chain
-  let mut visited = HashSet::default();
-  let mut queue = vec![*module_id];
-
-  while let Some(current_id) = queue.pop() {
-    if !visited.insert(current_id) {
-      continue;
-    }
-
-    for connection in module_graph.get_incoming_connections(&current_id) {
-      if let Some(issuer_id) = connection.original_module_identifier {
-        if let Some(issuer_module) = module_graph.module_by_identifier(&issuer_id) {
-          // If we find a shared module in the chain, this module should get PURE annotations
-          if issuer_module.build_meta().shared_key.is_some()
-            || issuer_module.build_meta().consume_shared_key.is_some()
-            || issuer_module.module_type() == &ModuleType::ConsumeShared
-            || issuer_module.module_type() == &ModuleType::ProvideShared
-          {
-            return true;
-          }
-
-          // Continue searching up the chain
-          queue.push(issuer_id);
-        }
-      }
-    }
-  }
-
-  false
 }
 
 pub fn runtime_condition_expression(
