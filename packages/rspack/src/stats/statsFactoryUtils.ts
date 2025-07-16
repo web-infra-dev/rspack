@@ -1,4 +1,4 @@
-import type * as binding from "@rspack/binding";
+import type binding from "@rspack/binding";
 
 import type { JsOriginRecord } from "@rspack/binding";
 import type { Compilation } from "../Compilation";

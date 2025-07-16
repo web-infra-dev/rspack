@@ -1,4 +1,4 @@
-import type * as binding from "@rspack/binding";
+import type binding from "@rspack/binding";
 import type * as liteTapable from "@rspack/lite-tapable";
 import type { Compiler } from "../Compiler";
 

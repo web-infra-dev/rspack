@@ -18,7 +18,7 @@ import type {
 	JsPathData,
 	JsRuntimeModule
 } from "@rspack/binding";
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 
 export type { AssetInfo } from "@rspack/binding";
 

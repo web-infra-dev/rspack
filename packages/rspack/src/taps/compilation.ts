@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import type { Module } from "../Module";
 import {
