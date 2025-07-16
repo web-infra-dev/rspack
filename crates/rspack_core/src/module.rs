@@ -826,9 +826,11 @@ mod test {
     use super::BuildMeta;
 
     // Test BuildMeta with new shared detection fields compiles and works
-    let mut build_meta = BuildMeta::default();
-    build_meta.is_shared_descendant = Some(true);
-    build_meta.effective_shared_key = Some("lodash-es".to_string());
+    let build_meta = BuildMeta {
+      is_shared_descendant: Some(true),
+      effective_shared_key: Some("lodash-es".to_string()),
+      ..Default::default()
+    };
 
     assert_eq!(build_meta.is_shared_descendant, Some(true));
     assert_eq!(
