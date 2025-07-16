@@ -8,6 +8,7 @@ module.exports = {
 				compiler => {
 					compiler.hooks.afterCompile.tap("test push", compilation => {
 						compilation.errors.push(new Error("test push"));
+						compilation.errors.push("test push 2");
 					});
 				}
 			]
@@ -22,6 +23,12 @@ module.exports = {
 		      "message": "  × test push\\n",
 		      "moduleTrace": Array [],
 		      "stack": "Error: test push\\n    at <TEST_TOOLS_ROOT>/tests/errorCases/error-test-push.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+		    },
+		    Object {
+		      "code": "Error",
+		      "message": "  × test push 2\\n",
+		      "moduleTrace": Array [],
+		      "stack": undefined,
 		    },
 		    Object {
 		      "loc": "1:0-33",
