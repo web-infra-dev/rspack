@@ -24,16 +24,7 @@ pub struct SimpleModuleExports {
   pub entry_module_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShareUsageReport {
-  pub consume_shared_modules: HashMap<String, SimpleModuleExports>,
-  pub metadata: ShareUsageMetadata,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShareUsageMetadata {
-  pub total_modules: usize,
-}
+pub type ShareUsageReport = HashMap<String, SimpleModuleExports>;
 
 #[derive(Debug)]
 pub struct ShareUsagePluginOptions {
@@ -1011,12 +1002,7 @@ impl ShareUsagePlugin {
 async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let usage_data = self.analyze_consume_shared_usage(compilation);
 
-  let report = ShareUsageReport {
-    metadata: ShareUsageMetadata {
-      total_modules: usage_data.len(),
-    },
-    consume_shared_modules: usage_data,
-  };
+  let report: ShareUsageReport = usage_data;
 
   let content = serde_json::to_string_pretty(&report)
     .map_err(|e| Error::msg(format!("Failed to serialize share usage report: {e}")))?;
@@ -1043,5 +1029,183 @@ impl Plugin for ShareUsagePlugin {
       .after_process_assets
       .tap(after_process_assets::new(self));
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use serde_json;
+
+  use super::*;
+
+  #[test]
+  fn test_simple_module_exports_serialization() {
+    let exports = SimpleModuleExports {
+      used_exports: vec!["map".to_string(), "filter".to_string()],
+      unused_exports: vec!["uniq".to_string(), "debounce".to_string()],
+      possibly_unused_exports: vec!["isEmpty".to_string()],
+      entry_module_id: Some("123".to_string()),
+    };
+
+    let json = serde_json::to_string(&exports).expect("Failed to serialize SimpleModuleExports");
+    let parsed: SimpleModuleExports =
+      serde_json::from_str(&json).expect("Failed to deserialize SimpleModuleExports");
+
+    assert_eq!(parsed.used_exports, vec!["map", "filter"]);
+    assert_eq!(parsed.unused_exports, vec!["uniq", "debounce"]);
+    assert_eq!(parsed.possibly_unused_exports, vec!["isEmpty"]);
+    assert_eq!(parsed.entry_module_id, Some("123".to_string()));
+  }
+
+  #[test]
+  fn test_share_usage_report_serialization() {
+    let mut report = ShareUsageReport::new();
+
+    report.insert(
+      "lodash-es".to_string(),
+      SimpleModuleExports {
+        used_exports: vec!["map".to_string(), "filter".to_string()],
+        unused_exports: vec!["uniq".to_string(), "debounce".to_string()],
+        possibly_unused_exports: vec![],
+        entry_module_id: Some("42".to_string()), // Realistic module ID
+      },
+    );
+
+    report.insert(
+      "react".to_string(),
+      SimpleModuleExports {
+        used_exports: vec!["createElement".to_string()],
+        unused_exports: vec![],
+        possibly_unused_exports: vec!["useState".to_string()],
+        entry_module_id: Some("24".to_string()), // Realistic module ID
+      },
+    );
+
+    let json = serde_json::to_string_pretty(&report).expect("Failed to serialize ShareUsageReport");
+    let parsed: ShareUsageReport =
+      serde_json::from_str(&json).expect("Failed to deserialize ShareUsageReport");
+
+    assert_eq!(parsed.len(), 2);
+    assert!(parsed.contains_key("lodash-es"));
+    assert!(parsed.contains_key("react"));
+
+    let lodash_data = &parsed["lodash-es"];
+    assert_eq!(lodash_data.used_exports, vec!["map", "filter"]);
+    assert_eq!(lodash_data.unused_exports, vec!["uniq", "debounce"]);
+    assert_eq!(lodash_data.entry_module_id, Some("42".to_string()));
+
+    let react_data = &parsed["react"];
+    assert_eq!(react_data.used_exports, vec!["createElement"]);
+    assert_eq!(react_data.possibly_unused_exports, vec!["useState"]);
+    assert_eq!(react_data.entry_module_id, Some("24".to_string()));
+  }
+
+  #[test]
+  fn test_share_usage_plugin_options() {
+    let default_options = ShareUsagePluginOptions::default();
+    assert_eq!(default_options.filename, "share-usage.json");
+
+    let custom_options = ShareUsagePluginOptions {
+      filename: "custom-usage.json".to_string(),
+    };
+    assert_eq!(custom_options.filename, "custom-usage.json");
+  }
+
+  #[test]
+  fn test_share_usage_plugin_creation() {
+    let options = ShareUsagePluginOptions {
+      filename: "test-usage.json".to_string(),
+    };
+    let plugin = ShareUsagePlugin::new(options);
+    assert_eq!(plugin.name(), "ShareUsagePlugin");
+  }
+
+  #[test]
+  fn test_json_structure_after_metadata_removal() {
+    // Test that the JSON structure is correct after removing the metadata wrapper
+    let mut usage_data = HashMap::new();
+
+    usage_data.insert(
+      "lodash-es".to_string(),
+      SimpleModuleExports {
+        used_exports: vec!["map".to_string()],
+        unused_exports: vec!["uniq".to_string()],
+        possibly_unused_exports: vec![],
+        entry_module_id: Some("123".to_string()), // Should have module ID when fallback found
+      },
+    );
+
+    let report: ShareUsageReport = usage_data;
+    let json = serde_json::to_string_pretty(&report).expect("Failed to serialize");
+
+    // The JSON should be a flat object without metadata wrapper
+    assert!(json.contains("\"lodash-es\""));
+    assert!(json.contains("\"used_exports\""));
+    assert!(json.contains("\"unused_exports\""));
+    assert!(json.contains("\"possibly_unused_exports\""));
+    assert!(json.contains("\"entry_module_id\""));
+
+    // Should NOT contain metadata fields
+    assert!(!json.contains("\"metadata\""));
+    assert!(!json.contains("\"total_modules\""));
+    assert!(!json.contains("\"consume_shared_modules\""));
+
+    // Verify it can be parsed back correctly
+    let parsed: ShareUsageReport = serde_json::from_str(&json).expect("Failed to parse back");
+    assert_eq!(parsed.len(), 1);
+    assert!(parsed.contains_key("lodash-es"));
+  }
+
+  #[test]
+  fn test_empty_exports_handling() {
+    let exports = SimpleModuleExports {
+      used_exports: vec![],
+      unused_exports: vec![],
+      possibly_unused_exports: vec![],
+      entry_module_id: None, // This is OK when no fallback module is found
+    };
+
+    let json = serde_json::to_string(&exports).expect("Failed to serialize empty exports");
+    let parsed: SimpleModuleExports =
+      serde_json::from_str(&json).expect("Failed to deserialize empty exports");
+
+    assert!(parsed.used_exports.is_empty());
+    assert!(parsed.unused_exports.is_empty());
+    assert!(parsed.possibly_unused_exports.is_empty());
+    assert_eq!(parsed.entry_module_id, None);
+  }
+
+  #[test]
+  fn test_module_id_scenarios() {
+    // Test scenario 1: Normal case with fallback found (should have module ID)
+    let with_fallback = SimpleModuleExports {
+      used_exports: vec!["map".to_string()],
+      unused_exports: vec!["uniq".to_string()],
+      possibly_unused_exports: vec![],
+      entry_module_id: Some("42".to_string()), // Module ID assigned by rspack
+    };
+
+    // Test scenario 2: No fallback found (entry_module_id should be None)
+    let without_fallback = SimpleModuleExports {
+      used_exports: vec![],
+      unused_exports: vec![],
+      possibly_unused_exports: vec![],
+      entry_module_id: None, // No fallback module found
+    };
+
+    let json1 = serde_json::to_string(&with_fallback).expect("Failed to serialize with fallback");
+    let json2 =
+      serde_json::to_string(&without_fallback).expect("Failed to serialize without fallback");
+
+    assert!(json1.contains("\"entry_module_id\":\"42\""));
+    assert!(json2.contains("\"entry_module_id\":null"));
+
+    let parsed1: SimpleModuleExports =
+      serde_json::from_str(&json1).expect("Failed to deserialize with fallback");
+    let parsed2: SimpleModuleExports =
+      serde_json::from_str(&json2).expect("Failed to deserialize without fallback");
+
+    assert_eq!(parsed1.entry_module_id, Some("42".to_string()));
+    assert_eq!(parsed2.entry_module_id, None);
   }
 }

@@ -1,0 +1,14 @@
+{
+  "lodash-es": {
+    "used_exports": ["map", "filter", "isEmpty", "isArray", "isObject"],
+    "unused_exports": ["uniq", "debounce"],
+    "possibly_unused_exports": [],
+    "entry_module_id": "42"
+  },
+  "react": {
+    "used_exports": ["createElement"],
+    "unused_exports": [],
+    "possibly_unused_exports": [],
+    "entry_module_id": "24"
+  }
+}
