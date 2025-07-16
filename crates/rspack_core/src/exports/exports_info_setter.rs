@@ -2,7 +2,8 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  DependencyId, ExportInfoData, ExportProvided, ExportsInfoData, Nullable, RuntimeSpec, UsageState,
+  DependencyId, ExportInfoData, ExportProvided, ExportsInfo, ExportsInfoData, Nullable,
+  RuntimeSpec, UsageState,
 };
 
 impl ExportsInfoData {
@@ -139,7 +140,7 @@ impl ExportsInfoData {
     changed
   }
 
-  pub fn set_has_use_info(&mut self) {
+  pub fn set_has_use_info(&mut self) -> Vec<ExportsInfo> {
     let mut nested_exports_info = vec![];
     for export_info in self.exports_mut().values_mut() {
       export_info.set_has_use_info(&mut nested_exports_info);
@@ -152,10 +153,7 @@ impl ExportsInfoData {
     if other_exports_info.can_mangle_use().is_none() {
       other_exports_info.set_can_mangle_use(Some(true));
     }
-
-    // for nested_exports_info in nested_exports_info {
-    //   nested_exports_info.set_has_use_info(mg);
-    // }
+    nested_exports_info
   }
 
   pub fn set_all_known_exports_used(&mut self, runtime: Option<&RuntimeSpec>) -> bool {

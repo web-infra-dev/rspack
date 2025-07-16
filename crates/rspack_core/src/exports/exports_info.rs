@@ -3,11 +3,10 @@ use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
 use rspack_cacheable::cacheable;
 use rspack_collections::{impl_item_ukey, Ukey};
 use rspack_util::atom::Atom;
-use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use super::{ExportInfo, ExportInfoData, ExportProvided, UsageState, NEXT_EXPORTS_INFO_UKEY};
-use crate::{DependencyId, ModuleGraph, Nullable, RuntimeSpec};
+use super::{ExportInfoData, NEXT_EXPORTS_INFO_UKEY};
+use crate::ModuleGraph;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -27,26 +26,6 @@ impl ExportsInfo {
 
   pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfoData {
     mg.get_exports_info_mut_by_id(self)
-  }
-
-  pub fn set_has_use_info(&self, mg: &mut ModuleGraph) {
-    let mut nested_exports_info = vec![];
-    let exports_info = self.as_data_mut(mg);
-    for export_info in exports_info.exports_mut().values_mut() {
-      export_info.set_has_use_info(&mut nested_exports_info);
-    }
-    exports_info
-      .side_effects_only_info_mut()
-      .set_has_use_info(&mut nested_exports_info);
-    let other_exports_info = exports_info.other_exports_info_mut();
-    other_exports_info.set_has_use_info(&mut nested_exports_info);
-    if other_exports_info.can_mangle_use().is_none() {
-      other_exports_info.set_can_mangle_use(Some(true));
-    }
-
-    for nested_exports_info in nested_exports_info {
-      nested_exports_info.set_has_use_info(mg);
-    }
   }
 }
 

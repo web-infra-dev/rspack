@@ -38,15 +38,15 @@ impl<'a> FlagDependencyExportsState<'a> {
       // Reset exports provide info back to initial
       exports_info.reset_provide_info();
 
-      if exports_type == BuildMetaExportsType::Unset {
-        if !matches!(
+      if exports_type == BuildMetaExportsType::Unset
+        && !matches!(
           exports_info.other_exports_info().provided(),
           Some(ExportProvided::Unknown)
-        ) {
-          exports_info.set_has_provide_info();
-          exports_info.set_unknown_exports_provided(false, None, None, None, None);
-          continue;
-        }
+        )
+      {
+        exports_info.set_has_provide_info();
+        exports_info.set_unknown_exports_provided(false, None, None, None, None);
+        continue;
       }
 
       exports_info.set_has_provide_info();
@@ -107,11 +107,9 @@ impl<'a> FlagDependencyExportsState<'a> {
     let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = &export_desc.hide_export {
+      let exports_info = exports_info.as_data_mut(self.mg);
       for name in hide_export.iter() {
-        exports_info
-          .as_data_mut(self.mg)
-          .get_export_info(name)
-          .unset_target(&dep_id);
+        exports_info.get_export_info(name).unset_target(&dep_id);
       }
     }
     match exports {
@@ -346,13 +344,13 @@ pub fn merge_exports(
           .exports_info()
           .expect("should have exports_info when exports_info is true")
       } else {
-        let new_exports_info = ExportsInfoData::default();
+        let mut new_exports_info = ExportsInfoData::default();
+        new_exports_info.set_has_provide_info();
         let new_exports_info_id = new_exports_info.id();
         export_info.set_exports_info(Some(new_exports_info_id));
         export_info.set_exports_info_owned(true);
         mg.set_exports_info(new_exports_info_id, new_exports_info);
 
-        new_exports_info_id.as_data_mut(mg).set_has_provide_info();
         new_exports_info_id
       };
 

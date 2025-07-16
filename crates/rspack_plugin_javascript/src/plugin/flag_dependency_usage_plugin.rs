@@ -11,7 +11,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{queue::Queue, swc::join_atom};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
@@ -50,8 +50,21 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     let mut q = Queue::new();
     let mg = &mut module_graph;
-    for exports_info in self.exports_info_module_map.keys() {
-      exports_info.set_has_use_info(mg);
+
+    let mut batch = self
+      .exports_info_module_map
+      .keys()
+      .cloned()
+      .collect::<Vec<_>>();
+    let mut visited = FxHashSet::default();
+    while !batch.is_empty() {
+      let mut new_batch = batch
+        .iter()
+        .flat_map(|exports_info| exports_info.as_data_mut(mg).set_has_use_info())
+        .collect::<Vec<_>>();
+      visited.extend(batch.into_iter());
+      new_batch.retain(|exports_info| !visited.contains(exports_info));
+      batch = new_batch;
     }
 
     // SAFETY: we can make sure that entries will not be used other place at the same time,
@@ -346,29 +359,24 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           let mut current_exports_info = mgm_exports_info;
           let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
-            let (nested_info, export_info) = {
-              let export_info = current_exports_info
-                .as_data_mut(&mut module_graph)
-                .get_export_info(&used_export);
-              if !can_mangle {
-                export_info.set_can_mangle_use(Some(false));
-              }
-              if !can_inline {
-                export_info.set_inlinable(Inlinable::NoByUse);
-              }
-              (export_info.exports_info(), export_info.id())
-            };
+            let export_info = current_exports_info
+              .as_data_mut(&mut module_graph)
+              .get_export_info(&used_export);
+            if !can_mangle {
+              export_info.set_can_mangle_use(Some(false));
+            }
+            if !can_inline {
+              export_info.set_inlinable(Inlinable::NoByUse);
+            }
 
             let last_one = i == len - 1;
             if !last_one {
-              if let Some(nested_info) = nested_info {
-                let changed_flag = export_info
-                  .as_data_mut(&mut module_graph)
-                  .set_used_conditionally(
-                    Box::new(|used| used == &UsageState::Unused),
-                    UsageState::OnlyPropertiesUsed,
-                    runtime.as_ref(),
-                  );
+              if let Some(nested_info) = export_info.exports_info() {
+                let changed_flag = export_info.set_used_conditionally(
+                  Box::new(|used| used == &UsageState::Unused),
+                  UsageState::OnlyPropertiesUsed,
+                  runtime.as_ref(),
+                );
                 if changed_flag {
                   let current_module = if current_exports_info == mgm_exports_info {
                     Some(module_id)
@@ -387,13 +395,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               }
             }
 
-            let changed_flag = export_info
-              .as_data_mut(&mut module_graph)
-              .set_used_conditionally(
-                Box::new(|v| v != &UsageState::Used),
-                UsageState::Used,
-                runtime.as_ref(),
-              );
+            let changed_flag = export_info.set_used_conditionally(
+              Box::new(|v| v != &UsageState::Used),
+              UsageState::Used,
+              runtime.as_ref(),
+            );
             if changed_flag {
               let current_module = if current_exports_info == mgm_exports_info {
                 Some(module_id)
