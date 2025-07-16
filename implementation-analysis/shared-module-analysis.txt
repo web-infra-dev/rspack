@@ -1,6 +1,0 @@
-=== Shared Module Detection Analysis ===
-Function extracted to shared-module-function.rs
-Lines in function:       43
-BFS operations: 5
-HashMap operations: 3
-Module type checks: 4
