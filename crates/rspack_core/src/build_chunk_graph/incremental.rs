@@ -435,16 +435,16 @@ impl CodeSplitter {
       self.mask_by_chunk.insert(*chunk, mask);
     }
 
-    if !enable_incremental {
-      return Ok(());
-    }
-
     self.stat_invalidated_chunk_group = 0;
     self.stat_invalidated_caches = 0;
     self.stat_use_cache = 0;
     self.stat_chunk_group_created = 0;
     self.stat_cache_miss_by_available_modules = 0;
     self.stat_cache_miss_by_cant_rebuild = 0;
+
+    if !enable_incremental {
+      return Ok(());
+    }
 
     let (affected_modules, removed_modules) = if let Some(mutations) = compilation
       .incremental
