@@ -10,9 +10,14 @@ module.exports = {
 		minimize: false,
 		sideEffects: false
 	},
+	output: {
+		filename: "[name].js",
+		uniqueName: "share_usage_test"
+	},
 	plugins: [
 		new ModuleFederationPlugin({
 			name: "share_usage_test",
+			filename: "remoteEntry.js",
 			exposes: {
 				"./utils": "./utils.js",
 				"./components": "./components.js"
@@ -27,6 +32,14 @@ module.exports = {
 					singleton: true,
 					requiredVersion: "^18.0.0",
 					shareKey: "react"
+				},
+				"./local-cjs-module": {
+					singleton: true,
+					shareKey: "local-cjs-module"
+				},
+				"./local-esm-module": {
+					singleton: true,
+					shareKey: "local-esm-module"
 				}
 			}
 		})
