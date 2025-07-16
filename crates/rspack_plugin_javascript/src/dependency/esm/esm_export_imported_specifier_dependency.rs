@@ -639,7 +639,7 @@ impl ESMExportImportedSpecifierDependency {
             let exports_info = mg.get_exports_info(imported_module);
             let used_name = if ids.is_empty() {
               let exports_info =
-                mg.get_prefetched_exports_info(&imported_module, PrefetchExportsInfoMode::Default);
+                mg.get_prefetched_exports_info(imported_module, PrefetchExportsInfoMode::Default);
               exports_info.get_used_name(None, &ids)
             } else {
               let exports_info = ExportsInfoGetter::prefetch(
