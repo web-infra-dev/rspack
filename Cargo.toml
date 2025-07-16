@@ -402,12 +402,10 @@ split-debuginfo = "off"
 strip           = false
 
 [profile.release-wasi]
-codegen-units = 16
-debug         = 'full'
-inherits      = "release"
-lto           = "thin"
-opt-level     = "s"
-strip         = "none"
+debug     = 'full'
+inherits  = "release"
+opt-level = "s"
+strip     = "none"
 
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
