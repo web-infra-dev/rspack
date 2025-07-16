@@ -114,7 +114,10 @@ impl JsModuleGraph {
   #[napi(ts_args_type = "module: Module")]
   pub fn get_exports_info(&self, module: ModuleObjectRef) -> napi::Result<JsExportsInfo> {
     let (compilation, module_graph) = self.as_ref()?;
-    let exports_info = module_graph.get_exports_info(&module.identifier);
+    let exports_info = module_graph
+      .module_graph_module_by_identifier(&module.identifier)
+      .expect("should have mgm")
+      .exports;
     Ok(JsExportsInfo::new(exports_info, compilation))
   }
 

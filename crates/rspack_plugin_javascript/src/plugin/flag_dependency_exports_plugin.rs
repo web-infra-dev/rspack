@@ -67,11 +67,10 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       let mut changed_modules = FxHashSet::default();
       for (module_id, exports_specs) in module_exports_specs {
-        let exports_info = self.mg.get_exports_info(&module_id);
         let mut changed = false;
         for (dep_id, exports_spec) in exports_specs.into_iter() {
           let (is_changed, changed_dependencies) =
-            self.process_exports_spec(&module_id, dep_id, &exports_spec, exports_info);
+            self.process_exports_spec(&module_id, dep_id, &exports_spec);
           changed |= is_changed;
           for (module_id, dep_id) in changed_dependencies {
             dependencies.entry(module_id).or_default().insert(dep_id);
@@ -96,7 +95,6 @@ impl<'a> FlagDependencyExportsState<'a> {
     module_id: &ModuleIdentifier,
     dep_id: DependencyId,
     export_desc: &ExportsSpec,
-    exports_info: ExportsInfo,
   ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
     let mut changed = false;
     let mut dependencies = vec![];
@@ -107,15 +105,16 @@ impl<'a> FlagDependencyExportsState<'a> {
     let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = &export_desc.hide_export {
-      let exports_info = exports_info.as_data_mut(self.mg);
+      let exports_info = self.mg.get_mutable_exports_info(module_id);
       for name in hide_export.iter() {
         exports_info.get_export_info(name).unset_target(&dep_id);
       }
     }
     match exports {
       ExportsOfExportsSpec::UnknownExports => {
-        changed |= exports_info
-          .as_data_mut(self.mg)
+        changed |= self
+          .mg
+          .get_mutable_exports_info(module_id)
           .set_unknown_exports_provided(
             global_can_mangle.unwrap_or_default(),
             export_desc.exclude_exports.as_ref(),
@@ -126,6 +125,11 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
       ExportsOfExportsSpec::NoExports => {}
       ExportsOfExportsSpec::Names(ele) => {
+        let exports_info = self
+          .mg
+          .module_graph_module_by_identifier(module_id)
+          .expect("should have mgm")
+          .exports;
         let (merge_changed, merge_dependencies) = merge_exports(
           self.mg,
           module_id,

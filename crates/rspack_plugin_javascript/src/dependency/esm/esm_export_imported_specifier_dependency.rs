@@ -16,13 +16,13 @@ use rspack_core::{
   ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
   ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
-  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
-  NormalReexportItem, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsOfExportsSpec,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -636,15 +636,13 @@ impl ESMExportImportedSpecifierDependency {
               runtime_condition,
             )));
           } else {
-            let exports_info = mg.get_exports_info(imported_module);
             let used_name = if ids.is_empty() {
               let exports_info =
                 mg.get_prefetched_exports_info(imported_module, PrefetchExportsInfoMode::Default);
               exports_info.get_used_name(None, &ids)
             } else {
-              let exports_info = ExportsInfoGetter::prefetch(
-                &exports_info,
-                mg,
+              let exports_info = mg.get_prefetched_exports_info(
+                imported_module,
                 PrefetchExportsInfoMode::Nested(&ids),
               );
               exports_info.get_used_name(None, &ids)

@@ -1009,13 +1009,6 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.add_incoming_connection(*dep_id);
   }
 
-  pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have mgm")
-      .exports
-  }
-
   pub fn get_mutable_exports_info(
     &mut self,
     module_identifier: &ModuleIdentifier,
@@ -1041,17 +1034,20 @@ impl<'a> ModuleGraph<'a> {
     module_identifier: &ModuleIdentifier,
     mode: PrefetchExportsInfoMode<'b>,
   ) -> PrefetchedExportsInfoWrapper<'b> {
-    let exports_info = self.get_exports_info(module_identifier);
+    let exports_info = self
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm")
+      .exports;
     ExportsInfoGetter::prefetch(&exports_info, self, mode)
   }
 
-  pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
+  pub(crate) fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .loop_partials(|p| p.exports_info_map.get(id))
       .expect("should have exports info")
   }
 
-  pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {
+  pub(crate) fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {
     self
       .loop_partials_mut(
         |p| p.exports_info_map.contains_key(id),

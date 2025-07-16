@@ -58,7 +58,10 @@ pub fn get_terminal_binding(
     return Some(TerminalBinding::ExportInfo(export_info.id()));
   }
   let target = get_target(export_info, mg)?;
-  let exports_info = mg.get_exports_info(&target.module);
+  let exports_info = mg
+    .module_graph_module_by_identifier(&target.module)
+    .expect("should have mgm")
+    .exports;
   let Some(export) = target.export else {
     return Some(TerminalBinding::ExportsInfo(exports_info));
   };
