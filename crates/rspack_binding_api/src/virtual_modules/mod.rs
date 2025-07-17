@@ -1,6 +1,5 @@
 use std::sync::{Arc, RwLock};
 
-use napi::JsError;
 use rspack_fs::FileMetadata;
 use rspack_paths::Utf8Path;
 
@@ -10,6 +9,8 @@ pub trait VirtualFileStore: Send + Sync {
   fn get_file_content(&self, path: &Utf8Path) -> Option<&Vec<u8>>;
 
   fn get_file_metadata(&self, path: &Utf8Path) -> Option<FileMetadata>;
+
+  fn read_dir(&self, path: &Utf8Path) -> Option<Vec<String>>;
 
   fn contains(&self, path: &Utf8Path) -> bool;
 }

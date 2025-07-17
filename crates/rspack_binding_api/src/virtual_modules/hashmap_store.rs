@@ -86,4 +86,8 @@ impl VirtualFileStore for HashMapVirtualFileStore {
   fn contains(&self, path: &Utf8Path) -> bool {
     self.files.contains_key(path) || self.directories.contains_key(path)
   }
+
+  fn read_dir(&self, _path: &Utf8Path) -> Option<Vec<String>> {
+    None
+  }
 }

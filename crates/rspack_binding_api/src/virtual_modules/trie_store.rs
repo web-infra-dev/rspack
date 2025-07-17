@@ -148,4 +148,17 @@ impl VirtualFileStore for TrieVirtualFileStore {
   fn contains(&self, path: &Utf8Path) -> bool {
     self.inner.get_node(path).is_some()
   }
+
+  fn read_dir(&self, path: &Utf8Path) -> Option<Vec<String>> {
+    self.inner.get_node(path).and_then(|node| match node {
+      TrieNode::File(_) => None,
+      TrieNode::Directory(directory_node) => Some(
+        directory_node
+          .children
+          .keys()
+          .map(|s| s.to_string())
+          .collect(),
+      ),
+    })
+  }
 }

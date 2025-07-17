@@ -97,11 +97,33 @@ impl ReadableFileSystem for VirtualFileSystem {
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self.real_fs.read_dir(dir).await
+    if let Some(mut vlist) = self
+      .virtual_file_store
+      .read()
+      .ok()
+      .and_then(|store| store.read_dir(dir))
+    {
+      let mut list = self.real_fs.read_dir(dir).await.unwrap_or_default();
+      list.append(&mut vlist);
+      Ok(list)
+    } else {
+      self.real_fs.read_dir(dir).await
+    }
   }
 
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self.real_fs.read_dir_sync(dir)
+    if let Some(mut vlist) = self
+      .virtual_file_store
+      .read()
+      .ok()
+      .and_then(|store| store.read_dir(dir))
+    {
+      let mut list = self.real_fs.read_dir_sync(dir).unwrap_or_default();
+      list.append(&mut vlist);
+      Ok(list)
+    } else {
+      self.real_fs.read_dir_sync(dir)
+    }
   }
 
   async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
