@@ -2169,18 +2169,6 @@ export interface RawLibManifestPluginOptions {
   type?: string
 }
 
-export interface RawLightningCssBrowsers {
-  android?: number
-  chrome?: number
-  edge?: number
-  firefox?: number
-  ie?: number
-  ios_saf?: number
-  opera?: number
-  safari?: number
-  samsung?: number
-}
-
 export interface RawLightningCssMinimizerOptions {
   errorRecovery: boolean
   targets?: Array<string>

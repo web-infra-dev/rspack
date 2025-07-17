@@ -28,7 +28,7 @@ define_symbols! {
   COMPILATION_HOOKS_MAP_SYMBOL => "COMPILATION_HOOKS_MAP_SYMBOL",
 }
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct JsLibIdentOptions {
   pub context: String,
 }
@@ -821,7 +821,7 @@ impl From<JsBuildMeta> for BuildMeta {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct JsBuildMetaDefaultObjectRedirectWarn {
   pub redirect_warn: JsDefaultObjectRedirectWarnObject,
 }
@@ -834,7 +834,7 @@ impl From<JsBuildMetaDefaultObjectRedirectWarn> for BuildMetaDefaultObject {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct JsDefaultObjectRedirectWarnObject {
   pub ignore: bool,
 }
