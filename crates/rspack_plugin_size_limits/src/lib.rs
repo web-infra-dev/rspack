@@ -6,7 +6,7 @@ use rspack_core::{
   ApplyContext, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset, CompilerAfterEmit,
   CompilerOptions, Plugin, PluginContext,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::size::format_size;
 
@@ -81,14 +81,14 @@ impl SizeLimitsPlugin {
   }
 
   fn add_assets_over_size_limit_warning(
-    detail: &[(&String, f64)],
+    detail: &[(String, f64)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
   ) {
     let asset_list: String = detail
       .iter()
-      .map(|&(name, size)| format!("\n  {} ({})", name, format_size(size)))
+      .map(|(name, size)| format!("\n  {} ({})", name, format_size(*size)))
       .collect::<Vec<String>>()
       .join("");
     let title = String::from("assets over size limit warning");
@@ -112,7 +112,7 @@ impl SizeLimitsPlugin {
           format_size(*size),
           files
             .iter()
-            .map(|file| format!("      {}", file))
+            .map(|file| format!("      {file}"))
             .collect::<Vec<_>>()
             .join("\n")
         )
@@ -140,21 +140,33 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut assets_over_size_limit = vec![];
 
-  for (name, asset) in compilation.assets() {
-    let source = asset.get_source();
+  let asset_sizes = rspack_futures::scope::<_, _>(|token| {
+    compilation.assets().iter().for_each(|(name, asset)| {
+      // SAFETY: await immediately and trust caller to poll future entirely
+      let s = unsafe { token.used((&self, asset, name, max_asset_size)) };
 
-    if !self.asset_filter(name, asset).await {
-      continue;
-    }
+      s.spawn(|(plugin, asset, name, max_asset_size)| async move {
+        if !plugin.asset_filter(name, asset).await {
+          return None;
+        }
 
-    if let Some(source) = source {
-      let size = source.size() as f64;
-      let is_over_size_limit = size > max_asset_size;
+        let source = asset.get_source()?;
 
-      checked_assets.insert(name.to_owned(), is_over_size_limit);
-      if is_over_size_limit {
-        assets_over_size_limit.push((name, size));
-      }
+        let size = source.size() as f64;
+        let is_over_size_limit = size > max_asset_size;
+        Some((name.clone(), size, is_over_size_limit))
+      })
+    })
+  })
+  .await
+  .into_iter()
+  .map(|res| res.to_rspack_result())
+  .collect::<Result<Vec<_>>>()?;
+
+  for (name, size, is_over_size_limit) in asset_sizes.into_iter().flatten() {
+    checked_assets.insert(name.clone(), is_over_size_limit);
+    if is_over_size_limit {
+      assets_over_size_limit.push((name, size));
     }
   }
 

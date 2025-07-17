@@ -25,6 +25,7 @@ export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
+	nativeWatcher?: boolean;
 }
 
 export class WatchProcessor<
@@ -250,7 +251,7 @@ export class WatchProcessor<
 
 	static overrideOptions<T extends ECompilerType>({
 		tempDir,
-		name
+		nativeWatcher
 	}: IWatchProcessorOptions<T>) {
 		return (
 			index: number,
@@ -275,6 +276,12 @@ export class WatchProcessor<
 			options.optimization ??= {};
 			options.experiments ??= {};
 			options.experiments.css ??= true;
+			if (nativeWatcher) {
+				(
+					options as TCompilerOptions<ECompilerType.Rspack>
+				).experiments!.nativeWatcher ??= true;
+			}
+
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture ??= {};
@@ -284,6 +291,10 @@ export class WatchProcessor<
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+			// test incremental: "safe" here, we test default incremental in Incremental-*.test.js
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.incremental ??= "safe";
 
 			if (!global.printLogger) {
 				options.infrastructureLogging = {
@@ -336,6 +347,8 @@ export class WatchStepProcessor<
 				resolve(stats);
 			});
 		});
+		// wait compiler to ready watch the files and diretories
+		await new Promise(resolve => setTimeout(resolve, 100));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
 			this._watchOptions.tempDir,

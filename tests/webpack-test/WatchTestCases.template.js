@@ -70,7 +70,7 @@ const describeCases = config => {
 		});
 		beforeAll(() => {
 			let dest = path.join(__dirname, "js");
-			if (!fs.existsSync(dest)) fs.mkdirSync(dest);
+			if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
 			dest = path.join(__dirname, "js", config.name + "-src");
 			if (!fs.existsSync(dest)) fs.mkdirSync(dest);
 		});
@@ -150,6 +150,12 @@ const describeCases = config => {
 										const cacheDirectory = path.join(tempDirectory, ".cache");
 										options.cache.cacheDirectory = cacheDirectory;
 										options.cache.name = `config-${idx}`;
+									}
+									// CHANGE: test incremental: "safe" in webpack-test, we test default incremental in
+									// rspack-test-tools/tests/Incremental-*.test.js, including cases in webpack-test
+									{
+										if (!options.experiments) options.experiments = {};
+										if (!options.experiments.incremental) options.experiments.incremental = "safe";
 									}
 									if (config.experiments) {
 										if (!options.experiments) options.experiments = {};

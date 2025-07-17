@@ -9,23 +9,25 @@
  */
 
 import { inspect } from "node:util";
+import type { DependencyLocation } from "@rspack/binding";
 import type { Chunk } from "../Chunk";
 import type { Module } from "../Module";
-
-// Waiting to adapt
-type DependencyLocation = any;
 
 export class WebpackError extends Error {
 	loc?: DependencyLocation;
 	file?: string;
 	chunk?: Chunk;
-	module?: Module;
+	module?: null | Module;
 	details?: string;
 	hideStack?: boolean;
-
-	[inspect.custom]() {
-		return this.stack + (this.details ? `\n${this.details}` : "");
-	}
 }
+
+Object.defineProperty(WebpackError.prototype, inspect.custom, {
+	value: function () {
+		return this.stack + (this.details ? `\n${this.details}` : "");
+	},
+	enumerable: false,
+	configurable: true
+});
 
 export default WebpackError;

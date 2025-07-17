@@ -23,13 +23,21 @@ fn assign_named_chunk_ids(
 ) -> Vec<ChunkUkey> {
   let context: &str = compilation.options.context.as_ref();
   let module_graph = compilation.get_module_graph();
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
   let chunk_graph = &compilation.chunk_graph;
 
   let item_name_pair: Vec<_> = chunks
     .into_par_iter()
     .map(|item| {
       let chunk = compilation.chunk_by_ukey.expect_get(&item);
-      let name = get_short_chunk_name(chunk, chunk_graph, context, delimiter, &module_graph);
+      let name = get_short_chunk_name(
+        chunk,
+        chunk_graph,
+        context,
+        delimiter,
+        &module_graph,
+        module_graph_cache,
+      );
       (item, name)
     })
     .collect();
@@ -64,7 +72,14 @@ fn assign_named_chunk_ids(
     .par_bridge()
     .map(|(_, item)| {
       let chunk = compilation.chunk_by_ukey.expect_get(&item);
-      let long_name = get_long_chunk_name(chunk, chunk_graph, context, delimiter, &module_graph);
+      let long_name = get_long_chunk_name(
+        chunk,
+        chunk_graph,
+        context,
+        delimiter,
+        &module_graph,
+        module_graph_cache,
+      );
       (item, long_name)
     })
     .collect();
@@ -82,6 +97,8 @@ fn assign_named_chunk_ids(
 
   let name_to_items_keys = name_to_items.keys().cloned().collect::<FxHashSet<_>>();
   let mut unnamed_items = vec![];
+
+  let mut ordered_chunk_modules_cache = Default::default();
 
   for (name, mut items) in name_to_items {
     if name.is_empty() {
@@ -108,6 +125,7 @@ fn assign_named_chunk_ids(
           &compilation.module_ids_artifact,
           a,
           b,
+          &mut ordered_chunk_modules_cache,
         )
       });
       let mut i = 0;
@@ -140,6 +158,7 @@ fn assign_named_chunk_ids(
       &compilation.module_ids_artifact,
       a,
       b,
+      &mut ordered_chunk_modules_cache,
     )
   });
   unnamed_items

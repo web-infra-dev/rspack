@@ -375,6 +375,11 @@ async fn compilation(
     RuntimeRequirementsDependencyTemplate::template_type(),
     Arc::new(RuntimeRequirementsDependencyTemplate::default()),
   );
+  // Rstest
+  compilation.set_dependency_factory(
+    DependencyType::RstestMockModuleId,
+    params.normal_module_factory.clone(),
+  );
   Ok(())
 }
 
@@ -532,8 +537,7 @@ async fn render_manifest(
     .await?;
 
   let (source, _) = compilation
-    .old_cache
-    .chunk_render_occasion
+    .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
       let source = if is_hot_update {
         self

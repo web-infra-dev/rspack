@@ -1,7 +1,6 @@
 import util from "node:util";
 import type { Diagnostics } from "@rspack/binding";
 import type { RspackError } from "./RspackError";
-import { concatErrorMsgAndStack } from "./util";
 
 const $proxy = Symbol.for("proxy");
 
@@ -25,7 +24,6 @@ export function createDiagnosticArray(
 		deleteCount?: number,
 		...newItems: RspackError[]
 	): RspackError[] {
-		// biome-ignore lint/style/noArguments:
 		switch (arguments.length) {
 			case 0:
 				return [];
@@ -35,11 +33,7 @@ export function createDiagnosticArray(
 				return adm.spliceWithArray(index, deleteCount);
 		}
 
-		return adm.spliceWithArray(
-			index,
-			deleteCount,
-			newItems.map(item => concatErrorMsgAndStack(item))
-		);
+		return adm.spliceWithArray(index, deleteCount, newItems);
 	};
 
 	const arrayExtensions: Record<string | symbol, any> = {
@@ -48,11 +42,7 @@ export function createDiagnosticArray(
 		},
 		splice,
 		push(...newItems: RspackError[]): number {
-			adm.spliceWithArray(
-				adm.length,
-				0,
-				newItems.map(item => concatErrorMsgAndStack(item))
-			);
+			adm.spliceWithArray(adm.length, 0, newItems);
 			return adm.length;
 		},
 		pop(): RspackError | undefined {
@@ -62,11 +52,7 @@ export function createDiagnosticArray(
 			return splice(0, 1)[0];
 		},
 		unshift(...newItems: RspackError[]): number {
-			adm.spliceWithArray(
-				0,
-				0,
-				newItems.map(item => concatErrorMsgAndStack(item))
-			);
+			adm.spliceWithArray(0, 0, newItems);
 			return adm.length;
 		},
 		reverse(): RspackError[] {
@@ -164,6 +150,9 @@ export function createDiagnosticArray(
 		): U[] {
 			return adm.values().map(callbackfn, thisArg);
 		},
+		slice(start?: number, end?: number): RspackError[] {
+			return adm.values().slice(start, end);
+		},
 
 		// reduce
 		reduce(
@@ -213,7 +202,7 @@ export function createDiagnosticArray(
 				target[name] = value;
 			} else {
 				// numeric string
-				adm.set(Number.parseInt(name), concatErrorMsgAndStack(value));
+				adm.set(Number.parseInt(name), value);
 			}
 			return true;
 		}

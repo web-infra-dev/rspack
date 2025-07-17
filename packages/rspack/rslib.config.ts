@@ -1,4 +1,8 @@
-import { type LibConfig, defineConfig, rsbuild } from "@rslib/core";
+import fs from "node:fs";
+import path from "node:path";
+import { type Edit, Lang, parse } from "@ast-grep/napi";
+import type { RsbuildPlugin } from "@rsbuild/core";
+import { defineConfig, type LibConfig, rsbuild, rspack } from "@rslib/core";
 import prebundleConfig from "./prebundle.config.mjs";
 
 const merge = rsbuild.mergeRsbuildConfig;
@@ -11,10 +15,6 @@ const externalAlias = ({ request }: { request?: string }, callback) => {
 		if (new RegExp(`^${depName}$`).test(request!)) {
 			return callback(null, `../compiled/${depName}/index.js`);
 		}
-	}
-
-	if (/..\/package\.json/.test(request!)) {
-		return callback(null, "../package.json");
 	}
 
 	if (new RegExp(/^tinypool$/).test(request!)) {
@@ -34,7 +34,7 @@ const commonLibConfig: LibConfig = {
 		}
 	},
 	output: {
-		externals: [externalAlias],
+		externals: ["@rspack/binding/package.json", externalAlias],
 		minify: {
 			js: true,
 			jsOptions: {
@@ -63,7 +63,111 @@ const commonLibConfig: LibConfig = {
 	}
 };
 
+/**
+ * The `zod` dependency is bundled by Rslib. Since Rspack's public APIs
+ * do not depend on `zod` types, we add `@ts-ignore` to prevent type errors
+ * when users set `skipLibCheck: false` in their tsconfig.json file.
+ */
+const fixZodTypePlugin: RsbuildPlugin = {
+	name: "fix-zod-type",
+	setup(api) {
+		api.onAfterBuild(async () => {
+			const schemaDir = path.join(api.context.distPath, "schema");
+
+			if (!fs.existsSync(schemaDir)) {
+				throw new Error(`Schema directory not found: ${schemaDir}`);
+			}
+
+			const files = await fs.promises.readdir(schemaDir);
+			const dtsFiles = files.filter(file => file.endsWith(".d.ts"));
+
+			for (const file of dtsFiles) {
+				const filePath = path.join(schemaDir, file);
+				const content = await fs.promises.readFile(filePath, "utf-8");
+				const newContent = content
+					.replace(
+						`import * as z from "zod/v4";`,
+						`// @ts-ignore\nimport * as z from "zod/v4";`
+					)
+					.replace(
+						`import type { z } from "zod/v4";`,
+						`// @ts-ignore\nimport type { z } from "zod/v4";`
+					);
+
+				if (content !== newContent) {
+					await fs.promises.writeFile(filePath, newContent);
+				}
+			}
+		});
+	}
+};
+
+const mfRuntimePlugin: RsbuildPlugin = {
+	name: "mf-runtime",
+	setup(api) {
+		api.onAfterBuild(async () => {
+			const { swc } = rspack.experiments;
+			const runtime = await fs.promises.readFile(
+				path.resolve(
+					__dirname,
+					"src/runtime/moduleFederationDefaultRuntime.js"
+				),
+				"utf-8"
+			);
+
+			const { code: downgradedRuntime } = await swc.transform(runtime, {
+				jsc: {
+					target: "es2015"
+				}
+			});
+
+			const minimizedRuntime = await swc.minify(downgradedRuntime, {
+				compress: false,
+				mangle: false,
+				ecma: 2015
+			});
+
+			await fs.promises.writeFile(
+				path.resolve(__dirname, "dist/moduleFederationDefaultRuntime.js"),
+				minimizedRuntime.code
+			);
+		});
+	}
+};
+
+const codmodPlugin: RsbuildPlugin = {
+	name: "codmod",
+	setup(api) {
+		/**
+		 * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
+		 */
+		function replaceBinding(root): Edit[] {
+			const binding = root.find(`module.exports = require("@rspack/binding");`);
+			return [
+				binding.replace(
+					`module.exports = require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`
+				)
+			];
+		}
+
+		api.onAfterBuild(async () => {
+			const dist = fs.readFileSync(
+				require.resolve(path.resolve(__dirname, "dist/index.js")),
+				"utf-8"
+			);
+			const root = parse(Lang.JavaScript, dist).root();
+			const edits = [...replaceBinding(root)];
+
+			fs.writeFileSync(
+				require.resolve(path.resolve(__dirname, "dist/index.js")),
+				root.commitEdits(edits)
+			);
+		});
+	}
+};
+
 export default defineConfig({
+	plugins: [fixZodTypePlugin, mfRuntimePlugin, codmodPlugin],
 	lib: [
 		merge(commonLibConfig, {
 			dts: {

@@ -6,6 +6,7 @@ use rspack_core::{
 };
 use rspack_error::{error, Result};
 use rspack_hook::plugin_hook;
+use rspack_plugin_mf::{ConsumeSharedModule, ProvideSharedModule};
 use rspack_plugin_runtime::{
   CreateScriptData, LinkPreloadData, RuntimePluginCreateScript, RuntimePluginLinkPreload,
 };
@@ -23,7 +24,7 @@ fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoadin
     SRI_HASH_VARIABLE_REFERENCE,
     match cross_origin_loading {
       CrossOriginLoading::Disable => "false".to_string(),
-      CrossOriginLoading::Enable(v) => format!("'{}'", v),
+      CrossOriginLoading::Enable(v) => format!("'{v}'"),
     }
   )
 }
@@ -72,12 +73,23 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         Some((id, rendered_hash))
       })
       .collect::<HashMap<_, _>>();
+
+    let module_graph = compilation.get_module_graph();
     let all_chunks = find_chunks(&self.chunk, compilation)
       .into_iter()
       .filter_map(|c| {
         let chunk = compilation.chunk_by_ukey.get(&c)?;
         let id = chunk.id(&compilation.chunk_ids_artifact)?;
-        if include_chunks.contains_key(id) {
+        let has_modules = compilation
+          .chunk_graph
+          .get_chunk_modules(&c, &module_graph)
+          .iter()
+          .any(|m| {
+            m.downcast_ref::<ConsumeSharedModule>().is_none()
+              && m.downcast_ref::<ProvideSharedModule>().is_none()
+          });
+
+        if has_modules && include_chunks.contains_key(id) {
           Some(id)
         } else {
           None
@@ -107,7 +119,7 @@ fn generate_sri_hash_placeholders(
       .filter_map(|c| {
         let chunk_id = serde_json::to_string(c.as_str()).ok()?;
         let placeholder = serde_json::to_string(&make_placeholder(hash_funcs, c.as_str())).ok()?;
-        Some(format!("{}: {}", chunk_id, placeholder))
+        Some(format!("{chunk_id}: {placeholder}"))
       })
       .collect::<Vec<_>>()
       .join(",")
@@ -133,8 +145,9 @@ pub async fn handle_runtime(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
-  _runtime_requirements: &mut RuntimeGlobals,
+  runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
+  runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   compilation.add_runtime_module(
     chunk_ukey,
     SRIHashVariableRuntimeModule::new(*chunk_ukey, self.options.hash_func_names.clone()).boxed(),

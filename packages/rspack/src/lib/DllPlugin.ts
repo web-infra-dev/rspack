@@ -8,12 +8,12 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { z } from "zod";
-import type { Compiler } from "../Compiler";
 import { LibManifestPlugin } from "../builtin-plugin";
 import { DllEntryPlugin } from "../builtin-plugin/DllEntryPlugin";
 import { FlagAllModulesAsUsedPlugin } from "../builtin-plugin/FlagAllModulesAsUsedPlugin";
-import { validate } from "../util/validate";
+import type { Compiler } from "../Compiler";
+import { getDllPluginOptionsSchema } from "../schema/plugins";
+import { validate } from "../schema/validate";
 
 export type DllPluginOptions = {
 	/**
@@ -48,20 +48,11 @@ export type DllPluginOptions = {
 	type?: string;
 };
 
-const dllPluginOptions = z.object({
-	context: z.string().optional(),
-	entryOnly: z.boolean().optional(),
-	format: z.boolean().optional(),
-	name: z.string().optional(),
-	path: z.string(),
-	type: z.string().optional()
-}) satisfies z.ZodType<DllPluginOptions>;
-
 export class DllPlugin {
 	private options: DllPluginOptions;
 
 	constructor(options: DllPluginOptions) {
-		validate(options, dllPluginOptions);
+		validate(options, getDllPluginOptionsSchema);
 		this.options = {
 			...options,
 			entryOnly: options.entryOnly !== false

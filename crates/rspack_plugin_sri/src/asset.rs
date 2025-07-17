@@ -11,6 +11,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::plugin_hook;
 use rspack_plugin_real_content_hash::RealContentHashPluginUpdateHash;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::sync::RwLock;
 
 use crate::{
   config::IntegrityHtmlPlugin,
@@ -222,34 +223,37 @@ fn digest_chunks(compilation: &Compilation) -> Vec<HashSet<ChunkUkey>> {
   batches
 }
 
-fn add_minssing_integrities(
+async fn add_minssing_integrities(
   assets: &CompilationAssets,
-  integrities: &mut HashMap<String, String>,
+  integrities: Arc<RwLock<HashMap<String, String>>>,
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
 ) {
-  let new_integrities = assets
-    .par_iter()
-    .filter_map(|(src, asset)| {
-      if integrities.contains_key(src) {
-        return None;
-      }
-      asset.source.as_ref().map(|s| {
-        let content = s.source();
-        let integrity = compute_integrity(hash_func_names, &content);
-        (src.clone(), integrity)
+  let new_integrities = {
+    let integrities = integrities.read().await;
+    assets
+      .par_iter()
+      .filter_map(|(src, asset)| {
+        if integrities.contains_key(src) {
+          return None;
+        }
+        asset.source.as_ref().map(|s| {
+          let content = s.source();
+          let integrity = compute_integrity(hash_func_names, &content);
+          (src.clone(), integrity)
+        })
       })
-    })
-    .collect::<HashMap<_, _>>();
+      .collect::<HashMap<_, _>>()
+  };
 
-  integrities.extend(new_integrities);
+  integrities.write().await.extend(new_integrities);
 }
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
 pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let integrities = process_chunks(&self.options.hash_func_names, compilation);
-  let mut compilation_integrities =
+  let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
-  compilation_integrities.extend(integrities);
+  compilation_integrities.write().await.extend(integrities);
 
   if matches!(
     self.options.html_plugin,
@@ -257,9 +261,10 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
   ) {
     add_minssing_integrities(
       compilation.assets(),
-      &mut compilation_integrities,
+      compilation_integrities.clone(),
       &self.options.hash_func_names,
-    );
+    )
+    .await;
   }
 
   if matches!(
@@ -268,7 +273,7 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
   ) {
     if let Some(integrity_callback) = &self.options.integrity_callback {
       integrity_callback(IntegrityCallbackData {
-        integerities: compilation_integrities.clone(),
+        integerities: compilation_integrities.read().await.clone(),
       })
       .await?;
     }
@@ -293,7 +298,7 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   for file in contain_unresolved_files {
     compilation.push_diagnostic(Diagnostic::error(
       "SubresourceIntegrity".to_string(),
-      format!("Asset {} contains unresolved integrity placeholders", file),
+      format!("Asset {file} contains unresolved integrity placeholders"),
     ));
   }
   Ok(())
@@ -306,9 +311,11 @@ pub async fn update_hash(
   assets: &[Arc<dyn Source>],
   old_hash: &str,
 ) -> Result<Option<String>> {
-  let mut compilation_integrities =
+  let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
   let key = compilation_integrities
+    .read()
+    .await
     .iter()
     .filter_map(|(k, v)| {
       if v == old_hash {
@@ -321,7 +328,10 @@ pub async fn update_hash(
   if let (Some(key), Some(asset)) = (key, assets.first()) {
     let content = asset.source();
     let new_integrity = compute_integrity(&self.options.hash_func_names, &content);
-    compilation_integrities.insert(key, new_integrity.clone());
+    compilation_integrities
+      .write()
+      .await
+      .insert(key, new_integrity.clone());
     return Ok(Some(new_integrity));
   }
   Ok(None)

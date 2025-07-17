@@ -4,7 +4,7 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_mf"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -12,6 +12,7 @@ rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
+rspack_fs                = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_loader_runner     = { workspace = true }
@@ -21,6 +22,7 @@ rspack_sources           = { workspace = true }
 rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
+camino      = { workspace = true }
 hashlink    = { workspace = true }
 itertools   = { workspace = true }
 regex       = { workspace = true }

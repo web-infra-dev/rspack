@@ -61,8 +61,8 @@ impl ImportScriptsChunkLoadingRuntimeModule {
 
     match id {
       TemplateId::Raw => base_id.to_string(),
-      TemplateId::WithHmr => format!("{}_with_hmr", base_id),
-      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", base_id),
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
     }
   }
 }

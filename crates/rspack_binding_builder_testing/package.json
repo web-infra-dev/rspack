@@ -1,0 +1,53 @@
+{
+  "name": "@rspack/binding-testing",
+  "version": "1.4.1",
+  "license": "MIT",
+  "description": "Node binding testing for rspack",
+  "main": "binding.js",
+  "types": "binding.d.ts",
+  "private": true,
+  "files": [
+    "binding.js",
+    "binding.d.ts"
+  ],
+  "scripts": {
+    "build:dev": "node scripts/build.js",
+    "build:debug": "node scripts/build.js --profile release-debug",
+    "build:ci": "node scripts/build.js --profile ci",
+    "build:profiling": "node scripts/build.js --profile profiling",
+    "build:release": "node scripts/build.js --profile release"
+  },
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": "web-infra-dev/rspack",
+  "devDependencies": {
+    "@napi-rs/cli": "3.0.0-alpha.99",
+    "@napi-rs/wasm-runtime": "^0.2.12",
+    "emnapi": "^1.4.4",
+    "typescript": "^5.8.3",
+    "@emnapi/core": "^1.4.4"
+  },
+  "napi": {
+    "binaryName": "rspack",
+    "packageName": "@rspack/binding-testing",
+    "targets": [
+      "x86_64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "x86_64-unknown-freebsd",
+      "i686-pc-windows-msvc",
+      "armv7-unknown-linux-gnueabihf",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-apple-darwin",
+      "aarch64-unknown-linux-musl",
+      "aarch64-pc-windows-msvc"
+    ],
+    "wasm": {
+      "initialMemory": 16384,
+      "browser": {
+        "fs": true
+      }
+    }
+  }
+}

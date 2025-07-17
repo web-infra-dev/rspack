@@ -24,7 +24,8 @@ use crate::{
   merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
   DependencyId, DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, SyntheticDependencyLocation,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
+  SyntheticDependencyLocation,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -310,13 +311,14 @@ fn get_active_state_of_connections(
   connections: &[DependencyId],
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
 ) -> ConnectionState {
   let mut iter = connections.iter();
   let id = iter.next().expect("should have connection");
   let mut merged = module_graph
     .connection_by_dependency_id(id)
     .expect("should have connection")
-    .active_state(module_graph, runtime);
+    .active_state(module_graph, runtime, module_graph_cache);
   if merged.is_true() {
     return merged;
   }
@@ -324,7 +326,7 @@ fn get_active_state_of_connections(
     let c = module_graph
       .connection_by_dependency_id(c)
       .expect("should have connection");
-    merged = merged + c.active_state(module_graph, runtime);
+    merged = merged + c.active_state(module_graph, runtime, module_graph_cache);
     if merged.is_true() {
       return merged;
     }
@@ -396,11 +398,24 @@ impl CodeSplitter {
     self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
     let runtime = get_entry_runtime(name, options, &compilation.entries);
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+
+    let mut incremental_diagnostic = None;
     if let Some(filename) = &entry_data.options.filename {
       chunk.set_filename_template(Some(filename.clone()));
+
+      if filename.has_hash_placeholder()
+        && let Some(diagnostic) = compilation.incremental.disable_passes(
+          IncrementalPasses::CHUNKS_RENDER,
+          "Chunk filename that dependent on full hash",
+          "chunk filename that dependent on full hash is not supported in incremental compilation",
+        )
+      {
+        incremental_diagnostic = diagnostic;
+        compilation.chunk_render_artifact.clear();
+      }
     }
 
-    compilation.chunk_graph.add_chunk(chunk.ukey());
+    compilation.chunk_graph.add_chunk(chunk_ukey);
 
     let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
       true,
@@ -496,7 +511,13 @@ impl CodeSplitter {
       self.named_chunk_groups.insert(name.to_string(), cgi);
     }
 
-    Ok((entrypoint.ukey, modules))
+    let entrypoint_ukey = entrypoint.ukey;
+
+    if let Some(diagnostic) = incremental_diagnostic {
+      compilation.push_diagnostic(diagnostic);
+    }
+
+    Ok((entrypoint_ukey, modules))
   }
 
   pub fn set_entry_runtime_and_depend_on(
@@ -899,7 +920,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     if compilation
       .incremental
-      .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH)
+      .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
       let logger = compilation.get_logger("rspack.incremental.buildChunkGraph");
       logger.log(format!(
@@ -1629,8 +1650,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let modules = map
         .get_mut(&block_id)
         .expect("should have modules in block_modules_runtime_map");
-      let active_state =
-        get_active_state_of_connections(&connections, runtime, &compilation.get_module_graph());
+      let active_state = get_active_state_of_connections(
+        &connections,
+        runtime,
+        &compilation.get_module_graph(),
+        &compilation.module_graph_cache_artifact,
+      );
       modules.push((module_identifier, active_state, connections));
     }
   }
@@ -1752,6 +1777,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             connections,
             Some(&cgi.runtime),
             &compilation.get_module_graph(),
+            &compilation.module_graph_cache_artifact,
           );
           if active_state.is_false() {
             continue;

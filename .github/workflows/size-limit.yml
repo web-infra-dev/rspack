@@ -1,0 +1,63 @@
+name: Binary Size Limit
+
+on:
+  workflow_call:
+
+permissions:
+  # Allow commenting on Pull Requests
+  pull-requests: write
+
+jobs:
+  size-limit:
+    name: Binding Size Limit
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Install Binding Dependencies
+        uses: ./.github/actions/pnpm/install-binding-dependencies
+        with:
+          # binding dependencies so small that we don't need to cache them
+          # a fresh new installation takes about 5s
+          save-if: false
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: x86_64-unknown-linux-gnu-release
+          # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
+          save-if: ${{ runner.environment != 'self-hosted'  || runner.os != 'Windows' }}
+
+      # setup rust target for native runner
+      - name: Setup Rust Target
+        run: rustup target add x86_64-unknown-linux-gnu
+
+      - name: Run Cargo codegen
+        run: cargo codegen
+
+      - name: Trim paths
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+
+      # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
+      - name: Free disk cache
+        if: runner.environment == 'github-hosted'
+        uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
+        with:
+          tool-cache: fals
+
+      - name: Build x86_64-unknown-linux-gnu native
+        run: |
+          unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+          rustup target add x86_64-unknown-linux-gnu
+          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
+
+      - name: Binary Size-limit
+        uses: ./.github/actions/binary-limit
+        with:
+          # 50k 50*1024
+          size-threshold: 51200

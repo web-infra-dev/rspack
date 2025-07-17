@@ -72,6 +72,7 @@ pub fn collect_modules(
           belong_modules: HashSet::default(),
           chunks,
           issuer_path: None,
+          bailout_reason: HashSet::default(),
         },
       )
     })

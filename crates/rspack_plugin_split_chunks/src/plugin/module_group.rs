@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
-  UsageKey,
+  PrefetchExportsInfoMode, UsageKey,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxDashMap;
@@ -99,11 +99,12 @@ impl Combinator {
     module_graph: &ModuleGraph,
     chunk_by_ukey: &ChunkByUkey,
   ) -> Vec<UkeySet<ChunkUkey>> {
-    let exports_info = module_graph.get_exports_info(module_identifier);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, UkeySet<ChunkUkey>> = Default::default();
     for chunk_ukey in module_chunks {
       let chunk = chunk_by_ukey.expect_get(&chunk_ukey);
-      let usage_key = exports_info.get_usage_key(module_graph, Some(chunk.runtime()));
+      let usage_key = exports_info.get_usage_key(Some(chunk.runtime()));
 
       grouped_by_used_exports
         .entry(usage_key)
@@ -643,7 +644,7 @@ async fn merge_matched_item_into_module_group_map(
     let selected_chunks_key = match chunk_key_to_string.entry(selected_chunks_key) {
       hash_map::Entry::Occupied(entry) => entry.get().to_string(),
       hash_map::Entry::Vacant(entry) => {
-        let key = format!("{:x}", selected_chunks_key);
+        let key = format!("{selected_chunks_key:x}");
         entry.insert(key.clone());
         key
       }

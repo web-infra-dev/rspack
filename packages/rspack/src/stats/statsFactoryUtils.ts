@@ -3,11 +3,7 @@ import type * as binding from "@rspack/binding";
 import type { JsOriginRecord } from "@rspack/binding";
 import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
-import {
-	type Comparator,
-	compareIds,
-	compareSelect
-} from "../util/comparators";
+import { compareIds, compareSelect } from "../util/comparators";
 import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
 export type KnownStatsChunkGroup = {
@@ -343,7 +339,7 @@ export type SimpleExtractors = {
 	chunk: ExtractorsByOption<binding.JsStatsChunk, KnownStatsChunk>;
 	chunkOrigin: ExtractorsByOption<JsOriginRecord, StatsChunkOrigin>;
 	error: ExtractorsByOption<binding.JsStatsError, StatsError>;
-	warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
+	warning: ExtractorsByOption<binding.JsStatsError, StatsError>;
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem
@@ -352,27 +348,6 @@ export type SimpleExtractors = {
 		binding.JsStatsModuleTraceDependency,
 		StatsModuleTraceDependency
 	>;
-};
-
-export const uniqueArray = <T, I>(
-	items: Iterable<T>,
-	selector: (arg: T) => Iterable<I>
-): I[] => {
-	const set: Set<I> = new Set();
-	for (const item of items) {
-		for (const i of selector(item)) {
-			set.add(i);
-		}
-	}
-	return Array.from(set);
-};
-
-export const uniqueOrderedArray = <T, I>(
-	items: Iterable<T>,
-	selector: (arg: T) => Iterable<I>,
-	comparator: Comparator
-): I[] => {
-	return uniqueArray(items, selector).sort(comparator);
 };
 
 export const iterateConfig = (
@@ -416,7 +391,7 @@ type Child = {
 
 type ItemChildren = Child[];
 
-export const getTotalItems = (children: ItemChildren) => {
+const getTotalItems = (children: ItemChildren) => {
 	let count = 0;
 	for (const child of children) {
 		if (!child.children && !child.filteredChildren) {
@@ -481,8 +456,8 @@ export const spaceLimited = (
 			filteredChildren: getTotalItems(itemsAndGroups)
 		};
 	}
-	let children: any[] | undefined = undefined;
-	let filteredChildren: number | undefined = undefined;
+	let children: any[] | undefined;
+	let filteredChildren: number | undefined;
 	// This are the groups, which take 1+ lines each
 	const groups: ItemChildren = [];
 	// The sizes of the groups are stored in groupSizes
@@ -750,7 +725,7 @@ export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
 };
 
 export const warningFromStatsWarning = (
-	warning: binding.JsStatsWarning
+	warning: binding.JsStatsError
 ): Error => {
 	const res = new Error(warning.message);
 	res.name = warning.name || "StatsWarning";

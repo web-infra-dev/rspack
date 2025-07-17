@@ -130,7 +130,10 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let mut has_error = false;
 
     while let Some(m) = queue.pop_front() {
-      modules.insert(m);
+      // to avoid duplicate calculations in https://github.com/web-infra-dev/rspack/issues/10987
+      if !modules.insert(m) {
+        continue;
+      }
       let module = mg.module_by_identifier(&m).expect("should have module");
       let build_info = module.build_info();
       execute_result
@@ -153,25 +156,40 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       if !has_error && make_failed_module.contains(&m) {
         let diagnostics = module.diagnostics();
-        if diagnostics
+        let errors: Vec<_> = diagnostics
           .iter()
-          .any(|d| matches!(d.severity(), RspackSeverity::Error))
-        {
+          .filter(|d| matches!(d.severity(), RspackSeverity::Error))
+          .map(|d| d.message())
+          .collect();
+        if !errors.is_empty() {
           has_error = true;
+          if let Some(existing_error) = &mut execute_result.error {
+            existing_error.push('\n');
+            existing_error.push_str(&errors.join("\n"));
+          } else {
+            execute_result.error = Some(errors.join("\n"));
+          }
         }
       }
-
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
           let dep = mg.dependency_by_id(dep_id).expect("should dep exist");
           let diagnostics = FactorizeInfo::get_from(dep)
             .expect("should have factorize info")
             .diagnostics();
-          if diagnostics
+          let errors: Vec<_> = diagnostics
             .iter()
-            .any(|d| matches!(d.severity(), RspackSeverity::Error))
-          {
+            .filter(|d| matches!(d.severity(), RspackSeverity::Error))
+            .map(|d| d.message())
+            .collect();
+          if !errors.is_empty() {
             has_error = true;
+            if let Some(existing_error) = &mut execute_result.error {
+              existing_error.push('\n');
+              existing_error.push_str(&errors.join("\n"));
+            } else {
+              execute_result.error = Some(errors.join("\n"));
+            }
           }
         }
         if let Some(c) = mg.connection_by_dependency_id(dep_id) {
@@ -342,7 +360,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       Err(e) => {
         execute_result.cacheable = false;
-        execute_result.error = Some(e.to_string());
+        if let Some(existing_error) = &mut execute_result.error {
+          existing_error.push('\n');
+          existing_error.push_str(&e.to_string());
+        } else {
+          execute_result.error = Some(e.to_string());
+        }
       }
     };
 

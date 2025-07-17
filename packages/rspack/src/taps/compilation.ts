@@ -1,13 +1,12 @@
 import * as binding from "@rspack/binding";
-import { Chunk } from "../Chunk";
+import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import type { Module } from "../Module";
 import {
-	RuntimeGlobals,
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals,
-	isReservedRuntimeGlobal
+	isReservedRuntimeGlobal,
+	RuntimeGlobals
 } from "../RuntimeGlobals";
-import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
 
@@ -41,7 +40,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					runtimeRequirements
 				}: binding.JsAdditionalTreeRuntimeRequirementsArg) {
 					const set = __from_binding_runtime_globals(runtimeRequirements);
-					queried.call(Chunk.__from_binding(chunk), set);
+					queried.call(chunk, set);
 					return {
 						runtimeRequirements: __to_binding_runtime_globals(set)
 					};
@@ -58,13 +57,12 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function ({
-					chunk: chunkBinding,
+					chunk,
 					allRuntimeRequirements,
 					runtimeRequirements
 				}: binding.JsRuntimeRequirementInTreeArg): binding.JsRuntimeRequirementInTreeResult {
 					const set = __from_binding_runtime_globals(runtimeRequirements);
 					const all = __from_binding_runtime_globals(allRuntimeRequirements);
-					const chunk = Chunk.__from_binding(chunkBinding);
 					// We don't really pass the custom runtime globals to the rust side, we only pass reserved
 					// runtime globals to the rust side, and iterate over the custom runtime globals in the js side
 					const customRuntimeGlobals = new Set<string>();
@@ -98,7 +96,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 			function (queried) {
 				return function ({ module, chunk }: binding.JsRuntimeModuleArg) {
 					const originSource = module.source?.source;
-					queried.call(module, Chunk.__from_binding(chunk));
+					queried.call(module, chunk);
 					const newSource = module.source?.source;
 					if (newSource && newSource !== originSource) {
 						return module;
@@ -325,12 +323,12 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return function (chunk: binding.JsChunk) {
+				return function (chunk: binding.Chunk) {
 					if (!getCompiler().options.output.hashFunction) {
 						throw new Error("'output.hashFunction' cannot be undefined");
 					}
 					const hash = createHash(getCompiler().options.output.hashFunction!);
-					queried.call(Chunk.__from_binding(chunk), hash);
+					queried.call(chunk, hash);
 					let digestResult: Buffer | string;
 					if (getCompiler().options.output.hashDigest) {
 						digestResult = hash.digest(
@@ -354,7 +352,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function ({ chunk, filename }: binding.JsChunkAssetArgs) {
-					return queried.call(Chunk.__from_binding(chunk), filename);
+					return queried.call(chunk, filename);
 				};
 			}
 		),

@@ -5,11 +5,13 @@ use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_collections::Identifiable;
 use rspack_core::{
+  get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfo, ExportProvided, ExportsInfo, Module, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext, UsageState,
+  CompilerOptions, ExportInfo, ExportProvided, ExportsInfoGetter, Module, ModuleGraph,
+  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
+  UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -35,30 +37,32 @@ pub struct ModuleInfoHeaderPlugin {
 fn print_exports_info_to_source<F>(
   source: &mut ConcatSource,
   ident: &str,
-  exports_info_id: ExportsInfo,
+  exports_info: &PrefetchedExportsInfoWrapper<'_>,
   request_shortener: &F,
   already_printed: &mut FxHashSet<ExportInfo>,
   module_graph: &ModuleGraph,
 ) where
   F: Fn(&ModuleIdentifier) -> String,
 {
-  let other_exports_info = exports_info_id.other_exports_info(module_graph);
+  let other_exports_info = exports_info.other_exports_info();
 
   let mut already_printed_exports = 0;
 
   let mut printed_exports = vec![];
 
-  for export_info in exports_info_id.ordered_exports(module_graph) {
-    if !already_printed.contains(&export_info) {
-      already_printed.insert(export_info);
+  for (_, export_info) in exports_info.exports() {
+    let export_info_id = export_info.id();
+    if !already_printed.contains(&export_info_id) {
+      already_printed.insert(export_info_id);
       printed_exports.push(export_info);
     } else {
       already_printed_exports += 1;
     }
   }
   let mut show_other_exports = false;
-  if !already_printed.contains(&other_exports_info) {
-    already_printed.insert(other_exports_info);
+  let other_exports_info_id = other_exports_info.id();
+  if !already_printed.contains(&other_exports_info_id) {
+    already_printed.insert(other_exports_info_id);
     show_other_exports = true;
   } else {
     already_printed_exports += 1;
@@ -67,18 +71,18 @@ fn print_exports_info_to_source<F>(
   // print the exports
   for export_info in &printed_exports {
     let export_name: String = export_info
-      .name(module_graph)
+      .name()
       .map(|n| n.to_string())
       .unwrap_or("null".into());
-    let provide_info = export_info.get_provided_info(module_graph);
-    let usage_info = export_info.get_used_info(module_graph);
-    let rename_info = export_info.get_rename_info(module_graph);
+    let provide_info = export_info.get_provided_info();
+    let usage_info = export_info.get_used_info();
+    let rename_info = export_info.get_rename_info();
 
-    let target_desc = match export_info.get_target(module_graph) {
+    let target_desc = match get_target(export_info, module_graph) {
       Some(resolve_target) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
-          None => format!("-> {}", target_module),
+          None => format!("-> {target_module}"),
           Some(es) => {
             let exp = es.iter().map(|a| a.as_str()).collect::<Vec<_>>().join(".");
             format!(" -> {target_module} {exp}")
@@ -94,11 +98,13 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &export_info.exports_info(module_graph) {
+    if let Some(exports_info) = &export_info.exports_info() {
+      let exports_info =
+        ExportsInfoGetter::prefetch(exports_info, module_graph, PrefetchExportsInfoMode::Default);
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
-        *exports_info,
+        &exports_info,
         request_shortener,
         already_printed,
         module_graph,
@@ -113,16 +119,13 @@ fn print_exports_info_to_source<F>(
   }
 
   if show_other_exports {
-    let other_exports_info = exports_info_id.other_exports_info(module_graph);
-
-    let target = other_exports_info.get_target(module_graph);
-
+    let target = get_target(other_exports_info, module_graph);
     if target.is_some()
       || !matches!(
-        other_exports_info.provided(module_graph),
+        other_exports_info.provided(),
         Some(ExportProvided::NotProvided)
       )
-      || other_exports_info.get_used(module_graph, None) != UsageState::Unused
+      || other_exports_info.get_used(None) != UsageState::Unused
     {
       let title = if !printed_exports.is_empty() || already_printed_exports > 0 {
         "other exports"
@@ -130,8 +133,8 @@ fn print_exports_info_to_source<F>(
         "exports"
       };
 
-      let provide_info = other_exports_info.get_provided_info(module_graph);
-      let used_info = other_exports_info.get_used_info(module_graph);
+      let provide_info = other_exports_info.get_provided_info();
+      let used_info = other_exports_info.get_used_info();
       let target_desc = match target {
         Some(resolve_target) => {
           format!(" -> {}", request_shortener(&resolve_target.module))
@@ -168,14 +171,19 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
-  js_hooks
-    .render_module_package
-    .tap(render_js_module_package::new(self));
-  js_hooks.chunk_hash.tap(chunk_hash::new(self));
+  {
+    let js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+    let mut js_hooks = js_hooks.write().await;
+    js_hooks
+      .render_module_package
+      .tap(render_js_module_package::new(self));
+    js_hooks.chunk_hash.tap(chunk_hash::new(self));
+  }
 
-  let mut css_hooks = CssPlugin::get_compilation_hooks_mut(compilation.id());
+  let css_hooks = CssPlugin::get_compilation_hooks_mut(compilation.id());
   css_hooks
+    .write()
+    .await
     .render_module_package
     .tap(render_css_module_package::new(self));
 
@@ -239,7 +247,8 @@ async fn render_js_module_package(
 
     let module_graph = compilation.get_module_graph();
 
-    let exports_info = module_graph.get_exports_info(&module.identifier());
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {
       let request_shortener = |id: &ModuleIdentifier| {
@@ -253,7 +262,7 @@ async fn render_js_module_package(
       print_exports_info_to_source(
         &mut new_source,
         "",
-        exports_info,
+        &exports_info,
         &request_shortener,
         &mut FxHashSet::default(),
         &module_graph,

@@ -3,8 +3,8 @@ import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
 import type { Compilation } from "./Compilation";
-import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
+import type { Module } from "./Module";
 import { JsSource } from "./util/source";
 
 Object.defineProperty(binding.NormalModule.prototype, "identifier", {
@@ -12,13 +12,6 @@ Object.defineProperty(binding.NormalModule.prototype, "identifier", {
 	configurable: true,
 	value(this: binding.NormalModule): string {
 		return this[binding.MODULE_IDENTIFIER_SYMBOL];
-	}
-});
-Object.defineProperty(binding.NormalModule.prototype, "readableIdentifier", {
-	enumerable: true,
-	configurable: true,
-	value(this: binding.NormalModule) {
-		return this._readableIdentifier;
 	}
 });
 Object.defineProperty(binding.NormalModule.prototype, "originalSource", {

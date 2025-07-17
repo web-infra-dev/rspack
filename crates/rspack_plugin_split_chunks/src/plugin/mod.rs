@@ -10,7 +10,9 @@ use rspack_collections::UkeyMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use rustc_hash::FxHashMap;
+use tracing::instrument;
 
 use crate::{common::FallbackCacheGroup, module_group::ModuleGroup, CacheGroup, SplitChunkSizes};
 
@@ -39,7 +41,7 @@ impl SplitChunksPlugin {
       options.hide_path_info.unwrap_or(false),
     )
   }
-
+  #[instrument(name = "Compilation:SplitChunks",target=TRACING_BENCH_TARGET, skip_all)]
   async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");
@@ -81,7 +83,7 @@ impl SplitChunksPlugin {
       if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
         chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
         if let Some(chunk_name) = &module_group.chunk_name {
-          chunk_reason.push_str(&format!(" (name: {})", chunk_name));
+          chunk_reason.push_str(&format!(" (name: {chunk_name})"));
         }
       }
 
@@ -169,7 +171,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   self.inner_impl(compilation).await?;
   compilation
     .chunk_graph
-    .generate_dot(compilation, "after-split-chunks");
+    .generate_dot(compilation, "after-split-chunks")
+    .await;
   Ok(None)
 }
 

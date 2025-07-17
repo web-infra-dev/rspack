@@ -427,6 +427,14 @@ Here we assign the `value` to `value2`. Both `value2` and `value` are accessed w
 
 Tells Rspack to find segments of the module graph which can be safely concatenated into a single module. Depends on [optimization.providedExports](#optimizationprovidedexports) and [optimization.usedExports](#optimizationusedexports). By default `optimization.concatenateModules` is enabled in `production` mode and disabled elsewise.
 
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    concatenateModules: false,
+  },
+};
+```
+
 ## optimization.nodeEnv
 
 <PropertyType

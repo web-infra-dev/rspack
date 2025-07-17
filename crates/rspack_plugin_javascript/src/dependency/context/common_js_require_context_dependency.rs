@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, TemplateContext,
-  TemplateReplaceSource,
+  DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -15,6 +15,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireContextDependency {
   id: DependencyId,
+  loc: DependencyLocation,
   range: DependencyRange,
   value_range: Option<DependencyRange>,
   resource_identifier: String,
@@ -27,12 +28,14 @@ pub struct CommonJsRequireContextDependency {
 impl CommonJsRequireContextDependency {
   pub fn new(
     options: ContextOptions,
+    loc: DependencyLocation,
     range: DependencyRange,
     value_range: Option<DependencyRange>,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
+      loc,
       range,
       value_range,
       options,
@@ -67,11 +70,19 @@ impl Dependency for CommonJsRequireContextDependency {
     rspack_core::AffectType::True
   }
 
-  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+  fn get_diagnostics(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical.clone()]);
     }
     None
+  }
+
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.loc.clone())
   }
 }
 
@@ -90,10 +101,6 @@ impl ContextDependency for CommonJsRequireContextDependency {
 
   fn resource_identifier(&self) -> &str {
     &self.resource_identifier
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.options.request = request;
   }
 
   fn get_optional(&self) -> bool {

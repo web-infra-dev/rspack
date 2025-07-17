@@ -3,8 +3,9 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
   Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph, ModuleIdentifier,
-  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
 };
 use rspack_util::ext::DynHash;
 
@@ -39,10 +40,11 @@ impl PureExpressionDependency {
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
         let module_graph = compilation.get_module_graph();
-        let exports_info = module_graph.get_exports_info(&self.module_identifier);
+        let exports_info = module_graph
+          .get_prefetched_exports_info(&self.module_identifier, PrefetchExportsInfoMode::Default);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
-            exports_info.get_used(&module_graph, &[id.clone()], cur_runtime) != UsageState::Unused
+            exports_info.get_used(std::slice::from_ref(id), cur_runtime) != UsageState::Unused
           })
         })
       }
@@ -72,6 +74,7 @@ impl Dependency for PureExpressionDependency {
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {

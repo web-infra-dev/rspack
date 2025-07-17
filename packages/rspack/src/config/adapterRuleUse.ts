@@ -1,16 +1,18 @@
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
-
-import type { Compilation } from "../Compilation";
-import type { Compiler } from "../Compiler";
-import type { Module } from "../Module";
-import type { ResolveRequest } from "../Resolver";
-import { resolvePluginImport } from "../builtin-loader";
+import {
+	resolveCollectTypeScriptInfo,
+	resolvePluginImport
+} from "../builtin-loader";
 import {
 	type FeatureOptions,
 	toFeatures
 } from "../builtin-loader/lightningcss";
+import type { Compilation } from "../Compilation";
+import type { Compiler } from "../Compiler";
 import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import type { Logger } from "../logging/Logger";
+import type { Module } from "../Module";
+import type { ResolveRequest } from "../Resolver";
 import { isNil } from "../util";
 import type Hash from "../util/hash";
 import type { RspackOptionsNormalized } from "./normalization";
@@ -445,6 +447,11 @@ const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
 			if (rspackExperiments.import || rspackExperiments.pluginImport) {
 				rspackExperiments.import = resolvePluginImport(
 					rspackExperiments.import || rspackExperiments.pluginImport
+				);
+			}
+			if (rspackExperiments.collectTypeScriptInfo) {
+				rspackExperiments.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
+					rspackExperiments.collectTypeScriptInfo
 				);
 			}
 		}

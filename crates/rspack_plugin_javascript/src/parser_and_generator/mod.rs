@@ -6,10 +6,10 @@ use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, Compilation,
-  DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module, ModuleGraph,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType,
-  TemplateContext, TemplateReplaceSource,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, CollectedTypeScriptInfo,
+  Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem,
+  SourceType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -44,12 +44,16 @@ pub struct JavaScriptParserAndGenerator {
   // TODO
   #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
+  // TODO
+  #[cacheable(with=Skip)]
+  parser_pre_plugins: Vec<BoxJavascriptParserPlugin>,
 }
 
 impl std::fmt::Debug for JavaScriptParserAndGenerator {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JavaScriptParserAndGenerator")
       .field("parser_plugins", &"...")
+      .field("parser_pre_plugins", &"...")
       .finish()
   }
 }
@@ -57,6 +61,10 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
 impl JavaScriptParserAndGenerator {
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
     self.parser_plugins.push(parser_plugin);
+  }
+
+  pub fn add_parser_pre_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
+    self.parser_pre_plugins.push(parser_plugin);
   }
 
   fn source_block(
@@ -119,8 +127,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource = parse_context.resource_data.resource.as_str(),
-    id2 = parse_context.resource_data.resource.as_str(),
+    resource = parse_context.resource_data.resource.as_str()
   ))]
   async fn parse<'a>(
     &mut self,
@@ -137,11 +144,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
-      additional_data,
+      mut additional_data,
       parse_meta,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
+
+    if let Some(additional_data) = &mut additional_data
+      && let Some(collected_ts_info) = additional_data.remove::<CollectedTypeScriptInfo>()
+    {
+      build_info.collected_typescript_info = Some(collected_ts_info);
+    }
 
     let default_with_diagnostics =
       |source: Arc<dyn Source>, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
@@ -175,7 +188,21 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
-    let lexer = Lexer::new(
+    let parser_lexer = Lexer::new(
+      Syntax::Es(EsSyntax {
+        allow_return_outside_function: matches!(
+          module_type,
+          ModuleType::JsDynamic | ModuleType::JsAuto
+        ),
+        import_attributes: true,
+        ..Default::default()
+      }),
+      target,
+      SourceFileInput::from(&*fm),
+      Some(&comments),
+    );
+
+    let lexer = swc_ecma_lexer::Lexer::new(
       Syntax::Es(EsSyntax {
         allow_return_outside_function: matches!(
           module_type,
@@ -193,7 +220,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut ast = match javascript_compiler.parse_with_lexer(
       &fm,
-      lexer.clone(),
+      parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
     ) {
@@ -241,6 +268,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         &mut semicolons,
         unresolved_mark,
         &mut self.parser_plugins,
+        &mut self.parser_pre_plugins,
         additional_data,
         parse_meta,
       )

@@ -8,9 +8,9 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoSetter,
-  ExportProvided, Filename, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportProvided, Filename,
+  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData,
+  Plugin, PluginContext, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -197,7 +197,8 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks.render.tap(render::new(self));
   hooks.render_startup.tap(render_startup::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
@@ -264,19 +265,14 @@ async fn render_startup(
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
-    let exports_info = module_graph.get_exports_info(module);
+    let exports_info =
+      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
     let mut provided = vec![];
-    for export_info in exports_info.ordered_exports(&module_graph) {
-      if matches!(
-        export_info.provided(&module_graph),
-        Some(ExportProvided::NotProvided)
-      ) {
+    for (_, export_info) in exports_info.exports() {
+      if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
-      let export_info_name = export_info
-        .name(&module_graph)
-        .expect("should have name")
-        .to_string();
+      let export_info_name = export_info.name().expect("should have name").to_string();
       provided.push(export_info_name.clone());
       let name_access = property_access([export_info_name], 0);
       source.add(RawStringSource::from(format!(
@@ -473,10 +469,12 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   for (runtime, export, module_identifier) in runtime_info {
     let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
+      let export_info = module_graph
+        .get_exports_info(&module_identifier)
+        .get_export_info(&mut module_graph, &(export.as_str()).into());
       let info = export_info.as_data_mut(&mut module_graph);
-      ExportInfoSetter::set_used(info, UsageState::Used, Some(&runtime));
-      ExportInfoSetter::set_can_mangle_use(info, Some(false));
+      info.set_used(UsageState::Used, Some(&runtime));
+      info.set_can_mangle_use(Some(false));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);
       exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));

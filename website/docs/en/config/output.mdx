@@ -573,7 +573,7 @@ Substitutions available on URL-level:
 
 :::
 
-The length of hashes (`[hash]`, `[contenthash]` or `[chunkhash]`) can be specified using `[hash:12]` (defaults to 16). Alternatively, specify [`output.hashDigestLength`](#outputhashdigestlength) to configure the length globally.
+The length of hashes (`[hash]`, `[contenthash]` or `[chunkhash]`) can be specified using `[hash:12]` (defaults to 16), or use `[hash:base64:8]` to specify both the digest (currently only base64 is supported) and length. Alternatively, specify [`output.hashDigestLength`](#outputhashdigestlength) to configure the length globally.
 
 It is possible to filter out placeholder replacement when you want to use one of the placeholders in the actual file name. For example, to output a file `[name].js`, you have to escape the `[name]` placeholder by adding backslashes between the brackets. So that `[\name\]` generates `[name]` instead of getting replaced with the `name` of the asset.
 
@@ -657,7 +657,7 @@ The prefix length of the hash digest to use.
 
 ## output.hashFunction
 
-- **Type:** `'md4' | 'xxhash64'`
+- **Type:** `'md4' | 'xxhash64' | 'sha256'`
 - **Default:** `'xxhash64'`
 
 The hashing algorithm to use.

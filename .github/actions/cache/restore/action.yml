@@ -15,7 +15,7 @@ inputs:
 
 outputs:
   cache-hit:
-    description: 'A boolean value to indicate an exact match was found for the primary key'
+    description: "A boolean value to indicate an exact match was found for the primary key"
     value: ${{ steps.github-cache.outputs.cache-hit == 'true' || steps.local-cache.outputs.cache-hit == 'true' }}
 
 runs:

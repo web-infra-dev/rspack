@@ -1,17 +1,17 @@
 import path from "node:path";
 import util from "node:util";
 import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
+import * as rspackCore from "@rspack/core";
 import {
 	type Compiler,
 	type MultiCompiler,
 	type MultiRspackOptions,
 	type MultiStats,
 	type RspackOptions,
+	rspack,
 	type Stats,
-	ValidationError,
-	rspack
+	ValidationError
 } from "@rspack/core";
-import * as rspackCore from "@rspack/core";
 import { createColors, isColorSupported } from "colorette";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -172,6 +172,11 @@ export class RspackCLI {
 			if (typeof item.devtool === "undefined") {
 				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
+			// The CLI flag has a higher priority than the default devtool and devtool from the config.
+			if (typeof options.devtool !== "undefined") {
+				item.devtool = options.devtool as RspackOptions["devtool"];
+			}
+
 			if (isServe) {
 				const installed = (item.plugins ||= []).find(
 					item => item instanceof rspackCore.ProgressPlugin

@@ -1,11 +1,11 @@
 use std::{
   collections::HashSet,
   fmt,
-  path::Path,
   sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
 use async_trait::async_trait;
+use camino::Utf8Path;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
@@ -16,6 +16,7 @@ use rspack_core::{
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
+use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
@@ -48,7 +49,7 @@ pub enum ConsumeVersion {
 impl fmt::Display for ConsumeVersion {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      ConsumeVersion::Version(v) => write!(f, "{}", v),
+      ConsumeVersion::Version(v) => write!(f, "{v}"),
       ConsumeVersion::False => write!(f, "*"),
     }
   }
@@ -105,7 +106,8 @@ async fn resolve_matched_configs(
 }
 
 async fn get_description_file(
-  mut dir: &Path,
+  fs: Arc<dyn ReadableFileSystem>,
+  mut dir: &Utf8Path,
   satisfies_description_file_data: Option<impl Fn(Option<serde_json::Value>) -> bool>,
 ) -> (Option<serde_json::Value>, Option<Vec<String>>) {
   let description_filename = "package.json";
@@ -114,10 +116,7 @@ async fn get_description_file(
   loop {
     let description_file = dir.join(description_filename);
 
-    #[cfg(not(target_family = "wasm"))]
-    let data = tokio::fs::read(&description_file).await;
-    #[cfg(target_family = "wasm")]
-    let data = std::fs::read(&description_file);
+    let data = fs.read(&description_file).await;
 
     if let Ok(data) = data
       && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
@@ -126,7 +125,7 @@ async fn get_description_file(
         .as_ref()
         .is_some_and(|f| !f(Some(data.clone())))
       {
-        checked_file_paths.insert(description_file.to_string_lossy().to_string());
+        checked_file_paths.insert(description_file.to_string());
       } else {
         return (Some(data), None);
       }
@@ -250,8 +249,10 @@ impl ConsumeSharedPlugin {
       };
 
       if let Some(package_name) = package_name {
+        let fs = self.get_resolver().inner_fs();
         let (data, checked_description_file_paths) = get_description_file(
-          context.as_ref(),
+          fs,
+          context.as_path(),
           Some(|data: Option<serde_json::Value>| {
             if let Some(data) = data {
               let name_matches = data.get("name").and_then(|n| n.as_str()) == Some(package_name);

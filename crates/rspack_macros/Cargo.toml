@@ -5,12 +5,19 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_macros"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 [lib]
 proc-macro = true
 
 [dependencies]
-json        = { workspace = true }
 proc-macro2 = { workspace = true }
-quote       = { workspace = true }
-syn         = { workspace = true, features = ["full"] }
+quote = { workspace = true }
+syn = { workspace = true, features = [
+  "full",
+  "visit-mut",
+  "derive",
+  "parsing",
+  "printing",
+  "clone-impls",
+  "proc-macro",
+] }

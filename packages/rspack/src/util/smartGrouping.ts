@@ -106,10 +106,10 @@ export const smartGrouping = <T, R>(
 
 		const results: (T | R)[] = [];
 		for (;;) {
-			let bestGroup: Group<T, R> | undefined = undefined;
+			let bestGroup: Group<T, R> | undefined;
 			let bestGroupSize = -1;
-			let bestGroupItems = undefined;
-			let bestGroupOptions = undefined;
+			let bestGroupItems: Set<ItemWithGroups<T, R>> | undefined;
+			let bestGroupOptions: GroupOptions | false | undefined;
 			for (const [group, state] of groupMap) {
 				const { items, used } = state;
 				let options = state.options;

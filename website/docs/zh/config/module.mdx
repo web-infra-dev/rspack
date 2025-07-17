@@ -1,4 +1,4 @@
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
 import WebpackLicense from '@components/WebpackLicense';
 
@@ -444,6 +444,93 @@ export default {
 };
 ```
 
+### module.parser.javascript.typeReexportsPresence
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **类型：** `'no-tolerant' | 'tolerant' | 'tolerant-no-check'`
+- **默认值：** `'no-tolerant'`
+
+是否宽容重导出类型的报错，常见有以下两种场景：
+
+```ts
+// case 1:
+export { TypeA } from './types';
+// case 2:
+import { TypeB } from './types';
+export { TypeB };
+```
+
+重导出类型时，由于 `TypeA`、`TypeB` 是类型，但使用在 `export {}` 值空间中，导致报错：
+
+```txt
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeA' (reexported as 'TypeA') was not found in './types' (module has no exports)
+   ╭─[2:0]
+ 1 │ // case 1:
+ 2 │ export { TypeA } from "./types";
+   · ────────────────────────────────
+
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeB' (reexported as 'TypeB') was not found in './types' (module has no exports)
+   ╭─[5:0]
+ 3 │ // case 2:
+ 4 │ import { TypeB } from "./types";
+ 5 │ export { TypeB };
+   · ─────────────────
+```
+
+:::info 推荐配合 isolatedModules 使用 Rspack
+使用 Rspack 打包 TypeScript 时，我们强烈推荐开启 tsconfig.json 中的 [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules)（使用其他 bundler 时也推荐开启，因为这符合 bundler 如何编译 TypeScript：[.ts 文件之间相互独立，独立进行编译](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)），此时对于重导出类型会收到 TypeScript 提示：`Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`。
+:::
+
+- `'no-tolerant'`：默认行为，不会对重导出类型进行宽容处理，遇到上述情况会报错。
+- `'tolerant'`：会对重导出类型进行宽容处理，同时检查子模块中是否有对应的类型导出，由于需要收集子模块中的类型导出信息，该配置需要和 builtin:swc-loader 的 [`rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) 配合使用。
+- `'tolerant-no-check'`：会对重导出类型进行宽容处理，但不会检查子模块中是否有对应的类型导出，此时可能存在误将本该报错的场景宽容掉（通常 IDE 也会有相应提示），由于不需要检查子模块，所以性能也会更好。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    typeReexportsPresence: true, // 目前为实验性功能，需开启此选项
+  },
+  module: {
+    parser: {
+      javascript: {
+        typeReexportsPresence: 'tolerant',
+      },
+    },
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                },
+              },
+              rspackExperiments: {
+                collectTypeScriptInfo: {
+                  typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+
+:::warning
+目前仍为实验性功能，需要开启 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 该配置才会生效。
+:::
+
 ### module.parser.javascript.worker
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
@@ -494,6 +581,41 @@ export default {
   },
 };
 ```
+
+### module.parser.javascript.inlineConst
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+对位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化，常见场景为 `constants.js`。
+
+inline 优化的条件是常量值为：
+
+- `null` 或 `undefined`
+- `boolean` 值 (`true` 或 `false`)
+- 长度 \<= 6 的 `number`
+- 长度 \<= 6 的 `string`
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    inlineConst: true, // 目前为实验性功能，需开启此选项
+  },
+  module: {
+    parser: {
+      javascript: {
+        inlineConst: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+目前仍为实验性功能，需要开启 [experiments.inlineConst](/config/experiments#experimentstypereexportspresence) 该配置才会生效。
+:::
 
 ### module.parser["javascript/auto"]
 

@@ -4,6 +4,7 @@ use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
+use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -15,11 +16,23 @@ use crate::{
 };
 
 impl Compiler {
+  pub async fn rebuild(
+    &mut self,
+    changed_files: std::collections::HashSet<String>,
+    deleted_files: std::collections::HashSet<String>,
+  ) -> Result<()> {
+    within_compiler_context(
+      self.compiler_context.clone(),
+      self.rebuild_inner(changed_files, deleted_files),
+    )
+    .await?;
+    Ok(())
+  }
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
     compiler.changed_files = ?changed_files.iter().cloned().collect::<Vec<_>>(),
     compiler.deleted_files = ?deleted_files.iter().cloned().collect::<Vec<_>>()
   ))]
-  pub async fn rebuild(
+  async fn rebuild_inner(
     &mut self,
     changed_files: std::collections::HashSet<String>,
     deleted_files: std::collections::HashSet<String>,
@@ -61,6 +74,7 @@ impl Compiler {
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
         true,
+        self.compiler_context.clone(),
       );
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
@@ -157,6 +171,11 @@ impl Compiler {
         new_compilation.chunk_render_artifact =
           std::mem::take(&mut self.compilation.chunk_render_artifact);
       }
+      new_compilation.chunk_render_cache_artifact =
+        std::mem::take(&mut self.compilation.chunk_render_cache_artifact);
+      new_compilation
+        .chunk_render_cache_artifact
+        .start_next_generation();
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.

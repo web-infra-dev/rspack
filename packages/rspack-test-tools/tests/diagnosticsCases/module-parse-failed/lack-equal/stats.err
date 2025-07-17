@@ -1,18 +1,5 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
-         ╭─[5:0]
-       3 │     d = 10
-       4 │     g = CONST
-       5 │ }
-         · ─
-         ╰────
-      
-  help: 
-        You may need an appropriate loader to handle this file type.
-
-ERROR in ./index.js
-  × Module parse failed:
   ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
          ╭─[2:6]
        1 │ const CONST = 9000 % 2;
@@ -20,6 +7,19 @@ ERROR in ./index.js
          ·       ─
        3 │     d = 10
        4 │     g = CONST
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[5:0]
+       3 │     d = 10
+       4 │     g = CONST
+       5 │ }
+         · ─
          ╰────
       
   help: 

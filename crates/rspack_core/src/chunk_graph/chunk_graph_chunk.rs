@@ -13,7 +13,7 @@ use serde::{Serialize, Serializer};
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule,
   ChunkGroupByUkey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
+  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -119,8 +119,8 @@ impl ChunkGraph {
       .or_default();
   }
 
-  pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) {
-    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey);
+  pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) -> Option<ChunkGraphChunk> {
+    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey)
   }
 
   pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
@@ -248,10 +248,6 @@ impl ChunkGraph {
     chunk_ukey: &ChunkUkey,
   ) -> Option<&mut ChunkGraphChunk> {
     self.chunk_graph_chunk_by_chunk_ukey.get_mut(chunk_ukey)
-  }
-
-  pub fn remove_chunk_graph_chunk(&mut self, chunk_ukey: &ChunkUkey) -> Option<ChunkGraphChunk> {
-    self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey)
   }
 
   pub fn connect_chunk_and_entry_module(
@@ -629,6 +625,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.expect_chunk_graph_chunk(chunk);
     let mut input = cgc.modules.iter().copied().collect::<Vec<_>>();
@@ -639,16 +636,22 @@ impl ChunkGraph {
         module: ModuleIdentifier,
         set: &mut IdentifierSet,
         module_graph: &ModuleGraph,
+        module_graph_cache: &ModuleGraphCacheArtifact,
       ) {
         for connection in module_graph.get_outgoing_connections(&module) {
           // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
-          let active_state = connection.active_state(module_graph, None);
+          let active_state = connection.active_state(module_graph, None, module_graph_cache);
           match active_state {
             crate::ConnectionState::Active(false) => {
               continue;
             }
             crate::ConnectionState::TransitiveOnly => {
-              add_dependencies(*connection.module_identifier(), set, module_graph);
+              add_dependencies(
+                *connection.module_identifier(),
+                set,
+                module_graph,
+                module_graph_cache,
+              );
               continue;
             }
             _ => {}
@@ -657,7 +660,7 @@ impl ChunkGraph {
         }
       }
 
-      add_dependencies(module, &mut set, module_graph);
+      add_dependencies(module, &mut set, module_graph, module_graph_cache);
       set.into_iter().collect()
     });
 

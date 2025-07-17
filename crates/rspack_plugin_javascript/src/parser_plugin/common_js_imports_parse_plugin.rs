@@ -1,6 +1,6 @@
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyRange, SpanExt,
+  DependencyCategory, DependencyLocation, DependencyRange, SpanExt,
 };
 use rspack_error::{DiagnosticExt, Severity};
 use swc_core::{
@@ -33,6 +33,7 @@ fn create_commonjs_require_context_dependency(
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
 
+  let span = call_expr.span();
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
@@ -45,13 +46,14 @@ fn create_commonjs_require_context_dependency(
     namespace_object: ContextNameSpaceObject::Unset,
     group_options: None,
     replaces: result.replaces,
-    start: call_expr.span().real_lo(),
-    end: call_expr.span().real_hi(),
+    start: span.real_lo(),
+    end: span.real_hi(),
     referenced_exports: None,
     attributes: None,
   };
   let mut dep = CommonJsRequireContextDependency::new(
     options,
+    DependencyLocation::from_span(&span, &parser.source_map),
     call_expr.span().into(),
     Some(arg_expr.span().into()),
     parser.in_try,
@@ -339,8 +341,9 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let start = ident.span().real_lo();
-    let end = ident.span().real_hi();
+    let span = ident.span();
+    let start = span.real_lo();
+    let end = span.real_hi();
     let mut dep = CommonJsRequireContextDependency::new(
       ContextOptions {
         mode: ContextMode::Sync,
@@ -359,6 +362,7 @@ impl CommonJsImportsParserPlugin {
         referenced_exports: None,
         attributes: None,
       },
+      DependencyLocation::from_span(&span, &parser.source_map),
       ident.span().into(),
       None,
       parser.in_try,

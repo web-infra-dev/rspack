@@ -151,7 +151,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       match with_hmr {
         true => {
           let state_expression = format!("{}_module", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-          format!("{} = {} || ", state_expression, state_expression)
+          format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
       },
@@ -209,7 +209,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         let cross_origin = match cross_origin_loading {
           CrossOriginLoading::Disable => "".to_string(),
           CrossOriginLoading::Enable(v) => {
-            format!("link.crossOrigin = '{}'", v)
+            format!("link.crossOrigin = '{v}'")
           }
         };
         let link_prefetch_code = r#"
@@ -236,6 +236,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks
+          .read()
+          .await
           .link_prefetch
           .call(LinkPrefetchData {
             code: link_prefetch_code,
@@ -267,10 +269,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
               format!(
                 r#"
               if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = '{}';
+                link.crossOrigin = '{v}';
               }}
-              "#,
-                v
+              "#
               )
             }
           }
@@ -299,6 +300,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks
+          .read()
+          .await
           .link_preload
           .call(LinkPreloadData {
             code: link_preload_code,

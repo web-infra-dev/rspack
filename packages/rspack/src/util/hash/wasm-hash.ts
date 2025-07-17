@@ -12,7 +12,7 @@
 // 64 is the maximum chunk size for every possible wasm hash implementation
 // 4 is the maximum number of bytes per char for string encoding (max is utf-8)
 // ~3 makes sure that it's always a block of 4 chars, so avoid partially encoded bytes for base64
-export const MAX_SHORT_STRING = Math.floor((65536 - 64) / 4) & ~3;
+const MAX_SHORT_STRING = Math.floor((65536 - 64) / 4) & ~3;
 
 type Exports = WebAssembly.Instance["exports"] & {
 	init: () => void;

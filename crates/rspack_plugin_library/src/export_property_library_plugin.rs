@@ -5,8 +5,8 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
-  ExportInfoSetter, LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin,
-  PluginContext, RuntimeGlobals, UsageState,
+  LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext,
+  RuntimeGlobals, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -63,7 +63,8 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks.render_startup.tap(render_startup::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   Ok(())
@@ -151,10 +152,12 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   for (runtime, export, module_identifier) in runtime_info {
     let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
+      let export_info = module_graph
+        .get_exports_info(&module_identifier)
+        .get_export_info(&mut module_graph, &(export.as_str()).into());
       let info = export_info.as_data_mut(&mut module_graph);
-      ExportInfoSetter::set_used(info, UsageState::Used, Some(&runtime));
-      ExportInfoSetter::set_can_mangle_use(info, Some(false));
+      info.set_used(UsageState::Used, Some(&runtime));
+      info.set_can_mangle_use(Some(false));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);
       if self.ns_object_used {

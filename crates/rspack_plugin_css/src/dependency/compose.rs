@@ -57,6 +57,7 @@ impl Dependency for CssComposeDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &rspack_core::ModuleGraph,
+    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     self
@@ -75,10 +76,6 @@ impl ModuleDependency for CssComposeDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request;
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

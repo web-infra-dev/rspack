@@ -7,16 +7,16 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
-
-import querystring from "node:querystring";
+const LOADER_PROCESS_NAME = "Loader Analysis";
 
 import assert from "node:assert";
+import querystring from "node:querystring";
 import {
+	formatDiagnostic,
 	type JsLoaderContext,
 	type JsLoaderItem,
 	JsLoaderState,
-	JsRspackSeverity,
-	formatDiagnostic
+	JsRspackSeverity
 } from "@rspack/binding";
 import {
 	OriginalSource,
@@ -25,20 +25,20 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
+import { commitCustomFieldsToRust } from "../BuildInfo";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { NormalModule } from "../NormalModule";
-import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,
 	type Diagnostic,
-	type LoaderContext,
 	isUseSimpleSourceMap,
-	isUseSourceMap
+	isUseSourceMap,
+	type LoaderContext
 } from "../config/adapterRuleUse";
+import { NormalModule } from "../NormalModule";
+import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import { JavaScriptTracer } from "../trace";
 import {
-	concatErrorMsgAndStack,
 	isNil,
 	serializeObject,
 	stringifyLoaderObject,
@@ -53,6 +53,8 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
+import ModuleError from "./ModuleError";
+import ModuleWarning from "./ModuleWarning";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
 import {
@@ -197,6 +199,11 @@ export class LoaderObject {
 		this.loaderItem.normalExecuted = true;
 	}
 
+	set noPitch(value: boolean) {
+		assert(value);
+		this.loaderItem.noPitch = true;
+	}
+
 	shouldYield() {
 		return this.request.startsWith(BUILTIN_LOADER_PREFIX);
 	}
@@ -259,10 +266,16 @@ export async function runLoaders(
 	const pitch = loaderState === JsLoaderState.Pitching;
 
 	const { resource } = context;
+	const uuid = JavaScriptTracer.uuid();
+
 	JavaScriptTracer.startAsync({
-		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		name: "run_js_loaders",
+		processName: LOADER_PROCESS_NAME,
+		uuid,
+		ph: "b",
 		args: {
-			id2: resource
+			is_pitch: pitch,
+			resource: resource
 		}
 	});
 	const splittedResource = resource && parsePathQueryFragment(resource);
@@ -327,8 +340,12 @@ export async function runLoaders(
 	) {
 		JavaScriptTracer.startAsync({
 			name: "importModule",
+			processName: LOADER_PROCESS_NAME,
+
+			uuid,
 			args: {
-				id2: resource
+				is_pitch: pitch,
+				resource: resource
 			}
 		});
 		const options = userOptions ? userOptions : {};
@@ -341,8 +358,11 @@ export async function runLoaders(
 				if (err) {
 					JavaScriptTracer.endAsync({
 						name: "importModule",
+						processName: LOADER_PROCESS_NAME,
+						uuid,
 						args: {
-							id2: resource
+							is_pitch: pitch,
+							resource: resource
 						}
 					});
 					onError(err);
@@ -364,8 +384,11 @@ export async function runLoaders(
 					}
 					JavaScriptTracer.endAsync({
 						name: "importModule",
+						processName: LOADER_PROCESS_NAME,
+						uuid,
 						args: {
-							id2: resource
+							is_pitch: pitch,
+							resource: resource
 						}
 					});
 					if (res.error) {
@@ -546,35 +569,31 @@ export async function runLoaders(
 		);
 	};
 	loaderContext.rootContext = compiler.context;
-	loaderContext.emitError = function emitError(err) {
-		let error = err;
-		if (!(error instanceof Error)) {
-			error = new NonErrorEmittedError(error);
+	loaderContext.emitError = function emitError(e) {
+		if (!(e instanceof Error)) {
+			e = new NonErrorEmittedError(e);
 		}
-		error.name = "ModuleError";
-		error.message = `${error.message} (from: ${stringifyLoaderObject(
-			loaderContext.loaders[loaderContext.loaderIndex]
-		)})`;
-		error = concatErrorMsgAndStack(error);
-		(error as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		const error = new ModuleError(e, {
+			from: stringifyLoaderObject(
+				loaderContext.loaders[loaderContext.loaderIndex]
+			)
+		});
+		error.module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
 		});
 	};
-	loaderContext.emitWarning = function emitWarning(warn) {
-		let warning = warn;
-		if (!(warning instanceof Error)) {
-			warning = new NonErrorEmittedError(warning);
+	loaderContext.emitWarning = function emitWarning(e) {
+		if (!(e instanceof Error)) {
+			e = new NonErrorEmittedError(e);
 		}
-		warning.name = "ModuleWarning";
-		warning.message = `${warning.message} (from: ${stringifyLoaderObject(
-			loaderContext.loaders[loaderContext.loaderIndex]
-		)})`;
-		warning = concatErrorMsgAndStack(warning);
-		(warning as RspackError).moduleIdentifier =
-			loaderContext._module.identifier();
+		const warning = new ModuleWarning(e, {
+			from: stringifyLoaderObject(
+				loaderContext.loaders[loaderContext.loaderIndex]
+			)
+		});
+		warning.module = loaderContext._module;
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
@@ -586,7 +605,7 @@ export async function runLoaders(
 		sourceMap?,
 		assetInfo?
 	) {
-		let source: Source | undefined = undefined;
+		let source: Source | undefined;
 		if (sourceMap) {
 			if (
 				typeof sourceMap === "string" &&
@@ -952,16 +971,19 @@ export async function runLoaders(
 		const loaderName = extractLoaderName(currentLoaderObject!.request);
 		let result: any;
 		JavaScriptTracer.startAsync({
-			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
-			cat: "rspack",
+			name: loaderName,
+			trackName: loaderName,
+			processName: LOADER_PROCESS_NAME,
+			uuid,
 			args: {
-				id2: resource,
-				"loader.request": currentLoaderObject?.request
+				is_pitch: pitch,
+				resource: resource
 			}
 		});
 		if (parallelism) {
 			result =
 				(await pool.run(
+					loaderName,
 					{
 						loaderContext: getWorkerLoaderContext(),
 						loaderState,
@@ -975,10 +997,13 @@ export async function runLoaders(
 			result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
 		}
 		JavaScriptTracer.endAsync({
-			name: `js_loader:${pitch ? "pitch:" : ""}${loaderName}`,
+			name: loaderName,
+			trackName: loaderName,
+			processName: LOADER_PROCESS_NAME,
+			uuid,
 			args: {
-				id2: resource,
-				"loader.request": currentLoaderObject?.request
+				is_pitch: pitch,
+				resource: resource
 			}
 		});
 		return result;
@@ -1073,29 +1098,29 @@ export async function runLoaders(
 			LoaderObject.__to_binding(item)
 		);
 	} catch (e) {
-		const error = e as Error & { hideStack?: boolean | "true" };
-		context.__internal__error =
-			typeof e === "string"
-				? {
-						name: "ModuleBuildError",
-						message: e
-					}
-				: {
-						name: "ModuleBuildError",
-						message: error.message,
-						stack: typeof error.stack === "string" ? error.stack : undefined,
-						hideStack:
-							"hideStack" in error
-								? error.hideStack === true || error.hideStack === "true"
-								: undefined
-					};
+		if (typeof e !== "object" || e === null) {
+			const error = new Error(
+				`(Emitted value instead of an instance of Error) ${e}`
+			);
+			error.name = "NonErrorEmittedError";
+			context.__internal__error = error;
+		} else {
+			context.__internal__error = e as RspackError;
+		}
 	}
 	JavaScriptTracer.endAsync({
-		name: `run_js_loaders${pitch ? ":pitch" : ":normal"}`,
+		name: "run_js_loaders",
+		uuid,
 		args: {
-			id2: resource
+			is_pitch: pitch,
+			resource: resource
 		}
 	});
+
+	if (compiler.options.experiments.cache && compiler.options?.cache) {
+		commitCustomFieldsToRust(context._module.buildInfo);
+	}
+
 	return context;
 }
 

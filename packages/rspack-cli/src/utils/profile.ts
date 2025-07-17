@@ -7,24 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { rspack } from "@rspack/core";
 
-const overviewTraceFilter = "info";
-const allTraceFilter = "trace";
-const defaultRustTraceLayer = "chrome";
-
-enum TracePreset {
-	OVERVIEW = "OVERVIEW", // contains overview trace events
-	ALL = "ALL" // contains all trace events
-}
-
-function resolveLayer(value: string): string {
-	if (value === TracePreset.OVERVIEW) {
-		return overviewTraceFilter;
-	}
-	if (value === TracePreset.ALL) {
-		return allTraceFilter;
-	}
-	return value;
-}
+const defaultRustTraceLayer = "perfetto";
 
 export async function applyProfile(
 	filterValue: string,
@@ -33,35 +16,34 @@ export async function applyProfile(
 ) {
 	const { asyncExitHook } = await import("exit-hook");
 
-	if (traceLayer !== "chrome" && traceLayer !== "logger") {
+	if (traceLayer !== "logger" && traceLayer !== "perfetto") {
 		throw new Error(`unsupported trace layer: ${traceLayer}`);
 	}
-
+	const timestamp = Date.now();
+	const defaultOutputDir = path.resolve(
+		`.rspack-profile-${timestamp}-${process.pid}`
+	);
 	if (!traceOutput) {
-		const timestamp = Date.now();
-		const defaultOutputDir = path.resolve(
-			`.rspack-profile-${timestamp}-${process.pid}`
-		);
-		const defaultRustTraceChromeOutput = path.join(
+		const defaultRustTracePerfettoOutput = path.resolve(
 			defaultOutputDir,
-			"trace.json"
+			"rspack.pftrace"
 		);
 		const defaultRustTraceLoggerOutput = "stdout";
 
 		const defaultTraceOutput =
-			traceLayer === "chrome"
-				? defaultRustTraceChromeOutput
+			traceLayer === "perfetto"
+				? defaultRustTracePerfettoOutput
 				: defaultRustTraceLoggerOutput;
 
-		// biome-ignore lint/style/noParameterAssign: setting default value makes sense
 		traceOutput = defaultTraceOutput;
+	} else if (traceOutput !== "stdout" && traceOutput !== "stderr") {
+		// if traceOutput is not stdout or stderr, we need to ensure the directory exists
+		traceOutput = path.resolve(defaultOutputDir, traceOutput);
 	}
-
-	const filter = resolveLayer(filterValue);
 
 	await ensureFileDir(traceOutput);
 	await rspack.experiments.globalTrace.register(
-		filter,
+		filterValue,
 		traceLayer,
 		traceOutput
 	);

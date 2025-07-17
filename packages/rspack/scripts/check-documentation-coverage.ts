@@ -1,7 +1,8 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
+
 // import { ZodObject, ZodOptional, ZodUnion } from "zod";
 // import { rspackOptions } from "../src/config/zod.ts";
 
@@ -112,8 +113,8 @@ function checkPluginsDocumentationCoverage() {
 		"OriginEntryPlugin",
 		"RuntimePlugin", // This plugin only provides hooks, should not be used separately
 		"RsdoctorPlugin", // This plugin is not stable yet
-		"CssChunkingPlugin", // This plugin is not stable yet
-		"RstestPlugin" // This plugin is not stable yet
+		"RstestPlugin", // This plugin is not stable yet
+		"RslibPlugin" // This plugin is not stable yet
 	];
 
 	const undocumentedPlugins = Array.from(implementedPlugins).filter(
@@ -282,9 +283,9 @@ function checkConfigsDocumentationCoverage() {
 	// 		"profile"
 	// 	].some(c => config.startsWith(c));
 	// });
-	const markdownSections = parseConfigDocuments();
+	const _markdownSections = parseConfigDocuments();
 	const undocumentedConfigs: string[] = [];
-	const map = new Map();
+	// const map = new Map();
 
 	// for (const config of implementedConfigs) {
 	// 	let documented = false;

@@ -15,8 +15,8 @@ use super::Storage;
 use crate::{
   cache::persistent::cacheable_context::CacheableContext, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, DependencyId, DependencyParents,
-  ExportInfoData, ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
-  ModuleGraphPartial, RayonConsumer,
+  ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleGraphPartial,
+  RayonConsumer,
 };
 
 const SCOPE: &str = "occasion_make_module_graph";
@@ -47,7 +47,7 @@ pub fn save_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
 ) {
-  let mg = ModuleGraph::new(vec![partial], None);
+  let mg = ModuleGraph::new([Some(partial), None], None);
   for identifier in revoked_modules {
     storage.remove(SCOPE, identifier.as_bytes());
   }
@@ -121,10 +121,10 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
-) -> Result<(ModuleGraphPartial, HashSet<DependencyId>)> {
+) -> Result<(ModuleGraphPartial, HashSet<DependencyId>, IdentifierSet)> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
-  let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
+  let mut mg = ModuleGraph::new([None, None], Some(&mut partial));
   storage
     .load(SCOPE)
     .await?
@@ -159,13 +159,9 @@ pub async fn recovery_module_graph(
         mg.add_block(Box::new(block));
       }
       // recovery exports/export info
-      let other_exports_info = ExportInfoData::new(None, None);
-      let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
-      let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+      let exports_info = ExportsInfoData::default();
       mgm.exports = exports_info.id();
       mg.set_exports_info(exports_info.id(), exports_info);
-      mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
-      mg.set_export_info(other_exports_info.id(), other_exports_info);
 
       mg.add_module_graph_module(mgm);
       mg.add_module(module);
@@ -180,7 +176,20 @@ pub async fn recovery_module_graph(
     }
   }
 
+  let mut isolated_modules: IdentifierSet = Default::default();
+  // TODO save entry to avoid clean module which used at add_include.
+  for (mid, mgm) in mg.module_graph_modules() {
+    let Some(issuer) = mgm.issuer().identifier() else {
+      isolated_modules.insert(mid);
+      continue;
+    };
+    if mg.module_by_identifier(issuer).is_none() {
+      isolated_modules.insert(mid);
+    }
+  }
+
   tracing::debug!("recovery {} module", mg.modules().len());
   tracing::debug!("recovery failed {} deps", force_build_dependencies.len());
-  Ok((partial, force_build_dependencies))
+  tracing::debug!("isolated modules {} ", isolated_modules.len());
+  Ok((partial, force_build_dependencies, isolated_modules))
 }

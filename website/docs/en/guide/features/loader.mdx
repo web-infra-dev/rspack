@@ -1,14 +1,16 @@
 # Loader
 
-In bundling terminology, a loader is like a plugin but tasked with transforming file contents. You can use loaders to transform arbitrary input files into file types that are natively supported by Rspack.
+Rspack has built-in support for JavaScript, CSS, JSON, and static assets modules.
 
-:::tip
+A loader is a transformer that converts various types of modules into Rspack supported types. By using different kinds of loaders, you can extend Rspack to process additional module types, including JSX, Markdown, Sass, Less, and more.
 
-A loader performs pre-processing of resources, whereas a configuration [Rule.type](/config/module#ruletype) describes post-processing of resources whose type is natively supported by Rspack.
+When Rspack bundles a module, it first pre-processes the module through loaders, transforming it into a Rspack supported module type, and then post-processes the module according to the [Rule.type](/config/module#ruletype).
 
-:::
+## Compatibility with webpack loaders
 
-Rspack has supported most community loaders. If you find an unsupported loader, please feel free to communicate with us through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues).
+Rspack allows you to use most webpack loaders in the community. See [awesome-rspack - Rspack loaders](https://github.com/web-infra-dev/awesome-rspack?tab=readme-ov-file#rspack-loaders) to find loaders provided by the community.
+
+If you find an unsupported loader, please feel free to communicate with us through [GitHub Issues](https://github.com/web-infra-dev/rspack/issues).
 
 ## Developing a loader
 
@@ -18,7 +20,7 @@ Refer to [Loader API - loader types](/api/loader-api/types) to learn how to deve
 
 ### Using Less
 
-CSS is a first-class citizen of Rspack, so processing of CSS files is natively supported. For `Less` files, you need to use an external [less-loader](https://github.com/webpack-contrib/less-loader) to transform the contents of the file accordingly.
+You can use [less-loader](https://github.com/webpack-contrib/less-loader) to transform the contents of the `.less` file accordingly.
 
 ```js title="rspack.config.mjs"
 export default {

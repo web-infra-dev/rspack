@@ -38,7 +38,7 @@ pub fn eval_source<T: Display>(
           span.lo.0.saturating_sub(1) as usize,
           span.hi.0.saturating_sub(1) as usize,
           format!("{error_title} warning"),
-          format!("failed to parse {}", json!(fm.src.as_ref())),
+          format!("failed to parse {}", json!(fm.src.as_str())),
         )
         .with_severity(Severity::Warning),
       ));

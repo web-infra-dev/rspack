@@ -8,7 +8,7 @@ on:
         type: string
         description: "Commit SHA"
   workflow_run:
-    workflows: ["Release Full"]
+    workflows: ["Release Full(OTP)", "Release Full"]
     types:
       - completed
 permissions:
@@ -21,8 +21,6 @@ jobs:
   build:
     name: Build All Debug Bindings
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
     uses: ./.github/workflows/reusable-build-all.yml
     with:
       ref: ${{inputs.commit || github.event.workflow_run.head_sha }}
@@ -50,6 +48,9 @@ jobs:
         with:
           path: artifacts
 
+      - name: Clean artifacts
+        run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
+
       - name: Move artifacts
         run: node scripts/build-npm.cjs
 
@@ -63,6 +64,6 @@ jobs:
         run: |
           pnpm run build:js
           ./x version debug
-          ./x publish stable --dry-run --tag latest
+          ./x publish stable --tag latest
         env:
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}

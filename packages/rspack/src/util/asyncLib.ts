@@ -26,7 +26,6 @@ function noop() {}
 function onlyOnce<E = Error>(func: ErrorCallback<E>): ErrorCallback<E> {
 	return (err?: E | null) => {
 		const fn = func;
-		// biome-ignore lint/style/noParameterAssign:
 		func = throwError;
 		fn(err);
 	};
@@ -35,7 +34,6 @@ function onlyOnce<E = Error>(func: ErrorCallback<E>): ErrorCallback<E> {
 function once<E = Error>(func: ErrorCallback<E>): ErrorCallback<E> {
 	return (err?: E | null) => {
 		const fn = func;
-		// biome-ignore lint/style/noParameterAssign:
 		func = noop;
 		fn(err);
 	};

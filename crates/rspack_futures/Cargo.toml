@@ -4,10 +4,11 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_futures"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 
 [dependencies]
-tokio = { workspace = true, features = ["rt"] }
+rspack_tasks = { workspace = true }
+tokio        = { workspace = true, features = ["rt"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }

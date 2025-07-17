@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkGroupOrderKey,
@@ -22,10 +21,57 @@ impl Default for CssLoadingRuntimeModule {
   }
 }
 
+impl CssLoadingRuntimeModule {
+  fn template_id(&self, id: TemplateId) -> String {
+    let base_id = self.id.to_string();
+
+    match id {
+      TemplateId::Raw => base_id,
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithLoading => format!("{base_id}_with_loading"),
+      TemplateId::WithPrefetch => format!("{base_id}_with_prefetch"),
+      TemplateId::WithPreload => format!("{base_id}_with_preload"),
+    }
+  }
+}
+
+enum TemplateId {
+  Raw,
+  WithHmr,
+  WithLoading,
+  WithPrefetch,
+  WithPreload,
+}
+
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.template_id(TemplateId::Raw),
+        include_str!("./css_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmr),
+        include_str!("./css_loading_with_hmr.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithLoading),
+        include_str!("./css_loading_with_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPrefetch),
+        include_str!("./css_loading_with_prefetch.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPreload),
+        include_str!("./css_loading_with_preload.ejs").to_string(),
+      ),
+    ]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
@@ -35,7 +81,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let unique_name = &compilation.options.output.unique_name;
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-      let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
       let condition_map =
         compilation
@@ -127,7 +172,11 @@ installedChunks[chunkId] = 0;
               RuntimeGlobals::MODULE_FACTORIES
             ))
             .unwrap_or_default(),
-          with_hmr.then_some("return moduleIds").unwrap_or_default(),
+          if with_hmr {
+            "return moduleIds"
+          } else {
+            Default::default()
+          },
         ),
       );
       let load_initial_chunk_data = if initial_chunk_ids.len() > 2 {
@@ -159,37 +208,26 @@ installedChunks[chunkId] = 0;
         Cow::Borrowed("// no initial css")
       };
 
-      source.push_str(
-        &include_str!("./css_loading.js")
-          .cow_replace(
-            "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-            &cross_origin_content,
-          )
-          .cow_replace("__CSS_CHUNK_DATA__", &load_css_chunk_data)
-          .cow_replace("__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__", &chunk_load_timeout)
-          .cow_replace("__UNIQUE_NAME__", unique_name)
-          .cow_replace("__INITIAL_CSS_CHUNK_DATA__", &load_initial_chunk_data),
-      );
+      let raw_source = compilation.runtime_template.render(
+        &self.template_id(TemplateId::Raw),
+        Some(serde_json::json!({
+          "__CROSS_ORIGIN_LOADING_PLACEHOLDER__": &cross_origin_content,
+          "__CSS_CHUNK_DATA__": &load_css_chunk_data,
+          "__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__": &chunk_load_timeout,
+          "__UNIQUE_NAME__": unique_name,
+          "__INITIAL_CSS_CHUNK_DATA__": &load_initial_chunk_data,
+        })),
+      )?;
+      source.push_str(&raw_source);
 
       if with_loading {
-        let chunk_loading_global_expr = format!(
-          "{}['{}']",
-          &compilation.options.output.global_object,
-          &compilation.options.output.chunk_loading_global
-        );
-        source.push_str(
-          &include_str!("./css_loading_with_loading.js")
-            .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-            .cow_replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
-            .cow_replace(
-              "$FETCH_PRIORITY$",
-              if with_fetch_priority {
-                ", fetchPriority"
-              } else {
-                ""
-              },
-            ),
-        );
+        let source_with_loading = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithLoading),
+          Some(serde_json::json!({
+            "__CSS_MATCHER__": &has_css_matcher.render("chunkId"),
+          })),
+        )?;
+        source.push_str(&source_with_loading);
       }
 
       let charset_content = if compilation.options.output.charset {
@@ -202,16 +240,19 @@ installedChunks[chunkId] = 0;
         let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
           &compilation.options.output.cross_origin_loading
         {
-          format!("link.crossOrigin = '{}';", cross_origin)
+          format!("link.crossOrigin = '{cross_origin}';")
         } else {
           "".to_string()
         };
-        source.push_str(
-          &include_str!("./css_loading_with_prefetch.js")
-            .cow_replace("$CSS_MATCHER$", &has_css_matcher.render("chunkId"))
-            .cow_replace("$CHARSET_PLACEHOLDER$", charset_content)
-            .cow_replace("$CROSS_ORIGIN_PLACEHOLDER$", &cross_origin_content),
-        );
+        let source_with_prefetch = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithPrefetch),
+          Some(serde_json::json!({
+            "__CSS_MATCHER__": &has_css_matcher.render("chunkId"),
+            "__CHARSET_PLACEHOLDER__": charset_content,
+            "__CROSS_ORIGIN_PLACEHOLDER__": cross_origin_content,
+          })),
+        )?;
+        source.push_str(&source_with_prefetch);
       }
 
       if with_preload && !matches!(has_css_matcher, BooleanMatcher::Condition(false)) {
@@ -233,16 +274,23 @@ installedChunks[chunkId] = 0;
         } else {
           "".to_string()
         };
-        source.push_str(
-          &include_str!("./css_loading_with_preload.js")
-            .cow_replace("$CSS_MATCHER$", &has_css_matcher.render("chunkId"))
-            .cow_replace("$CHARSET_PLACEHOLDER$", charset_content)
-            .cow_replace("$CROSS_ORIGIN_PLACEHOLDER$", &cross_origin_content),
-        );
+
+        let source_with_preload = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithPreload),
+          Some(serde_json::json!({
+            "__CSS_MATCHER__": &has_css_matcher.render("chunkId"),
+            "__CHARSET_PLACEHOLDER__": charset_content,
+            "__CROSS_ORIGIN_PLACEHOLDER__": cross_origin_content,
+          })),
+        )?;
+        source.push_str(&source_with_preload);
       }
 
       if with_hmr {
-        source.push_str(include_str!("./css_loading_with_hmr.js"));
+        let source_with_hmr = compilation
+          .runtime_template
+          .render(&self.template_id(TemplateId::WithHmr), None)?;
+        source.push_str(&source_with_hmr);
       }
 
       Ok(source)

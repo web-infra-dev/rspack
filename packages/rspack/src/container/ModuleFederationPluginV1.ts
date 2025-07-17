@@ -1,9 +1,9 @@
 import type { Compiler } from "../Compiler";
 import type { EntryRuntime, ExternalsType, LibraryOptions } from "../config";
-import { externalsType } from "../config/zod";
-import { SharePlugin, type Shared } from "../sharing/SharePlugin";
+import { getExternalsTypeSchema } from "../schema/config";
+import { isValidate } from "../schema/validate";
+import { type Shared, SharePlugin } from "../sharing/SharePlugin";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
-import { isValidate } from "../util/validate";
 import { ContainerPlugin, type Exposes } from "./ContainerPlugin";
 import {
 	ContainerReferencePlugin,
@@ -33,7 +33,8 @@ export class ModuleFederationPluginV1 {
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
 			options.remoteType ||
-			(options.library && isValidate(options.library.type, externalsType)
+			(options.library &&
+			isValidate(options.library.type, getExternalsTypeSchema)
 				? (options.library.type as ExternalsType)
 				: "script");
 		if (

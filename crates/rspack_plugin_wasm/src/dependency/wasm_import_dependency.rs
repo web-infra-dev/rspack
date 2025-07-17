@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
   DependencyRange, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, RuntimeSpec,
+  ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -61,6 +61,7 @@ impl Dependency for WasmImportDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
@@ -79,10 +80,6 @@ impl ModuleDependency for WasmImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request;
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

@@ -19,7 +19,7 @@ use jsonc_parser::parse_to_serde_value;
 use rspack_error::{miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error};
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
-use swc_config::{merge::Merge, IsModule};
+use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
@@ -36,7 +36,10 @@ use swc_core::{
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
-    parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax},
+    parser::{
+      parse_file_as_commonjs, parse_file_as_module, parse_file_as_program, parse_file_as_script,
+      Syntax,
+    },
     transforms::base::helpers::{self, Helpers},
   },
 };
@@ -56,6 +59,7 @@ impl JavaScriptCompiler {
     filename: Option<FileName>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
+    inspect_parsed_ast: impl FnOnce(&Program),
     before_pass: impl FnOnce(&Program) -> P + 'a,
   ) -> Result<TransformOutput, Error>
   where
@@ -67,7 +71,7 @@ impl JavaScriptCompiler {
       .new_source_file(filename.unwrap_or(FileName::Anon).into(), source.into());
     let javascript_transformer = JavaScriptTransformer::new(self.cm.clone(), fm, self, options)?;
 
-    javascript_transformer.transform(before_pass, module_source_map_kind)
+    javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
   }
 }
 
@@ -288,6 +292,7 @@ impl<'a> JavaScriptTransformer<'a> {
 
   fn transform<P>(
     self,
+    inspect_parsed_ast: impl FnOnce(&Program),
     before_pass: impl FnOnce(&Program) -> P + 'a,
     module_source_map_kind: Option<SourceMapKind>,
   ) -> Result<TransformOutput, Error>
@@ -313,6 +318,8 @@ impl<'a> JavaScriptTransformer<'a> {
       .input_source_map(&built_input.input_source_map)
       .to_rspack_result_from_anyhow()?;
 
+    inspect_parsed_ast(&built_input.program);
+
     let (program, diagnostics) = self.transform_with_built_input(built_input)?;
     let format_opt = JsMinifyFormatOptions {
       inline_script: false,
@@ -321,6 +328,7 @@ impl<'a> JavaScriptTransformer<'a> {
     };
 
     let print_options = PrintOptions {
+      source_len: self.fm.byte_length(),
       source_map: self.cm.clone(),
       target,
       source_map_config,
@@ -356,6 +364,9 @@ impl<'a> JavaScriptTransformer<'a> {
         parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
       }
       IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
+      IsModule::CommonJS => {
+        parse_file_as_commonjs(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+      }
     };
 
     for e in errors {
@@ -404,6 +415,7 @@ impl<'a> JavaScriptTransformer<'a> {
           self.options.output_path.as_deref(),
           self.options.source_root.clone(),
           self.options.source_file_name.clone(),
+          self.config.source_map_ignore_list.clone(),
           handler,
           Some(self.config.clone()),
           Some(&self.comments),
@@ -455,7 +467,7 @@ impl<'a> JavaScriptTransformer<'a> {
           }) {
             // swc errors includes plugin error;
             let error_msg = err.to_pretty_string();
-            let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
+            let swc_core_version = rspack_workspace::rspack_swc_core_version!();
             // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
             let help_msg = formatdoc!{"
               The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
@@ -476,6 +488,7 @@ impl<'a> JavaScriptTransformer<'a> {
         BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => true,
         BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => false,
         BoolOr::Bool(false) => false,
+        BoolOr::Data(JsMinifyCommentOption::PreserveRegexComments { .. }) => false,
       };
 
       minify_file_comments(

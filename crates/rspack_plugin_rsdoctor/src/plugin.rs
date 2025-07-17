@@ -16,6 +16,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::sync::RwLock;
 
 use crate::{
   chunk_graph::{
@@ -40,7 +41,7 @@ pub type SendAssets =
 pub type SendModuleSources =
   Arc<dyn Fn(RsdoctorModuleIdsPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<RsdoctorPluginHooks>>> =
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Arc<RwLock<RsdoctorPluginHooks>>>> =
   LazyLock::new(Default::default);
 
 static MODULE_UKEY_MAP: LazyLock<FxDashMap<Identifier, ModuleUkey>> =
@@ -61,7 +62,7 @@ impl From<String> for RsdoctorPluginModuleGraphFeature {
       "graph" => RsdoctorPluginModuleGraphFeature::ModuleGraph,
       "ids" => RsdoctorPluginModuleGraphFeature::ModuleIds,
       "sources" => RsdoctorPluginModuleGraphFeature::ModuleSources,
-      _ => panic!("invalid module graph feature: {}", value),
+      _ => panic!("invalid module graph feature: {value}"),
     }
   }
 }
@@ -87,7 +88,7 @@ impl From<String> for RsdoctorPluginChunkGraphFeature {
     match value.as_str() {
       "graph" => RsdoctorPluginChunkGraphFeature::ChunkGraph,
       "assets" => RsdoctorPluginChunkGraphFeature::Assets,
-      _ => panic!("invalid chunk graph feature: {}", value),
+      _ => panic!("invalid chunk graph feature: {value}"),
     }
   }
 }
@@ -129,10 +130,7 @@ impl RsdoctorPlugin {
     {
       return true;
     }
-    panic!(
-      "module graph feature \"{}\" need \"graph\" to be enabled",
-      feature
-    );
+    panic!("module graph feature \"{feature}\" need \"graph\" to be enabled");
   }
 
   pub fn has_chunk_graph_feature(&self, feature: RsdoctorPluginChunkGraphFeature) -> bool {
@@ -146,27 +144,21 @@ impl RsdoctorPlugin {
     {
       return true;
     }
-    panic!(
-      "chunk graph feature \"{}\" need \"graph\" to be enabled",
-      feature
-    );
+    panic!("chunk graph feature \"{feature}\" need \"graph\" to be enabled");
   }
 
-  pub fn get_compilation_hooks(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<RsdoctorPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<RsdoctorPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
     COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
+      .clone()
   }
 
-  pub fn get_compilation_hooks_mut(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<RsdoctorPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<RsdoctorPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
 
@@ -222,6 +214,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   tokio::spawn(async move {
     match hooks
+      .read()
+      .await
       .chunk_graph
       .call(&mut RsdoctorChunkGraph {
         chunks: rsd_chunks.into_values().collect::<Vec<_>>(),
@@ -230,7 +224,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send chunk graph failed: {}", e),
+      Err(e) => panic!("rsdoctor send chunk graph failed: {e}"),
     };
   });
 
@@ -324,6 +318,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
     if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
       rsd_module.issuer_path = Some(issuer_path);
+      let (_, module) = module;
+      let bailout_reason = module_graph.get_optimization_bailout(&module.identifier());
+      rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
     }
   }
 
@@ -333,6 +330,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
   tokio::spawn(async move {
     match hooks
+      .read()
+      .await
       .module_graph
       .call(&mut RsdoctorModuleGraph {
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
@@ -342,7 +341,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module graph failed: {}", e),
+      Err(e) => panic!("rsdoctor send module graph failed: {e}"),
     };
   });
 
@@ -363,6 +362,8 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
 
   tokio::spawn(async move {
     match hooks
+      .read()
+      .await
       .module_ids
       .call(&mut RsdoctorModuleIdsPatch {
         module_ids: rsd_module_ids,
@@ -370,7 +371,7 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module ids failed: {}", e),
+      Err(e) => panic!("rsdoctor send module ids failed: {e}"),
     };
   });
 
@@ -391,6 +392,8 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
 
   tokio::spawn(async move {
     match hooks
+      .read()
+      .await
       .module_sources
       .call(&mut RsdoctorModuleSourcesPatch {
         module_original_sources: rsd_module_original_sources,
@@ -398,7 +401,7 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send module sources failed: {}", e),
+      Err(e) => panic!("rsdoctor send module sources failed: {e}"),
     };
   });
   Ok(())
@@ -426,6 +429,8 @@ async fn after_process_asssets(&self, compilation: &mut Compilation) -> Result<(
 
   tokio::spawn(async move {
     match hooks
+      .read()
+      .await
       .assets
       .call(&mut RsdoctorAssetPatch {
         assets: rsd_assets.into_values().collect::<Vec<_>>(),
@@ -435,7 +440,7 @@ async fn after_process_asssets(&self, compilation: &mut Compilation) -> Result<(
       .await
     {
       Ok(_) => {}
-      Err(e) => panic!("rsdoctor send assets failed: {}", e),
+      Err(e) => panic!("rsdoctor send assets failed: {e}"),
     };
   });
 

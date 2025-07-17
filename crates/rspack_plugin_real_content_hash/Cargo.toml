@@ -4,23 +4,25 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_real_content_hash"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dashmap      = { workspace = true }
-derive_more  = { workspace = true, features = ["debug"] }
-indexmap     = { workspace = true }
-once_cell    = { workspace = true }
-rayon        = { workspace = true }
-regex        = { workspace = true }
-rspack_core  = { workspace = true }
-rspack_error = { workspace = true }
-rspack_hash  = { workspace = true }
-rspack_hook  = { workspace = true }
-rspack_util  = { workspace = true }
-rustc-hash   = { workspace = true }
-tracing      = { workspace = true }
+aho-corasick   = { workspace = true }
+derive_more    = { workspace = true, features = ["debug"] }
+indexmap       = { workspace = true }
+once_cell      = { workspace = true }
+rayon          = { workspace = true }
+regex          = { workspace = true }
+rspack_core    = { workspace = true }
+rspack_error   = { workspace = true }
+rspack_futures = { workspace = true }
+rspack_hash    = { workspace = true }
+rspack_hook    = { workspace = true }
+rspack_util    = { workspace = true }
+rustc-hash     = { workspace = true }
+tokio          = { workspace = true, features = ["sync"] }
+tracing        = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

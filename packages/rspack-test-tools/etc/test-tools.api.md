@@ -4,13 +4,14 @@
 
 ```ts
 
-import type { Compiler } from '@rspack/core';
+import { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
 import type EventEmitter from 'node:events';
 import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
+import { MultiCompiler } from '@rspack/core';
 import type { MultiStats } from '@rspack/core';
 import type { MultiStats as MultiStats_2 } from 'webpack';
 import type { RspackOptions } from '@rspack/core';
@@ -256,10 +257,13 @@ export function createHookCase(name: string, src: string, dist: string, source: 
 export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
-export function createHotNewIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], documentType: EDocumentType): void;
+export function createHotIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
 
 // @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+
+// @public (undocumented)
+export function createNativeWatcher(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
@@ -280,7 +284,7 @@ export function createTreeShakingCase(name: string, src: string, dist: string): 
 export function createWatchCase(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
-export function createWatchNewIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchNewIncrementalOptions): void;
+export function createWatchIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchIncrementalOptions): void;
 
 // @public (undocumented)
 export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
@@ -532,14 +536,14 @@ export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcesso
 }
 
 // @public (undocumented)
-export class HotNewIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
-    constructor(_hotOptions: IHotNewIncrementalProcessorOptions<T>);
+export class HotIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
+    constructor(_hotOptions: IHotIncrementalProcessorOptions<T>);
     // (undocumented)
     afterAll(context: ITestContext): Promise<void>;
     // (undocumented)
-    static defaultOptions<T extends ECompilerType>(this: HotNewIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    static defaultOptions<T extends ECompilerType>(this: HotIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
-    protected _hotOptions: IHotNewIncrementalProcessorOptions<T>;
+    protected _hotOptions: IHotIncrementalProcessorOptions<T>;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
@@ -895,11 +899,11 @@ export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapsho
 }
 
 // @public (undocumented)
-export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
-    // (undocumented)
-    documentType?: EDocumentType;
+export interface IHotIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
     target: TCompilerOptions<T>["target"];
+    // (undocumented)
+    webpackCases: boolean;
 }
 
 // @public (undocumented)
@@ -1173,6 +1177,8 @@ export interface ITestRunner {
 // @public (undocumented)
 export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
     // (undocumented)
+    nativeWatcher?: boolean;
+    // (undocumented)
     stepName: string;
     // (undocumented)
     tempDir: string;
@@ -1231,7 +1237,7 @@ export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> exte
 // @public (undocumented)
 export class LazyCompilationTestPlugin {
     // (undocumented)
-    apply(compiler: Compiler): void;
+    apply(compiler: Compiler | MultiCompiler): void;
 }
 
 // @public (undocumented)
@@ -1645,6 +1651,7 @@ export type TTestConfig<T extends ECompilerType> = {
     modules?: Record<string, Object>;
     timeout?: number;
     concurrent?: boolean;
+    snapshotContent?(content: string): string;
     checkSteps?: boolean;
 };
 
@@ -1665,7 +1672,7 @@ export type TUpdateOptions = {
 };
 
 // @public (undocumented)
-export type WatchNewIncrementalOptions = {
+export type WatchIncrementalOptions = {
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
 
@@ -1687,7 +1694,7 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>({ tempDir, name }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
+    static overrideOptions<T extends ECompilerType>({ tempDir, nativeWatcher }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)

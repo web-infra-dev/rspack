@@ -9,7 +9,7 @@ use rspack_error::{
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
   },
-  Result,
+  Diagnostic, Result,
 };
 use rustc_hash::FxHashMap as HashMap;
 
@@ -20,8 +20,8 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports,
-  SourceType, UsedExports,
+  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -230,6 +230,8 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsModule>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let module_graph_cache = &self.compilation.module_graph_cache_artifact;
+
     let executor_module_graph = self
       .compilation
       .module_executor
@@ -240,7 +242,16 @@ impl Stats<'_> {
       .modules()
       .values()
       .par_bridge()
-      .map(|module| self.get_module(&module_graph, module, false, None, options))
+      .map(|module| {
+        self.get_module(
+          &module_graph,
+          module_graph_cache,
+          module,
+          false,
+          None,
+          options,
+        )
+      })
       .collect::<Result<_>>()?;
 
     let runtime_modules = self
@@ -251,12 +262,22 @@ impl Stats<'_> {
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
 
+    let executor_module_graph_cache = ModuleGraphCacheArtifact::default();
     if let Some(executor_module_graph) = &executor_module_graph {
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
         .values()
         .par_bridge()
-        .map(|module| self.get_module(executor_module_graph, module, true, None, options))
+        .map(|module| {
+          self.get_module(
+            executor_module_graph,
+            &executor_module_graph_cache,
+            module,
+            true,
+            None,
+            options,
+          )
+        })
         .collect::<Result<_>>()?;
 
       modules.extend(executed_modules);
@@ -291,6 +312,7 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsChunk>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
+    let module_graph_cache = &self.compilation.module_graph_cache_artifact;
     let chunk_graph = &self.compilation.chunk_graph;
     let context = &self.compilation.options.context;
     let chunk_group_by_ukey = &self.compilation.chunk_group_by_ukey;
@@ -310,7 +332,7 @@ impl Stats<'_> {
         };
 
         let root_modules = chunk_graph
-          .get_chunk_root_modules(&c.ukey(), &module_graph)
+          .get_chunk_root_modules(&c.ukey(), &module_graph, module_graph_cache)
           .into_iter()
           .collect::<IdentifierSet>();
 
@@ -328,7 +350,16 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey(), &module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(&module_graph, m, false, Some(&root_modules), options))
+            .map(|m| {
+              self.get_module(
+                &module_graph,
+                module_graph_cache,
+                m,
+                false,
+                Some(&root_modules),
+                options,
+              )
+            })
             .collect::<Result<Vec<_>>>()?;
           sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -618,6 +649,7 @@ impl Stats<'_> {
         );
         let code = d.code().map(|code| code.to_string());
         StatsError {
+          name: d.code().map(|c| c.to_string()),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
@@ -625,7 +657,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc(),
+          loc: d.loc().map(|loc| loc.to_string()),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),
@@ -645,7 +677,7 @@ impl Stats<'_> {
     f(errors)
   }
 
-  pub fn get_warnings<T>(&self, f: impl Fn(Vec<StatsWarning>) -> T) -> T {
+  pub fn get_warnings<T>(&self, f: impl Fn(Vec<StatsError>) -> T) -> T {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
 
     let module_graph = self.compilation.get_module_graph();
@@ -679,7 +711,7 @@ impl Stats<'_> {
 
         let code = d.code().map(|code| code.to_string());
 
-        StatsWarning {
+        StatsError {
           name: d.code().map(|c| c.to_string()),
           message: diagnostic_displayer
             .emit_diagnostic(d)
@@ -688,7 +720,7 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc(),
+          loc: d.loc().map(|loc| loc.to_string()),
           file: d.file(),
 
           chunk_name: chunk.and_then(|c| c.name()),
@@ -730,6 +762,7 @@ impl Stats<'_> {
   fn get_module<'a>(
     &'a self,
     module_graph: &'a ModuleGraph<'a>,
+    module_graph_cache: &'a ModuleGraphCacheArtifact,
     module: &'a BoxModule,
     executed: bool,
     root_modules: Option<&IdentifierSet>,
@@ -888,7 +921,7 @@ impl Stats<'_> {
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
       stats.cacheable = Some(module.build_info().cacheable);
-      stats.optional = Some(module_graph.is_optional(&identifier));
+      stats.optional = Some(module_graph.is_optional(&identifier, module_graph_cache));
       stats.orphan = Some(orphan);
       stats.dependent = dependent;
       stats.issuer = issuer.map(|i| i.identifier());
@@ -915,18 +948,22 @@ impl Stats<'_> {
         self
           .compilation
           .chunk_graph
-          .expect_chunk_graph_module(mgm.module_identifier)
-          .chunks
-          .iter()
-          .filter_map(|k| {
-            self
-              .compilation
-              .chunk_by_ukey
-              .expect_get(k)
-              .id(&self.compilation.chunk_ids_artifact)
-              .map(|id| id.as_str())
+          .get_chunk_graph_module(mgm.module_identifier)
+          .map(|cgm| {
+            cgm
+              .chunks
+              .iter()
+              .filter_map(|k| {
+                self
+                  .compilation
+                  .chunk_by_ukey
+                  .expect_get(k)
+                  .id(&self.compilation.chunk_ids_artifact)
+                  .map(|id| id.as_str())
+              })
+              .collect::<Vec<_>>()
           })
-          .collect()
+          .unwrap_or_default()
       };
       chunks.sort_unstable();
       stats.chunks = Some(chunks);
@@ -1038,11 +1075,11 @@ impl Stats<'_> {
           .used_exports
           .is_enable()
       {
-        match self
-          .compilation
-          .get_module_graph()
-          .get_used_exports(&module.identifier(), None)
-        {
+        let module_graph = self.compilation.get_module_graph();
+        let exports_info = module_graph
+          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+        let used_exports = exports_info.get_used_exports(None);
+        match used_exports {
           UsedExports::Unknown => Some(StatsUsedExports::Null),
           UsedExports::UsedNames(v) => Some(StatsUsedExports::Vec(v)),
           UsedExports::UsedNamespace(b) => Some(StatsUsedExports::Bool(b)),
@@ -1055,11 +1092,11 @@ impl Stats<'_> {
     if options.provided_exports {
       stats.provided_exports =
         if !executed && self.compilation.options.optimization.provided_exports {
-          match self
-            .compilation
-            .get_module_graph()
-            .get_provided_exports(module.identifier())
-          {
+          let module_graph = self.compilation.get_module_graph();
+          let exports_info = module_graph
+            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+          let provided_exports = exports_info.get_provided_exports();
+          match provided_exports {
             ProvidedExports::ProvidedNames(v) => Some(v),
             _ => None,
           }
@@ -1081,7 +1118,16 @@ impl Stats<'_> {
           .get_modules()
           .par_iter()
           .filter_map(|m| module_graph.module_by_identifier(&m.id))
-          .map(|module| self.get_module(module_graph, module, executed, root_modules, options))
+          .map(|module| {
+            self.get_module(
+              module_graph,
+              module_graph_cache,
+              module,
+              executed,
+              root_modules,
+              options,
+            )
+          })
           .collect::<Result<_>>()?;
         sort_modules(&mut modules);
         stats.modules = Some(modules);
@@ -1308,4 +1354,63 @@ impl Stats<'_> {
 
     Ok(stats)
   }
+}
+
+pub fn create_stats_errors<'a>(
+  compilation: &'a Compilation,
+  module_graph: &'a ModuleGraph<'a>,
+  diagnostics: &'a mut Vec<Diagnostic>,
+  colored: bool,
+) -> Vec<StatsError<'a>> {
+  diagnostics
+    .par_iter()
+    .map(|d| {
+      let module_identifier = d.module_identifier();
+      let (module_name, module_id) = module_identifier
+        .as_ref()
+        .and_then(|identifier| {
+          Some(get_stats_module_name_and_id(
+            compilation.module_by_identifier(identifier)?,
+            compilation,
+          ))
+        })
+        .unzip();
+
+      let chunk = d
+        .chunk()
+        .map(ChunkUkey::from)
+        .map(|key| compilation.chunk_by_ukey.expect_get(&key));
+
+      let module_trace = get_module_trace(
+        module_identifier,
+        module_graph,
+        compilation,
+        &compilation.options,
+      );
+
+      let code = d.code().map(|code| code.to_string());
+
+      let mut diagnostic_displayer = DiagnosticDisplayer::new(colored);
+      StatsError {
+        name: d.code().map(|c| c.to_string()),
+        message: diagnostic_displayer
+          .emit_diagnostic(d)
+          .expect("should print diagnostics"),
+        code,
+        module_identifier,
+        module_name,
+        module_id: module_id.flatten(),
+        loc: d.loc().map(|loc| loc.to_string()),
+        file: d.file(),
+
+        chunk_name: chunk.and_then(|c| c.name()),
+        chunk_entry: chunk.map(|c| c.has_runtime(&compilation.chunk_group_by_ukey)),
+        chunk_initial: chunk.map(|c| c.can_be_initial(&compilation.chunk_group_by_ukey)),
+        chunk_id: chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+        details: d.details(),
+        stack: d.stack(),
+        module_trace,
+      }
+    })
+    .collect::<Vec<_>>()
 }

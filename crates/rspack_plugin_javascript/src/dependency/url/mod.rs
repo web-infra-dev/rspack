@@ -1,11 +1,13 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedByExports,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, FactorizeInfo, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
+
+use crate::get_dependency_used_by_exports_condition;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -70,10 +72,6 @@ impl ModuleDependency for URLDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {

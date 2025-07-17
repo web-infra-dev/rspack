@@ -14,7 +14,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let start = logger.time("ensure chunk conditions");
   compilation
     .chunk_graph
-    .generate_dot(compilation, "before-ensure-chunk-conditions");
+    .generate_dot(compilation, "before-ensure-chunk-conditions")
+    .await;
   let mut source_module_chunks = HashMap::default();
   compilation
     .get_module_graph()
@@ -76,7 +77,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             if chunk_group.is_initial() {
               return Err(
                 rspack_error::InternalError::new(
-                  format!("Cannot fulfil chunk condition of {}", module_id),
+                  format!("Cannot fulfil chunk condition of {module_id}"),
                   Default::default(),
                 )
                 .into(),

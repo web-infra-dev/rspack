@@ -4,7 +4,7 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(async_trait_bounds)]
-
+#![feature(ptr_as_ref_unchecked)]
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
@@ -19,9 +19,7 @@ pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
 };
 mod fake_namespace_object;
-mod template;
 pub use fake_namespace_object::*;
-pub use template::Template;
 mod runtime_template;
 pub use runtime_template::*;
 mod module_profile;
@@ -96,6 +94,9 @@ mod ukey;
 pub use ukey::*;
 pub mod resolver;
 pub use resolver::*;
+pub use rspack_location::{
+  DependencyLocation, RealDependencyLocation, SourcePosition, SyntheticDependencyLocation,
+};
 pub mod concatenated_module;
 pub mod reserved_names;
 

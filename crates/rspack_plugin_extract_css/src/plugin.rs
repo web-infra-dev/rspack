@@ -425,8 +425,7 @@ despite it was not able to fulfill desired ordering with these modules:
         {
           need_supports = true;
           source.add(RawStringSource::from(format!(
-            "@supports ({}) {{\n",
-            supports
+            "@supports ({supports}) {{\n"
           )));
         }
 
@@ -434,11 +433,11 @@ despite it was not able to fulfill desired ordering with these modules:
           && !media.is_empty()
         {
           need_media = true;
-          source.add(RawStringSource::from(format!("@media {} {{\n", media)));
+          source.add(RawStringSource::from(format!("@media {media} {{\n")));
         }
 
         if let Some(layer) = &module.layer {
-          source.add(RawStringSource::from(format!("@layer {} {{\n", layer)));
+          source.add(RawStringSource::from(format!("@layer {layer} {{\n")));
         }
 
         // different from webpack, add `enforce_relative` to preserve './'
@@ -524,9 +523,7 @@ async fn runtime_requirement_in_tree(
   if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
   {
-    if let Some(chunk_filename) = self.options.chunk_filename.template()
-      && chunk_filename.contains("hash")
-    {
+    if self.options.chunk_filename.has_hash_placeholder() {
       runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
@@ -591,18 +588,24 @@ async fn content_hash(
   }
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  let used_modules = self
-    .sort_modules(chunk, &rendered_modules, compilation, &module_graph)
-    .0
-    .into_iter();
+  let (used_modules, diagnostics) =
+    self.sort_modules(chunk, &rendered_modules, compilation, &module_graph);
 
-  let mut hasher = hashes
+  let hasher = hashes
     .entry(SOURCE_TYPE[0])
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   used_modules
+    .iter()
     .map(|m| ChunkGraph::get_module_hash(compilation, m.identifier(), chunk.runtime()))
-    .for_each(|current| current.hash(&mut hasher));
+    .for_each(|current| current.hash(hasher));
+
+  " ".hash(hasher);
+  if let Some(diagnostics) = diagnostics {
+    diagnostics.iter().for_each(|curr| {
+      curr.fallback_module.hash(hasher);
+    });
+  }
 
   Ok(())
 }
@@ -662,8 +665,7 @@ async fn render_manifest(
     .await?;
 
   let (source, more_diagnostics) = compilation
-    .old_cache
-    .chunk_render_occasion
+    .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SOURCE_TYPE[0], || async {
       let (source, diagnostics) = self
         .render_content_asset(chunk, &rendered_modules, &filename, compilation)

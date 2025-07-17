@@ -54,7 +54,7 @@ describe("Validation", () => {
 				expect(log).toMatchInlineSnapshot(`
 			Array [
 			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- Unrecognized key(s) in object: '_additionalProperty',
+			- Unrecognized key(s) "_additionalProperty" in object,
 			]
 		`);
 			}
@@ -75,7 +75,7 @@ describe("Validation", () => {
 				expect(log).toMatchInlineSnapshot(`
 			Array [
 			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- Unrecognized key(s) in object: '_additionalProperty' at "optimization",
+			- Unrecognized key(s) "_additionalProperty" in object at "optimization",
 			]
 		`);
 			}
@@ -89,7 +89,7 @@ describe("Validation", () => {
 			message => {
 				expect(message).toMatchInlineSnapshot(`
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- The provided value "./" must be an absolute path. at "context"
+			- The provided value "./" must be an absolute path at "context"
 		`);
 			},
 			"loose-unrecognized-keys",
@@ -107,7 +107,7 @@ describe("Validation", () => {
 			message => {
 				expect(message).toMatchInlineSnapshot(`
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- The provided value "./" must be an absolute path. at "context"
+			- The provided value "./" must be an absolute path at "context"
 		`);
 			},
 			"loose-unrecognized-keys",
@@ -115,7 +115,7 @@ describe("Validation", () => {
 				expect(log).toMatchInlineSnapshot(`
 			Array [
 			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- Unrecognized key(s) in object: '_additionalProperty',
+			- Unrecognized key(s) "_additionalProperty" in object,
 			]
 		`);
 			}
@@ -140,9 +140,31 @@ describe("Validation", () => {
 				expect(log).toMatchInlineSnapshot(`
 			Array [
 			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- The provided value "./" must be an absolute path. at "context"
-			- Unrecognized key(s) in object: '_additionalProperty' at "optimization"
-			- Unrecognized key(s) in object: '_additionalProperty',
+			- The provided value "./" must be an absolute path at "context"
+			- Unrecognized key(s) "_additionalProperty" in object at "optimization"
+			- Unrecognized key(s) "_additionalProperty" in object,
+			]
+		`);
+			}
+		);
+
+		createTestCase(
+			"function type",
+			{
+				ignoreWarnings: [new Map()],
+				output: {
+					devtoolModuleFilenameTemplate: new Set()
+				}
+			},
+			message => {
+				throw new Error("should not have error");
+			},
+			"loose",
+			log => {
+				expect(log).toMatchInlineSnapshot(`
+			Array [
+			  Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string at "output.devtoolModuleFilenameTemplate" or Expected function, received object at "output.devtoolModuleFilenameTemplate",
 			]
 		`);
 			}
@@ -158,7 +180,7 @@ describe("Validation", () => {
 			message => {
 				expect(message).toMatchInlineSnapshot(`
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- The provided value "./" must be an absolute path. at "context"
+			- The provided value "./" must be an absolute path at "context"
 		`);
 			},
 			"strict",
@@ -179,9 +201,31 @@ describe("Validation", () => {
 			message => {
 				expect(message).toMatchInlineSnapshot(`
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- The provided value "./" must be an absolute path. at "context"
-			- Unrecognized key(s) in object: '_additionalProperty' at "optimization"
-			- Unrecognized key(s) in object: '_additionalProperty'
+			- The provided value "./" must be an absolute path at "context"
+			- Unrecognized key(s) "_additionalProperty" in object at "optimization"
+			- Unrecognized key(s) "_additionalProperty" in object
+		`);
+			},
+			"strict",
+			log => {
+				throw new Error("should not have log");
+			}
+		);
+
+		createTestCase(
+			"function type",
+			{
+				ignoreWarnings: [new Map()],
+				output: {
+					devtoolModuleFilenameTemplate: new Set(),
+					filename: []
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string at "output.filename" or Expected function, received object at "output.filename"
+			- Expected string at "output.devtoolModuleFilenameTemplate" or Expected function, received object at "output.devtoolModuleFilenameTemplate"
 		`);
 			},
 			"strict",
@@ -200,7 +244,7 @@ describe("Validation", () => {
 			message => {
 				expect(message).toMatchInlineSnapshot(`
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- The provided value "./" must be an absolute path. at "context"
+			- The provided value "./" must be an absolute path at "context"
 		`);
 			},
 			log => {
@@ -220,9 +264,30 @@ describe("Validation", () => {
 			message => {
 				expect(message).toMatchInlineSnapshot(`
 			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
-			- The provided value "./" must be an absolute path. at "context"
-			- Unrecognized key(s) in object: '_additionalProperty' at "optimization"
-			- Unrecognized key(s) in object: '_additionalProperty'
+			- The provided value "./" must be an absolute path at "context"
+			- Unrecognized key(s) "_additionalProperty" in object at "optimization"
+			- Unrecognized key(s) "_additionalProperty" in object
+		`);
+			},
+			log => {
+				throw new Error("should not have log");
+			}
+		);
+
+		createTestCase(
+			"function type",
+			{
+				ignoreWarnings: [new Map()],
+				output: {
+					devtoolModuleFilenameTemplate: new Set(),
+					filename: []
+				}
+			},
+			message => {
+				expect(message).toMatchInlineSnapshot(`
+			Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.
+			- Expected string at "output.filename" or Expected function, received object at "output.filename"
+			- Expected string at "output.devtoolModuleFilenameTemplate" or Expected function, received object at "output.devtoolModuleFilenameTemplate"
 		`);
 			},
 			log => {

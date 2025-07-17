@@ -3,55 +3,54 @@
 mod drive;
 
 use std::{
-  borrow::Cow,
   hash::{BuildHasherDefault, Hasher},
-  sync::LazyLock,
+  sync::{Arc, LazyLock},
 };
 
+use aho_corasick::{AhoCorasick, MatchKind};
 use derive_more::Debug;
 pub use drive::*;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
-use regex::{Captures, Regex};
+use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   PluginContext,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use tokio::sync::RwLock;
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
 pub static QUOTE_META: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<RealContentHashPluginHooks>>> =
-  LazyLock::new(Default::default);
+static COMPILATION_HOOKS_MAP: LazyLock<
+  FxDashMap<CompilationId, Arc<RwLock<RealContentHashPluginHooks>>>,
+> = LazyLock::new(Default::default);
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct RealContentHashPlugin;
 
 impl RealContentHashPlugin {
-  pub fn get_compilation_hooks(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<RealContentHashPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<RealContentHashPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
     COMPILATION_HOOKS_MAP
       .get(&id)
       .expect("should have js plugin drive")
+      .clone()
   }
 
-  pub fn get_compilation_hooks_mut(
-    id: CompilationId,
-  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<RealContentHashPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(id).or_default()
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<RealContentHashPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
 
@@ -105,16 +104,13 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     return Ok(());
   }
   let start = logger.time("create hash regexp");
-  let mut hash_list = hash_to_asset_names
-    .keys()
-    // xx\xx{xx?xx.xx -> xx\\xx\{xx\?xx\.xx escape for Regex::new
-    .map(|hash| QUOTE_META.replace_all(hash, "\\$0"))
-    .collect::<Vec<Cow<str>>>();
-  // long hash should sort before short hash to make sure match long hash first in hash_regexp matching
+  // use LeftmostLongest here:
   // e.g. 4afc|4afcbe match xxx.4afcbe-4afc.js -> xxx.[4afc]be-[4afc].js
   //      4afcbe|4afc match xxx.4afcbe-4afc.js -> xxx.[4afcbe]-[4afc].js
-  hash_list.par_sort_by(|a, b| b.len().cmp(&a.len()));
-  let hash_regexp = Regex::new(&hash_list.join("|")).expect("Invalid regex");
+  let hash_ac = AhoCorasick::builder()
+    .match_kind(MatchKind::LeftmostLongest)
+    .build(hash_to_asset_names.keys().map(|s| s.as_bytes()))
+    .expect("Invalid patterns");
   logger.time_end(start);
 
   let start = logger.time("create ordered hashes");
@@ -125,80 +121,151 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       asset.get_source().map(|source| {
         (
           name.as_str(),
-          AssetData::new(source.clone(), asset.get_info(), &hash_regexp),
+          AssetData::new(source.clone(), asset.get_info(), &hash_ac),
         )
       })
     })
     .collect();
 
-  let ordered_hashes = OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
+  let (ordered_hashes, mut hash_dependencies) =
+    OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
+  let mut ordered_hashes_iter = ordered_hashes.into_iter();
+
   logger.time_end(start);
 
   let start = logger.time("old hash to new hash");
   let mut hash_to_new_hash = HashMap::default();
 
   let hooks = RealContentHashPlugin::get_compilation_hooks(compilation.id());
-  for old_hash in &ordered_hashes {
-    if let Some(asset_names) = hash_to_asset_names.get_mut(old_hash.as_str()) {
-      asset_names.sort();
-      let mut asset_contents: Vec<_> = asset_names
-        .par_iter()
-        .filter_map(|name| assets_data.get(name))
-        .map(|data| {
-          data
-            .compute_new_source(
-              data.own_hashes.contains(old_hash),
-              &hash_to_new_hash,
-              &hash_regexp,
-            )
-            .clone()
-        })
-        .collect();
-      asset_contents.dedup();
-      let updated_hash = hooks
-        .update_hash
-        .call(compilation, &asset_contents, old_hash)
-        .await?;
 
-      let new_hash = if let Some(new_hash) = updated_hash {
-        new_hash
-      } else {
-        let mut hasher = RspackHash::from(&compilation.options.output);
-        for asset_content in asset_contents {
-          hasher.write(&asset_content.buffer());
-        }
-        let new_hash = hasher.digest(&compilation.options.output.hash_digest);
-        let new_hash = new_hash.rendered(old_hash.len()).to_string();
-        new_hash
+  let mut computed_hashes = HashSet::default();
+  let mut top_task = ordered_hashes_iter.next();
+
+  loop {
+    let Some(top) = top_task else {
+      break;
+    };
+    let mut batch = vec![top];
+    top_task = None;
+
+    for hash in ordered_hashes_iter.by_ref() {
+      let Some(dependencies) = hash_dependencies.remove(hash.as_str()) else {
+        top_task = Some(hash);
+        break;
       };
+      if dependencies.iter().all(|dep| computed_hashes.contains(dep)) {
+        batch.push(hash);
+      } else {
+        top_task = Some(hash);
+        break;
+      }
+    }
+
+    let batch_source_tasks = batch
+      .iter()
+      .filter_map(|hash| {
+        let assets_names = hash_to_asset_names.get(hash.as_str())?;
+        let tasks = assets_names
+          .iter()
+          .filter_map(|name| {
+            let data = assets_data.get(name)?;
+            Some((hash.as_str(), *name, data))
+          })
+          .collect::<Vec<_>>();
+        Some(tasks)
+      })
+      .flatten()
+      .collect::<Vec<_>>();
+
+    let batch_sources = batch_source_tasks
+      .into_par_iter()
+      .map(|(hash, name, data)| {
+        let new_source =
+          data.compute_new_source(data.own_hashes.contains(hash), &hash_to_new_hash, &hash_ac);
+        ((hash, name), new_source)
+      })
+      .collect::<HashMap<_, _>>();
+
+    let new_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+      batch
+        .iter()
+        .cloned()
+        .filter_map(|old_hash| {
+          let asset_names = hash_to_asset_names.remove(old_hash.as_str())?;
+          Some((old_hash, asset_names))
+        })
+        .for_each(|(old_hash, asset_names)| {
+          let s =
+            unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
+          s.spawn(
+            |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
+              asset_names.sort();
+              let mut asset_contents = asset_names
+                .iter()
+                .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
+                .cloned()
+                .collect::<Vec<_>>();
+              asset_contents.dedup();
+              let updated_hash = hooks
+                .read()
+                .await
+                .update_hash
+                .call(compilation, &asset_contents, &old_hash)
+                .await?;
+
+              let new_hash = if let Some(new_hash) = updated_hash {
+                new_hash
+              } else {
+                let mut hasher = RspackHash::from(&compilation.options.output);
+                for asset_content in asset_contents {
+                  hasher.write(&asset_content.buffer());
+                }
+                let new_hash = hasher.digest(&compilation.options.output.hash_digest);
+                let new_hash = new_hash.rendered(old_hash.len()).to_string();
+                new_hash
+              };
+
+              Ok((old_hash.to_string(), new_hash))
+            },
+          );
+        });
+    })
+    .await
+    .into_iter()
+    .map(|r| r.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    for res in new_hashes {
+      let (old_hash, new_hash) = res?;
       hash_to_new_hash.insert(old_hash, new_hash);
     }
+
+    computed_hashes.extend(batch);
   }
+
   logger.time_end(start);
 
   let start = logger.time("collect hash updates");
   let updates: Vec<_> = assets_data
     .into_par_iter()
     .filter_map(|(name, data)| {
-      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_regexp);
-      let new_name = hash_regexp
-        .replace_all(name, |c: &Captures| {
-          let hash = c
-            .get(0)
-            .expect("RealContentHashPlugin: should have match")
-            .as_str();
-          hash_to_new_hash
-            .get(hash)
-            .expect("RealContentHashPlugin: should have new hash")
-        })
-        .into_owned();
+      let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_ac);
+      let mut new_name = String::with_capacity(name.len());
+      hash_ac.replace_all_with(name, &mut new_name, |_, hash, dst| {
+        let replace_to = hash_to_new_hash
+          .get(hash)
+          .expect("RealContentHashPlugin: should have new hash");
+        dst.push_str(replace_to);
+        true
+      });
       let new_name = (name != new_name).then_some(new_name);
-      Some((name.to_owned(), new_source.clone(), new_name))
+      Some((name.to_owned(), new_source, new_name))
     })
     .collect();
   logger.time_end(start);
 
   let start = logger.time("update assets");
+  let mut rename_tasks = vec![];
   for (name, new_source, new_name) in updates {
     compilation.update_asset(&name, |_, old_info| {
       let new_hashes: HashSet<_> = old_info
@@ -218,9 +285,36 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       ))
     })?;
     if let Some(new_name) = new_name {
-      compilation.rename_asset(&name, new_name);
+      rename_tasks.push((name, new_name));
     }
   }
+
+  let assets = compilation.assets_mut();
+  rename_tasks.retain(|(filename, new_name)| {
+    if let Some(asset) = assets.remove(filename) {
+      assets.insert(new_name.clone(), asset);
+      true
+    } else {
+      false
+    }
+  });
+
+  compilation
+    .chunk_by_ukey
+    .values_mut()
+    .par_bridge()
+    .for_each(|chunk| {
+      for (filename, new_name) in rename_tasks.iter() {
+        if chunk.remove_file(filename) {
+          chunk.add_file(new_name.clone());
+        }
+
+        if chunk.remove_auxiliary_file(filename) {
+          chunk.add_auxiliary_file(new_name.clone());
+        }
+      }
+    });
+
   logger.time_end(start);
 
   Ok(())
@@ -247,17 +341,18 @@ enum AssetDataContent {
 }
 
 impl AssetData {
-  pub fn new(source: BoxSource, info: &AssetInfo, hash_regexp: &Regex) -> Self {
+  pub fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
     // TODO(ahabhgk): source.is_buffer() instead of String::from_utf8().is_ok()
     let content = if let Ok(content) = String::from_utf8(source.buffer().to_vec()) {
-      for hash in hash_regexp.find_iter(&content) {
-        if info.content_hash.contains(hash.as_str()) {
-          own_hashes.insert(hash.as_str().to_string());
+      for hash in hash_ac.find_iter(&content) {
+        let hash = &content[hash.range()];
+        if info.content_hash.contains(hash) {
+          own_hashes.insert(hash.to_string());
           continue;
         }
-        referenced_hashes.insert(hash.as_str().to_string());
+        referenced_hashes.insert(hash.to_string());
       }
       AssetDataContent::String(content)
     } else {
@@ -277,9 +372,9 @@ impl AssetData {
   pub fn compute_new_source(
     &self,
     without_own: bool,
-    hash_to_new_hash: &HashMap<&str, String>,
-    hash_regexp: &Regex,
-  ) -> &BoxSource {
+    hash_to_new_hash: &HashMap<String, String>,
+    hash_ac: &AhoCorasick,
+  ) -> BoxSource {
     (if without_own {
       &self.new_source_without_own
     } else {
@@ -293,22 +388,23 @@ impl AssetData {
             .iter()
             .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
       {
-        let new_content = hash_regexp.replace_all(content, |c: &Captures| {
-          let hash = c
-            .get(0)
-            .expect("RealContentHashPlugin: should have matched")
-            .as_str();
-          if without_own && self.own_hashes.contains(hash) {
-            return "";
-          }
-          hash_to_new_hash
-            .get(hash)
-            .expect("RealContentHashPlugin: should have new hash")
+        let mut new_content = String::with_capacity(content.len());
+        hash_ac.replace_all_with(content, &mut new_content, |_, hash, dst| {
+          let replace_to = if without_own && self.own_hashes.contains(hash) {
+            ""
+          } else {
+            hash_to_new_hash
+              .get(hash)
+              .expect("RealContentHashPlugin: should have new hash")
+          };
+          dst.push_str(replace_to);
+          true
         });
-        return RawStringSource::from(new_content.into_owned()).boxed();
+        return RawStringSource::from(new_content).boxed();
       }
       self.old_source.clone()
     })
+    .clone()
   }
 }
 
@@ -328,12 +424,29 @@ impl<'a> OrderedHashesBuilder<'a> {
     }
   }
 
-  pub fn build(&self) -> IndexSet<String> {
+  pub fn build(&self) -> (IndexSet<String>, HashMap<String, HashSet<String>>) {
     let mut ordered_hashes = IndexSet::default();
+    let mut hash_dependencies = HashMap::default();
     for hash in self.hash_to_asset_names.keys() {
-      self.add_to_ordered_hashes(hash, &mut ordered_hashes, &mut HashSet::default());
+      self.add_to_ordered_hashes(
+        hash,
+        &mut ordered_hashes,
+        &mut HashSet::default(),
+        &mut hash_dependencies,
+      );
     }
-    ordered_hashes
+    (
+      ordered_hashes,
+      hash_dependencies
+        .into_iter()
+        .map(|(k, v)| {
+          (
+            k.to_string(),
+            v.into_iter().map(|s| s.to_string()).collect(),
+          )
+        })
+        .collect(),
+    )
   }
 }
 
@@ -364,8 +477,12 @@ impl OrderedHashesBuilder<'_> {
     hash: &'b str,
     ordered_hashes: &mut IndexSet<String>,
     stack: &mut HashSet<&'b str>,
+    hash_dependencies: &mut HashMap<&'b str, HashSet<&'b str>>,
   ) {
-    let deps = self.get_hash_dependencies(hash);
+    let deps = hash_dependencies
+      .entry(hash)
+      .or_insert_with(|| self.get_hash_dependencies(hash))
+      .clone();
     stack.insert(hash);
     for dep in deps {
       if ordered_hashes.contains(dep) {
@@ -376,7 +493,7 @@ impl OrderedHashesBuilder<'_> {
         // so there shouldn't have circular hash dependency between chunks
         panic!("RealContentHashPlugin: circular hash dependency");
       }
-      self.add_to_ordered_hashes(dep, ordered_hashes, stack);
+      self.add_to_ordered_hashes(dep, ordered_hashes, stack, hash_dependencies);
     }
     ordered_hashes.insert(hash.to_string());
     stack.remove(hash);

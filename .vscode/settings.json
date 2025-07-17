@@ -18,9 +18,11 @@
   "cSpell.caseSensitive": true,
   "rust-analyzer.procMacro.enable": true,
   "rust-analyzer.procMacro.attributes.enable": true,
-  "rust-analyzer.linkedProjects": ["Cargo.toml"],
+  "rust-analyzer.linkedProjects": [
+    "Cargo.toml"
+  ],
   "rust-analyzer.cargo.targetDir": true, // Don't let RA blocking cargo build
-  "rust-analyzer.cargo.features": ["rspack_cacheable/noop"],
+  "rust-analyzer.check.features": "all",
   "files.associations": {
     "*.snap": "markdown",
     "*.snap.txt": "markdown",

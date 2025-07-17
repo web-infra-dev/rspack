@@ -11,13 +11,12 @@
 import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
-
-import { ASSET_MODULE_TYPE, JSON_MODULE_TYPE } from "../ModuleTypeConstants";
-import { Template } from "../Template";
 import {
 	LightningCssMinimizerRspackPlugin,
 	SwcJsMinimizerRspackPlugin
 } from "../builtin-plugin";
+import { ASSET_MODULE_TYPE, JSON_MODULE_TYPE } from "../ModuleTypeConstants";
+import { Template } from "../Template";
 import { isNil } from "../util";
 import { assertNotNill } from "../util/assertNotNil";
 import { cleverMerge } from "../util/cleverMerge";
@@ -229,19 +228,19 @@ const applyExperimentsDefaults = (
 	if (typeof experiments.incremental === "object") {
 		D(experiments.incremental, "silent", true);
 		D(experiments.incremental, "make", true);
-		D(experiments.incremental, "inferAsyncModules", false);
-		D(experiments.incremental, "providedExports", false);
-		D(experiments.incremental, "dependenciesDiagnostics", false);
-		D(experiments.incremental, "sideEffects", false);
-		D(experiments.incremental, "buildChunkGraph", false);
-		D(experiments.incremental, "moduleIds", false);
-		D(experiments.incremental, "chunkIds", false);
-		D(experiments.incremental, "modulesHashes", false);
-		D(experiments.incremental, "modulesCodegen", false);
-		D(experiments.incremental, "modulesRuntimeRequirements", false);
-		D(experiments.incremental, "chunksRuntimeRequirements", false);
-		D(experiments.incremental, "chunksHashes", false);
-		D(experiments.incremental, "chunksRender", false);
+		D(experiments.incremental, "inferAsyncModules", true);
+		D(experiments.incremental, "providedExports", true);
+		D(experiments.incremental, "dependenciesDiagnostics", true);
+		D(experiments.incremental, "sideEffects", true);
+		D(experiments.incremental, "buildChunkGraph", true);
+		D(experiments.incremental, "moduleIds", true);
+		D(experiments.incremental, "chunkIds", true);
+		D(experiments.incremental, "modulesHashes", true);
+		D(experiments.incremental, "modulesCodegen", true);
+		D(experiments.incremental, "modulesRuntimeRequirements", true);
+		D(experiments.incremental, "chunksRuntimeRequirements", true);
+		D(experiments.incremental, "chunksHashes", true);
+		D(experiments.incremental, "chunksRender", true);
 		D(experiments.incremental, "emitAssets", true);
 	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
@@ -253,6 +252,19 @@ const applyExperimentsDefaults = (
 
 	// IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
 	D(experiments, "parallelLoader", false);
+
+	// IGNORE(experiments.useInputFileSystem): Rspack specific configuration
+	// Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
+	D(experiments, "useInputFileSystem", false);
+
+	// IGNORE(experiments.inlineConst): Rspack specific configuration for inline const
+	D(experiments, "inlineConst", false);
+
+	// IGNORE(experiments.inlineEnum): Rspack specific configuration for inline enum
+	D(experiments, "inlineEnum", false);
+
+	// IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
+	D(experiments, "typeReexportsPresence", false);
 };
 
 const applybundlerInfoDefaults = (
@@ -292,6 +304,8 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
+	D(parserOptions, "inlineConst", false);
+	D(parserOptions, "typeReexportsPresence", "no-tolerant");
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -1160,7 +1174,7 @@ const A = <T, P extends keyof T>(
 	if (value === undefined) {
 		obj[prop] = factory();
 	} else if (Array.isArray(value)) {
-		let newArray = undefined;
+		let newArray: any;
 		for (let i = 0; i < value.length; i++) {
 			const item = value[i];
 			if (item === "...") {

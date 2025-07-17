@@ -1,6 +1,6 @@
-import { z } from "zod";
 import { Compilation } from "../../Compilation";
-import { validate } from "../../util/validate";
+import { getHtmlPluginOptionsSchema } from "../../schema/plugins";
+import { validate } from "../../schema/validate";
 
 const compilationOptionsMap: WeakMap<Compilation, HtmlRspackPluginOptions> =
 	new WeakMap();
@@ -9,23 +9,9 @@ export type TemplateRenderFunction = (
 	params: Record<string, any>
 ) => string | Promise<string>;
 
-const templateRenderFunction = z
-	.function()
-	.args(z.record(z.string(), z.any()))
-	.returns(
-		z.string().or(z.promise(z.string()))
-	) satisfies z.ZodType<TemplateRenderFunction>;
-
 export type TemplateParamFunction = (
 	params: Record<string, any>
 ) => Record<string, any> | Promise<Record<string, any>>;
-
-const templateParamFunction = z
-	.function()
-	.args(z.record(z.string(), z.any()))
-	.returns(
-		z.record(z.string(), z.any()).or(z.promise(z.record(z.string(), z.any())))
-	) satisfies z.ZodType<TemplateParamFunction>;
 
 export type HtmlRspackPluginOptions = {
 	/** The title to use for the generated HTML document. */
@@ -120,58 +106,8 @@ export type HtmlRspackPluginOptions = {
 	[key: string]: any;
 };
 
-const templateFilenameFunction = z
-	.function()
-	.args(z.string())
-	.returns(z.string());
-
-const pluginOptionsSchema = z.object({
-	filename: z.string().or(templateFilenameFunction).optional(),
-	template: z
-		.string()
-		.refine(
-			val => !val.includes("!"),
-			() => ({
-				message:
-					"HtmlRspackPlugin does not support template path with loader yet"
-			})
-		)
-		.optional(),
-	templateContent: z.string().or(templateRenderFunction).optional(),
-	templateParameters: z
-		.record(z.string(), z.string())
-		.or(z.boolean())
-		.or(templateParamFunction)
-		.optional(),
-	inject: z.enum(["head", "body"]).or(z.boolean()).optional(),
-	publicPath: z.string().optional(),
-	base: z
-		.string()
-		.or(
-			z.strictObject({
-				href: z.string().optional(),
-				target: z.enum(["_self", "_blank", "_parent", "_top"]).optional()
-			})
-		)
-		.optional(),
-	scriptLoading: z
-		.enum(["blocking", "defer", "module", "systemjs-module"])
-		.optional(),
-	chunks: z.string().array().optional(),
-	excludeChunks: z.string().array().optional(),
-	chunksSortMode: z.enum(["auto", "manual"]).optional(),
-	sri: z.enum(["sha256", "sha384", "sha512"]).optional(),
-	minify: z.boolean().optional(),
-	title: z.string().optional(),
-	favicon: z.string().optional(),
-	meta: z
-		.record(z.string(), z.string().or(z.record(z.string(), z.string())))
-		.optional(),
-	hash: z.boolean().optional()
-}) satisfies z.ZodType<HtmlRspackPluginOptions>;
-
 export function validateHtmlPluginOptions(options: HtmlRspackPluginOptions) {
-	return validate(options, pluginOptionsSchema);
+	return validate(options, getHtmlPluginOptionsSchema);
 }
 
 export const getPluginOptions = (compilation: Compilation, uid: number) => {

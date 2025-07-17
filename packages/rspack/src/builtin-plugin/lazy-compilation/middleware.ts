@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Compiler, LazyCompilationOptions } from "../..";
-import type { Module } from "../../Module";
-import type { Middleware } from "../../config/devServer";
+import { type Compiler, MultiCompiler } from "../..";
+import type { LazyCompilationOptions } from "../../config";
+import type { MiddlewareHandler } from "../../config/devServer";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
 export const LAZY_COMPILATION_PREFIX = "/lazy-compilation-using-";
@@ -37,33 +37,115 @@ const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
 };
 
 export const lazyCompilationMiddleware = (
-	compiler: Compiler,
-	userOptions: LazyCompilationOptions | boolean = {}
-): Middleware => {
-	if (userOptions === false) {
+	compiler: Compiler | MultiCompiler
+): MiddlewareHandler => {
+	if (compiler instanceof MultiCompiler) {
+		const middlewareByCompiler: Map<string, MiddlewareHandler> = new Map();
+
+		let i = 0;
+		for (const c of compiler.compilers) {
+			if (!c.options.experiments.lazyCompilation) {
+				continue;
+			}
+
+			const options = {
+				...c.options.experiments.lazyCompilation
+			};
+
+			const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
+			options.prefix = `${prefix}__${i++}`;
+			const activeModules = new Map<string, boolean>();
+			const filesByKey = new Map<string, string>();
+			const indexToModule = new Map();
+			const moduleToIndex = new Map();
+
+			middlewareByCompiler.set(
+				options.prefix,
+				lazyCompilationMiddlewareInternal(
+					compiler,
+					indexToModule,
+					activeModules,
+					filesByKey,
+					options.prefix
+				)
+			);
+
+			applyPlugin(
+				c,
+				moduleToIndex,
+				indexToModule,
+				options,
+				activeModules,
+				filesByKey
+			);
+		}
+
+		const keys = [...middlewareByCompiler.keys()];
+		return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+			const key = keys.find(key => req.url?.startsWith(key));
+			if (!key) {
+				return next?.();
+			}
+
+			const middleware = middlewareByCompiler.get(key);
+
+			return middleware?.(req, res, next);
+		};
+	}
+
+	if (!compiler.options.experiments.lazyCompilation) {
 		return noop;
 	}
 
-	const options = userOptions === true ? {} : userOptions;
 	const activeModules: Map<string, boolean> = new Map();
 	const filesByKey: Map<string, string> = new Map();
-	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
+	const indexToMap = new Map();
+	const moduleToIndex = new Map();
 
-	new BuiltinLazyCompilationPlugin(
+	const options = {
+		...compiler.options.experiments.lazyCompilation
+	};
+	applyPlugin(
+		compiler,
+		moduleToIndex,
+		indexToMap,
+		options,
+		activeModules,
+		filesByKey
+	);
+
+	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
+	return lazyCompilationMiddlewareInternal(
+		compiler,
+		indexToMap,
+		activeModules,
+		filesByKey,
+		lazyCompilationPrefix
+	);
+};
+
+function applyPlugin(
+	compiler: Compiler,
+	moduleToIndex: Map<string, string>,
+	indexToModule: Map<string, string>,
+	options: LazyCompilationOptions,
+	activeModules: Map<string, boolean>,
+	filesByKey: Map<string, string>
+) {
+	const plugin = new BuiltinLazyCompilationPlugin(
 		({ module, path }) => {
-			const key = encodeURIComponent(
-				module.replace(/\\/g, "/").replace(/@/g, "_")
-			)
-				// module identifier may contain query, bang(!) or split(|),
-				// should do our best to ensure it's the same with which comes
-				// from server url
-				.replace(/%(2F|3A|24|26|2B|2C|3B|3D)/g, decodeURIComponent);
+			let index = moduleToIndex.get(module);
+			if (index === undefined) {
+				index = moduleToIndex.size.toString();
+				moduleToIndex.set(module, index);
+				indexToModule.set(index, module);
+			}
+			const key = indexToModule.get(index)!;
 			filesByKey.set(key, path);
 			const active = activeModules.get(key) === true;
-
 			return {
 				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
-				data: key,
+				data: index,
 				active
 			};
 		},
@@ -71,29 +153,19 @@ export const lazyCompilationMiddleware = (
 		options.cacheable ?? true,
 		options.entries ?? true,
 		options.imports ?? true,
-		typeof options.test === "function"
-			? module => {
-					const test = options.test as (module: Module) => boolean;
-					return test(module);
-				}
-			: options.test
-	).apply(compiler);
-
-	return lazyCompilationMiddlewareInternal(
-		compiler,
-		activeModules,
-		filesByKey,
-		lazyCompilationPrefix
+		options.test
 	);
-};
+	plugin.apply(compiler);
+}
 
 // used for reuse code, do not export this
 const lazyCompilationMiddlewareInternal = (
-	compiler: Compiler,
+	compiler: Compiler | MultiCompiler,
+	indexToModule: Map<string, string>,
 	activeModules: Map<string, boolean>,
 	filesByKey: Map<string, string>,
 	lazyCompilationPrefix: string
-) => {
+): MiddlewareHandler => {
 	const logger = compiler.getInfrastructureLogger("LazyCompilation");
 
 	return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
@@ -102,7 +174,7 @@ const lazyCompilationMiddlewareInternal = (
 			return next?.();
 		}
 
-		const keys = req.url.slice(lazyCompilationPrefix.length).split("@");
+		const indices = req.url.slice(lazyCompilationPrefix.length).split("@");
 		req.socket.setNoDelay(true);
 
 		res.setHeader("content-type", "text/event-stream");
@@ -110,7 +182,8 @@ const lazyCompilationMiddlewareInternal = (
 		res.write("\n");
 
 		const moduleActivated = [];
-		for (const key of keys) {
+		for (const index of indices) {
+			const key = indexToModule.get(index)!;
 			const oldValue = activeModules.get(key) ?? false;
 			activeModules.set(key, true);
 			if (!oldValue) {

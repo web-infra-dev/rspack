@@ -6,9 +6,9 @@ import { pluginRss } from '@rspress/plugin-rss';
 import { transformerNotationHighlight } from '@shikijs/transformers';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
+import { defineConfig } from 'rspress/config';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
 import pluginSitemap from 'rspress-plugin-sitemap';
-import { defineConfig } from 'rspress/config';
 
 const PUBLISH_URL = 'https://rspack.rs';
 
@@ -147,6 +147,9 @@ export default defineConfig({
         }
         if (routePath.endsWith('blog/announcing-1-3')) {
           return 'assets/rspack-og-image-v1-3.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-4')) {
+          return 'assets/rspack-og-image-v1-4.png';
         }
         if (routePath.endsWith('blog/rspack-next-partner')) {
           return 'assets/next-rspack-og-image.png';

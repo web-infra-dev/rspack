@@ -1,14 +1,10 @@
-/* global __resourceQuery */
-
-"use strict";
-
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
 
 /**
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options
  * @returns {() => void} function to destroy response
  */
-exports.keepAlive = function (options) {
+exports.activate = function (options) {
 	var data = options.data;
 	var onError = options.onError;
 	var active = options.active;

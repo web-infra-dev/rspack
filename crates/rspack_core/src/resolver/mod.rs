@@ -3,13 +3,14 @@ mod factory;
 mod resolver_impl;
 use std::{
   borrow::Borrow,
-  fmt, fs,
+  fmt,
   path::PathBuf,
   sync::{Arc, LazyLock},
 };
 
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
+use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
@@ -104,6 +105,7 @@ impl From<Resource> for ResourceData {
 pub async fn resolve_for_error_hints(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
+  fs: Arc<dyn ReadableFileSystem>,
 ) -> Option<String> {
   let dep = ResolveOptionsWithDependencyType {
     resolve_options: args
@@ -210,10 +212,13 @@ which tries to resolve these kind of requests in the current directory too.",
     let mut is_resolving_dir = false; // whether the request is to resolve a directory or not
 
     let file_name = normalized_path.file_name();
-    let parent_path = match fs::metadata(&normalized_path) {
+    let utf8_normalized_path =
+      Utf8PathBuf::from_path_buf(normalized_path.clone()).expect("should be a valid utf8 path");
+
+    let parent_path = match fs.metadata(&utf8_normalized_path).await {
       Ok(metadata) => {
         // if the path is not directory, we need to resolve the parent directory
-        if !metadata.is_dir() {
+        if !metadata.is_directory {
           normalized_path.parent()
         } else {
           is_resolving_dir = true;
@@ -223,13 +228,12 @@ which tries to resolve these kind of requests in the current directory too.",
       Err(_) => normalized_path.parent(),
     };
 
-    if file_name.is_some() && parent_path.is_some() {
-      let file_name = file_name.expect("fail to get the filename of the current resolved module");
-      let parent_path =
-        parent_path.expect("fail to get the parent path of the current resolved module");
-
+    if let Some(file_name) = file_name
+      && let Some(parent_path) =
+        parent_path.and_then(|path| Utf8PathBuf::from_path_buf(path.to_path_buf()).ok())
+    {
       // read the files in the parent directory
-      if let Ok(files) = fs::read_dir(parent_path) {
+      if let Ok(files) = fs.read_dir(&parent_path).await {
         let mut requested_names = vec![file_name
           .to_str()
           .map(|f| f.to_string())
@@ -250,19 +254,18 @@ which tries to resolve these kind of requests in the current directory too.",
         let suggestions = files
           .into_iter()
           .filter_map(|file| {
-            file.ok().and_then(|file| {
-              file.path().file_stem().and_then(|file_stem| {
-                if requested_names.contains(&file_stem.to_string_lossy().to_string()) {
-                  let mut suggestion = file.path().relative(&args.context).assert_utf8();
+            let path = parent_path.join(file);
+            path.file_stem().and_then(|file_stem| {
+              if requested_names.contains(&file_stem.to_string()) {
+                let mut suggestion = path.as_std_path().relative(&args.context).assert_utf8();
 
-                  if !suggestion.as_str().starts_with('.') {
-                    suggestion = Utf8PathBuf::from(format!("./{suggestion}"));
-                  }
-                  Some(suggestion)
-                } else {
-                  None
+                if !suggestion.as_str().starts_with('.') {
+                  suggestion = Utf8PathBuf::from(format!("./{suggestion}"));
                 }
-              })
+                Some(suggestion)
+              } else {
+                None
+              }
             })
           })
           .collect::<Vec<_>>();
@@ -341,7 +344,7 @@ pub async fn resolve(
     .extend(context.missing_dependencies);
 
   if result.is_err()
-    && let Some(hint) = resolve_for_error_hints(args, plugin_driver).await
+    && let Some(hint) = resolve_for_error_hints(args, plugin_driver, resolver.inner_fs()).await
   {
     result = result.map_err(|err| err.with_help(hint))
   };

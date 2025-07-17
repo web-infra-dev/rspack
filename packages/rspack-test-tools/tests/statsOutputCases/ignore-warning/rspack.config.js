@@ -2,7 +2,18 @@
 module.exports = {
 	entry: "./index",
 	stats: "errors-warnings",
-	ignoreWarnings: [/Using \/ for division outside/],
+	ignoreWarnings: [
+		/Using \/ for division outside/,
+		{
+			message: /ESModulesLinkingWarning/
+		},
+		{
+			module: /a.js/
+		},
+		warning => {
+			return warning.module.identifier().includes("b.js");
+		}
+	],
 	module: {
 		rules: [
 			{

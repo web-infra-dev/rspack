@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::future::join_all;
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
@@ -8,6 +10,7 @@ use rspack_plugin_html::{
   HtmlPluginBeforeAssetTagGeneration,
 };
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::RwLock;
 
 use crate::{
   config::ArcFs, integrity::compute_integrity, util::normalize_path, SRICompilationContext,
@@ -16,27 +19,27 @@ use crate::{
 
 async fn handle_html_plugin_assets(
   data: &mut BeforeAssetTagGenerationData,
-  compilation_integrities: &mut HashMap<String, String>,
+  compilation_integrities: Arc<RwLock<HashMap<String, String>>>,
 ) -> Result<()> {
-  let normalized_integrities = get_normalized_integrities(compilation_integrities);
+  let normalized_integrities = get_normalized_integrities(compilation_integrities.clone()).await;
 
-  let js_integrity = data
-    .assets
-    .js
-    .iter()
-    .map(|asset| {
-      get_integrity_chechsum_for_asset(asset, compilation_integrities, &normalized_integrities)
-    })
-    .collect::<Vec<_>>();
+  let js_integrity = join_all(data.assets.js.iter().map(|asset| {
+    get_integrity_chechsum_for_asset(
+      asset,
+      compilation_integrities.clone(),
+      &normalized_integrities,
+    )
+  }))
+  .await;
 
-  let css_integrity = data
-    .assets
-    .css
-    .iter()
-    .map(|asset| {
-      get_integrity_chechsum_for_asset(asset, compilation_integrities, &normalized_integrities)
-    })
-    .collect::<Vec<_>>();
+  let css_integrity = join_all(data.assets.css.iter().map(|asset| {
+    get_integrity_chechsum_for_asset(
+      asset,
+      compilation_integrities.clone(),
+      &normalized_integrities,
+    )
+  }))
+  .await;
 
   data.assets.js_integrity = Some(js_integrity);
   data.assets.css_integrity = Some(css_integrity);
@@ -47,16 +50,16 @@ async fn handle_html_plugin_assets(
 async fn handle_html_plugin_tags(
   data: &mut AlterAssetTagGroupsData,
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
-  integrities: &HashMap<String, String>,
+  integrities: Arc<RwLock<HashMap<String, String>>>,
   ctx: &SRICompilationContext,
 ) -> Result<()> {
-  let normalized_integrities = get_normalized_integrities(integrities);
+  let normalized_integrities = get_normalized_integrities(integrities.clone()).await;
 
   process_tag_group(
     &mut data.head_tags,
     &data.public_path,
     hash_func_names,
-    integrities,
+    integrities.clone(),
     &normalized_integrities,
     ctx,
   )
@@ -78,7 +81,7 @@ async fn process_tag_group(
   tags: &mut [HtmlPluginTag],
   public_path: &str,
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
-  integrities: &HashMap<String, String>,
+  integrities: Arc<RwLock<HashMap<String, String>>>,
   normalized_integrities: &HashMap<String, String>,
   ctx: &SRICompilationContext,
 ) -> Result<()> {
@@ -86,7 +89,7 @@ async fn process_tag_group(
     process_tag(
       tag,
       public_path,
-      integrities,
+      integrities.clone(),
       normalized_integrities,
       hash_func_names,
       ctx,
@@ -117,10 +120,39 @@ async fn process_tag_group(
   Ok(())
 }
 
+// Get the `src` or `href` attribute of a tag if it is a script
+// or link tag that needs SRI.
+fn get_tag_src(tag: &HtmlPluginTag) -> Option<String> {
+  // Handle script tags with src attribute
+  if tag.tag_name == "script" {
+    return get_tag_attribute(tag, "src");
+  }
+
+  // Handle link tags that need SRI
+  if tag.tag_name == "link" {
+    let href = get_tag_attribute(tag, "href")?;
+    let rel = get_tag_attribute(tag, "rel")?;
+
+    // Only process link tags that load actual resources
+    let needs_sri = rel == "stylesheet"
+      || rel == "modulepreload"
+      || (rel == "preload" && {
+        let as_attr = get_tag_attribute(tag, "as");
+        as_attr.as_deref() == Some("script") || as_attr.as_deref() == Some("style")
+      });
+
+    if needs_sri {
+      return Some(href);
+    }
+  }
+
+  None
+}
+
 async fn process_tag(
   tag: &HtmlPluginTag,
   public_path: &str,
-  integrities: &HashMap<String, String>,
+  integrities: Arc<RwLock<HashMap<String, String>>>,
   normalized_integrities: &HashMap<String, String>,
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
   ctx: &SRICompilationContext,
@@ -133,13 +165,13 @@ async fn process_tag(
     return Ok(None);
   }
 
-  let Some(tag_src) = get_tag_attribute(tag, "href").or(get_tag_attribute(tag, "src")) else {
+  let Some(tag_src) = get_tag_src(tag) else {
     return Ok(None);
   };
 
   let src = get_asset_path(&tag_src, public_path);
   if let Some(integrity) =
-    get_integrity_chechsum_for_asset(&src, integrities, normalized_integrities)
+    get_integrity_chechsum_for_asset(&src, integrities, normalized_integrities).await
   {
     return Ok(Some(integrity));
   }
@@ -167,11 +199,12 @@ fn get_asset_path(src: &str, public_path: &str) -> String {
     .unwrap_or_else(|| decoded_src.to_string())
 }
 
-fn get_integrity_chechsum_for_asset(
+async fn get_integrity_chechsum_for_asset(
   src: &str,
-  integrities: &HashMap<String, String>,
+  integrities: Arc<RwLock<HashMap<String, String>>>,
   normalized_integrities: &HashMap<String, String>,
 ) -> Option<String> {
+  let integrities = integrities.read().await;
   if let Some(integrity) = integrities.get(src) {
     return Some(integrity.clone());
   }
@@ -180,8 +213,12 @@ fn get_integrity_chechsum_for_asset(
   normalized_integrities.get(&normalized_src).cloned()
 }
 
-fn get_normalized_integrities(integrities: &HashMap<String, String>) -> HashMap<String, String> {
+async fn get_normalized_integrities(
+  integrities: Arc<RwLock<HashMap<String, String>>>,
+) -> HashMap<String, String> {
   integrities
+    .read()
+    .await
     .iter()
     .map(|(key, value)| (normalize_path(key).into_owned(), value.clone()))
     .collect::<HashMap<_, _>>()
@@ -203,9 +240,9 @@ pub async fn before_asset_tag_generation(
   &self,
   mut data: BeforeAssetTagGenerationData,
 ) -> Result<BeforeAssetTagGenerationData> {
-  let mut compilation_integrities =
+  let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(data.compilation_id);
-  handle_html_plugin_assets(&mut data, &mut compilation_integrities).await?;
+  handle_html_plugin_assets(&mut data, compilation_integrities).await?;
   Ok(data)
 }
 
@@ -220,7 +257,7 @@ pub async fn alter_asset_tag_groups(
   handle_html_plugin_tags(
     &mut data,
     &self.options.hash_func_names,
-    &compilation_integrities,
+    compilation_integrities,
     &ctx,
   )
   .await?;

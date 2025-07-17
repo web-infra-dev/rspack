@@ -11,7 +11,8 @@ use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, Wr
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
-use rspack_util::node_path::NodePath;
+use rspack_tasks::{within_compiler_context, CompilerContext};
+use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -97,6 +98,7 @@ pub struct Compiler {
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
+  compiler_context: Arc<CompilerContext>,
 }
 
 impl Compiler {
@@ -113,6 +115,7 @@ impl Compiler {
     // no need to pass resolve_factory in rust api
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
+    compiler_context: Option<Arc<CompilerContext>>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -157,7 +160,7 @@ impl Compiler {
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
-
+    let compiler_context = compiler_context.unwrap_or(Arc::new(CompilerContext::new()));
     Self {
       id,
       compiler_path,
@@ -180,6 +183,7 @@ impl Compiler {
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
         false,
+        compiler_context.clone(),
       ),
       output_filesystem,
       intermediate_filesystem,
@@ -191,6 +195,7 @@ impl Compiler {
       old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
+      compiler_context,
     }
   }
 
@@ -202,9 +207,13 @@ impl Compiler {
     self.build().await?;
     Ok(())
   }
-
-  #[instrument("Compiler:build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
+    let compiler_context = self.compiler_context.clone();
+    within_compiler_context(compiler_context, self.build_inner()).await?;
+    Ok(())
+  }
+  #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
+  async fn build_inner(&mut self) -> Result<()> {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
@@ -232,14 +241,16 @@ impl Compiler {
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
         false,
+        self.compiler_context.clone(),
       ),
     );
     match self.cache.before_compile(&mut self.compilation).await {
-      Ok(is_hot) => {
-        if is_hot {
-          // If it's a hot start, we can use incremental
-          self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
-        }
+      Ok(_is_hot) => {
+        // TODO: disable it for now, enable it once persistent cache is added to all artifacts
+        // if is_hot {
+        //   // If it's a hot start, we can use incremental
+        //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+        // }
       }
       Err(err) => self.compilation.push_diagnostic(err.into()),
     }
@@ -253,7 +264,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument("Compiler:compile", skip_all)]
+  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
   async fn compile(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
@@ -315,6 +326,12 @@ impl Compiler {
     }
     logger.time_end(start);
     let start = logger.time("seal compilation");
+    #[cfg(feature = "debug_tool")]
+    {
+      use rspack_util::debug_tool::wait_for_signal;
+      wait_for_signal("seal compilation");
+    }
+
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
 

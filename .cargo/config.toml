@@ -6,7 +6,8 @@ CARGO_WORKSPACE_DIR = { value = "", relative = true }
 lint = "clippy --workspace --all-targets -- --deny warnings"
 # AKA `test-update`, handy cargo rst update without install `cargo-rst` binary
 t  = "test --no-fail-fast"
-tu = "run -p cargo-rst -- update"
+codegen = "xtask codegen"
+xtask = "run -p xtask --"
 
 [target.'cfg(all())']
 rustflags = [
@@ -32,8 +33,8 @@ rustflags = [
 
   "-Aclippy::default_constructed_unit_structs",
   "-Zshare-generics=y", # make the current crate share its generic instantiations
-  "-Zthreads=8" # parallel frontend https://blog.rust-lang.org/2023/11/09/parallel-rustc.html
-  
+  "-Zthreads=8", # parallel frontend https://blog.rust-lang.org/2023/11/09/parallel-rustc.html
+  "-Csymbol-mangling-version=v0", # symbol mangling v0 https://doc.rust-lang.org/stable/rustc/symbol-mangling/v0.html
 ]
 
 # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
@@ -55,9 +56,12 @@ rustflags = [
   "-C", "link-args=/DEFAULTLIB:ucrt.lib"
 ]
 
-
 [target.wasm32-wasip1-threads]
-rustflags = ["--cfg", "tokio_unstable"]
+rustflags = [
+  "-C",
+  "target-feature=+simd128", 
+  "--cfg", "tokio_unstable"
+]
 
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
@@ -65,3 +69,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 rustflags = ["-C", "target-feature=+crt-static"]
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# This must be the last line to allow ci script to append flags
+[unstable]
+no-embed-metadata = true

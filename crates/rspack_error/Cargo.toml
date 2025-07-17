@@ -4,7 +4,7 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_error"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -12,16 +12,17 @@ anyhow             = { workspace = true, features = ["backtrace"] }
 cow-utils          = { workspace = true }
 derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
-miette             = { version = "7.5.0", features = ["fancy"] }
+miette             = { workspace = true, features = ["fancy", "derive"] }
 once_cell          = { workspace = true }
-owo-colors         = "4.0.0"
+owo-colors         = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
+rspack_location    = { workspace = true }
 rspack_paths       = { workspace = true }
 serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
-termcolor          = "1.4.1"
-textwrap           = "0.16.1"
-thiserror          = "1.0.69"
+termcolor          = { workspace = true }
+textwrap           = { workspace = true }
+thiserror          = { workspace = true }
 
-unicode-width = "0.2.0"
+unicode-width = { workspace = true }

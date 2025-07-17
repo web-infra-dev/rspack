@@ -1,6 +1,6 @@
 import path from "node:path";
 import { MessageChannel } from "node:worker_threads";
-// biome-ignore lint: Biome does not support this
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: Biome does not support this
 import type { Tinypool } from "tinypool" with { "resolution-mode": "import" };
 
 let pool: Promise<Tinypool> | undefined;
@@ -169,8 +169,34 @@ export function serializeError(error: unknown): WorkerError {
 		"Failed to serialize error, only string, Error instances and objects with a message property are supported"
 	);
 }
+// check which props are not cloneable
+function checkCloneableProps(obj: any, loaderName: string) {
+	const errors = [];
+
+	for (const key of Object.keys(obj)) {
+		try {
+			structuredClone(obj[key]);
+		} catch (e: any) {
+			errors.push({ key, type: typeof obj[key], reason: e.message });
+		}
+	}
+
+	if (errors.length > 0) {
+		const errorMsg = errors
+			.map(
+				err =>
+					`option "${err.key}" (type: ${err.type}) is not cloneable: ${err.reason}`
+			)
+			.join("\n");
+
+		throw new Error(
+			`The options for ${loaderName} are not cloneable, which is not supported by parallelLoader. Consider disabling parallel for this loader or removing the non-cloneable properties from the options:\n${errorMsg}`
+		);
+	}
+}
 
 export const run = async (
+	loaderName: string,
 	task: any,
 	options: RunOptions & {
 		handleIncomingRequest: HandleIncomingRequest;
@@ -190,7 +216,7 @@ export const run = async (
 			const pendingRequests: Map<number, Promise<any>> = new Map();
 			mainPort.on("message", (message: WorkerMessage) => {
 				if (isWorkerDoneMessage(message)) {
-					Promise.allSettled(pendingRequests.values()).then(p => {
+					Promise.allSettled(pendingRequests.values()).then(() => {
 						mainPort.close();
 						mainSyncPort.close();
 						resolve(message.data);
@@ -281,6 +307,7 @@ export const run = async (
 				Atomics.notify(sharedBufferView, 0, Number.POSITIVE_INFINITY);
 			});
 			mainSyncPort.on("messageerror", handleError);
+			checkCloneableProps(task, loaderName);
 			pool
 				.run(
 					{

@@ -116,6 +116,11 @@ export interface OutputFileSystem {
 		arg0: string,
 		arg1: (arg0?: null | NodeJS.ErrnoException, arg1?: string | Buffer) => void
 	) => void;
+	chmod: (
+		arg0: string,
+		arg1: number,
+		arg2: (arg0?: NodeJS.ErrnoException | null) => void
+	) => void;
 	join?: (arg0: string, arg1: string) => string;
 	relative?: (arg0: string, arg1: string) => string;
 	dirname?: (arg0: string) => string;
@@ -692,9 +697,18 @@ export interface FileSystemInfoEntry {
 
 export interface WatchFileSystem {
 	watch(
-		files: Iterable<string>,
-		directories: Iterable<string>,
-		missing: Iterable<string>,
+		files: Iterable<string> & {
+			added?: Iterable<String>;
+			removed?: Iterable<String>;
+		},
+		directories: Iterable<string> & {
+			added?: Iterable<String>;
+			removed?: Iterable<String>;
+		},
+		missing: Iterable<string> & {
+			added?: Iterable<String>;
+			removed?: Iterable<String>;
+		},
 		startTime: number,
 		options: WatchOptions,
 		callback: (

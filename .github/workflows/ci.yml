@@ -28,6 +28,8 @@ concurrency:
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
   issues: write
+  # Allow commenting on pull requests for `size-limit.yml`
+  pull-requests: write
 
 jobs:
   check-changed:
@@ -60,6 +62,7 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
       bench: true
+      prefer_docker: false
 
   test-windows:
     name: Test Windows
@@ -69,7 +72,8 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: "dev"
-      runner: ${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}
+      runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
+      test-runner: '"windows-latest"'
       test: true
 
   test-mac:
@@ -92,43 +96,65 @@ jobs:
       target: wasm32-wasip1-threads
       profile: "ci"
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test: false
+      test: true
 
-  failure_notification:
-    name: Failure Notification
-    needs: [test-linux, test-windows, test-mac]
-    if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
-    runs-on: ubuntu-latest
+  check-codspeed:
+    name: Check Bench Result
+    needs: [test-linux]
+    runs-on: ubuntu-22.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 20
-      - shell: bash
-        run: ./scripts/alert/lark.js
-        env:
-          TITLE: CI failed on main branch
-          DESCRIPTION: |
-            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
-          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
-          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Polling Comment
+        if: ${{ github.event_name == 'pull_request' }}
+        run: bash .github/actions/codspeed/check-comment.sh
 
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Test Required Check
-    needs: [test-linux, test-windows, test-mac, check-changed]
+    needs:
+      [
+        check-codspeed,
+        test-linux,
+        test-windows,
+        test-mac,
+        test-wasm,
+        check-changed,
+        size-limit
+      ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true'
+          && github.event_name == 'pull_request'
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
+
+      - name: Test check
+        if: ${{ needs.check-changed.outputs.code_changed == 'true'
+          && github.event_name != 'pull_request'
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped' }}
+        run: echo "Tess Failed" && exit 1
+
       - name: No check to Run test
         run: echo "Success"
+
+  size-limit:
+    name: Binary Size Limit
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/size-limit.yml
 
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:

@@ -1,4 +1,4 @@
-WARNING in ./locale.js
+WARNING in ./locale.js 4:13-40
   ⚠ Module not found: Can't resolve './locale' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/optional-context-dependency'
    ╭─[4:13]
  2 │   let locale;

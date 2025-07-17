@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-	util,
 	type MultiRspackOptions,
-	type RspackOptions
+	type RspackOptions,
+	util
 } from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
@@ -56,6 +56,10 @@ export type LoadedRspackConfig =
 			argv?: Record<string, any>
 	  ) => RspackOptions | MultiRspackOptions);
 
+const checkIsMultiRspackOptions = (
+	config: RspackOptions | MultiRspackOptions
+): config is MultiRspackOptions => Array.isArray(config);
+
 /**
  * Loads and merges configurations from the 'extends' property
  * @param config The configuration object that may contain an 'extends' property
@@ -70,6 +74,14 @@ export async function loadExtendedConfig(
 	cwd: string,
 	options: RspackCLIOptions
 ): Promise<RspackOptions | MultiRspackOptions> {
+	if (checkIsMultiRspackOptions(config)) {
+		// If the config is an array, we need to handle each item separately
+		const extendedConfigs = (await Promise.all(
+			config.map(item => loadExtendedConfig(item, configPath, cwd, options))
+		)) as MultiRspackOptions;
+		extendedConfigs.parallelism = config.parallelism;
+		return extendedConfigs;
+	}
 	// If there's no extends property, return the config as is
 	if (!("extends" in config) || !config.extends) {
 		return config;
@@ -116,7 +128,7 @@ export async function loadExtendedConfig(
 			// It's a node module
 			try {
 				resolvedPath = require.resolve(extendPath, { paths: [baseDir, cwd] });
-			} catch (error) {
+			} catch {
 				throw new Error(`Cannot find module '${extendPath}' to extend from.`);
 			}
 		}

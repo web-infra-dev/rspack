@@ -34,11 +34,11 @@ import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	type ComposeJsUseOptions,
+	createRawModuleRuleUses,
 	type LoaderContext,
 	type LoaderDefinition,
 	type LoaderDefinitionFunction,
-	type PitchLoaderDefinitionFunction,
-	createRawModuleRuleUses
+	type PitchLoaderDefinitionFunction
 } from "./adapterRuleUse";
 import type {
 	ExperimentsNormalized,
@@ -579,7 +579,9 @@ function getRawJavascriptParserOptions(
 		requireAsExpression: parser.requireAsExpression,
 		requireDynamic: parser.requireDynamic,
 		requireResolve: parser.requireResolve,
-		importDynamic: parser.importDynamic
+		importDynamic: parser.importDynamic,
+		inlineConst: parser.inlineConst,
+		typeReexportsPresence: parser.typeReexportsPresence
 	};
 }
 

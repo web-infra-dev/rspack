@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import AbstractMethodError from "../../lib/AbstractMethodError";
+import { AbstractMethodError } from "../../lib/AbstractMethodError";
 
 export default class Hash {
 	/* istanbul ignore next */

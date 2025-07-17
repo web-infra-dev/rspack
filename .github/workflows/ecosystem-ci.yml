@@ -47,20 +47,24 @@ permissions:
 jobs:
   get-runner-labels:
     name: Get Runner Labels
+    if: github.repository == 'web-infra-dev/rspack'
     uses: ./.github/workflows/get-runner-labels.yml
 
   build:
     name: Test Linux
+    if: github.repository == 'web-infra-dev/rspack'
     needs: [get-runner-labels]
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"' }}
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       test: false
       bench: false
+      prefer_docker: false
 
   create-comment:
+    if: github.repository == 'web-infra-dev/rspack'
     runs-on: ubuntu-latest
     outputs:
       comment-id: ${{ steps.create-comment.outputs.result }}
@@ -94,6 +98,7 @@ jobs:
             return comment.id
 
   calculate-eco-ci-suite:
+    if: github.repository == 'web-infra-dev/rspack'
     runs-on: ubuntu-latest
     outputs:
       suites: ${{ steps.calculate.outputs.result }}
@@ -126,6 +131,7 @@ jobs:
             })
 
   eco-ci:
+    if: github.repository == 'web-infra-dev/rspack'
     needs: [build, calculate-eco-ci-suite]
     strategy:
       matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
@@ -176,19 +182,41 @@ jobs:
           cd rspack-ecosystem-ci
           pnpm i --frozen-lockfile
 
+          pnpm verdaccio --config verdaccio.yaml&
+          printf '\n//localhost:4873/:_authToken="this-is-a-fake-token"\n' >> ~/.npmrc
+
           mkdir -p ./workspace
           ln -s $RSPACK_DIR ./workspace/rspack
 
+          cd workspace/rspack
+          pnpm --filter @rspack/binding... 	            \
+               --filter @rspack/binding-darwin-arm64... \
+               --filter @rspack/core...                 \
+               --filter @rspack/dev-server...           \
+               --filter @rspack/test-tools...           \
+               --filter @rspack/tracing...              \
+              exec sh -c 'jq ".publishConfig.provenance = false" package.json > package.json.tmp && mv package.json.tmp package.json'
+
+          pnpm publish --no-git-checks --provenance=false --access public --registry=http://localhost:4873 \
+               --filter @rspack/binding... 	            \
+               --filter @rspack/binding-darwin-arm64... \
+               --filter @rspack/core...                 \
+               --filter @rspack/dev-server...           \
+               --filter @rspack/test-tools...           \
+               --filter @rspack/tracing... 
+
+          cd ../..
+          pwd
           SUITE='${{ matrix.suite }}'
           SUITE_REF='${{ inputs.suiteRef || '-' }}'
           CONCLUSION='success'
           if [[ "$SUITE_REF" != "-" ]]; then
             # run test suite with suiteRef
-            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
+            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE with $SUITE_REF"
           else
             # run test suite
-            pnpm tsx ecosystem-ci.ts run-suites "$SUITE" || CONCLUSION='failure'
+            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE"
           fi
           echo "{\"conclusion\":\"$CONCLUSION\"}" >> "$RSPACK_DIR/$SUITE.json"
@@ -199,9 +227,9 @@ jobs:
           path: ${{ matrix.suite }}.json
 
   comment-compare-results:
+    if: github.repository == 'web-infra-dev/rspack' && !cancelled()
     runs-on: ubuntu-latest
     needs: [create-comment, eco-ci]
-    if: ${{ !cancelled() }}
     steps:
       - name: Download Result
         uses: actions/download-artifact@v4

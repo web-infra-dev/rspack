@@ -4,7 +4,7 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_copy"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 [dependencies]
 dashmap      = { workspace = true }
 derive_more  = { workspace = true, features = ["debug"] }
@@ -20,9 +20,6 @@ rspack_paths = { workspace = true }
 rustc-hash   = { workspace = true }
 sugar_path   = { workspace = true }
 tracing      = { workspace = true }
-
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { workspace = true, features = ["fs"] }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

@@ -9,12 +9,12 @@
  */
 
 import type { JsBuildMeta } from "@rspack/binding";
-import { z } from "zod";
+import { DllReferenceAgencyPlugin } from "../builtin-plugin";
 import type { CompilationParams } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { DllReferenceAgencyPlugin } from "../builtin-plugin";
+import { getDllReferencePluginOptionsSchema } from "../schema/plugins";
+import { validate } from "../schema/validate";
 import { makePathsRelative } from "../util/identifier";
-import { validate } from "../util/validate";
 import WebpackError from "./WebpackError";
 
 export type DllReferencePluginOptions =
@@ -137,68 +137,13 @@ export interface DllReferencePluginOptionsContent {
 	};
 }
 
-const dllReferencePluginOptionsContentItem = z.object({
-	buildMeta: z.custom<JsBuildMeta>().optional(),
-	exports: z.array(z.string()).or(z.literal(true)).optional(),
-	id: z.string().or(z.number()).optional()
-});
-
-const dllReferencePluginOptionsContent = z.record(
-	z.string(),
-	dllReferencePluginOptionsContentItem
-) satisfies z.ZodType<DllReferencePluginOptionsContent>;
-
-const dllReferencePluginOptionsSourceType = z.enum([
-	"var",
-	"assign",
-	"this",
-	"window",
-	"global",
-	"commonjs",
-	"commonjs2",
-	"commonjs-module",
-	"amd",
-	"amd-require",
-	"umd",
-	"umd2",
-	"jsonp",
-	"system"
-]) satisfies z.ZodType<DllReferencePluginOptionsSourceType>;
-
-const dllReferencePluginOptionsManifest = z.object({
-	content: dllReferencePluginOptionsContent,
-	name: z.string().optional(),
-	type: dllReferencePluginOptionsSourceType.optional()
-}) satisfies z.ZodType<DllReferencePluginOptionsManifest>;
-
-const dllReferencePluginOptions = z.union([
-	z.object({
-		context: z.string().optional(),
-		extensions: z.array(z.string()).optional(),
-		manifest: z.string().or(dllReferencePluginOptionsManifest),
-		name: z.string().optional(),
-		scope: z.string().optional(),
-		sourceType: dllReferencePluginOptionsSourceType.optional(),
-		type: z.enum(["require", "object"]).optional()
-	}),
-	z.object({
-		content: dllReferencePluginOptionsContent,
-		context: z.string().optional(),
-		extensions: z.array(z.string()).optional(),
-		name: z.string(),
-		scope: z.string().optional(),
-		sourceType: dllReferencePluginOptionsSourceType.optional(),
-		type: z.enum(["require", "object"]).optional()
-	})
-]) satisfies z.ZodType<DllReferencePluginOptions>;
-
 export class DllReferencePlugin {
 	private options: DllReferencePluginOptions;
 
 	private errors: WeakMap<CompilationParams, DllManifestError>;
 
 	constructor(options: DllReferencePluginOptions) {
-		validate(options, dllReferencePluginOptions);
+		validate(options, getDllReferencePluginOptionsSchema);
 
 		this.options = options;
 		this.errors = new WeakMap();

@@ -8,10 +8,10 @@ use napi::{
   bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue},
   sys::{self, napi_env},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env, JsValue, Unknown, ValueType,
+  Env, JsValue, Status, Unknown, ValueType,
 };
 use oneshot::Receiver;
-use rspack_error::{miette::IntoDiagnostic, Error, Result};
+use rspack_error::{Error, Result};
 
 use crate::{JsCallback, NapiErrorToRspackErrorExt};
 
@@ -20,7 +20,7 @@ type ErrorResolver = dyn FnOnce(Env);
 static ERROR_RESOLVER: OnceLock<JsCallback<Box<ErrorResolver>>> = OnceLock::new();
 
 pub struct ThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
-  inner: Arc<RawThreadsafeFunction<T, Unknown<'static>, T, false, true>>,
+  inner: Arc<RawThreadsafeFunction<T, Unknown<'static>, T, Status, false, true>>,
   env: napi_env,
   _data: PhantomData<R>,
 }
@@ -47,7 +47,7 @@ unsafe impl<T: 'static + JsValuesTupleIntoVec, R> Send for ThreadsafeFunction<T,
 impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<T, R> {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
     let inner = unsafe {
-      <RawThreadsafeFunction<T, Unknown, T, false, true> as FromNapiValue>::from_napi_value(
+      <RawThreadsafeFunction<T, Unknown, T, Status, false, true> as FromNapiValue>::from_napi_value(
         env, napi_val,
       )
     }?;
@@ -83,7 +83,12 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
         move |r: napi::Result<Unknown>, env| {
           let r = match r {
             Err(err) => Err(err.to_rspack_error(&env)),
-            Ok(o) => unsafe { D::from_napi_value(env.raw(), o.raw()) }.into_diagnostic(),
+            Ok(o) => {
+              let raw_env = env.raw();
+              let return_value = o.raw();
+              unsafe { D::from_napi_value(raw_env, return_value) }
+                .map_err(|e| pretty_type_error(o, e))
+            }
           };
           tx.send(r)
             .unwrap_or_else(|_| panic!("failed to send tsfn value"));
@@ -136,4 +141,41 @@ impl<T: 'static + JsValuesTupleIntoVec, R> TypeName for ThreadsafeFunction<T, R>
   fn value_type() -> napi::ValueType {
     ValueType::Function
   }
+}
+
+fn pretty_type_error(return_value: Unknown, error: napi::Error) -> rspack_error::Error {
+  let expected_type = match error.status {
+    Status::ObjectExpected => "object",
+    Status::StringExpected => "string",
+    Status::FunctionExpected => "function",
+    Status::NumberExpected => "number",
+    Status::BooleanExpected => "boolean",
+    Status::ArrayExpected => "Array",
+    Status::BigintExpected => "bigint",
+    Status::DateExpected => "Date",
+    Status::ArrayBufferExpected => "ArrayBuffer",
+    _ => return rspack_error::error!("{}", error),
+  };
+  let reason = match return_value.get_type() {
+    Ok(return_value_type) => {
+      let return_value_type_str = match return_value_type {
+        ValueType::Undefined => "undefined",
+        ValueType::Null => "null",
+        ValueType::Boolean => "boolean",
+        ValueType::Number => "number",
+        ValueType::String => "string",
+        ValueType::Symbol => "symbol",
+        ValueType::Object => "object",
+        ValueType::Function => "function",
+        ValueType::External => "external",
+        ValueType::BigInt => "bigint",
+        _ => "unknown",
+      };
+      format!(
+        "TypeError: Expected return a '{expected_type}' value, but received `{return_value_type_str}`"
+      )
+    }
+    Err(_) => format!("TypeError: Expected return a '{expected_type}' value"),
+  };
+  rspack_error::error!(reason)
 }

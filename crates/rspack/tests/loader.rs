@@ -12,47 +12,55 @@ use serde_json::json;
 #[cfg(feature = "loader_lightningcss")]
 #[tokio::test(flavor = "multi_thread")]
 async fn lightningcss() {
-  let mut compiler = Compiler::builder()
-    .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lightningcss"))
-    .entry("main", "./src/index.js")
-    .module(ModuleOptions::builder().rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.css$").unwrap(),
-      )),
-      effect: ModuleRuleEffect {
-        r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+  use rspack_tasks::within_compiler_context_for_testing;
+
+  within_compiler_context_for_testing(async {
+    let mut compiler = Compiler::builder()
+      .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lightningcss"))
+      .entry("main", "./src/index.js")
+      .module(ModuleOptions::builder().rule(ModuleRule {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.css$").unwrap(),
+        )),
+        effect: ModuleRuleEffect {
+          r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:lightningcss-loader".to_string(),
           options: Some(json!({
             "include": 1 // lower nesting syntax
           }).to_string()),
         }]),
+          ..Default::default()
+        },
         ..Default::default()
-      },
-      ..Default::default()
-    }))
-    .experiments(Experiments::builder().css(true))
-    .enable_loader_lightningcss()
-    .build()
-    .unwrap();
+      }))
+      .experiments(Experiments::builder().css(true))
+      .enable_loader_lightningcss()
+      .build()
+      .unwrap();
 
-  compiler.build().await.unwrap();
+    compiler.build().await.unwrap();
 
-  let errors: Vec<_> = compiler.compilation.get_errors().collect();
-  assert!(errors.is_empty());
+    let errors: Vec<_> = compiler.compilation.get_errors().collect();
+    assert!(errors.is_empty());
+  })
+  .await;
 }
 
 #[cfg(feature = "loader_swc")]
 #[tokio::test(flavor = "multi_thread")]
 async fn swc() {
-  let mut compiler = Compiler::builder()
-    .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/swc"))
-    .entry("main", "./src/index.jsx")
-    .module(ModuleOptions::builder().rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.jsx$").unwrap(),
-      )),
-      effect: ModuleRuleEffect {
-        r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+  use rspack_tasks::within_compiler_context_for_testing;
+
+  within_compiler_context_for_testing(async {
+    let mut compiler = Compiler::builder()
+      .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/swc"))
+      .entry("main", "./src/index.jsx")
+      .module(ModuleOptions::builder().rule(ModuleRule {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.jsx$").unwrap(),
+        )),
+        effect: ModuleRuleEffect {
+          r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
           options: Some(json!({
             "jsc": {
@@ -72,33 +80,38 @@ async fn swc() {
             }
           }).to_string()),
         }]),
+          ..Default::default()
+        },
         ..Default::default()
-      },
-      ..Default::default()
-    }))
-    .experiments(Experiments::builder().css(true))
-    .enable_loader_swc()
-    .build()
-    .unwrap();
+      }))
+      .experiments(Experiments::builder().css(true))
+      .enable_loader_swc()
+      .build()
+      .unwrap();
 
-  compiler.build().await.unwrap();
+    compiler.build().await.unwrap();
 
-  let errors: Vec<_> = compiler.compilation.get_errors().collect();
-  assert!(errors.is_empty());
+    let errors: Vec<_> = compiler.compilation.get_errors().collect();
+    assert!(errors.is_empty());
+  })
+  .await;
 }
 
 #[cfg(feature = "loader_react_refresh")]
 #[tokio::test(flavor = "multi_thread")]
 async fn react_refresh() {
-  let mut compiler = Compiler::builder()
-    .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/react-refresh"))
-    .entry("main", "./src/index.jsx")
-    .module(ModuleOptions::builder().rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.jsx$").unwrap(),
-      )),
-      effect: ModuleRuleEffect {
-        r#use: ModuleRuleUse::Array(vec![
+  use rspack_tasks::within_compiler_context_for_testing;
+
+  within_compiler_context_for_testing(async {
+    let mut compiler = Compiler::builder()
+      .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/react-refresh"))
+      .entry("main", "./src/index.jsx")
+      .module(ModuleOptions::builder().rule(ModuleRule {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.jsx$").unwrap(),
+        )),
+        effect: ModuleRuleEffect {
+          r#use: ModuleRuleUse::Array(vec![
           ModuleRuleUseLoader {
             loader: "builtin:react-refresh-loader".to_string(),
             options: None
@@ -123,34 +136,39 @@ async fn react_refresh() {
             }
           }).to_string()),
         }]),
+          ..Default::default()
+        },
         ..Default::default()
-      },
-      ..Default::default()
-    }))
-    .experiments(Experiments::builder().css(true))
-    .enable_loader_swc()
-    .enable_loader_react_refresh()
-    .build()
-    .unwrap();
+      }))
+      .experiments(Experiments::builder().css(true))
+      .enable_loader_swc()
+      .enable_loader_react_refresh()
+      .build()
+      .unwrap();
 
-  compiler.build().await.unwrap();
+    compiler.build().await.unwrap();
 
-  let errors: Vec<_> = compiler.compilation.get_errors().collect();
-  assert!(errors.is_empty());
+    let errors: Vec<_> = compiler.compilation.get_errors().collect();
+    assert!(errors.is_empty());
+  })
+  .await;
 }
 
 #[cfg(feature = "loader_preact_refresh")]
 #[tokio::test(flavor = "multi_thread")]
 async fn preact_refresh() {
-  let mut compiler = Compiler::builder()
-    .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/preact-refresh"))
-    .entry("main", "./src/index.jsx")
-    .module(ModuleOptions::builder().rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.jsx$").unwrap(),
-      )),
-      effect: ModuleRuleEffect {
-        r#use: ModuleRuleUse::Array(vec![
+  use rspack_tasks::within_compiler_context_for_testing;
+
+  within_compiler_context_for_testing(async {
+    let mut compiler = Compiler::builder()
+      .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/preact-refresh"))
+      .entry("main", "./src/index.jsx")
+      .module(ModuleOptions::builder().rule(ModuleRule {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.jsx$").unwrap(),
+        )),
+        effect: ModuleRuleEffect {
+          r#use: ModuleRuleUse::Array(vec![
           ModuleRuleUseLoader {
             loader: "builtin:preact-refresh-loader".to_string(),
             options: None
@@ -175,18 +193,20 @@ async fn preact_refresh() {
             }
           }).to_string()),
         }]),
+          ..Default::default()
+        },
         ..Default::default()
-      },
-      ..Default::default()
-    }))
-    .experiments(Experiments::builder().css(true))
-    .enable_loader_swc()
-    .enable_loader_preact_refresh()
-    .build()
-    .unwrap();
+      }))
+      .experiments(Experiments::builder().css(true))
+      .enable_loader_swc()
+      .enable_loader_preact_refresh()
+      .build()
+      .unwrap();
 
-  compiler.build().await.unwrap();
+    compiler.build().await.unwrap();
 
-  let errors: Vec<_> = compiler.compilation.get_errors().collect();
-  assert!(errors.is_empty());
+    let errors: Vec<_> = compiler.compilation.get_errors().collect();
+    assert!(errors.is_empty());
+  })
+  .await;
 }

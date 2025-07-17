@@ -10,7 +10,6 @@
 import type * as binding from "@rspack/binding";
 
 import type { Compilation } from "./Compilation";
-import { DeadlockRiskError } from "./RspackError";
 import type { StatsOptions, StatsValue } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
@@ -93,36 +92,22 @@ export class Stats {
 			binding.JsStatsCompilation
 		>();
 
-		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
-		// Modern.js dev server will detect whether the returned stats is available.
-		// So this does not do harm to these frameworks.
-		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
-		let stats: StatsCompilation | null = null;
-		try {
-			stats = statsFactory.create("compilation", this.compilation, {
-				compilation: this.compilation,
-				getStatsCompilation: (
-					compilation: Compilation
-				): binding.JsStatsCompilation => {
-					if (statsCompilationMap.has(compilation)) {
-						return statsCompilationMap.get(compilation)!;
-					}
-					const innerStats = this.#getInnerByCompilation(compilation);
-					const innerStatsCompilation = innerStats.toJson(options);
-					statsCompilationMap.set(compilation, innerStatsCompilation);
-					return innerStatsCompilation;
-				},
-				getInner: this.#getInnerByCompilation.bind(this)
-			});
-		} catch (e) {
-			if (e instanceof DeadlockRiskError) {
-				throw e;
-			}
-			// FIXME: shouldn't swallow error
-			console.warn(
-				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
-			);
-		}
+		const stats = statsFactory.create("compilation", this.compilation, {
+			compilation: this.compilation,
+			getStatsCompilation: (
+				compilation: Compilation
+			): binding.JsStatsCompilation => {
+				if (statsCompilationMap.has(compilation)) {
+					return statsCompilationMap.get(compilation)!;
+				}
+				const innerStats = this.#getInnerByCompilation(compilation);
+				options.warnings = false;
+				const innerStatsCompilation = innerStats.toJson(options);
+				statsCompilationMap.set(compilation, innerStatsCompilation);
+				return innerStatsCompilation;
+			},
+			getInner: this.#getInnerByCompilation.bind(this)
+		});
 		return stats as StatsCompilation;
 	}
 
@@ -139,40 +124,21 @@ export class Stats {
 			binding.JsStatsCompilation
 		>();
 
-		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
-		// Modern.js dev server will detect whether the returned stats is available.
-		// So this does not do harm to these frameworks.
-		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
-		let stats: StatsCompilation | null = null;
-		try {
-			stats = statsFactory.create("compilation", this.compilation, {
-				compilation: this.compilation,
-				getStatsCompilation: (
-					compilation: Compilation
-				): binding.JsStatsCompilation => {
-					if (statsCompilationMap.has(compilation)) {
-						return statsCompilationMap.get(compilation)!;
-					}
-					const innerStats = this.#getInnerByCompilation(compilation);
-					const innerStatsCompilation = innerStats.toJson(options);
-					statsCompilationMap.set(compilation, innerStatsCompilation);
-					return innerStatsCompilation;
-				},
-				getInner: this.#getInnerByCompilation.bind(this)
-			});
-		} catch (e) {
-			if (e instanceof DeadlockRiskError) {
-				throw e;
-			}
-			// FIXME: shouldn't swallow error
-			console.warn(
-				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
-			);
-		}
-
-		if (!stats) {
-			return "";
-		}
+		const stats = statsFactory.create("compilation", this.compilation, {
+			compilation: this.compilation,
+			getStatsCompilation: (
+				compilation: Compilation
+			): binding.JsStatsCompilation => {
+				if (statsCompilationMap.has(compilation)) {
+					return statsCompilationMap.get(compilation)!;
+				}
+				const innerStats = this.#getInnerByCompilation(compilation);
+				const innerStatsCompilation = innerStats.toJson(options);
+				statsCompilationMap.set(compilation, innerStatsCompilation);
+				return innerStatsCompilation;
+			},
+			getInner: this.#getInnerByCompilation.bind(this)
+		});
 
 		const result = statsPrinter.print("compilation", stats);
 

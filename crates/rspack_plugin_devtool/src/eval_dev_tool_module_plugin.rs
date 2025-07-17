@@ -71,7 +71,8 @@ async fn eval_devtool_plugin_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
   hooks
     .render_module_content
     .tap(eval_devtool_plugin_render_module_content::new(self));
@@ -281,7 +282,7 @@ fn encode_uri(string: &str) -> Cow<str> {
       if let Cow::Owned(mut inner) = r {
         let mut b = [0u8; 4];
         for &octet in c.encode_utf8(&mut b).as_bytes() {
-          write!(&mut inner, "%{:02X}", octet).unwrap();
+          write!(&mut inner, "%{octet:02X}").expect("write failed");
         }
         r = Cow::Owned(inner);
       }

@@ -1,0 +1,113 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CssChunkingPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.4.0" />
+
+`CssChunkingPlugin` 是一个专为 CSS 代码分割设计的插件，它能够确保样式的加载顺序与源代码中的导入顺序保持一致，避免因 CSS 加载顺序错误而导致的 UI 问题。
+
+> 该插件由 Next.js 的 [CSS Chunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking) 功能启发而来，感谢 Next.js 团队在这一领域的创新。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.experiments.CssChunkingPlugin({
+      // ...options
+    }),
+  ],
+};
+```
+
+:::tip
+启用 CssChunkingPlugin 后，SplitChunksPlugin 将不再处理 CSS 模块。
+这意味着 `optimization.splitChunks` 等配置对 CSS 模块将不再生效，所有 CSS 模块的代码分割逻辑完全由 CssChunkingPlugin 处理。
+:::
+
+## 选项
+
+### strict
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否严格保持 CSS 模块的导入顺序。
+
+### minSize
+
+生成 chunk 的最小体积（以 bytes 为单位）。
+
+### maxSize
+
+生成 chunk 的最大体积（以 bytes 为单位）。大于 maxSize 的 chunk 会被拆分成更小的部分，这些部分的体积至少为 minSize。
+
+## 模式对比
+
+### 常规模式 (strict: false，默认)
+
+```js
+new rspack.experiments.CssChunkingPlugin({
+  strict: false,
+});
+```
+
+- 如果 CSS 模块在项目中被以不同顺序导入，则默认它们之间没有依赖关系
+- 允许合并无依赖关系的 CSS 模块，以减少 chunk 数量
+
+### 严格模式 (strict: true)
+
+```js
+new rspack.experiments.CssChunkingPlugin({
+  strict: true,
+});
+```
+
+- 严格保证 CSS 模块的执行顺序与源代码导入顺序一致
+
+### 示例
+
+`a.css` 和 `b.css` 分别在 `foo.js` 和 `bar.js` 中被导入，但导入顺序不同：
+
+```js
+// foo.js
+import './a.css';
+import './b.css';
+
+// bar.js
+import './b.css';
+import './a.css';
+```
+
+常规模式 (strict: false)：认为 `a.css` 和 `b.css` 之间无依赖关系，会将它们合并到同一个 chunk 中。
+
+严格模式 (strict: true)：严格按照导入顺序，将 `a.css` 和 `b.css` 分别打包到不同的 chunk 中，确保执行顺序一致。
+
+## 与 SplitChunksPlugin 的区别
+
+`SplitChunksPlugin` 在进行代码分割时不会考虑模块的导入顺序。对于 JavaScript 模块，这不是问题，因为模块的执行顺序在运行时通过函数调用决定。
+
+但对于 CSS 模块，CSS 的执行顺序完全由其在产物文件中的排列顺序决定，无法在运行时控制。如果执行顺序变化，可能导致样式错误。
+
+例如，导入如下 CSS 模块：
+
+```js
+import './a.css';
+import './b.css';
+import './c.css';
+```
+
+`SplitChunksPlugin` 可能拆分成以下 chunk 以满足 `maxSize` 等配置约束：
+
+```
+chunk-1: b.css
+chunk-2: a.css, c.css // 可能因尺寸较大而被提取
+```
+
+这样，最终执行顺序变为 b.css → a.css → c.css，违背了原始导入顺序，可能导致样式错误。
+
+CssChunkingPlugin 的内部算法会先分离出所有 CSS 模块，然后根据源代码的导入顺序判断哪些可以合并，无法合并则拆分为独立的 chunk，以保证样式的正确性。
+
+:::tip
+由于 CssChunkingPlugin 需要优先保证样式的执行顺序，因此相比 SplitChunksPlugin，可能会生成更多的 chunk。
+:::

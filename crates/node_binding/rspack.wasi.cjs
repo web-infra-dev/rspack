@@ -66,6 +66,18 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
       __wasmCreateOnMessageForFsProxy(__nodeFs)(data)
     }
 
+    // We have enabled `reuseWorker` so normally the workers never exit, unless there's any exception. 
+    // For Rust threads, aborting one thread means aborting the process, but actually aborting Node.js workers doesn't abort the main thread.
+    // I'm not sure whether it's the expected behavior of Node.js workers, or the behavior has been controlled by emnapi.
+    // Anyway, this code is used for fix the bug: 
+    // When the main thread holds a strong tsfn that prevents the Node.js event loop exiting,
+    // if the worker responsible for unref the tsfn terminates, then the main thread will never exits.
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        process.exit(code);
+      }
+    });
+
     // The main thread of Node.js waits for all the active handles before exiting.
     // But Rust threads are never waited without `thread::join`.
     // So here we hack the code of Node.js to prevent the workers from being referenced (active).
@@ -108,50 +120,3 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
   },
 })
 module.exports = __napiModule.exports
-module.exports.Assets = __napiModule.exports.Assets
-module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
-module.exports.BuildInfo = __napiModule.exports.BuildInfo
-module.exports.Chunks = __napiModule.exports.Chunks
-module.exports.CodeGenerationResult = __napiModule.exports.CodeGenerationResult
-module.exports.CodeGenerationResults = __napiModule.exports.CodeGenerationResults
-module.exports.ConcatenatedModule = __napiModule.exports.ConcatenatedModule
-module.exports.ContextModule = __napiModule.exports.ContextModule
-module.exports.Dependency = __napiModule.exports.Dependency
-module.exports.Diagnostics = __napiModule.exports.Diagnostics
-module.exports.EntryDataDto = __napiModule.exports.EntryDataDto
-module.exports.EntryDataDTO = __napiModule.exports.EntryDataDTO
-module.exports.EntryDependency = __napiModule.exports.EntryDependency
-module.exports.EntryOptionsDto = __napiModule.exports.EntryOptionsDto
-module.exports.EntryOptionsDTO = __napiModule.exports.EntryOptionsDTO
-module.exports.ExternalModule = __napiModule.exports.ExternalModule
-module.exports.JsChunk = __napiModule.exports.JsChunk
-module.exports.JsChunkGraph = __napiModule.exports.JsChunkGraph
-module.exports.JsChunkGroup = __napiModule.exports.JsChunkGroup
-module.exports.JsCompilation = __napiModule.exports.JsCompilation
-module.exports.JsCompiler = __napiModule.exports.JsCompiler
-module.exports.JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData
-module.exports.JsContextModuleFactoryBeforeResolveData = __napiModule.exports.JsContextModuleFactoryBeforeResolveData
-module.exports.JsDependencies = __napiModule.exports.JsDependencies
-module.exports.JsEntries = __napiModule.exports.JsEntries
-module.exports.JsExportsInfo = __napiModule.exports.JsExportsInfo
-module.exports.JsModuleGraph = __napiModule.exports.JsModuleGraph
-module.exports.JsResolver = __napiModule.exports.JsResolver
-module.exports.JsResolverFactory = __napiModule.exports.JsResolverFactory
-module.exports.JsStats = __napiModule.exports.JsStats
-module.exports.Module = __napiModule.exports.Module
-module.exports.ModuleGraphConnection = __napiModule.exports.ModuleGraphConnection
-module.exports.NormalModule = __napiModule.exports.NormalModule
-module.exports.RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
-module.exports.Sources = __napiModule.exports.Sources
-module.exports.BuiltinPluginName = __napiModule.exports.BuiltinPluginName
-module.exports.cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
-module.exports.formatDiagnostic = __napiModule.exports.formatDiagnostic
-module.exports.JsLoaderState = __napiModule.exports.JsLoaderState
-module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
-module.exports.minify = __napiModule.exports.minify
-module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
-module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
-module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
-module.exports.shutdownAsyncRuntime = __napiModule.exports.shutdownAsyncRuntime
-module.exports.startAsyncRuntime = __napiModule.exports.startAsyncRuntime
-module.exports.transform = __napiModule.exports.transform

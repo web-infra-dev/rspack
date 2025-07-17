@@ -3,20 +3,19 @@ import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
 	type JsCacheGroupTestCtx,
-	type JsChunk,
 	type RawCacheGroupOptions,
 	type RawSplitChunksOptions
 } from "@rspack/binding";
 
-import { Chunk } from "../Chunk";
+import type { Chunk } from "../Chunk";
 import type { Compiler } from "../Compiler";
-import type { Module } from "../Module";
 import type {
 	OptimizationSplitChunksCacheGroup,
 	OptimizationSplitChunksOptions
 } from "../config";
+import type { Module } from "../Module";
 import { JsSplitChunkSizes } from "../util/SplitChunkSize";
-import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
+import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 export class SplitChunksPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.SplitChunksPlugin;
@@ -44,7 +43,7 @@ function toRawSplitChunksOptions(
 	function getName(name: any) {
 		interface Context {
 			module: Module;
-			chunks: JsChunk[];
+			chunks: Chunk[];
 			cacheGroupKey: string;
 		}
 
@@ -75,7 +74,7 @@ function toRawSplitChunksOptions(
 
 	function getChunks(chunks: any) {
 		if (typeof chunks === "function") {
-			return (chunk: JsChunk) => chunks(Chunk.__from_binding(chunk));
+			return (chunk: Chunk) => chunks(chunk);
 		}
 		return chunks;
 	}

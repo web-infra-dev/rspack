@@ -13,24 +13,24 @@ import type { Callback } from "@rspack/lite-tapable";
 
 import { Compiler } from "./Compiler";
 import {
+	applyRspackOptionsBaseDefaults,
+	applyRspackOptionsDefaults,
+	getNormalizedRspackOptions,
+	type RspackOptions,
+	type RspackPluginFunction
+} from "./config";
+import {
 	MultiCompiler,
 	type MultiCompilerOptions,
 	type MultiRspackOptions
 } from "./MultiCompiler";
 import MultiStats from "./MultiStats";
-import { Stats } from "./Stats";
-import {
-	type RspackOptions,
-	type RspackPluginFunction,
-	applyRspackOptionsBaseDefaults,
-	applyRspackOptionsDefaults,
-	getNormalizedRspackOptions
-} from "./config";
-import { rspackOptions } from "./config/zod";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
+import { Stats } from "./Stats";
+import { getRspackOptionsSchema } from "./schema/config";
+import { validate } from "./schema/validate";
 import { asArray, isNil } from "./util";
-import { validate } from "./util/validate";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -105,7 +105,7 @@ function rspack(
 ) {
 	try {
 		for (const o of asArray(options)) {
-			validate(o, rspackOptions);
+			validate(o, getRspackOptionsSchema);
 		}
 	} catch (e) {
 		if (e instanceof Error && callback) {

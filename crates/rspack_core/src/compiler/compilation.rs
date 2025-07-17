@@ -9,7 +9,6 @@ use std::{
 };
 
 use dashmap::DashSet;
-use futures::future::join_all;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -29,7 +28,8 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
-use rspack_util::itoa;
+use rspack_tasks::CompilerContext;
+use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
@@ -49,19 +49,21 @@ use crate::{
   to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact,
+  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
-define_hook!(CompilationRevokedModules: Series(revoked_modules: &IdentifierSet));
+define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
@@ -85,10 +87,10 @@ define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterCodeGeneration: Series(compilation: &mut Compilation));
-define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
+define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash),tracing=false);
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
-define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
@@ -257,6 +259,13 @@ pub struct Compilation {
   pub chunk_hashes_artifact: ChunkHashesArtifact,
   // artifact for create_chunk_assets
   pub chunk_render_artifact: ChunkRenderArtifact,
+  // artifact for caching get_mode
+  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
+  // artiface for caching module static info
+  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
+
+  // artifact for chunk render cache
+  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -291,6 +300,7 @@ pub struct Compilation {
   ///
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
+  pub compiler_context: Arc<CompilerContext>,
 }
 
 impl Compilation {
@@ -333,6 +343,7 @@ impl Compilation {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
+    compiler_context: Arc<CompilerContext>,
   ) -> Self {
     Self {
       id: CompilationId::new(),
@@ -340,7 +351,7 @@ impl Compilation {
       hot_index: 0,
       runtime_template: RuntimeTemplate::new(options.output.environment),
       records,
-      options,
+      options: options.clone(),
       other_module_graph: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
@@ -376,7 +387,15 @@ impl Compilation {
       cgc_runtime_requirements_artifact: Default::default(),
       chunk_hashes_artifact: Default::default(),
       chunk_render_artifact: Default::default(),
+      module_graph_cache_artifact: Default::default(),
+      module_static_cache_artifact: Default::default(),
       code_generated_modules: Default::default(),
+      chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
+        match &options.cache {
+          CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
+          CacheOptions::Disabled => 0, // FIXME: this should be removed in future
+        },
+      )),
       build_time_executed_modules: Default::default(),
       cache,
       old_cache,
@@ -405,6 +424,7 @@ impl Compilation {
       intermediate_filesystem,
       output_filesystem,
       is_rebuild,
+      compiler_context,
     }
   }
 
@@ -426,14 +446,17 @@ impl Compilation {
   pub fn get_module_graph(&self) -> ModuleGraph {
     if let Some(other_module_graph) = &self.other_module_graph {
       ModuleGraph::new(
-        vec![
-          self.make_artifact.get_module_graph_partial(),
-          other_module_graph,
+        [
+          Some(self.make_artifact.get_module_graph_partial()),
+          Some(other_module_graph),
         ],
         None,
       )
     } else {
-      ModuleGraph::new(vec![self.make_artifact.get_module_graph_partial()], None)
+      ModuleGraph::new(
+        [Some(self.make_artifact.get_module_graph_partial()), None],
+        None,
+      )
     }
   }
 
@@ -460,12 +483,12 @@ impl Compilation {
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
     if let Some(other) = &mut self.other_module_graph {
       ModuleGraph::new(
-        vec![self.make_artifact.get_module_graph_partial()],
+        [Some(self.make_artifact.get_module_graph_partial()), None],
         Some(other),
       )
     } else {
       ModuleGraph::new(
-        vec![],
+        [None, None],
         Some(self.make_artifact.get_module_graph_partial_mut()),
       )
     }
@@ -907,7 +930,7 @@ impl Compilation {
     ukey
   }
 
-  #[instrument("Compilation:make", skip_all)]
+  #[instrument("Compilation:make",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn make(&mut self) -> Result<()> {
     self.make_artifact.reset_dependencies_incremental_info();
     // run module_executor
@@ -932,6 +955,9 @@ impl Compilation {
   ) -> Result<T> {
     let artifact = std::mem::take(&mut self.make_artifact);
 
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
+    self.module_graph_cache_artifact.unfreeze();
+
     self.make_artifact = update_module_graph(
       self,
       artifact,
@@ -946,7 +972,7 @@ impl Compilation {
       .collect::<Vec<_>>()))
   }
 
-  #[instrument("Compilation:code_generation", skip_all)]
+  #[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
   async fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
@@ -1080,7 +1106,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument("Compilation:create_module_assets", skip_all)]
+  #[instrument("Compilation:create_module_assets",target=TRACING_BENCH_TARGET, skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
     let mut chunk_asset_map = vec![];
     let mut module_assets = vec![];
@@ -1118,8 +1144,29 @@ impl Compilation {
     }
   }
 
-  #[instrument("Compilation::create_chunk_assets", skip_all)]
+  #[instrument("Compilation::create_chunk_assets",target=TRACING_BENCH_TARGET, skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    if self.options.output.filename.has_hash_placeholder()
+      || self.options.output.chunk_filename.has_hash_placeholder()
+      || self.options.output.css_filename.has_hash_placeholder()
+      || self
+        .options
+        .output
+        .css_chunk_filename
+        .has_hash_placeholder()
+    {
+      if let Some(diagnostic) = self.incremental.disable_passes(
+        IncrementalPasses::CHUNKS_RENDER,
+        "Chunk filename that dependent on full hash",
+        "chunk filename that dependent on full hash is not supported in incremental compilation",
+      ) {
+        if let Some(diagnostic) = diagnostic {
+          self.push_diagnostic(diagnostic);
+        }
+        self.chunk_render_artifact.clear();
+      }
+    }
+
     let chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RENDER)
@@ -1233,7 +1280,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument("Compilation:process_assets", skip_all)]
+  #[instrument("Compilation:process_assets",target=TRACING_BENCH_TARGET, skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .compilation_hooks
@@ -1252,7 +1299,7 @@ impl Compilation {
       .await
   }
 
-  #[instrument("Compilation:after_seal", skip_all)]
+  #[instrument("Compilation:after_seal", target=TRACING_BENCH_TARGET,skip_all)]
   async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver.compilation_hooks.after_seal.call(self).await
   }
@@ -1297,7 +1344,7 @@ impl Compilation {
     self.chunk_group_by_ukey.expect_get(ukey)
   }
 
-  #[instrument("Compilation:finish", skip_all)]
+  #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     // clean up the entry deps
     let make_artifact = std::mem::take(&mut self.make_artifact);
@@ -1365,10 +1412,14 @@ impl Compilation {
     }
 
     logger.time_end(start);
+
+    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
+    self.module_graph_cache_artifact.freeze();
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
     self.collect_dependencies_diagnostics();
+    self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
     let diagnostics = self.make_artifact.diagnostics();
@@ -1406,6 +1457,7 @@ impl Compilation {
       self.get_module_graph().modules().keys().copied().collect()
     };
     let module_graph = self.get_module_graph();
+    let module_graph_cache = &self.module_graph_cache_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
       .par_iter()
       .map(|module_identifier| {
@@ -1416,7 +1468,17 @@ impl Compilation {
           .all_dependencies
           .iter()
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| dependency.get_diagnostics(&module_graph))
+          .filter_map(|dependency| {
+            dependency
+              .get_diagnostics(&module_graph, module_graph_cache)
+              .map(|diagnostics| {
+                diagnostics.into_iter().map(|diagnostic| {
+                  diagnostic
+                    .with_module_identifier(Some(*module_identifier))
+                    .with_loc(dependency.loc())
+                })
+              })
+          })
           .flatten()
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)
@@ -1436,6 +1498,11 @@ impl Compilation {
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.other_module_graph = Some(ModuleGraphPartial::default());
+
+    if !self.options.mode.is_development() {
+      self.module_static_cache_artifact.freeze();
+    }
+
     let logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
@@ -1465,6 +1532,7 @@ impl Compilation {
     // so now we can start to create a chunk graph based on the module graph
 
     let start = logger.time("create chunks");
+    self.module_graph_cache_artifact.freeze();
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {
@@ -1474,7 +1542,8 @@ impl Compilation {
       }
       compilation
         .chunk_graph
-        .generate_dot(compilation, "after-code-splitting");
+        .generate_dot(compilation, "after-code-splitting")
+        .await;
       logger.time_end(start);
       Ok(compilation)
     })
@@ -1549,6 +1618,15 @@ impl Compilation {
 
     self.assign_runtime_ids();
 
+    let start = logger.time("optimize code generation");
+    plugin_driver
+      .compilation_hooks
+      .optimize_code_generation
+      .call(self)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
+    logger.time_end(start);
+
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_HASHES)
@@ -1594,6 +1672,58 @@ impl Compilation {
           _ => {}
         }
       }
+
+      // check if module runtime changes
+      for mi in mg.modules().keys() {
+        let module_runtimes = self
+          .chunk_graph
+          .get_module_runtimes(*mi, &self.chunk_by_ukey);
+        let module_runtime_keys = module_runtimes
+          .values()
+          .map(get_runtime_key)
+          .collect::<Vec<_>>();
+
+        if let Some(runtime_map) = self.cgm_hash_artifact.get_runtime_map(mi) {
+          if module_runtimes.is_empty() {
+            // module has no runtime, skip
+            continue;
+          }
+          if module_runtimes.len() == 1 {
+            // single runtime
+            if !matches!(runtime_map.mode, RuntimeMode::SingleEntry)
+              || runtime_map
+                .single_runtime
+                .as_ref()
+                .expect("should have single runtime for single entry")
+                != module_runtimes
+                  .values()
+                  .next()
+                  .expect("should have at least one runtime")
+            {
+              modules.insert(*mi);
+            }
+          } else {
+            // multiple runtimes
+            if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
+              modules.insert(*mi);
+              continue;
+            }
+
+            if runtime_map.map.len() != module_runtimes.len() {
+              modules.insert(*mi);
+              continue;
+            }
+
+            for runtime_key in runtime_map.map.keys() {
+              if !module_runtime_keys.contains(&runtime_key.as_str()) {
+                modules.insert(*mi);
+                break;
+              }
+            }
+          }
+        }
+      }
+
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
       let logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
@@ -1601,6 +1731,7 @@ impl Compilation {
         modules.len(),
         mg.modules().len()
       ));
+
       modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
@@ -1608,15 +1739,6 @@ impl Compilation {
     self
       .create_module_hashes(create_module_hashes_modules)
       .await?;
-
-    let start = logger.time("optimize code generation");
-    plugin_driver
-      .compilation_hooks
-      .optimize_code_generation
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
-    logger.time_end(start);
 
     let start = logger.time("code generation");
     let code_generation_modules = if let Some(mutations) = self
@@ -1638,6 +1760,10 @@ impl Compilation {
           _ => None,
         })
         .collect();
+      // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
+      for module in &modules {
+        self.code_generation_results.remove(module);
+      }
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
@@ -1766,6 +1892,9 @@ impl Compilation {
     self.after_seal(plugin_driver).await?;
     logger.time_end(start);
 
+    if !self.options.mode.is_development() {
+      self.module_static_cache_artifact.unfreeze();
+    }
     Ok(())
   }
 
@@ -1906,7 +2035,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(name = "Compilation:process_chunks_runtime_requirements", skip_all)]
+  #[instrument(name = "Compilation:process_chunks_runtime_requirements", target=TRACING_BENCH_TARGET skip_all)]
   pub async fn process_chunks_runtime_requirements(
     &mut self,
     chunks: UkeySet<ChunkUkey>,
@@ -2055,7 +2184,7 @@ impl Compilation {
     &mut Compilation
   );
 
-  #[instrument(name = "Compilation:create_hash", skip_all)]
+  #[instrument(name = "Compilation:create_hash",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
@@ -2078,7 +2207,7 @@ impl Compilation {
     if !full_hash_chunks.is_empty()
       && let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_HASHES,
-        "Chunks that dependent on full hash",
+        "Chunk content that dependent on full hash",
         "it requires calculating the hashes of all the chunks, which is a global effect",
       )
     {
@@ -2143,23 +2272,50 @@ impl Compilation {
       .iter()
       .filter(|key| !unordered_runtime_chunks.contains(key))
       .collect();
+
     // create hash for runtime modules in other chunks
-    for chunk in &other_chunks {
-      for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
-        let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        let digest = runtime_module.get_runtime_hash(self, None).await?;
-        self
-          .runtime_modules_hash
-          .insert(*runtime_module_identifier, digest);
-      }
+    let other_chunk_runtime_module_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+      other_chunks
+        .iter()
+        .flat_map(|chunk| self.chunk_graph.get_chunk_runtime_modules_iterable(chunk))
+        .for_each(|runtime_module_identifier| {
+          let s = unsafe { token.used((&self, runtime_module_identifier)) };
+          s.spawn(|(compilation, runtime_module_identifier)| async {
+            let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
+            let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+            Ok((*runtime_module_identifier, digest))
+          });
+        })
+    })
+    .await
+    .into_iter()
+    .map(|res| res.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    for res in other_chunk_runtime_module_hashes {
+      let (runtime_module_identifier, digest) = res?;
+      self
+        .runtime_modules_hash
+        .insert(runtime_module_identifier, digest);
     }
+
     // create hash for other chunks
-    let other_chunks_hash_results: Vec<Result<(ChunkUkey, ChunkHashResult)>> =
-      join_all(other_chunks.into_iter().map(|chunk| async {
-        let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
-        Ok((*chunk, hash_result))
-      }))
-      .await;
+    let other_chunks_hash_results = rspack_futures::scope::<_, Result<_>>(|token| {
+      for chunk in other_chunks {
+        let s = unsafe { token.used((&self, chunk, &plugin_driver)) };
+        s.spawn(|(compilation, chunk, plugin_driver)| async {
+          let hash_result = compilation
+            .process_chunk_hash(*chunk, plugin_driver)
+            .await?;
+          Ok((*chunk, hash_result))
+        });
+      }
+    })
+    .await
+    .into_iter()
+    .map(|res| res.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
     try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
@@ -2270,16 +2426,29 @@ impl Compilation {
     // Therefore, create hashes one by one in sequence.
     let start = logger.time("hashing: hash runtime chunks");
     for runtime_chunk_ukey in runtime_chunks {
-      for runtime_module_identifier in self
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
-      {
-        let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        let digest = runtime_module.get_runtime_hash(self, None).await?;
+      let runtime_module_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
         self
-          .runtime_modules_hash
-          .insert(*runtime_module_identifier, digest);
+          .chunk_graph
+          .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
+          .for_each(|runtime_module_identifier| {
+            let s = unsafe { token.used((&self, runtime_module_identifier)) };
+            s.spawn(|(compilation, runtime_module_identifier)| async {
+              let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
+              let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+              Ok((*runtime_module_identifier, digest))
+            });
+          })
+      })
+      .await
+      .into_iter()
+      .map(|res| res.to_rspack_result())
+      .collect::<Result<Vec<_>>>()?;
+
+      for res in runtime_module_hashes {
+        let (mid, digest) = res?;
+        self.runtime_modules_hash.insert(mid, digest);
       }
+
       let chunk_hash_result = self
         .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
         .await?;
@@ -2403,7 +2572,6 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(skip_all)]
   async fn process_chunk_hash(
     &self,
     chunk_ukey: ChunkUkey,

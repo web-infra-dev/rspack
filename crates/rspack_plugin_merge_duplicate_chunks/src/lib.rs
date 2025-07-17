@@ -1,9 +1,10 @@
 #![feature(let_chains)]
 
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
   incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
-  Plugin, PluginContext,
+  ExportsInfo, ModuleGraph, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -92,15 +93,21 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         }
         if !is_runtime_equal(chunk.runtime(), other_chunk.runtime()) {
           let module_graph = compilation.get_module_graph();
-          for module in compilation
+          let is_all_equal = compilation
             .chunk_graph
-            .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
-          {
-            let exports_info = module_graph.get_exports_info(&module.identifier());
-            if !exports_info.is_equally_used(&module_graph, chunk.runtime(), other_chunk.runtime())
-            {
-              continue 'outer;
-            }
+            .get_chunk_modules(&chunk_ukey, &module_graph)
+            .into_par_iter()
+            .all(|module| {
+              let exports_info = module_graph.get_exports_info(&module.identifier());
+              is_equally_used(
+                &exports_info,
+                &module_graph,
+                chunk.runtime(),
+                other_chunk.runtime(),
+              )
+            });
+          if !is_all_equal {
+            continue 'outer;
           }
         }
         if compilation.chunk_graph.can_chunks_be_integrated(
@@ -156,4 +163,34 @@ impl Plugin for MergeDuplicateChunksPlugin {
       .tap(optimize_chunks::new(self));
     Ok(())
   }
+}
+
+fn is_equally_used(
+  exports_info: &ExportsInfo,
+  mg: &ModuleGraph,
+  a: &RuntimeSpec,
+  b: &RuntimeSpec,
+) -> bool {
+  let info = exports_info.as_data(mg);
+  if let Some(redirect_to) = &info.redirect_to() {
+    if is_equally_used(redirect_to, mg, a, b) {
+      return false;
+    }
+  } else {
+    let other_exports_info = info.other_exports_info();
+    if other_exports_info.get_used(Some(a)) != other_exports_info.get_used(Some(b)) {
+      return false;
+    }
+  }
+  let side_effects_only_info = info.side_effects_only_info();
+  if side_effects_only_info.get_used(Some(a)) != side_effects_only_info.get_used(Some(b)) {
+    return false;
+  }
+  for export_info in info.exports().values() {
+    let export_info_data = export_info;
+    if export_info_data.get_used(Some(a)) != export_info_data.get_used(Some(b)) {
+      return false;
+    }
+  }
+  true
 }

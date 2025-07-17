@@ -95,6 +95,12 @@ const describeCases = config => {
 								new webpack.LoaderOptionsPlugin(fakeUpdateLoaderOptions)
 							);
 							if (!options.recordsPath) options.recordsPath = recordsPath;
+							// CHANGE: test incremental: "safe" in webpack-test, we test default incremental in
+							// rspack-test-tools/tests/Incremental-*.test.js, including cases in webpack-test
+							{
+								if (!options.experiments) options.experiments = {};
+								if (!options.experiments.incremental) options.experiments.incremental = "safe";
+							}
 							let testConfig = {};
 							try {
 								// try to load a test file

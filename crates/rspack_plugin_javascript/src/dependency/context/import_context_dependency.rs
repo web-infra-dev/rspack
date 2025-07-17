@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -67,7 +67,11 @@ impl Dependency for ImportContextDependency {
     rspack_core::AffectType::True
   }
 
-  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+  fn get_diagnostics(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical.clone()]);
     }
@@ -90,10 +94,6 @@ impl ContextDependency for ImportContextDependency {
 
   fn resource_identifier(&self) -> &str {
     &self.resource_identifier
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.options.request = request;
   }
 
   fn get_optional(&self) -> bool {

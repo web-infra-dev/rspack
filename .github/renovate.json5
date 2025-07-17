@@ -40,7 +40,7 @@
 				"rspack_resolver",
 				"inventory"
 			],
-			matchUpdateTypes: ["patch"]
+			matchUpdateTypes: ["patch"],
 		},
 		{
 			groupName: "swc",

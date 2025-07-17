@@ -2,9 +2,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
 	type Argv,
-	type ESLintTemplateName,
 	checkCancel,
 	create,
+	type ESLintTemplateName,
 	select
 } from "create-rstack";
 

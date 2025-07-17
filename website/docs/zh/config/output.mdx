@@ -436,12 +436,12 @@ export default {
 };
 ```
 
-然而，当通过多个 Entry、代码拆分或各种插件创建多个包时，你应该使用以下替换之一来给每个包一个唯一的名字...
+然而，当通过多个 Entry、代码分割或各种插件创建多个包时，你应该使用以下替换之一来给每个包一个唯一的名字...
 
 :::info 对于拆分成多个 bundle 的情况的描述
 
-Rspack 会对用户输入的代码进行代码拆分优化，这些优化可能包括但不限于：code splitting、bundle splitting，或通过其他插件实现的代码拆分等。
-这些代码拆分的行为会导致生成多个 bundle，因此 bundle 的文件名需要动态生成。
+Rspack 会对用户输入的代码进行代码分割优化，这些优化可能包括但不限于：code splitting、bundle splitting，或通过其他插件实现的代码分割等。
+这些代码分割的行为会导致生成多个 bundle，因此 bundle 的文件名需要动态生成。
 
 {
 // TODO: 补充 Glossary link
@@ -569,7 +569,7 @@ export default {
 
 :::
 
-Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:12]` 来指定（默认为 16）。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
+Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:12]` 来指定（默认为 16），或使用 `[hash:base64:8]` 来同时指定 digest（目前仅支持 base64）和长度。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
 
 当你想在实际文件名中使用占位符时，可以过滤掉占位符替换。例如，要输出一个文件 `[name].js`，你必须通过在括号之间添加反斜杠来转义 `[name]` 占位符。这样 `[\name\]` 会生成 `[name]` 而不是被替换为资源的名称。
 
@@ -651,7 +651,7 @@ export default {
 
 ## output.hashFunction
 
-- **类型：** `'md4' | 'xxhash64'`
+- **类型：** `'md4' | 'xxhash64' | 'sha256'`
 - **默认值：** `'xxhash64'`
 
 指定要使用的哈希算法。

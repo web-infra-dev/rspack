@@ -4,23 +4,23 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_javascript"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 [dependencies]
 anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
-dashmap = { workspace = true }
 either = { workspace = true }
-fast-glob = "0.4.4"
+fast-glob = { workspace = true }
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
-num-bigint = { version = "0.4.6" }
+num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
+regress = { workspace = true, features = ["pattern"] }
 ropey = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
@@ -49,7 +49,9 @@ swc_core = { workspace = true, features = [
   "base",
   "ecma_quote",
 ] }
+swc_ecma_lexer = { workspace = true }
 swc_node_comments = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 url = { workspace = true }
 

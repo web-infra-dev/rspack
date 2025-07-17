@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeArtifact;
@@ -65,11 +66,12 @@ impl MakeTaskContext {
 
   // TODO use module graph with make artifact
   pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraph {
-    ModuleGraph::new(vec![], Some(partial))
+    ModuleGraph::new([None, None], Some(partial))
   }
 
   // TODO remove it after incremental rebuild cover all stage
   pub fn transform_to_temp_compilation(&mut self) -> Compilation {
+    let compiler_context = CURRENT_COMPILER_CONTEXT.get();
     let mut compilation = Compilation::new(
       self.compiler_id,
       self.compiler_options.clone(),
@@ -89,6 +91,7 @@ impl MakeTaskContext {
       self.output_fs.clone(),
       // used at module executor which not support persistent cache, set as false
       false,
+      compiler_context,
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();

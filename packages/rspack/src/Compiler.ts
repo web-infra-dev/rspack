@@ -9,44 +9,19 @@
  */
 import type * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-
-import ExecuteModulePlugin from "./ExecuteModulePlugin";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import Cache from "./lib/Cache";
-import CacheFacade from "./lib/CacheFacade";
-
-import type { Chunk } from "./Chunk";
-import { Compilation } from "./Compilation";
-import { ContextModuleFactory } from "./ContextModuleFactory";
-import {
-	ThreadsafeIntermediateNodeFS,
-	ThreadsafeOutputNodeFS
-} from "./FileSystem";
-import { NormalModuleFactory } from "./NormalModuleFactory";
-import { ResolverFactory } from "./ResolverFactory";
-import { RuleSetCompiler } from "./RuleSetCompiler";
-import { Stats } from "./Stats";
-import { Watching } from "./Watching";
-import {
-	JsLoaderRspackPlugin,
-	createRsdoctorPluginHooksRegisters,
-	createRuntimePluginHooksRegisters
-} from "./builtin-plugin";
-import { getRawOptions } from "./config";
-import { rspack } from "./index";
-import { unsupported } from "./util";
-
-import { canInherentFromParent } from "./builtin-plugin/base";
-import { applyRspackOptionsDefaults, getPnpDefault } from "./config/defaults";
-import { Logger } from "./logging/Logger";
-import { assertNotNill } from "./util/assertNotNil";
-import { checkVersion } from "./util/bindingVersionCheck";
-import { makePathsRelative } from "./util/identifier";
-
 import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";
+import {
+	createRsdoctorPluginHooksRegisters,
+	createRuntimePluginHooksRegisters,
+	JsLoaderRspackPlugin
+} from "./builtin-plugin";
+import { canInherentFromParent } from "./builtin-plugin/base";
+
+import type { Chunk } from "./Chunk";
 import type { CompilationParams } from "./Compilation";
-import type { FileSystemInfoEntry } from "./FileSystemInfo";
+import { Compilation } from "./Compilation";
+import { ContextModuleFactory } from "./ContextModuleFactory";
 import type {
 	EntryNormalized,
 	OutputNormalized,
@@ -54,6 +29,24 @@ import type {
 	RspackPluginInstance,
 	WatchOptions
 } from "./config";
+import { getRawOptions } from "./config";
+import { applyRspackOptionsDefaults, getPnpDefault } from "./config/defaults";
+import ExecuteModulePlugin from "./ExecuteModulePlugin";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import {
+	ThreadsafeInputNodeFS,
+	ThreadsafeIntermediateNodeFS,
+	ThreadsafeOutputNodeFS
+} from "./FileSystem";
+import type { FileSystemInfoEntry } from "./FileSystemInfo";
+import { rspack } from "./index";
+import Cache from "./lib/Cache";
+import CacheFacade from "./lib/CacheFacade";
+import { Logger } from "./logging/Logger";
+import { NormalModuleFactory } from "./NormalModuleFactory";
+import { ResolverFactory } from "./ResolverFactory";
+import { RuleSetCompiler } from "./RuleSetCompiler";
+import { Stats } from "./Stats";
 import {
 	createCompilationHooksRegisters,
 	createCompilerHooksRegisters,
@@ -63,12 +56,17 @@ import {
 	createNormalModuleFactoryHooksRegisters
 } from "./taps";
 import { TraceHookPlugin } from "./trace/traceHookPlugin";
+import { unsupported } from "./util";
+import { assertNotNill } from "./util/assertNotNil";
+import { checkVersion } from "./util/bindingVersionCheck";
 import type {
 	InputFileSystem,
 	IntermediateFileSystem,
 	OutputFileSystem,
 	WatchFileSystem
 } from "./util/fs";
+import { makePathsRelative } from "./util/identifier";
+import { Watching } from "./Watching";
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -440,13 +438,6 @@ class Compiler {
 		const startTime = Date.now();
 		this.running = true;
 
-		const instanceBinding: typeof binding = require("@rspack/binding");
-		let isRuntimeShutdown = false;
-		if (isRuntimeShutdown) {
-			instanceBinding.startAsyncRuntime();
-			isRuntimeShutdown = false;
-		}
-
 		const finalCallback = (err: Error | null, stats?: Stats) => {
 			this.idle = true;
 			this.cache.beginIdle();
@@ -459,10 +450,6 @@ class Compiler {
 				callback(err, stats);
 			}
 			this.hooks.afterDone.call(stats!);
-
-			instanceBinding.shutdownAsyncRuntime();
-			instanceBinding.cleanupGlobalTrace();
-			isRuntimeShutdown = true;
 		};
 
 		const onCompiled = (
@@ -836,6 +823,12 @@ class Compiler {
 
 		this.#registers = this.#createHooksRegisters();
 
+		const inputFileSystem =
+			this.inputFileSystem &&
+			ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
+				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
+				: undefined;
+
 		this.#instance = new instanceBinding.JsCompiler(
 			this.compilerPath,
 			rawOptions,
@@ -845,6 +838,7 @@ class Compiler {
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
 				: undefined,
+			inputFileSystem,
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 

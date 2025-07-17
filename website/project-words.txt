@@ -136,6 +136,7 @@ outputlibraryamdcontainer
 outputlibraryumdnameddefine
 outputwasmloading
 perfetto
+pftrace
 Peschke
 pmmmwh
 proxied
@@ -153,6 +154,8 @@ Rsdoctor
 rsdoctors
 rsfamily
 Rslib
+rslib
+rstest
 rspack
 Rspack
 rspackplugin

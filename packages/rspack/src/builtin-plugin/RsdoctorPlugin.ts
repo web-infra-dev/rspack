@@ -25,11 +25,11 @@ import {
 	RegisterJsTapKind
 } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-import { z } from "zod";
 import { type Compilation, checkCompilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
+import { getRsdoctorPluginSchema } from "../schema/plugins";
+import { validate } from "../schema/validate";
 import type { CreatePartialRegisters } from "../taps/types";
-import { validate } from "../util/validate";
 import { create } from "./base";
 
 export declare namespace RsdoctorPluginData {
@@ -62,14 +62,6 @@ export type RsdoctorPluginOptions = {
 	moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
 	chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
 };
-const rsdoctorPluginSchema = z.strictObject({
-	moduleGraphFeatures: z
-		.union([z.boolean(), z.array(z.enum(["graph", "ids", "sources"]))])
-		.optional(),
-	chunkGraphFeatures: z
-		.union([z.boolean(), z.array(z.enum(["graph", "assets"]))])
-		.optional()
-}) satisfies z.ZodType<RsdoctorPluginOptions>;
 
 const RsdoctorPluginImpl = create(
 	BuiltinPluginName.RsdoctorPlugin,
@@ -80,7 +72,7 @@ const RsdoctorPluginImpl = create(
 			chunkGraphFeatures: true
 		}
 	): RawRsdoctorPluginOptions {
-		validate(c, rsdoctorPluginSchema);
+		validate(c, getRsdoctorPluginSchema);
 		return {
 			moduleGraphFeatures: c.moduleGraphFeatures ?? true,
 			chunkGraphFeatures: c.chunkGraphFeatures ?? true

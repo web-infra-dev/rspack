@@ -14,13 +14,18 @@ use crate::{
 
 #[derive(Debug)]
 pub enum MakeArtifactState {
-  Uninitialized(HashSet<DependencyId>),
+  Uninitialized(
+    /// force build dependencies
+    HashSet<DependencyId>,
+    /// isolated modules
+    IdentifierSet,
+  ),
   Initialized,
 }
 
 impl Default for MakeArtifactState {
   fn default() -> Self {
-    MakeArtifactState::Uninitialized(Default::default())
+    MakeArtifactState::Uninitialized(Default::default(), Default::default())
   }
 }
 
@@ -49,10 +54,10 @@ pub struct MakeArtifact {
 
 impl MakeArtifact {
   pub fn get_module_graph(&self) -> ModuleGraph {
-    ModuleGraph::new(vec![&self.module_graph_partial], None)
+    ModuleGraph::new([Some(&self.module_graph_partial), None], None)
   }
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
-    ModuleGraph::new(vec![], Some(&mut self.module_graph_partial))
+    ModuleGraph::new([None, None], Some(&mut self.module_graph_partial))
   }
   // TODO remove it
   pub fn get_module_graph_partial(&self) -> &ModuleGraphPartial {
@@ -64,7 +69,7 @@ impl MakeArtifact {
   }
 
   fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
+    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
     let module = mg
       .module_by_identifier(module_identifier)
       .expect("should have module");
@@ -116,7 +121,7 @@ impl MakeArtifact {
   }
 
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
+    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
 
     let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
       // make failed dependencies clean it.
@@ -193,6 +198,7 @@ pub enum MakeParam {
   RemovedFiles(HashSet<ArcPath>),
   ForceBuildDeps(HashSet<DependencyId>),
   ForceBuildModules(IdentifierSet),
+  CheckIsolatedModules(IdentifierSet),
 }
 
 pub async fn make_module_graph(
@@ -219,8 +225,9 @@ pub async fn make_module_graph(
   if !compilation.removed_files.is_empty() {
     params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
   }
-  if let MakeArtifactState::Uninitialized(force_build_deps) = &artifact.state {
+  if let MakeArtifactState::Uninitialized(force_build_deps, isolated_modules) = &artifact.state {
     params.push(MakeParam::ForceBuildDeps(force_build_deps.clone()));
+    params.push(MakeParam::CheckIsolatedModules(isolated_modules.clone()));
   }
 
   // reset temporary data
@@ -243,7 +250,7 @@ pub async fn update_module_graph(
     .plugin_driver
     .compilation_hooks
     .revoked_modules
-    .call(&artifact.revoked_modules)
+    .call(compilation, &artifact.revoked_modules)
     .await?;
 
   artifact = repair(compilation, artifact, build_dependencies).await?;

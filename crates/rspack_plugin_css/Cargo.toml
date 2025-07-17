@@ -4,12 +4,11 @@ edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_css"
 repository        = "https://github.com/web-infra-dev/rspack"
-version           = "0.2.0"
+version.workspace = true
 [dependencies]
 async-trait           = { workspace = true }
 cow-utils             = { workspace = true }
 css-module-lexer      = { workspace = true }
-dashmap               = { workspace = true }
 heck                  = { workspace = true }
 indexmap              = { workspace = true }
 once_cell             = { workspace = true }

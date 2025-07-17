@@ -15,6 +15,9 @@ pub struct Experiments {
   pub top_level_await: bool,
   pub rspack_future: RspackFuture,
   pub cache: ExperimentCacheOptions,
+  pub inline_const: bool,
+  pub inline_enum: bool,
+  pub type_reexports_presence: bool,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]
