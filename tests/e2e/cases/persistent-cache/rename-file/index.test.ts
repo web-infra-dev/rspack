@@ -7,9 +7,15 @@ async function expect_content(page: any, data: string) {
 	}).toPass();
 }
 
-test("should compile", async ({ page, fileAction, rspack }) => {
+test("should compile", async ({
+	page,
+	fileAction,
+	rspack,
+	rspackIncremental
+}) => {
 	await expect_content(page, "ab");
 	await rspack.stop();
+	await rspackIncremental.stop();
 	await new Promise(res => {
 		setTimeout(res, 500);
 	});
@@ -19,5 +25,6 @@ test("should compile", async ({ page, fileAction, rspack }) => {
 	fileAction.renameFile("temp.js", "b.js");
 
 	await rspack.start();
+	await rspackIncremental.start();
 	await expect_content(page, "ba");
 });

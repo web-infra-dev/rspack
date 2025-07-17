@@ -120,6 +120,15 @@ export const rspackFixtures = (): RspackFixtures => {
 				if (incremental) {
 					config.experiments ??= {};
 					config.experiments.incremental = true;
+					const cache = config.experiments.cache;
+					if (typeof cache === "object" && cache.type === "persistent") {
+						cache.storage = {
+							type: "filesystem",
+							...cache.storage,
+							//rewrite directory
+							directory: "node_modules/.cache/incremental"
+						};
+					}
 				}
 
 				return defaultRspackConfig.handleConfig(config);
