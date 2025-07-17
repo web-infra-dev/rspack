@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use napi::bindgen_prelude::BigInt;
 use napi_derive::napi;
+use rustc_hash::FxHashMap as HashMap;
 
 #[napi(object)]
 #[derive(Debug)]
