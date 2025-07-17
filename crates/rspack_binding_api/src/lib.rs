@@ -29,8 +29,7 @@ use crate::{
   fs_node::{NodeFileSystem, ThreadsafeNodeFS},
   trace_event::RawTraceEvent,
   virtual_modules::{
-    HashMapVirtualFileStore, JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore,
-    VirtualFileSystem,
+    JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore, VirtualFileSystem,
   },
 };
 
