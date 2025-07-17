@@ -6181,9 +6181,9 @@ dependencies = [
 
 [[package]]
 name = "sftrace-setup"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e3fd16d5db34706ab7200fb106bb1006f1801d1af9efabd65fb78ad8b9c8b0e"
+checksum = "98fb782409291a83a40a6d272876e7bbbfe226e095df441d6102ec0bd37d4922"
 
 [[package]]
 name = "sha1"
