@@ -32,8 +32,10 @@ export function convertArgs(args: any[], raw: boolean) {
 	}
 }
 
-export const loadLoader: (loaderObject: LoaderObject) => Promise<void> =
-	promisify(loadLoaderRaw);
+export const loadLoader: (
+	loaderObject: LoaderObject,
+	loaderContext: LoaderContext
+) => Promise<void> = promisify(loadLoaderRaw);
 
 export const runSyncOrAsync = promisify(function runSyncOrAsync(
 	fn: Function,
