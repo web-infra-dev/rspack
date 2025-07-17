@@ -10,7 +10,7 @@ use swc_core::base::BoolOrDataConfig;
 use crate::{into_asset_conditions, RawAssetConditions};
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawExtractComments {
   pub banner: Option<Either<String, bool>>,
   pub condition: Option<String>,

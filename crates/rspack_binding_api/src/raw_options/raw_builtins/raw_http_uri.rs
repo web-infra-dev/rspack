@@ -28,7 +28,7 @@ pub struct RawHttpUriPluginOptions {
   pub http_client: HttpClientRequest,
 }
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct JsHttpResponseRaw {
   pub status: u16,
   pub headers: HashMap<String, String>,

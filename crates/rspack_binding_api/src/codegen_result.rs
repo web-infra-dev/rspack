@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use napi_derive::napi;
 use rspack_core::{get_runtime_key, CodeGenerationResult, CodeGenerationResults};
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 #[derive(Debug)]
 pub struct JsCodegenerationResults {
   pub map: HashMap<String, HashMap<String, JsCodegenerationResult>>,
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 #[derive(Debug)]
 pub struct JsCodegenerationResult {
   pub sources: HashMap<String, String>,

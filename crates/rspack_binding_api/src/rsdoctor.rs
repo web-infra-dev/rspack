@@ -12,7 +12,7 @@ use rspack_plugin_rsdoctor::{
   RsdoctorStatement, RsdoctorVariable,
 };
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorModule {
   pub ukey: i32,
   pub identifier: String,
@@ -55,7 +55,7 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorDependency {
   pub ukey: i32,
   pub kind: String,
@@ -76,7 +76,7 @@ impl From<RsdoctorDependency> for JsRsdoctorDependency {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorChunk {
   pub ukey: i32,
   pub name: String,
@@ -99,7 +99,7 @@ impl From<RsdoctorChunk> for JsRsdoctorChunk {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorEntrypoint {
   pub ukey: i32,
   pub name: String,
@@ -116,7 +116,7 @@ impl From<RsdoctorEntrypoint> for JsRsdoctorEntrypoint {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorAsset {
   pub ukey: i32,
   pub path: String,
@@ -135,7 +135,7 @@ impl From<RsdoctorAsset> for JsRsdoctorAsset {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorModuleGraphModule {
   pub ukey: i32,
   pub module: i32,
@@ -158,7 +158,7 @@ impl From<RsdoctorModuleGraphModule> for JsRsdoctorModuleGraphModule {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorSideEffect {
   pub ukey: i32,
   pub name: String,
@@ -187,7 +187,7 @@ impl From<RsdoctorSideEffect> for JsRsdoctorSideEffect {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorVariable {
   pub ukey: i32,
   pub name: String,
@@ -210,7 +210,7 @@ impl From<RsdoctorVariable> for JsRsdoctorVariable {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorExportInfo {
   pub ukey: i32,
   pub name: String,
@@ -233,7 +233,7 @@ impl From<RsdoctorExportInfo> for JsRsdoctorExportInfo {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorStatement {
   pub module: i32,
   pub source_position: Option<JsRsdoctorSourceRange>,
@@ -250,7 +250,7 @@ impl From<RsdoctorStatement> for JsRsdoctorStatement {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorSourceRange {
   pub start: JsRsdoctorSourcePosition,
   pub end: Option<JsRsdoctorSourcePosition>,
@@ -265,7 +265,7 @@ impl From<RsdoctorSourceRange> for JsRsdoctorSourceRange {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorSourcePosition {
   pub line: Option<i32>,
   pub column: Option<i32>,
@@ -282,7 +282,7 @@ impl From<RsdoctorSourcePosition> for JsRsdoctorSourcePosition {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorChunkModules {
   pub chunk: i32,
   pub modules: Vec<i32>,
@@ -297,7 +297,7 @@ impl From<RsdoctorChunkModules> for JsRsdoctorChunkModules {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorModuleGraph {
   pub modules: Vec<JsRsdoctorModule>,
   pub dependencies: Vec<JsRsdoctorDependency>,
@@ -314,7 +314,7 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorChunkGraph {
   pub chunks: Vec<JsRsdoctorChunk>,
   pub entrypoints: Vec<JsRsdoctorEntrypoint>,
@@ -329,7 +329,7 @@ impl From<RsdoctorChunkGraph> for JsRsdoctorChunkGraph {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorModuleId {
   pub module: i32,
   pub render_id: String,
@@ -344,7 +344,7 @@ impl From<RsdoctorModuleId> for JsRsdoctorModuleId {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorModuleOriginalSource {
   pub module: i32,
   pub source: String,
@@ -361,7 +361,7 @@ impl From<RsdoctorModuleOriginalSource> for JsRsdoctorModuleOriginalSource {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorModuleSourcesPatch {
   pub module_original_sources: Vec<JsRsdoctorModuleOriginalSource>,
 }
@@ -378,7 +378,7 @@ impl From<RsdoctorModuleSourcesPatch> for JsRsdoctorModuleSourcesPatch {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorModuleIdsPatch {
   pub module_ids: Vec<JsRsdoctorModuleId>,
 }
@@ -391,7 +391,7 @@ impl From<RsdoctorModuleIdsPatch> for JsRsdoctorModuleIdsPatch {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorChunkAssets {
   pub chunk: i32,
   pub assets: Vec<i32>,
@@ -406,7 +406,7 @@ impl From<RsdoctorChunkAssets> for JsRsdoctorChunkAssets {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorEntrypointAssets {
   pub entrypoint: i32,
   pub assets: Vec<i32>,
@@ -421,7 +421,7 @@ impl From<RsdoctorEntrypointAssets> for JsRsdoctorEntrypointAssets {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRsdoctorAssetPatch {
   pub assets: Vec<JsRsdoctorAsset>,
   pub chunk_assets: Vec<JsRsdoctorChunkAssets>,

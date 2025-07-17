@@ -19,7 +19,7 @@ type RawToFn = ThreadsafeFunction<RawToOptions, String>;
 type RawTo = Either<String, RawToFn>;
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawToOptions {
   pub context: String,
   pub absolute_filename: Option<String>,
@@ -99,7 +99,7 @@ pub struct RawCopyPattern {
 }
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawInfo {
   pub immutable: Option<bool>,
   /// Whether to skip minification for the copied files.
@@ -114,13 +114,13 @@ pub struct RawInfo {
 }
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawRelated {
   pub source_map: Option<String>,
 }
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCopyGlobOptions {
   /// Whether the match is case sensitive
   /// @default true

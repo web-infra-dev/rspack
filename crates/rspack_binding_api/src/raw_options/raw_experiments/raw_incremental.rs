@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_core::incremental::{IncrementalOptions, IncrementalPasses};
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawIncremental {
   pub silent: bool,
   // passes

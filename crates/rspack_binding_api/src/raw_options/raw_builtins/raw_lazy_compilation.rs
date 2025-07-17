@@ -79,7 +79,7 @@ impl From<RawLazyCompilationTest> for LazyCompilationTest<LazyCompilationTestFn>
   }
 }
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawModuleInfo {
   pub active: bool,
   pub client: String,
@@ -95,7 +95,7 @@ pub struct RawLazyCompilationOption {
   pub cacheable: bool,
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawModuleArg {
   pub module: String,
   pub path: String,

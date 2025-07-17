@@ -44,7 +44,7 @@ impl From<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOp
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawIntegrityData {
   pub integerities: Vec<RawIntegrityItem>,
 }
@@ -62,7 +62,7 @@ impl From<IntegrityCallbackData> for RawIntegrityData {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawIntegrityItem {
   pub asset: String,
   pub integrity: String,

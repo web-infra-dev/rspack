@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_core::cache::persistent::storage::StorageOptions;
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawStorageOptions {
   #[napi(ts_type = r#""filesystem""#)]
   pub r#type: String,

@@ -31,7 +31,7 @@ use crate::{JsFilename, ModuleObject, RawResolveOptions};
 ///   - a `Some(string)` on rust side, deserialized by `serde_json::from_str`
 /// and passed to rust side loader in [get_builtin_loader] when using with
 /// `builtin_loader`.
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 #[derive(Debug)]
 pub struct RawModuleRuleUse {
   pub loader: String,
@@ -259,7 +259,7 @@ impl From<RawParserOptions> for ParserOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: Option<String>,
   pub dynamic_import_preload: Option<String>,
@@ -344,7 +344,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawJsonGeneratorOptions {
   #[napi(js_name = "JSONParse")]
   pub json_parse: Option<bool>,
@@ -359,7 +359,7 @@ impl From<RawJsonGeneratorOptions> for JsonGeneratorOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrl>,
 }
@@ -373,7 +373,7 @@ impl From<RawAssetParserOptions> for AssetParserOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetParserDataUrl {
   #[napi(ts_type = r#""options""#)]
   pub r#type: String,
@@ -399,7 +399,7 @@ impl From<RawAssetParserDataUrl> for AssetParserDataUrl {
 }
 
 #[derive(Debug, Clone, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetParserDataUrlOptions {
   pub max_size: Option<f64>,
 }
@@ -413,7 +413,7 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
@@ -429,7 +429,7 @@ impl From<RawCssParserOptions> for CssParserOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssAutoParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
@@ -445,7 +445,7 @@ impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
@@ -647,7 +647,7 @@ type RawAssetGeneratorDataUrl = Either<
 >;
 struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawAssetGeneratorDataUrlFnCtx {
   pub filename: String,
   #[napi(ts_type = "Module")]
@@ -688,7 +688,7 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetGeneratorDataUrlOptions {
   #[napi(ts_type = r#""base64" | "false" | undefined"#)]
   pub encoding: Option<String>,
@@ -705,7 +705,7 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssGeneratorOptions {
   pub exports_only: Option<bool>,
   pub es_module: Option<bool>,
@@ -721,7 +721,7 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssAutoGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
@@ -742,7 +742,7 @@ impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssModuleGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
@@ -785,7 +785,7 @@ impl Debug for RawModuleOptions {
 }
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawFuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,

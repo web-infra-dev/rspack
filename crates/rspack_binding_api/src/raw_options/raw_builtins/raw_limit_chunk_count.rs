@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPluginOptions;
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawLimitChunkCountPluginOptions {
   // Constant overhead for a chunk.
   pub chunk_overhead: Option<f64>,

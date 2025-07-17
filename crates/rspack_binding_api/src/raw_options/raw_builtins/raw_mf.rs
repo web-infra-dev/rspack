@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawContainerPluginOptions {
   pub name: String,
   pub share_scope: String,
@@ -40,7 +40,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
 }
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawExposeOptions {
   pub key: String,
   pub name: Option<String>,
@@ -60,7 +60,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawContainerReferencePluginOptions {
   pub remote_type: String,
   pub remotes: Vec<RawRemoteOptions>,
@@ -80,7 +80,7 @@ impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOption
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawRemoteOptions {
   pub key: String,
   pub external: Vec<String>,
@@ -100,7 +100,7 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawProvideOptions {
   pub key: String,
   pub share_key: String,
@@ -132,7 +132,7 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawConsumeSharedPluginOptions {
   pub consumes: Vec<RawConsumeOptions>,
   pub enhanced: bool,
@@ -153,7 +153,7 @@ impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawConsumeOptions {
   pub key: String,
   pub import: Option<String>,

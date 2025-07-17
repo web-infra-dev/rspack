@@ -11,7 +11,7 @@ use swc_core::atoms::Atom;
 use crate::{JsBuildMeta, JsFilename};
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawDllEntryPluginOptions {
   pub context: String,
   pub entries: Vec<String>,
@@ -167,7 +167,7 @@ impl From<RawDllReferenceAgencyPluginOptions> for DllReferenceAgencyPluginOption
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawFlagAllModulesAsUsedPluginOptions {
   pub explanation: String,
 }

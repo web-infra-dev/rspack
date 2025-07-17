@@ -20,7 +20,7 @@ impl From<RawRuntimeChunkOptions> for RuntimeChunkOptions {
 type RawRuntimeChunkName = Either<String, ThreadsafeFunction<RawRuntimeChunkNameFnCtx, String>>;
 struct RawRuntimeChunkNameWrapper(RawRuntimeChunkName);
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawRuntimeChunkNameFnCtx {
   pub name: String,
 }

@@ -8,7 +8,7 @@ use rspack_plugin_lightning_css_minimizer::{
 use crate::{into_asset_conditions, RawAssetConditions};
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawLightningCssMinimizerRspackPluginOptions {
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub test: Option<RawAssetConditions>,
@@ -21,7 +21,7 @@ pub struct RawLightningCssMinimizerRspackPluginOptions {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawLightningCssMinimizerOptions {
   pub error_recovery: bool,
   pub targets: Option<Vec<String>>,
@@ -36,34 +36,19 @@ pub struct RawLightningCssMinimizerOptions {
 }
 
 #[derive(Debug)]
-#[napi(object)]
-pub struct RawLightningCssBrowsers {
-  pub android: Option<u32>,
-  pub chrome: Option<u32>,
-  pub edge: Option<u32>,
-  pub firefox: Option<u32>,
-  pub ie: Option<u32>,
-  #[napi(js_name = "ios_saf")]
-  pub ios_saf: Option<u32>,
-  pub opera: Option<u32>,
-  pub safari: Option<u32>,
-  pub samsung: Option<u32>,
-}
-
-#[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawDraft {
   pub custom_media: bool,
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawNonStandard {
   pub deep_selector_combinator: bool,
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawLightningCssPseudoClasses {
   pub hover: Option<String>,
   pub active: Option<String>,

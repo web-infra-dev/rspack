@@ -125,7 +125,7 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
 }
 
 #[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawHtmlRspackPluginBaseOptions {
   pub href: Option<String>,
   #[napi(ts_type = "\"_self\" | \"_blank\" | \"_parent\" | \"_top\"")]

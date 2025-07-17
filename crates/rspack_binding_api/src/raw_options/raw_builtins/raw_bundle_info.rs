@@ -7,7 +7,7 @@ type RawBundlerInfoMode = Either<bool, Vec<String>>;
 pub struct RawBundlerInfoModeWrapper(pub RawBundlerInfoMode);
 
 #[derive(Debug, Clone)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawBundlerInfoPluginOptions {
   pub version: String,
   pub bundler: String,

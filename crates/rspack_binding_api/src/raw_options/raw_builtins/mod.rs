@@ -249,7 +249,7 @@ pub fn register_custom_plugin(
 
 type CustomPluginName = String;
 
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct BuiltinPlugin<'a> {
   pub name: Either<BuiltinPluginName, CustomPluginName>,
   pub options: Unknown<'a>,

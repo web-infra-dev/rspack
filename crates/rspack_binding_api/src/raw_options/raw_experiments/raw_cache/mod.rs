@@ -15,7 +15,7 @@ use rspack_core::{cache::persistent::PersistentCacheOptions, ExperimentCacheOpti
 pub type RawExperimentCacheOptions = Either<bool, RawExperimentCache>;
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawExperimentCacheOptionsPersistent {
   pub build_dependencies: Option<Vec<String>>,
   pub version: Option<String>,

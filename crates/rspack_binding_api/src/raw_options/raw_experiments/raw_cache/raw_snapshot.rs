@@ -4,7 +4,7 @@ use rspack_core::cache::persistent::snapshot::{PathMatcher, SnapshotOptions};
 use rspack_regex::RspackRegex;
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawExperimentSnapshotOptions {
   #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub immutable_paths: Vec<RawPathMatcher>,
