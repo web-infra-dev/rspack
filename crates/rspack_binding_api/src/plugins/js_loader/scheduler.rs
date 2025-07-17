@@ -180,9 +180,12 @@ pub(crate) fn merge_loader_context(
     })
     .collect();
   to.loader_index = from.loader_index;
-  for (key, value) in from.parse_meta {
-    to.parse_meta.insert(key, Box::new(value));
-  }
+  to.parse_meta.extend(
+    from
+      .parse_meta
+      .into_iter()
+      .map(|(k, v)| (k, Box::new(v) as _)),
+  );
 
   Ok(())
 }
