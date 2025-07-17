@@ -148,8 +148,12 @@ async fn compilation(
     .tap(collector);
 
   // Register render startup hook, patches entrypoints
-  let mut js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
-  js_hooks.render_startup.tap(render_startup::new(self));
+  let js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  js_hooks
+    .write()
+    .await
+    .render_startup
+    .tap(render_startup::new(self));
 
   Ok(())
 }

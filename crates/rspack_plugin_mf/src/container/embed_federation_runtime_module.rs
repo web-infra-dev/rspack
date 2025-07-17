@@ -1,8 +1,8 @@
 //! # EmbedFederationRuntimeModule
 //!
 //! Runtime module that wraps the startup function to ensure federation runtime dependencies
-//! execute before other modules. Generates an "oldStartup wrapper" pattern that intercepts
-//! and modifies the startup execution order.
+//! execute before other modules. Generates a "prevStartup wrapper" pattern with defensive
+//! checks that intercepts and modifies the startup execution order.
 
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
@@ -81,16 +81,20 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.push(format!("\t\t{}", module_str));
     }
 
-    // Generate oldStartup wrapper pattern
+    // Generate prevStartup wrapper pattern with defensive checks
     let result = format!(
-      r#"var oldStartup = {startup};
+      r#"var prevStartup = {startup};
 var hasRun = false;
 {startup} = function() {{
 	if (!hasRun) {{
 		hasRun = true;
 {module_executions}
 	}}
-	return oldStartup();
+	if (typeof prevStartup === 'function') {{
+		return prevStartup();
+	}} else {{
+		console.warn('[Module Federation] prevStartup is not a function, skipping startup execution');
+	}}
 }};"#,
       startup = RuntimeGlobals::STARTUP.name(),
       module_executions = module_executions.join("\n")

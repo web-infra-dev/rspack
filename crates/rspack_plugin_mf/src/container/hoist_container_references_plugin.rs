@@ -1,8 +1,16 @@
 //! # HoistContainerReferencesPlugin
 //!
 //! Optimizes Module Federation chunk placement by hoisting container references and
-//! their dependencies to runtime chunks. Recursively collects referenced modules
-//! and moves them to appropriate runtime chunks for proper federation execution.
+//! their dependencies to runtime chunks. This plugin enhances module hoisting and
+//! runtime chunk handling for Module Federation by:
+//!
+//! - Separating dependency handling for container, federation runtime, and remote modules
+//! - Enhanced runtime chunk detection supporting `runtimeChunk: 'single'` configurations
+//! - Recursive collection of referenced modules with proper async dependency exclusion
+//! - Efficient cleanup of empty non-runtime chunks after hoisting
+//!
+//! The plugin coordinates with FederationModulesPlugin through a hook-based system
+//! to collect and manage federation-specific dependencies across the compilation.
 
 use std::{
   collections::{HashSet, VecDeque},
@@ -172,15 +180,25 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     collected
   }
 
-  // Helper: get runtime chunks from entrypoints
+  // Helper: get runtime chunks from entrypoints with enhanced detection
   fn get_runtime_chunks(compilation: &Compilation) -> HashSet<rspack_core::ChunkUkey> {
     let mut runtime_chunks = HashSet::new();
+
+    // Get runtime chunks from entrypoints
     for entrypoint_ukey in compilation.entrypoints.values() {
       if let Some(entrypoint) = compilation.chunk_group_by_ukey.get(entrypoint_ukey) {
         let runtime_chunk = entrypoint.get_runtime_chunk(&compilation.chunk_group_by_ukey);
         runtime_chunks.insert(runtime_chunk);
+
+        // Enhanced: Also check all chunks for runtime (similar to external PR)
+        for (chunk_ukey, chunk) in compilation.chunk_by_ukey.iter() {
+          if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+            runtime_chunks.insert(*chunk_ukey);
+          }
+        }
       }
     }
+
     runtime_chunks
   }
 
