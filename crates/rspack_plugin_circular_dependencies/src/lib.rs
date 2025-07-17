@@ -284,20 +284,10 @@ impl CircularDependencyRspackPlugin {
         continue;
       };
 
-      let Some(target_module) = compilation
-        .module_by_identifier(target_id)
-        .and_then(|m| m.as_normal_module())
-      else {
-        continue;
-      };
-
       // Not all cycles are errors, so filter out any cycles containing
       // explicitly-ignored modules.
       if self.is_ignored_module(module.resource_resolved_data().resource.as_str())
-        || self.is_ignored_connection(
-          module.resource_resolved_data().resource.as_str(),
-          target_module.resource_resolved_data().resource.as_str(),
-        )
+        || self.is_ignored_connection(module_id, target_id)
       {
         return true;
       }
