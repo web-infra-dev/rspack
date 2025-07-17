@@ -52,19 +52,9 @@ jobs:
             document_changed:
               - "website/**"
 
-  setup-inotify:
-    name: Setup inotify limits
-    runs-on: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || 'ubuntu-22.04' }}
-    steps:
-      - name: Increase inotify limits
-        run: |
-          sudo sysctl fs.inotify.max_user_instances=8192
-          sudo sysctl fs.inotify.max_user_watches=524288
-          sudo sysctl -p
-
   test-linux:
     name: Test Linux
-    needs: [check-changed, setup-inotify]
+    needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
