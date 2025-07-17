@@ -29,7 +29,8 @@ use crate::{
   fs_node::{NodeFileSystem, ThreadsafeNodeFS},
   trace_event::RawTraceEvent,
   virtual_modules::{
-    HashMapVirtualFileStore, JsVirtualFileStore, VirtualFileStore, VirtualFileSystem,
+    HashMapVirtualFileStore, JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore,
+    VirtualFileSystem,
   },
 };
 
@@ -233,7 +234,7 @@ impl JsCompiler {
       let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
       if let Some(list) = virtual_files {
         let store = {
-          let mut store = HashMapVirtualFileStore::new();
+          let mut store = TrieVirtualFileStore::new();
           for f in list {
             store.write_file(f.path.as_str().into(), f.content.into());
           }

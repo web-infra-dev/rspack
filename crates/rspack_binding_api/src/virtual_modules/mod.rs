@@ -52,3 +52,6 @@ pub use fs::VirtualFileSystem;
 
 mod hashmap_store;
 pub use hashmap_store::HashMapVirtualFileStore;
+
+mod trie_store;
+pub use trie_store::TrieVirtualFileStore;
