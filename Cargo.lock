@@ -4823,7 +4823,9 @@ dependencies = [
 name = "rspack_napi"
 version = "0.4.8"
 dependencies = [
+ "futures",
  "napi",
+ "once_cell",
  "oneshot",
  "rspack_error",
  "serde_json",

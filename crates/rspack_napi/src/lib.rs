@@ -1,8 +1,12 @@
 #![feature(try_blocks)]
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+mod error_code;
+pub use error_code::*;
 mod ext;
 mod js_values;
+mod runtime;
+pub mod spawn_local;
 mod utils;
 
 mod errors;

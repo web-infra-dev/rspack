@@ -8,21 +8,18 @@ use napi::{sys, Env};
 use waker::{LocalWaker, WakerEvent};
 
 use self::runtime::LocalRuntime;
-use crate::next_tick::QUEUE;
+use crate::ErrorCode;
 
 extern "C" fn on_wake(
   _env: sys::napi_env,
   _callback_info: sys::napi_callback_info,
 ) -> sys::napi_value {
-  while let Some(f) = QUEUE.pop() {
-    f();
-  }
   ptr::null_mut()
 }
 
 /// Schedule a future to run asynchronously on the local JavaScript thread.
 /// The future's execution will not block the local thread.
-pub fn spawn_async_local(env: &Env, future: impl Future + 'static) -> napi::Result<()> {
+pub fn spawn_async_local(env: &Env, future: impl Future + 'static) -> napi::Result<(), ErrorCode> {
   // Add a future to the future pool to be executed
   // whenever the Nodejs event loop is free to do so
   LocalRuntime::queue_future(future);
@@ -47,7 +44,9 @@ pub fn spawn_async_local(env: &Env, future: impl Future + 'static) -> napi::Resu
   //
   // The waker thread notifies the main thread of pending work by
   // running the futures executor within a threadsafe function
-  let jsfn = env.create_function::<(), ()>("onwake", on_wake)?;
+  let jsfn = env
+    .create_function::<(), ()>("onwake", on_wake)
+    .map_err(|e| napi::Error::new(e.status.into(), e.reason.clone()))?;
 
   let tsfn = jsfn
     .build_threadsafe_function()
@@ -65,7 +64,8 @@ pub fn spawn_async_local(env: &Env, future: impl Future + 'static) -> napi::Resu
       }
 
       Ok(())
-    })?;
+    })
+    .map_err(|e| napi::Error::new(e.status.into(), e.reason.clone()))?;
 
   println!("send");
   LocalWaker::send(WakerEvent::Init(tsfn));

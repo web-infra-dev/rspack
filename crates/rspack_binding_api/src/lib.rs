@@ -8,8 +8,9 @@ extern crate napi_derive;
 extern crate rspack_allocator;
 use std::{cell::RefCell, sync::Arc};
 
-use compiler::{Compiler, CompilerState, CompilerStateGuard};
+use compiler::{Compiler, CompilerState};
 use fs_node::HybridFileSystem;
+use futures::future::LocalBoxFuture;
 use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
 use rspack_core::{
@@ -17,7 +18,8 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
-use rspack_tasks::{within_compiler_context_sync, CompilerContext, CURRENT_COMPILER_CONTEXT};
+use rspack_napi::{spawn_local::SpawnLocalExt, ErrorCode};
+use rspack_tasks::{CompilerContext, CURRENT_COMPILER_CONTEXT};
 use rspack_util::tracing_preset::{
   TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
 };
@@ -143,6 +145,32 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let revoked_modules = external.1.take();
   ModuleObject::cleanup_by_module_identifiers(&compiler_id, &revoked_modules);
   Ok(())
+}
+
+/// Run the given function with the compiler.
+async fn run<R>(
+  env: &Env,
+  mut reference: Reference<JsCompiler>,
+  f: impl FnOnce(
+    SharedReference<JsCompiler, &mut Compiler>,
+  ) -> LocalBoxFuture<'static, Result<R, ErrorCode>>,
+) -> Result<R, ErrorCode> {
+  COMPILER_REFERENCES.with(|ref_cell| {
+    let mut references = ref_cell.borrow_mut();
+    references.insert(reference.compiler.id(), reference.downgrade());
+  });
+
+  let this = &mut *reference;
+  if this.state.running() {
+    return Err(concurrent_compiler_error());
+  }
+  let _guard = this.state.enter();
+  this.cleanup_last_compilation(&this.compiler.compilation);
+
+  let shared_reference = reference
+    .share_with(*env, |this| Ok(&mut this.compiler))
+    .map_err(|e| napi::Error::new(e.status.into(), e.reason.clone()))?;
+  f(shared_reference).await
 }
 
 #[napi(custom_finalize)]
@@ -277,24 +305,41 @@ impl JsCompiler {
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(
     &mut self,
+    env: &Env,
     reference: Reference<JsCompiler>,
-    f: Function<'static>,
+    f: Function<'static, Either<(), Error<ErrorCode>>>,
   ) -> Result<(), ErrorCode> {
-    unsafe {
-      self.run(reference, |compiler, guard| {
-        callbackify(
-          f,
-          async move {
-            compiler.build().await.to_napi_result_with_message(|e| {
-              print_error_diagnostic(e, compiler.options.stats.colors)
-            })?;
-            tracing::debug!("build ok");
-            Ok(())
-          },
-          Some(|| drop(guard)),
-        )
+    let ts_fn = f
+      .build_threadsafe_function()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .weak::<false>()
+      .build()
+      .map_err(|e| napi::Error::new(e.status.into(), e.reason.clone()))?;
+
+    env.spawn_local(move |env| async move {
+      run(&env, reference, |mut compiler| {
+        Box::pin(async move {
+          let result = compiler.build().await.map_err(|e| {
+            Error::new(
+              ErrorCode::Napi(napi::Status::GenericFailure),
+              print_error_diagnostic(e, compiler.options.stats.colors),
+            )
+          });
+          let arg = match result {
+            Ok(_) => Either::A(()),
+            Err(e) => Either::B(e),
+          };
+          ts_fn
+            .call_async(arg)
+            .await
+            .map_err(|e| Error::new(e.status.into(), e.reason.clone()))?;
+          tracing::info!("build ok");
+          Ok(())
+        })
       })
-    }
+      .await
+    })
   }
 
   /// Rebuild with the given option passed to the constructor
@@ -303,34 +348,48 @@ impl JsCompiler {
   )]
   pub fn rebuild(
     &mut self,
+    env: &Env,
     reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-    f: Function<'static>,
+    f: Function<'static, Either<(), Error<ErrorCode>>>,
   ) -> Result<(), ErrorCode> {
     use std::collections::HashSet;
 
-    unsafe {
-      self.run(reference, |compiler, guard| {
-        callbackify(
-          f,
-          async move {
-            compiler
-              .rebuild(
-                HashSet::from_iter(changed_files.into_iter()),
-                HashSet::from_iter(removed_files.into_iter()),
-              )
-              .await
-              .to_napi_result_with_message(|e| {
-                print_error_diagnostic(e, compiler.options.stats.colors)
-              })?;
-            tracing::debug!("rebuild ok");
-            Ok(())
-          },
-          Some(|| drop(guard)),
-        )
+    let ts_fn = f
+      .build_threadsafe_function()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .weak::<false>()
+      .build()
+      .map_err(|e| napi::Error::new(e.status.into(), e.reason.clone()))?;
+
+    env.spawn_local(move |env| async move {
+      run(&env, reference, |mut compiler| {
+        Box::pin(async move {
+          let result: Result<(), ErrorCode> = compiler
+            .rebuild(
+              HashSet::from_iter(changed_files.into_iter()),
+              HashSet::from_iter(removed_files.into_iter()),
+            )
+            .await
+            .to_napi_result_with_message(|e| {
+              print_error_diagnostic(e, compiler.options.stats.colors)
+            });
+          let arg = match result {
+            Ok(_) => Either::A(()),
+            Err(e) => Either::B(e),
+          };
+          ts_fn
+            .call_async(arg)
+            .await
+            .map_err(|e| Error::new(e.status.into(), e.reason.clone()))?;
+          tracing::debug!("rebuild ok");
+          Ok(())
+        })
       })
-    }
+      .await
+    })
   }
 
   #[napi]
@@ -346,48 +405,7 @@ impl JsCompiler {
   }
 }
 
-struct RunGuard {
-  _compiler_state_guard: CompilerStateGuard,
-  _reference: Reference<JsCompiler>,
-}
-
 impl JsCompiler {
-  /// Run the given function with the compiler.
-  ///
-  /// ## Safety
-  /// 1. The caller must ensure that the `Compiler` is not moved or dropped during the lifetime of the callback.
-  /// 2. `CompilerStateGuard` should and only be dropped so soon as each `Compiler` is free of use.
-  ///    Accessing `Compiler` beyond the lifetime of `CompilerStateGuard` would lead to potential race condition.
-  unsafe fn run<R>(
-    &mut self,
-    mut reference: Reference<JsCompiler>,
-    f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R, ErrorCode>,
-  ) -> Result<R, ErrorCode> {
-    if self.state.running() {
-      return Err(concurrent_compiler_error());
-    }
-
-    let compiler_state_guard = self.state.enter();
-    let weak_reference = reference.downgrade();
-    // SAFETY:
-    // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
-    // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
-    let compiler = unsafe {
-      std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
-    };
-    let guard = RunGuard {
-      _compiler_state_guard: compiler_state_guard,
-      _reference: reference,
-    };
-    COMPILER_REFERENCES.with(|ref_cell| {
-      let mut references = ref_cell.borrow_mut();
-      references.insert(compiler.id(), weak_reference);
-    });
-
-    self.cleanup_last_compilation(&compiler.compilation);
-    within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard))
-  }
-
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
     let compilation_id = compilation.id();
 
