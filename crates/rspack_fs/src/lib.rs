@@ -1,3 +1,5 @@
+#![cfg_attr(windows, feature(windows_change_time))]
+
 mod read;
 pub use read::ReadableFileSystem;
 

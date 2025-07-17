@@ -23,31 +23,7 @@ class Rspack {
 		const configPath = path.resolve(projectDir, "rspack.config.js");
 		this.config = handleRspackConfig(require(configPath));
 		delete require.cache[configPath];
-		const compiler = rspack(this.config);
-
 		this.projectDir = projectDir;
-		this.compiler = compiler;
-		this.compiler.hooks.done.tap("rspack_fixture", () => {
-			const onDone = this.onDone;
-			this.onDone = [];
-			for (const item of onDone) {
-				item();
-			}
-		});
-		const DevServerConstructor = RspackDevServer;
-		if (compiler.options.experiments.lazyCompilation) {
-			const middleware = experiments.lazyCompilationMiddleware(compiler)
-			compiler.options.devServer ??= {};
-			const setupMiddlewares = compiler.options.devServer.setupMiddlewares;
-			compiler.options.devServer.setupMiddlewares = (middlewares, server) => {
-				const old = setupMiddlewares ? setupMiddlewares(middlewares, server) : middlewares;
-				return [middleware, ...old]
-			}
-		}
-		this.devServer = new DevServerConstructor(
-			compiler.options.devServer ?? ({} as any),
-			compiler
-		);
 	}
 
 	// waiting for build done, not hmr done
@@ -61,7 +37,7 @@ class Rspack {
 		});
 	}
 
-	async reboot() {
+	async stop() {
 		await new Promise<void>((res, rej) => {
 			this.compiler.close(function (err) {
 				if (err) {
@@ -72,9 +48,12 @@ class Rspack {
 			});
 		});
 		await this.devServer.stop();
+	}
 
+	async start() {
 		const compiler = rspack(this.config);
-		compiler.hooks.done.tap("rspack_fixture", () => {
+		this.compiler = compiler;
+		this.compiler.hooks.done.tap("rspack_fixture", () => {
 			const onDone = this.onDone;
 			this.onDone = [];
 			for (const item of onDone) {
@@ -82,24 +61,28 @@ class Rspack {
 			}
 		});
 		const DevServerConstructor = RspackDevServer;
-
 		if (compiler.options.experiments.lazyCompilation) {
-			const middleware = experiments.lazyCompilationMiddleware(compiler)
+			const middleware = experiments.lazyCompilationMiddleware(compiler);
 			compiler.options.devServer ??= {};
-			const setupMiddleware = compiler.options.devServer.setupMiddlewares;
+			const setupMiddlewares = compiler.options.devServer.setupMiddlewares;
 			compiler.options.devServer.setupMiddlewares = (middlewares, server) => {
-				const old = setupMiddleware ? setupMiddleware(middlewares, server) : middlewares;
-				return [middleware, ...old]
-			}
+				const old = setupMiddlewares
+					? setupMiddlewares(middlewares, server)
+					: middlewares;
+				return [middleware, ...old];
+			};
 		}
 		this.devServer = new DevServerConstructor(
 			compiler.options.devServer ?? ({} as any),
 			compiler
 		);
-		this.compiler = compiler;
-
 		await this.devServer.start();
 		await this.waitingForBuild();
+	}
+
+	async reboot() {
+		await this.stop();
+		await this.start();
 	}
 }
 
@@ -113,10 +96,12 @@ export type RspackFixtures = Fixtures<
 	RspackOptions & { rspack: Rspack; rspackIncremental: Rspack },
 	{},
 	PlaywrightTestArgs & PathInfoFixtures
->
+>;
 
 export const rspackFixtures = (): RspackFixtures => {
-	const rspackFixture = (incremental: boolean): RspackFixtures["rspack"] | RspackFixtures["rspackIncremental"] => [
+	const rspackFixture = (
+		incremental: boolean
+	): RspackFixtures["rspack"] | RspackFixtures["rspackIncremental"] => [
 		async ({ page, pathInfo, defaultRspackConfig }, use, { workerIndex }) => {
 			const { tempProjectDir } = pathInfo;
 			const port = (incremental ? 8200 : 8000) + workerIndex;
@@ -139,20 +124,19 @@ export const rspackFixtures = (): RspackFixtures => {
 
 				return defaultRspackConfig.handleConfig(config);
 			});
-			await rspack.devServer.start();
+			await rspack.start();
 
-			await rspack.waitingForBuild();
 			await page.goto(`http://localhost:${port}`);
 
 			await use(rspack);
 
-			await rspack.devServer.stop();
+			await rspack.stop();
 		},
-		{ auto: true },
+		{ auto: true }
 	];
 	return {
 		defaultRspackConfig: [{ handleConfig: c => c }, { option: true }],
 		rspack: rspackFixture(false),
-		rspackIncremental: rspackFixture(true),
+		rspackIncremental: rspackFixture(true)
 	};
 };

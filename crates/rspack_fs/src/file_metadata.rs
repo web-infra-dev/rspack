@@ -1,7 +1,4 @@
-use std::{
-  fs::{Metadata, Permissions},
-  io::ErrorKind,
-};
+use std::fs::{Metadata, Permissions};
 
 use cfg_if::cfg_if;
 
@@ -18,6 +15,24 @@ pub struct FileMetadata {
   pub size: u64,
 }
 
+impl FileMetadata {
+  fn get_ctime_ms(metadata: &Metadata) -> u64 {
+    #[cfg(unix)]
+    {
+      let ctime = std::os::unix::fs::MetadataExt::ctime(metadata);
+      let ctime_nsec = std::os::unix::fs::MetadataExt::ctime_nsec(metadata);
+      let ctime_ms = ctime * 1000 + ctime_nsec / 1_000_000;
+      return ctime_ms as u64;
+    }
+    #[cfg(windows)]
+    {
+      return std::os::windows::fs::MetadataExt::change_time(metadata).unwrap_or_default();
+    }
+    #[allow(unreachable_code)]
+    0u64
+  }
+}
+
 impl TryFrom<Metadata> for FileMetadata {
   type Error = Error;
 
@@ -28,27 +43,13 @@ impl TryFrom<Metadata> for FileMetadata {
       .duration_since(std::time::UNIX_EPOCH)
       .expect("mtime is before unix epoch")
       .as_millis() as u64;
-    let ctime_ms = match metadata.created() {
-      Ok(time) => time
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("ctime is before unix epoch")
-        .as_millis() as u64,
-      Err(err) => {
-        // some linux musl not support get create time
-        // return 0 directly to solve this problem
-        if err.kind() == ErrorKind::Unsupported {
-          0_u64
-        } else {
-          return Err(err.into());
-        }
-      }
-    };
     let atime_ms = metadata
       .accessed()
       .to_fs_result()?
       .duration_since(std::time::UNIX_EPOCH)
       .expect("atime is before unix epoch")
       .as_millis() as u64;
+    let ctime_ms = Self::get_ctime_ms(&metadata);
 
     Ok(Self {
       is_directory: metadata.is_dir(),
