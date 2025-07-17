@@ -52,7 +52,7 @@ const creator = new BasicCaseCreator({
 					)
 		);
 	},
-	concurrent: true
+	concurrent: 2
 });
 
 export function createNativeWatcher(
