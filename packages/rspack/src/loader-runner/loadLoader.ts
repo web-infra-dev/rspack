@@ -95,18 +95,42 @@ const loadLoaderInBrowser: typeof loadLoader = (
 					callback(err);
 					return;
 				}
-				// Currently only esm loader is supported
+
 				const loaderCode = data?.toString() || "";
-				const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
-				try {
-					// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
-					const modulePromise = eval(`import("${dataUrl}")`);
-					modulePromise.then((module: LoaderModule) => {
-						handleResult(loader, module, callback);
-					}, callback);
-					return;
-				} catch (e) {
-					callback(e);
+				if (loader.type === "module") {
+					// Use `import(base64code)` to load ESM
+					const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
+					try {
+						// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
+						const modulePromise = eval(`import("${dataUrl}")`);
+						modulePromise.then((module: LoaderModule) => {
+							handleResult(loader, module, callback);
+						}, callback);
+						return;
+					} catch (e) {
+						callback(e);
+					}
+				} else {
+					// Use `new Function` to emulate CJS
+					const module = { exports: {} };
+					const exports = module.exports;
+					const createRequire = () => {
+						throw "@rspack/browser doesn't support `require` in loaders yet";
+					};
+
+					const wrapper = new Function(
+						"module",
+						"exports",
+						"require",
+						loaderCode
+					);
+
+					try {
+						wrapper(module, exports, createRequire);
+					} catch (e) {
+						return callback(e);
+					}
+					return handleResult(loader, module.exports, callback);
 				}
 			});
 		}
