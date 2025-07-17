@@ -122,15 +122,15 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.9.0", default-features = false }
-swc                 = { version = "=30.0.0", default-features = false }
-swc_config          = { version = "=3.1.1", default-features = false }
-swc_core            = { version = "=31.1.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_lexer      = { version = "=19.0.1", default-features = false }
-swc_ecma_minifier   = { version = "=25.0.0", default-features = false }
-swc_error_reporters = { version = "=15.0.1", default-features = false }
-swc_html            = { version = "=24.0.1", default-features = false }
-swc_html_minifier   = { version = "=25.0.0", default-features = false }
-swc_node_comments   = { version = "=13.0.0", default-features = false }
+swc                 = { version = "32.0.0", default-features = false }
+swc_config          = { version = "3.1.1", default-features = false }
+swc_core            = { version = "33.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_lexer      = { version = "21.0.0", default-features = false }
+swc_ecma_minifier   = { version = "27.0.0", default-features = false }
+swc_error_reporters = { version = "16.0.1", default-features = false }
+swc_html            = { version = "25.0.0", default-features = false }
+swc_html_minifier   = { version = "27.0.0", default-features = false }
+swc_node_comments   = { version = "14.0.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 
