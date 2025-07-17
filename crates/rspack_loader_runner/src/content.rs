@@ -12,6 +12,7 @@ use rspack_cacheable::{
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_paths::Utf8PathBuf;
+use rustc_hash::FxHashMap;
 
 use crate::{get_scheme, Scheme};
 
@@ -290,3 +291,4 @@ impl DescriptionData {
 }
 
 pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;
+pub type ParseMeta = FxHashMap<String, Box<dyn CloneAny + Send + Sync>>;

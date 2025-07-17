@@ -11,7 +11,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{AdditionalData, Mode, RunnerContext};
+use rspack_core::{Mode, RunnerContext, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -124,14 +124,14 @@ impl SwcLoader {
       );
     }
 
-    let mut finish = (code, map, None);
     if let Some(collected_ts_info) = collected_ts_info {
-      let mut additional_data = AdditionalData::new();
-      additional_data.insert(collected_ts_info);
-      finish.2 = Some(additional_data);
+      loader_context.parse_meta.insert(
+        COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY.to_string(),
+        Box::new(collected_ts_info),
+      );
     }
 
-    loader_context.finish_with(finish);
+    loader_context.finish_with((code, map));
 
     Ok(())
   }

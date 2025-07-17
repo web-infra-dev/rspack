@@ -4237,7 +4237,7 @@ export type Loader = Record<string, any>;
 // @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
     // @internal
-    __internal__parseMeta: Record<string, string>;
+    __internal__setParseMeta: (key: string, value: string) => void;
     // (undocumented)
     addBuildDependency(file: string): void;
     addContextDependency(context: string): void;
