@@ -348,7 +348,9 @@ export class WatchStepProcessor<
 			});
 		});
 		// wait compiler to ready watch the files and diretories
-		await new Promise(resolve => setTimeout(resolve, 100));
+		// TODO: reduce wait time
+		const timeout = this._watchOptions.nativeWatcher ? 100 : 231;
+		await new Promise(resolve => setTimeout(resolve, timeout));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
 			this._watchOptions.tempDir,

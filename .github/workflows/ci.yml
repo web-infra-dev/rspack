@@ -63,6 +63,10 @@ jobs:
       test: true
       bench: true
       prefer_docker: false
+    pre-run: |
+      sudo sysctl fs.inotify.max_user_instances=8192
+      sudo sysctl fs.inotify.max_user_watches=524288
+      sudo sysctl -p
 
   test-windows:
     name: Test Windows
