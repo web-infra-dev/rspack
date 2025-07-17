@@ -348,7 +348,7 @@ export class WatchStepProcessor<
 			});
 		});
 		// wait compiler to ready watch the files and diretories
-		await new Promise(resolve => setTimeout(resolve, 400));
+		await new Promise(resolve => setTimeout(resolve, 100));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
 			this._watchOptions.tempDir,
