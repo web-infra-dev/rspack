@@ -139,8 +139,7 @@ use crate::{
   trace_event::RawTraceEvent,
   utils::callbackify,
   virtual_modules::{
-    HashMapVirtualFileStore, JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore,
-    VirtualFileSystem,
+    JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore, VirtualFileSystem,
   },
 };
 
