@@ -12,7 +12,8 @@ use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
   BuildMeta, CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl,
-  ModuleIdentifier, ModuleLayer, ModuleType, ResourceData, SpanExt, TypeReexportPresenceMode,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt,
+  TypeReexportPresenceMode,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -226,7 +227,7 @@ pub struct JavascriptParser<'parser> {
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   // TODO: remove `additional_data` once we have builtin:css-extract-loader
   pub additional_data: Option<AdditionalData>,
-  pub parse_meta: FxHashMap<String, String>,
+  pub parse_meta: ParseMeta,
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
@@ -283,7 +284,7 @@ impl<'parser> JavascriptParser<'parser> {
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parser_pre_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     additional_data: Option<AdditionalData>,
-    parse_meta: FxHashMap<String, String>,
+    parse_meta: ParseMeta,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
     let mut errors = Vec::with_capacity(4);
