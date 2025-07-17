@@ -121,7 +121,7 @@ impl VirtualFileStore for TrieVirtualFileStore {
   fn write_file(&mut self, path: &Utf8Path, content: Vec<u8>) {
     let now = SystemTime::now()
       .duration_since(SystemTime::UNIX_EPOCH)
-      .unwrap()
+      .expect("failed to get now")
       .as_millis() as u64;
     let file = FileNode {
       ctime: now,
