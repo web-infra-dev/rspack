@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, Watcher};
 use rspack_paths::ArcPath;
@@ -17,7 +17,11 @@ pub struct DiskWatcher {
 
 impl DiskWatcher {
   /// Creates a new `DiskWatcher` with the given configuration and trigger.
-  pub fn new(follow_symlinks: bool, poll_interval: Option<u32>, trigger: trigger::Trigger) -> Self {
+  pub fn new(
+    follow_symlinks: bool,
+    poll_interval: Option<u32>,
+    trigger: Arc<trigger::Trigger>,
+  ) -> Self {
     let config = match poll_interval {
       Some(poll) => notify::Config::default()
         .with_follow_symlinks(follow_symlinks)

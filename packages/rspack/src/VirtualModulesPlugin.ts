@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { VirtualFileStore } from "@rspack/binding";
 import type { Compiler } from "./Compiler";
+import NativeWatchFileSystem from "./NativeWatchFileSystem";
 
 const PLUGIN_NAME = "VirtualModulesPlugin";
 
@@ -72,6 +73,14 @@ export class VirtualModulesPlugin {
 }
 
 function notifyWatchers(compiler: Compiler, fullPath: string, time: number) {
+	if (compiler.watchFileSystem instanceof NativeWatchFileSystem) {
+		compiler.watchFileSystem.triggerEvent("change", fullPath);
+	} else {
+		notifyJsWatchers(compiler, fullPath, time);
+	}
+}
+
+function notifyJsWatchers(compiler: Compiler, fullPath: string, time: number) {
 	const watcher = (compiler.watchFileSystem as any)?.watcher;
 	if (!watcher) return;
 	const fileWatchers =
