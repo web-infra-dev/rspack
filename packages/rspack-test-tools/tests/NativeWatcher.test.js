@@ -3,11 +3,13 @@ const { describeByWalk, createNativeWatcher } = require("@rspack/test-tools");
 const tempDir = path.resolve(__dirname, `./js/temp`);
 const exec = require("child_process").execSync;
 
-const r1 = exec(`cat /proc/sys/fs/inotify/max_user_watches`);
-const r2 = exec("cat /proc/sys/fs/inotify/max_user_instances");
+if (process.platform == "linux") {
+	const r1 = exec(`cat /proc/sys/fs/inotify/max_user_watches`);
+	const r2 = exec("cat /proc/sys/fs/inotify/max_user_instances");
 
-console.info(`max_user_watches=${r1.toString()}`);
-console.info(`max_user_instances=${r2.toString()}`);
+	console.info(`max_user_watches=${r1.toString()}`);
+	console.info(`max_user_instances=${r2.toString()}`);
+}
 
 describeByWalk(
 	__filename,
