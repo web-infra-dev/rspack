@@ -37,8 +37,10 @@ interface WorkerOptions {
 	};
 }
 
-const loadLoaderAsync: (loaderObject: any) => Promise<void> =
-	promisify(loadLoader);
+const loadLoaderAsync: (
+	loaderObject: any,
+	loaderContext: any
+) => Promise<void> = promisify(loadLoader);
 
 function dirname(path: string) {
 	if (path === "/") return "/";
@@ -436,7 +438,7 @@ async function loaderImpl(
 					continue;
 				}
 
-				await loadLoaderAsync(currentLoaderObject);
+				await loadLoaderAsync(currentLoaderObject, loaderContext);
 				const fn = currentLoaderObject.pitch;
 				currentLoaderObject.pitchExecuted = true;
 				if (!fn) continue;
@@ -465,7 +467,7 @@ async function loaderImpl(
 					continue;
 				}
 
-				await loadLoaderAsync(currentLoaderObject);
+				await loadLoaderAsync(currentLoaderObject, loaderContext);
 				const fn = currentLoaderObject.normal;
 				currentLoaderObject.normalExecuted = true;
 				if (!fn) continue;

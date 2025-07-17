@@ -10,9 +10,13 @@
 
 import type Url from "node:url";
 import type { LoaderDefinitionFunction } from "../config";
-import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
+import type {
+	LoaderContext,
+	PitchLoaderDefinitionFunction
+} from "../config/adapterRuleUse";
 import type { LoaderObject } from ".";
 import LoaderLoadingError from "./LoaderLoadingError";
+import { InputFileSystem } from "../util/fs";
 
 type ModuleObject = {
 	default?: LoaderDefinitionFunction;
@@ -25,8 +29,17 @@ let url: undefined | typeof Url;
 
 export default function loadLoader(
 	loader: LoaderObject,
+	loaderContext: LoaderContext,
 	callback: (err: unknown) => void
 ): void {
+	if (IS_BROWSER) {
+		// Why is IS_BROWSER used here:
+		// Loading loaders in @rspack/browser is difference from the @rspack/core.
+		// 1. It resolves the JavaScript in the memfs with Node.js resolution algorithm rather than in the host filesystem.
+		// 2. It customizes how to evaluate CJS/ESM because there's no `require` any more.
+		return loadLoaderInBrowser(loader, loaderContext, callback);
+	}
+
 	if (loader.type === "module") {
 		try {
 			if (url === undefined) url = require("node:url");
@@ -50,7 +63,7 @@ export default function loadLoader(
 				e instanceof Error &&
 				(e as NodeJS.ErrnoException).code === "EMFILE"
 			) {
-				const retry = loadLoader.bind(null, loader, callback);
+				const retry = loadLoader.bind(null, loader, loaderContext, callback);
 				return void setImmediate(retry);
 			}
 			return callback(e);
@@ -58,6 +71,47 @@ export default function loadLoader(
 		return handleResult(loader, module, callback);
 	}
 }
+
+const loadLoaderInBrowser: typeof loadLoader = (
+	loader,
+	loaderContext,
+	callback
+) => {
+	loaderContext.resolve(
+		loaderContext._compiler.context,
+		loader.path,
+		(err, loaderPath) => {
+			if (err) {
+				callback(err);
+				return;
+			}
+			if (!loaderPath) {
+				callback(`Cannot find loader of ${loader.path}`);
+				return;
+			}
+			const inputFileSystem = loaderContext.fs as InputFileSystem;
+			inputFileSystem.readFile(loaderPath, {}, (err, data) => {
+				if (err) {
+					callback(err);
+					return;
+				}
+				// Currently only esm loader is supported
+				const loaderCode = data?.toString() || "";
+				const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
+				try {
+					// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
+					const modulePromise = eval(`import("${dataUrl}")`);
+					modulePromise.then((module: LoaderModule) => {
+						handleResult(loader, module, callback);
+					}, callback);
+					return;
+				} catch (e) {
+					callback(e);
+				}
+			});
+		}
+	);
+};
 
 function handleResult(
 	loader: LoaderObject,
