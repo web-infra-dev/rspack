@@ -459,7 +459,7 @@ import 'antd/es/button/style';
 
 Collects information from TypeScript's AST for consumption by subsequent Rspack processes, providing better TypeScript development experience and smaller output bundle size.
 
-To ensure the accuracy of collected information, this configuration can only be used when `builtin:swc-loader` is the last normal loader.
+To ensure the accuracy of the collected information, users must ensure that subsequent Normal Loaders after `builtin:swc-loader` do not modify the Abstract Syntax Tree (AST) corresponding to the collected information. This precaution is necessary to prevent discrepancies between the collected information and the actual code.
 
 Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
 
