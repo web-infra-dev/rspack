@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Formatter, ptr::NonNull, sync::Arc};
+use std::{fmt::Formatter, ptr::NonNull, sync::Arc};
 
 use derive_more::Debug;
 use napi::{
@@ -21,6 +21,7 @@ use rspack_core::{
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{JsFilename, ModuleObject, RawResolveOptions};
 

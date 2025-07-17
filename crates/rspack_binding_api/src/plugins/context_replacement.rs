@@ -3,7 +3,7 @@ use napi_derive::napi;
 use rspack_error::{miette::IntoDiagnostic, Error};
 use rspack_plugin_context_replacement::ContextReplacementPluginOptions;
 use rspack_regex::RspackRegex;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::FxHashMap;
 
 #[napi(object, object_to_js = false)]
 pub struct RawContextReplacementPluginOptions<'a> {
@@ -31,7 +31,7 @@ impl<'a> TryFrom<RawContextReplacementPluginOptions<'a>> for ContextReplacementP
     } = val;
 
     let new_content_create_context_map = if let Some(raw) = new_content_create_context_map {
-      let mut map = HashMap::default();
+      let mut map = FxHashMap::default();
       let keys = Object::keys(&raw).into_diagnostic()?;
       for key in keys {
         let value = raw.get::<String>(&key).into_diagnostic()?;

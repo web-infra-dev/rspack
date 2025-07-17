@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ptr::NonNull, sync::Arc};
+use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -6,6 +6,7 @@ use rspack_core::{LoaderContext, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleObject, RspackError};
 

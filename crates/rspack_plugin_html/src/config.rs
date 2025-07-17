@@ -1,8 +1,9 @@
-use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
+use std::{fmt, path::PathBuf, str::FromStr};
 
 use futures::future::BoxFuture;
 use rspack_core::{Compilation, PublicPath};
 use rspack_error::Result;
+use rspack_util::fx_hash::FxHashMap;
 use serde::Serialize;
 use sugar_path::SugarPath;
 
@@ -89,7 +90,7 @@ impl std::fmt::Debug for TemplateParameterFn {
 
 #[derive(Debug)]
 pub enum TemplateParameters {
-  Map(HashMap<String, String>),
+  Map(FxHashMap<String, String>),
   Function(TemplateParameterFn),
   Disabled,
 }
@@ -173,7 +174,7 @@ pub struct HtmlRspackPluginOptions {
   pub minify: Option<bool>,
   pub title: Option<String>,
   pub favicon: Option<String>,
-  pub meta: Option<HashMap<String, HashMap<String, String>>>,
+  pub meta: Option<FxHashMap<String, FxHashMap<String, String>>>,
   pub hash: Option<bool>,
   pub base: Option<HtmlRspackPluginBaseOptions>,
   /// uid is used to identify the plugin instance on javascript side
