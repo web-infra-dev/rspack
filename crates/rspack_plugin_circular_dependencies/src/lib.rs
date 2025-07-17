@@ -268,6 +268,7 @@ impl CircularDependencyRspackPlugin {
     &self,
     module_map: &IdentifierMap<GraphModule>,
     cycle: &[ModuleIdentifier],
+    compilation: &Compilation,
   ) -> bool {
     for [module_id, target_id] in cycle.array_windows::<2>() {
       // If any dependency in the cycle is purely asynchronous, then it does not count as a runtime
@@ -276,9 +277,28 @@ impl CircularDependencyRspackPlugin {
         return true;
       }
 
+      let Some(module) = compilation
+        .module_by_identifier(module_id)
+        .and_then(|m| m.as_normal_module())
+      else {
+        continue;
+      };
+
+      let Some(target_module) = compilation
+        .module_by_identifier(target_id)
+        .and_then(|m| m.as_normal_module())
+      else {
+        continue;
+      };
+
       // Not all cycles are errors, so filter out any cycles containing
       // explicitly-ignored modules.
-      if self.is_ignored_module(module_id) || self.is_ignored_connection(module_id, target_id) {
+      if self.is_ignored_module(module.resource_resolved_data().resource.as_str())
+        || self.is_ignored_connection(
+          module.resource_resolved_data().resource.as_str(),
+          target_module.resource_resolved_data().resource.as_str(),
+        )
+      {
         return true;
       }
     }
@@ -374,7 +394,7 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
       };
 
       for cycle in detector.find_cycles_from(module_id) {
-        if self.is_cycle_ignored(&module_map, &cycle) {
+        if self.is_cycle_ignored(&module_map, &cycle, compilation) {
           self
             .handle_cycle_ignored(entrypoint_name.clone(), cycle, compilation)
             .await?
