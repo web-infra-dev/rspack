@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  hash::BuildHasherDefault,
-  iter::once,
-  sync::{atomic::AtomicU32, Arc},
-};
+use std::{hash::BuildHasherDefault, iter::once, sync::atomic::AtomicU32};
 
 use indexmap::IndexSet;
 use rspack_collections::{
@@ -27,7 +22,7 @@ use crate::{
 
 type ModuleDeps = HashMap<
   RuntimeSpec,
-  IdentifierDashMap<Arc<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>>,
+  IdentifierDashMap<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>,
 >;
 
 static NEXT_EDGE_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -332,13 +327,13 @@ impl CodeSplitter {
         continue;
       }
 
-      let guard = self.outgoings_modules(&module, runtime, &module_graph, module_graph_cache);
-      let (modules, blocks) = guard.value();
+      let (modules, blocks) =
+        self.outgoings_modules(&module, runtime, &module_graph, module_graph_cache);
 
       let blocks = blocks.clone();
       for m in modules {
         stack.push(StackItem {
-          module: *m,
+          module: m,
           chunk_loading,
           edge: edge.clone(),
         });
@@ -601,19 +596,12 @@ impl CodeSplitter {
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Ref<ModuleIdentifier, (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
-    let module_map: &dashmap::DashMap<
-      rspack_collections::Identifier,
-      (
-        Vec<rspack_collections::Identifier>,
-        Vec<AsyncDependenciesBlockIdentifier>,
-      ),
-      BuildHasherDefault<ustr::IdentityHasher>,
-    > = self.module_deps.get(runtime).expect("should have value");
+  ) -> (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>) {
+    let module_map = self.module_deps.get(runtime).expect("should have value");
 
     let guard = module_map.get(module);
     if let Some(ref_value) = guard {
-      return ref_value.clone();
+      return ref_value.value().clone();
     }
 
     let mut outgoings = IdentifierIndexMap::<Vec<&ModuleGraphConnection>>::default();
@@ -647,7 +635,7 @@ impl CodeSplitter {
           }
           crate::ConnectionState::TransitiveOnly => {
             let transitive = self.outgoings_modules(m, runtime, module_graph, module_graph_cache);
-            let (extra_modules, extra_blocks) = transitive.as_ref();
+            let (extra_modules, extra_blocks) = transitive;
             modules.extend(extra_modules.iter().copied());
             blocks.extend(extra_blocks.iter().copied());
           }
@@ -657,8 +645,8 @@ impl CodeSplitter {
       }
     }
 
-    module_map.insert(*module, Arc::new((modules.into_iter().collect(), blocks)));
-    module_map.get(module).expect("have value").clone()
+    module_map.insert(*module, (modules.into_iter().collect(), blocks));
+    module_map.get(module).expect("have value").value().clone()
   }
 
   // insert static dependencies into a set
@@ -710,9 +698,8 @@ impl CodeSplitter {
               value
             });
 
-          let guard =
+          let (outgoing_modules, blocks) =
             self.outgoings_modules(&target_module, runtime, module_graph, module_graph_cache);
-          let (outgoing_modules, blocks) = guard.as_ref();
           let mut outgoing_modules = outgoing_modules.clone();
 
           if ctx.chunk_loading {
@@ -838,8 +825,8 @@ impl CodeSplitter {
             if !self.module_deps.contains_key(runtime) {
               self.module_deps.insert(runtime.clone(), Default::default());
             }
-            let guard = self.outgoings_modules(&m, runtime, &module_graph, module_graph_cache);
-            let (modules, blocks) = guard.as_ref();
+            let (modules, blocks) =
+              self.outgoings_modules(&m, runtime, &module_graph, module_graph_cache);
 
             for m in modules.iter().rev() {
               queue.push(Task::Enter((*m, runtime)));
@@ -848,9 +835,9 @@ impl CodeSplitter {
             for block_id in blocks {
               if let Some(chunk_group) = compilation
                 .chunk_graph
-                .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
+                .get_block_chunk_group(&block_id, &compilation.chunk_group_by_ukey)
               {
-                queue_delay.push(Task::Group(chunk_group.ukey(), *block_id));
+                queue_delay.push(Task::Group(chunk_group.ukey(), block_id));
               }
             }
           }
