@@ -2,7 +2,7 @@ const path = require("path");
 const { describeByWalk, createNativeWatcher } = require("@rspack/test-tools");
 const tempDir = path.resolve(__dirname, `./js/temp`);
 
-const ignores = ["dynamic-entries"];
+const ignores = ["async-modules/dynamic-entries"];
 
 describeByWalk(
 	__filename,
