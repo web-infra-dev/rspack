@@ -12,7 +12,7 @@ version.workspace       = true
 
 [dependencies]
 browserslist-rs = { workspace = true }
-lightningcss    = { workspace = true }
+lightningcss    = { path = "../rspack_monomorphized_lightningcss", package = "rspack_monomorphized_lightningcss" }
 regex           = { workspace = true }
 
 [lints]

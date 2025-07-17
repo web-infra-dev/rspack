@@ -4433,8 +4433,8 @@ name = "rspack_browserslist"
 version = "0.4.8"
 dependencies = [
  "browserslist-rs",
- "lightningcss",
  "regex",
+ "rspack_monomorphized_lightningcss",
 ]
 
 [[package]]
@@ -4447,10 +4447,10 @@ dependencies = [
  "indexmap 2.7.1",
  "inventory",
  "json",
- "lightningcss",
  "once_cell",
  "rkyv 0.8.8",
  "rspack_macros",
+ "rspack_monomorphized_lightningcss",
  "rspack_resolver",
  "rspack_sources",
  "serde_json",
@@ -4683,7 +4683,6 @@ version = "0.4.8"
 dependencies = [
  "async-trait",
  "derive_more 1.0.0",
- "lightningcss",
  "parcel_sourcemap",
  "rspack_browserslist",
  "rspack_cacheable",
@@ -4691,6 +4690,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_loader_runner",
+ "rspack_monomorphized_lightningcss",
  "serde",
  "serde_json",
  "tokio",
@@ -4817,6 +4817,13 @@ dependencies = [
  "tokio",
  "tracing",
  "trybuild",
+]
+
+[[package]]
+name = "rspack_monomorphized_lightningcss"
+version = "0.4.8"
+dependencies = [
+ "lightningcss",
 ]
 
 [[package]]
@@ -5266,7 +5273,6 @@ dependencies = [
 name = "rspack_plugin_lightning_css_minimizer"
 version = "0.4.8"
 dependencies = [
- "lightningcss",
  "parcel_sourcemap",
  "rayon",
  "regex",
@@ -5275,6 +5281,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_monomorphized_lightningcss",
  "rspack_util",
  "tracing",
 ]

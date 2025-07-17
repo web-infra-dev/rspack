@@ -1,0 +1,20 @@
+[package]
+name = "rspack_monomorphized_lightningcss"
+authors.workspace = true
+categories.workspace = true
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+lightningcss = { workspace = true, default-features = false }
+
+[features]
+sourcemap = ["lightningcss/sourcemap"]
+into_owned = ["lightningcss/into_owned"]
+
+[lints]
+workspace = true
