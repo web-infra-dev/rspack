@@ -75,10 +75,4 @@ const config = {
 	...(wasmConfig || {})
 };
 
-config.testPathIgnorePatterns = config.testPathIgnorePatterns || [];
-config.testPathIgnorePatterns.push(
-	// Skip temporarily because native watcher is not stable in CI
-	"NativeWatcher.test.js"
-);
-
 module.exports = config;
