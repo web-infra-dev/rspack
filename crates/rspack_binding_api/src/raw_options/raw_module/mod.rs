@@ -1,6 +1,6 @@
 use std::{fmt::Formatter, ptr::NonNull, sync::Arc};
 
-use derive_more::Debug;
+use derive_more::with_trait::Debug;
 use napi::{
   bindgen_prelude::{Buffer, Either3, FnArgs},
   Either,
