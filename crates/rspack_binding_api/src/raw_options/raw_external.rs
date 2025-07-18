@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use napi::bindgen_prelude::{Either4, Promise};
 use napi_derive::napi;
@@ -8,6 +8,7 @@ use rspack_core::{
 };
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::JsResolver;
 

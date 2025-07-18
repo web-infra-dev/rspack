@@ -102,7 +102,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;
-	const parseMeta = this.__internal__parseMeta;
+
 	this.addDependency(filepath);
 
 	let { publicPath } = this._compilation!.outputOptions;
@@ -260,7 +260,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				: result;
 
 		if (dependencies.length > 0) {
-			parseMeta[PLUGIN_NAME] = JSON.stringify(dependencies);
+			this.__internal__setParseMeta(PLUGIN_NAME, JSON.stringify(dependencies));
 		}
 
 		callback(null, resultSource, undefined, data);

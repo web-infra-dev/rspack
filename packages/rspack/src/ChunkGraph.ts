@@ -49,7 +49,7 @@ Object.defineProperty(ChunkGraph.prototype, "getModuleHash", {
 });
 
 declare module "@rspack/binding" {
-	interface Chunk {
+	interface ChunkGraph {
 		getModuleChunksIterable(module: Module): Iterable<Chunk>;
 		getOrderedChunkModulesIterable(
 			chunk: Chunk,
