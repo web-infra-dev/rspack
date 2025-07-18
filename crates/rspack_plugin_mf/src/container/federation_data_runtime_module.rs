@@ -89,9 +89,8 @@ chunkMatcher: function(chunkId) {{
   };
 
   let root_output_dir_str = format!(
-    r#"rootOutputDir: "{}",
-"#,
-    root_output_dir
+    r#"rootOutputDir: "{root_output_dir}",
+"#
   );
 
   format!(
