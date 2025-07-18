@@ -58,15 +58,11 @@ pub async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilatio
   let has_js_matcher = compile_boolean_matcher(&condition_map);
 
   let chunk_matcher = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-    String::from("")
+    String::new()
   } else {
     format!(
-      r#"
-chunkMatcher: function(chunkId) {{
-    return {has_js_matcher};
-}},
-"#,
-      has_js_matcher = &has_js_matcher.render("chunkId")
+      "chunkMatcher:function(chunkId){{return {};}},",
+      has_js_matcher.render("chunkId")
     )
   };
 
@@ -88,18 +84,9 @@ chunkMatcher: function(chunkId) {{
     )
   };
 
-  let root_output_dir_str = format!(
-    r#"rootOutputDir: "{root_output_dir}",
-"#
-  );
+  let root_output_dir_str = format!("rootOutputDir:\"{root_output_dir}\",");
 
   format!(
-    r#"
-if(!{federation_global}){{
-    {federation_global} = {{
-        {chunk_matcher}{root_output_dir_str}
-    }};
-}}
-"#
+    "if(!{federation_global}){{{federation_global}={{{chunk_matcher}{root_output_dir_str}}};}}",
   )
 }
