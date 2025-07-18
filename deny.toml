@@ -254,12 +254,11 @@ skip = [
     { crate = "derive_builder_core", reason = "external dependency"},
     { crate = "derive_builder_macro", reason = "external dependency"},
     { crate = "derive_more", reason = "external dependency"},
-    { crate = "fixedbitset", reason = "external dependency"},
+    
     { crate = "gimli", reason = "external dependency"},
     { crate = "heck", reason = "external dependency"},
     { crate = "nom", reason = "external dependency"},
     { crate = "object", reason = "external dependency"},
-    { crate = "petgraph", reason = "external dependency"},
     { crate = "strsim", reason = "external dependency"},
     { crate = "terminal_size", reason = "external dependency"},
     { crate = "toml_edit", reason = "external dependency"},
@@ -268,6 +267,9 @@ skip = [
     { crate = "winnow", reason = "external dependency"},
     { crate = "zerocopy", reason = "external dependency"},
     { crate = "zerocopy-derive", reason = "external dependency"},
+    { crate = "wasm-encoder", reason = "duplicate between wasmer-wasix and wast"},
+    { crate = "derive_more-impl", reason = "external dependency"},
+
     
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
