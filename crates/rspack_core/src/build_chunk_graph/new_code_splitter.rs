@@ -1,15 +1,10 @@
-use std::{
-  borrow::Cow,
-  hash::BuildHasherDefault,
-  iter::once,
-  sync::{atomic::AtomicU32, Arc},
-};
+use std::{borrow::Cow, hash::BuildHasherDefault, iter::once, sync::atomic::AtomicU32};
 
 use indexmap::IndexSet;
 use rayon::prelude::*;
 use rspack_collections::{
-  DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
-  IdentifierMap, IdentifierSet, Ukey, UkeyMap,
+  DatabaseItem, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap,
+  IdentifierSet, Ukey, UkeyMap,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -28,7 +23,7 @@ use crate::{
 
 type ModuleDeps = HashMap<
   RuntimeSpec,
-  IdentifierDashMap<Arc<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>>,
+  IdentifierMap<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)>,
 >;
 
 static NEXT_CACHE_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -194,7 +189,6 @@ impl CreateChunkRoot {
 
   fn create(&self, splitter: &CodeSplitter, compilation: &Compilation) -> Vec<ChunkDesc> {
     let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     match self {
       CreateChunkRoot::Entry(entry, data, runtime) => {
@@ -235,7 +229,7 @@ impl CreateChunkRoot {
           )
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         {
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, &module_graph, &mut ctx);
         }
 
         vec![ChunkDesc::Entry(Box::new(EntryChunkDesc {
@@ -289,7 +283,7 @@ impl CreateChunkRoot {
             continue;
           };
 
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, &module_graph, &mut ctx);
         }
 
         if let Some(group_option) = block.get_group_options()
@@ -383,7 +377,7 @@ impl CodeSplitter {
 
   fn invalidate_outgoing_cache(&mut self, module: ModuleIdentifier) {
     // refresh module traversal result in the last compilation
-    for map in self.module_deps.values() {
+    for map in self.module_deps.values_mut() {
       map.remove(&module);
     }
   }
@@ -428,6 +422,10 @@ impl CodeSplitter {
   fn analyze_module_graph(
     &mut self,
     compilation: &mut Compilation,
+    prepared_outgoings: &IdentifierMap<(
+      IdentifierIndexMap<Vec<ModuleGraphConnection>>,
+      Vec<AsyncDependenciesBlockIdentifier>,
+    )>,
   ) -> Result<Vec<CreateChunkRoot>> {
     // determine runtime and chunkLoading
     let mut entry_runtime: std::collections::HashMap<&str, RuntimeSpec, rustc_hash::FxBuildHasher> =
@@ -500,12 +498,15 @@ impl CodeSplitter {
         continue;
       }
 
-      let guard =
-        self.outgoings_modules(&module, runtime.as_ref(), &module_graph, module_graph_cache);
-      let (modules, blocks) = guard.as_ref();
-      let blocks = blocks.clone();
+      let (modules, blocks) = self.outgoings_modules(
+        &module,
+        runtime.as_ref(),
+        &module_graph,
+        module_graph_cache,
+        prepared_outgoings,
+      );
       for m in modules {
-        stack.push((*m, runtime.clone(), chunk_loading));
+        stack.push((m, runtime.clone(), chunk_loading));
       }
 
       for block_id in blocks {
@@ -742,40 +743,41 @@ impl CodeSplitter {
       .unwrap_or_else(|| panic!("should have module ordinal: {m}"))
   }
 
-  pub fn outgoings_modules(
+  pub fn get_outgoings_modules(
     &self,
+    module: &ModuleIdentifier,
+    runtime: &RuntimeSpec,
+  ) -> Option<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
+    let module_map = self.module_deps.get(runtime).expect("should have value");
+    module_map.get(module).cloned()
+  }
+
+  pub fn outgoings_modules(
+    &mut self,
     module: &ModuleIdentifier,
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> Arc<(Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>)> {
-    let module_map = self.module_deps.get(runtime).expect("should have value");
-
-    let guard = module_map.get(module);
-    if let Some(ref_value) = guard {
-      return ref_value.clone();
+    prepared_outgoings: &IdentifierMap<(
+      IdentifierIndexMap<Vec<ModuleGraphConnection>>,
+      Vec<AsyncDependenciesBlockIdentifier>,
+    )>,
+  ) -> (Vec<ModuleIdentifier>, Vec<AsyncDependenciesBlockIdentifier>) {
+    if let Some(ref_value) = self
+      .module_deps
+      .get_mut(runtime)
+      .expect("should have value")
+      .get(module)
+    {
+      return (ref_value.0.clone(), ref_value.1.clone());
     }
 
-    let mut outgoings = IdentifierIndexMap::<Vec<&ModuleGraphConnection>>::default();
-    let m = module_graph
-      .module_by_identifier(module)
-      .expect("should have module");
-
-    m.get_dependencies()
-      .iter()
-      .filter(|dep_id| {
-        module_graph
-          .dependency_by_id(dep_id)
-          .expect("should have dep")
-          .as_module_dependency()
-          .is_none_or(|module_dep| !module_dep.weak())
-      })
-      .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
-      .map(|conn| (conn.module_identifier(), conn))
-      .for_each(|(module, conn)| outgoings.entry(*module).or_default().push(conn));
+    let (outgoings, blocks) = prepared_outgoings
+      .get(module)
+      .expect("should have outgoings");
 
     let mut modules = IdentifierIndexSet::default();
-    let mut blocks = m.get_blocks().to_vec();
+    let mut blocks = blocks.clone();
 
     'outer: for (m, conns) in outgoings.iter() {
       for conn in conns {
@@ -786,10 +788,15 @@ impl CodeSplitter {
             continue 'outer;
           }
           crate::ConnectionState::TransitiveOnly => {
-            let transitive = self.outgoings_modules(m, runtime, module_graph, module_graph_cache);
-            let (extra_modules, extra_blocks) = transitive.as_ref();
-            modules.extend(extra_modules.iter().copied());
-            blocks.extend(extra_blocks.iter().copied());
+            let (extra_modules, extra_blocks) = self.outgoings_modules(
+              m,
+              runtime,
+              module_graph,
+              module_graph_cache,
+              prepared_outgoings,
+            );
+            modules.extend(extra_modules);
+            blocks.extend(extra_blocks);
           }
           crate::ConnectionState::Active(false) => {}
           crate::ConnectionState::CircularConnection => {}
@@ -797,8 +804,13 @@ impl CodeSplitter {
       }
     }
 
-    module_map.insert(*module, Arc::new((modules.into_iter().collect(), blocks)));
-    module_map.get(module).expect("have value").clone()
+    let module_map = self
+      .module_deps
+      .get_mut(runtime)
+      .expect("should have value");
+    let modules = modules.into_iter().collect::<Vec<_>>();
+    module_map.insert(*module, (modules.clone(), blocks.clone()));
+    (modules, blocks)
   }
 
   // insert static dependencies into a set
@@ -807,7 +819,6 @@ impl CodeSplitter {
     target_module: ModuleIdentifier,
     runtime: &RuntimeSpec,
     module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
     ctx: &mut FillCtx,
   ) {
     enum Task {
@@ -843,13 +854,16 @@ impl CodeSplitter {
               value
             });
 
-          let guard =
-            self.outgoings_modules(&target_module, runtime, module_graph, module_graph_cache);
-          let (outgoing_modules, blocks) = guard.as_ref();
-          let mut outgoing_modules = outgoing_modules.clone();
+          let Some((mut outgoing_modules, blocks)) =
+            self.get_outgoings_modules(&target_module, runtime)
+          else {
+            // not exists when error occurs
+            // just skip it and the errors will be reported in stats
+            continue;
+          };
 
           if ctx.chunk_loading {
-            ctx.out_goings.extend(blocks.clone());
+            ctx.out_goings.extend(blocks);
           } else {
             let modules = blocks
               .iter()
@@ -926,8 +940,6 @@ impl CodeSplitter {
     }
 
     let mut visited = HashSet::default();
-    let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     queue.reverse();
 
@@ -971,8 +983,11 @@ impl CodeSplitter {
             if !self.module_deps.contains_key(runtime) {
               self.module_deps.insert(runtime.clone(), Default::default());
             }
-            let guard = self.outgoings_modules(&m, runtime, &module_graph, module_graph_cache);
-            let (modules, blocks) = guard.as_ref();
+            let Some((modules, blocks)) = self.get_outgoings_modules(&m, runtime) else {
+              // not exists when error occurs
+              // just skip it and the errors will be reported in stats
+              continue;
+            };
 
             for m in modules.iter().rev() {
               queue.push(Task::Enter((*m, runtime)));
@@ -981,9 +996,9 @@ impl CodeSplitter {
             for block_id in blocks {
               if let Some(chunk_group) = compilation
                 .chunk_graph
-                .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
+                .get_block_chunk_group(&block_id, &compilation.chunk_group_by_ukey)
               {
-                queue_delay.push(Task::Group(chunk_group.ukey(), *block_id));
+                queue_delay.push(Task::Group(chunk_group.ukey(), block_id));
               }
             }
           }
@@ -1033,10 +1048,47 @@ impl CodeSplitter {
     ukey
   }
 
+  fn prepare_outgoings(
+    &self,
+    compilation: &Compilation,
+  ) -> IdentifierMap<(
+    IdentifierIndexMap<Vec<ModuleGraphConnection>>,
+    Vec<AsyncDependenciesBlockIdentifier>,
+  )> {
+    let module_graph = compilation.get_module_graph();
+    let modules = module_graph.modules().keys().copied().collect::<Vec<_>>();
+    modules
+      .into_par_iter()
+      .map(|mid| {
+        let mut outgoings = IdentifierIndexMap::<Vec<ModuleGraphConnection>>::default();
+        let m = module_graph
+          .module_by_identifier(&mid)
+          .expect("should have module");
+        let blocks = m.get_blocks().to_vec();
+        m.get_dependencies()
+          .iter()
+          .filter(|dep_id| {
+            module_graph
+              .dependency_by_id(dep_id)
+              .expect("should have dep")
+              .as_module_dependency()
+              .is_none_or(|module_dep| !module_dep.weak())
+          })
+          .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
+          .map(|conn| (conn.module_identifier(), conn))
+          .for_each(|(module, conn)| outgoings.entry(*module).or_default().push(conn.clone()));
+
+        (mid, (outgoings, blocks))
+      })
+      .collect::<IdentifierMap<_>>()
+  }
+
   fn create_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     let mut errors = vec![];
 
-    let mut roots = self.analyze_module_graph(compilation)?;
+    let outgoings = self.prepare_outgoings(compilation);
+
+    let mut roots = self.analyze_module_graph(compilation, &outgoings)?;
 
     let enable_incremental: bool = compilation
       .incremental
@@ -1102,6 +1154,22 @@ impl CodeSplitter {
     let mut async_entrypoints = HashSet::default();
     let mut entrypoints = HashMap::default();
     let mut skipped = HashSet::<usize>::default();
+    let outgoings = {
+      let mg = compilation.get_module_graph();
+      let all_modules = mg.modules();
+      all_modules
+        .keys()
+        .par_bridge()
+        .map(|mid| {
+          (
+            *mid,
+            mg.get_outgoing_connections(mid)
+              .cloned()
+              .collect::<Vec<_>>(),
+          )
+        })
+        .collect::<IdentifierMap<_>>()
+    };
 
     for (idx, (reuse, cache)) in finalize_result.chunks.into_iter().enumerate() {
       let chunk_desc = cache.chunk_desc;
@@ -1283,11 +1351,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
             if initial {
               let mut assign_depths_map = IdentifierMap::default();
-              assign_depths(
-                &mut assign_depths_map,
-                &compilation.get_module_graph(),
-                entry_modules.iter(),
-              );
+              assign_depths(&mut assign_depths_map, &entry_modules, &outgoings);
               let mut module_graph = compilation.get_module_graph_mut();
               for (m, depth) in assign_depths_map {
                 module_graph.set_depth_if_lower(&m, depth);

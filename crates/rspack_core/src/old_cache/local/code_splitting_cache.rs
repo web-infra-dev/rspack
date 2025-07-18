@@ -253,7 +253,7 @@ impl CodeSplittingCache {
       for module_map in self.new_code_splitter.module_deps.values() {
         if let Some(outgoings) = module_map.get(&module) {
           newly_added_module = false;
-          let (outgoings, _blocks) = outgoings.as_ref();
+          let (outgoings, _blocks) = outgoings;
           for out in outgoings {
             previous_outgoings.insert(*out);
           }
