@@ -61,8 +61,12 @@ pub async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilatio
     String::new()
   } else {
     format!(
-      "chunkMatcher:function(chunkId){{return {};}},",
-      has_js_matcher.render("chunkId")
+      r#"
+chunkMatcher: function(chunkId) {{
+    return {has_js_matcher};
+}},
+"#,
+      has_js_matcher = &has_js_matcher.render("chunkId")
     )
   };
 
@@ -84,9 +88,18 @@ pub async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilatio
     )
   };
 
-  let root_output_dir_str = format!("rootOutputDir:\"{root_output_dir}\",");
+  let root_output_dir_str = format!(
+    r#"rootOutputDir: "{root_output_dir}",
+"#
+  );
 
   format!(
-    "if(!{federation_global}){{{federation_global}={{{chunk_matcher}{root_output_dir_str}}};}}",
+    r#"
+if(!{federation_global}){{
+    {federation_global} = {{
+        {chunk_matcher}{root_output_dir_str}
+    }};
+}}
+"#
   )
 }

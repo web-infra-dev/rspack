@@ -90,7 +90,19 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     // Generate prevStartup wrapper pattern with defensive checks
     let startup = RuntimeGlobals::STARTUP.name();
     let result = format!(
-      "var prevStartup={startup},hasRun=false;{startup}=function(){{if(!hasRun){{hasRun=true;{module_executions}}}if(typeof prevStartup==='function')return prevStartup();console.warn('[MF] Invalid prevStartup');}};",
+      r#"var prevStartup = {startup};
+var hasRun = false;
+{startup} = function() {{
+	if (!hasRun) {{
+		hasRun = true;
+{module_executions}
+	}}
+	if (typeof prevStartup === 'function') {{
+		return prevStartup();
+	}} else {{
+		console.warn('[MF] Invalid prevStartup');
+	}}
+}};"#
     );
 
     Ok(result)
