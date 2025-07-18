@@ -13,6 +13,7 @@ const { values, positionals } = require("util").parseArgs({
 
 const { spawn } = require("child_process");
 
+const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
 
 const watch = process.argv.includes("--watch");
@@ -33,7 +34,7 @@ async function build() {
 			"build",
 			"--platform",
 			"--dts",
-			"binding.d.ts",
+			NAPI_BINDING_DTS,
 			"--no-js",
 			// "--no-const-enum",
 			"--no-dts-header",
@@ -111,7 +112,7 @@ async function build() {
 			if (code === CARGO_SAFELY_EXIT_CODE) {
 
 				// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
-				const dts = path.resolve(__dirname, "../binding.d.ts");
+				const dts = path.resolve(__dirname, "..", NAPI_BINDING_DTS);
 				writeFileSync(dts,
 					readFileSync(dts, "utf8")
 						.replaceAll("const enum", "enum")
