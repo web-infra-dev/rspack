@@ -1,3 +1,5 @@
+
+
 if (typeof EventSource !== "function") {
 	throw new Error(
 		"Environment doesn't support lazy compilation (requires EventSource)"

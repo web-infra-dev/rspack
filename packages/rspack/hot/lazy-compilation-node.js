@@ -1,3 +1,5 @@
+
+
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
 
 /**

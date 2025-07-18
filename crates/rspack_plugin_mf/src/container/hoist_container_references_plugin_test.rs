@@ -17,16 +17,4 @@ mod tests {
     let plugin = HoistContainerReferencesPlugin::default();
     assert_eq!(plugin.name(), "HoistContainerReferencesPlugin");
   }
-
-  // TODO: Add comprehensive tests when rspack test framework is properly integrated:
-  // - test_basic_container_hoisting
-  // - test_runtime_chunk_detection
-  // - test_remote_dependency_handling
-  // - test_cleanup_empty_chunks
-  // - test_recursive_module_collection
-  // - test_federation_runtime_dependencies
-  // - test_single_runtime_chunk_configuration
-  // - test_multiple_entrypoints_runtime_handling
-  // - test_async_dependency_exclusion
-  // - test_hook_registration
 }
