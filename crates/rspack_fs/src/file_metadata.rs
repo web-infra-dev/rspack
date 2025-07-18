@@ -16,6 +16,7 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
+  #[allow(unused_variables)]
   fn get_ctime_ms(metadata: &Metadata) -> u64 {
     #[cfg(unix)]
     {
@@ -24,10 +25,7 @@ impl FileMetadata {
       let ctime_ms = ctime * 1000 + ctime_nsec / 1_000_000;
       return ctime_ms as u64;
     }
-    #[cfg(windows)]
-    {
-      return std::os::windows::fs::MetadataExt::change_time(metadata).unwrap_or_default();
-    }
+    // windows not support ctime
     #[allow(unreachable_code)]
     0u64
   }
