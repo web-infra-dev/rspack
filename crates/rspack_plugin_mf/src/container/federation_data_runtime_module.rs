@@ -101,9 +101,6 @@ if(!{federation_global}){{
         {chunk_matcher}{root_output_dir_str}
     }};
 }}
-"#,
-    federation_global = federation_global,
-    chunk_matcher = chunk_matcher,
-    root_output_dir_str = root_output_dir_str
+"#
   )
 }
