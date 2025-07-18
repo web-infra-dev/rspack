@@ -1,5 +1,5 @@
 import util from "node:util";
-import { Chunk } from "@rspack/binding";
+import { Chunk, type ChunkGroup } from "@rspack/binding";
 
 Object.defineProperty(Chunk.prototype, "files", {
 	enumerable: true,

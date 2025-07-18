@@ -1333,32 +1333,11 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
-dependencies = [
- "derive_more-impl 1.0.0",
-]
-
-[[package]]
-name = "derive_more"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
 dependencies = [
- "derive_more-impl 2.0.1",
-]
-
-[[package]]
-name = "derive_more-impl"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.95",
- "unicode-xid",
+ "derive_more-impl",
 ]
 
 [[package]]
@@ -3957,7 +3936,7 @@ dependencies = [
  "browserslist-rs",
  "color-backtrace",
  "cow-utils",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "glob",
  "heck 0.5.0",
@@ -4159,7 +4138,7 @@ dependencies = [
  "bitflags 2.9.1",
  "cow-utils",
  "dashmap 6.1.0",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "dyn-clone",
  "either",
  "futures",
@@ -4229,7 +4208,7 @@ version = "0.4.8"
 dependencies = [
  "anyhow",
  "cow-utils",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "miette",
  "once_cell",
@@ -4339,7 +4318,7 @@ name = "rspack_loader_lightningcss"
 version = "0.4.8"
 dependencies = [
  "async-trait",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "lightningcss",
  "parcel_sourcemap",
  "rspack_browserslist",
@@ -4386,7 +4365,7 @@ version = "0.4.8"
 dependencies = [
  "anymap3",
  "async-trait",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "once_cell",
  "regex",
  "rspack_cacheable",
@@ -4552,7 +4531,7 @@ name = "rspack_plugin_circular_dependencies"
 version = "0.4.8"
 dependencies = [
  "cow-utils",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "itertools 0.14.0",
  "rspack_collections",
@@ -4582,7 +4561,7 @@ name = "rspack_plugin_copy"
 version = "0.4.8"
 dependencies = [
  "dashmap 6.1.0",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "glob",
  "pathdiff",
@@ -4646,7 +4625,7 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "dashmap 6.1.0",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "itertools 0.14.0",
  "rayon",
@@ -4691,7 +4670,7 @@ name = "rspack_plugin_dynamic_entry"
 version = "0.4.8"
 dependencies = [
  "async-trait",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -4814,7 +4793,7 @@ dependencies = [
 name = "rspack_plugin_ignore"
 version = "0.4.8"
 dependencies = [
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -5036,7 +5015,7 @@ name = "rspack_plugin_real_content_hash"
 version = "0.4.8"
 dependencies = [
  "aho-corasick",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "indexmap 2.7.1",
  "once_cell",
  "rayon",
@@ -5129,7 +5108,7 @@ version = "0.4.8"
 dependencies = [
  "async-trait",
  "cow-utils",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "indexmap 2.7.1",
  "itertools 0.14.0",
@@ -5187,7 +5166,7 @@ dependencies = [
 name = "rspack_plugin_size_limits"
 version = "0.4.8"
 dependencies = [
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -5202,7 +5181,7 @@ name = "rspack_plugin_split_chunks"
 version = "0.4.8"
 dependencies = [
  "dashmap 6.1.0",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "rayon",
  "regex",
@@ -5224,7 +5203,7 @@ version = "0.4.8"
 dependencies = [
  "async-trait",
  "cow-utils",
- "derive_more 1.0.0",
+ "derive_more 2.0.1",
  "futures",
  "indexmap 2.7.1",
  "pathdiff",
@@ -5743,9 +5722,9 @@ dependencies = [
 
 [[package]]
 name = "sftrace-setup"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e3fd16d5db34706ab7200fb106bb1006f1801d1af9efabd65fb78ad8b9c8b0e"
+checksum = "98fb782409291a83a40a6d272876e7bbbfe226e095df441d6102ec0bd37d4922"
 
 [[package]]
 name = "sha1"

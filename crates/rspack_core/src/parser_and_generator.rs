@@ -1,6 +1,6 @@
 use std::{any::Any, borrow::Cow, ops::Deref};
 
-use derive_more::Debug;
+use derive_more::with_trait::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsMap, AsPreset, AsVec},
