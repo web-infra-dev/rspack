@@ -11,7 +11,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{AdditionalData, Mode, RunnerContext};
+use rspack_core::{Mode, RunnerContext, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY};
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -113,18 +113,6 @@ impl SwcLoader {
         else {
           return;
         };
-        if loader_context.loader_index != 0 {
-          loader_context.emit_diagnostic(
-            miette::miette! {
-              severity = miette::Severity::Warning,
-              "To ensure the accuracy of the collected TypeScript information, `rspackExperiments.collectTypeScriptInfo` can only be used when `builtin:swc-loader` is employed as the last normal loader. For now `rspackExperiments.collectTypeScriptInfo` is overridden to disabled. If you want to suppress this warning, either turn off `rspackExperiments.collectTypeScriptInfo` in the configuration or place `builtin:swc-loader` as the first element in the `use` array.\nLoaders: {}\nLoader index: {}\nResource: {}",
-              loader_context.request().to_string(),
-              loader_context.loader_index,
-              loader_context.resource(),
-            }.into(),
-          );
-          return;
-        }
         collected_ts_info = Some(collect_typescript_info(program, options));
       },
       |_| transformer::transform(&self.options_with_additional.rspack_experiments),
@@ -136,14 +124,14 @@ impl SwcLoader {
       );
     }
 
-    let mut finish = (code, map, None);
     if let Some(collected_ts_info) = collected_ts_info {
-      let mut additional_data = AdditionalData::new();
-      additional_data.insert(collected_ts_info);
-      finish.2 = Some(additional_data);
+      loader_context.parse_meta.insert(
+        COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY.to_string(),
+        Box::new(collected_ts_info),
+      );
     }
 
-    loader_context.finish_with(finish);
+    loader_context.finish_with((code, map));
 
     Ok(())
   }

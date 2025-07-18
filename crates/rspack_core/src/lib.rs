@@ -102,7 +102,7 @@ pub mod reserved_names;
 
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
-  get_scheme, parse_resource, AdditionalData, ResourceData, ResourceParsedData, Scheme,
+  get_scheme, parse_resource, AdditionalData, ParseMeta, ResourceData, ResourceParsedData, Scheme,
   BUILTIN_LOADER_PREFIX,
 };
 pub use rspack_macros::{impl_runtime_module, impl_source_map_config};

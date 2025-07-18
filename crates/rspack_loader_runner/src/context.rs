@@ -4,10 +4,11 @@ use derive_more::Debug;
 use rspack_error::Diagnostic;
 use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
-use rustc_hash::{FxHashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  loader::LoaderItemList, AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ResourceData,
+  loader::LoaderItemList, AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta,
+  ResourceData,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -38,7 +39,7 @@ pub struct LoaderContext<Context> {
   pub resource_data: Arc<ResourceData>,
   #[debug(skip)]
   pub context: Context,
-  pub parse_meta: FxHashMap<String, String>,
+  pub parse_meta: ParseMeta,
 
   pub(crate) content: Option<Content>,
   pub(crate) source_map: Option<SourceMap>,

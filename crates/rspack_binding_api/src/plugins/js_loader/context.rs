@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ptr::NonNull, sync::Arc};
+use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -6,6 +6,7 @@ use rspack_core::{LoaderContext, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleObject, RspackError};
 
@@ -140,7 +141,9 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         Some(c) => Either::B(c.to_owned().into_bytes().into()),
         None => Either::A(Null),
       },
-      parse_meta: cx.parse_meta.clone().into_iter().collect(),
+      // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
+      // set values from js side to rust side.
+      parse_meta: Default::default(),
       additional_data: cx
         .additional_data()
         .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
