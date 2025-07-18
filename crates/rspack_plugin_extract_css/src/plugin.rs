@@ -520,9 +520,9 @@ async fn runtime_requirement_in_tree(
     return Ok(None);
   }
 
-  if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-  {
+  let has_hot_update = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+  if has_hot_update || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
     if self.options.chunk_filename.has_hash_placeholder() {
       runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
@@ -539,7 +539,7 @@ async fn runtime_requirement_in_tree(
         "mini-css",
         SOURCE_TYPE[0],
         "__webpack_require__.miniCssF".into(),
-        |_| false,
+        move |_| has_hot_update,
         move |chunk, compilation| {
           chunk
             .content_hash(&compilation.chunk_hashes_artifact)?
