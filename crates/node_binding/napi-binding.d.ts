@@ -2220,6 +2220,10 @@ export interface RawModuleArg {
   path: string
 }
 
+export interface RawModuleFederationRuntimePluginOptions {
+  entryRuntime?: string | undefined
+}
+
 export interface RawModuleFilenameTemplateFnCtx {
   identifier: string
   shortIdentifier: string
