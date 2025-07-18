@@ -674,7 +674,9 @@ const applyOutputDefaults = (
 		"hotUpdateChunkFilename",
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
-	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	F(output, "hotUpdateMainFilename", () => {
+		return `[runtime].[fullhash].hot-update.${output.module ? "mjs" : "json"}`;
+	});
 
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => `webpackHotUpdate${uniqueNameId}`);
