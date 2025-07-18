@@ -80,6 +80,7 @@ async function build() {
 			|| values.profile === "release"
 			|| values.profile === "release-debug"
 			|| values.profile === "profiling"
+			|| values.profile === "ci"
 		) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
@@ -87,6 +88,7 @@ async function build() {
 			if (values.profile === "release"
 				|| values.profile === "release-debug"
 				|| values.profile === "profiling"
+				|| values.profile === "ci"
 			) {
 				// allows to optimize std with current compile arguments
 				// and avoids std code generate unwind table to save size.
