@@ -53,7 +53,7 @@ const creator = new BasicCaseCreator({
 		);
 	},
 	// set concurrent to false to avoid native watcher watch too much time cost
-	// TODO: set concurrent to true when rspack enable native watcher
+	// TODO: set concurrent to true
 	concurrent: false
 });
 
