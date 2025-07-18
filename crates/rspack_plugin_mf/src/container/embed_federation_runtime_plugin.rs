@@ -4,10 +4,7 @@
 //! to federation-enabled chunks and injecting EmbedFederationRuntimeModule into runtime chunks.
 //! Also handles explicit startup calls for entry chunks that delegate to runtime chunks.
 
-use std::{
-  collections::HashSet,
-  sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
@@ -18,6 +15,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
 use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
+use rustc_hash::FxHashSet;
 
 use super::{
   embed_federation_runtime_module::{
@@ -28,7 +26,7 @@ use super::{
 };
 
 struct FederationRuntimeDependencyCollector {
-  collected_dependency_ids: Arc<Mutex<HashSet<DependencyId>>>,
+  collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 #[async_trait::async_trait]
@@ -46,12 +44,12 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 #[plugin]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimePlugin {
-  collected_dependency_ids: Arc<Mutex<HashSet<DependencyId>>>,
+  collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 impl EmbedFederationRuntimePlugin {
   pub fn new() -> Self {
-    Self::new_inner(Arc::new(Mutex::new(HashSet::new())))
+    Self::new_inner(Arc::new(Mutex::new(FxHashSet::default())))
   }
 }
 

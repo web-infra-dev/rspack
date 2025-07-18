@@ -13,7 +13,7 @@
 //! to collect and manage federation-specific dependencies across the compilation.
 
 use std::{
-  collections::{HashSet, VecDeque},
+  collections::VecDeque,
   sync::{Arc, Mutex},
 };
 
@@ -24,6 +24,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::FxHashSet;
 
 use super::{
   container_entry_dependency::ContainerEntryDependency, fallback_dependency::FallbackDependency,
@@ -35,11 +36,11 @@ use super::{
 #[plugin]
 #[derive(Debug, Default)]
 pub struct HoistContainerReferencesPlugin {
-  federation_deps: Arc<Mutex<HashSet<DependencyId>>>,
+  federation_deps: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 struct ContainerEntryDepCollector {
-  set: Arc<Mutex<HashSet<DependencyId>>>,
+  set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -57,7 +58,7 @@ impl super::federation_modules_plugin::AddContainerEntryDependencyHook
 }
 
 struct FederationRuntimeDepCollector {
-  set: Arc<Mutex<HashSet<DependencyId>>>,
+  set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -75,7 +76,7 @@ impl super::federation_modules_plugin::AddFederationRuntimeDependencyHook
 }
 
 struct RemoteDepCollector {
-  set: Arc<Mutex<HashSet<DependencyId>>>,
+  set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -141,9 +142,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     compilation: &Compilation,
     module: &dyn Module,
     ty: &str,
-  ) -> HashSet<ModuleIdentifier> {
-    let mut collected = HashSet::new();
-    let mut visited = HashSet::new();
+  ) -> FxHashSet<ModuleIdentifier> {
+    let mut collected = FxHashSet::default();
+    let mut visited = FxHashSet::default();
     let mut stack = VecDeque::new();
 
     let module_id = module.identifier();
@@ -181,8 +182,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Helper: get runtime chunks from entrypoints with enhanced detection
-  fn get_runtime_chunks(compilation: &Compilation) -> HashSet<rspack_core::ChunkUkey> {
-    let mut runtime_chunks = HashSet::new();
+  fn get_runtime_chunks(compilation: &Compilation) -> FxHashSet<rspack_core::ChunkUkey> {
+    let mut runtime_chunks = FxHashSet::default();
 
     // Get runtime chunks from entrypoints
     for entrypoint_ukey in compilation.entrypoints.values() {
@@ -203,7 +204,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Helper: clean up chunks by disconnecting unused modules
-  fn clean_up_chunks(compilation: &mut Compilation, modules: &mut HashSet<ModuleIdentifier>) {
+  fn clean_up_chunks(compilation: &mut Compilation, modules: &mut FxHashSet<ModuleIdentifier>) {
     for module_id in modules.iter() {
       let chunks_vec: Vec<_> = compilation
         .chunk_graph
@@ -247,7 +248,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   let _runtime_chunks = get_runtime_chunks(compilation);
-  let mut all_modules_to_hoist = HashSet::new();
+  let mut all_modules_to_hoist = FxHashSet::default();
 
   // Process all federation dependencies (container, runtime, and remote)
   for dep_id in self

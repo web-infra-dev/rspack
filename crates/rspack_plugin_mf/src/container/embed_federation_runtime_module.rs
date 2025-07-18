@@ -50,7 +50,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     let collected_deps = &self.options.collected_dependency_ids;
 
     if collected_deps.is_empty() {
-      return Ok("// No federation runtime dependencies to embed.".to_string());
+      return Ok("// No federation runtime dependencies to embed.".into());
     }
 
     let module_graph = compilation.get_module_graph();
@@ -69,19 +69,26 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     }
 
     if federation_runtime_modules.is_empty() {
-      return Ok("// Federation runtime entry modules not found in this chunk.".to_string());
+      return Ok("// Federation runtime entry modules not found in this chunk.".into());
     }
 
     // Generate module execution code for each federation runtime dependency
     let mut runtime_requirements = RuntimeGlobals::default();
-    let mut module_executions = Vec::new();
+    let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 50);
 
     for dep_id in federation_runtime_modules {
       let module_str = module_raw(compilation, &mut runtime_requirements, &dep_id, "", false);
-      module_executions.push(format!("\t\t{module_str}"));
+      module_executions.push_str("\t\t");
+      module_executions.push_str(&module_str);
+      module_executions.push('\n');
+    }
+    // Remove trailing newline
+    if !module_executions.is_empty() {
+      module_executions.pop();
     }
 
     // Generate prevStartup wrapper pattern with defensive checks
+    let startup = RuntimeGlobals::STARTUP.name();
     let result = format!(
       r#"var prevStartup = {startup};
 var hasRun = false;
@@ -93,11 +100,9 @@ var hasRun = false;
 	if (typeof prevStartup === 'function') {{
 		return prevStartup();
 	}} else {{
-		console.warn('[Module Federation] prevStartup is not a function, skipping startup execution');
+		console.warn('[MF] Invalid prevStartup');
 	}}
-}};"#,
-      startup = RuntimeGlobals::STARTUP.name(),
-      module_executions = module_executions.join("\n")
+}};"#
     );
 
     Ok(result)
