@@ -110,12 +110,7 @@ jobs:
       - name: Test x86_64-unknown-linux-gnu
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        # Native Watcher tests run concurrently and require higher inotify limits on Linux.
-        run: |
-          sudo sysctl fs.inotify.max_user_instances=8192
-          sudo sysctl fs.inotify.max_user_watches=524288
-          sudo sysctl -p
-          pnpm run test:ci
+        run: pnpm run test:ci
 
       ### *-apple-darwin
       - name: Test apple-darwin
