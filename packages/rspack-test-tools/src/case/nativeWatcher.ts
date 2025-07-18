@@ -52,7 +52,9 @@ const creator = new BasicCaseCreator({
 					)
 		);
 	},
-	concurrent: true
+	// set concurrent to 2 to avoid too many files opened
+	// TODO: set concurrent to true when rspack enable native watcher
+	concurrent: 2
 });
 
 export function createNativeWatcher(
