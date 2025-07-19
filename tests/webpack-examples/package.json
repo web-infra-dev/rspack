@@ -2,7 +2,7 @@
   "name": "webpack-examples",
   "private": true,
   "devDependencies": {
-    "core-js": "3.43.0",
+    "core-js": "3.44.0",
     "acorn": "^8.15.0",
     "date-fns": "^4.1.0",
     "react": "^19.1.0",
