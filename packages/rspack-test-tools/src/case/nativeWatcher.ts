@@ -52,8 +52,9 @@ const creator = new BasicCaseCreator({
 					)
 		);
 	},
-	// TODO: Enable concurrent mode for native watcher
-	concurrent: false
+	// set concurrent to 3 to avoid native watcher watch too much time cost
+	// TODO: set concurrent to true
+	concurrent: 3
 });
 
 export function createNativeWatcher(
