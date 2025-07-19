@@ -475,9 +475,9 @@ cacheable modules xx bytes
   ./entry-xxx.js xx bytes [built] [code generated]
   ./dynamic.js xx bytes [built] [code generated]
 
-ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry3\\" is already used by an entrypoint.
-
 ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry2\\" is already used by an entrypoint.
+
+ERROR in × It's not allowed to load an initial chunk on demand. The chunk name \\"entry3\\" is already used by an entrypoint.
 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
@@ -1501,14 +1501,14 @@ asset normal.js xx bytes {615} [emitted] (name: normal)
 asset prefetched2.js xx bytes {424} [emitted] (name: prefetched2)
 asset prefetched3.js xx bytes {182} [emitted] (name: prefetched3)
 Entrypoint main xx KiB = main.js
-  prefetch: prefetched2.js {424} (name: prefetched2), prefetched.js {674} (name: prefetched), prefetched3.js {182} (name: prefetched3)
+  prefetch: prefetched.js {674} (name: prefetched), prefetched3.js {182} (name: prefetched3), prefetched2.js {424} (name: prefetched2)
 chunk {182} (runtime: main) prefetched3.js (prefetched3) xx bytes <{909}> [rendered]
 chunk {424} (runtime: main) prefetched2.js (prefetched2) xx bytes <{909}> [rendered]
 chunk {481} (runtime: main) inner.js (inner) xx bytes <{674}> [rendered]
 chunk {615} (runtime: main) normal.js (normal) xx bytes <{909}> [rendered]
 chunk {674} (runtime: main) prefetched.js (prefetched) xx bytes <{909}> >{481}< >{857}< (prefetch: {857} {481}) [rendered]
 chunk {857} (runtime: main) inner2.js (inner2) xx bytes <{674}> [rendered]
-chunk {909} (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{182}< >{424}< >{615}< >{674}< (prefetch: {424} {674} {182}) [entry] [rendered]"
+chunk {909} (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{182}< >{424}< >{615}< >{674}< (prefetch: {674} {182} {424}) [entry] [rendered]"
 `;
 
 exports[`StatsTestCases should print correct stats for prefetch-preload-mixed 1`] = `
@@ -1534,14 +1534,14 @@ asset normal.js xx bytes [emitted] (name: normal)
 asset preloaded2.js xx bytes [emitted] (name: preloaded2)
 asset preloaded3.js xx bytes [emitted] (name: preloaded3)
 Entrypoint main xx KiB = main.js
-  preload: preloaded2.js {577} (name: preloaded2), preloaded.js {154} (name: preloaded), preloaded3.js {551} (name: preloaded3)
+  preload: preloaded.js {154} (name: preloaded), preloaded3.js {551} (name: preloaded3), preloaded2.js {577} (name: preloaded2)
 chunk (runtime: main) preloaded.js (preloaded) xx bytes (preload: {857} {481}) [rendered]
 chunk (runtime: main) inner.js (inner) xx bytes [rendered]
 chunk (runtime: main) preloaded3.js (preloaded3) xx bytes [rendered]
 chunk (runtime: main) preloaded2.js (preloaded2) xx bytes [rendered]
 chunk (runtime: main) normal.js (normal) xx bytes [rendered]
 chunk (runtime: main) inner2.js (inner2) xx bytes [rendered]
-chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) (preload: {577} {154} {551}) [entry] [rendered]"
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) (preload: {154} {551} {577}) [entry] [rendered]"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-errors-only 1`] = `""`;

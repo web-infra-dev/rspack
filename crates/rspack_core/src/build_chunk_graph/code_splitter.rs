@@ -9,7 +9,7 @@ use itertools::Itertools;
 use num_bigint::BigUint;
 use rspack_collections::{
   impl_item_ukey, Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap,
-  Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
+  IdentifierSet, Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
 };
 use rspack_error::{error, Diagnostic, Error, Result};
 use rspack_util::itoa;
@@ -431,7 +431,7 @@ impl CodeSplitter {
 
     let chunk_group_info = {
       self.stat_chunk_group_created += 1;
-      let mut cgi = ChunkGroupInfo::new(
+      ChunkGroupInfo::new(
         entrypoint.ukey,
         runtime,
         !matches!(
@@ -444,9 +444,7 @@ impl CodeSplitter {
         options
           .async_chunks
           .unwrap_or(compilation.options.output.async_chunks),
-      );
-      cgi.min_available_modules_init = true;
-      cgi
+      )
     };
 
     if options.depend_on.is_none() && !matches!(&options.runtime, Some(EntryRuntime::String(_))) {
@@ -728,6 +726,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         chunk_group_info.skipped_items = IdentifierIndexSet::from_iter(modules);
         self.chunk_groups_for_combining.insert(*cgi);
       } else {
+        let chunk_group_info = self.chunk_group_infos.expect_get_mut(cgi);
+        chunk_group_info.min_available_modules_init = true;
         // The application may start here: We start with an empty list of available modules
         let chunk = chunk_group.get_entrypoint_chunk();
         for module in modules {
@@ -750,19 +750,25 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect_get(&chunk_group_info.chunk_group);
       chunk_group_info.available_sources.clear();
       for parent in chunk_group.parents_iterable() {
-        if let Some(parent_chunk_group_info_ukey) = self.chunk_group_info_map.get(parent) {
-          chunk_group_info
-            .available_sources
-            .insert(*parent_chunk_group_info_ukey);
-        }
+        let parent_chunk_group_info_ukey = self
+          .chunk_group_info_map
+          .get(parent)
+          .expect("should have parent");
+        chunk_group_info
+          .available_sources
+          .insert(*parent_chunk_group_info_ukey);
       }
+
       for parent in chunk_group.parents_iterable() {
-        if let Some(parent_chunk_group_info_ukey) = self.chunk_group_info_map.get(parent) {
-          let parent_chunk_group_info = self
-            .chunk_group_infos
-            .expect_get_mut(parent_chunk_group_info_ukey);
-          parent_chunk_group_info.available_children.insert(*cgi);
-        }
+        let parent_chunk_group_info_ukey = self
+          .chunk_group_info_map
+          .get(parent)
+          .expect("should have chunk group info");
+
+        let parent_chunk_group_info = self
+          .chunk_group_infos
+          .expect_get_mut(parent_chunk_group_info_ukey);
+        parent_chunk_group_info.available_children.insert(*cgi);
       }
     }
 
@@ -1833,6 +1839,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
+  fn _debug_available_modules(&self, available_modules: &BigUint) -> IdentifierSet {
+    let mut set: IdentifierSet = Default::default();
+
+    for (module, ordinal) in &self.ordinal_by_module {
+      if available_modules.bit(*ordinal) {
+        set.insert(*module);
+      }
+    }
+
+    set
+  }
+
   fn process_chunk_groups_for_combining(&mut self, compilation: &mut Compilation) {
     self.chunk_groups_for_combining.retain(|info_ukey| {
       let info = self.chunk_group_infos.expect_get(info_ukey);
@@ -1842,7 +1860,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
     });
 
-    let mut min_available_modules_mappings = IndexMap::<CgiUkey, BigUint>::default();
     for info_ukey in &self.chunk_groups_for_combining {
       let info_ukey = *info_ukey;
       let info = self.chunk_group_infos.expect_get(&info_ukey);
@@ -1857,13 +1874,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       let info = self.chunk_group_infos.expect_get_mut(&info_ukey);
-      min_available_modules_mappings.insert(info_ukey, available_modules);
-      info.invalidate_resulting_available_modules();
       self.outdated_chunk_group_info.insert(info_ukey);
-    }
-    for (info_ukey, min_available_modules) in min_available_modules_mappings {
-      let info = self.chunk_group_infos.expect_get_mut(&info_ukey);
-      info.min_available_modules = min_available_modules.clone();
+      info.invalidate_resulting_available_modules();
+      info.min_available_modules = available_modules;
+      info.min_available_modules_init = true;
     }
 
     self.chunk_groups_for_combining.clear();

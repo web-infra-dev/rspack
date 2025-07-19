@@ -1,7 +1,6 @@
 Array [
   Object {},
   Object {
-    chunkEntry: true,
     chunkInitial: true,
     chunkName: b1,
   },
