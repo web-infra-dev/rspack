@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import { getRawResolve, type Resolve } from "./config";
 import { Resolver } from "./Resolver";
 

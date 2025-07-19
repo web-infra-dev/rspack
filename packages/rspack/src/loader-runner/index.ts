@@ -739,10 +739,11 @@ export async function runLoaders(
 		set: data =>
 			(loaderContext.loaders[loaderContext.loaderIndex].loaderItem.data = data)
 	});
-	Object.defineProperty(loaderContext, "__internal__parseMeta", {
-		enumerable: true,
-		get: () => context.__internal__parseMeta
-	});
+
+	/// Rspack private
+	loaderContext.__internal__setParseMeta = (key: string, value: string) => {
+		context.__internal__parseMeta[key] = value;
+	};
 
 	const getWorkerLoaderContext = () => {
 		const normalModule =

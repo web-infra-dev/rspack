@@ -8,7 +8,9 @@ pub use container::{
   container_reference_plugin::{
     ContainerReferencePlugin, ContainerReferencePluginOptions, RemoteOptions,
   },
-  module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
+  module_federation_runtime_plugin::{
+    ModuleFederationRuntimePlugin, ModuleFederationRuntimePluginOptions,
+  },
 };
 pub use sharing::{
   consume_shared_module::ConsumeSharedModule,

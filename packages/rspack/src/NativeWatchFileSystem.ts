@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import type Watchpack from "watchpack";
 import type { FileSystemInfoEntry, Watcher, WatchFileSystem } from "./util/fs";
 

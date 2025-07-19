@@ -25,10 +25,14 @@ pub struct PluginCssExtractParserPlugin {
 
 impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    let deps = if let Some(data_str) = parser.parse_meta.get(PLUGIN_NAME) {
-      if let Some(deps) = self.cache.get(data_str) {
+    let deps = if let Some(data_str) = parser.parse_meta.remove(PLUGIN_NAME)
+      && let Ok(data_str) = (data_str as Box<dyn std::any::Any>)
+        .downcast::<String>()
+        .map(|i| *i)
+    {
+      if let Some(deps) = self.cache.get(&data_str) {
         deps.clone()
-      } else if let Ok(data) = serde_json::from_str::<Vec<CssExtractJsonData>>(data_str) {
+      } else if let Ok(data) = serde_json::from_str::<Vec<CssExtractJsonData>>(&data_str) {
         let deps = data
           .iter()
           .enumerate()
@@ -65,7 +69,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
             },
           )
           .collect::<Vec<_>>();
-        self.cache.insert(data_str.clone(), deps.clone());
+        self.cache.insert(data_str, deps.clone());
         parser.build_info.strict = true;
         deps
       } else {

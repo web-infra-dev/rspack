@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
 use napi::bindgen_prelude::{Buffer, Either, FnArgs, Promise};
@@ -10,6 +10,7 @@ use rspack_plugin_schemes::{
 };
 use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
+use rustc_hash::FxHashMap as HashMap;
 
 type HttpClientRequest =
   ThreadsafeFunction<FnArgs<(String, HashMap<String, String>)>, Promise<JsHttpResponseRaw>>;

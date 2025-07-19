@@ -9,7 +9,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, CollectedTypeScriptInfo,
   Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module,
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem,
-  SourceType, TemplateContext, TemplateReplaceSource,
+  SourceType, TemplateContext, TemplateReplaceSource, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
 };
 use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -144,16 +144,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
-      mut additional_data,
-      parse_meta,
+      additional_data,
+      mut parse_meta,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
 
-    if let Some(additional_data) = &mut additional_data
-      && let Some(collected_ts_info) = additional_data.remove::<CollectedTypeScriptInfo>()
+    if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
+      && let Ok(collected_ts_info) =
+        (collected_ts_info as Box<dyn std::any::Any>).downcast::<CollectedTypeScriptInfo>()
     {
-      build_info.collected_typescript_info = Some(collected_ts_info);
+      build_info.collected_typescript_info = Some(*collected_ts_info);
     }
 
     let default_with_diagnostics =

@@ -3,5 +3,5 @@
     "strict": true,
     "noEmit": true
   },
-  "include": ["binding.d.ts"]
+  "include": ["napi-binding.d.ts", "binding.d.ts"]
 }
