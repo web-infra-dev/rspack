@@ -7,6 +7,7 @@ use std::{
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
+use rayon::prelude::*;
 use rspack_collections::{
   impl_item_ukey, Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap,
   Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
@@ -674,15 +675,27 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       UkeyIndexMap::default();
     let mut assign_depths_map = IdentifierMap::default();
+    let outgoings = {
+      let mg = compilation.get_module_graph();
+      let all_modules = mg.modules();
+      all_modules
+        .keys()
+        .par_bridge()
+        .map(|mid| {
+          (
+            *mid,
+            mg.get_outgoing_connections(mid)
+              .cloned()
+              .collect::<Vec<_>>(),
+          )
+        })
+        .collect::<IdentifierMap<_>>()
+    };
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
     for name in &entries {
       let (entry_point, modules) = self.prepare_entry_input(name, compilation)?;
-      assign_depths(
-        &mut assign_depths_map,
-        &compilation.get_module_graph(),
-        modules.iter(),
-      );
+      assign_depths(&mut assign_depths_map, &modules, &outgoings);
       input_entrypoints_and_modules.insert(entry_point, modules);
     }
 
