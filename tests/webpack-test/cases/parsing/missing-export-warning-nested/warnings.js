@@ -9,10 +9,10 @@ module.exports = [
 		/export 'x'.'y'.'C' \(imported as 'm'\) was not found in '.\/a' \(possible exports: Z, c, z\)/
 	],
 	[
-		/export 'x'.'y'.'z'.'D' \(imported as 'm'\) was not found in '.\/a' \(possible exports: default, d\)/
+		/export 'x'.'y'.'z'.'D' \(imported as 'm'\) was not found in '.\/a' \(possible exports: d, default\)/
 	],
 	[
-		/export 'x'.'y'.'z'.'v' \(imported as 'm'\) was not found in '.\/a' \(possible exports: default, d\)/
+		/export 'x'.'y'.'z'.'v' \(imported as 'm'\) was not found in '.\/a' \(possible exports: d, default\)/
 	],
 	[
 		/export 'p' \(imported as 'm'\) was not found in '.\/a' \(possible exports: a, x\)/

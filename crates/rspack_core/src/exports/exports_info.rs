@@ -41,9 +41,6 @@ impl ExportsInfo {
       .side_effects_only_info_mut()
       .reset_provide_info();
     exports_info.other_exports_info_mut().reset_provide_info();
-    if let Some(redirect_to) = exports_info.redirect_to() {
-      redirect_to.reset_provide_info(mg);
-    }
   }
 
   /// # Panic
@@ -59,16 +56,12 @@ impl ExportsInfo {
         export_info.set_can_mangle_provide(Some(true));
       }
     }
-    if let Some(redirect) = exports_info.redirect_to() {
-      redirect.set_has_provide_info(mg);
-    } else {
-      let other_exports_info = exports_info.other_exports_info_mut();
-      if other_exports_info.provided().is_none() {
-        other_exports_info.set_provided(Some(ExportProvided::NotProvided));
-      }
-      if other_exports_info.can_mangle_provide().is_none() {
-        other_exports_info.set_can_mangle_provide(Some(true));
-      }
+    let other_exports_info = exports_info.other_exports_info_mut();
+    if other_exports_info.provided().is_none() {
+      other_exports_info.set_provided(Some(ExportProvided::NotProvided));
+    }
+    if other_exports_info.can_mangle_provide().is_none() {
+      other_exports_info.set_can_mangle_provide(Some(true));
     }
   }
 
@@ -117,34 +110,24 @@ impl ExportsInfo {
       }
     }
 
-    if let Some(redirect_to) = exports_info.redirect_to() {
-      changed |= redirect_to.set_unknown_exports_provided(
-        mg,
-        can_mangle,
-        exclude_exports,
-        target_key,
-        target_module,
-        priority,
-      );
-    } else {
-      let other_exports_info_data = exports_info.other_exports_info_mut();
-      if !matches!(
-        other_exports_info_data.provided(),
-        Some(ExportProvided::Provided | ExportProvided::Unknown)
-      ) {
-        other_exports_info_data.set_provided(Some(ExportProvided::Unknown));
-        changed = true;
-      }
-
-      if let Some(target_key) = target_key {
-        other_exports_info_data.set_target(Some(target_key), target_module, None, priority);
-      }
-
-      if !can_mangle && other_exports_info_data.can_mangle_provide() != Some(false) {
-        other_exports_info_data.set_can_mangle_provide(Some(false));
-        changed = true;
-      }
+    let other_exports_info_data = exports_info.other_exports_info_mut();
+    if !matches!(
+      other_exports_info_data.provided(),
+      Some(ExportProvided::Provided | ExportProvided::Unknown)
+    ) {
+      other_exports_info_data.set_provided(Some(ExportProvided::Unknown));
+      changed = true;
     }
+
+    if let Some(target_key) = target_key {
+      other_exports_info_data.set_target(Some(target_key), target_module, None, priority);
+    }
+
+    if !can_mangle && other_exports_info_data.can_mangle_provide() != Some(false) {
+      other_exports_info_data.set_can_mangle_provide(Some(false));
+      changed = true;
+    }
+
     changed
   }
 
@@ -152,9 +135,6 @@ impl ExportsInfo {
     let exports_info = self.as_data_mut(mg);
     if let Some(export_info) = exports_info.named_exports(name) {
       return export_info.id();
-    }
-    if let Some(redirect) = exports_info.redirect_to() {
-      return redirect.get_export_info(mg, name);
     }
 
     let other_export_info = exports_info.other_exports_info();
@@ -173,14 +153,10 @@ impl ExportsInfo {
     exports_info
       .side_effects_only_info_mut()
       .set_has_use_info(&mut nested_exports_info);
-    if let Some(redirect) = exports_info.redirect_to() {
-      redirect.set_has_use_info(mg);
-    } else {
-      let other_exports_info = exports_info.other_exports_info_mut();
-      other_exports_info.set_has_use_info(&mut nested_exports_info);
-      if other_exports_info.can_mangle_use().is_none() {
-        other_exports_info.set_can_mangle_use(Some(true));
-      }
+    let other_exports_info = exports_info.other_exports_info_mut();
+    other_exports_info.set_has_use_info(&mut nested_exports_info);
+    if other_exports_info.can_mangle_use().is_none() {
+      other_exports_info.set_can_mangle_use(Some(true));
     }
 
     for nested_exports_info in nested_exports_info {
@@ -195,17 +171,12 @@ impl ExportsInfo {
       let flag = export_info.set_used_without_info(runtime);
       changed |= flag;
     }
-    if let Some(redirect_to) = exports_info.redirect_to() {
-      let flag = redirect_to.set_used_without_info(mg, runtime);
-      changed |= flag;
-    } else {
-      let other_exports_info = exports_info.other_exports_info_mut();
-      let flag = other_exports_info.set_used(UsageState::NoInfo, None);
-      changed |= flag;
-      if other_exports_info.can_mangle_use() != Some(false) {
-        other_exports_info.set_can_mangle_use(Some(false));
-        changed = true;
-      }
+    let other_exports_info = exports_info.other_exports_info_mut();
+    let flag = other_exports_info.set_used(UsageState::NoInfo, None);
+    changed |= flag;
+    if other_exports_info.can_mangle_use() != Some(false) {
+      other_exports_info.set_can_mangle_use(Some(false));
+      changed = true;
     }
     changed
   }
@@ -238,23 +209,17 @@ impl ExportsInfo {
         changed = true;
       }
     }
-    if let Some(redirect_to) = exports_info.redirect_to() {
-      if redirect_to.set_used_in_unknown_way(mg, runtime) {
-        changed = true;
-      }
-    } else {
-      let other_exports_info = exports_info.other_exports_info_mut();
-      if other_exports_info.set_used_conditionally(
-        Box::new(|value| value < &UsageState::Unknown),
-        UsageState::Unknown,
-        runtime,
-      ) {
-        changed = true;
-      }
-      if other_exports_info.can_mangle_use() != Some(false) {
-        other_exports_info.set_can_mangle_use(Some(false));
-        changed = true;
-      }
+    let other_exports_info = exports_info.other_exports_info_mut();
+    if other_exports_info.set_used_conditionally(
+      Box::new(|value| value < &UsageState::Unknown),
+      UsageState::Unknown,
+      runtime,
+    ) {
+      changed = true;
+    }
+    if other_exports_info.can_mangle_use() != Some(false) {
+      other_exports_info.set_can_mangle_use(Some(false));
+      changed = true;
     }
     changed
   }
@@ -274,7 +239,6 @@ pub struct ExportsInfoData {
   other_exports_info: ExportInfoData,
 
   side_effects_only_info: ExportInfoData,
-  redirect_to: Option<ExportsInfo>,
   id: ExportsInfo,
 }
 
@@ -285,7 +249,6 @@ impl Default for ExportsInfoData {
       exports: BTreeMap::default(),
       other_exports_info: ExportInfoData::new(id, None, None),
       side_effects_only_info: ExportInfoData::new(id, Some("*side effects only*".into()), None),
-      redirect_to: None,
       id,
     }
   }
@@ -294,10 +257,6 @@ impl Default for ExportsInfoData {
 impl ExportsInfoData {
   pub fn id(&self) -> ExportsInfo {
     self.id
-  }
-
-  pub fn redirect_to(&self) -> Option<ExportsInfo> {
-    self.redirect_to
   }
 
   pub fn other_exports_info(&self) -> &ExportInfoData {
@@ -330,9 +289,5 @@ impl ExportsInfoData {
 
   pub fn exports_mut(&mut self) -> &mut BTreeMap<Atom, ExportInfoData> {
     &mut self.exports
-  }
-
-  pub fn set_redirect_to(&mut self, id: Option<ExportsInfo>) {
-    self.redirect_to = id;
   }
 }
