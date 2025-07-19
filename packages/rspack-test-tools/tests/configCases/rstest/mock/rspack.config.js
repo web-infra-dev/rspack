@@ -176,5 +176,6 @@ module.exports = [
 		optimization: {
 			mangleExports: false
 		}
-	}
+	},
+	rstestEntry("./mockFirstArgIsImport.js")
 ];
