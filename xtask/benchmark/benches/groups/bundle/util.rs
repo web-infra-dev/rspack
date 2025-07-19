@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
   Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-  ModuleRuleUseLoader, Resolve, RuleSetCondition,
+  ModuleRuleUseLoader, Resolve, RuleSetCondition, StatsOptions,
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem};
 use rspack_regex::RspackRegex;
@@ -59,6 +59,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
       extensions: Some(vec!["...".to_string(), ".jsx".to_string()]),
       ..Default::default()
     })
+    .stats(StatsOptions { colors: false })
     .experiments(Experiments::builder().css(true))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(Arc::new(MemoryFileSystem::default()))
