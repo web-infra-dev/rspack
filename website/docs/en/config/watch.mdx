@@ -58,7 +58,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **Type:** `RegExp | string | string[]`
+- **Type:** `RegExp | string | (string | RegExp)[]`
 - **Default:** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage.
@@ -107,6 +107,17 @@ export default {
   //...
   watchOptions: {
     ignored: [path.posix.resolve(__dirname, './ignored-dir')],
+  },
+};
+```
+
+You can also mix strings and regular expressions in an array:
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  watchOptions: {
+    ignored: [/\.git/, '**/node_modules', '**/.cache'],
   },
 };
 ```

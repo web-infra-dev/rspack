@@ -22,12 +22,24 @@ const stringToRegexp = (ignored: string) => {
 
 const ignoredToFunction = (ignored: Watchpack.WatchOptions["ignored"]) => {
 	if (Array.isArray(ignored)) {
-		const stringRegexps = ignored.map(i => stringToRegexp(i)).filter(Boolean);
-		if (stringRegexps.length === 0) {
+		const regexps: RegExp[] = [];
+		for (const item of ignored) {
+			if (typeof item === "string") {
+				const stringRegexp = stringToRegexp(item);
+				if (stringRegexp) {
+					regexps.push(new RegExp(stringRegexp));
+				}
+			} else if (item instanceof RegExp) {
+				regexps.push(item);
+			}
+		}
+		if (regexps.length === 0) {
 			return () => false;
 		}
-		const regexp = new RegExp(stringRegexps.join("|"));
-		return (item: string) => regexp.test(item.replace(/\\/g, "/"));
+		return (path: string) => {
+			const normalizedPath = path.replace(/\\/g, "/");
+			return regexps.some(regexp => regexp.test(normalizedPath));
+		};
 	}
 	if (typeof ignored === "string") {
 		const stringRegexp = stringToRegexp(ignored);

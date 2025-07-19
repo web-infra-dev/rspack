@@ -1440,7 +1440,10 @@ export const getRspackOptionsSchema = memoize(() => {
 		.strictObject({
 			aggregateTimeout: numberOrInfinity,
 			followSymlinks: z.boolean(),
-			ignored: z.string().array().or(z.instanceof(RegExp)).or(z.string()),
+			ignored: z
+				.string()
+				.or(z.instanceof(RegExp))
+				.or(z.string().or(z.instanceof(RegExp)).array()),
 			poll: numberOrInfinity.or(z.boolean()),
 			stdin: z.boolean()
 		})
