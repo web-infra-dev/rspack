@@ -13,6 +13,20 @@ use crate::{
   TemplateContext, UsedName,
 };
 
+/// Check if a module is part of a shared bundle using BuildMeta only
+/// This relies on the Module Federation plugin to populate BuildMeta.is_shared_descendant
+fn is_consume_shared_descendant(module_graph: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
+  if let Some(module) = module_graph.module_by_identifier(module_id) {
+    let build_meta = module.build_meta();
+
+    // Use BuildMeta value (populated by Module Federation plugin)
+    // If not populated, assume false (no PURE annotations)
+    build_meta.is_shared_descendant.unwrap_or(false)
+  } else {
+    false
+  }
+}
+
 pub fn runtime_condition_expression(
   chunk_graph: &ChunkGraph,
   runtime_condition: Option<&RuntimeCondition>,
@@ -400,8 +414,21 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
+  // Apply PURE annotations only to descendants of ConsumeShared or ProvideShared modules
+  // This ensures the SWC macro transformer can remove unused __webpack_require__ calls in shared chunks
+  let is_pure = if let Some(module_identifier) = compilation
+    .get_module_graph()
+    .module_identifier_by_dependency_id(id)
+  {
+    is_consume_shared_descendant(&compilation.get_module_graph(), module_identifier)
+  } else {
+    false
+  };
+
+  let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
+
   let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
+    "/* ESM import */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
     RuntimeGlobals::REQUIRE
   );
 
@@ -899,5 +926,17 @@ mod test_items_to_regexp {
       ),
       "[🍉🍊🍐🍓🫙]".to_string()
     );
+  }
+}
+
+#[cfg(test)]
+mod test_is_consume_shared_descendant {
+  use super::*;
+
+  #[test]
+  fn test_is_consume_shared_descendant_function_signature() {
+    // Test that the function exists and has the correct signature
+    // Verify function signature compiles correctly
+    let _: fn(&ModuleGraph, &ModuleIdentifier) -> bool = is_consume_shared_descendant;
   }
 }
