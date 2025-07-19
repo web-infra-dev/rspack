@@ -65,10 +65,7 @@ async fn compilation(
 
 #[plugin_hook(NormalModuleFactoryFactorize for ContainerReferencePlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
-  let dependency = data.dependencies[0]
-    .as_module_dependency()
-    .expect("should be module dependency");
-  let request = dependency.request();
+  let request = &data.request;
   if !request.contains('!') {
     for (key, config) in &self.options.remotes {
       let key_len = key.len();

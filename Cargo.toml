@@ -36,7 +36,7 @@ cow-utils           = { version = "0.1.3", default-features = false }
 criterion2          = { default-features = false, version = "2.0.0", features = ["async_tokio"] }
 css-module-lexer    = { version = "0.0.15", default-features = false }
 dashmap             = { version = "6.1.0", default-features = false }
-derive_more         = { version = "1.0.0", default-features = false }
+derive_more         = { version = "2.0.1", default-features = false }
 dunce               = { version = "1.0.5", default-features = false }
 dyn-clone           = { version = "1.0.17", default-features = false }
 either              = { version = "1.13.0", default-features = false }
@@ -122,15 +122,15 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.9.0", default-features = false }
-swc                 = { version = "=30.0.0", default-features = false }
-swc_config          = { version = "=3.1.1", default-features = false }
-swc_core            = { version = "=31.1.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_lexer      = { version = "=19.0.1", default-features = false }
-swc_ecma_minifier   = { version = "=25.0.0", default-features = false }
-swc_error_reporters = { version = "=15.0.1", default-features = false }
-swc_html            = { version = "=24.0.1", default-features = false }
-swc_html_minifier   = { version = "=25.0.0", default-features = false }
-swc_node_comments   = { version = "=13.0.0", default-features = false }
+swc                 = { version = "32.0.0", default-features = false }
+swc_config          = { version = "3.1.1", default-features = false }
+swc_core            = { version = "33.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_lexer      = { version = "21.0.0", default-features = false }
+swc_ecma_minifier   = { version = "27.0.0", default-features = false }
+swc_error_reporters = { version = "16.0.1", default-features = false }
+swc_html            = { version = "25.0.0", default-features = false }
+swc_html_minifier   = { version = "27.0.0", default-features = false }
+swc_node_comments   = { version = "14.0.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 
@@ -402,12 +402,10 @@ split-debuginfo = "off"
 strip           = false
 
 [profile.release-wasi]
-codegen-units = 16
-debug         = 'full'
-inherits      = "release"
-lto           = "thin"
-opt-level     = "s"
-strip         = "none"
+debug     = 'full'
+inherits  = "release"
+opt-level = "s"
+strip     = "none"
 
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1

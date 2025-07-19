@@ -11,7 +11,7 @@ import { AssetInfo } from '@rspack/binding';
 import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
-import * as binding from '@rspack/binding';
+import binding from '@rspack/binding';
 import { Buffer as Buffer_2 } from 'buffer';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
@@ -4237,7 +4237,7 @@ export type Loader = Record<string, any>;
 // @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
     // @internal
-    __internal__parseMeta: Record<string, string>;
+    __internal__setParseMeta: (key: string, value: string) => void;
     // (undocumented)
     addBuildDependency(file: string): void;
     addContextDependency(context: string): void;

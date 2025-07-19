@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
@@ -8,6 +6,7 @@ use rspack_core::{
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashMap as HashMap;
 
 pub type AliasValue = serde_json::Value;
 

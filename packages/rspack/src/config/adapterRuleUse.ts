@@ -383,7 +383,7 @@ export interface LoaderContext<OptionsType = {}> {
 	 *
 	 * @internal
 	 */
-	__internal__parseMeta: Record<string, string>;
+	__internal__setParseMeta: (key: string, value: string) => void;
 }
 
 export type LoaderDefinitionFunction<

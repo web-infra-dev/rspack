@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use napi::bindgen_prelude::{Either3, Promise};
 use napi_derive::napi;
@@ -10,6 +10,7 @@ use rspack_plugin_html::{
   },
   sri::HtmlSriHashFunction,
 };
+use rustc_hash::FxHashMap as HashMap;
 
 pub type RawHtmlScriptLoading = String;
 pub type RawHtmlInject = String;

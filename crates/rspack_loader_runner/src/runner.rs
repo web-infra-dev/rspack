@@ -3,7 +3,7 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashSet as HashSet;
 use tokio::task::spawn_blocking;
 use tracing::{info_span, Instrument};
 
@@ -12,6 +12,7 @@ use crate::{
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
+  ParseMeta,
 };
 
 impl<Context> LoaderContext<Context> {
@@ -215,7 +216,7 @@ pub struct LoaderResult {
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<AdditionalData>,
-  pub parse_meta: HashMap<String, String>,
+  pub parse_meta: ParseMeta,
 }
 
 impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {

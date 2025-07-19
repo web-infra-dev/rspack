@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding, { type AssetInfo } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 import type { ResourceData } from "./Resolver";
 import { JsSource } from "./util/source";

@@ -4,6 +4,7 @@ import type { Fixtures } from "@playwright/test";
 import type { RspackFixtures } from "./rspack";
 
 type FileAction = {
+	renameFile(oldPath: string, newPath: string): void;
 	updateFile(relativePath: string, fn: (content: string) => string): void;
 	deleteFile(relativePath: string): void;
 };
@@ -22,6 +23,11 @@ export const fileActionFixtures: Fixtures<
 		const fileOriginContent: Record<string, string | null> = {};
 
 		await use({
+			renameFile(oldPath, newPath) {
+				const oldFilePath = path.resolve(rspack.projectDir, oldPath);
+				const newFilePath = path.resolve(rspack.projectDir, newPath);
+				fs.renameSync(oldFilePath, newFilePath);
+			},
 			updateFile(relativePath, fn) {
 				const filePath = path.resolve(rspack.projectDir, relativePath);
 				const fileExists = fs.existsSync(filePath);

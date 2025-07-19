@@ -6,12 +6,12 @@ use std::sync::Arc;
 
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  BuildMeta, CompilerOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParserOptions,
+  BuildMeta, CompilerOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ParserOptions,
   ResourceData,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use swc_core::{
   common::{comments::Comments, BytePos, Mark, SourceFile, SourceMap},
   ecma::atoms::Atom,
@@ -62,7 +62,7 @@ pub fn scan_dependencies(
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parser_pre_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   additional_data: Option<AdditionalData>,
-  parse_meta: FxHashMap<String, String>,
+  parse_meta: ParseMeta,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
     source_map,

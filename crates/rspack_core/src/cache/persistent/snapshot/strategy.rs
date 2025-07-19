@@ -66,7 +66,12 @@ impl StrategyHelper {
   /// get path file modified time
   async fn modified_time(&self, path: &Path) -> Option<u64> {
     if let Ok(info) = self.fs.metadata(path.assert_utf8()).await {
-      Some(info.mtime_ms)
+      // return the larger of ctime and mtime
+      if info.ctime_ms > info.mtime_ms {
+        Some(info.ctime_ms)
+      } else {
+        Some(info.mtime_ms)
+      }
     } else {
       None
     }

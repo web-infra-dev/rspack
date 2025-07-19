@@ -6,5 +6,5 @@ const content = fs.readFileSync(file, 'utf-8');
 
 it ('mocked modules should be hoisted', () => {
 	const afterTopOfFile = content.indexOf('TOP_OF_FILE');
-	expect(afterTopOfFile).toBeGreaterThan(content.lastIndexOf('__webpack_require__.set_mock'));
+	expect(afterTopOfFile).toBeGreaterThan(content.lastIndexOf('__webpack_require__.mock'));
 })

@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import type { CreatePartialRegisters } from "./types";
 
 export const createCompilerHooksRegisters: CreatePartialRegisters<

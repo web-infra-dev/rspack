@@ -1,7 +1,11 @@
-use std::{cell::RefCell, collections::HashMap, ptr::NonNull};
+use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
+use napi::{
+  bindgen_prelude::{Object, ToNapiValue},
+  Either, Env, JsString,
+};
 use napi_derive::napi;
+use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
@@ -116,20 +120,17 @@ impl Chunk {
     )
   }
 
-  #[napi(getter)]
-  pub fn content_hash(&self) -> napi::Result<HashMap<String, &str>> {
+  #[napi(getter, ts_return_type = "Record<string, string>")]
+  pub fn content_hash(&self, env: &Env) -> napi::Result<Object> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(
-      chunk
-        .content_hash(&compilation.chunk_hashes_artifact)
-        .map(|content_hash| {
-          content_hash
-            .iter()
-            .map(|(key, v)| (key.to_string(), v.encoded()))
-            .collect::<HashMap<String, &str>>()
-        })
-        .unwrap_or_default(),
-    )
+
+    let mut object = Object::new(env)?;
+    if let Some(content_hash) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
+      for (key, value) in content_hash.iter() {
+        object.set(key.to_string(), value.encoded())?;
+      }
+    }
+    Ok(object)
   }
 
   #[napi(getter)]
@@ -246,7 +247,7 @@ impl Chunk {
 }
 
 thread_local! {
-  static CHUNK_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<rspack_core::ChunkUkey, OneShotRef>>> = Default::default();
+  static CHUNK_INSTANCE_REFS: RefCell<UkeyMap<CompilationId, UkeyMap<rspack_core::ChunkUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct ChunkWrapper {
@@ -287,7 +288,7 @@ impl ToNapiValue for ChunkWrapper {
       let refs = match entry {
         std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = HashMap::default();
+          let refs = UkeyMap::default();
           entry.insert(refs)
         }
       };

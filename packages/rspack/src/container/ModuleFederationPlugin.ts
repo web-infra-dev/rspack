@@ -25,14 +25,15 @@ export class ModuleFederationPlugin {
 			"@module-federation/runtime": paths.runtime,
 			...compiler.options.resolve.alias
 		};
-		compiler.hooks.afterPlugins.tap(ModuleFederationPlugin.name, () => {
-			new webpack.EntryPlugin(
-				compiler.context,
-				getDefaultEntryRuntime(paths, this._options, compiler),
-				{ name: undefined }
-			).apply(compiler);
-		});
-		new ModuleFederationRuntimePlugin().apply(compiler);
+
+		// Generate the runtime entry content
+		const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
+
+		// Pass only the entry runtime to the Rust-side plugin
+		new ModuleFederationRuntimePlugin({
+			entryRuntime
+		}).apply(compiler);
+
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
 			enhanced: true

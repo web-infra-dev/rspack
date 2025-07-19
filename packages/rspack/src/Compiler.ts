@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import type * as binding from "@rspack/binding";
+import type binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";

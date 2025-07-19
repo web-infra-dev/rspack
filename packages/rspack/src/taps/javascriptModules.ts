@@ -1,4 +1,4 @@
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import { JavascriptModulesPlugin } from "../builtin-plugin";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";

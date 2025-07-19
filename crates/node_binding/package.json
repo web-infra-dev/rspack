@@ -11,7 +11,8 @@
   },
   "files": [
     "binding.js",
-    "binding.d.ts"
+    "binding.d.ts",
+    "napi-binding.d.ts"
   ],
   "scripts": {
     "build:dev": "node scripts/build.js",

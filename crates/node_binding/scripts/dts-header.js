@@ -2,7 +2,7 @@ const NodeFS = require("node:fs");
 const NodePath = require("node:path");
 const [_1, _2, file] = process.argv;
 
-if (file && NodePath.basename(file) === "binding.d.ts") {
+if (file && NodePath.basename(file) === "napi-binding.d.ts") {
 	const raw = getContent(NodeFS.readFileSync(file));
 	const banner = getContent(
 		NodeFS.readFileSync(NodePath.resolve(__dirname, "banner.d.ts"))

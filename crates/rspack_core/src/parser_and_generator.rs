@@ -1,13 +1,13 @@
 use std::{any::Any, borrow::Cow, ops::Deref};
 
-use derive_more::Debug;
+use derive_more::with_trait::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsMap, AsPreset, AsVec},
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
-use rspack_loader_runner::{AdditionalData, ResourceData};
+use rspack_loader_runner::{AdditionalData, ParseMeta, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -35,7 +35,7 @@ pub struct ParseContext<'a> {
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: Option<AdditionalData>,
-  pub parse_meta: FxHashMap<String, String>,
+  pub parse_meta: ParseMeta,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
 }
@@ -48,6 +48,8 @@ pub struct CollectedTypeScriptInfo {
   #[cacheable(with=AsMap<AsPreset>)]
   pub exported_enums: FxHashMap<Atom, TSEnumValue>,
 }
+
+pub const COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY: &str = "rspack-collected-ts-info";
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]

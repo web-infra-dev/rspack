@@ -11,6 +11,7 @@ use cow_utils::CowUtils;
 use rspack_base64::encode_to_string;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
+use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use url::Url;
@@ -20,13 +21,13 @@ use crate::http_uri::HttpUriPluginOptions;
 
 pub struct HttpResponse {
   pub status: u16,
-  pub headers: HashMap<String, String>,
+  pub headers: FxHashMap<String, String>,
   pub body: Vec<u8>,
 }
 
 #[async_trait]
 pub trait HttpClient: Send + Sync + std::fmt::Debug {
-  async fn get(&self, url: &str, headers: &HashMap<String, String>) -> Result<HttpResponse>;
+  async fn get(&self, url: &str, headers: &FxHashMap<String, String>) -> Result<HttpResponse>;
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -110,7 +111,7 @@ impl HttpCache {
     cached_result: Option<ContentFetchResult>,
   ) -> Result<FetchResultType> {
     let request_time = current_time();
-    let mut headers = HashMap::new();
+    let mut headers = FxHashMap::default();
 
     // Add webpack-like headers
     headers.insert(

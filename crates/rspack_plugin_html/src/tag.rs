@@ -1,7 +1,7 @@
 use core::fmt;
-use std::collections::HashMap;
 
 use itertools::Itertools;
+use rspack_util::fx_hash::FxHashMap;
 use serde::{
   de::{MapAccess, Visitor},
   ser::SerializeMap,
@@ -191,7 +191,7 @@ impl HtmlPluginTag {
     }
   }
 
-  pub fn create_meta(meta: &HashMap<String, HashMap<String, String>>) -> Vec<HtmlPluginTag> {
+  pub fn create_meta(meta: &FxHashMap<String, FxHashMap<String, String>>) -> Vec<HtmlPluginTag> {
     meta
       .values()
       .map(|value| HtmlPluginTag {
