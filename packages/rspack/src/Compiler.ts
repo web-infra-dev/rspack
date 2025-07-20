@@ -792,7 +792,7 @@ class Compiler {
 		this.#compilation = undefined;
 		// ensure thisCompilation must call
 		this.hooks.thisCompilation.intercept({
-			call: () => { }
+			call: () => {}
 		});
 	}
 
@@ -838,7 +838,7 @@ class Compiler {
 
 		const inputFileSystem =
 			this.inputFileSystem &&
-				ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
+			ThreadsafeInputNodeFS.needsBinding(options.experiments.useInputFileSystem)
 				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
 				: undefined;
 
