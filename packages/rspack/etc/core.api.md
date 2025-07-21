@@ -6045,8 +6045,6 @@ type ResolveOptionsWithDependencyType_2 = Resolve & {
 class Resolver {
     constructor(binding: binding.JsResolver);
     // (undocumented)
-    binding: binding.JsResolver;
-    // (undocumented)
     resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
@@ -6055,7 +6053,18 @@ class Resolver {
 }
 
 // @public (undocumented)
-type ResolveRequest = ResourceData;
+interface ResolveRequest {
+    // (undocumented)
+    descriptionFileData?: string;
+    // (undocumented)
+    descriptionFilePath?: string;
+    // (undocumented)
+    fragment: string;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    query: string;
+}
 
 // @public (undocumented)
 class ResolverFactory {
