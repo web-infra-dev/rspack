@@ -2,7 +2,7 @@ use itertools::Itertools;
 use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
 use swc_core::{
   atoms::Atom,
-  common::{comments::CommentKind, Spanned},
+  common::{comments::CommentKind, Span, Spanned},
 };
 
 use super::{
@@ -19,8 +19,8 @@ use crate::{
   },
   utils::object_properties::get_attributes,
   visitors::{
-    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
-    TagInfoData,
+    create_traceable_error, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
+    ExportLocal, JavascriptParser, TagInfoData,
   },
 };
 
@@ -66,16 +66,25 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     statement: ExportLocal,
     local_id: &Atom,
     export_name: &Atom,
+    export_name_span: Span,
   ) -> Option<bool> {
     InnerGraphPlugin::add_variable_usage(
       parser,
       local_id,
       InnerGraphMapUsage::Value(export_name.clone()),
     );
-    parser
+    if !parser
       .build_info
       .esm_named_exports
-      .insert(export_name.clone());
+      .insert(export_name.clone())
+    {
+      parser.errors.push(Box::new(create_traceable_error(
+        "JavaScript parse error".into(),
+        format!("Duplicate export of '{export_name}'"),
+        parser.source_file,
+        export_name_span.into(),
+      )));
+    }
     let dep = if let Some(settings) = parser.get_tag_data(local_id, ESM_SPECIFIER_TAG) {
       let settings = ESMSpecifierData::downcast(settings);
       Box::new(ESMExportImportedSpecifierDependency::new(
@@ -128,12 +137,21 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     source: &Atom,
     local_id: Option<&Atom>,
     export_name: Option<&Atom>,
+    export_name_span: Option<Span>,
   ) -> Option<bool> {
     let star_exports = if let Some(export_name) = export_name {
-      parser
+      if !parser
         .build_info
         .esm_named_exports
-        .insert(export_name.clone());
+        .insert(export_name.clone())
+      {
+        parser.errors.push(Box::new(create_traceable_error(
+          "JavaScript parse error".into(),
+          format!("Duplicate export of '{export_name}'"),
+          parser.source_file,
+          export_name_span.expect("should exist").into(),
+        )));
+      }
       None
     } else {
       Some(parser.build_info.all_star_exports.clone())
