@@ -77,64 +77,68 @@ const loadLoaderInBrowser: typeof loadLoader = (
 	loaderContext,
 	callback
 ) => {
-	loaderContext.resolve(
-		loaderContext._compiler.context,
-		loader.path,
-		(err, loaderPath) => {
-			if (err) {
-				callback(err);
-				return;
-			}
-			if (!loaderPath) {
-				callback(`Cannot find loader of ${loader.path}`);
-				return;
-			}
-			const inputFileSystem = loaderContext.fs as InputFileSystem;
-			inputFileSystem.readFile(loaderPath, {}, (err, data) => {
+	loaderContext._compiler
+		._lastCompilation!.resolverFactory.get("loader")
+		.resolve(
+			{},
+			loaderContext._compiler.context,
+			loader.path,
+			{},
+			(err, loaderPath) => {
 				if (err) {
 					callback(err);
 					return;
 				}
-
-				const loaderCode = data?.toString() || "";
-				if (loader.type === "module") {
-					// Use `import(base64code)` to load ESM
-					const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
-					try {
-						// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
-						const modulePromise = eval(`import("${dataUrl}")`);
-						modulePromise.then((module: LoaderModule) => {
-							handleResult(loader, module, callback);
-						}, callback);
-						return;
-					} catch (e) {
-						callback(e);
-					}
-				} else {
-					// Use `new Function` to emulate CJS
-					const module = { exports: {} };
-					const exports = module.exports;
-					const createRequire = () => {
-						throw "@rspack/browser doesn't support `require` in loaders yet";
-					};
-
-					const wrapper = new Function(
-						"module",
-						"exports",
-						"require",
-						loaderCode
-					);
-
-					try {
-						wrapper(module, exports, createRequire);
-					} catch (e) {
-						return callback(e);
-					}
-					return handleResult(loader, module.exports, callback);
+				if (!loaderPath) {
+					callback(`Cannot find loader of ${loader.path}`);
+					return;
 				}
-			});
-		}
-	);
+				const inputFileSystem = loaderContext.fs as InputFileSystem;
+				inputFileSystem.readFile(loaderPath, {}, (err, data) => {
+					if (err) {
+						callback(err);
+						return;
+					}
+
+					const loaderCode = data?.toString() || "";
+					if (loader.type === "module") {
+						// Use `import(base64code)` to load ESM
+						const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
+						try {
+							// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
+							const modulePromise = eval(`import("${dataUrl}")`);
+							modulePromise.then((module: LoaderModule) => {
+								handleResult(loader, module, callback);
+							}, callback);
+							return;
+						} catch (e) {
+							callback(e);
+						}
+					} else {
+						// Use `new Function` to emulate CJS
+						const module = { exports: {} };
+						const exports = module.exports;
+						const createRequire = () => {
+							throw "@rspack/browser doesn't support `require` in loaders yet";
+						};
+
+						const wrapper = new Function(
+							"module",
+							"exports",
+							"require",
+							loaderCode
+						);
+
+						try {
+							wrapper(module, exports, createRequire);
+						} catch (e) {
+							return callback(e);
+						}
+						return handleResult(loader, module.exports, callback);
+					}
+				});
+			}
+		);
 };
 
 function handleResult(
