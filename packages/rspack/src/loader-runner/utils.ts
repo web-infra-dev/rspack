@@ -5,6 +5,7 @@ import type {
 	LoaderContextCallback
 } from "../config/adapterRuleUse";
 import type { LoaderObject } from ".";
+import type { Compiler } from "../exports";
 import loadLoaderRaw from "./loadLoader";
 
 const decoder = new TextDecoder();
@@ -38,7 +39,7 @@ export function convertArgs(args: any[], raw: boolean) {
 
 export const loadLoader: (
 	loaderObject: LoaderObject,
-	loaderContext: LoaderContext
+	compiler: Compiler
 ) => Promise<void> = promisify(loadLoaderRaw);
 
 export const runSyncOrAsync = promisify(function runSyncOrAsync(

@@ -10,11 +10,9 @@
 
 import type Url from "node:url";
 import type { LoaderDefinitionFunction } from "../config";
-import type {
-	LoaderContext,
-	PitchLoaderDefinitionFunction
-} from "../config/adapterRuleUse";
+import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
 import type { LoaderObject } from ".";
+import type { Compiler } from "../exports";
 import { nonWebpackRequire } from "../util/require";
 import LoaderLoadingError from "./LoaderLoadingError";
 
@@ -29,13 +27,13 @@ let url: undefined | typeof Url;
 
 export default function loadLoader(
 	loader: LoaderObject,
-	loaderContext: LoaderContext,
+	compiler: Compiler,
 	callback: (err: unknown) => void
 ): void {
 	if (IS_BROWSER) {
 		// Why is IS_BROWSER used here:
 		// @see [../utils/require.ts]
-		nonWebpackRequire(loaderContext._compiler)(loader.path).then(module => {
+		nonWebpackRequire(compiler)(loader.path).then(module => {
 			handleResult(loader, module, callback);
 		}, callback);
 		return;
@@ -64,7 +62,7 @@ export default function loadLoader(
 				e instanceof Error &&
 				(e as NodeJS.ErrnoException).code === "EMFILE"
 			) {
-				const retry = loadLoader.bind(null, loader, loaderContext, callback);
+				const retry = loadLoader.bind(null, loader, compiler, callback);
 				return void setImmediate(retry);
 			}
 			return callback(e);

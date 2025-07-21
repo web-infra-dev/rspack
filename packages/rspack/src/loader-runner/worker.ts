@@ -438,7 +438,7 @@ async function loaderImpl(
 					continue;
 				}
 
-				await loadLoaderAsync(currentLoaderObject, loaderContext);
+				await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
 				const fn = currentLoaderObject.pitch;
 				currentLoaderObject.pitchExecuted = true;
 				if (!fn) continue;
@@ -467,7 +467,7 @@ async function loaderImpl(
 					continue;
 				}
 
-				await loadLoaderAsync(currentLoaderObject, loaderContext);
+				await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
 				const fn = currentLoaderObject.normal;
 				currentLoaderObject.normalExecuted = true;
 				if (!fn) continue;
