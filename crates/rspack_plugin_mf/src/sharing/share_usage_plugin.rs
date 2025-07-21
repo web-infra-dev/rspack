@@ -274,11 +274,11 @@ impl ShareUsagePlugin {
     let chunks = chunk_graph.get_module_chunks(*module_id);
 
     for chunk_ukey in chunks {
-      if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
+      if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
         let chunk_groups: Vec<rspack_core::ChunkGroupUkey> =
           chunk.groups().iter().copied().collect();
 
-        let (is_shared_chunk, shared_modules) = self.analyze_shared_chunk(compilation, &chunk_ukey);
+        let (is_shared_chunk, shared_modules) = self.analyze_shared_chunk(compilation, chunk_ukey);
 
         let chunk_characteristics = ChunkCharacteristics {
           is_runtime_chunk: chunk.has_runtime(&compilation.chunk_group_by_ukey),
@@ -287,11 +287,11 @@ impl ShareUsagePlugin {
             compilation
               .chunk_group_by_ukey
               .get(&group_ukey)
-              .map_or(false, |group| group.kind.is_entrypoint())
+              .is_some_and(|group| group.kind.is_entrypoint())
           }),
           can_be_initial: chunk.can_be_initial(&compilation.chunk_group_by_ukey),
           is_only_initial: chunk.is_only_initial(&compilation.chunk_group_by_ukey),
-          chunk_format: self.determine_chunk_format(compilation, &chunk_ukey),
+          chunk_format: self.determine_chunk_format(compilation, chunk_ukey),
           chunk_loading_type: self.get_chunk_loading_type(compilation, &chunk_groups),
           runtime_names: chunk.runtime().iter().map(|s| s.to_string()).collect(),
           entry_name: self.get_entry_name(compilation, &chunk_groups),
@@ -325,7 +325,7 @@ impl ShareUsagePlugin {
         rspack_core::ModuleType::ProvideShared => {
           // For ProvideShared modules, we need to extract the share key differently
           // This is a placeholder - we'd need to check the actual API for ProvideShared modules
-          if let Some(module_id) = module.identifier().as_str().split('/').last() {
+          if let Some(module_id) = module.identifier().as_str().split('/').next_back() {
             shared_modules.push(module_id.to_string());
             is_shared = true;
           }
