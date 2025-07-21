@@ -348,7 +348,10 @@ export class WatchStepProcessor<
 			});
 		});
 		// wait compiler to ready watch the files and diretories
-		const timeout = this._watchOptions.nativeWatcher ? 500 : 100;
+		// TODO: native watcher will call ignored js function in rust
+		// but it will block the watch step processor. Then, native watcher maybe spend more time.
+		// So we need to wait a while to ensure the files and directories are ready.
+		const timeout = this._watchOptions.nativeWatcher ? 300 : 100;
 		await new Promise(resolve => setTimeout(resolve, timeout));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
