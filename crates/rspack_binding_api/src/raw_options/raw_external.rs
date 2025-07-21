@@ -119,10 +119,11 @@ impl RawExternalItemFnCtx {
     env: &'a Env,
     options: Option<RawResolveOptionsWithDependencyType>,
   ) -> napi::Result<Function<'a, (String, String, Function<'static>), ()>> {
-    let first = self.resolve_options_with_dependency_type.clone();
-    let second =
+    let first = Arc::new(self.resolve_options_with_dependency_type.clone());
+    let second = Arc::new(
       normalize_raw_resolve_options_with_dependency_type(options, first.resolve_to_context)
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?,
+    );
     let resolver_factory = self.resolver_factory.clone();
 
     let f: Function<(String, String, Function<'static>), ()> =
@@ -131,28 +132,32 @@ impl RawExternalItemFnCtx {
         let request = ctx.get::<String>(1)?;
         let callback = ctx.get::<Function<'static>>(2)?;
 
-        let merged_resolve_options = match &second.resolve_options {
-          Some(second_resolve_options) => match &first.resolve_options {
-            Some(resolve_options) => Some(Box::new(
-              resolve_options
-                .clone()
-                .merge(*second_resolve_options.clone()),
-            )),
-            None => Some(second_resolve_options.clone()),
-          },
-          None => first.resolve_options.clone(),
-        };
-
-        let merged_options = ResolveOptionsWithDependencyType {
-          resolve_options: merged_resolve_options,
-          resolve_to_context: second.resolve_to_context,
-          dependency_category: second.dependency_category,
-        };
-        let resolver = resolver_factory.get(merged_options);
+        let first_clone = first.clone();
+        let second_clone = second.clone();
+        let resolver_factory = resolver_factory.clone();
 
         callbackify(
           callback,
           async move {
+            let merged_resolve_options = match second_clone.resolve_options.as_ref() {
+              Some(second_resolve_options) => match first_clone.resolve_options.as_ref() {
+                Some(resolve_options) => Some(Box::new(
+                  resolve_options
+                    .clone()
+                    .merge(*second_resolve_options.clone()),
+                )),
+                None => Some(second_resolve_options.clone()),
+              },
+              None => first_clone.resolve_options.clone(),
+            };
+
+            let merged_options = ResolveOptionsWithDependencyType {
+              resolve_options: merged_resolve_options,
+              resolve_to_context: second_clone.resolve_to_context,
+              dependency_category: second_clone.dependency_category,
+            };
+            let resolver = resolver_factory.get(merged_options);
+
             match resolver.resolve(Path::new(&context), &request).await {
               Ok(rspack_core::ResolveResult::Resource(resource)) => {
                 let resolve_request = ResolveRequest::from(resource);
