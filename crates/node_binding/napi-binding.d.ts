@@ -2598,6 +2598,7 @@ export interface RawSubresourceIntegrityPluginOptions {
 }
 
 export interface RawSwcJsMinimizerOptions {
+  ecma: any
   compress: any
   mangle: any
   format: any

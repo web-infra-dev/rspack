@@ -52,6 +52,7 @@ pub struct PluginOptions {
 
 #[derive(Debug, Default)]
 pub struct MinimizerOptions {
+  pub ecma: TerserEcmaVersion,
   pub minify: Option<bool>,
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
   pub mangle: BoolOrDataConfig<MangleOptions>,
@@ -214,6 +215,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           compress: minimizer_options.compress.clone(),
           mangle: minimizer_options.mangle.clone(),
           format: minimizer_options.format.clone(),
+          ecma: minimizer_options.ecma.clone(),
           source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
           inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
           module: is_module,
