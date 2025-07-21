@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
 use rspack_error::Result;
 use rspack_paths::ArcPath;
+use tokio::task::JoinSet;
 
 #[async_trait]
 pub trait Ignored: Send + Sync {
@@ -130,27 +131,28 @@ impl PathUpdater {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
-    let mut handles = vec![];
+    let mut tasks = JoinSet::new();
+
     for added in added_paths {
       let ignored_cloned = ignored.clone();
-      let fut = async move {
+      tasks.spawn(async move {
+        // Skip ignored paths
         if let Some(ignored) = &ignored_cloned {
           if ignored.ignore(&added).await? {
-            return Ok::<Option<ArcPath>, rspack_error::Error>(None);
+            return Ok::<_, rspack_error::Error>(None);
           }
         }
-        Ok(Some(ArcPath::from(PathBuf::from(&added))))
-      };
-      handles.push(tokio::spawn(fut));
+        // Return valid path
+        let path = ArcPath::from(PathBuf::from(&added));
+        Ok(Some(path))
+      });
     }
 
-    for handle in handles {
-      let added_path = handle
-        .await
-        .map_err(|e| rspack_error::error!(e.to_string()))??;
-      if let Some(added) = added_path {
-        paths.insert(added.clone());
-        incremental_manager.insert_added(added);
+    // Collect and process results
+    while let Some(result) = tasks.join_next().await {
+      if let Some(path) = result.map_err(|e| rspack_error::error!(e.to_string()))?? {
+        paths.insert(path.clone());
+        incremental_manager.insert_added(path);
       }
     }
 
