@@ -163,7 +163,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       if self.ns_object_used {
         exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
       } else {
-        exports_info.set_all_known_exports_used(&mut module_graph, Some(&runtime));
+        exports_info
+          .as_data_mut(&mut module_graph)
+          .set_all_known_exports_used(Some(&runtime));
       }
     }
   }

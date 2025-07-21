@@ -1,4 +1,10 @@
-use crate::{ExportsInfo, ExportsInfoData, RuntimeSpec, UsageState};
+use rspack_util::atom::Atom;
+use rustc_hash::FxHashSet;
+
+use crate::{
+  DependencyId, ExportInfoData, ExportProvided, ExportsInfo, ExportsInfoData, Nullable,
+  RuntimeSpec, UsageState,
+};
 
 impl ExportsInfoData {
   pub fn set_redirect_name_to(&mut self, id: Option<ExportsInfo>) -> bool {
@@ -15,5 +21,94 @@ impl ExportsInfoData {
       UsageState::Used,
       runtime,
     )
+  }
+
+  pub fn set_all_known_exports_used(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
+    let mut changed = false;
+    for export_info in self.exports_mut().values_mut() {
+      if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
+        continue;
+      }
+      changed |= export_info.set_used(UsageState::Used, runtime);
+    }
+    changed
+  }
+
+  pub fn ensure_export_info(&mut self, name: &Atom) -> &mut ExportInfoData {
+    if self.named_exports(name).is_none() {
+      let new_info = ExportInfoData::new(
+        self.id(),
+        Some(name.clone()),
+        Some(self.other_exports_info()),
+      );
+      self.exports_mut().insert(name.clone(), new_info);
+    }
+    self
+      .named_exports_mut(name)
+      .expect("should have export info")
+  }
+
+  pub fn set_unknown_exports_provided(
+    &mut self,
+    can_mangle: bool,
+    exclude_exports: Option<&FxHashSet<Atom>>,
+    target_key: Option<DependencyId>,
+    target_module: Option<DependencyId>,
+    priority: Option<u8>,
+  ) -> bool {
+    let mut changed = false;
+
+    if let Some(exclude_exports) = &exclude_exports {
+      for name in exclude_exports.iter() {
+        self.ensure_export_info(name);
+      }
+    }
+
+    for export_info in self.exports_mut().values_mut() {
+      if !can_mangle && export_info.can_mangle_provide() != Some(false) {
+        export_info.set_can_mangle_provide(Some(false));
+        changed = true;
+      }
+      if let Some(exclude_exports) = &exclude_exports {
+        if let Some(export_name) = export_info.name()
+          && exclude_exports.contains(export_name)
+        {
+          continue;
+        }
+      }
+      if !matches!(
+        export_info.provided(),
+        Some(ExportProvided::Provided | ExportProvided::Unknown)
+      ) {
+        export_info.set_provided(Some(ExportProvided::Unknown));
+        changed = true;
+      }
+      if let Some(target_key) = target_key {
+        let name = export_info
+          .name()
+          .map(|name| Nullable::Value(vec![name.clone()]));
+        export_info.set_target(Some(target_key), target_module, name.as_ref(), priority);
+      }
+    }
+
+    let other_exports_info_data = self.other_exports_info_mut();
+    if !matches!(
+      other_exports_info_data.provided(),
+      Some(ExportProvided::Provided | ExportProvided::Unknown)
+    ) {
+      other_exports_info_data.set_provided(Some(ExportProvided::Unknown));
+      changed = true;
+    }
+
+    if let Some(target_key) = target_key {
+      other_exports_info_data.set_target(Some(target_key), target_module, None, priority);
+    }
+
+    if !can_mangle && other_exports_info_data.can_mangle_provide() != Some(false) {
+      other_exports_info_data.set_can_mangle_provide(Some(false));
+      changed = true;
+    }
+
+    changed
   }
 }

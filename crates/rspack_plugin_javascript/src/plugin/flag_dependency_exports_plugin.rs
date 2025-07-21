@@ -1,12 +1,15 @@
+use std::collections::VecDeque;
+
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   get_target,
   incremental::{self, IncrementalPasses},
   ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
+  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
+  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec,
+  ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, Nullable, Plugin, PluginContext, PrefetchExportsInfoMode,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -56,21 +59,79 @@ impl<'a> FlagDependencyExportsState<'a> {
     while !batch.is_empty() {
       let modules = std::mem::take(&mut batch);
       let module_exports_specs = modules
-        .into_par_iter()
+        .into_iter()
         .map(|module_id| {
           let exports_specs =
             collect_module_exports_specs(&module_id, self.mg, self.mg_cache).unwrap_or_default();
           (module_id, exports_specs)
         })
-        .collect::<Vec<_>>();
+        .collect::<VecDeque<_>>();
 
       let mut changed_modules = FxHashSet::default();
-      for (module_id, exports_specs) in module_exports_specs {
+
+      let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
+        .into_iter()
+        .partition(|(mid, (_, has_nested_exports))| {
+          if *has_nested_exports {
+            return false;
+          }
+          if self
+            .mg
+            .get_exports_info(mid)
+            .as_data(self.mg)
+            .redirect_to()
+            .is_some()
+          {
+            return false;
+          }
+          true
+        });
+
+      let non_nested_tasks = non_nested_specs
+        .into_iter()
+        .map(|(module_id, (exports_specs, _))| {
+          let exports_info = self
+            .mg
+            .get_exports_info(&module_id)
+            .as_data(self.mg)
+            .clone();
+          (module_id, exports_info, exports_specs)
+        })
+        .par_bridge()
+        .map(|(module_id, mut exports_info, exports_specs)| {
+          let mut changed = false;
+          let mut dependencies = vec![];
+          for (dep_id, exports_spec) in exports_specs.into_iter() {
+            let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
+              self.mg,
+              &module_id,
+              dep_id,
+              &exports_spec,
+              &mut exports_info,
+            );
+            changed |= is_changed;
+            dependencies.extend(changed_dependencies);
+          }
+          (module_id, changed, dependencies, exports_info)
+        })
+        .collect::<Vec<_>>();
+
+      for (module_id, changed, changed_dependencies, exports_info) in non_nested_tasks {
+        if changed {
+          changed_modules.insert(module_id);
+        }
+        for (module_id, dep_id) in changed_dependencies {
+          dependencies.entry(module_id).or_default().insert(dep_id);
+        }
+        self.mg.set_exports_info(exports_info.id(), exports_info);
+      }
+
+      for (module_id, (exports_specs, _)) in has_nested_specs {
         let exports_info = self.mg.get_exports_info(&module_id);
         let mut changed = false;
         for (dep_id, exports_spec) in exports_specs.into_iter() {
           let (is_changed, changed_dependencies) =
-            self.process_exports_spec(&module_id, dep_id, &exports_spec, exports_info);
+            process_exports_spec(self.mg, &module_id, dep_id, &exports_spec, exports_info);
           changed |= is_changed;
           for (module_id, dep_id) in changed_dependencies {
             dependencies.entry(module_id).or_default().insert(dep_id);
@@ -80,6 +141,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           changed_modules.insert(module_id);
         }
       }
+
       batch.extend(changed_modules.into_iter().flat_map(|m| {
         dependencies
           .get(&m)
@@ -88,69 +150,6 @@ impl<'a> FlagDependencyExportsState<'a> {
           .copied()
       }));
     }
-  }
-
-  pub fn process_exports_spec(
-    &mut self,
-    module_id: &ModuleIdentifier,
-    dep_id: DependencyId,
-    export_desc: &ExportsSpec,
-    exports_info: ExportsInfo,
-  ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
-    let mut changed = false;
-    let mut dependencies = vec![];
-    let exports = &export_desc.exports;
-    let global_can_mangle = &export_desc.can_mangle;
-    let global_from = export_desc.from.as_ref();
-    let global_priority = &export_desc.priority;
-    let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
-    let export_dependencies = &export_desc.dependencies;
-    if let Some(hide_export) = &export_desc.hide_export {
-      for name in hide_export.iter() {
-        exports_info
-          .get_export_info(self.mg, name)
-          .as_data_mut(self.mg)
-          .unset_target(&dep_id);
-      }
-    }
-    match exports {
-      ExportsOfExportsSpec::UnknownExports => {
-        changed |= exports_info.set_unknown_exports_provided(
-          self.mg,
-          global_can_mangle.unwrap_or_default(),
-          export_desc.exclude_exports.as_ref(),
-          global_from.map(|_| dep_id),
-          global_from.map(|_| dep_id),
-          *global_priority,
-        );
-      }
-      ExportsOfExportsSpec::NoExports => {}
-      ExportsOfExportsSpec::Names(ele) => {
-        let (merge_changed, merge_dependencies) = merge_exports(
-          self.mg,
-          module_id,
-          exports_info,
-          ele,
-          DefaultExportInfo {
-            can_mangle: *global_can_mangle,
-            terminal_binding: global_terminal_binding,
-            from: global_from,
-            priority: *global_priority,
-          },
-          dep_id,
-        );
-        changed |= merge_changed;
-        dependencies.extend(merge_dependencies);
-      }
-    }
-
-    if let Some(export_dependencies) = export_dependencies {
-      for export_dep in export_dependencies {
-        dependencies.push((*export_dep, *module_id));
-      }
-    }
-
-    (changed, dependencies)
   }
 }
 
@@ -219,7 +218,8 @@ fn collect_module_exports_specs(
   module_id: &ModuleIdentifier,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
-) -> Option<FxIndexMap<DependencyId, ExportsSpec>> {
+) -> Option<(FxIndexMap<DependencyId, ExportsSpec>, bool)> {
+  let mut has_nested_exports = false;
   fn walk_block<B: DependenciesBlock + ?Sized>(
     block: &B,
     dep_ids: &mut FxIndexSet<DependencyId>,
@@ -245,11 +245,229 @@ fn collect_module_exports_specs(
     .filter_map(|id| {
       let dep = mg.dependency_by_id(&id)?;
       let exports_spec = dep.get_exports(mg, mg_cache)?;
+      has_nested_exports |= exports_spec.has_nested_exports();
       Some((id, exports_spec))
     })
     .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
   // mg_cache.unfreeze();
-  Some(res)
+  Some((res, has_nested_exports))
+}
+
+pub fn process_exports_spec(
+  mg: &mut ModuleGraph,
+  module_id: &ModuleIdentifier,
+  dep_id: DependencyId,
+  export_desc: &ExportsSpec,
+  exports_info: ExportsInfo,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  let mut changed = false;
+  let mut dependencies = vec![];
+  let exports = &export_desc.exports;
+  let global_can_mangle = &export_desc.can_mangle;
+  let global_from = export_desc.from.as_ref();
+  let global_priority = &export_desc.priority;
+  let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
+  let export_dependencies = &export_desc.dependencies;
+  if let Some(hide_export) = &export_desc.hide_export {
+    for name in hide_export.iter() {
+      exports_info
+        .get_export_info(mg, name)
+        .as_data_mut(mg)
+        .unset_target(&dep_id);
+    }
+  }
+  match exports {
+    ExportsOfExportsSpec::UnknownExports => {
+      changed |= exports_info.set_unknown_exports_provided(
+        mg,
+        global_can_mangle.unwrap_or_default(),
+        export_desc.exclude_exports.as_ref(),
+        global_from.map(|_| dep_id),
+        global_from.map(|_| dep_id),
+        *global_priority,
+      );
+    }
+    ExportsOfExportsSpec::NoExports => {}
+    ExportsOfExportsSpec::Names(ele) => {
+      let (merge_changed, merge_dependencies) = merge_exports(
+        mg,
+        module_id,
+        exports_info,
+        ele,
+        DefaultExportInfo {
+          can_mangle: *global_can_mangle,
+          terminal_binding: global_terminal_binding,
+          from: global_from,
+          priority: *global_priority,
+        },
+        dep_id,
+      );
+      changed |= merge_changed;
+      dependencies.extend(merge_dependencies);
+    }
+  }
+
+  if let Some(export_dependencies) = export_dependencies {
+    for export_dep in export_dependencies {
+      dependencies.push((*export_dep, *module_id));
+    }
+  }
+
+  (changed, dependencies)
+}
+
+pub fn process_exports_spec_without_nested(
+  mg: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+  dep_id: DependencyId,
+  export_desc: &ExportsSpec,
+  exports_info: &mut ExportsInfoData,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  let mut changed = false;
+  let mut dependencies = vec![];
+
+  let exports = &export_desc.exports;
+  let global_can_mangle = &export_desc.can_mangle;
+  let global_from = export_desc.from.as_ref();
+  let global_priority = &export_desc.priority;
+  let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
+  let export_dependencies = &export_desc.dependencies;
+  if let Some(hide_export) = &export_desc.hide_export {
+    for name in hide_export.iter() {
+      exports_info.ensure_export_info(name).unset_target(&dep_id);
+    }
+  }
+  match exports {
+    ExportsOfExportsSpec::UnknownExports => {
+      changed |= exports_info.set_unknown_exports_provided(
+        global_can_mangle.unwrap_or_default(),
+        export_desc.exclude_exports.as_ref(),
+        global_from.map(|_| dep_id),
+        global_from.map(|_| dep_id),
+        *global_priority,
+      );
+    }
+    ExportsOfExportsSpec::NoExports => {}
+    ExportsOfExportsSpec::Names(ele) => {
+      let (merge_changed, merge_dependencies) = merge_exports_without_nested(
+        mg,
+        module_id,
+        exports_info,
+        ele,
+        DefaultExportInfo {
+          can_mangle: *global_can_mangle,
+          terminal_binding: global_terminal_binding,
+          from: global_from,
+          priority: *global_priority,
+        },
+        dep_id,
+      );
+      changed |= merge_changed;
+      dependencies.extend(merge_dependencies);
+    }
+  }
+
+  if let Some(export_dependencies) = export_dependencies {
+    for export_dep in export_dependencies {
+      dependencies.push((*export_dep, *module_id));
+    }
+  }
+
+  (changed, dependencies)
+}
+
+struct ParsedExportSpec<'a> {
+  name: &'a Atom,
+  can_mangle: Option<bool>,
+  terminal_binding: bool,
+  exports: Option<&'a Vec<ExportNameOrSpec>>,
+  from: Option<&'a ModuleGraphConnection>,
+  from_export: Option<&'a Nullable<Vec<Atom>>>,
+  priority: Option<u8>,
+  hidden: bool,
+  inlinable: Option<&'a EvaluatedInlinableValue>,
+}
+
+impl<'a> ParsedExportSpec<'a> {
+  pub fn new(
+    export_name_or_spec: &'a ExportNameOrSpec,
+    global_export_info: &'a DefaultExportInfo,
+  ) -> Self {
+    match export_name_or_spec {
+      ExportNameOrSpec::String(name) => Self {
+        name,
+        can_mangle: global_export_info.can_mangle,
+        terminal_binding: global_export_info.terminal_binding,
+        exports: None,
+        from: global_export_info.from,
+        from_export: None,
+        priority: global_export_info.priority,
+        hidden: false,
+        inlinable: None,
+      },
+      ExportNameOrSpec::ExportSpec(spec) => Self {
+        name: &spec.name,
+        can_mangle: spec.can_mangle.or(global_export_info.can_mangle),
+        terminal_binding: spec
+          .terminal_binding
+          .unwrap_or(global_export_info.terminal_binding),
+        exports: spec.exports.as_ref(),
+        from: spec.from.as_ref().or(global_export_info.from),
+        from_export: spec.export.as_ref(),
+        priority: spec.priority.or(global_export_info.priority),
+        hidden: spec.hidden.unwrap_or(false),
+        inlinable: spec.inlinable.as_ref(),
+      },
+    }
+  }
+}
+
+pub fn merge_exports_without_nested(
+  mg: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+  exports_info: &mut ExportsInfoData,
+  exports: &Vec<ExportNameOrSpec>,
+  global_export_info: DefaultExportInfo,
+  dep_id: DependencyId,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  let mut changed = false;
+  let mut dependencies = vec![];
+  for export_name_or_spec in exports {
+    let ParsedExportSpec {
+      name,
+      can_mangle,
+      terminal_binding,
+      from,
+      from_export,
+      priority,
+      hidden,
+      inlinable,
+      ..
+    } = ParsedExportSpec::new(export_name_or_spec, &global_export_info);
+
+    let export_info = exports_info.ensure_export_info(name);
+    changed |= set_export_base_info(export_info, can_mangle, terminal_binding, inlinable);
+
+    changed |= set_export_target(
+      export_info,
+      from,
+      from_export,
+      priority,
+      hidden,
+      dep_id,
+      name,
+    );
+
+    let (target_exports_info, target_dependencies) =
+      find_target_exports_info(mg, export_info, module_id);
+    dependencies.extend(target_dependencies);
+
+    if export_info.exports_info() != target_exports_info {
+      export_info.set_exports_info(target_exports_info);
+      changed = true;
+    }
+  }
+  (changed, dependencies)
 }
 
 pub fn merge_exports(
@@ -263,7 +481,7 @@ pub fn merge_exports(
   let mut changed = false;
   let mut dependencies = vec![];
   for export_name_or_spec in exports {
-    let (
+    let ParsedExportSpec {
       name,
       can_mangle,
       terminal_binding,
@@ -273,97 +491,21 @@ pub fn merge_exports(
       priority,
       hidden,
       inlinable,
-    ) = match export_name_or_spec {
-      ExportNameOrSpec::String(name) => (
-        name.clone(),
-        global_export_info.can_mangle,
-        global_export_info.terminal_binding,
-        None::<&Vec<ExportNameOrSpec>>,
-        global_export_info.from.cloned(),
-        None::<&rspack_core::Nullable<Vec<Atom>>>,
-        global_export_info.priority,
-        false,
-        None,
-      ),
-      ExportNameOrSpec::ExportSpec(spec) => (
-        spec.name.clone(),
-        match spec.can_mangle {
-          Some(v) => Some(v),
-          None => global_export_info.can_mangle,
-        },
-        spec
-          .terminal_binding
-          .unwrap_or(global_export_info.terminal_binding),
-        spec.exports.as_ref(),
-        if spec.from.is_some() {
-          spec.from.clone()
-        } else {
-          global_export_info.from.cloned()
-        },
-        spec.export.as_ref(),
-        match spec.priority {
-          Some(v) => Some(v),
-          None => global_export_info.priority,
-        },
-        spec.hidden.unwrap_or(false),
-        spec.inlinable.as_ref(),
-      ),
-    };
-    let export_info = exports_info.get_export_info(mg, &name);
-    let export_info_data = export_info.as_data_mut(mg);
-    if let Some(provided) = export_info_data.provided()
-      && matches!(
-        provided,
-        ExportProvided::NotProvided | ExportProvided::Unknown
-      )
-    {
-      export_info_data.set_provided(Some(ExportProvided::Provided));
-      changed = true;
-    }
+    } = ParsedExportSpec::new(export_name_or_spec, &global_export_info);
 
-    if Some(false) != export_info_data.can_mangle_provide() && can_mangle == Some(false) {
-      export_info_data.set_can_mangle_provide(Some(false));
-      changed = true;
-    }
-
-    if let Some(inlined) = inlinable
-      && !export_info_data.inlinable().can_inline()
-    {
-      export_info_data.set_inlinable(Inlinable::Inlined(inlined.clone()));
-      changed = true;
-    }
-
-    if terminal_binding && !export_info_data.terminal_binding() {
-      export_info_data.set_terminal_binding(true);
-      changed = true;
-    }
+    let export_info = exports_info.get_export_info(mg, name);
+    changed |= set_export_base_info(
+      export_info.as_data_mut(mg),
+      can_mangle,
+      terminal_binding,
+      inlinable,
+    );
 
     if let Some(exports) = exports {
-      let nested_exports_info = if export_info_data.exports_info_owned() {
-        export_info_data
-          .exports_info()
-          .expect("should have exports_info when exports_info is true")
-      } else {
-        let old_exports_info = export_info_data.exports_info();
-        let new_exports_info = ExportsInfoData::default();
-        let new_exports_info_id = new_exports_info.id();
-        export_info_data.set_exports_info(Some(new_exports_info_id));
-        export_info_data.set_exports_info_owned(true);
-        mg.set_exports_info(new_exports_info_id, new_exports_info);
-
-        new_exports_info_id.set_has_provide_info(mg);
-        if let Some(exports_info) = old_exports_info {
-          exports_info
-            .as_data_mut(mg)
-            .set_redirect_name_to(Some(new_exports_info_id));
-        }
-        new_exports_info_id
-      };
-
-      let (merge_changed, merge_dependencies) = merge_exports(
+      let (merge_changed, merge_dependencies) = merge_nested_exports(
         mg,
         module_id,
-        nested_exports_info,
+        export_info.clone(),
         exports,
         global_export_info.clone(),
         dep_id,
@@ -372,48 +514,19 @@ pub fn merge_exports(
       dependencies.extend(merge_dependencies);
     }
 
-    // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
-    // because `create_nested_exports_info` needs `&mut ModuleGraph`
-    let export_info_data = export_info.as_data_mut(mg);
-    if let Some(from) = from {
-      changed |= if hidden {
-        export_info_data.unset_target(&dep_id)
-      } else {
-        let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
-        let export_name = if let Some(from) = from_export {
-          Some(from)
-        } else {
-          Some(&fallback)
-        };
-        export_info_data.set_target(
-          Some(dep_id),
-          Some(from.dependency_id),
-          export_name,
-          priority,
-        )
-      }
-    }
+    changed |= set_export_target(
+      export_info.as_data_mut(mg),
+      from,
+      from_export,
+      priority,
+      hidden,
+      dep_id,
+      name,
+    );
 
-    // Recalculate target exportsInfo
-    let export_info_data = export_info.as_data(mg);
-    let target = get_target(export_info_data, mg);
-
-    let mut target_exports_info = None;
-    if let Some(target) = target {
-      let target_module_exports_info = mg.get_prefetched_exports_info(
-        &target.module,
-        if let Some(names) = &target.export {
-          PrefetchExportsInfoMode::Nested(names)
-        } else {
-          PrefetchExportsInfoMode::Default
-        },
-      );
-      target_exports_info = target_module_exports_info
-        .get_nested_exports_info(target.export.as_deref())
-        .map(|data| data.id());
-
-      dependencies.push((target.module, *module_id));
-    }
+    let (target_exports_info, target_dependencies) =
+      find_target_exports_info(mg, export_info.as_data(mg), module_id);
+    dependencies.extend(target_dependencies);
 
     let export_info_data = export_info.as_data_mut(mg);
     if export_info_data.exports_info_owned() {
@@ -422,10 +535,155 @@ pub fn merge_exports(
         .expect("should have exports_info when exports_info_owned is true")
         .as_data_mut(mg)
         .set_redirect_name_to(target_exports_info);
-    } else if export_info_data.exports_info() != target_exports_info {
-      export_info_data.set_exports_info(target_exports_info);
-      changed = true;
     }
   }
   (changed, dependencies)
+}
+
+fn set_export_base_info(
+  export_info: &mut ExportInfoData,
+  can_mangle: Option<bool>,
+  terminal_binding: bool,
+  inlinable: Option<&EvaluatedInlinableValue>,
+) -> bool {
+  let mut changed = false;
+  if let Some(provided) = export_info.provided()
+    && matches!(
+      provided,
+      ExportProvided::NotProvided | ExportProvided::Unknown
+    )
+  {
+    export_info.set_provided(Some(ExportProvided::Provided));
+    changed = true;
+  }
+
+  if Some(false) != export_info.can_mangle_provide() && can_mangle == Some(false) {
+    export_info.set_can_mangle_provide(Some(false));
+    changed = true;
+  }
+
+  if let Some(inlined) = inlinable
+    && !export_info.inlinable().can_inline()
+  {
+    export_info.set_inlinable(Inlinable::Inlined(inlined.clone()));
+    changed = true;
+  }
+
+  if terminal_binding && !export_info.terminal_binding() {
+    export_info.set_terminal_binding(true);
+    changed = true;
+  }
+  changed
+}
+
+fn merge_nested_exports(
+  mg: &mut ModuleGraph,
+  module_id: &ModuleIdentifier,
+  export_info: ExportInfo,
+  exports: &Vec<ExportNameOrSpec>,
+  global_export_info: DefaultExportInfo,
+  dep_id: DependencyId,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  let mut changed = false;
+  let mut dependencies = vec![];
+  let nested_exports_info = if export_info.as_data(mg).exports_info_owned() {
+    export_info
+      .as_data(mg)
+      .exports_info()
+      .expect("should have exports_info when exports_info is true")
+  } else {
+    let export_info = export_info.as_data_mut(mg);
+    let old_exports_info = export_info.exports_info();
+    let new_exports_info = ExportsInfoData::default();
+    let new_exports_info_id = new_exports_info.id();
+    export_info.set_exports_info(Some(new_exports_info_id));
+    export_info.set_exports_info_owned(true);
+    mg.set_exports_info(new_exports_info_id, new_exports_info);
+
+    new_exports_info_id.set_has_provide_info(mg);
+    if let Some(exports_info) = old_exports_info {
+      exports_info
+        .as_data_mut(mg)
+        .set_redirect_name_to(Some(new_exports_info_id));
+    }
+    new_exports_info_id
+  };
+
+  let (merge_changed, merge_dependencies) = merge_exports(
+    mg,
+    module_id,
+    nested_exports_info,
+    exports,
+    global_export_info.clone(),
+    dep_id,
+  );
+  changed |= merge_changed;
+  dependencies.extend(merge_dependencies);
+
+  (changed, dependencies)
+}
+
+fn set_export_target(
+  export_info: &mut ExportInfoData,
+  from: Option<&ModuleGraphConnection>,
+  from_export: Option<&Nullable<Vec<Atom>>>,
+  priority: Option<u8>,
+  hidden: bool,
+  dep_id: DependencyId,
+  name: &Atom,
+) -> bool {
+  let mut changed = false;
+  // shadowing the previous `export_info_mut` to reduce the mut borrow life time,
+  // because `create_nested_exports_info` needs `&mut ModuleGraph`
+  if let Some(from) = from {
+    changed |= if hidden {
+      export_info.unset_target(&dep_id)
+    } else {
+      let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
+      let export_name = if let Some(from) = from_export {
+        Some(from)
+      } else {
+        Some(&fallback)
+      };
+      export_info.set_target(
+        Some(dep_id),
+        Some(from.dependency_id),
+        export_name,
+        priority,
+      )
+    }
+  }
+  changed
+}
+
+fn find_target_exports_info(
+  mg: &ModuleGraph,
+  export_info: &ExportInfoData,
+  module_id: &ModuleIdentifier,
+) -> (
+  Option<ExportsInfo>,
+  Vec<(ModuleIdentifier, ModuleIdentifier)>,
+) {
+  let mut dependencies = vec![];
+  // Recalculate target exportsInfo
+  let target = get_target(export_info, mg);
+
+  let mut target_exports_info = None;
+  if let Some(target) = target {
+    let target_module_exports_info = mg.get_prefetched_exports_info(
+      &target.module,
+      if let Some(names) = &target.export {
+        PrefetchExportsInfoMode::Nested(names)
+      } else {
+        PrefetchExportsInfoMode::Default
+      },
+    );
+    target_exports_info = target_module_exports_info
+      .get_nested_exports_info(target.export.as_deref())
+      .map(|data| data.id());
+
+    dependencies.push((target.module, *module_id));
+  }
+
+  (target_exports_info, dependencies)
 }
