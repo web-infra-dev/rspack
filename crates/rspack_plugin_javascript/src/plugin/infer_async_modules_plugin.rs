@@ -1,5 +1,6 @@
 use linked_hash_set::LinkedHashSet;
-use rspack_collections::IdentifierSet;
+use rayon::prelude::*;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Logger,
@@ -79,15 +80,39 @@ fn set_sync_modules(
   modules: LinkedHashSet<ModuleIdentifier>,
   mutations: &mut Option<Mutations>,
 ) {
-  let mut queue = modules;
+  let module_graph = compilation.get_module_graph();
+  let outgoing_connections = modules
+    .iter()
+    .par_bridge()
+    .map(|mid| {
+      (
+        *mid,
+        module_graph
+          .get_outgoing_connections(mid)
+          .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
+          .filter(|&out| out != mid)
+          .copied()
+          .collect::<Vec<_>>(),
+      )
+    })
+    .collect::<IdentifierMap<_>>();
 
+  let mut queue = modules;
   while let Some(module) = queue.pop_front() {
-    let module_graph = compilation.get_module_graph();
-    if module_graph
-      .get_outgoing_connections(&module)
-      .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
-      .filter(|&out| &module != out)
-      .any(|module| ModuleGraph::is_async(compilation, module))
+    if outgoing_connections
+      .get(&module)
+      .cloned()
+      .unwrap_or_else(|| {
+        let module_graph = compilation.get_module_graph();
+        module_graph
+          .get_outgoing_connections(&module)
+          .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
+          .filter(|&out| &module != out)
+          .copied()
+          .collect::<Vec<_>>()
+      })
+      .iter()
+      .any(|out| ModuleGraph::is_async(compilation, out))
     {
       // We can't safely reset is_async to false if there are any outgoing module is async
       continue;

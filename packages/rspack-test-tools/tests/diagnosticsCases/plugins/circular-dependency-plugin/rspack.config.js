@@ -28,7 +28,7 @@ module.exports = {
 	plugins: [
 		new CircularDependencyRspackPlugin({
 			failOnError: false,
-			exclude: /ignore-circular/,
+			exclude: /(ignore-circular|loader)/,
 			onStart(_compilation) {
 				expect(typeof _compilation.errors === "object").toBeTruthy();
 				expect(typeof _compilation.errors.push === "function").toBeTruthy();

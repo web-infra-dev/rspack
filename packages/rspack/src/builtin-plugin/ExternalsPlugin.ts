@@ -6,7 +6,9 @@ import {
 } from "@rspack/binding";
 
 import type { Compiler, ExternalItem, ExternalItemValue, Externals } from "..";
-import { Resolver } from "../Resolver";
+import { getRawResolve } from "../config/adapter";
+import type { ResolveCallback } from "../config/adapterRuleUse";
+import type { ResolveRequest } from "../Resolver";
 import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 export class ExternalsPlugin extends RspackBuiltinPlugin {
@@ -57,38 +59,41 @@ function getRawExternalItem(
 							issuer: data.contextInfo.issuer,
 							issuerLayer: data.contextInfo.issuerLayer ?? null
 						},
-						getResolve: options => (context, request, callback) => {
-							const resolver = new Resolver(ctx.getResolver());
-							const child = options ? resolver.withOptions(options) : resolver;
-							const getResolveContext = () => ({
-								fileDependencies: compiler._lastCompilation!.fileDependencies,
-								missingDependencies:
-									compiler._lastCompilation!.missingDependencies,
-								contextDependencies:
-									compiler._lastCompilation!.contextDependencies
-							});
-							if (callback) {
-								child.resolve(
-									{},
-									context,
-									request,
-									getResolveContext(),
-									callback
-								);
-							} else {
-								return new Promise((resolve, reject) => {
-									child.resolve(
-										{},
-										context,
-										request,
-										getResolveContext(),
-										(err, result) => {
-											if (err) reject(err);
-											else resolve(result);
+						getResolve(options) {
+							const rawResolve = options ? getRawResolve(options) : undefined;
+							const resolve = ctx.getResolve(rawResolve);
+
+							return (
+								context: string,
+								request: string,
+								callback?: ResolveCallback
+							) => {
+								if (callback) {
+									resolve(context, request, (error, text) => {
+										if (error) {
+											callback(error);
+										} else {
+											const req = text
+												? (JSON.parse(text) as ResolveRequest)
+												: undefined;
+											callback(null, req?.path ?? false, req);
 										}
-									);
-								});
-							}
+									});
+								} else {
+									return new Promise((res, rej) => {
+										resolve(context, request, (error, text) => {
+											if (error) {
+												rej(error);
+											} else {
+												const req = text
+													? (JSON.parse(text) as ResolveRequest)
+													: undefined;
+												res(req?.path);
+											}
+										});
+									});
+								}
+							};
 						}
 					},
 					(err, result, type) => {

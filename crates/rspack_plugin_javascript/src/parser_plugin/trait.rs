@@ -347,6 +347,7 @@ pub trait JavascriptParserPlugin {
     _source: &Atom,
     _local_id: Option<&Atom>,
     _export_name: Option<&Atom>,
+    _export_name_span: Option<Span>,
   ) -> Option<bool> {
     None
   }
@@ -357,6 +358,7 @@ pub trait JavascriptParserPlugin {
     _statement: ExportLocal,
     _local_id: &Atom,
     _export_name: &Atom,
+    _export_name_span: Span,
   ) -> Option<bool> {
     None
   }

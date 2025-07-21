@@ -404,8 +404,8 @@ export declare class JsModuleGraph {
 }
 
 export declare class JsResolver {
-  resolveSync(path: string, request: string): JsResourceData | false
-  resolve(path: string, request: string, callback: (err: null | Error, req?: JsResourceData) => void): void
+  resolveSync(path: string, request: string): string | undefined
+  resolve(path: string, request: string, callback: (err: null | Error, req?: string) => void): void
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -463,7 +463,7 @@ export declare class NativeWatchResult {
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
-  getResolver(): JsResolver
+  getResolve(options?: RawResolveOptionsWithDependencyType | undefined | null): (context: string, path: string, callback: (error?: Error, text?: string) => void) => void
 }
 
 export declare class ReadonlyResourceData {
@@ -2598,6 +2598,7 @@ export interface RawSubresourceIntegrityPluginOptions {
 }
 
 export interface RawSwcJsMinimizerOptions {
+  ecma: any
   compress: any
   mangle: any
   format: any
