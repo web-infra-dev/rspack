@@ -224,9 +224,6 @@ impl JavascriptParser<'_> {
   }
 
   fn is_this_member_expr_start<E: ExprLike>(&self, expr: &E) -> bool {
-    if self.enter_call != 0 {
-      return false;
-    }
     fn walk_each<E: ExprLike>(parser: &JavascriptParser, expr: &E) -> bool {
       if parser.is_top_level_this_expr(expr) {
         true
