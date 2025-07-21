@@ -39,6 +39,7 @@ fn bundle_benchmark(c: &mut Criterion) {
         |(compiler_context, mut compiler)| {
           within_compiler_context(compiler_context, async move {
             compiler.run().await.unwrap();
+            assert!(compiler.compilation.get_errors().next().is_none());
           })
         },
         criterion::BatchSize::PerIteration,
