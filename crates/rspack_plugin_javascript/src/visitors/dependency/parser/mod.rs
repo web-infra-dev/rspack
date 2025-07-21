@@ -277,7 +277,6 @@ impl<'parser> JavascriptParser<'parser> {
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    parser_pre_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
@@ -289,7 +288,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
 
-    plugins.append(parser_pre_plugins);
+    plugins.append(parser_plugins);
 
     plugins.push(Box::new(parser_plugin::InitializeEvaluating));
     plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
@@ -374,7 +373,6 @@ impl<'parser> JavascriptParser<'parser> {
         plugins.push(Box::new(parser_plugin::InlineConstPlugin));
       }
     }
-    plugins.append(parser_plugins);
 
     if !matches!(
       javascript_options
