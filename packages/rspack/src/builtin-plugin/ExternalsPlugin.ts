@@ -73,20 +73,31 @@ function getRawExternalItem(
 								request: string,
 								callback?: ResolveCallback
 							) => {
-								return new Promise((res, rej) => {
+								if (callback) {
 									resolve(context, request, (error, text) => {
 										if (error) {
-											rej(error);
 											callback?.(error);
 										} else {
 											const req = text
 												? (JSON.parse(text) as ResolveRequest)
 												: undefined;
 											callback?.(null, req?.path ?? false, req);
-											res(req?.path);
 										}
 									});
-								});
+								} else {
+									return new Promise((res, rej) => {
+										resolve(context, request, (error, text) => {
+											if (error) {
+												rej(error);
+											} else {
+												const req = text
+													? (JSON.parse(text) as ResolveRequest)
+													: undefined;
+												res(req?.path);
+											}
+										});
+									});
+								}
 							};
 						}
 					},
