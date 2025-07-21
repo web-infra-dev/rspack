@@ -50,7 +50,6 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JavaScriptParserAndGenerator")
       .field("parser_plugins", &"...")
-      .field("parser_pre_plugins", &"...")
       .finish()
   }
 }

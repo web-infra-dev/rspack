@@ -27,6 +27,7 @@ impl Task<MakeTaskContext> for AddTask {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
+    // reuse module for self referenced module
     if self.module.as_self_module().is_some() {
       let issuer = self
         .module_graph_module
@@ -41,10 +42,10 @@ impl Task<MakeTaskContext> for AddTask {
         *issuer,
       )?;
 
-      // reused module
       return Ok(vec![]);
     }
 
+    // reuse module if module is already added by other dependency
     if module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .is_some()
@@ -56,7 +57,6 @@ impl Task<MakeTaskContext> for AddTask {
         module_identifier,
       )?;
 
-      // reused module
       return Ok(vec![]);
     }
 
