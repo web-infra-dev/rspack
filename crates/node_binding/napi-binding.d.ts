@@ -404,8 +404,8 @@ export declare class JsModuleGraph {
 }
 
 export declare class JsResolver {
-  resolveSync(path: string, request: string): JsResourceData | false
-  resolve(path: string, request: string, callback: (err: null | Error, req?: JsResourceData) => void): void
+  resolveSync(path: string, request: string): string | undefined
+  resolve(path: string, request: string, callback: (err: null | Error, req?: string) => void): void
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
