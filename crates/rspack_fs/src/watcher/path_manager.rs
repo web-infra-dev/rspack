@@ -139,7 +139,7 @@ impl PathUpdater {
             return Ok::<Option<ArcPath>, rspack_error::Error>(None);
           }
         }
-        return Ok(Some(ArcPath::from(PathBuf::from(&added))));
+        Ok(Some(ArcPath::from(PathBuf::from(&added))))
       };
       handles.push(tokio::spawn(fut));
     }
