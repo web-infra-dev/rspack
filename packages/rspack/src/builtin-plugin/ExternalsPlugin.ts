@@ -71,12 +71,12 @@ function getRawExternalItem(
 								if (callback) {
 									resolve(context, request, (error, text) => {
 										if (error) {
-											callback?.(error);
+											callback(error);
 										} else {
 											const req = text
 												? (JSON.parse(text) as ResolveRequest)
 												: undefined;
-											callback?.(null, req?.path ?? false, req);
+											callback(null, req?.path ?? false, req);
 										}
 									});
 								} else {
