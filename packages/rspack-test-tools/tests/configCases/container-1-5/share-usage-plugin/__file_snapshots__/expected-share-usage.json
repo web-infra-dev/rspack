@@ -3,24 +3,92 @@
     "used_exports": ["map", "filter", "isEmpty", "isArray", "isObject", "clone", "merge", "reduce"],
     "unused_exports": ["uniq", "debounce", "groupBy", "partition", "cloneDeep", "mergeWith", "sortBy"],
     "possibly_unused_exports": [],
-    "entry_module_id": "42"
+    "entry_module_id": "42",
+    "chunk_characteristics": [
+      {
+        "is_runtime_chunk": false,
+        "has_runtime": false,
+        "is_entrypoint": false,
+        "can_be_initial": false,
+        "is_only_initial": false,
+        "chunk_format": "jsonp",
+        "chunk_loading_type": null,
+        "runtime_names": [],
+        "entry_name": null,
+        "has_async_chunks": false,
+        "chunk_files": ["shared-lodash-es.js"],
+        "is_shared_chunk": true,
+        "shared_modules": ["lodash-es"]
+      }
+    ]
   },
   "react": {
     "used_exports": ["createElement", "default"],
     "unused_exports": ["useState", "useEffect"],
     "possibly_unused_exports": [],
-    "entry_module_id": "24"
+    "entry_module_id": "24",
+    "chunk_characteristics": [
+      {
+        "is_runtime_chunk": false,
+        "has_runtime": false,
+        "is_entrypoint": false,
+        "can_be_initial": false,
+        "is_only_initial": false,
+        "chunk_format": "jsonp",
+        "chunk_loading_type": null,
+        "runtime_names": [],
+        "entry_name": null,
+        "has_async_chunks": false,
+        "chunk_files": ["shared-react.js"],
+        "is_shared_chunk": true,
+        "shared_modules": ["react"]
+      }
+    ]
   },
   "local-cjs-module": {
     "used_exports": ["usedLocalFunction", "constantValue", "nestedObject"],
     "unused_exports": ["unusedLocalFunction", "unusedConstant", "directProperty"],
     "possibly_unused_exports": [],
-    "entry_module_id": "101"
+    "entry_module_id": "101",
+    "chunk_characteristics": [
+      {
+        "is_runtime_chunk": false,
+        "has_runtime": false,
+        "is_entrypoint": false,
+        "can_be_initial": false,
+        "is_only_initial": false,
+        "chunk_format": "jsonp",
+        "chunk_loading_type": null,
+        "runtime_names": [],
+        "entry_name": null,
+        "has_async_chunks": false,
+        "chunk_files": ["shared-local-cjs-module.js"],
+        "is_shared_chunk": true,
+        "shared_modules": ["local-cjs-module"]
+      }
+    ]
   },
   "local-esm-module": {
     "used_exports": ["usedLocalUtil", "USED_LOCAL_CONSTANT", "default"],
     "unused_exports": ["unusedLocalUtil", "UNUSED_LOCAL_CONSTANT"],
     "possibly_unused_exports": [],
-    "entry_module_id": "102"
+    "entry_module_id": "102",
+    "chunk_characteristics": [
+      {
+        "is_runtime_chunk": false,
+        "has_runtime": false,
+        "is_entrypoint": false,
+        "can_be_initial": false,
+        "is_only_initial": false,
+        "chunk_format": "jsonp",
+        "chunk_loading_type": null,
+        "runtime_names": [],
+        "entry_name": null,
+        "has_async_chunks": false,
+        "chunk_files": ["shared-local-esm-module.js"],
+        "is_shared_chunk": true,
+        "shared_modules": ["local-esm-module"]
+      }
+    ]
   }
 }
