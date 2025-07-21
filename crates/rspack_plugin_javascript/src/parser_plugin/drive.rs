@@ -651,9 +651,17 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     source: &Atom,
     local_id: Option<&Atom>,
     export_name: Option<&Atom>,
+    export_name_span: Option<Span>,
   ) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.export_import_specifier(parser, statement, source, local_id, export_name);
+      let res = plugin.export_import_specifier(
+        parser,
+        statement,
+        source,
+        local_id,
+        export_name,
+        export_name_span,
+      );
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -668,9 +676,10 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     statement: ExportLocal,
     local_id: &Atom,
     export_name: &Atom,
+    export_name_span: Span,
   ) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.export_specifier(parser, statement, local_id, export_name);
+      let res = plugin.export_specifier(parser, statement, local_id, export_name, export_name_span);
       // `SyncBailHook`
       if res.is_some() {
         return res;

@@ -77,6 +77,19 @@ impl ExportAllDeclaration<'_> {
     }
   }
 
+  pub fn exported_name_span(&self) -> Option<Span> {
+    match self {
+      ExportAllDeclaration::All(_) => None,
+      ExportAllDeclaration::NamedAll(e) => Some(
+        e.specifiers
+          .first()
+          .and_then(|e| e.as_namespace())
+          .map(|e| e.name.span())
+          .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must one specifier"),
+      ),
+    }
+  }
+
   pub fn exported_name(&self) -> Option<&Atom> {
     match self {
       ExportAllDeclaration::All(_) => None,
