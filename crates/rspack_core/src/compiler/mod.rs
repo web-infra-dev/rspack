@@ -93,7 +93,7 @@ pub struct Compiler {
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub cache: Arc<dyn Cache>,
+  pub cache: Box<dyn Cache>,
   pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
@@ -173,7 +173,6 @@ impl Compiler {
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
-        cache.clone(),
         old_cache.clone(),
         incremental,
         Some(module_executor),
@@ -231,7 +230,6 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        self.cache.clone(),
         self.old_cache.clone(),
         Incremental::new_cold(self.options.experiments.incremental),
         Some(Default::default()),
