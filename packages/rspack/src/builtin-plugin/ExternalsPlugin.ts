@@ -5,12 +5,7 @@ import {
 	type RawExternalsPluginOptions
 } from "@rspack/binding";
 
-import type {
-	Compiler,
-	ExternalItem,
-	ExternalItemValue,
-	Externals
-} from "..";
+import type { Compiler, ExternalItem, ExternalItemValue, Externals } from "..";
 import { getRawResolve } from "../config/adapter";
 import type { ResolveCallback } from "../config/adapterRuleUse";
 import type { ResolveRequest } from "../Resolver";
