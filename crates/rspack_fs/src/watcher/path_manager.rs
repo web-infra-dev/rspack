@@ -148,9 +148,11 @@ impl PathUpdater {
       });
     }
 
-    // Collect and process results
-    while let Some(result) = tasks.join_next().await {
-      if let Some(path) = result.map_err(|e| rspack_error::error!(e.to_string()))?? {
+    let should_added_paths = tasks.join_all().await;
+
+    for should_added_path in should_added_paths {
+      if let Some(path) = should_added_path? {
+        // Insert the path into the set
         paths.insert(path.clone());
         incremental_manager.insert_added(path);
       }
