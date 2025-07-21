@@ -144,7 +144,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
-      additional_data,
       mut parse_meta,
       ..
     } = parse_context;
@@ -270,7 +269,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         unresolved_mark,
         &mut self.parser_plugins,
         &mut self.parser_pre_plugins,
-        additional_data,
         parse_meta,
       )
     }) {

@@ -907,8 +907,6 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
-    self.enter_call += 1;
-
     fn is_simple_function(params: &[Param]) -> bool {
       params.iter().all(|p| matches!(p.pat, Pat::Ident(_)))
     }
@@ -968,7 +966,6 @@ impl JavascriptParser<'_> {
               })
               .unwrap_or_default()
           {
-            self.enter_call -= 1;
             return;
           }
           let evaluated_callee = self.evaluate_expression(callee);
@@ -1001,7 +998,6 @@ impl JavascriptParser<'_> {
               .unwrap_or_default()
             {
               /* result1 */
-              self.enter_call -= 1;
               return;
             }
 
@@ -1010,7 +1006,6 @@ impl JavascriptParser<'_> {
               .unwrap_or_default()
             {
               /* result2 */
-              self.enter_call -= 1;
               return;
             }
           }
@@ -1038,7 +1033,6 @@ impl JavascriptParser<'_> {
           .import_call(self, expr)
           .unwrap_or_default()
         {
-          self.enter_call -= 1;
           return;
         }
 
@@ -1049,8 +1043,6 @@ impl JavascriptParser<'_> {
         self.walk_expr_or_spread(&expr.args);
       }
     }
-
-    self.enter_call -= 1;
   }
 
   pub fn walk_expr_or_spread(&mut self, args: &Vec<ExprOrSpread>) {
