@@ -25,17 +25,17 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOpt
 #[async_trait::async_trait]
 pub trait Cache: Debug + Send + Sync {
   /// before compile return is_hot_start
-  async fn before_compile(&self, _compilation: &mut Compilation) -> Result<bool> {
+  async fn before_compile(&mut self, _compilation: &mut Compilation) -> Result<bool> {
     Ok(false)
   }
-  async fn after_compile(&self, _compilation: &Compilation) -> Result<()> {
+  async fn after_compile(&mut self, _compilation: &Compilation) -> Result<()> {
     Ok(())
   }
 
-  async fn before_make(&self, _make_artifact: &mut MakeArtifact) -> Result<()> {
+  async fn before_make(&mut self, _make_artifact: &mut MakeArtifact) -> Result<()> {
     Ok(())
   }
-  async fn after_make(&self, _make_artifact: &MakeArtifact) -> Result<()> {
+  async fn after_make(&mut self, _make_artifact: &MakeArtifact) -> Result<()> {
     Ok(())
   }
 }
