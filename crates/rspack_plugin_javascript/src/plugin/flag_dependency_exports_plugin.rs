@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -59,13 +57,13 @@ impl<'a> FlagDependencyExportsState<'a> {
     while !batch.is_empty() {
       let modules = std::mem::take(&mut batch);
       let module_exports_specs = modules
-        .into_iter()
+        .into_par_iter()
         .map(|module_id| {
           let exports_specs =
             collect_module_exports_specs(&module_id, self.mg, self.mg_cache).unwrap_or_default();
           (module_id, exports_specs)
         })
-        .collect::<VecDeque<_>>();
+        .collect::<Vec<_>>();
 
       let mut changed_modules = FxHashSet::default();
 
