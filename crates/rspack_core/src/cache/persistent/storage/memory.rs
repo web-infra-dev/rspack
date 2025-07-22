@@ -42,6 +42,9 @@ impl Storage for MemoryStorage {
     let _ = rs.send(Ok(()));
     Ok(rx)
   }
+  async fn reset(&self) {
+    self.inner.lock().expect("should get lock").clear();
+  }
 }
 
 #[cfg(test)]
@@ -70,5 +73,8 @@ mod tests {
     storage.remove(scope, "b".as_bytes());
     let arr = storage.load(scope).await.unwrap();
     assert_eq!(arr.len(), 1);
+    storage.reset().await;
+    let arr = storage.load(scope).await.unwrap();
+    assert_eq!(arr.len(), 0);
   }
 }

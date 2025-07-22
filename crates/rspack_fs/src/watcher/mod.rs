@@ -70,7 +70,7 @@ pub struct FsWatcher {
 }
 
 impl FsWatcher {
-  pub fn new(options: FsWatcherOptions, ignored: Option<Box<dyn Ignored>>) -> Self {
+  pub fn new(options: FsWatcherOptions, ignored: Option<Arc<dyn Ignored>>) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager = Arc::new(PathManager::new(ignored));

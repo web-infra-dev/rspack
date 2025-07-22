@@ -94,18 +94,15 @@ importers:
 
   crates/node_binding:
     devDependencies:
-      '@emnapi/core':
-        specifier: ^1.4.4
-        version: 1.4.4
       '@napi-rs/cli':
-        specifier: 3.0.0-alpha.99
-        version: 3.0.0-alpha.99(@emnapi/runtime@1.4.3)(@types/node@20.19.8)(emnapi@1.4.4)
+        specifier: 3.0.1
+        version: 3.0.1(@emnapi/runtime@1.4.5)(@types/node@20.19.8)(emnapi@1.4.5)
       '@napi-rs/wasm-runtime':
-        specifier: ^0.2.12
-        version: 0.2.12
+        specifier: ^1.0.1
+        version: 1.0.1
       emnapi:
-        specifier: ^1.4.4
-        version: 1.4.4
+        specifier: ^1.4.5
+        version: 1.4.5
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -128,18 +125,15 @@ importers:
 
   crates/rspack_binding_builder_testing:
     devDependencies:
-      '@emnapi/core':
-        specifier: ^1.4.4
-        version: 1.4.4
       '@napi-rs/cli':
-        specifier: 3.0.0-alpha.99
-        version: 3.0.0-alpha.99(@emnapi/runtime@1.4.3)(@types/node@20.19.8)(emnapi@1.4.4)
+        specifier: 3.0.1
+        version: 3.0.1(@emnapi/runtime@1.4.5)(@types/node@20.19.8)(emnapi@1.4.5)
       '@napi-rs/wasm-runtime':
-        specifier: ^0.2.12
-        version: 0.2.12
+        specifier: ^1.0.1
+        version: 1.0.1
       emnapi:
-        specifier: ^1.4.4
-        version: 1.4.4
+        specifier: ^1.4.5
+        version: 1.4.5
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -177,8 +171,8 @@ importers:
   npm/wasm32-wasi:
     dependencies:
       '@napi-rs/wasm-runtime':
-        specifier: ^0.2.12
-        version: 0.2.12
+        specifier: ^1.0.1
+        version: 1.0.1
 
   npm/win32-x64-msvc: {}
 
@@ -1628,11 +1622,20 @@ packages:
   '@emnapi/core@1.4.4':
     resolution: {integrity: sha512-A9CnAbC6ARNMKcIcrQwq6HeHCjpcBZ5wSx4U01WXCqEKlrzB9F9315WDNHkrs2xbx7YjjSxbUYxuN6EQzpcY2g==}
 
+  '@emnapi/core@1.4.5':
+    resolution: {integrity: sha512-XsLw1dEOpkSX/WucdqUhPWP7hDxSvZiY+fsUC14h+FtQ2Ifni4znbBt8punRX+Uj2JG/uDb8nEHVKvrVlvdZ5Q==}
+
   '@emnapi/runtime@1.4.3':
     resolution: {integrity: sha512-pBPWdu6MLKROBX05wSNKcNb++m5Er+KQ9QkB+WVM+pW2Kx9hoSrVTnu3BdkI5eBLZoKu/J6mW/B6i6bJB2ytXQ==}
 
+  '@emnapi/runtime@1.4.5':
+    resolution: {integrity: sha512-++LApOtY0pEEz1zrd9vy1/zXVaVJJ/EbAF3u0fXIzPJEDtnITsBGbbK0EkM72amhl/R5b+5xx0Y/QhcVOpuulg==}
+
   '@emnapi/wasi-threads@1.0.3':
     resolution: {integrity: sha512-8K5IFFsQqF9wQNJptGbS6FNKgUTsSRYnTqNCG1vPP8jFdjSv18n2mQfJpkt2Oibo9iBEzcDnDxNwKTzC7svlJw==}
+
+  '@emnapi/wasi-threads@1.0.4':
+    resolution: {integrity: sha512-PJR+bOmMOPH8AtcTGAyYNiuJ3/Fcoj2XN/gBEWzDIKh254XO+mM9XoXHk5GNEhodxeMznbg7BlRojVbKN+gC6g==}
 
   '@esbuild/aix-ppc64@0.25.5':
     resolution: {integrity: sha512-9o3TMmpmftaCMepOdA5k/yDw8SfInyzWWTjYTFCX3kPSDJMROQTb8jg+h9Cnwnmm1vOzvxN7gIfB5V2ewpjtGA==}
@@ -2147,8 +2150,8 @@ packages:
   '@module-federation/webpack-bundler-runtime@0.17.0':
     resolution: {integrity: sha512-o8XtXwqTDlqLgcALOfObcCbqXvUcSDHIEXrkcb4W+I8GJY7IqV0+x6rX4mJ3f59tca9qOF8zsZsOA6BU93Pvgw==}
 
-  '@napi-rs/cli@3.0.0-alpha.99':
-    resolution: {integrity: sha512-g+a+r+7wbK3f7jKWGPEpjTxClFYJfAsUfhaW06AoqnhUidrMOEwbPLKqYg+kApYfhR2+PRiV5mImZNFBTLx3uQ==}
+  '@napi-rs/cli@3.0.1':
+    resolution: {integrity: sha512-rO2aDZRzqs0bCPUpfaExKjK0L999FvT3iQK3f1NfnKa1njlaHqO7XK/mUzxn9pnrTglfyFixU4+S3SzzTaaKNA==}
     engines: {node: '>= 16'}
     hasBin: true
     peerDependencies:
@@ -2389,6 +2392,9 @@ packages:
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
+
+  '@napi-rs/wasm-runtime@1.0.1':
+    resolution: {integrity: sha512-KVlQ/jgywZpixGCKMNwxStmmbYEMyokZpCf2YuIChhfJA2uqfAKNEM8INz7zzTo55iEXfBhIIs3VqYyqzDLj8g==}
 
   '@napi-rs/wasm-tools-android-arm-eabi@0.0.3':
     resolution: {integrity: sha512-T2tme8w5jZ/ZCjJurqNtKCxYtGoDjW9v2rn1bfI60ewCfkYXNpxrTURdkOib85sz+BcwmOfXn0enbg5W9KohoQ==}
@@ -4582,8 +4588,8 @@ packages:
     resolution: {integrity: sha512-DeWwawk6r5yR9jFgnDKYt4sLS0LmHJJi3ZOnb5/JdbYwj3nW+FxQnHIjhBKz8YLC7oRNPVM9NQ47I3CVx34eqQ==}
     engines: {node: '>=12'}
 
-  emnapi@1.4.4:
-    resolution: {integrity: sha512-cq7665hIGMLliYusV9SV9JMDuIZ9iVBUcs/OhqawSqrEO/0gB1L5O80PLaEXauCnag4c1tPimCaBwKUYITeZLA==}
+  emnapi@1.4.5:
+    resolution: {integrity: sha512-qYEfWKYngSahxc6Y+zajiiwzhhn5TkRci3BLQFKHVqT3vxj061IWCgaESZ9921OsbPiyetX43kckXw80dj9d6g==}
     peerDependencies:
       node-addon-api: '>= 6.1.0'
     peerDependenciesMeta:
@@ -8830,12 +8836,28 @@ snapshots:
     dependencies:
       '@emnapi/wasi-threads': 1.0.3
       tslib: 2.8.1
+    optional: true
+
+  '@emnapi/core@1.4.5':
+    dependencies:
+      '@emnapi/wasi-threads': 1.0.4
+      tslib: 2.8.1
 
   '@emnapi/runtime@1.4.3':
     dependencies:
       tslib: 2.8.1
+    optional: true
+
+  '@emnapi/runtime@1.4.5':
+    dependencies:
+      tslib: 2.8.1
 
   '@emnapi/wasi-threads@1.0.3':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
+  '@emnapi/wasi-threads@1.0.4':
     dependencies:
       tslib: 2.8.1
 
@@ -9463,7 +9485,7 @@ snapshots:
       '@module-federation/runtime': 0.17.0
       '@module-federation/sdk': 0.17.0
 
-  '@napi-rs/cli@3.0.0-alpha.99(@emnapi/runtime@1.4.3)(@types/node@20.19.8)(emnapi@1.4.4)':
+  '@napi-rs/cli@3.0.1(@emnapi/runtime@1.4.5)(@types/node@20.19.8)(emnapi@1.4.5)':
     dependencies:
       '@inquirer/prompts': 7.5.3(@types/node@20.19.8)
       '@napi-rs/cross-toolchain': 0.0.19
@@ -9479,8 +9501,8 @@ snapshots:
       typanion: 3.14.0
       wasm-sjlj: 1.0.6
     optionalDependencies:
-      '@emnapi/runtime': 1.4.3
-      emnapi: 1.4.4
+      '@emnapi/runtime': 1.4.5
+      emnapi: 1.4.5
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
@@ -9645,6 +9667,13 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.4.4
       '@emnapi/runtime': 1.4.3
+      '@tybys/wasm-util': 0.10.0
+    optional: true
+
+  '@napi-rs/wasm-runtime@1.0.1':
+    dependencies:
+      '@emnapi/core': 1.4.5
+      '@emnapi/runtime': 1.4.5
       '@tybys/wasm-util': 0.10.0
 
   '@napi-rs/wasm-tools-android-arm-eabi@0.0.3':
@@ -12029,7 +12058,7 @@ snapshots:
 
   emittery@0.13.1: {}
 
-  emnapi@1.4.4: {}
+  emnapi@1.4.5: {}
 
   emoji-regex@10.4.0: {}
 

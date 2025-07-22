@@ -5,8 +5,6 @@ mod execute;
 mod module_tracker;
 mod overwrite;
 
-use std::sync::Arc;
-
 use context::{ExecutorTaskContext, ImportModuleMeta};
 use entry::EntryTask;
 use execute::ExecuteTask;
@@ -28,8 +26,7 @@ use self::{
 };
 use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
 use crate::{
-  cache::MemoryCache, task_loop::run_task_loop, Compilation, CompilationAsset, Context,
-  DependencyId, PublicPath,
+  task_loop::run_task_loop, Compilation, CompilationAsset, Context, DependencyId, PublicPath,
 };
 
 #[derive(Debug, Default)]
@@ -63,7 +60,7 @@ impl ModuleExecutor {
     make_artifact = update_module_graph(compilation, make_artifact, params).await?;
 
     let mut ctx = ExecutorTaskContext {
-      origin_context: MakeTaskContext::new(compilation, make_artifact, Arc::new(MemoryCache)),
+      origin_context: MakeTaskContext::new(compilation, make_artifact),
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
       executed_entry_deps: Default::default(),

@@ -1,0 +1,8 @@
+const path = require("path");
+const fs = require("fs");
+
+it("should inject unique id when use bundlerInfo.force=true", () => {
+	expect(
+		fs.readFileSync(path.join(__dirname, "bundle0.js"), "utf-8")
+	).toContain(`__webpack_require__.ruid`);
+});

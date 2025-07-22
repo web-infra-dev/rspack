@@ -1,4 +1,4 @@
-import { createFsProxy, instantiateNapiModuleSync, MessageHandler, WASI } from '@napi-rs/wasm-runtime'
+import { instantiateNapiModuleSync, MessageHandler, WASI, createFsProxy } from '@napi-rs/wasm-runtime'
 import { memfsExported as __memfsExported } from '@napi-rs/wasm-runtime/fs'
 
 const fs = createFsProxy(__memfsExported)
