@@ -177,7 +177,7 @@ jobs:
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
         run: |
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:release-wasi
+          pnpm --filter @rspack/binding build:release:wasm
           ls -al crates/node_binding
 
       - name: Diff artifact
