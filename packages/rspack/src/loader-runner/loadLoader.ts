@@ -11,9 +11,9 @@
 import type Url from "node:url";
 import type { LoaderDefinitionFunction } from "../config";
 import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
-import type { LoaderObject } from ".";
 import type { Compiler } from "../exports";
 import { nonWebpackRequire } from "../util/require";
+import type { LoaderObject } from ".";
 import LoaderLoadingError from "./LoaderLoadingError";
 
 type ModuleObject = {

@@ -4,8 +4,8 @@ import type {
 	LoaderContext,
 	LoaderContextCallback
 } from "../config/adapterRuleUse";
-import type { LoaderObject } from ".";
 import type { Compiler } from "../exports";
+import type { LoaderObject } from ".";
 import loadLoaderRaw from "./loadLoader";
 
 const decoder = new TextDecoder();
