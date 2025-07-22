@@ -264,8 +264,7 @@ mod test {
     for (name, item) in RuntimeGlobals::all().iter_names() {
       assert!(
         runtime_globals.contains(item),
-        "missing runtime global in RUNTIME_GLOBAL_MAP.\nname: {:?}",
-        name
+        "missing runtime global in RUNTIME_GLOBAL_MAP.\nname: {name}"
       );
     }
   }
