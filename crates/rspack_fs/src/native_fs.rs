@@ -231,10 +231,37 @@ impl ReadableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
+    let dir = if self.options.pnp {
+      let path = dir.as_std_path();
+      match VPath::from(path)? {
+        VPath::Zip(info) => {
+          use std::path::{Path, PathBuf};
+
+          self.pnp_lru.act(info.physical_base_path(), |zip| {
+            for path in zip.dirs.iter().chain(zip.files.keys()) {
+              let pathbuf = PathBuf::from(path);
+              let file_name = pathbuf.file_name().unwrap_or_default();
+              let parent_path = pathbuf.parent().unwrap_or(Path::new(""));
+              if PathBuf::from(&info.zip_path) == parent_path {
+                res.push(file_name.to_string_lossy().to_string());
+              }
+            }
+          })?;
+
+          return Ok(res);
+        }
+        VPath::Virtual(info) => info.physical_base_path(),
+        VPath::Native(path) => path,
+      }
+    } else {
+      dir.into()
+    };
+
     for entry in fs::read_dir(dir)? {
       let entry = entry?;
       res.push(entry.file_name().to_string_lossy().to_string());
     }
+
     Ok(res)
   }
   #[instrument(skip(self), level = "debug")]
