@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-browser         = ["rspack_napi/browser"]
+browser         = ["dep:rspack_browser", "rspack_napi/browser"]
 color-backtrace = ["dep:color-backtrace"]
 debug_tool      = ["rspack_core/debug_tool"]
 plugin          = ["rspack_loader_swc/plugin"]
@@ -60,6 +60,7 @@ heck                                   = { workspace = true }
 once_cell                              = { workspace = true }
 rayon                                  = { workspace = true }
 regex                                  = { workspace = true }
+rspack_browser                         = { workspace = true, optional = true }
 rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
 rspack_javascript_compiler             = { workspace = true }
