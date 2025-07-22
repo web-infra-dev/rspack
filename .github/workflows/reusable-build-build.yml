@@ -175,6 +175,11 @@ jobs:
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
+      - name: Debug
+        uses: ./.github/actions/debugger
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # WASM
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
