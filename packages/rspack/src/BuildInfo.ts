@@ -1,5 +1,5 @@
 import util from "node:util";
-import * as binding from "@rspack/binding";
+import binding from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 const $assets: unique symbol = Symbol("assets");

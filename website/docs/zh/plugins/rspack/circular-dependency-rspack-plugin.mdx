@@ -131,7 +131,7 @@ export default {
 - **类型:** `RegExp`
 - **默认值:** `undefined`
 
-和 webpack 插件 [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin) 里的 `exclude` 配置类似，检测到的任何包含该模式匹配的模块标识符的循环依赖都会被忽略。
+和 webpack 插件 [`circular-dependency-plugin`](https://github.com/aackerman/circular-dependency-plugin) 里的 `exclude` 配置类似，检测到的任何包含该模式匹配的模块路径的循环依赖都会被忽略。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

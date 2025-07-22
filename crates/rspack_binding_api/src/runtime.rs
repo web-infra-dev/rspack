@@ -91,9 +91,13 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   declare_runtime_global!(PREFETCH_CHUNK_HANDLERS);
   declare_runtime_global!(PRELOAD_CHUNK);
   declare_runtime_global!(PRELOAD_CHUNK_HANDLERS);
+  declare_runtime_global!(UNCAUGHT_ERROR_HANDLER);
   declare_runtime_global!(RSPACK_VERSION);
   declare_runtime_global!(HAS_CSS_MODULES);
+  declare_runtime_global!(RSPACK_UNIQUE_ID);
   declare_runtime_global!(HAS_FETCH_PRIORITY);
+  declare_runtime_global!(AMD_DEFINE);
+  declare_runtime_global!(AMD_OPTIONS);
 
   to_js_map.shrink_to_fit();
   from_js_map.shrink_to_fit();
@@ -244,3 +248,24 @@ impl From<RuntimeModuleChunkWrapper> for ChunkWrapper {
 }
 
 pub type JsRuntimeSpec = Option<Either<String, Vec<String>>>;
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_has_all_runtime_globals() {
+    let mut runtime_globals = RuntimeGlobals::default();
+
+    for item in RUNTIME_GLOBAL_MAP.0.keys() {
+      runtime_globals.extend(*item);
+    }
+
+    for (name, item) in RuntimeGlobals::all().iter_names() {
+      assert!(
+        runtime_globals.contains(item),
+        "missing runtime global in RUNTIME_GLOBAL_MAP.\nname: {name}"
+      );
+    }
+  }
+}

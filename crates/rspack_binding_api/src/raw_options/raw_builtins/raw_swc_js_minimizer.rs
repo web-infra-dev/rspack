@@ -32,6 +32,7 @@ pub struct RawSwcJsMinimizerRspackPluginOptions {
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawSwcJsMinimizerOptions {
+  pub ecma: serde_json::Value,
   pub compress: serde_json::Value,
   pub mangle: serde_json::Value,
   pub format: serde_json::Value,
@@ -78,6 +79,11 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
       BoolOrDataConfig<rspack_plugin_swc_js_minimizer::MangleOptions>,
     >(value.minimizer_options.mangle)?
     .or(|| BoolOrDataConfig::from_bool(true));
+
+    let ecma = try_deserialize_into::<rspack_plugin_swc_js_minimizer::TerserEcmaVersion>(
+      value.minimizer_options.ecma,
+    )?;
+
     Ok(Self {
       extract_comments: into_extract_comments(value.extract_comments),
       test: value.test.map(into_asset_conditions),
@@ -86,6 +92,7 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
       minimizer_options: MinimizerOptions {
         compress,
         mangle,
+        ecma,
         format: try_deserialize_into(value.minimizer_options.format)?,
         module: value.minimizer_options.module,
         minify: value.minimizer_options.minify,

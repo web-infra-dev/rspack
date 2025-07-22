@@ -1,6 +1,9 @@
-use swc_core::ecma::ast::{
-  DefaultDecl, ExportSpecifier, ExprStmt, ImportDecl, ImportSpecifier, ModuleDecl,
-  ModuleExportName, ModuleItem, Stmt, VarDecl, VarDeclKind,
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{
+    DefaultDecl, ExportSpecifier, ExprStmt, ImportDecl, ImportSpecifier, ModuleDecl,
+    ModuleExportName, ModuleItem, Stmt, VarDecl, VarDeclKind,
+  },
 };
 
 use super::{
@@ -138,18 +141,20 @@ impl JavascriptParser<'_> {
             ExportLocal::Named(export),
             &def.sym,
             &def.sym,
+            def.span,
           );
         });
       }
       ExportNamedDeclaration::Specifiers(named) => {
         for spec in named.specifiers.iter() {
-          let (local_id, exported_name) = match spec {
+          let (local_id, exported_name, exported_name_span) = match spec {
               ExportSpecifier::Namespace(_) => unreachable!("should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"),
               ExportSpecifier::Default(s) => {
-                (JS_DEFAULT_KEYWORD.clone(), s.exported.sym.clone())
+                (JS_DEFAULT_KEYWORD.clone(), s.exported.sym.clone(), s.exported.span())
               },
               ExportSpecifier::Named(n) => {
-                (n.orig.atom().clone(), n.exported.as_ref().unwrap_or(&n.orig).atom().clone())
+                let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
+                (n.orig.atom().clone(), exported_name.atom().clone(), exported_name.span())
               },
             };
           if let Some(src) = &named.src {
@@ -159,6 +164,7 @@ impl JavascriptParser<'_> {
               &src.value,
               Some(&local_id),
               Some(&exported_name),
+              Some(exported_name_span),
             );
           } else {
             self.plugin_drive.clone().export_specifier(
@@ -166,6 +172,7 @@ impl JavascriptParser<'_> {
               ExportLocal::Named(export),
               &local_id,
               &exported_name,
+              exported_name_span,
             );
           }
         }
@@ -193,6 +200,7 @@ impl JavascriptParser<'_> {
                 ExportLocal::Default(export),
                 &ident.sym,
                 &JS_DEFAULT_KEYWORD,
+                ident.span(),
               );
             } else {
               self.plugin_drive.clone().export_expression(
@@ -214,6 +222,7 @@ impl JavascriptParser<'_> {
                 ExportLocal::Default(export),
                 &ident.sym,
                 &JS_DEFAULT_KEYWORD,
+                ident.span(),
               );
             } else {
               self.plugin_drive.clone().export_expression(
@@ -240,13 +249,21 @@ impl JavascriptParser<'_> {
 
   fn block_pre_walk_export_all_declaration(&mut self, decl: ExportAllDeclaration) {
     let exported_name = decl.exported_name();
-    let decl = ExportImport::All(decl);
-    let source = decl.source();
-    self.plugin_drive.clone().export_import(self, decl, source);
+    let exported_name_span = decl.exported_name_span();
+    let statement = ExportImport::All(decl);
+    let source = statement.source();
     self
       .plugin_drive
       .clone()
-      .export_import_specifier(self, decl, source, None, exported_name);
+      .export_import(self, statement, source);
+    self.plugin_drive.clone().export_import_specifier(
+      self,
+      statement,
+      source,
+      None,
+      exported_name,
+      exported_name_span,
+    );
   }
 
   fn block_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {

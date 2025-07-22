@@ -10,9 +10,9 @@ use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
-  AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  BuildMeta, CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl,
-  ModuleIdentifier, ModuleLayer, ModuleType, ResourceData, SpanExt, TypeReexportPresenceMode,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
+  CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier,
+  ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt, TypeReexportPresenceMode,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -214,8 +214,7 @@ impl From<Span> for StatementPath {
 }
 
 pub struct JavascriptParser<'parser> {
-  pub source_map: Arc<SourceMap>,
-  pub(crate) source_file: &'parser SourceFile,
+  // ===== results =======
   pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub dependencies: Vec<BoxDependency>,
@@ -224,38 +223,35 @@ pub struct JavascriptParser<'parser> {
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  // TODO: remove `additional_data` once we have builtin:css-extract-loader
-  pub additional_data: Option<AdditionalData>,
-  pub parse_meta: FxHashMap<String, String>,
+  // ===== inputs =======
+  pub source_map: Arc<SourceMap>,
+  pub(crate) source_file: &'parser SourceFile,
+  pub parse_meta: ParseMeta,
   pub(crate) comments: Option<&'parser dyn Comments>,
-  pub(crate) build_meta: &'parser mut BuildMeta,
+  pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
-  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
-  pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
-  // TODO: remove `is_esm` after `ESMExports::isEnabled`
-  pub(crate) is_esm: bool,
+  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  // ===== states =======
+  pub(crate) definitions_db: ScopeInfoDB,
+  pub(super) definitions: ScopeInfoId,
+  pub(crate) top_level_scope: TopLevelScope,
+  pub(crate) current_tag_info: Option<TagInfoId>,
+  pub in_try: bool,
+  pub(crate) in_short_hand: bool,
   pub(crate) in_tagged_template_tag: bool,
-  // TODO: delete `enter_call`
-  pub(crate) enter_call: u32,
   pub(crate) member_expr_in_optional_chain: bool,
-  pub(crate) destructuring_assignment_properties:
-    Option<FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>>,
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
-  pub(crate) current_tag_info: Option<TagInfoId>,
-  // ===== scope info =======
-  pub in_try: bool,
-  pub(crate) in_short_hand: bool,
-  pub(super) definitions: ScopeInfoId,
-  pub(crate) top_level_scope: TopLevelScope,
-  // ===== states =======
+  pub(crate) is_esm: bool,
+  pub(crate) destructuring_assignment_properties:
+    Option<FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>>,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -281,9 +277,7 @@ impl<'parser> JavascriptParser<'parser> {
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    parser_pre_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    additional_data: Option<AdditionalData>,
-    parse_meta: FxHashMap<String, String>,
+    parse_meta: ParseMeta,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
     let mut errors = Vec::with_capacity(4);
@@ -294,7 +288,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
 
-    plugins.append(parser_pre_plugins);
+    plugins.append(parser_plugins);
 
     plugins.push(Box::new(parser_plugin::InitializeEvaluating));
     plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
@@ -379,7 +373,6 @@ impl<'parser> JavascriptParser<'parser> {
         plugins.push(Box::new(parser_plugin::InlineConstPlugin));
       }
     }
-    plugins.append(parser_plugins);
 
     if !matches!(
       javascript_options
@@ -420,7 +413,6 @@ impl<'parser> JavascriptParser<'parser> {
       module_type,
       module_layer,
       parser_exports_state,
-      enter_call: 0,
       worker_index: 0,
       module_identifier,
       member_expr_in_optional_chain: false,
@@ -430,7 +422,6 @@ impl<'parser> JavascriptParser<'parser> {
       current_tag_info: None,
       prev_statement: None,
       inner_graph: InnerGraphState::new(),
-      additional_data,
       parse_meta,
       local_modules: Default::default(),
       has_inlinable_const_decls: true,

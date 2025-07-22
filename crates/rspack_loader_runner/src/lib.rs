@@ -8,7 +8,7 @@ mod plugin;
 mod runner;
 mod scheme;
 
-pub use content::{AdditionalData, Content, DescriptionData, ResourceData};
+pub use content::{AdditionalData, Content, DescriptionData, ParseMeta, ResourceData};
 pub use context::{LoaderContext, State};
 pub use loader::{parse_resource, DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData};
 pub use plugin::LoaderRunnerPlugin;

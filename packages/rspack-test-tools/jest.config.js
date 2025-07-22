@@ -26,6 +26,7 @@ const wasmConfig = process.env.WASM && {
 		"Incremental-watch.test.js",
 		"Incremental-web.test.js",
 		"Incremental-webworker.test.js"
+		// "NativeWatcher.test.js"
 	],
 	maxWorkers: 1,
 	maxConcurrency: 1,
@@ -77,7 +78,7 @@ const config = {
 
 config.testPathIgnorePatterns = config.testPathIgnorePatterns || [];
 config.testPathIgnorePatterns.push(
-	// Skip temporarily because native watcher is not stable in CI
+	// Skip temporarily because native watcher is always timeout in CI
 	"NativeWatcher.test.js"
 );
 

@@ -13,6 +13,7 @@ const { values, positionals } = require("util").parseArgs({
 
 const { spawn } = require("child_process");
 
+const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
 
 const watch = process.argv.includes("--watch");
@@ -33,7 +34,7 @@ async function build() {
 			"build",
 			"--platform",
 			"--dts",
-			"binding.d.ts",
+			NAPI_BINDING_DTS,
 			"--no-js",
 			// "--no-const-enum",
 			"--no-dts-header",
@@ -69,17 +70,35 @@ async function build() {
 			features.push("sftrace-setup");
 			envs.RUSTFLAGS = "-Zinstrument-xray=always";
 		}
-		if(values.profile === "release"){
+		if (values.profile === "release") {
 			features.push("info-level");
 		}
 		if (features.length) {
 			args.push("--features " + features.join(","));
 		}
 
-		if (positionals.length > 0) {
+		if (positionals.length > 0
+			|| values.profile === "release"
+			|| values.profile === "release-debug"
+			|| values.profile === "release-wasi"
+			|| values.profile === "profiling"
+		) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
-			args.push(...positionals);
+
+			if (values.profile === "release"
+				|| values.profile === "release-debug"
+				|| values.profile === "release-wasi"
+				|| values.profile === "profiling"
+			) {
+				// allows to optimize std with current compile arguments
+				// and avoids std code generate unwind table to save size.
+				args.push("-Zbuild-std=panic_abort,std");
+			}
+
+			if (positionals.length > 0) {
+				args.push(...positionals);
+			}
 		}
 
 		console.log(`Run command: napi ${args.join(" ")}`);
@@ -95,7 +114,7 @@ async function build() {
 			if (code === CARGO_SAFELY_EXIT_CODE) {
 
 				// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
-				const dts = path.resolve(__dirname, "../binding.d.ts");
+				const dts = path.resolve(__dirname, "..", NAPI_BINDING_DTS);
 				writeFileSync(dts,
 					readFileSync(dts, "utf8")
 						.replaceAll("const enum", "enum")

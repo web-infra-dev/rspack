@@ -11,7 +11,7 @@ import { AssetInfo } from '@rspack/binding';
 import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
-import * as binding from '@rspack/binding';
+import binding from '@rspack/binding';
 import { Buffer as Buffer_2 } from 'buffer';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
@@ -4237,7 +4237,7 @@ export type Loader = Record<string, any>;
 // @public (undocumented)
 export interface LoaderContext<OptionsType = {}> {
     // @internal
-    __internal__parseMeta: Record<string, string>;
+    __internal__setParseMeta: (key: string, value: string) => void;
     // (undocumented)
     addBuildDependency(file: string): void;
     addContextDependency(context: string): void;
@@ -6045,8 +6045,6 @@ type ResolveOptionsWithDependencyType_2 = Resolve & {
 class Resolver {
     constructor(binding: binding.JsResolver);
     // (undocumented)
-    binding: binding.JsResolver;
-    // (undocumented)
     resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
@@ -6055,7 +6053,18 @@ class Resolver {
 }
 
 // @public (undocumented)
-type ResolveRequest = ResourceData;
+interface ResolveRequest {
+    // (undocumented)
+    descriptionFileData?: string;
+    // (undocumented)
+    descriptionFilePath?: string;
+    // (undocumented)
+    fragment: string;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    query: string;
+}
 
 // @public (undocumented)
 class ResolverFactory {
@@ -7579,6 +7588,7 @@ export type SwcJsMinimizerRspackPluginOptions = {
     extractComments?: ExtractCommentsOptions | undefined;
     minimizerOptions?: {
         minify?: boolean;
+        ecma?: TerserEcmaVersion_2;
         compress?: TerserCompressOptions_2 | boolean;
         mangle?: TerserMangleOptions_2 | boolean;
         format?: JsFormatOptions_2 & ToSnakeCaseProperties_2<JsFormatOptions_2>;

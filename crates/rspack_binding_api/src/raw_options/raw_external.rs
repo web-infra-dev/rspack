@@ -1,6 +1,9 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{fmt::Debug, path::Path, sync::Arc};
 
-use napi::bindgen_prelude::{Either4, Promise};
+use napi::{
+  bindgen_prelude::{Either4, Function, FunctionCallContext, Promise},
+  Either, Env,
+};
 use napi_derive::napi;
 use rspack_core::{
   ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
@@ -8,8 +11,12 @@ use rspack_core::{
 };
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashMap as HashMap;
 
-use crate::JsResolver;
+use crate::{
+  callbackify, normalize_raw_resolve_options_with_dependency_type, ErrorCode,
+  RawResolveOptionsWithDependencyType, ResolveRequest,
+};
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
@@ -104,12 +111,74 @@ impl RawExternalItemFnCtx {
     }
   }
 
-  #[napi]
-  pub fn get_resolver(&self) -> JsResolver {
-    JsResolver::new(
-      self.resolver_factory.clone(),
-      self.resolve_options_with_dependency_type.clone(),
-    )
+  #[napi(
+    ts_return_type = "(context: string, path: string, callback: (error?: Error, text?: string) => void) => void"
+  )]
+  pub fn get_resolve<'a>(
+    &self,
+    env: &'a Env,
+    options: Option<RawResolveOptionsWithDependencyType>,
+  ) -> napi::Result<Function<'a, (String, String, Function<'static>), ()>> {
+    let first = Arc::new(self.resolve_options_with_dependency_type.clone());
+    let second = Arc::new(
+      normalize_raw_resolve_options_with_dependency_type(options, first.resolve_to_context)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?,
+    );
+    let resolver_factory = self.resolver_factory.clone();
+
+    let f: Function<(String, String, Function<'static>), ()> =
+      env.create_function_from_closure("resolve", move |ctx: FunctionCallContext| {
+        let context = ctx.get::<String>(0)?;
+        let request = ctx.get::<String>(1)?;
+        let callback = ctx.get::<Function<'static>>(2)?;
+
+        let first_clone = first.clone();
+        let second_clone = second.clone();
+        let resolver_factory = resolver_factory.clone();
+
+        callbackify(
+          callback,
+          async move {
+            let merged_resolve_options = match second_clone.resolve_options.as_ref() {
+              Some(second_resolve_options) => match first_clone.resolve_options.as_ref() {
+                Some(resolve_options) => Some(Box::new(
+                  resolve_options
+                    .clone()
+                    .merge(*second_resolve_options.clone()),
+                )),
+                None => Some(second_resolve_options.clone()),
+              },
+              None => first_clone.resolve_options.clone(),
+            };
+
+            let merged_options = ResolveOptionsWithDependencyType {
+              resolve_options: merged_resolve_options,
+              resolve_to_context: second_clone.resolve_to_context,
+              dependency_category: second_clone.dependency_category,
+            };
+            let resolver = resolver_factory.get(merged_options);
+
+            match resolver.resolve(Path::new(&context), &request).await {
+              Ok(rspack_core::ResolveResult::Resource(resource)) => {
+                let resolve_request = ResolveRequest::from(resource);
+                Ok(match serde_json::to_string(&resolve_request) {
+                  Ok(json) => Either::<String, ()>::A(json),
+                  Err(_) => Either::B(()),
+                })
+              }
+              Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(())),
+              Err(err) => Err(napi::Error::new(
+                ErrorCode::Napi(napi::Status::GenericFailure),
+                format!("{err:?}"),
+              )),
+            }
+          },
+          None::<fn()>,
+        )
+        .map_err(|e| napi::Error::from_reason(e.reason.to_string()))
+      })?;
+
+    Ok(f)
   }
 }
 

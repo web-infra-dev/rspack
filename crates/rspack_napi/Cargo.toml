@@ -8,7 +8,7 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7"] }
+napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 oneshot      = { workspace = true }
 rspack_error = { workspace = true }
 serde_json   = { workspace = true }

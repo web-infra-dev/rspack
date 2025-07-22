@@ -76,7 +76,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
             ),
             InitFragmentStage::StageConstants,
             0,
-            InitFragmentKey::Const(format!("retest __filename {}", m.id())),
+            InitFragmentKey::Const(format!("rstest __filename {}", m.id())),
             None,
           );
 
@@ -94,7 +94,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
               ),
               InitFragmentStage::StageConstants,
               0,
-              InitFragmentKey::Const(format!("retest __dirname {}", m.id())),
+              InitFragmentKey::Const(format!("rstest __dirname {}", m.id())),
               None,
             );
 
