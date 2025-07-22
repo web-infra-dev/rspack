@@ -1,4 +1,4 @@
-use std::boxed::Box;
+use std::{boxed::Box, sync::Arc};
 
 use async_trait::async_trait;
 use napi::bindgen_prelude::*;
@@ -48,7 +48,7 @@ impl NativeWatcher {
   pub fn new(options: NativeWatcherOptions) -> Self {
     let ignored = options
       .ignored
-      .map(|f| Box::new(SafetyIgnored { f: f.clone() }) as Box<dyn Ignored>);
+      .map(|f| Arc::new(SafetyIgnored { f: f.clone() }) as Arc<dyn Ignored>);
 
     let watcher = FsWatcher::new(
       FsWatcherOptions {
