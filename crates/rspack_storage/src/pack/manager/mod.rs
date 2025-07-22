@@ -202,6 +202,14 @@ impl ScopeManager {
       Ok(validated)
     }
   }
+
+  pub async fn reset(&self) {
+    // remove directory
+    self.strategy.reset().await;
+    // reset fields
+    self.scopes.lock().await.clear();
+    *self.root_meta.lock().await = RootMetaState::Pending;
+  }
 }
 
 #[tracing::instrument("Cache::Storage::update_scopes", skip_all)]
@@ -506,6 +514,33 @@ mod tests {
     Ok(())
   }
 
+  async fn test_clean(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
+    let root_options = Arc::new(RootOptions {
+      expire: 60000,
+      root: root.parent().expect("should get parent").to_path_buf(),
+      clean: true,
+    });
+    let pack_options = Arc::new(PackOptions {
+      bucket_size: 100,
+      pack_size: 500,
+    });
+
+    let strategy = Arc::new(SplitPackStrategy::new(
+      root.to_path_buf(),
+      temp.to_path_buf(),
+      fs.clone(),
+      Some(1),
+      Some(2),
+    ));
+    let manager = ScopeManager::new(root_options, pack_options, strategy);
+
+    // read from files
+    assert_eq!(manager.load("scope1").await?.len(), 100);
+    manager.reset().await;
+    assert_eq!(manager.load("scope1").await?.len(), 0);
+    Ok(())
+  }
+
   async fn test_manager() -> Result<()> {
     let fs = Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
@@ -513,6 +548,7 @@ mod tests {
     test_cold_start(&root, &temp, fs.clone()).await?;
     test_hot_start(&root, &temp, fs.clone()).await?;
     test_invalid_start(&root, &temp, fs.clone()).await?;
+    test_clean(&root, &temp, fs.clone()).await?;
     Ok(())
   }
 

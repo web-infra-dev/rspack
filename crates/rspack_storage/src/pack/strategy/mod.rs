@@ -44,6 +44,7 @@ pub trait RootStrategy {
     scopes: &HashMap<String, PackScope>,
     root_options: &RootOptions,
   ) -> Result<()>;
+  async fn reset(&self);
 }
 
 #[derive(Debug, Default)]
