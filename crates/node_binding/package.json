@@ -29,11 +29,10 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.99",
-    "@napi-rs/wasm-runtime": "^0.2.12",
-    "emnapi": "^1.4.4",
-    "typescript": "^5.8.3",
-    "@emnapi/core": "^1.4.4"
+    "@napi-rs/cli": "3.0.1",
+    "@napi-rs/wasm-runtime": "^1.0.1",
+    "emnapi": "^1.4.5",
+    "typescript": "^5.8.3"
   },
   "napi": {
     "binaryName": "rspack",
