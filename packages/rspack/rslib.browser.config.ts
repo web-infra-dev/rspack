@@ -41,7 +41,10 @@ export default defineConfig({
 			patterns: [
 				path.resolve(bindingDir, "rspack.wasi-browser.js"),
 				path.resolve(bindingDir, "wasi-worker-browser.mjs"),
-				path.resolve(bindingDir, "rspack.wasm32-wasi.wasm")
+				{
+					from: path.resolve(bindingDir, "rspack.wasm32-wasi.wasm"),
+					noErrorOnMissing: true
+				}
 			]
 		}
 	},
