@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, PluginContext, RuntimeGlobals, RuntimeModuleExt,
+  Plugin, PluginContext, PublicPath, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -26,19 +26,60 @@ async fn runtime_requirements_in_tree(
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
 
   let mut has_chunk_loading = false;
+
   for runtime_requirement in runtime_requirements.iter() {
     match runtime_requirement {
       RuntimeGlobals::ENSURE_CHUNK_HANDLERS if is_enabled_for_chunk => {
         has_chunk_loading = true;
+        if !matches!(compilation.options.output.public_path, PublicPath::Auto) {
+          runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+        }
         runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
       }
       RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
         has_chunk_loading = true;
-        compilation
-          .add_runtime_module(chunk_ukey, ExportWebpackRequireRuntimeModule::new().boxed())?;
+        if compilation
+          .chunk_graph
+          .get_number_of_entry_modules(chunk_ukey)
+          > 0
+        {
+          continue;
+        } else {
+          compilation
+            .add_runtime_module(chunk_ukey, ExportWebpackRequireRuntimeModule::new().boxed())?;
+        }
       }
-      RuntimeGlobals::ON_CHUNKS_LOADED | RuntimeGlobals::BASE_URI if is_enabled_for_chunk => {
+
+      RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS if is_enabled_for_chunk => {
         has_chunk_loading = true;
+        runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+        runtime_requirements_mut.insert(RuntimeGlobals::LOAD_SCRIPT);
+        runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME);
+        runtime_requirements_mut.insert(RuntimeGlobals::MODULE_CACHE);
+        runtime_requirements_mut.insert(RuntimeGlobals::HMR_MODULE_DATA);
+        runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+
+        println!("adding HMR_DOWNLOAD_UPDATE_HANDLERS!!!");
+      }
+      RuntimeGlobals::HMR_DOWNLOAD_MANIFEST if is_enabled_for_chunk => {
+        has_chunk_loading = true;
+
+        runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+        runtime_requirements_mut.insert(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME);
+        println!("adding GET_UPDATE_MANIFEST_FILENAME!!!");
+      }
+      RuntimeGlobals::BASE_URI
+      | RuntimeGlobals::ON_CHUNKS_LOADED
+      | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+        if is_enabled_for_chunk =>
+      {
+        has_chunk_loading = true;
+      }
+      RuntimeGlobals::PREFETCH_CHUNK_HANDLERS | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS
+        if has_chunk_loading =>
+      {
+        runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
       }
       _ => {}
     }
@@ -51,6 +92,13 @@ async fn runtime_requirements_in_tree(
       chunk_ukey,
       Box::<ModuleChunkLoadingRuntimeModule>::default(),
     )?;
+  }
+
+  if compilation
+    .chunk_graph
+    .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+  {
+    runtime_requirements_mut.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }
 
   Ok(None)
