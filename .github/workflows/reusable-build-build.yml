@@ -178,7 +178,7 @@ jobs:
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
         run: |
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
-          size crates/node_binding/rspack.wasm32-wasi.wasm
+          ls -al crates/node_binding
 
       - name: Diff artifact
         run: |
