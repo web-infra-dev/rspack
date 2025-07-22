@@ -28,6 +28,10 @@ impl<T: Hash + PartialEq + Eq + Clone> Queue<T> {
     }
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.q.is_empty()
+  }
+
   pub fn dequeue(&mut self) -> Option<T> {
     if let Some(item) = self.q.pop_front() {
       self.set.remove(&item);
