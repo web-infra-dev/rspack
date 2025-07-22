@@ -84,7 +84,7 @@ export default defineConfig({
 					resourceRegExp: /(moduleFederationDefaultRuntime|inspector)/
 				}),
 				new rspack.NormalModuleReplacementPlugin(
-					/src\/loader-runner\/service\.ts/,
+					/src[/\\]loader-runner[/\\]service\.ts/,
 					path.resolve("./src/browser/service.ts")
 				)
 			);
