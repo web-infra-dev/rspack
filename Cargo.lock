@@ -3940,6 +3940,7 @@ dependencies = [
  "parking_lot",
  "ropey",
  "rspack_allocator",
+ "rspack_browser",
  "rspack_browserslist",
  "rspack_cacheable",
  "rspack_collections",
