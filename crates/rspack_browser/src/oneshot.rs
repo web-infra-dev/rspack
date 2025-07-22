@@ -3,8 +3,6 @@
 //! When [Receiver] start to receive before [Sender::send], normally the receiver will be put into the task pool and be waken by the [Sender].
 //! However, runtime should acquire the lock of task pool before waking the receiver, which is forbidden in the main thread of browser.
 //! So the busy-wait [Receiver] is provided.
-//!
-//! Pay attention that currently this may cause deadlock if all the tokio workers are busy waiting. This should be solved in the future.
 use std::{
   cell::UnsafeCell,
   future::Future,
@@ -67,16 +65,18 @@ pub struct Receiver<T> {
 impl<T> Future for Receiver<T> {
   type Output = Result<T, ()>;
 
-  fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-    loop {
-      if self.inner.sent.load(Ordering::Acquire) {
-        let value = unsafe { (*self.inner.value.get()).take() };
-        if let Some(value) = value {
-          return Poll::Ready(Ok(value));
-        } else {
-          return Poll::Ready(Err(()));
-        }
+  fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    if self.inner.sent.load(Ordering::Acquire) {
+      let value = unsafe { (*self.inner.value.get()).take() };
+      if let Some(value) = value {
+        return Poll::Ready(Ok(value));
+      } else {
+        return Poll::Ready(Err(()));
       }
+    } else {
+      // Give tokio the chance to run other tasks
+      cx.waker().wake_by_ref();
+      return Poll::Pending;
     }
   }
 }
