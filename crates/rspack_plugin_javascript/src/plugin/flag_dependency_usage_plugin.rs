@@ -227,14 +227,24 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     // Special handling for ConsumeShared modules
     // ConsumeShared modules need enhanced usage tracking to work properly with tree-shaking
     if module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+      // Create a temporary Queue for process_consume_shared_module
+      let mut temp_queue = Queue::new();
       self.process_consume_shared_module(
         module_id,
         used_exports,
         runtime,
         force_side_effects,
-        queue,
+        &mut temp_queue,
       );
-      return;
+      // Convert Queue items to the expected tuple format
+      while let Some((module_id, runtime)) = temp_queue.dequeue() {
+        queue.push((
+          ModuleOrAsyncDependenciesBlock::Module(module_id),
+          runtime,
+          false,
+        ));
+      }
+      return queue;
     }
     if !used_exports.is_empty() {
       let need_insert = matches!(
