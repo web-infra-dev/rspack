@@ -113,7 +113,7 @@ xxhash-rust         = { version = "0.8.14", default-features = false }
 
 # Pinned
 napi        = { version = "3.1.1", default-features = false }
-napi-build  = { version = "3.0.0-beta.0", default-features = false }
+napi-build  = { version = "2.2.2", default-features = false }
 napi-derive = { version = "3.1.0", default-features = false }
 
 # Serialize and Deserialize
