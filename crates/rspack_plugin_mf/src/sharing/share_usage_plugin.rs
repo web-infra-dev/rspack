@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChunkCharacteristics {
+  pub usage: HashMap<String, bool>,
+  pub entry_module_id: Option<String>,
   pub is_runtime_chunk: bool,
   pub has_runtime: bool,
   pub is_entrypoint: bool,
@@ -30,11 +32,7 @@ pub struct ChunkCharacteristics {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimpleModuleExports {
-  pub used_exports: Vec<String>,
-  pub unused_exports: Vec<String>,
-  pub possibly_unused_exports: Vec<String>,
-  pub entry_module_id: Option<String>,
-  pub chunk_characteristics: Vec<ChunkCharacteristics>,
+  pub chunk_characteristics: ChunkCharacteristics,
 }
 
 pub type ShareUsageReport = HashMap<String, SimpleModuleExports>;
@@ -74,37 +72,47 @@ impl ShareUsagePlugin {
       if let Some(module) = module_graph.module_by_identifier(module_id) {
         if module.module_type() == &ModuleType::ConsumeShared {
           if let Some(share_key) = module.get_consume_shared_key() {
-            let result = if let Some(fallback_id) =
-              self.find_fallback_module_id(&module_graph, module_id)
-            {
-              let (used_exports, provided_exports) =
-                self.analyze_module_usage(&module_graph, &fallback_id, module_id);
-              let unused_exports = provided_exports
-                .into_iter()
-                .filter(|e| !used_exports.contains(e) && e != "*")
-                .collect();
-              let entry_module_id =
-                ChunkGraph::get_module_id(&compilation.module_ids_artifact, fallback_id)
-                  .map(|id| id.to_string());
+            let result =
+              if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
+                let (used_exports, provided_exports) =
+                  self.analyze_module_usage(&module_graph, &fallback_id, module_id);
 
-              let chunk_characteristics = self.get_chunk_characteristics(compilation, &fallback_id);
+                let entry_module_id =
+                  ChunkGraph::get_module_id(&compilation.module_ids_artifact, fallback_id)
+                    .map(|id| id.to_string());
 
-              SimpleModuleExports {
-                used_exports,
-                unused_exports,
-                possibly_unused_exports: Vec::new(),
-                entry_module_id,
-                chunk_characteristics,
-              }
-            } else {
-              SimpleModuleExports {
-                used_exports: Vec::new(),
-                unused_exports: Vec::new(),
-                possibly_unused_exports: Vec::new(),
-                entry_module_id: None,
-                chunk_characteristics: Vec::new(),
-              }
-            };
+                let chunk_characteristics = self.get_single_chunk_characteristics(
+                  compilation,
+                  &fallback_id,
+                  entry_module_id,
+                  used_exports,
+                  provided_exports,
+                );
+
+                SimpleModuleExports {
+                  chunk_characteristics,
+                }
+              } else {
+                SimpleModuleExports {
+                  chunk_characteristics: ChunkCharacteristics {
+                    usage: HashMap::new(),
+                    entry_module_id: None,
+                    is_runtime_chunk: false,
+                    has_runtime: false,
+                    is_entrypoint: false,
+                    can_be_initial: false,
+                    is_only_initial: false,
+                    chunk_format: None,
+                    chunk_loading_type: None,
+                    runtime_names: Vec::new(),
+                    entry_name: None,
+                    has_async_chunks: false,
+                    chunk_files: Vec::new(),
+                    is_shared_chunk: false,
+                    shared_modules: Vec::new(),
+                  },
+                }
+              };
 
             usage_map.insert(share_key, result);
           }
@@ -262,25 +270,36 @@ impl ShareUsagePlugin {
     None
   }
 
-  fn get_chunk_characteristics(
+  fn get_single_chunk_characteristics(
     &self,
     compilation: &Compilation,
     module_id: &ModuleIdentifier,
-  ) -> Vec<ChunkCharacteristics> {
-    let mut characteristics = Vec::new();
+    entry_module_id: Option<String>,
+    used_exports: Vec<String>,
+    provided_exports: Vec<String>,
+  ) -> ChunkCharacteristics {
     let chunk_graph = &compilation.chunk_graph;
-
-    // Get all chunks that contain this module
     let chunks = chunk_graph.get_module_chunks(*module_id);
 
-    for chunk_ukey in chunks {
-      if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
+    // Create usage map
+    let mut usage = HashMap::new();
+    for export in &provided_exports {
+      if export != "*" {
+        usage.insert(export.clone(), used_exports.contains(export));
+      }
+    }
+
+    // If we have chunks, use the first one for characteristics
+    if let Some(&chunk_ukey) = chunks.iter().next() {
+      if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
         let chunk_groups: Vec<rspack_core::ChunkGroupUkey> =
           chunk.groups().iter().copied().collect();
 
-        let (is_shared_chunk, shared_modules) = self.analyze_shared_chunk(compilation, chunk_ukey);
+        let (is_shared_chunk, shared_modules) = self.analyze_shared_chunk(compilation, &chunk_ukey);
 
-        let chunk_characteristics = ChunkCharacteristics {
+        return ChunkCharacteristics {
+          usage,
+          entry_module_id,
           is_runtime_chunk: chunk.has_runtime(&compilation.chunk_group_by_ukey),
           has_runtime: chunk.has_runtime(&compilation.chunk_group_by_ukey),
           is_entrypoint: chunk_groups.iter().any(|&group_ukey| {
@@ -291,7 +310,7 @@ impl ShareUsagePlugin {
           }),
           can_be_initial: chunk.can_be_initial(&compilation.chunk_group_by_ukey),
           is_only_initial: chunk.is_only_initial(&compilation.chunk_group_by_ukey),
-          chunk_format: self.determine_chunk_format(compilation, chunk_ukey),
+          chunk_format: self.determine_chunk_format(compilation, &chunk_ukey),
           chunk_loading_type: self.get_chunk_loading_type(compilation, &chunk_groups),
           runtime_names: chunk.runtime().iter().map(|s| s.to_string()).collect(),
           entry_name: self.get_entry_name(compilation, &chunk_groups),
@@ -300,12 +319,27 @@ impl ShareUsagePlugin {
           is_shared_chunk,
           shared_modules,
         };
-
-        characteristics.push(chunk_characteristics);
       }
     }
 
-    characteristics
+    // Fallback if no chunks found
+    ChunkCharacteristics {
+      usage,
+      entry_module_id,
+      is_runtime_chunk: false,
+      has_runtime: false,
+      is_entrypoint: false,
+      can_be_initial: false,
+      is_only_initial: false,
+      chunk_format: None,
+      chunk_loading_type: None,
+      runtime_names: Vec::new(),
+      entry_name: None,
+      has_async_chunks: false,
+      chunk_files: Vec::new(),
+      is_shared_chunk: false,
+      shared_modules: Vec::new(),
+    }
   }
 
   fn analyze_shared_chunk(

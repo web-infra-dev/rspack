@@ -75,25 +75,19 @@ function assertLodashUsage(lodashData) {
 	
 	const expectedUsed = ["map", "filter", "isEmpty", "isArray", "isObject", "clone", "merge", "reduce"];
 	const expectedUnused = ["uniq", "debounce", "groupBy", "partition", "cloneDeep", "mergeWith", "sortBy"];
+	const usage = lodashData.chunk_characteristics.usage;
 	
-	// Assert all expected used exports are marked as used
+	// Assert all expected used exports are marked as used (true)
 	for (const exp of expectedUsed) {
-		if (!lodashData.used_exports.includes(exp)) {
-			throw new Error(`lodash-es: Expected '${exp}' to be in used_exports but it wasn't found`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== true) {
+			throw new Error(`lodash-es: Expected '${exp}' to be marked as used (true) in usage object`);
 		}
 	}
 	
-	// Assert all expected unused exports are marked as unused
+	// Assert all expected unused exports are marked as unused (false)
 	for (const exp of expectedUnused) {
-		if (!lodashData.unused_exports.includes(exp)) {
-			throw new Error(`lodash-es: Expected '${exp}' to be in unused_exports but it wasn't found`);
-		}
-	}
-	
-	// Assert no used export appears in unused
-	for (const exp of lodashData.used_exports) {
-		if (lodashData.unused_exports.includes(exp)) {
-			throw new Error(`lodash-es: Export '${exp}' appears in both used and unused lists`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== false) {
+			throw new Error(`lodash-es: Expected '${exp}' to be marked as unused (false) in usage object`);
 		}
 	}
 }
@@ -106,18 +100,19 @@ function assertReactUsage(reactData) {
 	
 	const expectedUsed = ["createElement", "default"];
 	const expectedUnused = ["useState", "useEffect"];
+	const usage = reactData.chunk_characteristics.usage;
 	
-	// Assert used exports
+	// Assert used exports are marked as true
 	for (const exp of expectedUsed) {
-		if (!reactData.used_exports.includes(exp)) {
-			throw new Error(`react: Expected '${exp}' to be in used_exports but it wasn't found`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== true) {
+			throw new Error(`react: Expected '${exp}' to be marked as used (true) in usage object`);
 		}
 	}
 	
-	// Assert unused exports
+	// Assert unused exports are marked as false
 	for (const exp of expectedUnused) {
-		if (!reactData.unused_exports.includes(exp)) {
-			throw new Error(`react: Expected '${exp}' to be in unused_exports but it wasn't found`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== false) {
+			throw new Error(`react: Expected '${exp}' to be marked as unused (false) in usage object`);
 		}
 	}
 }
@@ -130,18 +125,19 @@ function assertLocalCjsUsage(localCjsData) {
 	
 	const expectedUsed = ["usedLocalFunction", "constantValue", "nestedObject"];
 	const expectedUnused = ["unusedLocalFunction", "unusedConstant", "directProperty"];
+	const usage = localCjsData.chunk_characteristics.usage;
 	
-	// Assert used exports
+	// Assert used exports are marked as true
 	for (const exp of expectedUsed) {
-		if (!localCjsData.used_exports.includes(exp)) {
-			throw new Error(`local-cjs-module: Expected '${exp}' to be in used_exports but it wasn't found`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== true) {
+			throw new Error(`local-cjs-module: Expected '${exp}' to be marked as used (true) in usage object`);
 		}
 	}
 	
-	// Assert unused exports
+	// Assert unused exports are marked as false
 	for (const exp of expectedUnused) {
-		if (!localCjsData.unused_exports.includes(exp)) {
-			throw new Error(`local-cjs-module: Expected '${exp}' to be in unused_exports but it wasn't found`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== false) {
+			throw new Error(`local-cjs-module: Expected '${exp}' to be marked as unused (false) in usage object`);
 		}
 	}
 }
@@ -154,18 +150,19 @@ function assertLocalEsmUsage(localEsmData) {
 	
 	const expectedUsed = ["usedLocalUtil", "USED_LOCAL_CONSTANT", "default"];
 	const expectedUnused = ["unusedLocalUtil", "UNUSED_LOCAL_CONSTANT"];
+	const usage = localEsmData.chunk_characteristics.usage;
 	
-	// Assert used exports
+	// Assert used exports are marked as true
 	for (const exp of expectedUsed) {
-		if (!localEsmData.used_exports.includes(exp)) {
-			throw new Error(`local-esm-module: Expected '${exp}' to be in used_exports but it wasn't found`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== true) {
+			throw new Error(`local-esm-module: Expected '${exp}' to be marked as used (true) in usage object`);
 		}
 	}
 	
-	// Assert unused exports
+	// Assert unused exports are marked as false
 	for (const exp of expectedUnused) {
-		if (!localEsmData.unused_exports.includes(exp)) {
-			throw new Error(`local-esm-module: Expected '${exp}' to be in unused_exports but it wasn't found`);
+		if (!usage.hasOwnProperty(exp) || usage[exp] !== false) {
+			throw new Error(`local-esm-module: Expected '${exp}' to be marked as unused (false) in usage object`);
 		}
 	}
 }
@@ -178,34 +175,38 @@ function assertModuleStructure(moduleData, moduleName) {
 		throw new Error(`Module data for '${moduleName}' is missing`);
 	}
 	
-	// Check required fields
-	const requiredFields = ["used_exports", "unused_exports", "possibly_unused_exports", "entry_module_id"];
-	for (const field of requiredFields) {
-		if (!(field in moduleData)) {
-			throw new Error(`${moduleName}: Missing required field '${field}'`);
-		}
+	// Check required fields for new structure
+	if (!moduleData.chunk_characteristics) {
+		throw new Error(`${moduleName}: Missing required field 'chunk_characteristics'`);
 	}
 	
-	// Assert arrays
-	if (!Array.isArray(moduleData.used_exports)) {
-		throw new Error(`${moduleName}: used_exports should be an array`);
-	}
-	if (!Array.isArray(moduleData.unused_exports)) {
-		throw new Error(`${moduleName}: unused_exports should be an array`);
-	}
-	if (!Array.isArray(moduleData.possibly_unused_exports)) {
-		throw new Error(`${moduleName}: possibly_unused_exports should be an array`);
+	const chunkChars = moduleData.chunk_characteristics;
+	
+	// Assert chunk characteristics structure
+	if (!chunkChars.usage || typeof chunkChars.usage !== 'object') {
+		throw new Error(`${moduleName}: chunk_characteristics.usage should be an object`);
 	}
 	
 	// Assert entry_module_id is set (should never be null in Module Federation)
-	if (moduleData.entry_module_id === null || moduleData.entry_module_id === undefined) {
+	if (chunkChars.entry_module_id === null || chunkChars.entry_module_id === undefined) {
 		throw new Error(`${moduleName}: entry_module_id is null/undefined - should have a valid module ID`);
 	}
 	
 	// Assert module ID format
-	const moduleId = moduleData.entry_module_id;
+	const moduleId = chunkChars.entry_module_id;
 	if (typeof moduleId !== "string" || moduleId.length === 0) {
 		throw new Error(`${moduleName}: entry_module_id should be a non-empty string`);
+	}
+	
+	// Assert chunk metadata fields exist
+	if (typeof chunkChars.is_runtime_chunk !== 'boolean') {
+		throw new Error(`${moduleName}: is_runtime_chunk should be a boolean`);
+	}
+	if (typeof chunkChars.has_runtime !== 'boolean') {
+		throw new Error(`${moduleName}: has_runtime should be a boolean`);
+	}
+	if (typeof chunkChars.is_entrypoint !== 'boolean') {
+		throw new Error(`${moduleName}: is_entrypoint should be a boolean`);
 	}
 }
 
@@ -219,12 +220,8 @@ function assertMacroSyntaxCompatibility(modules) {
 			throw new Error(`Module name '${moduleName}' contains invalid characters for macro conditions`);
 		}
 		
-		// Verify all export names are valid identifiers
-		const allExports = [
-			...moduleData.used_exports,
-			...moduleData.unused_exports,
-			...moduleData.possibly_unused_exports
-		];
+		// Verify all export names in usage object are valid identifiers
+		const allExports = Object.keys(moduleData.chunk_characteristics.usage);
 		
 		for (const exportName of allExports) {
 			// Allow 'default' and valid JavaScript identifiers
