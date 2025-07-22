@@ -2,9 +2,9 @@
 
 /// Install panic handler for browser environment
 ///
-/// Rust builtin panic handler or other community implementation always lock backtrace and stderr before printing error meessage.
+/// Rust builtin panic handler or other community implementation always lock backtrace and stderr before printing error messages.
 /// However, requesting locks finally calls `atomics.wait`, and it's forbidden to do it in the main thread of browser.
-/// So this function provides a panic handler which directly writes error messages to stderrr without locks.
+/// So this function provides a panic handler which directly writes error messages to stderr without locks.
 pub fn install_panic_handler() {
   use std::{fs::File, io::Write, os::fd::FromRawFd};
 
