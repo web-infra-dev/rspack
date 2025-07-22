@@ -371,8 +371,8 @@ importers:
   packages/rspack-browser:
     dependencies:
       '@napi-rs/wasm-runtime':
-        specifier: ^0.2.11
-        version: 0.2.12
+        specifier: ^1.0.1
+        version: 1.0.1
       '@rspack/lite-tapable':
         specifier: 1.0.1
         version: 1.0.1
@@ -9906,6 +9906,7 @@ snapshots:
       '@emnapi/core': 1.4.5
       '@emnapi/runtime': 1.4.5
       '@tybys/wasm-util': 0.10.0
+    optional: true
 
   '@napi-rs/wasm-runtime@1.0.1':
     dependencies:
