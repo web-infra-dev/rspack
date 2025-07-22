@@ -126,7 +126,7 @@ impl Dependency {
     Ok(())
   }
 
-  #[napi(getter)]
+  #[napi(getter, ts_return_type = "Array<string> | undefined")]
   pub fn ids<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Array<'a>, ()>> {
     let (dependency, compilation) = self.as_ref()?;
 

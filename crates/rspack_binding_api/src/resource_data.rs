@@ -1,4 +1,7 @@
-use std::sync::{Arc, Weak};
+use std::{
+  cell::RefCell,
+  sync::{Arc, Weak},
+};
 
 use napi::{
   bindgen_prelude::{JavaScriptClassExt, JsObjectValue, ToNapiValue},
@@ -55,6 +58,10 @@ impl ReadonlyResourceData {
   }
 }
 
+thread_local! {
+  static RESOURCE_DATA_PROPERTIES: RefCell<Vec<Property>> = RefCell::new(Vec::with_capacity(4));
+}
+
 pub struct ReadonlyResourceDataWrapper {
   i: Arc<rspack_core::ResourceData>,
 }
@@ -67,44 +74,43 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
     let env_wrapper = Env::from_raw(env);
 
     let resource_data = val.i;
-    let mut properties = vec![];
-    let resource = env_wrapper.create_string(&resource_data.resource)?;
-    properties.push(
-      Property::new()
-        .with_utf8_name("resource")?
-        .with_value(&resource),
-    );
-    if let Some(path) = &resource_data.resource_path {
-      let path_str = env_wrapper.create_string(path.as_str())?;
-      properties.push(
-        Property::new()
-          .with_utf8_name("path")?
-          .with_value(&path_str),
-      );
-    }
-    if let Some(query) = &resource_data.resource_query {
-      let query_str = env_wrapper.create_string(query)?;
-      properties.push(
-        Property::new()
-          .with_utf8_name("query")?
-          .with_value(&query_str),
-      );
-    }
-    if let Some(fragment) = &resource_data.resource_fragment {
-      let fragment_str = env_wrapper.create_string(fragment)?;
-      properties.push(
-        Property::new()
-          .with_utf8_name("fragment")?
-          .with_value(&fragment_str),
-      );
-    }
-
     let template = ReadonlyResourceData {
       i: Arc::downgrade(&resource_data),
     };
     let instance = template.into_instance(&env_wrapper)?;
     let mut object = instance.as_object(&env_wrapper);
-    object.define_properties(&properties)?;
+
+    RESOURCE_DATA_PROPERTIES.with(|ref_cell| {
+      let mut properties = ref_cell.borrow_mut();
+      properties.clear();
+      properties.push(
+        Property::new()
+          .with_utf8_name("resource")?
+          .with_value(&env_wrapper.create_string(&resource_data.resource)?),
+      );
+      if let Some(path) = &resource_data.resource_path {
+        properties.push(
+          Property::new()
+            .with_utf8_name("path")?
+            .with_value(&env_wrapper.create_string(path.as_str())?),
+        );
+      }
+      if let Some(query) = &resource_data.resource_query {
+        properties.push(
+          Property::new()
+            .with_utf8_name("query")?
+            .with_value(&env_wrapper.create_string(query)?),
+        );
+      }
+      if let Some(fragment) = &resource_data.resource_fragment {
+        properties.push(
+          Property::new()
+            .with_utf8_name("fragment")?
+            .with_value(&env_wrapper.create_string(fragment)?),
+        );
+      }
+      object.define_properties(&properties)
+    })?;
 
     Ok(object.raw())
   }
