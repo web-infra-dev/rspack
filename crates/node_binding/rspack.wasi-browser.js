@@ -116,4 +116,3 @@ export const RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
 export const syncTraceEvent = __napiModule.exports.syncTraceEvent
 export const transform = __napiModule.exports.transform
 export const transformSync = __napiModule.exports.transformSync
-
