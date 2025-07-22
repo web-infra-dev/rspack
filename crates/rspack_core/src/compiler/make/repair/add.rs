@@ -65,8 +65,8 @@ impl Task<MakeTaskContext> for AddTask {
         module_identifier,
       )?;
       // 2. revisit
-      // get the defered named reexport dependencies of the barrel file, and revisit
-      // upgrade defered named reexport dependencies from weak to strong
+      // get the deferred named reexport dependencies of the barrel file, and revisit
+      // upgrade deferred named reexport dependencies from weak to strong
 
       return Ok(vec![]);
     }

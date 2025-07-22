@@ -8,8 +8,8 @@ use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DeferedDependenciesInfo, DeferedName, DependencyParents, Module, ModuleProfile,
-  ResolverFactory, SharedPluginDriver,
+  CompilerOptions, DeferredDependenciesInfo, DeferredName, DependencyParents, Module,
+  ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -136,7 +136,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
       .build_dependencies
       .add_batch_file(&build_info.build_dependencies);
 
-    let mut defered_dependencies_info = DeferedDependenciesInfo::default();
+    let mut deferred_dependencies_info = DeferredDependenciesInfo::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
@@ -149,9 +149,9 @@ impl Task<MakeTaskContext> for BuildResultTask {
           module.add_dependency_id(dependency_id);
         }
         if let Some(dep) = dependency.as_module_dependency()
-          && let DeferedName::Defered { forward_name } = dep.defered_name()
+          && let DeferredName::Deferred { forward_name } = dep.deferred_name()
         {
-          defered_dependencies_info.insert(dep.request().into(), forward_name, dependency_id);
+          deferred_dependencies_info.insert(dep.request().into(), forward_name, dependency_id);
         }
         all_dependencies.push(dependency_id);
         module_graph.set_parents(
@@ -194,16 +194,16 @@ impl Task<MakeTaskContext> for BuildResultTask {
     module_graph.add_module(module);
 
     let dependencies_to_process = {
-      let defered_dependencies = defered_dependencies_info
-        .defered_dependencies()
+      let deferred_dependencies = deferred_dependencies_info
+        .deferred_dependencies()
         .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !defered_dependencies.contains(dep));
+      all_dependencies.retain(|dep| !deferred_dependencies.contains(dep));
       all_dependencies
     };
-    dbg!(&defered_dependencies_info);
+    dbg!(&deferred_dependencies_info);
     context
-      .module_to_defered_dependencies
-      .insert(module_identifier, defered_dependencies_info);
+      .module_to_deferred_dependencies
+      .insert(module_identifier, deferred_dependencies_info);
 
     Ok(vec![Box::new(ProcessDependenciesTask {
       dependencies: dependencies_to_process,

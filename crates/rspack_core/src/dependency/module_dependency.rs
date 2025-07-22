@@ -7,37 +7,37 @@ use super::{Dependency, FactorizeInfo};
 use crate::{DependencyCondition, DependencyId, ErrorSpan};
 
 #[derive(Debug, Default)]
-pub enum DeferedName {
+pub enum DeferredName {
   #[default]
-  NotDefered,
-  Defered {
+  NotDeferred,
+  Deferred {
     forward_name: Option<Atom>,
   },
 }
 
 #[derive(Debug, Default)]
-pub struct DeferedDependenciesInfo {
-  forward_name_to_defered_request: FxHashMap<Atom, Atom>,
-  defered_request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
+pub struct DeferredDependenciesInfo {
+  forward_name_to_deferred_request: FxHashMap<Atom, Atom>,
+  deferred_request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
 }
 
-impl DeferedDependenciesInfo {
+impl DeferredDependenciesInfo {
   pub fn insert(&mut self, request: Atom, forward_name: Option<Atom>, dependency_id: DependencyId) {
     if let Some(forward_name) = forward_name {
       self
-        .forward_name_to_defered_request
+        .forward_name_to_deferred_request
         .insert(forward_name, request.clone());
     }
     self
-      .defered_request_to_dependencies
+      .deferred_request_to_dependencies
       .entry(request)
       .or_default()
       .insert(dependency_id);
   }
 
-  pub fn defered_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
+  pub fn deferred_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
     self
-      .defered_request_to_dependencies
+      .deferred_request_to_dependencies
       .values()
       .flatten()
       .copied()
@@ -81,8 +81,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn defered_name(&self) -> DeferedName {
-    DeferedName::NotDefered
+  fn deferred_name(&self) -> DeferredName {
+    DeferredName::NotDeferred
   }
 }
 

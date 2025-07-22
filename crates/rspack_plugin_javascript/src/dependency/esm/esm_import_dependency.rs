@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
-  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, DeferedName, Dependency,
+  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, DeferredName, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
@@ -73,7 +73,7 @@ pub struct ESMImportSideEffectDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
-  defered_make: bool,
+  deferred_make: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -100,12 +100,12 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       source_map,
       factorize_info: Default::default(),
-      defered_make: false,
+      deferred_make: false,
     }
   }
 
-  pub fn set_defered_make(&mut self) {
-    self.defered_make = true;
+  pub fn set_deferred_make(&mut self) {
+    self.deferred_make = true;
   }
 }
 
@@ -615,11 +615,11 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     &mut self.factorize_info
   }
 
-  fn defered_name(&self) -> DeferedName {
-    if self.defered_make {
-      DeferedName::Defered { forward_name: None }
+  fn deferred_name(&self) -> DeferredName {
+    if self.deferred_make {
+      DeferredName::Deferred { forward_name: None }
     } else {
-      DeferedName::NotDefered
+      DeferredName::NotDeferred
     }
   }
 }

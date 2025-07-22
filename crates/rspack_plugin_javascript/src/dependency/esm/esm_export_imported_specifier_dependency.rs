@@ -10,7 +10,7 @@ use rspack_core::{
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
   filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
   property_name, to_normal_comment, AsContextDependency, ConditionalInitFragment, ConnectionState,
-  DeferedName, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DeferredName, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment,
   ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
@@ -59,7 +59,7 @@ pub struct ESMExportImportedSpecifierDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
-  defered_make: bool,
+  deferred_make: bool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -90,12 +90,12 @@ impl ESMExportImportedSpecifierDependency {
       attributes,
       source_map,
       factorize_info: Default::default(),
-      defered_make: false,
+      deferred_make: false,
     }
   }
 
-  pub fn set_defered_make(&mut self) {
-    self.defered_make = true;
+  pub fn set_deferred_make(&mut self) {
+    self.deferred_make = true;
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -1404,20 +1404,20 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
   }
 
   fn weak(&self) -> bool {
-    matches!(self.defered_name(), DeferedName::Defered { .. })
+    matches!(self.deferred_name(), DeferredName::Deferred { .. })
   }
 
   fn forward_name(&self) -> Option<Atom> {
     self.ids.get(0).cloned()
   }
 
-  fn defered_name(&self) -> DeferedName {
-    if self.defered_make {
-      DeferedName::Defered {
+  fn deferred_name(&self) -> DeferredName {
+    if self.deferred_make {
+      DeferredName::Deferred {
         forward_name: self.name.clone(),
       }
     } else {
-      DeferedName::NotDefered
+      DeferredName::NotDeferred
     }
   }
 }
