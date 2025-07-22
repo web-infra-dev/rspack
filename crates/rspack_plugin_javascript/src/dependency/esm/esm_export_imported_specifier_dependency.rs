@@ -94,7 +94,7 @@ impl ESMExportImportedSpecifierDependency {
     }
   }
 
-  pub fn set_lazy(&mut self) {
+  pub fn set_defered_make(&mut self) {
     self.defered_make = true;
   }
 

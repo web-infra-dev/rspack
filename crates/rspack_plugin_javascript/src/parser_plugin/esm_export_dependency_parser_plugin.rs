@@ -70,7 +70,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
           !parser.forward_names.contains(&export_name)
         });
       if not_in_forward_names && !is_empty {
-        side_effect_dep.set_lazy();
+        side_effect_dep.set_defered_make();
       }
     }
     parser.dependencies.push(Box::new(side_effect_dep));
@@ -199,7 +199,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       && parser.build_info.all_star_exports.is_empty()
       && !parser.forward_names.contains(export_name)
     {
-      dep.set_lazy();
+      dep.set_defered_make();
     }
     parser.dependencies.push(Box::new(dep));
     Some(true)
