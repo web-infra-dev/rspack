@@ -31,6 +31,7 @@ export default defineConfig({
 		},
 		externals: [
 			"@napi-rs/wasm-runtime",
+			"@napi-rs/wasm-runtime/fs",
 			"@rspack/lite-tapable",
 			{
 				"@rspack/binding": "./rspack.wasi-browser.js"
@@ -46,8 +47,12 @@ export default defineConfig({
 	},
 	plugins: [
 		pluginNodePolyfill({
+			globals: {
+				Buffer: false
+			},
 			overrides: {
-				fs: path.resolve("./src/browser/fs")
+				fs: path.resolve("./src/browser/fs"),
+				buffer: path.resolve("./src/browser/buffer")
 			}
 		})
 	],
