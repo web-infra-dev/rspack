@@ -69,14 +69,14 @@ impl<T> Future for Receiver<T> {
     if self.inner.sent.load(Ordering::Acquire) {
       let value = unsafe { (*self.inner.value.get()).take() };
       if let Some(value) = value {
-        return Poll::Ready(Ok(value));
+        Poll::Ready(Ok(value))
       } else {
-        return Poll::Ready(Err(()));
+        Poll::Ready(Err(()))
       }
     } else {
       // Give tokio the chance to run other tasks
       cx.waker().wake_by_ref();
-      return Poll::Pending;
+      Poll::Pending
     }
   }
 }
