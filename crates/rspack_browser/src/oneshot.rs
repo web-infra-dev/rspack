@@ -1,3 +1,10 @@
+//! Busy-wait version oneshot channel aiming to be the drop-in replacement of other oneshot crates such [tokio::sync::oneshot]
+//!
+//! When [Receiver] start to receive before [Sender::send], normally the receiver will be put into the task pool and be waken by the [Sender].
+//! However, runtime should acquire the lock of task pool before waking the receiver, which is forbidden in the main thread of browser.
+//! So the busy-wait [Receiver] is provided.
+//!
+//! Pay attention that currently this may cause deadlock if all the tokio workers are busy waiting. This should be solved in the future.
 use std::{
   cell::UnsafeCell,
   future::Future,
