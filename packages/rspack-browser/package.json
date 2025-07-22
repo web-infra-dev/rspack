@@ -17,7 +17,7 @@
     "build": "pnpm run --filter @rspack/core build:browser"
   },
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^0.2.11",
+    "@napi-rs/wasm-runtime": "^1.0.1",
     "@rspack/lite-tapable": "1.0.1",
     "buffer": "^6.0.3"
   },
