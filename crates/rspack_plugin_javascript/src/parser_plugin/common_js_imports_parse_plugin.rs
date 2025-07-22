@@ -129,10 +129,6 @@ pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
   fn process_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, weak: bool) {
-    if matches!(parser.javascript_options.require_resolve, Some(false)) {
-      return;
-    }
-
     if call_expr.args.len() != 1 {
       return;
     }
@@ -514,6 +510,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     {
       Some(true)
     } else if for_name == expr_name::REQUIRE_RESOLVE {
+      if matches!(parser.javascript_options.require_resolve, Some(false)) {
+        return None;
+      }
+
       self.process_resolve(parser, call_expr, false);
       Some(true)
     } else if for_name == expr_name::REQUIRE_RESOLVE_WEAK {
