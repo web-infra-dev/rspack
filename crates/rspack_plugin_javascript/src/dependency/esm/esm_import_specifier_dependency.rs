@@ -183,10 +183,6 @@ impl Dependency for ESMImportSpecifierDependency {
     ConnectionState::Active(false)
   }
 
-  fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    self.get_ids(mg)
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
@@ -298,6 +294,10 @@ impl ModuleDependency for ESMImportSpecifierDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
+  }
+
+  fn forward_name(&self) -> Option<Atom> {
+    Some(self.name.clone())
   }
 }
 

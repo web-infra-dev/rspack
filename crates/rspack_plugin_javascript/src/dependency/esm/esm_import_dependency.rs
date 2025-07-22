@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
-  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, DeferedName, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode,
   ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
@@ -73,6 +73,7 @@ pub struct ESMImportSideEffectDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
+  defered_make: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -99,7 +100,12 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       source_map,
       factorize_info: Default::default(),
+      defered_make: false,
     }
+  }
+
+  pub fn set_lazy(&mut self) {
+    self.defered_make = true;
   }
 }
 
@@ -607,6 +613,14 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
+  }
+
+  fn defered_name(&self) -> DeferedName {
+    if self.defered_make {
+      DeferedName::Defered { forward_name: None }
+    } else {
+      DeferedName::NotDefered
+    }
   }
 }
 

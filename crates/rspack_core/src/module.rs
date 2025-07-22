@@ -44,6 +44,7 @@ pub struct BuildContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub forward_names: HashSet<Atom>,
 }
 
 #[cacheable]

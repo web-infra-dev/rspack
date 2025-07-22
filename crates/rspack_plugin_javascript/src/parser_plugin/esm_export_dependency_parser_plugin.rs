@@ -20,7 +20,7 @@ use crate::{
   utils::object_properties::get_attributes,
   visitors::{
     create_traceable_error, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
-    ExportLocal, JavascriptParser, TagInfoData,
+    ExportLocal, ExportNamedDeclaration, JavascriptParser, TagInfoData,
   },
 };
 
@@ -47,7 +47,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let span = statement.span();
     let clean_dep = ConstDependency::new(span.into(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
-    let side_effect_dep = ESMImportSideEffectDependency::new(
+    let mut side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       span.into(),
@@ -56,6 +56,23 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
+    if let ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) = statement
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
+      && parser.build_info.all_star_exports.is_empty()
+    {
+      let mut is_empty = true;
+      let not_in_forward_names =
+        ExportNamedDeclaration::named_export_specifiers(named).all(|(_, export_name, _)| {
+          is_empty = false;
+          !parser.forward_names.contains(&export_name)
+        });
+      if not_in_forward_names && !is_empty {
+        side_effect_dep.set_lazy();
+      }
+    }
     parser.dependencies.push(Box::new(side_effect_dep));
     Some(true)
   }
@@ -156,7 +173,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
-    let dep = ESMExportImportedSpecifierDependency::new(
+    let mut dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
@@ -173,6 +190,16 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let is_asi_safe = !parser.is_asi_position(statement.span_lo());
     if !is_asi_safe {
       parser.set_asi_position(statement.span_hi());
+    }
+    if let Some(export_name) = export_name
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
+      && parser.build_info.all_star_exports.is_empty()
+      && !parser.forward_names.contains(export_name)
+    {
+      dep.set_lazy();
     }
     parser.dependencies.push(Box::new(dep));
     Some(true)

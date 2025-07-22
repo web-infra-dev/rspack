@@ -5,9 +5,11 @@ pub mod process_dependencies;
 
 use std::sync::Arc;
 
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
+use rspack_util::{atom::Atom, fx_hash::FxIndexMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeArtifact;
@@ -17,9 +19,9 @@ use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleFactory, ModuleProfile, ResolverFactory,
-  SharedPluginDriver,
+  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions,
+  DeferedDependenciesInfo, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ModuleFactory, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -39,6 +41,7 @@ pub struct MakeTaskContext {
   pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
+  pub module_to_defered_dependencies: IdentifierMap<DeferedDependenciesInfo>,
 
   pub artifact: MakeArtifact,
 }
@@ -57,6 +60,7 @@ impl MakeTaskContext {
       old_cache: compilation.old_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
+      module_to_defered_dependencies: Default::default(),
       fs: compilation.input_filesystem.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),

@@ -10,7 +10,7 @@ use rspack_core::{
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
   filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
   property_name, to_normal_comment, AsContextDependency, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DeferedName, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment,
   ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
@@ -59,6 +59,7 @@ pub struct ESMExportImportedSpecifierDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
+  defered_make: bool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -89,7 +90,12 @@ impl ESMExportImportedSpecifierDependency {
       attributes,
       source_map,
       factorize_info: Default::default(),
+      defered_make: false,
     }
+  }
+
+  pub fn set_lazy(&mut self) {
+    self.defered_make = true;
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -1228,10 +1234,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     ConnectionState::Active(false)
   }
 
-  fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    self.get_ids(mg)
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
@@ -1399,6 +1401,24 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
+  }
+
+  fn weak(&self) -> bool {
+    matches!(self.defered_name(), DeferedName::Defered { .. })
+  }
+
+  fn forward_name(&self) -> Option<Atom> {
+    self.ids.get(0).cloned()
+  }
+
+  fn defered_name(&self) -> DeferedName {
+    if self.defered_make {
+      DeferedName::Defered {
+        forward_name: self.name.clone(),
+      }
+    } else {
+      DeferedName::NotDefered
+    }
   }
 }
 

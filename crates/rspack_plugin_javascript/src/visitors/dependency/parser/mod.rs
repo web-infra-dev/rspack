@@ -11,8 +11,9 @@ pub use call_hooks_name::CallHooksName;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier,
-  ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt, TypeReexportPresenceMode,
+  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt,
+  TypeReexportPresenceMode,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -227,7 +228,9 @@ pub struct JavascriptParser<'parser> {
   pub source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
   pub parse_meta: ParseMeta,
+  pub(crate) forward_names: FxHashSet<Atom>,
   pub(crate) comments: Option<&'parser dyn Comments>,
+  pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
@@ -272,12 +275,14 @@ impl<'parser> JavascriptParser<'parser> {
     module_type: &'parser ModuleType,
     module_layer: Option<&'parser ModuleLayer>,
     resource_data: &'parser ResourceData,
+    factory_meta: Option<&'parser FactoryMeta>,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
+    forward_names: FxHashSet<Atom>,
   ) -> Self {
     let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
     let mut errors = Vec::with_capacity(4);
@@ -407,6 +412,7 @@ impl<'parser> JavascriptParser<'parser> {
       definitions_db: db,
       plugin_drive,
       resource_data,
+      factory_meta,
       build_meta,
       build_info,
       compiler_options,
@@ -423,6 +429,7 @@ impl<'parser> JavascriptParser<'parser> {
       prev_statement: None,
       inner_graph: InnerGraphState::new(),
       parse_meta,
+      forward_names,
       local_modules: Default::default(),
       has_inlinable_const_decls: true,
     }

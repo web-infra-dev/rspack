@@ -91,13 +91,6 @@ pub trait Dependency:
     None
   }
 
-  // TODO: remove this once incremental build chunk graph is stable.
-  // For now only `ESMImportSpecifierDependency` and
-  // `ESMExportImportedSpecifierDependency` can use this method
-  fn _get_ids<'a>(&'a self, _mg: &'a ModuleGraph) -> &'a [Atom] {
-    unreachable!()
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     None
   }

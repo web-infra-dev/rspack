@@ -1,12 +1,15 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rspack_util::{atom::Atom, fx_hash::FxIndexMap};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  CompilerOptions, DeferedDependenciesInfo, DeferedName, DependencyParents, Module, ModuleProfile,
+  ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -19,6 +22,7 @@ pub struct BuildTask {
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub forward_names: FxHashSet<Atom>,
 }
 
 #[async_trait::async_trait]
@@ -36,6 +40,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile,
       mut module,
       fs,
+      forward_names,
     } = *self;
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_start();
@@ -56,6 +61,7 @@ impl Task<MakeTaskContext> for BuildTask {
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           fs: fs.clone(),
+          forward_names,
         },
         None,
       )
@@ -83,6 +89,7 @@ struct BuildResultTask {
   pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
+
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
@@ -129,6 +136,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
       .build_dependencies
       .add_batch_file(&build_info.build_dependencies);
 
+    let mut defered_dependencies_info = DeferedDependenciesInfo::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
@@ -139,6 +147,11 @@ impl Task<MakeTaskContext> for BuildResultTask {
         let dependency_id = *dependency.id();
         if current_block.is_none() {
           module.add_dependency_id(dependency_id);
+        }
+        if let Some(dep) = dependency.as_module_dependency()
+          && let DeferedName::Defered { forward_name } = dep.defered_name()
+        {
+          defered_dependencies_info.insert(dep.request().into(), forward_name, dependency_id);
         }
         all_dependencies.push(dependency_id);
         module_graph.set_parents(
@@ -180,8 +193,20 @@ impl Task<MakeTaskContext> for BuildResultTask {
 
     module_graph.add_module(module);
 
+    let dependencies_to_process = {
+      let defered_dependencies = defered_dependencies_info
+        .defered_dependencies()
+        .collect::<FxHashSet<_>>();
+      all_dependencies.retain(|dep| !defered_dependencies.contains(dep));
+      all_dependencies
+    };
+    dbg!(&defered_dependencies_info);
+    context
+      .module_to_defered_dependencies
+      .insert(module_identifier, defered_dependencies_info);
+
     Ok(vec![Box::new(ProcessDependenciesTask {
-      dependencies: all_dependencies,
+      dependencies: dependencies_to_process,
       original_module_identifier: module_identifier,
     })])
   }

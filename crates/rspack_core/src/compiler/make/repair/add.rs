@@ -1,4 +1,5 @@
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
 use super::{build::BuildTask, MakeTaskContext};
 use crate::{
@@ -45,6 +46,13 @@ impl Task<MakeTaskContext> for AddTask {
       return Ok(vec![]);
     }
 
+    let forward_names = self
+      .dependencies
+      .iter()
+      .filter_map(|dep| dep.as_module_dependency())
+      .filter_map(|dep| dep.forward_name())
+      .collect::<FxHashSet<_>>();
+
     // reuse module if module is already added by other dependency
     if module_graph
       .module_graph_module_by_identifier(&module_identifier)
@@ -56,6 +64,9 @@ impl Task<MakeTaskContext> for AddTask {
         self.dependencies,
         module_identifier,
       )?;
+      // 2. revisit
+      // get the defered named reexport dependencies of the barrel file, and revisit
+      // upgrade defered named reexport dependencies from weak to strong
 
       return Ok(vec![]);
     }
@@ -81,6 +92,7 @@ impl Task<MakeTaskContext> for AddTask {
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
       fs: context.fs.clone(),
+      forward_names,
     })])
   }
 }

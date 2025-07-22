@@ -16,8 +16,9 @@ use swc_core::{atoms::Atom, common::Span};
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
-  ConcatenationScope, Context, EvaluatedInlinableValue, Module, ModuleGraph, ModuleIdentifier,
-  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -35,9 +36,11 @@ pub struct ParseContext<'a> {
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: Option<AdditionalData>,
+  pub factory_meta: Option<&'a FactoryMeta>,
   pub parse_meta: ParseMeta,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
+  pub forward_names: FxHashSet<Atom>,
 }
 
 #[cacheable]
