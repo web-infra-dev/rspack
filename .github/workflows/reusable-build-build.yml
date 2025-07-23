@@ -179,10 +179,13 @@ jobs:
         run: |
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
-      # WASM Release (use profile = release-wasi)
+      # WASM Release (use profile = release-wasi) + wasm-opt
       - name: Build wasm32-wasip1-threads(release-wasi) with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
-        run: pnpm --filter @rspack/binding build:release:wasm
+        run: |
+          pnpm --filter @rspack/binding build:release:wasm
+          npm install -g binaryen
+          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.wasm
 
       - name: Diff artifact
         run: |
