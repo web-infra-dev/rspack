@@ -11,6 +11,7 @@ version.workspace = true
 crate-type = ["cdylib"]
 
 [features]
+browser         = ["rspack_binding_api/browser"]
 color-backtrace = ["rspack_binding_api/color-backtrace"]
 debug_tool      = ["rspack_binding_api/debug_tool"]
 info-level      = ["tracing/release_max_level_info"]

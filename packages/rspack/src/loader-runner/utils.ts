@@ -4,14 +4,15 @@ import type {
 	LoaderContext,
 	LoaderContextCallback
 } from "../config/adapterRuleUse";
+import type { Compiler } from "../exports";
 import type { LoaderObject } from ".";
 import loadLoaderRaw from "./loadLoader";
 
 const decoder = new TextDecoder();
 
 function utf8BufferToString(buf: Uint8Array) {
-	// The provided ArrayBufferView value must not be shared.
 	const str = decoder.decode(
+		// The provided ArrayBufferView value must not be shared.
 		buf.buffer instanceof SharedArrayBuffer ? Buffer.from(buf) : buf
 	);
 	if (str.charCodeAt(0) === 0xfeff) {
@@ -32,8 +33,10 @@ export function convertArgs(args: any[], raw: boolean) {
 	}
 }
 
-export const loadLoader: (loaderObject: LoaderObject) => Promise<void> =
-	promisify(loadLoaderRaw);
+export const loadLoader: (
+	loaderObject: LoaderObject,
+	compiler: Compiler
+) => Promise<void> = promisify(loadLoaderRaw);
 
 export const runSyncOrAsync = promisify(function runSyncOrAsync(
 	fn: Function,
