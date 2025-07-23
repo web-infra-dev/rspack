@@ -117,10 +117,12 @@ fn replace_all_placeholder_impl<'a>(
             }
           }
         };
-        if need_base64 && let Some(l) = configs.next() {
-          match l.parse::<usize>() {
-            Ok(l) => len = Some(l),
-            Err(_) => continue,
+        if need_base64 {
+          if let Some(l) = configs.next() {
+            match l.parse::<usize>() {
+              Ok(l) => len = Some(l),
+              Err(_) => continue,
+            }
           }
         }
         if len.is_none() {
