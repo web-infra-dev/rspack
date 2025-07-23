@@ -105,7 +105,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
     let rx = self.call_with_return(value);
     #[cfg(feature = "browser")]
     let ret =
-      tokio::task::unconstrained(async { rx.await.expect("failed to receive tsfn value") }).await;
+      tokio::task::unconstrained(rx).await.expect("failed to receive tsfn value");
     #[cfg(not(feature = "browser"))]
     let ret = rx.await.expect("failed to receive tsfn value");
     ret
