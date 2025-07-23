@@ -6,8 +6,8 @@ use rspack_core::{
   get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
   is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExtendedReferencedExport, GroupOptions, Inlinable, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
+  ExportsInfoData, ExtendedReferencedExport, GroupOptions, Inlinable, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -15,6 +15,7 @@ use rspack_util::{queue::Queue, swc::join_atom};
 use rustc_hash::FxHashMap as HashMap;
 
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>, bool);
+type NonNestedTask = (Option<RuntimeSpec>, bool, Vec<ExtendedReferencedExport>);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
@@ -107,20 +108,112 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         })
         .collect::<Vec<_>>();
 
-      for (runtime, force_side_effects, referenced_exports, module_tasks) in batch_res {
-        for i in module_tasks {
-          q.enqueue(i);
+      let mut nested_tasks = vec![];
+      let mut non_nested_tasks: IdentifierMap<Vec<NonNestedTask>> = IdentifierMap::default();
+
+      {
+        let mg = self.compilation.get_module_graph();
+
+        let collected = batch_res
+          .into_par_iter()
+          .map(
+            |(runtime, force_side_effects, referenced_exports, module_tasks)| {
+              let mut nested_tasks = vec![];
+              let mut non_nested_tasks = vec![];
+              for (module_id, exports) in referenced_exports {
+                let exports_info = mg.get_exports_info(&module_id).as_data(&mg);
+                let has_nested = exports_info.redirect_to().is_some()
+                  || exports.iter().any(|e| match e {
+                    ExtendedReferencedExport::Array(arr) => arr.len() > 1,
+                    ExtendedReferencedExport::Export(export) => export.name.len() > 1,
+                  });
+                if has_nested {
+                  nested_tasks.push((
+                    runtime.clone(),
+                    force_side_effects,
+                    module_id,
+                    exports_info.id(),
+                    exports,
+                  ));
+                } else {
+                  non_nested_tasks
+                    .push((module_id, (runtime.clone(), force_side_effects, exports)));
+                }
+              }
+              (nested_tasks, non_nested_tasks, module_tasks)
+            },
+          )
+          .collect::<Vec<_>>();
+
+        for (module_nested_tasks, module_non_nested_tasks, module_tasks) in collected {
+          for i in module_tasks {
+            q.enqueue(i);
+          }
+          for (module_id, task) in module_non_nested_tasks {
+            non_nested_tasks.entry(module_id).or_default().push(task);
+          }
+          nested_tasks.extend(module_nested_tasks);
         }
-        for (module_id, referenced_exports) in referenced_exports {
-          let res = self.process_referenced_module(
-            module_id,
-            referenced_exports,
-            runtime.clone(),
-            force_side_effects,
-          );
+      }
+
+      let non_nested_res = {
+        let mg = self.compilation.get_module_graph();
+        non_nested_tasks
+          .into_par_iter()
+          .map(|(module_id, tasks)| {
+            let mut exports_info = mg.get_exports_info(&module_id).as_data(&mg).clone();
+            let module = mg
+              .module_by_identifier(&module_id)
+              .expect("should have module");
+            let is_exports_type_unset = matches!(
+              module.build_meta().exports_type,
+              BuildMetaExportsType::Unset
+            );
+            let is_side_effect_free = match module.factory_meta() {
+              Some(meta) => meta.side_effect_free.unwrap_or_default(),
+              None => false,
+            };
+
+            let mut res = vec![];
+            for (runtime, force_side_effects, exports) in tasks {
+              let module_res = process_referenced_module_without_nested(
+                module_id,
+                is_exports_type_unset,
+                is_side_effect_free,
+                &mut exports_info,
+                exports,
+                runtime,
+                force_side_effects,
+              );
+              res.extend(module_res);
+            }
+            (exports_info, res)
+          })
+          .collect::<Vec<_>>()
+      };
+
+      {
+        let mut mg = self.compilation.get_module_graph_mut();
+        for (exports_info, res) in non_nested_res {
           for i in res {
             q.enqueue(i);
           }
+
+          mg.set_exports_info(exports_info.id(), exports_info);
+        }
+      }
+
+      for (runtime, force_side_effects, module_id, exports_info, referenced_exports) in nested_tasks
+      {
+        let res = self.process_referenced_module(
+          exports_info,
+          module_id,
+          referenced_exports,
+          runtime.clone(),
+          force_side_effects,
+        );
+        for i in res {
+          q.enqueue(i);
         }
       }
 
@@ -200,7 +293,15 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .get_module_graph()
       .module_graph_module_by_dependency_id(&dep)
     {
-      let res = self.process_referenced_module(module.module_identifier, vec![], runtime, true);
+      let mg = self.compilation.get_module_graph();
+      let exports_info = mg.get_exports_info(&module.module_identifier);
+      let res = self.process_referenced_module(
+        exports_info,
+        module.module_identifier,
+        vec![],
+        runtime,
+        true,
+      );
       for i in res {
         queue.enqueue(i);
       }
@@ -209,6 +310,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
   fn process_referenced_module(
     &mut self,
+    mgm_exports_info: ExportsInfo,
     module_id: ModuleIdentifier,
     used_exports: Vec<ExtendedReferencedExport>,
     runtime: Option<RuntimeSpec>,
@@ -216,13 +318,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   ) -> Vec<ProcessBlockTask> {
     let mut queue = vec![];
     let mut module_graph = self.compilation.get_module_graph_mut();
-    let mgm = module_graph
-      .module_graph_module_by_identifier(&module_id)
-      .expect("should have mgm");
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
-    let mgm_exports_info = mgm.exports;
     if !used_exports.is_empty() {
       let need_insert = matches!(
         module.build_meta().exports_type,
@@ -552,4 +650,84 @@ fn get_dependency_referenced_exports(
   } else {
     None
   }
+}
+
+fn process_referenced_module_without_nested(
+  module_id: ModuleIdentifier,
+  is_exports_type_unset: bool,
+  is_side_effect_free: bool,
+  exports_info: &mut ExportsInfoData,
+  used_exports: Vec<ExtendedReferencedExport>,
+  runtime: Option<RuntimeSpec>,
+  force_side_effects: bool,
+) -> Vec<ProcessBlockTask> {
+  let mut queue = vec![];
+  if !used_exports.is_empty() {
+    if is_exports_type_unset {
+      let flag = exports_info.set_owned_used_without_info(runtime.as_ref());
+      if flag {
+        queue.push((
+          ModuleOrAsyncDependenciesBlock::Module(module_id),
+          None,
+          false,
+        ));
+      }
+      return queue;
+    }
+
+    for used_export_info in used_exports {
+      let (used_exports, can_mangle, can_inline) = match used_export_info {
+        ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
+        ExtendedReferencedExport::Export(export) => {
+          (export.name, export.can_mangle, export.can_inline)
+        }
+      };
+      if used_exports.is_empty() {
+        let flag = exports_info.set_owned_used_in_unknown_way(runtime.as_ref());
+
+        if flag {
+          queue.push((
+            ModuleOrAsyncDependenciesBlock::Module(module_id),
+            runtime.clone(),
+            false,
+          ));
+        }
+      } else {
+        let used_export = &used_exports[0];
+        let export_info = exports_info.ensure_owned_export_info(used_export);
+        if !can_mangle {
+          export_info.set_can_mangle_use(Some(false));
+        }
+        if !can_inline {
+          export_info.set_inlinable(Inlinable::NoByUse);
+        }
+
+        let changed_flag = export_info.set_used_conditionally(
+          Box::new(|v| v != &UsageState::Used),
+          UsageState::Used,
+          runtime.as_ref(),
+        );
+        if changed_flag {
+          queue.push((
+            ModuleOrAsyncDependenciesBlock::Module(module_id),
+            runtime.clone(),
+            false,
+          ));
+        }
+      }
+    }
+  } else {
+    if !force_side_effects && is_side_effect_free {
+      return queue;
+    }
+    let changed_flag = exports_info.set_used_for_side_effects_only(runtime.as_ref());
+    if changed_flag {
+      queue.push((
+        ModuleOrAsyncDependenciesBlock::Module(module_id),
+        runtime,
+        false,
+      ));
+    }
+  }
+  queue
 }
