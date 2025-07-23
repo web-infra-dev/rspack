@@ -94,6 +94,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
       self.compilation.module_graph_cache_artifact.freeze();
 
+      // collect referenced exports from modules by calling `dependency.get_referenced_exports`
+      // and also added referenced modules to the queue for further processing
       let batch_res = batch
         .into_par_iter()
         .map(|(block_id, runtime, force_side_effects)| {
@@ -112,6 +114,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let mut non_nested_tasks: IdentifierMap<Vec<NonNestedTask>> = IdentifierMap::default();
 
       {
+        // partition collected referenced exports to two parts:
+        // 1. if the exports info data has `redirect_to`, the redirected exports info will also be modified, so the referenced exports should not be processed parallelly
+        // 2. if the referenced exports has nested properties, the nested exports info will also be modified, the referenced exports should not be processed parallelly
+
         let mg = self.compilation.get_module_graph();
 
         let collected = batch_res
@@ -156,6 +162,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         }
       }
 
+      // we can ensure that only the module's exports info data will be modified
+      // so we can process these non-nested tasks parallelly by cloning the exports info data
       let non_nested_res = {
         let mg = self.compilation.get_module_graph();
         non_nested_tasks
@@ -193,6 +201,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       };
 
       {
+        // after processing, we will set the exports info data back to the module graph
         let mut mg = self.compilation.get_module_graph_mut();
         for (exports_info, res) in non_nested_res {
           for i in res {
@@ -203,6 +212,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         }
       }
 
+      // for nested tasks, just process them one by one to prevent conflicts while modifying the exports info data
       for (runtime, force_side_effects, module_id, exports_info, referenced_exports) in nested_tasks
       {
         let res = self.process_referenced_module(
