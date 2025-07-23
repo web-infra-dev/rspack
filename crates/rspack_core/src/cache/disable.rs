@@ -11,7 +11,7 @@ pub struct DisableCache;
 
 #[async_trait::async_trait]
 impl Cache for DisableCache {
-  async fn before_make(&self, make_artifact: &mut MakeArtifact) -> Result<()> {
+  async fn before_make(&mut self, make_artifact: &mut MakeArtifact) -> Result<()> {
     *make_artifact = Default::default();
     Ok(())
   }

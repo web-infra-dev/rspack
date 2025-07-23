@@ -156,6 +156,10 @@ impl RootStrategy for SplitPackStrategy {
 
     Ok(())
   }
+
+  async fn reset(&self) {
+    let _ = self.fs.remove_dir(&self.root).await;
+  }
 }
 
 impl ScopeStrategy for SplitPackStrategy {}

@@ -87,6 +87,7 @@ use crate::{
 
 #[napi(object)]
 pub struct JsTap<'f> {
+  #[napi(ts_type = "(...args: any[]) => any")]
   pub function: Function<'f>,
   pub stage: i32,
 }

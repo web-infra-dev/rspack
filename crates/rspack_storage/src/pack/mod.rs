@@ -82,4 +82,7 @@ impl Storage for PackStorage {
       &mut *self.updates.lock().expect("should get lock"),
     ))
   }
+  async fn reset(&self) {
+    self.manager.reset().await;
+  }
 }

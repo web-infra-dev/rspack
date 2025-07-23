@@ -86,7 +86,7 @@ Cargo.toml @quininer
 /packages/create-rspack @chenjiahan
 /packages/rspack @hardfist
 /packages/rspack-cli @hardfist
-/packages/rspack-test-tools @LingyuCoder
+/packages/rspack-test-tools/src @LingyuCoder
 
 # Tests
 
