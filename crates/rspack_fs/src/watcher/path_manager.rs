@@ -269,7 +269,7 @@ mod tests {
   use rspack_error::Result;
 
   use super::*;
-  use crate::{FsWatcherIgnored, Ignored};
+  use crate::Ignored;
 
   struct TestIgnored {
     pub ignored: Vec<String>,
