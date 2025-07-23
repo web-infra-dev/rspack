@@ -32,6 +32,8 @@ rustflags = [
   # "-Wclippy::same_name_method",
 
   "-Aclippy::default_constructed_unit_structs",
+  "-Zshare-generics=y", # make the current crate share its generic instantiations
+  "-Zthreads=8", # parallel frontend https://blog.rust-lang.org/2023/11/09/parallel-rustc.html
   "-Csymbol-mangling-version=v0", # symbol mangling v0 https://doc.rust-lang.org/stable/rustc/symbol-mangling/v0.html
 ]
 
@@ -65,3 +67,5 @@ rustflags = ["-C", "target-feature=+crt-static"]
 rustflags = ["-C", "target-feature=+crt-static"]
 
 # This must be the last line to allow ci script to append flags
+[unstable]
+no-embed-metadata = true

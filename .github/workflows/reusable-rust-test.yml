@@ -38,11 +38,16 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Install Rust Toolchain
+      - name: Install Rust Toolchain (Nightly)
         uses: ./.github/actions/rustup
         with:
           save-if: true
           key: check
+
+      - name: Install Stable Rust 1.88.0 for cargo check
+        shell: bash
+        run: |
+          rustup toolchain install 1.88.0 -c rustc -c cargo -c rust-std
 
       - name: Run Cargo codegen
         run: cargo codegen
@@ -57,11 +62,161 @@ jobs:
 
       - name: Run Cargo Check (all strategy)
         if: ${{ inputs.cargo-check-strategy == 'all' }}
-        run: cargo check --workspace --all-targets --locked
+        shell: bash
+        run: |
+          # Temporarily disable nightly flags for stable Rust cargo check
+          mv .cargo/config.toml .cargo/config.toml.bak
+          cat > .cargo/config.toml << 'EOF'
+          # workaround for getting workspace root dir, reference: https://github.com/rust-lang/cargo/issues/3946
+          [env]
+          CARGO_WORKSPACE_DIR = { value = "", relative = true }
+
+          [alias]
+          lint = "clippy --workspace --all-targets -- --deny warnings"
+          # AKA `test-update`, handy cargo rst update without install `cargo-rst` binary
+          t  = "test --no-fail-fast"
+          codegen = "xtask codegen"
+          xtask = "run -p xtask --"
+
+          [target.'cfg(all())']
+          rustflags = [
+            # CLIPPY LINT SETTINGS
+            # This is a workaround to configure lints for the entire workspace, pending the ability to configure this via TOML.
+            # See: `https://github.com/rust-lang/cargo/issues/5034`
+            #      `https://github.com/EmbarkStudios/rust-ecosystem/issues/22#issuecomment-947011395`
+            "-Wclippy::all", # all lints that are on by default (correctness, suspicious, style, complexity, perf)
+
+            # restriction
+            "-Wclippy::dbg_macro",
+            # Disable this as semantics of `expect` and `Result` are different.
+            # See: `https://github.com/web-infra-dev/rspack/pull/4848`
+            # "-Wclippy::unwrap_in_result",
+            "-Wclippy::unwrap_used",
+            "-Wclippy::empty_drop",
+            "-Wclippy::exit",
+            "-Wclippy::empty_structs_with_brackets",
+            "-Wclippy::rc_buffer",
+            "-Wclippy::rc_mutex",
+            # https://github.com/bitflags/bitflags/issues/424
+            # "-Wclippy::same_name_method",
+
+            "-Aclippy::default_constructed_unit_structs",
+            "-Csymbol-mangling-version=v0", # symbol mangling v0 https://doc.rust-lang.org/stable/rustc/symbol-mangling/v0.html
+          ]
+
+          # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
+          # To be able to run unit tests on macOS, support compilation to 'x86_64-apple-darwin'.
+          # -all_load is related to https://github.com/web-infra-dev/rspack/pull/9337
+          [target.'cfg(target_vendor = "apple")']
+          rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains,-all_load"]
+
+          # To be able to run unit tests on Windows, support compilation to 'x86_64-pc-windows-msvc'.
+          # Use Hybrid CRT to reduce the size of the binary (Coming by default with Windows 10 and later versions).
+          [target.'cfg(target_os = "windows")']
+          rustflags = [
+            "-C", "link-args=/FORCE", 
+            "-C", "link-args=/NODEFAULTLIB:libucrt.lib", 
+            "-C", "link-args=/DEFAULTLIB:ucrt.lib"
+          ]
+
+          [target.wasm32-wasip1-threads]
+          rustflags = [
+            "-C",
+            "target-feature=+simd128", 
+            "--cfg", "tokio_unstable"
+          ]
+
+          [target.x86_64-pc-windows-msvc]
+          rustflags = ["-C", "target-feature=+crt-static"]
+          [target.i686-pc-windows-msvc]
+          rustflags = ["-C", "target-feature=+crt-static"]
+          [target.aarch64-pc-windows-msvc]
+          rustflags = ["-C", "target-feature=+crt-static"]
+
+          # This must be the last line to allow ci script to append flags
+          EOF
+          cargo +1.88.0 check --workspace --all-targets --locked
+          # Restore original config
+          mv .cargo/config.toml.bak .cargo/config.toml
 
       - name: Run Cargo Check (separated strategy)
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        run: cargo workspaces exec cargo check --all-targets --locked
+        shell: bash
+        run: |
+          # Temporarily disable nightly flags for stable Rust cargo check
+          mv .cargo/config.toml .cargo/config.toml.bak
+          cat > .cargo/config.toml << 'EOF'
+          # workaround for getting workspace root dir, reference: https://github.com/rust-lang/cargo/issues/3946
+          [env]
+          CARGO_WORKSPACE_DIR = { value = "", relative = true }
+
+          [alias]
+          lint = "clippy --workspace --all-targets -- --deny warnings"
+          # AKA `test-update`, handy cargo rst update without install `cargo-rst` binary
+          t  = "test --no-fail-fast"
+          codegen = "xtask codegen"
+          xtask = "run -p xtask --"
+
+          [target.'cfg(all())']
+          rustflags = [
+            # CLIPPY LINT SETTINGS
+            # This is a workaround to configure lints for the entire workspace, pending the ability to configure this via TOML.
+            # See: `https://github.com/rust-lang/cargo/issues/5034`
+            #      `https://github.com/EmbarkStudios/rust-ecosystem/issues/22#issuecomment-947011395`
+            "-Wclippy::all", # all lints that are on by default (correctness, suspicious, style, complexity, perf)
+
+            # restriction
+            "-Wclippy::dbg_macro",
+            # Disable this as semantics of `expect` and `Result` are different.
+            # See: `https://github.com/web-infra-dev/rspack/pull/4848`
+            # "-Wclippy::unwrap_in_result",
+            "-Wclippy::unwrap_used",
+            "-Wclippy::empty_drop",
+            "-Wclippy::exit",
+            "-Wclippy::empty_structs_with_brackets",
+            "-Wclippy::rc_buffer",
+            "-Wclippy::rc_mutex",
+            # https://github.com/bitflags/bitflags/issues/424
+            # "-Wclippy::same_name_method",
+
+            "-Aclippy::default_constructed_unit_structs",
+            "-Csymbol-mangling-version=v0", # symbol mangling v0 https://doc.rust-lang.org/stable/rustc/symbol-mangling/v0.html
+          ]
+
+          # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
+          # To be able to run unit tests on macOS, support compilation to 'x86_64-apple-darwin'.
+          # -all_load is related to https://github.com/web-infra-dev/rspack/pull/9337
+          [target.'cfg(target_vendor = "apple")']
+          rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains,-all_load"]
+
+          # To be able to run unit tests on Windows, support compilation to 'x86_64-pc-windows-msvc'.
+          # Use Hybrid CRT to reduce the size of the binary (Coming by default with Windows 10 and later versions).
+          [target.'cfg(target_os = "windows")']
+          rustflags = [
+            "-C", "link-args=/FORCE", 
+            "-C", "link-args=/NODEFAULTLIB:libucrt.lib", 
+            "-C", "link-args=/DEFAULTLIB:ucrt.lib"
+          ]
+
+          [target.wasm32-wasip1-threads]
+          rustflags = [
+            "-C",
+            "target-feature=+simd128", 
+            "--cfg", "tokio_unstable"
+          ]
+
+          [target.x86_64-pc-windows-msvc]
+          rustflags = ["-C", "target-feature=+crt-static"]
+          [target.i686-pc-windows-msvc]
+          rustflags = ["-C", "target-feature=+crt-static"]
+          [target.aarch64-pc-windows-msvc]
+          rustflags = ["-C", "target-feature=+crt-static"]
+
+          # This must be the last line to allow ci script to append flags
+          EOF
+          cargo workspaces exec cargo +1.88.0 check --all-targets --locked
+          # Restore original config
+          mv .cargo/config.toml.bak .cargo/config.toml
 
       - name: Run Clippy
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
