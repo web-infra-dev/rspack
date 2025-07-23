@@ -8,8 +8,8 @@ use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DeferredDependenciesInfo, DeferredName, DependencyParents, Module,
-  ModuleProfile, ResolverFactory, SharedPluginDriver,
+  CompilerOptions, DependencyParents, LazyDependenciesInfo, LazyMake, Module, ModuleProfile,
+  ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -136,7 +136,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
       .build_dependencies
       .add_batch_file(&build_info.build_dependencies);
 
-    let mut deferred_dependencies_info = DeferredDependenciesInfo::default();
+    let mut lazy_dependencies_info = LazyDependenciesInfo::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
@@ -149,9 +149,9 @@ impl Task<MakeTaskContext> for BuildResultTask {
           module.add_dependency_id(dependency_id);
         }
         if let Some(dep) = dependency.as_module_dependency()
-          && let DeferredName::Deferred { forward_name } = dep.deferred_name()
+          && let LazyMake::LazyUntil { forward_name } = dep.lazy()
         {
-          deferred_dependencies_info.insert(dep.request().into(), forward_name, dependency_id);
+          lazy_dependencies_info.insert(dep.request().into(), forward_name, dependency_id);
         }
         all_dependencies.push(dependency_id);
         module_graph.set_parents(
@@ -193,17 +193,21 @@ impl Task<MakeTaskContext> for BuildResultTask {
 
     module_graph.add_module(module);
 
-    let dependencies_to_process = {
-      let deferred_dependencies = deferred_dependencies_info
-        .deferred_dependencies()
+    let dependencies_to_process = if !lazy_dependencies_info.is_empty() {
+      let lazy_dependencies = lazy_dependencies_info
+        .lazy_dependencies()
         .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !deferred_dependencies.contains(dep));
+      all_dependencies.retain(|dep| !lazy_dependencies.contains(dep));
+
+      dbg!(module_identifier, &lazy_dependencies_info);
+      context
+        .module_to_lazy_dependencies
+        .insert(module_identifier, lazy_dependencies_info);
+
+      all_dependencies
+    } else {
       all_dependencies
     };
-    dbg!(&deferred_dependencies_info);
-    context
-      .module_to_deferred_dependencies
-      .insert(module_identifier, deferred_dependencies_info);
 
     Ok(vec![Box::new(ProcessDependenciesTask {
       dependencies: dependencies_to_process,

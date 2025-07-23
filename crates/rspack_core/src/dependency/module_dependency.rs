@@ -7,40 +7,50 @@ use super::{Dependency, FactorizeInfo};
 use crate::{DependencyCondition, DependencyId, ErrorSpan};
 
 #[derive(Debug, Default)]
-pub enum DeferredName {
+pub enum LazyMake {
   #[default]
-  NotDeferred,
-  Deferred {
+  Eager,
+  LazyUntil {
     forward_name: Option<Atom>,
   },
 }
 
 #[derive(Debug, Default)]
-pub struct DeferredDependenciesInfo {
-  forward_name_to_deferred_request: FxHashMap<Atom, Atom>,
-  deferred_request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
+pub struct LazyDependenciesInfo {
+  forward_name_to_request: FxHashMap<Atom, Atom>,
+  request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
 }
 
-impl DeferredDependenciesInfo {
+impl LazyDependenciesInfo {
+  pub fn is_empty(&self) -> bool {
+    self.request_to_dependencies.is_empty()
+  }
+
   pub fn insert(&mut self, request: Atom, forward_name: Option<Atom>, dependency_id: DependencyId) {
     if let Some(forward_name) = forward_name {
       self
-        .forward_name_to_deferred_request
+        .forward_name_to_request
         .insert(forward_name, request.clone());
     }
     self
-      .deferred_request_to_dependencies
+      .request_to_dependencies
       .entry(request)
       .or_default()
       .insert(dependency_id);
   }
 
-  pub fn deferred_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
+  pub fn lazy_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
+    self.request_to_dependencies.values().flatten().copied()
+  }
+
+  pub fn get_requested_lazy_dependencies(
+    &self,
+    forward_name: &Atom,
+  ) -> Option<&FxHashSet<DependencyId>> {
     self
-      .deferred_request_to_dependencies
-      .values()
-      .flatten()
-      .copied()
+      .forward_name_to_request
+      .get(forward_name)
+      .and_then(|request| self.request_to_dependencies.get(request))
   }
 }
 
@@ -63,7 +73,17 @@ pub trait ModuleDependency: Dependency {
   }
 
   fn weak(&self) -> bool {
-    false
+    matches!(self.lazy(), LazyMake::LazyUntil { .. })
+  }
+
+  fn lazy(&self) -> LazyMake {
+    LazyMake::Eager
+  }
+
+  fn unset_lazy(&mut self) {}
+
+  fn forward_name(&self) -> Option<Atom> {
+    None
   }
 
   fn get_optional(&self) -> bool {
@@ -76,14 +96,6 @@ pub trait ModuleDependency: Dependency {
 
   fn factorize_info(&self) -> &FactorizeInfo;
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo;
-
-  fn forward_name(&self) -> Option<Atom> {
-    None
-  }
-
-  fn deferred_name(&self) -> DeferredName {
-    DeferredName::NotDeferred
-  }
 }
 
 clone_trait_object!(ModuleDependency);

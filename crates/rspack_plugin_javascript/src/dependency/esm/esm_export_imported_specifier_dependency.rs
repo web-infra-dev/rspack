@@ -10,7 +10,7 @@ use rspack_core::{
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
   filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
   property_name, to_normal_comment, AsContextDependency, ConditionalInitFragment, ConnectionState,
-  DeferredName, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment,
   ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
@@ -19,7 +19,7 @@ use rspack_core::{
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  JavascriptParserOptions, LazyMake, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
   PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
   StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
@@ -59,7 +59,7 @@ pub struct ESMExportImportedSpecifierDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
-  deferred_make: bool,
+  lazy_make: bool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -90,12 +90,12 @@ impl ESMExportImportedSpecifierDependency {
       attributes,
       source_map,
       factorize_info: Default::default(),
-      deferred_make: false,
+      lazy_make: false,
     }
   }
 
-  pub fn set_deferred_make(&mut self) {
-    self.deferred_make = true;
+  pub fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -1403,22 +1403,22 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     &mut self.factorize_info
   }
 
-  fn weak(&self) -> bool {
-    matches!(self.deferred_name(), DeferredName::Deferred { .. })
-  }
-
   fn forward_name(&self) -> Option<Atom> {
     self.ids.get(0).cloned()
   }
 
-  fn deferred_name(&self) -> DeferredName {
-    if self.deferred_make {
-      DeferredName::Deferred {
+  fn lazy(&self) -> LazyMake {
+    if self.lazy_make {
+      LazyMake::LazyUntil {
         forward_name: self.name.clone(),
       }
     } else {
-      DeferredName::NotDeferred
+      LazyMake::Eager
     }
+  }
+
+  fn unset_lazy(&mut self) {
+    self.lazy_make = false;
   }
 }
 

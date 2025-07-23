@@ -5,14 +5,14 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   filter_runtime, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
-  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, DeferredName, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, TypeReexportPresenceMode,
+  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyMake,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -73,7 +73,7 @@ pub struct ESMImportSideEffectDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
-  deferred_make: bool,
+  lazy_make: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -100,12 +100,12 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       source_map,
       factorize_info: Default::default(),
-      deferred_make: false,
+      lazy_make: false,
     }
   }
 
-  pub fn set_deferred_make(&mut self) {
-    self.deferred_make = true;
+  pub fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 }
 
@@ -615,12 +615,16 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     &mut self.factorize_info
   }
 
-  fn deferred_name(&self) -> DeferredName {
-    if self.deferred_make {
-      DeferredName::Deferred { forward_name: None }
+  fn lazy(&self) -> LazyMake {
+    if self.lazy_make {
+      LazyMake::LazyUntil { forward_name: None }
     } else {
-      DeferredName::NotDeferred
+      LazyMake::Eager
     }
+  }
+
+  fn unset_lazy(&mut self) {
+    self.lazy_make = false;
   }
 }
 
