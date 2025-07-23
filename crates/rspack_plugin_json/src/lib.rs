@@ -300,6 +300,7 @@ fn create_object_for_exports_info(
         }
         let new_value = if used == UsageState::OnlyPropertiesUsed
           && let Some(exports_info) = export_info.exports_info()
+          && matches!(value, JsonValue::Object(_) | JsonValue::Array(_))
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);

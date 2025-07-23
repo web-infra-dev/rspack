@@ -83,17 +83,29 @@ pub fn collect_referenced_export_items<'a>(
       referenced_export.push(prefix);
       return;
     }
-    // FIXME: more branch
-    if used != UsageState::OnlyPropertiesUsed {
+    if used != UsageState::OnlyPropertiesUsed
+      || export_info.exports_info().is_none()
+      || export_info.exports_info().is_some_and(|e| {
+        !matches!(
+          e.as_data(module_graph)
+            .other_exports_info()
+            .get_used(runtime),
+          UsageState::Unused
+        )
+      })
+    {
       referenced_export.push(prefix);
       return;
     }
     already_visited.insert(export_info_id);
-    if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
+
+    let exports_info = module_graph.get_exports_info_by_id(
       &export_info
         .exports_info()
         .expect("should have exports info"),
-    ) {
+    );
+
+    if !export_info.exports_info_owned() {
       for export_info in exports_info.exports().values() {
         collect_referenced_export_items(
           module_graph,

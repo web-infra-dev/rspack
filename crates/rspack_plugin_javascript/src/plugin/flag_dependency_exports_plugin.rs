@@ -339,12 +339,12 @@ pub fn merge_exports(
     }
 
     if let Some(exports) = exports {
+      // create nested exports info
       let nested_exports_info = if export_info_data.exports_info_owned() {
         export_info_data
           .exports_info()
           .expect("should have exports_info when exports_info is true")
       } else {
-        let old_exports_info = export_info_data.exports_info();
         let new_exports_info = ExportsInfoData::default();
         let new_exports_info_id = new_exports_info.id();
         export_info_data.set_exports_info(Some(new_exports_info_id));
@@ -352,11 +352,6 @@ pub fn merge_exports(
         mg.set_exports_info(new_exports_info_id, new_exports_info);
 
         new_exports_info_id.set_has_provide_info(mg);
-        if let Some(exports_info) = old_exports_info {
-          exports_info
-            .as_data_mut(mg)
-            .set_redirect_name_to(Some(new_exports_info_id));
-        }
         new_exports_info_id
       };
 
@@ -396,6 +391,7 @@ pub fn merge_exports(
 
     // Recalculate target exportsInfo
     let export_info_data = export_info.as_data(mg);
+
     let target = get_target(export_info_data, mg);
 
     let mut target_exports_info = None;
@@ -417,11 +413,12 @@ pub fn merge_exports(
 
     let export_info_data = export_info.as_data_mut(mg);
     if export_info_data.exports_info_owned() {
-      changed |= export_info_data
-        .exports_info()
-        .expect("should have exports_info when exports_info_owned is true")
-        .as_data_mut(mg)
-        .set_redirect_name_to(target_exports_info);
+      if export_info_data.exports_info() != target_exports_info
+        && let Some(target_exports_info) = target_exports_info
+      {
+        export_info_data.set_exports_info(Some(target_exports_info));
+        changed = true;
+      }
     } else if export_info_data.exports_info() != target_exports_info {
       export_info_data.set_exports_info(target_exports_info);
       changed = true;

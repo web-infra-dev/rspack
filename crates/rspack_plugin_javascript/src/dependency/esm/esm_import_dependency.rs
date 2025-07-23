@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, Skip},
@@ -369,6 +370,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
                 exports
                   .iter()
                   .map(|e| e.as_str())
+                  .sorted_unstable()
                   .collect::<Vec<_>>()
                   .join(", ")
               )
