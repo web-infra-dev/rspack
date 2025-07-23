@@ -752,10 +752,9 @@ impl Compilation {
   }
   #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    if let Some(mut original) = self.assets.remove(&filename)
-      && let Some(original_source) = &original.source
-      && let Some(asset_source) = asset.get_source()
-    {
+    if let Some(mut original) = self.assets.remove(&filename) {
+      if let Some(original_source) = &original.source {
+        if let Some(asset_source) = asset.get_source() {
       let is_source_equal = is_source_equal(original_source, asset_source);
       if !is_source_equal {
         tracing::error!(
@@ -777,6 +776,12 @@ impl Compilation {
       }
       original.info = asset.info;
       self.assets.insert(filename, original);
+        } else {
+          self.assets.insert(filename, asset);
+        }
+      } else {
+        self.assets.insert(filename, asset);
+      }
     } else {
       self.assets.insert(filename, asset);
     }
