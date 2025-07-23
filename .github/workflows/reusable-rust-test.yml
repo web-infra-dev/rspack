@@ -65,14 +65,14 @@ jobs:
         shell: bash
         run: |
           # Use stable config for cargo check
-          CARGO_CONFIG_FILE=.cargo/config.stable.toml cargo +1.88.0 check --workspace --all-targets --locked
+          cargo +1.88.0 --config .cargo/config.stable.toml check --workspace --all-targets --locked
 
       - name: Run Cargo Check (separated strategy)
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
         shell: bash
         run: |
           # Use stable config for cargo check
-          CARGO_CONFIG_FILE=.cargo/config.stable.toml cargo workspaces exec cargo +1.88.0 check --all-targets --locked
+          cargo workspaces exec cargo +1.88.0 --config .cargo/config.stable.toml check --all-targets --locked
 
       - name: Run Clippy
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
