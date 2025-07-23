@@ -1,0 +1,5 @@
+[toolchain]
+profile = "default"
+components = ["rust-src"]
+# Use nightly for node_binding to enable optimizations like -Zshare-generics and -Zthreads
+channel = "nightly"

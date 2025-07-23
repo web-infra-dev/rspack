@@ -70,6 +70,19 @@ async function build() {
 			features.push("sftrace-setup");
 			envs.RUSTFLAGS = "-Zinstrument-xray=always";
 		}
+		
+		// Add nightly optimization flags for node_binding builds to improve performance
+		// These flags are only applied during NAPI builds, not for general cargo check/dev workflow
+		const nightlyOptimizations = [
+			"-Zshare-generics=y", // make the current crate share its generic instantiations
+			"-Zthreads=8", // parallel frontend
+		].join(" ");
+		
+		if (envs.RUSTFLAGS) {
+			envs.RUSTFLAGS += ` ${nightlyOptimizations}`;
+		} else {
+			envs.RUSTFLAGS = nightlyOptimizations;
+		}
 		if (values.profile === "release") {
 			features.push("info-level");
 		}
