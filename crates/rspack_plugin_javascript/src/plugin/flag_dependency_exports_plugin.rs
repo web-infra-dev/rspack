@@ -271,11 +271,11 @@ fn collect_module_exports_specs(
   Some((res, has_nested_exports))
 }
 
-/**
- * Merge exports specs to exports info data
- * and also collect the dependencies
- * which will be used to backtrack when target exports info is changed
- */
+///
+/// Merge exports specs to exports info data
+/// and also collect the dependencies
+/// which will be used to backtrack when target exports info is changed
+///
 pub fn process_exports_spec(
   mg: &mut ModuleGraph,
   module_id: &ModuleIdentifier,
