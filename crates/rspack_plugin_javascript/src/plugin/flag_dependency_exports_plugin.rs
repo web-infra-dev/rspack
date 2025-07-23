@@ -339,14 +339,14 @@ pub fn process_exports_spec(
   (changed, dependencies)
 }
 
-/**
- * Merge exports specs to exports info data
- * and also collect the dependencies
- * which will be used to backtrack when target exports info is changed
- *
- * This method is used for the case that the exports info data will not be nested modified
- * that means this exports info can be modified parallelly
- */
+///
+/// Merge exports specs to exports info data
+/// and also collect the dependencies
+/// which will be used to backtrack when target exports info is changed
+///
+/// This method is used for the case that the exports info data will not be nested modified
+/// that means this exports info can be modified parallelly
+///
 pub fn process_exports_spec_without_nested(
   mg: &ModuleGraph,
   module_id: &ModuleIdentifier,
