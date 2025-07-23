@@ -203,8 +203,8 @@ impl RawExternalItemFnCtx {
 
             let merged_resolve_options = match second.resolve_options.as_ref() {
               Some(second_resolve_options) => match first.resolve_options.as_ref() {
-                Some(resolve_options) => Some(Box::new(
-                  resolve_options
+                Some(first_resolve_options) => Some(Box::new(
+                  first_resolve_options
                     .clone()
                     .merge(*second_resolve_options.clone()),
                 )),
@@ -215,8 +215,8 @@ impl RawExternalItemFnCtx {
 
             let merged_options = ResolveOptionsWithDependencyType {
               resolve_options: merged_resolve_options,
-              resolve_to_context: second.resolve_to_context,
-              dependency_category: second.dependency_category,
+              resolve_to_context: first.resolve_to_context,
+              dependency_category: first.dependency_category,
             };
             let resolver = resolver_factory.get(merged_options);
 

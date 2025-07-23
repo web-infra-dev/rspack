@@ -81,13 +81,13 @@ pub struct ModuleGraphPartial {
   ///     assert_eq!(parents_info, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
+  dependency_id_to_parents: UkeyMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
   exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  connection_to_condition: UkeyMap<DependencyId, DependencyCondition>,
+  dep_meta_map: UkeyMap<DependencyId, DependencyExtraMeta>,
 }
 
 #[derive(Debug, Default)]
