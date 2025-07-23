@@ -246,10 +246,9 @@ it("should not have brackets on start", function() {
 // 	expect(DEFINED_NESTED_KEY).toBe(5);
 // });
 
-// FIXME:
-// it("should check that runtimeValue callback argument is a module", function() {
-// 	expect(RUNTIMEVALUE_CALLBACK_ARGUMENT_IS_A_MODULE).toEqual(true);
-// });
+it("should check that runtimeValue callback argument is a module", function() {
+	expect(RUNTIMEVALUE_CALLBACK_ARGUMENT_IS_A_MODULE).toEqual(false);
+});
 
 // FIXME:
 // it("should expand properly", function() {
