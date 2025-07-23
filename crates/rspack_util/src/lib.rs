@@ -1,5 +1,3 @@
-#![feature(int_roundings)]
-
 mod merge;
 
 pub mod asset_condition;
