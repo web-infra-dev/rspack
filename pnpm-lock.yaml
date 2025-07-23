@@ -32,8 +32,8 @@ importers:
         specifier: 7.30.6
         version: 7.30.6(@types/node@20.19.8)
       '@rslint/core':
-        specifier: 0.0.5
-        version: 0.0.5
+        specifier: 0.0.6
+        version: 0.0.6
       '@rspack/cli':
         specifier: workspace:*
         version: link:packages/rspack-cli
@@ -2654,8 +2654,8 @@ packages:
       typescript:
         optional: true
 
-  '@rslint/core@0.0.5':
-    resolution: {integrity: sha512-pgWmCNVSwkLvnyfJ9nbc0KxyvfYWmHvTzB2HRjOkIV00Xm8M96DZOV3p6TNteDRqRLd6w1O5FujGvONGgBt5+Q==}
+  '@rslint/core@0.0.6':
+    resolution: {integrity: sha512-bvFUEZhnGFFaWpH2DNOLJE7HugGlzBwmQy/cdG0efGjGgTe6jGQxvp8fq18mJmqPFz4ie3ZJDNpET2ljBpq/yA==}
     hasBin: true
 
   '@rspack/binding-darwin-arm64@1.4.6':
@@ -9770,7 +9770,7 @@ snapshots:
       '@microsoft/api-extractor': 7.52.8(@types/node@20.19.8)
       typescript: 5.8.3
 
-  '@rslint/core@0.0.5': {}
+  '@rslint/core@0.0.6': {}
 
   '@rspack/binding-darwin-arm64@1.4.6':
     optional: true
