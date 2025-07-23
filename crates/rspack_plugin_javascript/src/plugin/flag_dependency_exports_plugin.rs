@@ -271,11 +271,9 @@ fn collect_module_exports_specs(
   Some((res, has_nested_exports))
 }
 
-///
 /// Merge exports specs to exports info data
 /// and also collect the dependencies
 /// which will be used to backtrack when target exports info is changed
-///
 pub fn process_exports_spec(
   mg: &mut ModuleGraph,
   module_id: &ModuleIdentifier,
@@ -339,14 +337,11 @@ pub fn process_exports_spec(
   (changed, dependencies)
 }
 
-///
 /// Merge exports specs to exports info data
 /// and also collect the dependencies
 /// which will be used to backtrack when target exports info is changed
-///
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-///
 pub fn process_exports_spec_without_nested(
   mg: &ModuleGraph,
   module_id: &ModuleIdentifier,
@@ -507,12 +502,9 @@ pub fn merge_exports_without_nested(
   (changed, dependencies)
 }
 
-///
 /// Do merging of exports info and create export infos from export specs
-///
 /// This method is used for the case that the exports info data will be nested modified
 /// that means this exports info can not be modified parallelly
-///
 pub fn merge_exports(
   mg: &mut ModuleGraph,
   module_id: &ModuleIdentifier,
