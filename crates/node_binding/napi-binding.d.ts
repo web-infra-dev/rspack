@@ -308,8 +308,8 @@ export declare class JsCompilation {
    * Please don't use this at the moment.
    * Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
    */
-  rebuildModule(moduleIdentifiers: Array<string>, f: any): void
-  importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string, originalModuleContext: string | undefined | null, callback: any): void
+  rebuildModule(module_identifiers: string[], callback: (...args: any[]) => any): void
+  importModule(request: string, layer: string | undefined, public_path: JsFilename | undefined, base_uri: string | undefined, original_module: string, original_module_context: string | undefined | null, callback: (...args: any[]) => any): void
   get entries(): JsEntries
   addRuntimeModule(chunk: Chunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
@@ -1450,7 +1450,7 @@ export interface JsStatsSize {
 }
 
 export interface JsTap {
-  function: any
+  function: (...args: any[]) => any
   stage: number
 }
 

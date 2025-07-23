@@ -1,9 +1,10 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf};
+use std::{fmt::Debug, ops::Deref, path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
 use rspack_error::Result;
 use rspack_paths::ArcPath;
+use tokio::task::JoinSet;
 
 #[async_trait]
 pub trait Ignored: Send + Sync {
@@ -125,20 +126,36 @@ impl PathUpdater {
     self,
     paths: &HashSet<ArcPath>,
     incremental_manager: &IncrementalManager,
-    ignored: &Option<Box<dyn Ignored>>,
+    ignored: Option<Arc<dyn Ignored>>,
   ) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
-    for added in added_paths {
-      if let Some(ignored) = ignored {
-        if ignored.ignore(&added).await? {
-          continue;
-        }
-      }
+    let mut tasks = JoinSet::new();
 
-      paths.insert(ArcPath::from(PathBuf::from(&added)));
-      incremental_manager.insert_added(ArcPath::from(PathBuf::from(&added)));
+    for added in added_paths {
+      let ignored_cloned = ignored.clone();
+      tasks.spawn(async move {
+        // Skip ignored paths
+        if let Some(ignored) = &ignored_cloned {
+          if ignored.ignore(&added).await? {
+            return Ok::<_, rspack_error::Error>(None);
+          }
+        }
+        // Return valid path
+        let path = ArcPath::from(PathBuf::from(&added));
+        Ok(Some(path))
+      });
+    }
+
+    let should_added_paths = tasks.join_all().await;
+
+    for should_added_path in should_added_paths {
+      if let Some(path) = should_added_path? {
+        // Insert the path into the set
+        paths.insert(path.clone());
+        incremental_manager.insert_added(path);
+      }
     }
 
     for removed in removed_paths {
@@ -193,12 +210,12 @@ pub struct PathManager {
   incremental_files: IncrementalManager,
   incremental_directories: IncrementalManager,
   incremental_missing: IncrementalManager,
-  pub ignored: Option<Box<dyn Ignored>>,
+  pub ignored: Option<Arc<dyn Ignored>>,
 }
 
 impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
-  pub fn new(ignored: Option<Box<dyn Ignored>>) -> Self {
+  pub fn new(ignored: Option<Arc<dyn Ignored>>) -> Self {
     Self {
       files: HashSet::new(),
       directories: HashSet::new(),
@@ -224,15 +241,22 @@ impl PathManager {
     missing: PathUpdater,
   ) -> Result<()> {
     tokio::try_join!(
-      files.update(&self.files, &self.incremental_files, &self.ignored),
+      files.update(
+        &self.files,
+        &self.incremental_files,
+        self.ignored.as_ref().map(|i| i.clone()),
+      ),
       directories.update(
         &self.directories,
         &self.incremental_directories,
-        &self.ignored,
+        self.ignored.as_ref().map(|i| i.clone()),
       ),
-      missing.update(&self.missing, &self.incremental_missing, &self.ignored),
+      missing.update(
+        &self.missing,
+        &self.incremental_missing,
+        self.ignored.as_ref().map(|i| i.clone()),
+      ),
     )?;
-
     Ok(())
   }
 
@@ -244,7 +268,7 @@ impl PathManager {
 
 #[cfg(test)]
 mod tests {
-  use std::path::PathBuf;
+  use std::{path::PathBuf, sync::Arc};
 
   use async_trait::async_trait;
   use dashmap::DashSet as HashSet;
@@ -274,13 +298,13 @@ mod tests {
       removed: vec![],
     };
     let paths: HashSet<ArcPath> = HashSet::new();
-    let ignored = Box::new(TestIgnored {
+    let ignored = Arc::new(TestIgnored {
       ignored: vec!["node_modules".to_string(), ".git".to_string()],
     });
     let incremental_manager = IncrementalManager::default();
 
     updater
-      .update(&paths, &incremental_manager, &Some(ignored))
+      .update(&paths, &incremental_manager, Some(ignored))
       .await
       .unwrap();
 
@@ -325,7 +349,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_manager() {
-    let ignored = Box::new(TestIgnored {
+    let ignored = Arc::new(TestIgnored {
       ignored: vec!["node_modules".to_string(), ".git".to_string()],
     });
     let path_manager = PathManager::new(Some(ignored));

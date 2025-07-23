@@ -560,7 +560,7 @@ impl JsCompilation {
   /// This is a very unsafe function.
   /// Please don't use this at the moment.
   /// Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
-  #[napi]
+  #[napi(ts_args_type = "module_identifiers: string[], callback: (...args: any[]) => any")]
   pub fn rebuild_module(
     &mut self,
     reference: Reference<JsCompilation>,
@@ -596,7 +596,9 @@ impl JsCompilation {
   }
 
   #[allow(clippy::too_many_arguments)]
-  #[napi]
+  #[napi(
+    ts_args_type = "request: string, layer: string | undefined, public_path: JsFilename | undefined, base_uri: string | undefined, original_module: string, original_module_context: string | undefined | null, callback: (...args: any[]) => any"
+  )]
   pub fn import_module(
     &self,
     reference: Reference<JsCompilation>,

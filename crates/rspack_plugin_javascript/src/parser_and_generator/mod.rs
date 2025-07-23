@@ -44,9 +44,6 @@ pub struct JavaScriptParserAndGenerator {
   // TODO
   #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
-  // TODO
-  #[cacheable(with=Skip)]
-  parser_pre_plugins: Vec<BoxJavascriptParserPlugin>,
 }
 
 impl std::fmt::Debug for JavaScriptParserAndGenerator {
@@ -61,10 +58,6 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
 impl JavaScriptParserAndGenerator {
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
     self.parser_plugins.push(parser_plugin);
-  }
-
-  pub fn add_parser_pre_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
-    self.parser_pre_plugins.push(parser_plugin);
   }
 
   fn source_block(
@@ -144,7 +137,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
-      additional_data,
       mut parse_meta,
       ..
     } = parse_context;
@@ -269,8 +261,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         &mut semicolons,
         unresolved_mark,
         &mut self.parser_plugins,
-        &mut self.parser_pre_plugins,
-        additional_data,
         parse_meta,
       )
     }) {

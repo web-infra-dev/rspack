@@ -80,7 +80,7 @@ impl PersistentCache {
 
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
-  async fn before_compile(&self, compilation: &mut Compilation) -> Result<bool> {
+  async fn before_compile(&mut self, compilation: &mut Compilation) -> Result<bool> {
     // TODO move meta_occasion.recovery to a init fn of Cache trait and call init after create cache.
     self.meta_occasion.recovery().await?;
 
@@ -97,7 +97,7 @@ impl Cache for PersistentCache {
     Ok(false)
   }
 
-  async fn after_compile(&self, compilation: &Compilation) -> Result<()> {
+  async fn after_compile(&mut self, compilation: &Compilation) -> Result<()> {
     // save meta
     self.meta_occasion.save();
 
@@ -143,7 +143,7 @@ impl Cache for PersistentCache {
     Ok(())
   }
 
-  async fn before_make(&self, make_artifact: &mut MakeArtifact) -> Result<()> {
+  async fn before_make(&mut self, make_artifact: &mut MakeArtifact) -> Result<()> {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
     if matches!(make_artifact.state, MakeArtifactState::Uninitialized(..)) {
       *make_artifact = self.make_occasion.recovery().await?;
@@ -151,7 +151,7 @@ impl Cache for PersistentCache {
     Ok(())
   }
 
-  async fn after_make(&self, make_artifact: &MakeArtifact) -> Result<()> {
+  async fn after_make(&mut self, make_artifact: &MakeArtifact) -> Result<()> {
     self.make_occasion.save(make_artifact);
     Ok(())
   }

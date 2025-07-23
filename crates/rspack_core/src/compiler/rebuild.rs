@@ -64,7 +64,6 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
-        self.cache.clone(),
         self.old_cache.clone(),
         Incremental::new_hot(self.options.experiments.incremental),
         Some(ModuleExecutor::default()),

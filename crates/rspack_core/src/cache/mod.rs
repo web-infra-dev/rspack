@@ -7,7 +7,7 @@ use std::{fmt::Debug, sync::Arc};
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
-pub use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
+use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
 use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOptions};
 
 /// Cache trait
@@ -25,17 +25,17 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOpt
 #[async_trait::async_trait]
 pub trait Cache: Debug + Send + Sync {
   /// before compile return is_hot_start
-  async fn before_compile(&self, _compilation: &mut Compilation) -> Result<bool> {
+  async fn before_compile(&mut self, _compilation: &mut Compilation) -> Result<bool> {
     Ok(false)
   }
-  async fn after_compile(&self, _compilation: &Compilation) -> Result<()> {
+  async fn after_compile(&mut self, _compilation: &Compilation) -> Result<()> {
     Ok(())
   }
 
-  async fn before_make(&self, _make_artifact: &mut MakeArtifact) -> Result<()> {
+  async fn before_make(&mut self, _make_artifact: &mut MakeArtifact) -> Result<()> {
     Ok(())
   }
-  async fn after_make(&self, _make_artifact: &MakeArtifact) -> Result<()> {
+  async fn after_make(&mut self, _make_artifact: &MakeArtifact) -> Result<()> {
     Ok(())
   }
 }
@@ -45,11 +45,11 @@ pub fn new_cache(
   compiler_option: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
-) -> Arc<dyn Cache> {
+) -> Box<dyn Cache> {
   match &compiler_option.experiments.cache {
-    ExperimentCacheOptions::Disabled => Arc::new(DisableCache),
-    ExperimentCacheOptions::Memory => Arc::new(MemoryCache),
-    ExperimentCacheOptions::Persistent(option) => Arc::new(PersistentCache::new(
+    ExperimentCacheOptions::Disabled => Box::new(DisableCache),
+    ExperimentCacheOptions::Memory => Box::new(MemoryCache),
+    ExperimentCacheOptions::Persistent(option) => Box::new(PersistentCache::new(
       compiler_path,
       option,
       compiler_option.clone(),
