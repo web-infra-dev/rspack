@@ -128,7 +128,7 @@ impl NormalModule {
           .with_getter(match_resource_getter)
           .with_setter(match_resource_setter),
       );
-      Self::new_inherited(self, env, &mut *properties)
+      Self::new_inherited(self, env, &mut properties)
     })
   }
 

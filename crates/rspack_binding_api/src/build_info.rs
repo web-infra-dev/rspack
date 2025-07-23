@@ -266,7 +266,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
 }
 
 thread_local! {
-  static BUILD_INFO_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::new());
+  static BUILD_INFO_PROPERTIES_BUFFER: RefCell<Vec<Property>> = const { RefCell::new(Vec::new()) };
 }
 
 impl ToNapiValue for BuildInfo {
@@ -283,7 +283,7 @@ impl ToNapiValue for BuildInfo {
     BUILD_INFO_PROPERTIES_BUFFER.with(|ref_cell| {
       let mut properties = ref_cell.borrow_mut();
       properties.clear();
-      create_known_private_properties(&env_wrapper, &mut *properties)?;
+      create_known_private_properties(&env_wrapper, &mut properties)?;
 
       let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
         .create_function_from_closure("commitCustomFieldsToRust", |ctx| {

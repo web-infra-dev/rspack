@@ -23,7 +23,7 @@ impl ExternalModule {
           .with_utf8_name("userRequest")?
           .with_value(&user_request),
       );
-      Self::new_inherited(self, env, &mut *properties)
+      Self::new_inherited(self, env, &mut properties)
     })
   }
 

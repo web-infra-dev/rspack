@@ -15,7 +15,7 @@ impl ConcatenatedModule {
       let mut properties = ref_cell.borrow_mut();
       properties.clear();
 
-      Self::new_inherited(self, env, &mut *properties)
+      Self::new_inherited(self, env, &mut properties)
     })
   }
 

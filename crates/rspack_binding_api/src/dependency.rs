@@ -136,7 +136,7 @@ impl Dependency {
         if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
           let ids = dependency.get_ids(&module_graph);
           let mut arr = env.create_array(ids.len() as u32)?;
-          for (i, v) in ids.into_iter().enumerate() {
+          for (i, v) in ids.iter().enumerate() {
             arr.set(i as u32, v.as_str())?;
           }
           Either::A(arr)
@@ -145,14 +145,14 @@ impl Dependency {
         {
           let ids = dependency.get_ids(&module_graph);
           let mut arr = env.create_array(ids.len() as u32)?;
-          for (i, v) in ids.into_iter().enumerate() {
+          for (i, v) in ids.iter().enumerate() {
             arr.set(i as u32, v.as_str())?;
           }
           Either::A(arr)
         } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
           let ids = dependency.get_ids(&module_graph);
           let mut arr = env.create_array(ids.len() as u32)?;
-          for (i, v) in ids.into_iter().enumerate() {
+          for (i, v) in ids.iter().enumerate() {
             arr.set(i as u32, v.as_str())?;
           }
           Either::A(arr)

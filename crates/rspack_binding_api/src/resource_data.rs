@@ -63,7 +63,7 @@ pub struct ReadonlyResourceDataWrapper {
 }
 
 thread_local! {
-  static RESOURCE_DATA_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::new());
+  static RESOURCE_DATA_PROPERTIES_BUFFER: RefCell<Vec<Property>> = const { RefCell::new(Vec::new()) };
 }
 
 impl ToNapiValue for ReadonlyResourceDataWrapper {
