@@ -64,15 +64,31 @@ jobs:
         if: ${{ inputs.cargo-check-strategy == 'all' }}
         shell: bash
         run: |
-          # Use stable config for cargo check
-          cargo +1.88.0 --config .cargo/config.stable.toml check --workspace --all-targets --locked
+          # Temporarily rename config files to use stable config only
+          mv .cargo/config.toml .cargo/config.nightly.toml
+          mv .cargo/config.stable.toml .cargo/config.toml
+          
+          # Run cargo check with stable rust
+          cargo +1.88.0 check --workspace --all-targets --locked
+          
+          # Restore original config files
+          mv .cargo/config.toml .cargo/config.stable.toml
+          mv .cargo/config.nightly.toml .cargo/config.toml
 
       - name: Run Cargo Check (separated strategy)
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
         shell: bash
         run: |
-          # Use stable config for cargo check
-          cargo workspaces exec cargo +1.88.0 --config .cargo/config.stable.toml check --all-targets --locked
+          # Temporarily rename config files to use stable config only
+          mv .cargo/config.toml .cargo/config.nightly.toml
+          mv .cargo/config.stable.toml .cargo/config.toml
+          
+          # Run cargo check with stable rust
+          cargo workspaces exec cargo +1.88.0 check --all-targets --locked
+          
+          # Restore original config files
+          mv .cargo/config.toml .cargo/config.stable.toml
+          mv .cargo/config.nightly.toml .cargo/config.toml
 
       - name: Run Clippy
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
