@@ -3,7 +3,7 @@ use rustc_hash::FxHashSet;
 
 use super::{build::BuildTask, MakeTaskContext};
 use crate::{
-  make::repair::process_dependencies::ProcessDependenciesTask,
+  make::repair::lazy::{HasLazyDependencies, ProcessLazyDependenciesTask},
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, Module, ModuleIdentifier, ModuleProfile,
@@ -53,7 +53,7 @@ impl Task<MakeTaskContext> for AddTask {
       .filter_map(|dep| dep.as_module_dependency())
       .filter_map(|dep| dep.forward_name())
       .collect::<FxHashSet<_>>();
-    dbg!(&forward_names);
+
     // reuse module if module is already added by other dependency
     if module_graph
       .module_graph_module_by_identifier(&module_identifier)
@@ -65,39 +65,28 @@ impl Task<MakeTaskContext> for AddTask {
         self.dependencies,
         module_identifier,
       )?;
-      // 2. revisit
-      // get the deferred named reexport dependencies of the barrel file, and revisit
-      // upgrade deferred named reexport dependencies from weak to strong
-      dbg!(module_identifier, &context.module_to_lazy_dependencies);
+
       if module_graph
         .module_by_identifier(&module_identifier)
         .is_some()
       {
-        if let Some(lazy_dependencies_info) =
-          context.module_to_lazy_dependencies.get(&module_identifier)
+        if context
+          .module_to_lazy_dependencies
+          .contains_key(&module_identifier)
         {
-          let dependencies_to_process = forward_names
-            .into_iter()
-            .filter_map(|forward_name| {
-              lazy_dependencies_info.get_requested_lazy_dependencies(&forward_name)
-            })
-            .flat_map(|deps| deps)
-            .copied()
-            .collect::<Vec<_>>();
-          for dep in &dependencies_to_process {
-            if let Some(dep) = module_graph
-              .dependency_by_id_mut(dep)
-              .and_then(|dep| dep.as_module_dependency_mut())
-            {
-              dep.unset_lazy();
-            }
-          }
-          return Ok(vec![Box::new(ProcessDependenciesTask {
-            dependencies: dependencies_to_process,
+          return Ok(vec![Box::new(ProcessLazyDependenciesTask {
+            forward_names,
             original_module_identifier: module_identifier,
           })]);
         }
       } else {
+        let lazy_dependencies = context
+          .module_to_lazy_dependencies
+          .entry(module_identifier)
+          .or_insert_with(|| HasLazyDependencies::Maybe(Default::default()));
+        let pending_forward_names = lazy_dependencies
+          .expect_maybe_mut("should not have lazy dependencies for non-built module");
+        pending_forward_names.extend(forward_names);
       }
 
       return Ok(vec![]);

@@ -1,11 +1,12 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
-use rspack_util::{atom::Atom, fx_hash::FxIndexMap};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_util::atom::Atom;
+use rustc_hash::FxHashSet;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
+  make::repair::{lazy::ProcessLazyDependenciesTask, HasLazyDependencies},
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, LazyDependenciesInfo, LazyMake, Module, ModuleProfile,
@@ -193,25 +194,44 @@ impl Task<MakeTaskContext> for BuildResultTask {
 
     module_graph.add_module(module);
 
+    let mut tasks: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
+
     let dependencies_to_process = if !lazy_dependencies_info.is_empty() {
       let lazy_dependencies = lazy_dependencies_info
         .lazy_dependencies()
         .collect::<FxHashSet<_>>();
       all_dependencies.retain(|dep| !lazy_dependencies.contains(dep));
 
-      dbg!(module_identifier, &lazy_dependencies_info);
-      context
+      if let Some(lazy_dependencies) = context
         .module_to_lazy_dependencies
-        .insert(module_identifier, lazy_dependencies_info);
+        .remove(&module_identifier)
+      {
+        let forward_names = lazy_dependencies
+          .into_maybe()
+          .expect("should not have lazy dependencies for just built module");
+        context.module_to_lazy_dependencies.insert(
+          module_identifier,
+          HasLazyDependencies::Has(lazy_dependencies_info),
+        );
+        tasks.push(Box::new(ProcessLazyDependenciesTask {
+          forward_names,
+          original_module_identifier: module_identifier,
+        }));
+      }
 
       all_dependencies
     } else {
+      context
+        .module_to_lazy_dependencies
+        .remove(&module_identifier);
       all_dependencies
     };
 
-    Ok(vec![Box::new(ProcessDependenciesTask {
+    tasks.push(Box::new(ProcessDependenciesTask {
       dependencies: dependencies_to_process,
       original_module_identifier: module_identifier,
-    })])
+    }));
+
+    Ok(tasks)
   }
 }

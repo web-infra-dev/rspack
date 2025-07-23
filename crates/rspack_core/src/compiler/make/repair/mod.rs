@@ -15,6 +15,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::MakeArtifact;
 use crate::{
   incremental::Incremental,
+  make::repair::lazy::HasLazyDependencies,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
@@ -39,7 +40,7 @@ pub struct MakeTaskContext {
   pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
-  pub module_to_lazy_dependencies: IdentifierMap<LazyDependenciesInfo>,
+  pub module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
 
   pub artifact: MakeArtifact,
 }
