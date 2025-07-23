@@ -59,17 +59,18 @@ impl Task<MakeTaskContext> for ProcessLazyDependenciesTask {
       original_module_identifier,
     } = *self;
 
-    let lazy_dependencies_info = context
+    let lazy_dependencies = context
+      .artifact
       .module_to_lazy_dependencies
       .get(&original_module_identifier)
-      .expect("should have lazy dependencies for built module");
-    let lazy_dependencies_info =
-      lazy_dependencies_info.expect_has("should have lazy dependencies for built module");
+      .and_then(|info| match info {
+        HasLazyDependencies::Maybe(_) => None,
+        HasLazyDependencies::Has(lazy_dependencies) => Some(lazy_dependencies),
+      })
+      .expect("only module that has lazy dependencies should run into ProcessLazyDependenciesTask");
     let dependencies_to_process = forward_names
       .into_iter()
-      .filter_map(|forward_name| {
-        lazy_dependencies_info.get_requested_lazy_dependencies(&forward_name)
-      })
+      .filter_map(|forward_name| lazy_dependencies.get_requested_lazy_dependencies(&forward_name))
       .flat_map(|deps| deps)
       .copied()
       .collect::<Vec<_>>();

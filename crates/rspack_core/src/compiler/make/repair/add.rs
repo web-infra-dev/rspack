@@ -71,6 +71,7 @@ impl Task<MakeTaskContext> for AddTask {
         .is_some()
       {
         if context
+          .artifact
           .module_to_lazy_dependencies
           .contains_key(&module_identifier)
         {
@@ -81,6 +82,7 @@ impl Task<MakeTaskContext> for AddTask {
         }
       } else {
         let lazy_dependencies = context
+          .artifact
           .module_to_lazy_dependencies
           .entry(module_identifier)
           .or_insert_with(|| HasLazyDependencies::Maybe(Default::default()));

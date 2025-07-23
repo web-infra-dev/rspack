@@ -29,6 +29,7 @@ impl MakeOccasion {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph_partial,
+      module_to_lazy_dependencies: _, // TODO
       revoked_modules,
       built_modules,
       // skip

@@ -197,22 +197,18 @@ impl Task<MakeTaskContext> for BuildResultTask {
     let mut tasks: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
 
     let dependencies_to_process = if !lazy_dependencies_info.is_empty() {
+      // dbg!(&lazy_dependencies_info);
       let lazy_dependencies = lazy_dependencies_info
         .lazy_dependencies()
         .collect::<FxHashSet<_>>();
       all_dependencies.retain(|dep| !lazy_dependencies.contains(dep));
 
-      if let Some(lazy_dependencies) = context
-        .module_to_lazy_dependencies
-        .remove(&module_identifier)
-      {
-        let forward_names = lazy_dependencies
-          .into_maybe()
-          .expect("should not have lazy dependencies for just built module");
-        context.module_to_lazy_dependencies.insert(
+      if let Some(HasLazyDependencies::Maybe(forward_names)) =
+        context.artifact.module_to_lazy_dependencies.insert(
           module_identifier,
           HasLazyDependencies::Has(lazy_dependencies_info),
-        );
+        )
+      {
         tasks.push(Box::new(ProcessLazyDependenciesTask {
           forward_names,
           original_module_identifier: module_identifier,
@@ -222,6 +218,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
       all_dependencies
     } else {
       context
+        .artifact
         .module_to_lazy_dependencies
         .remove(&module_identifier);
       all_dependencies

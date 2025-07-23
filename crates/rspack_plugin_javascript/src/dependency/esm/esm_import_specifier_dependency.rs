@@ -297,7 +297,7 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn forward_name(&self) -> Option<Atom> {
-    Some(self.name.clone())
+    self.ids.get(0).cloned()
   }
 }
 

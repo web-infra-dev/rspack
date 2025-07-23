@@ -40,7 +40,6 @@ pub struct MakeTaskContext {
   pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
-  pub module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
 
   pub artifact: MakeArtifact,
 }
@@ -58,7 +57,6 @@ impl MakeTaskContext {
       old_cache: compilation.old_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
-      module_to_lazy_dependencies: Default::default(),
       fs: compilation.input_filesystem.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
