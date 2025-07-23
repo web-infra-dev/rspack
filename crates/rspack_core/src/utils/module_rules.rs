@@ -40,12 +40,13 @@ pub async fn module_rule_matcher<'a>(
   attributes: Option<&ImportAttributes>,
   matched_rules: &mut Vec<&'a ModuleRuleEffect>,
 ) -> Result<bool> {
-  if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule
+  if let Some(test_rule) = &module_rule.rspack_resource {
+    if !test_rule
       .try_match(resource_data.resource.as_str().into())
       .await?
-  {
-    return Ok(false);
+    {
+      return Ok(false);
+    }
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
@@ -56,26 +57,26 @@ pub async fn module_rule_matcher<'a>(
     .unwrap_or_else(|| Utf8Path::new(""))
     .as_str();
 
-  if let Some(test_rule) = &module_rule.test
-    && !test_rule.try_match(resource_path.into()).await?
-  {
-    return Ok(false);
-  } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule.try_match(resource_path.into()).await?
-  {
-    return Ok(false);
+  if let Some(test_rule) = &module_rule.test {
+    if !test_rule.try_match(resource_path.into()).await? {
+      return Ok(false);
+    }
+  } else if let Some(resource_rule) = &module_rule.resource {
+    if !resource_rule.try_match(resource_path.into()).await? {
+      return Ok(false);
+    }
   }
 
-  if let Some(include_rule) = &module_rule.include
-    && !include_rule.try_match(resource_path.into()).await?
-  {
-    return Ok(false);
+  if let Some(include_rule) = &module_rule.include {
+    if !include_rule.try_match(resource_path.into()).await? {
+      return Ok(false);
+    }
   }
 
-  if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule.try_match(resource_path.into()).await?
-  {
-    return Ok(false);
+  if let Some(exclude_rule) = &module_rule.exclude {
+    if exclude_rule.try_match(resource_path.into()).await? {
+      return Ok(false);
+    }
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
@@ -157,12 +158,13 @@ pub async fn module_rule_matcher<'a>(
     };
   }
 
-  if let Some(dependency_rule) = &module_rule.dependency
-    && !dependency_rule
+  if let Some(dependency_rule) = &module_rule.dependency {
+    if !dependency_rule
       .try_match(dependency.as_str().into())
       .await?
-  {
-    return Ok(false);
+    {
+      return Ok(false);
+    }
   }
 
   if let Some(description_data) = &module_rule.description_data {

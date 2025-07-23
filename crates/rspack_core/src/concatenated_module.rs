@@ -613,10 +613,12 @@ impl Module for ConcatenatedModule {
 
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
-      if let Some(decls) = &module_build_info.top_level_declarations
-        && let Some(top_level_declarations) = &mut self.build_info.top_level_declarations
-      {
-        top_level_declarations.extend(decls.iter().cloned());
+      if let Some(decls) = &module_build_info.top_level_declarations {
+        if let Some(top_level_declarations) = &mut self.build_info.top_level_declarations {
+          top_level_declarations.extend(decls.iter().cloned());
+        } else {
+          self.build_info.top_level_declarations = None;
+        }
       } else {
         self.build_info.top_level_declarations = None;
       }
@@ -639,15 +641,17 @@ impl Module for ConcatenatedModule {
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut runtime_requirements = RuntimeGlobals::default();
-    let runtime = if let Some(self_runtime) = &self.runtime
-      && let Some(generation_runtime) = generation_runtime
-    {
-      Some(Cow::Owned(
-        generation_runtime
-          .intersection(self_runtime)
-          .copied()
-          .collect::<RuntimeSpec>(),
-      ))
+    let runtime = if let Some(self_runtime) = &self.runtime {
+      if let Some(generation_runtime) = generation_runtime {
+        Some(Cow::Owned(
+          generation_runtime
+            .intersection(self_runtime)
+            .copied()
+            .collect::<RuntimeSpec>(),
+        ))
+      } else {
+        generation_runtime.map(Cow::Borrowed)
+      }
     } else {
       generation_runtime.map(Cow::Borrowed)
     };
