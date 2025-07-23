@@ -13,7 +13,8 @@ import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
 
 export class ExternalsPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ExternalsPlugin;
-	resolveRequestCache = new Map<string, ResolveRequest>();
+
+	#resolveRequestCache = new Map<string, ResolveRequest>();
 
 	constructor(
 		private type: string,
@@ -28,31 +29,31 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 			type,
 			externals: (Array.isArray(externals) ? externals : [externals])
 				.filter(Boolean)
-				.map(item => this.getRawExternalItem(item))
+				.map(item => this.#getRawExternalItem(item))
 		};
 		return createBuiltinPlugin(this.name, raw);
 	}
 
-	processResolveResult = (
+	#processResolveResult = (
 		text: string | undefined
 	): ResolveRequest | undefined => {
 		if (!text) return undefined;
 
-		let resolveRequest = this.resolveRequestCache.get(text);
+		let resolveRequest = this.#resolveRequestCache.get(text);
 		if (!resolveRequest) {
 			resolveRequest = JSON.parse(text) as ResolveRequest;
-			this.resolveRequestCache.set(text, resolveRequest);
+			this.#resolveRequestCache.set(text, resolveRequest);
 		}
 		return Object.assign({}, resolveRequest);
 	};
 
-	getRawExternalItem = (item: ExternalItem | undefined): RawExternalItem => {
+	#getRawExternalItem = (item: ExternalItem | undefined): RawExternalItem => {
 		if (typeof item === "string" || item instanceof RegExp) {
 			return item;
 		}
 
 		if (typeof item === "function") {
-			const processResolveResult = this.processResolveResult;
+			const processResolveResult = this.#processResolveResult;
 
 			return async (ctx: RawExternalItemFnCtx) => {
 				return await new Promise((resolve, reject) => {
