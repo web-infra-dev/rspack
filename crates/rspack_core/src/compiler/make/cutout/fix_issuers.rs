@@ -144,10 +144,10 @@ impl FixIssuers {
       };
 
       let child_module_issuer = child_mgm.issuer();
-      if let ModuleIssuer::Some(i) = child_module_issuer
-        && i == module_identifier
-      {
-        self.need_check_modules.insert(*child_mid);
+      if let ModuleIssuer::Some(i) = child_module_issuer {
+        if i == module_identifier {
+          self.need_check_modules.insert(*child_mid);
+        }
       }
     }
   }

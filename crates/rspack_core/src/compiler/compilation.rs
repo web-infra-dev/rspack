@@ -1171,8 +1171,8 @@ impl Compilation {
     let chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RENDER)
-      && !self.chunk_render_artifact.is_empty()
     {
+      if !self.chunk_render_artifact.is_empty() {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(*chunk),
         _ => None,
@@ -1198,6 +1198,9 @@ impl Compilation {
         self.chunk_by_ukey.len()
       ));
       chunks
+      } else {
+        self.chunk_by_ukey.keys().copied().collect()
+      }
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
@@ -1435,8 +1438,8 @@ impl Compilation {
       .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
     // TODO move diagnostic collect to make
     let modules = if let Some(mutations) = mutations
-      && !self.dependencies_diagnostics_artifact.is_empty()
     {
+      if !self.dependencies_diagnostics_artifact.is_empty() {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
@@ -1454,6 +1457,9 @@ impl Compilation {
         self.get_module_graph().modules().len()
       ));
       modules
+      } else {
+        self.get_module_graph().modules().keys().copied().collect()
+      }
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1631,8 +1637,8 @@ impl Compilation {
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_HASHES)
-      && !self.cgm_hash_artifact.is_empty()
     {
+      if !self.cgm_hash_artifact.is_empty() {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
@@ -1734,6 +1740,9 @@ impl Compilation {
       ));
 
       modules
+      } else {
+        self.get_module_graph().modules().keys().copied().collect()
+      }
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1745,8 +1754,8 @@ impl Compilation {
     let code_generation_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_CODEGEN)
-      && !self.code_generation_results.is_empty()
     {
+      if !self.code_generation_results.is_empty() {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
@@ -1773,6 +1782,9 @@ impl Compilation {
         self.get_module_graph().modules().len()
       ));
       modules
+      } else {
+        self.get_module_graph().modules().keys().copied().collect()
+      }
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1790,8 +1802,8 @@ impl Compilation {
     let process_runtime_requirements_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
-      && !self.cgm_runtime_requirements_artifact.is_empty()
     {
+      if !self.cgm_runtime_requirements_artifact.is_empty() {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
@@ -1815,6 +1827,9 @@ impl Compilation {
         self.get_module_graph().modules().len()
       ));
       modules
+      } else {
+        self.get_module_graph().modules().keys().copied().collect()
+      }
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1828,8 +1843,8 @@ impl Compilation {
     let process_runtime_requirements_chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
-      && !self.cgc_runtime_requirements_artifact.is_empty()
     {
+      if !self.cgc_runtime_requirements_artifact.is_empty() {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(chunk),
         _ => None,
@@ -1856,6 +1871,9 @@ impl Compilation {
         self.chunk_by_ukey.len()
       ));
       affected_chunks
+      } else {
+        self.chunk_by_ukey.keys().copied().collect()
+      }
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
@@ -2205,24 +2223,24 @@ impl Compilation {
         full_hash_chunks.insert(*chunk_ukey);
       }
     }
-    if !full_hash_chunks.is_empty()
-      && let Some(diagnostic) = self.incremental.disable_passes(
+    if !full_hash_chunks.is_empty() {
+      if let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_HASHES,
         "Chunk content that dependent on full hash",
         "it requires calculating the hashes of all the chunks, which is a global effect",
-      )
-    {
+      ) {
       if let Some(diagnostic) = diagnostic {
         self.push_diagnostic(diagnostic);
       }
       self.chunk_hashes_artifact.clear();
+      }
     }
 
     let create_hash_chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_HASHES)
-      && !self.chunk_hashes_artifact.is_empty()
     {
+      if !self.chunk_hashes_artifact.is_empty() {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(*chunk),
         _ => None,
@@ -2242,6 +2260,9 @@ impl Compilation {
         self.chunk_by_ukey.len(),
       ));
       chunks
+      } else {
+        self.chunk_by_ukey.keys().copied().collect()
+      }
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
@@ -2260,8 +2281,10 @@ impl Compilation {
           chunk_hash_result.hash,
           chunk_hash_result.content_hash,
         );
-        if chunk_hashes_changed && let Some(mutations) = compilation.incremental.mutations_write() {
-          mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
+        if chunk_hashes_changed {
+          if let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
+          }
         }
       }
       Ok(())
@@ -2459,10 +2482,12 @@ impl Compilation {
         chunk_hash_result.hash,
         chunk_hash_result.content_hash,
       );
-      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
-        mutations.add(Mutation::ChunkSetHashes {
-          chunk: runtime_chunk_ukey,
-        });
+      if chunk_hashes_changed {
+        if let Some(mutations) = self.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkSetHashes {
+            chunk: runtime_chunk_ukey,
+          });
+        }
       }
     }
     logger.time_end(start);
@@ -2526,8 +2551,10 @@ impl Compilation {
         new_chunk_hash,
         new_content_hash,
       );
-      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
-        mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
+      if chunk_hashes_changed {
+        if let Some(mutations) = self.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
+        }
       }
     }
     logger.time_end(start);
@@ -2644,10 +2671,10 @@ impl Compilation {
 
     for result in results {
       let (module, hashes) = result?;
-      if ChunkGraph::set_module_hashes(self, module, hashes)
-        && let Some(mutations) = self.incremental.mutations_write()
-      {
-        mutations.add(Mutation::ModuleSetHashes { module });
+      if ChunkGraph::set_module_hashes(self, module, hashes) {
+        if let Some(mutations) = self.incremental.mutations_write() {
+          mutations.add(Mutation::ModuleSetHashes { module });
+        }
       }
     }
     Ok(())

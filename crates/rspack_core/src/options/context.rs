@@ -138,10 +138,14 @@ fn dirname(path: &str) -> &str {
 }
 
 pub fn get_context(resource_data: &ResourceData) -> Context {
-  if let Some(resource_path) = &resource_data.resource_path
-    && let Some(dirname) = resource_path.parent()
-  {
-    dirname.into()
+  if let Some(resource_path) = &resource_data.resource_path {
+    if let Some(dirname) = resource_path.parent() {
+      dirname.into()
+    } else if let Some(parsed) = parse_resource(&resource_data.resource) {
+      dirname(parsed.path.as_str()).into()
+    } else {
+      Context::from("")
+    }
   } else if let Some(parsed) = parse_resource(&resource_data.resource) {
     dirname(parsed.path.as_str()).into()
   } else {
