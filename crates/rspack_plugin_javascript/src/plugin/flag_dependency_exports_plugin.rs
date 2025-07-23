@@ -509,12 +509,12 @@ pub fn merge_exports_without_nested(
   (changed, dependencies)
 }
 
-/**
- * Do merging of exports info and create export infos from export specs
- *
- * This method is used for the case that the exports info data will be nested modified
- * that means this exports info can not be modified parallelly
- */
+///
+/// Do merging of exports info and create export infos from export specs
+///
+/// This method is used for the case that the exports info data will be nested modified
+/// that means this exports info can not be modified parallelly
+///
 pub fn merge_exports(
   mg: &mut ModuleGraph,
   module_id: &ModuleIdentifier,
