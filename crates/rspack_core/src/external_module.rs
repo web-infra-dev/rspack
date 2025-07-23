@@ -394,14 +394,16 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache)
-          && let Some(request) = request
-        {
+        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+          if let Some(request) = request {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
             throw_missing_module_error_block(&get_request_string(request))
           )
+          } else {
+            String::new()
+          }
         } else {
           String::new()
         };
@@ -413,9 +415,8 @@ impl ExternalModule {
         )
       }
       "module" => {
-        if compilation.options.output.module
-          && let Some(request) = request
-        {
+        if compilation.options.output.module {
+          if let Some(request) = request {
           let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary {
             let mut hasher = RspackHash::from(&compilation.options.output);
             request.primary.hash(&mut hasher);
@@ -546,7 +547,10 @@ impl ExternalModule {
             get_source_for_import(request, compilation, &self.dependency_meta.attributes)
           )
         }
+      } else {
+        String::new()
       }
+    }
       "script" => {
         if let Some(request) = request {
         let url_and_global = extract_url_and_global(request.primary())?;

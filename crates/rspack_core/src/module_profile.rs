@@ -17,10 +17,12 @@ impl TimeRange {
   }
 
   pub fn duration(&self) -> Option<Duration> {
-    if let Some(end) = self.end.get()
-      && let Some(start) = self.start.get()
-    {
-      Some(end.duration_since(*start))
+    if let Some(end) = self.end.get() {
+      if let Some(start) = self.start.get() {
+        Some(end.duration_since(*start))
+      } else {
+        None
+      }
     } else {
       None
     }

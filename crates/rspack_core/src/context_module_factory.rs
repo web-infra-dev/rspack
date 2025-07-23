@@ -414,11 +414,11 @@ fn visit_dirs(
     let path = dir.join(&filename);
     let path_str = path.as_str();
 
-    if let Some(exclude) = exclude
-      && exclude.test(path_str)
-    {
-      // ignore excluded files
-      continue;
+    if let Some(exclude) = exclude {
+      if exclude.test(path_str) {
+        // ignore excluded files
+        continue;
+      }
     }
 
     if fs
@@ -439,11 +439,11 @@ fn visit_dirs(
     } else if filename.starts_with('.') {
       // ignore hidden files
     } else {
-      if let Some(include) = include
-        && !include.test(path_str)
-      {
-        // ignore not included files
-        continue;
+      if let Some(include) = include {
+        if !include.test(path_str) {
+          // ignore not included files
+          continue;
+        }
       }
 
       // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'

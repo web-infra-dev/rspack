@@ -133,10 +133,9 @@ impl Incremental {
     thing: &'static str,
     reason: &'static str,
   ) -> Option<Option<Diagnostic>> {
-    if matches!(self.state, IncrementalState::Hot { .. })
-      && let passes = self.passes.intersection(passes)
-      && !passes.is_empty()
-    {
+    if matches!(self.state, IncrementalState::Hot { .. }) {
+      let passes = self.passes.intersection(passes);
+      if !passes.is_empty() {
       self.passes.remove(passes);
       if self.silent {
         return Some(None);
@@ -150,6 +149,7 @@ impl Incremental {
         .boxed()
         .into(),
       ));
+      }
     }
     None
   }
