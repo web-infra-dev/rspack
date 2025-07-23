@@ -1563,10 +1563,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id),
         cgi,
       );
-      let blocks = self.incoming_blocks_by_cgi.entry(cgi).or_default();
-      blocks.insert(DependenciesBlockIdentifier::AsyncDependenciesBlock(
-        block_id,
-      ));
       cgi
     };
 
@@ -1907,16 +1903,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
+    let mut changed = false;
+
     for (info_ukey, process_block) in chunk_groups_for_merging {
       let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
-
-      let mut changed = false;
 
       if !cgi.available_modules_to_be_merged.is_empty() {
         let available_modules_to_be_merged =
           std::mem::take(&mut cgi.available_modules_to_be_merged);
 
         self.stat_merged_available_module_sets += available_modules_to_be_merged.len() as u32;
+
+        let orig = cgi.min_available_modules.clone();
 
         for modules_to_be_merged in available_modules_to_be_merged {
           if !cgi.min_available_modules_init {
@@ -1926,7 +1924,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             continue;
           }
 
-          let orig = cgi.min_available_modules.clone();
           cgi.min_available_modules &= modules_to_be_merged;
           changed |= orig != cgi.min_available_modules;
         }

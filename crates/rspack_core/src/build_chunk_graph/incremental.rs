@@ -9,7 +9,6 @@ use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
-  build_chunk_graph::code_splitter::{ProcessBlock, QueueAction},
   incremental::{IncrementalPasses, Mutation},
   is_runtime_equal, AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation,
   GroupOptions, ModuleIdentifier, RuntimeSpec,
@@ -102,7 +101,7 @@ impl CodeSplitter {
       .expect("when we have cgi ukey, we have cgi");
 
     for block in chunk_group_info.outgoing_blocks.iter() {
-      if let Some(infos) = self.block_owner.get_mut(&block) {
+      if let Some(infos) = self.block_owner.get_mut(block) {
         infos.remove(&cgi_ukey);
       }
     }
@@ -243,9 +242,7 @@ impl CodeSplitter {
 
       let cg = child_cgi.chunk_group;
 
-      if let Some(child_edges) = self.invalidate_chunk_group(cg, compilation)? {
-        edges.extend(child_edges);
-      }
+      self.invalidate_chunk_group(cg, compilation)?;
     }
 
     if let Some(name) = chunk_group_name
