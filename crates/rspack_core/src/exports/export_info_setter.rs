@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use rspack_util::atom::Atom;
 
 use super::{ExportInfoData, ExportInfoTargetValue, Inlinable, UsageFilterFnTy, UsageState};
-use crate::{DependencyId, ExportsInfo, ExportsInfoData, ModuleGraph, Nullable, RuntimeSpec};
+use crate::{DependencyId, ExportsInfo, Nullable, RuntimeSpec};
 
 impl ExportInfoData {
   pub fn reset_provide_info(&mut self) {
@@ -210,31 +210,6 @@ impl ExportInfoData {
       changed = true;
     }
     changed
-  }
-
-  pub fn create_nested_exports_info(&mut self, mg: &mut ModuleGraph) -> ExportsInfo {
-    if self.exports_info_owned() {
-      return self
-        .exports_info()
-        .expect("should have exports_info when exports_info is true");
-    }
-
-    self.set_exports_info_owned(true);
-    let new_exports_info = ExportsInfoData::default();
-    let new_exports_info_id = new_exports_info.id();
-
-    self.set_exports_info_owned(true);
-    self.set_exports_info(Some(new_exports_info_id));
-
-    mg.set_exports_info(new_exports_info_id, new_exports_info);
-    new_exports_info_id.set_has_provide_info(mg);
-    let old_exports_info = self.exports_info();
-    if let Some(exports_info) = old_exports_info {
-      exports_info
-        .as_data_mut(mg)
-        .set_redirect_name_to(Some(new_exports_info_id));
-    }
-    new_exports_info_id
   }
 
   pub fn set_has_use_info(&mut self, nested_exports_info: &mut Vec<ExportsInfo>) {
