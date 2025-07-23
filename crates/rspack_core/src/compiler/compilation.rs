@@ -458,10 +458,10 @@ impl Compilation {
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(other_module_graph) = &self.other_module_graph
-      && let Some(module) = other_module_graph.modules.get(identifier)
-    {
-      return module.as_ref();
+    if let Some(other_module_graph) = &self.other_module_graph {
+      if let Some(module) = other_module_graph.modules.get(identifier) {
+        return module.as_ref();
+      }
     };
 
     if let Some(module) = self
