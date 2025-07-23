@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;

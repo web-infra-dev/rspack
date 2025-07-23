@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 mod eval_dev_tool_module_plugin;
 mod eval_source_map_dev_tool_plugin;

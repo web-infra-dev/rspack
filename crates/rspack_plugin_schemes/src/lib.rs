@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 mod data_uri;
 mod file_uri;

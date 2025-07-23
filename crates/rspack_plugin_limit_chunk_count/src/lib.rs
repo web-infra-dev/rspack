@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 mod chunk_combination;
 
