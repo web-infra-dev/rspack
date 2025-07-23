@@ -48,10 +48,10 @@ impl ExportsInfoData {
       .expect("should have export info")
   }
 
-  // TODO: remove this method
-  // This method is a copy of `set_unknown_exports_provided` and not considered the `redirect_to`
-  // So this method should only be used when you actually known the `redirect_to` is not exist
-  // and you need to modify exports info data parallelly
+  // TODO: remove this method (See issue #123 for details)
+  // This method is a copy of `set_unknown_exports_provided` and not considered the `redirect_to`.
+  // It should only be used when you know the `redirect_to` does not exist and you need to modify
+  // exports info data in parallel. Remove this method after refactoring `set_unknown_exports_provided`.
   pub fn set_owned_unknown_exports_provided(
     &mut self,
     can_mangle: bool,
