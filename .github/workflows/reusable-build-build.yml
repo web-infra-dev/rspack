@@ -80,7 +80,6 @@ jobs:
       - name: Build x86_64-unknown-linux-gnu native
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.prefer_docker }}
         run: |
-          unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
           rustup target add x86_64-unknown-linux-gnu
           RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
 
@@ -91,7 +90,6 @@ jobs:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
           profile: ${{ inputs.profile }}
-          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
 
       # runner these build in docker since we don't have github runner machine for it
       - name: Build aarch64-unknown-linux-gnu in Docker
@@ -177,10 +175,14 @@ jobs:
 
       # WASM
       - name: Build wasm32-wasip1-threads with linux in Docker
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
-          unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
+
+      # WASM Release (use profile = release-wasi)
+      - name: Build wasm32-wasip1-threads(release-wasi) with linux in Docker
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
+        run: pnpm --filter @rspack/binding build:release:wasm
 
       - name: Diff artifact
         run: |
