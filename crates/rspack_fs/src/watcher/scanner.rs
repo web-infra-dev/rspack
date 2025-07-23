@@ -84,7 +84,7 @@ mod tests {
     let missing = HashSet::new();
     missing.insert(ArcPath::from(current_dir.join("___missing_file.txt")));
 
-    let mut path_manager = PathManager::new(None);
+    let mut path_manager = PathManager::default();
     path_manager.files.extend(files);
     path_manager.directories.extend(directories);
     path_manager.missing.extend(missing);

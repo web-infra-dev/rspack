@@ -1,9 +1,9 @@
-use std::{boxed::Box, sync::Arc};
+use std::boxed::Box;
 
 use async_trait::async_trait;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_fs::{FsWatcher, FsWatcherOptions, Ignored, PathUpdater};
+use rspack_fs::{FsWatcher, FsWatcherIgnored, FsWatcherOptions, Ignored, PathUpdater};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 struct SafetyIgnored {
@@ -17,6 +17,19 @@ impl Ignored for SafetyIgnored {
   }
 }
 
+type JsWatcherIgnored = Either<String, ThreadsafeFunction<String, bool>>;
+
+fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored {
+  if let Some(ignored) = ignored {
+    match ignored {
+      Either::A(path) => FsWatcherIgnored::Path(path),
+      Either::B(func) => FsWatcherIgnored::Fn(Box::new(SafetyIgnored { f: func })),
+    }
+  } else {
+    FsWatcherIgnored::None
+  }
+}
+
 #[napi(object, object_to_js = false)]
 pub struct NativeWatcherOptions {
   pub follow_symlinks: Option<bool>,
@@ -25,9 +38,9 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "(path: string) => boolean")]
+  #[napi(ts_type = "string | ((path: string) => boolean)")]
   /// A function that will be called with the path of a file or directory that is ignored.
-  pub ignored: Option<ThreadsafeFunction<String, bool>>,
+  pub ignored: Option<JsWatcherIgnored>,
 }
 
 #[napi]
@@ -46,17 +59,13 @@ pub struct NativeWatcher {
 impl NativeWatcher {
   #[napi(constructor)]
   pub fn new(options: NativeWatcherOptions) -> Self {
-    let ignored = options
-      .ignored
-      .map(|f| Arc::new(SafetyIgnored { f: f.clone() }) as Arc<dyn Ignored>);
-
     let watcher = FsWatcher::new(
       FsWatcherOptions {
         follow_symlinks: options.follow_symlinks.unwrap_or(false),
         poll_interval: options.poll_interval,
         aggregate_timeout: options.aggregate_timeout,
       },
-      ignored,
+      to_fs_watcher_ignored(options.ignored.clone()),
     );
 
     Self {

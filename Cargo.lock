@@ -4225,8 +4225,10 @@ version = "0.4.9"
 dependencies = [
  "async-trait",
  "cfg-if",
+ "cow-utils",
  "dashmap 6.1.0",
  "dunce",
+ "fast-glob",
  "notify",
  "pnp",
  "rspack_error",

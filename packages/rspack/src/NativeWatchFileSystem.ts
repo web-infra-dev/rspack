@@ -20,22 +20,24 @@ const stringToRegexp = (ignored: string) => {
 	return `${source.slice(0, -1)}(?:$|\\/)`;
 };
 
-const ignoredToFunction = (ignored: Watchpack.WatchOptions["ignored"]) => {
+type JsWatcherIgnored = string | ((item: string) => boolean) | undefined;
+
+const toJsWatcherIgnored = (
+	ignored: Watchpack.WatchOptions["ignored"]
+): JsWatcherIgnored => {
 	if (Array.isArray(ignored)) {
 		const stringRegexps = ignored.map(i => stringToRegexp(i)).filter(Boolean);
 		if (stringRegexps.length === 0) {
-			return () => false;
+			return undefined;
 		}
-		const regexp = new RegExp(stringRegexps.join("|"));
-		return (item: string) => regexp.test(item.replace(/\\/g, "/"));
+		return stringRegexps.join("|");
 	}
 	if (typeof ignored === "string") {
 		const stringRegexp = stringToRegexp(ignored);
 		if (!stringRegexp) {
-			return () => false;
+			return undefined;
 		}
-		const regexp = new RegExp(stringRegexp);
-		return (item: string) => regexp.test(item.replace(/\\/g, "/"));
+		return stringRegexp;
 	}
 	if (ignored instanceof RegExp) {
 		return (item: string) => ignored.test(item.replace(/\\/g, "/"));
@@ -157,7 +159,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			followSymlinks: options.followSymlinks,
 			aggregateTimeout: options.aggregateTimeout,
 			pollInterval: typeof options.poll === "boolean" ? 0 : options.poll,
-			ignored: ignoredToFunction(options.ignored)
+			ignored: toJsWatcherIgnored(options.ignored)
 		};
 		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
 		this.#inner = nativeWatcher;

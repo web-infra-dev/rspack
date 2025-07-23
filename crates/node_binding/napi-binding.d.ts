@@ -1511,7 +1511,7 @@ export interface NativeWatcherOptions {
   pollInterval?: number
   aggregateTimeout?: number
   /** A function that will be called with the path of a file or directory that is ignored. */
-  ignored?: (path: string) => boolean
+  ignored?: string | ((path: string) => boolean)
 }
 
 export interface NodeFsStats {

@@ -114,7 +114,7 @@ mod tests {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let dir_0 = ArcPath::from(current_dir.join("src"));
 
-    let path_manager = PathManager::new(None);
+    let path_manager = PathManager::default();
     let file_updater = PathUpdater {
       added: vec![
         current_dir.join("Cargo.toml").to_string_lossy().to_string(),

@@ -9,8 +9,10 @@ version.workspace = true
 [dependencies]
 async-trait  = { workspace = true }
 cfg-if       = { workspace = true }
+cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
 dunce        = { workspace = true }
+fast-glob    = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
 pnp          = { workspace = true }
 rspack_error = { workspace = true }

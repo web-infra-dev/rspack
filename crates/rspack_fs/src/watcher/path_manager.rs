@@ -1,15 +1,11 @@
 use std::{fmt::Debug, ops::Deref, path::PathBuf, sync::Arc};
 
-use async_trait::async_trait;
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
 use rspack_error::Result;
 use rspack_paths::ArcPath;
 use tokio::task::JoinSet;
 
-#[async_trait]
-pub trait Ignored: Send + Sync {
-  async fn ignore(&self, path: &str) -> Result<bool>;
-}
+use super::FsWatcherIgnored;
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the PathRegister. This allows iteration over all registered paths as a single sequence.
@@ -126,7 +122,7 @@ impl PathUpdater {
     self,
     paths: &HashSet<ArcPath>,
     incremental_manager: &IncrementalManager,
-    ignored: Option<Arc<dyn Ignored>>,
+    ignored: Arc<FsWatcherIgnored>,
   ) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
@@ -137,10 +133,8 @@ impl PathUpdater {
       let ignored_cloned = ignored.clone();
       tasks.spawn(async move {
         // Skip ignored paths
-        if let Some(ignored) = &ignored_cloned {
-          if ignored.ignore(&added).await? {
-            return Ok::<_, rspack_error::Error>(None);
-          }
+        if ignored_cloned.should_be_ignored(&added).await? {
+          return Ok::<_, rspack_error::Error>(None);
         }
         // Return valid path
         let path = ArcPath::from(PathBuf::from(&added));
@@ -210,12 +204,12 @@ pub struct PathManager {
   incremental_files: IncrementalManager,
   incremental_directories: IncrementalManager,
   incremental_missing: IncrementalManager,
-  pub ignored: Option<Arc<dyn Ignored>>,
+  pub ignored: Arc<FsWatcherIgnored>,
 }
 
 impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
-  pub fn new(ignored: Option<Arc<dyn Ignored>>) -> Self {
+  pub fn new(ignored: FsWatcherIgnored) -> Self {
     Self {
       files: HashSet::new(),
       directories: HashSet::new(),
@@ -223,7 +217,7 @@ impl PathManager {
       incremental_files: IncrementalManager::default(),
       incremental_directories: IncrementalManager::default(),
       incremental_missing: IncrementalManager::default(),
-      ignored,
+      ignored: Arc::new(ignored),
     }
   }
 
@@ -244,17 +238,17 @@ impl PathManager {
       files.update(
         &self.files,
         &self.incremental_files,
-        self.ignored.as_ref().map(|i| i.clone()),
+        Arc::clone(&self.ignored),
       ),
       directories.update(
         &self.directories,
         &self.incremental_directories,
-        self.ignored.as_ref().map(|i| i.clone()),
+        Arc::clone(&self.ignored),
       ),
       missing.update(
         &self.missing,
         &self.incremental_missing,
-        self.ignored.as_ref().map(|i| i.clone()),
+        Arc::clone(&self.ignored),
       ),
     )?;
     Ok(())
@@ -275,6 +269,7 @@ mod tests {
   use rspack_error::Result;
 
   use super::*;
+  use crate::{FsWatcherIgnored, Ignored};
 
   struct TestIgnored {
     pub ignored: Vec<String>,
@@ -298,13 +293,17 @@ mod tests {
       removed: vec![],
     };
     let paths: HashSet<ArcPath> = HashSet::new();
-    let ignored = Arc::new(TestIgnored {
+    let ignored = Box::new(TestIgnored {
       ignored: vec!["node_modules".to_string(), ".git".to_string()],
-    });
+    }) as Box<dyn Ignored>;
     let incremental_manager = IncrementalManager::default();
 
     updater
-      .update(&paths, &incremental_manager, Some(ignored))
+      .update(
+        &paths,
+        &incremental_manager,
+        Arc::new(FsWatcherIgnored::Fn(ignored)),
+      )
       .await
       .unwrap();
 
@@ -330,7 +329,7 @@ mod tests {
     let miss_0 = ArcPath::from(PathBuf::from("src/page/index.ts"));
     missing.insert(miss_0);
 
-    let mut path_manager = PathManager::new(None);
+    let mut path_manager = PathManager::default();
     path_manager.files.extend(files);
     path_manager.directories.extend(directories);
     path_manager.missing.extend(missing);
@@ -349,10 +348,10 @@ mod tests {
 
   #[tokio::test]
   async fn test_manager() {
-    let ignored = Arc::new(TestIgnored {
+    let ignored = Box::new(TestIgnored {
       ignored: vec!["node_modules".to_string(), ".git".to_string()],
-    });
-    let path_manager = PathManager::new(Some(ignored));
+    }) as Box<dyn Ignored>;
+    let path_manager = PathManager::new(FsWatcherIgnored::Fn(ignored));
     let files = PathUpdater {
       added: vec!["src/index.js".to_string()],
       removed: vec![],

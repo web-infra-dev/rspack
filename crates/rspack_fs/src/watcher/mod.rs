@@ -1,6 +1,7 @@
 mod analyzer;
 mod disk_watcher;
 mod executor;
+mod ignored;
 mod path_manager;
 mod scanner;
 mod trigger;
@@ -10,8 +11,9 @@ use std::{collections::HashSet, sync::Arc};
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
+pub use ignored::{FsWatcherIgnored, Ignored};
 use path_manager::PathManager;
-pub use path_manager::{Ignored, PathUpdater};
+pub use path_manager::PathUpdater;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
 use scanner::Scanner;
@@ -70,7 +72,7 @@ pub struct FsWatcher {
 }
 
 impl FsWatcher {
-  pub fn new(options: FsWatcherOptions, ignored: Option<Arc<dyn Ignored>>) -> Self {
+  pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager = Arc::new(PathManager::new(ignored));

@@ -66,7 +66,10 @@ export class Watching {
 		}
 		// Ignore watching files in node_modules to reduce memory usage and make startup faster
 		if (this.watchOptions.ignored === undefined) {
-			this.watchOptions.ignored = /[\\/](?:\.git|node_modules)[\\/]/;
+			// We're using string patterns instead of RegExp objects for the watcher configuration
+			// as passing RegExp through NAPI would invoke tsfn (Thread-safe Function) calls,
+			// which have shown significant performance overhead in testing.
+			this.watchOptions.ignored = ["**/node_modules/**", "**/.git/**"];
 		}
 
 		process.nextTick(() => {
