@@ -26,6 +26,7 @@ impl<'a> FlagDependencyExportsState<'a> {
   }
 
   pub fn apply(&mut self, modules: IdentifierSet) {
+    // initialize the exports info data and their provided info for all modules
     for module_id in &modules {
       // for module_id in modules {
       let exports_info = self.mg.get_exports_info(module_id);
@@ -52,10 +53,15 @@ impl<'a> FlagDependencyExportsState<'a> {
       exports_info.set_has_provide_info(self.mg);
     }
 
+    // collect the exports specs from all modules and their dependencies
+    // and then merge the exports specs to exports info data
+    // and collect the dependencies which will be used to backtrack when target exports info is changed
     let mut batch = modules;
     let mut dependencies: IdentifierMap<IdentifierSet> = IdentifierMap::default();
     while !batch.is_empty() {
       let modules = std::mem::take(&mut batch);
+
+      // collect the exports specs from modules by calling `dependency.get_exports`
       let module_exports_specs = modules
         .into_par_iter()
         .map(|module_id| {
@@ -67,6 +73,16 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       let mut changed_modules = FxHashSet::default();
 
+      // partition the exports specs into two parts:
+      // 1. if the exports info data do not have `redirect_to` and exports specs do not have nested `exports`,
+      // then the merging only affect the exports info data itself and can be done parallelly
+      // 2. if the exports info data have `redirect_to` or exports specs have nested `exports`,
+      // then the merging will affect the redirected exports info data or create a new exports info data
+      // and this merging can not be done parallelly
+      //
+      // There are two cases that the `redirect_to` or nested `exports` exist:
+      // 1. exports from json dependecy which has nested json object data
+      // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
       let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
         .into_iter()
         .partition(|(mid, (_, has_nested_exports))| {
@@ -85,6 +101,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           true
         });
 
+      // parallelize the merging of exports specs to exports info data
       let non_nested_tasks = non_nested_specs
         .into_iter()
         .map(|(module_id, (exports_specs, _))| {
@@ -114,6 +131,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         })
         .collect::<Vec<_>>();
 
+      // handle collected side effects and apply the merged exports info data to module graph
       for (module_id, changed, changed_dependencies, exports_info) in non_nested_tasks {
         if changed {
           changed_modules.insert(module_id);
@@ -124,6 +142,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         self.mg.set_exports_info(exports_info.id(), exports_info);
       }
 
+      // serializing the merging of exports specs to nested exports info data
       for (module_id, (exports_specs, _)) in has_nested_specs {
         let exports_info = self.mg.get_exports_info(&module_id);
         let mut changed = false;
@@ -140,6 +159,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         }
       }
 
+      // collect the dependencies which will be used to backtrack when target exports info is changed
       batch.extend(changed_modules.into_iter().flat_map(|m| {
         dependencies
           .get(&m)
@@ -251,6 +271,11 @@ fn collect_module_exports_specs(
   Some((res, has_nested_exports))
 }
 
+/**
+ * Merge exports specs to exports info data
+ * and also collect the dependencies
+ * which will be used to backtrack when target exports info is changed
+ */
 pub fn process_exports_spec(
   mg: &mut ModuleGraph,
   module_id: &ModuleIdentifier,
@@ -314,6 +339,14 @@ pub fn process_exports_spec(
   (changed, dependencies)
 }
 
+/**
+ * Merge exports specs to exports info data
+ * and also collect the dependencies
+ * which will be used to backtrack when target exports info is changed
+ *
+ * This method is used for the case that the exports info data will not be nested modified
+ * that means this exports info can be modified parallelly
+ */
 pub fn process_exports_spec_without_nested(
   mg: &ModuleGraph,
   module_id: &ModuleIdentifier,
@@ -332,12 +365,14 @@ pub fn process_exports_spec_without_nested(
   let export_dependencies = &export_desc.dependencies;
   if let Some(hide_export) = &export_desc.hide_export {
     for name in hide_export.iter() {
-      exports_info.ensure_export_info(name).unset_target(&dep_id);
+      exports_info
+        .ensure_owned_export_info(name)
+        .unset_target(&dep_id);
     }
   }
   match exports {
     ExportsOfExportsSpec::UnknownExports => {
-      changed |= exports_info.set_unknown_exports_provided(
+      changed |= exports_info.set_owned_unknown_exports_provided(
         global_can_mangle.unwrap_or_default(),
         export_desc.exclude_exports.as_ref(),
         global_from.map(|_| dep_id),
@@ -420,6 +455,12 @@ impl<'a> ParsedExportSpec<'a> {
   }
 }
 
+/**
+ * Do merging of exports info and create export infos from export specs
+ *
+ * This method is used for the case that the exports info data will not be nested modified
+ * that means this exports info can be modified parallelly
+ */
 pub fn merge_exports_without_nested(
   mg: &ModuleGraph,
   module_id: &ModuleIdentifier,
@@ -443,7 +484,7 @@ pub fn merge_exports_without_nested(
       ..
     } = ParsedExportSpec::new(export_name_or_spec, &global_export_info);
 
-    let export_info = exports_info.ensure_export_info(name);
+    let export_info = exports_info.ensure_owned_export_info(name);
     changed |= set_export_base_info(export_info, can_mangle, terminal_binding, inlinable);
 
     changed |= set_export_target(
@@ -468,6 +509,12 @@ pub fn merge_exports_without_nested(
   (changed, dependencies)
 }
 
+/**
+ * Do merging of exports info and create export infos from export specs
+ *
+ * This method is used for the case that the exports info data will be nested modified
+ * that means this exports info can not be modified parallelly
+ */
 pub fn merge_exports(
   mg: &mut ModuleGraph,
   module_id: &ModuleIdentifier,

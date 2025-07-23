@@ -34,7 +34,7 @@ impl ExportsInfoData {
     changed
   }
 
-  pub fn ensure_export_info(&mut self, name: &Atom) -> &mut ExportInfoData {
+  pub fn ensure_owned_export_info(&mut self, name: &Atom) -> &mut ExportInfoData {
     if self.named_exports(name).is_none() {
       let new_info = ExportInfoData::new(
         self.id(),
@@ -48,7 +48,11 @@ impl ExportsInfoData {
       .expect("should have export info")
   }
 
-  pub fn set_unknown_exports_provided(
+  // TODO: remove this method
+  // This method is a copy of `set_unknown_exports_provided` and not considered the `redirect_to`
+  // So this method should only be used when you actually known the `redirect_to` is not exist
+  // and you need to modify exports info datas parallelly
+  pub fn set_owned_unknown_exports_provided(
     &mut self,
     can_mangle: bool,
     exclude_exports: Option<&FxHashSet<Atom>>,
@@ -60,7 +64,7 @@ impl ExportsInfoData {
 
     if let Some(exclude_exports) = &exclude_exports {
       for name in exclude_exports.iter() {
-        self.ensure_export_info(name);
+        self.ensure_owned_export_info(name);
       }
     }
 
