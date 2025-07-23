@@ -62,8 +62,6 @@ impl<T> Sender<T> {
 impl<T> Drop for Sender<T> {
   fn drop(&mut self) {
     if !self.inner.sent.load(Ordering::Acquire) {
-      // SAFETY: `drop` can only be called once.
-      unsafe { *self.inner.value.get() = None }
       self.inner.sent.store(true, Ordering::Relaxed);
     }
   }
