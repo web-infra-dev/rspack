@@ -1948,7 +1948,8 @@ impl ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<ModuleInfo> {
-    if let ModuleInfo::Concatenated(box info) = info {
+    if let ModuleInfo::Concatenated(info_box) = info {
+      let info = &**info_box;
       let module_id = info.module;
       let concatenation_scope =
         concatenation_scope.expect("should have concatenation scope for concatenated module");

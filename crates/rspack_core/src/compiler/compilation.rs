@@ -2976,10 +2976,10 @@ impl AssetInfoRelated {
 
 /// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
 /// the same time.
-pub fn assign_depths(
+pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
   mg: &ModuleGraph,
-  modules: impl Iterator<Item = &ModuleIdentifier>,
+  modules: impl Iterator<Item = &'a ModuleIdentifier>,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
   let mut q = VecDeque::new();

@@ -219,10 +219,10 @@ impl ExportInfoData {
     if self.can_mangle_use().is_none() {
       self.set_can_mangle_use(Some(true));
     }
-    if self.exports_info_owned()
-      && let Some(exports_info) = self.exports_info()
-    {
-      nested_exports_info.push(exports_info);
+    if self.exports_info_owned() {
+      if let Some(exports_info) = self.exports_info() {
+        nested_exports_info.push(exports_info);
+      }
     }
   }
 }

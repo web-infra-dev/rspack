@@ -17,10 +17,13 @@ impl ChunkHashesArtifact {
   }
 
   pub fn set_hashes(&mut self, chunk: ChunkUkey, hashes: ChunkHashesResult) -> bool {
-    if let Some(old) = self.chunk_to_hashes.get(&chunk)
-      && old == &hashes
-    {
-      false
+    if let Some(old) = self.chunk_to_hashes.get(&chunk) {
+      if old == &hashes {
+        false
+      } else {
+        self.chunk_to_hashes.insert(chunk, hashes);
+        true
+      }
     } else {
       self.chunk_to_hashes.insert(chunk, hashes);
       true
