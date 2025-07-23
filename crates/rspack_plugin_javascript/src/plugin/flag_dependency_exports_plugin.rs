@@ -81,7 +81,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       // and this merging can not be done parallelly
       //
       // There are two cases that the `redirect_to` or nested `exports` exist:
-      // 1. exports from json dependecy which has nested json object data
+      // 1. exports from json dependency which has nested json object data
       // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
       let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
         .into_iter()
