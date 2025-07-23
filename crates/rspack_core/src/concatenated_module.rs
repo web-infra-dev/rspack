@@ -1543,15 +1543,17 @@ impl Module for ConcatenatedModule {
     generation_runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    let runtime = if let Some(self_runtime) = &self.runtime
-      && let Some(generation_runtime) = generation_runtime
-    {
-      Some(Cow::Owned(
-        generation_runtime
-          .intersection(self_runtime)
-          .copied()
-          .collect::<RuntimeSpec>(),
-      ))
+    let runtime = if let Some(self_runtime) = &self.runtime {
+      if let Some(generation_runtime) = generation_runtime {
+        Some(Cow::Owned(
+          generation_runtime
+            .intersection(self_runtime)
+            .copied()
+            .collect::<RuntimeSpec>(),
+        ))
+      } else {
+        generation_runtime.map(Cow::Borrowed)
+      }
     } else {
       generation_runtime.map(Cow::Borrowed)
     };
@@ -2427,68 +2429,69 @@ impl ConcatenatedModule {
           };
         }
 
-        if let Some(ref export_id) = export_id
-          && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
-        {
-          if let Some(used_name) = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            runtime,
-            &export_name,
-          ) {
-            match used_name {
-              UsedName::Normal(used_name) => {
-                // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
-                return FinalBindingResult::from_binding(Binding::Symbol(SymbolBinding {
-                  info_id: info.module,
-                  name: direct_export.as_str().into(),
-                  ids: used_name[1..].to_vec(),
-                  export_name,
-                  comment: None,
-                }));
+        if let Some(ref export_id) = export_id {
+          if let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id)) {
+            if let Some(used_name) = ExportsInfoGetter::get_used_name(
+              GetUsedNameParam::WithNames(&exports_info),
+              runtime,
+              &export_name,
+            ) {
+              match used_name {
+                UsedName::Normal(used_name) => {
+                  // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L402-L404
+                  return FinalBindingResult::from_binding(Binding::Symbol(SymbolBinding {
+                    info_id: info.module,
+                    name: direct_export.as_str().into(),
+                    ids: used_name[1..].to_vec(),
+                    export_name,
+                    comment: None,
+                  }));
+                }
+                UsedName::Inlined(inlined) => {
+                  return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+                    raw_name: format!(
+                      "{} {}",
+                      to_normal_comment(&format!(
+                        "inlined export {}",
+                        property_access(&export_name, 0)
+                      )),
+                      inlined.render()
+                    )
+                    .into(),
+                    // Inlined export is definitely a terminal binding
+                    ids: vec![],
+                    export_name,
+                    info_id: info.module,
+                    comment: None,
+                  }));
+                }
               }
-              UsedName::Inlined(inlined) => {
-                return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
-                  raw_name: format!(
-                    "{} {}",
-                    to_normal_comment(&format!(
-                      "inlined export {}",
-                      property_access(&export_name, 0)
-                    )),
-                    inlined.render()
-                  )
-                  .into(),
-                  // Inlined export is definitely a terminal binding
-                  ids: vec![],
-                  export_name,
-                  info_id: info.module,
-                  comment: None,
-                }));
-              }
+            } else {
+              return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+                raw_name: "/* unused export */ undefined".into(),
+                ids: export_name[1..].to_vec(),
+                export_name,
+                info_id: info.module,
+                comment: None,
+              }));
             }
-          } else {
-            return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
-              raw_name: "/* unused export */ undefined".into(),
-              ids: export_name[1..].to_vec(),
-              export_name,
-              info_id: info.module,
-              comment: None,
-            }));
           }
         }
 
-        if let Some(ref export_id) = export_id
-          && let Some(raw_export) = info
+        if let Some(ref export_id) = export_id {
+          if let Some(raw_export) = info
             .raw_export_map
             .as_ref()
             .and_then(|map| map.get(export_id))
-        {
-          return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
-            info_id: info.module,
-            raw_name: raw_export.as_str().into(),
-            ids: export_name[1..].to_vec(),
-            export_name,
-            comment: None,
-          }));
+          {
+            return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+              info_id: info.module,
+              raw_name: raw_export.as_str().into(),
+              ids: export_name[1..].to_vec(),
+              export_name,
+              comment: None,
+            }));
+          }
         }
 
         let reexport = export_info.find_target(

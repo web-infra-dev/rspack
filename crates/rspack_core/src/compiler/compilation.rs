@@ -1168,41 +1168,43 @@ impl Compilation {
       }
     }
 
-    let chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RENDER)
-    {
-      if !self.chunk_render_artifact.is_empty() {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(*chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.chunk_render_artifact.remove(&removed_chunk);
-      }
-      self
-        .chunk_render_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let chunks: UkeySet<ChunkUkey> = mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ChunkSetHashes { chunk } => Some(*chunk),
+    let chunks = {
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::CHUNKS_RENDER)
+      {
+        if !self.chunk_render_artifact.is_empty() {
+        let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ChunkRemove { chunk } => Some(*chunk),
           _ => None,
-        })
-        .collect();
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_RENDER, %mutations);
-      let logger = self.get_logger("rspack.incremental.chunksRender");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        chunks.len(),
-        self.chunk_by_ukey.len()
-      ));
-      chunks
+        });
+        for removed_chunk in removed_chunks {
+          self.chunk_render_artifact.remove(&removed_chunk);
+        }
+        self
+          .chunk_render_artifact
+          .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+        let chunks: UkeySet<ChunkUkey> = mutations
+          .iter()
+          .filter_map(|mutation| match mutation {
+            Mutation::ChunkSetHashes { chunk } => Some(*chunk),
+            _ => None,
+          })
+          .collect();
+        tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_RENDER, %mutations);
+        let logger = self.get_logger("rspack.incremental.chunksRender");
+        logger.log(format!(
+          "{} chunks are affected, {} in total",
+          chunks.len(),
+          self.chunk_by_ukey.len()
+        ));
+        chunks
+        } else {
+          self.chunk_by_ukey.keys().copied().collect()
+        }
       } else {
         self.chunk_by_ukey.keys().copied().collect()
       }
-    } else {
-      self.chunk_by_ukey.keys().copied().collect()
     };
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
       chunks.iter().for_each(|chunk| {
@@ -1437,31 +1439,32 @@ impl Compilation {
       .incremental
       .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
     // TODO move diagnostic collect to make
-    let modules = if let Some(mutations) = mutations
-    {
-      if !self.dependencies_diagnostics_artifact.is_empty() {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self
-          .dependencies_diagnostics_artifact
-          .remove(&revoked_module);
-      }
-      let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
-      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
+    let modules = {
+      if let Some(mutations) = mutations {
+        if !self.dependencies_diagnostics_artifact.is_empty() {
+        let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ModuleRemove { module } => Some(*module),
+          _ => None,
+        });
+        for revoked_module in revoked_modules {
+          self
+            .dependencies_diagnostics_artifact
+            .remove(&revoked_module);
+        }
+        let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+        let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+        logger.log(format!(
+          "{} modules are affected, {} in total",
+          modules.len(),
+          self.get_module_graph().modules().len()
+        ));
+        modules
+        } else {
+          self.get_module_graph().modules().keys().copied().collect()
+        }
       } else {
         self.get_module_graph().modules().keys().copied().collect()
       }
-    } else {
-      self.get_module_graph().modules().keys().copied().collect()
     };
     let module_graph = self.get_module_graph();
     let module_graph_cache = &self.module_graph_cache_artifact;
@@ -1634,159 +1637,163 @@ impl Compilation {
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
     logger.time_end(start);
 
-    let create_module_hashes_modules = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::MODULES_HASHES)
-    {
-      if !self.cgm_hash_artifact.is_empty() {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self.cgm_hash_artifact.remove(&revoked_module);
-      }
-      let mg = self.get_module_graph();
-      let mut modules = mutations.get_affected_modules_with_module_graph(&mg);
-      for mutation in mutations.iter() {
-        match mutation {
-          Mutation::ModuleSetAsync { module } => {
-            modules.insert(*module);
-          }
-          Mutation::ModuleSetId { module } => {
-            modules.insert(*module);
-            modules.extend(
-              mg.get_incoming_connections(module)
-                .filter_map(|c| c.original_module_identifier),
-            );
-          }
-          Mutation::ChunkAdd { chunk } => {
-            modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
-          }
-          Mutation::ChunkSetId { chunk } => {
-            let chunk = self.chunk_by_ukey.expect_get(chunk);
-            modules.extend(
-              chunk
-                .groups()
-                .iter()
-                .flat_map(|group| {
-                  let group = self.chunk_group_by_ukey.expect_get(group);
-                  group.origins()
-                })
-                .filter_map(|origin| origin.module),
-            );
-          }
-          _ => {}
+    let create_module_hashes_modules = {
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::MODULES_HASHES)
+      {
+        if !self.cgm_hash_artifact.is_empty() {
+        let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ModuleRemove { module } => Some(*module),
+          _ => None,
+        });
+        for revoked_module in revoked_modules {
+          self.cgm_hash_artifact.remove(&revoked_module);
         }
-      }
-
-      // check if module runtime changes
-      for mi in mg.modules().keys() {
-        let module_runtimes = self
-          .chunk_graph
-          .get_module_runtimes(*mi, &self.chunk_by_ukey);
-        let module_runtime_keys = module_runtimes
-          .values()
-          .map(get_runtime_key)
-          .collect::<Vec<_>>();
-
-        if let Some(runtime_map) = self.cgm_hash_artifact.get_runtime_map(mi) {
-          if module_runtimes.is_empty() {
-            // module has no runtime, skip
-            continue;
+        let mg = self.get_module_graph();
+        let mut modules = mutations.get_affected_modules_with_module_graph(&mg);
+        for mutation in mutations.iter() {
+          match mutation {
+            Mutation::ModuleSetAsync { module } => {
+              modules.insert(*module);
+            }
+            Mutation::ModuleSetId { module } => {
+              modules.insert(*module);
+              modules.extend(
+                mg.get_incoming_connections(module)
+                  .filter_map(|c| c.original_module_identifier),
+              );
+            }
+            Mutation::ChunkAdd { chunk } => {
+              modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
+            }
+            Mutation::ChunkSetId { chunk } => {
+              let chunk = self.chunk_by_ukey.expect_get(chunk);
+              modules.extend(
+                chunk
+                  .groups()
+                  .iter()
+                  .flat_map(|group| {
+                    let group = self.chunk_group_by_ukey.expect_get(group);
+                    group.origins()
+                  })
+                  .filter_map(|origin| origin.module),
+              );
+            }
+            _ => {}
           }
-          if module_runtimes.len() == 1 {
-            // single runtime
-            if !matches!(runtime_map.mode, RuntimeMode::SingleEntry)
-              || runtime_map
-                .single_runtime
-                .as_ref()
-                .expect("should have single runtime for single entry")
-                != module_runtimes
-                  .values()
-                  .next()
-                  .expect("should have at least one runtime")
-            {
-              modules.insert(*mi);
-            }
-          } else {
-            // multiple runtimes
-            if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
-              modules.insert(*mi);
+        }
+
+        // check if module runtime changes
+        for mi in mg.modules().keys() {
+          let module_runtimes = self
+            .chunk_graph
+            .get_module_runtimes(*mi, &self.chunk_by_ukey);
+          let module_runtime_keys = module_runtimes
+            .values()
+            .map(get_runtime_key)
+            .collect::<Vec<_>>();
+
+          if let Some(runtime_map) = self.cgm_hash_artifact.get_runtime_map(mi) {
+            if module_runtimes.is_empty() {
+              // module has no runtime, skip
               continue;
             }
-
-            if runtime_map.map.len() != module_runtimes.len() {
-              modules.insert(*mi);
-              continue;
-            }
-
-            for runtime_key in runtime_map.map.keys() {
-              if !module_runtime_keys.contains(&runtime_key.as_str()) {
+            if module_runtimes.len() == 1 {
+              // single runtime
+              if !matches!(runtime_map.mode, RuntimeMode::SingleEntry)
+                || runtime_map
+                  .single_runtime
+                  .as_ref()
+                  .expect("should have single runtime for single entry")
+                  != module_runtimes
+                    .values()
+                    .next()
+                    .expect("should have at least one runtime")
+              {
                 modules.insert(*mi);
-                break;
+              }
+            } else {
+              // multiple runtimes
+              if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
+                modules.insert(*mi);
+                continue;
+              }
+
+              if runtime_map.map.len() != module_runtimes.len() {
+                modules.insert(*mi);
+                continue;
+              }
+
+              for runtime_key in runtime_map.map.keys() {
+                if !module_runtime_keys.contains(&runtime_key.as_str()) {
+                  modules.insert(*mi);
+                  break;
+                }
               }
             }
           }
         }
-      }
 
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
-      let logger = self.get_logger("rspack.incremental.modulesHashes");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        mg.modules().len()
-      ));
+        tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
+        let logger = self.get_logger("rspack.incremental.modulesHashes");
+        logger.log(format!(
+          "{} modules are affected, {} in total",
+          modules.len(),
+          mg.modules().len()
+        ));
 
-      modules
+        modules
+        } else {
+          self.get_module_graph().modules().keys().copied().collect()
+        }
       } else {
         self.get_module_graph().modules().keys().copied().collect()
       }
-    } else {
-      self.get_module_graph().modules().keys().copied().collect()
     };
     self
       .create_module_hashes(create_module_hashes_modules)
       .await?;
 
     let start = logger.time("code generation");
-    let code_generation_modules = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::MODULES_CODEGEN)
-    {
-      if !self.code_generation_results.is_empty() {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self.code_generation_results.remove(&revoked_module);
-      }
-      let modules: IdentifierSet = mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ModuleSetHashes { module } => Some(*module),
+    let code_generation_modules = {
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::MODULES_CODEGEN)
+      {
+        if !self.code_generation_results.is_empty() {
+        let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ModuleRemove { module } => Some(*module),
           _ => None,
-        })
-        .collect();
-      // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
-      for module in &modules {
-        self.code_generation_results.remove(module);
-      }
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
-      let logger = self.get_logger("rspack.incremental.modulesCodegen");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
+        });
+        for revoked_module in revoked_modules {
+          self.code_generation_results.remove(&revoked_module);
+        }
+        let modules: IdentifierSet = mutations
+          .iter()
+          .filter_map(|mutation| match mutation {
+            Mutation::ModuleSetHashes { module } => Some(*module),
+            _ => None,
+          })
+          .collect();
+        // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
+        for module in &modules {
+          self.code_generation_results.remove(module);
+        }
+        tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
+        let logger = self.get_logger("rspack.incremental.modulesCodegen");
+        logger.log(format!(
+          "{} modules are affected, {} in total",
+          modules.len(),
+          self.get_module_graph().modules().len()
+        ));
+        modules
+        } else {
+          self.get_module_graph().modules().keys().copied().collect()
+        }
       } else {
         self.get_module_graph().modules().keys().copied().collect()
       }
-    } else {
-      self.get_module_graph().modules().keys().copied().collect()
     };
     self.code_generation(code_generation_modules).await?;
 
@@ -1799,39 +1806,41 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
-    let process_runtime_requirements_modules = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
-    {
-      if !self.cgm_runtime_requirements_artifact.is_empty() {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self
-          .cgm_runtime_requirements_artifact
-          .remove(&revoked_module);
-      }
-      let modules: IdentifierSet = mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ModuleSetHashes { module } => Some(*module),
+    let process_runtime_requirements_modules = {
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
+      {
+        if !self.cgm_runtime_requirements_artifact.is_empty() {
+        let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ModuleRemove { module } => Some(*module),
           _ => None,
-        })
-        .collect();
-      let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
+        });
+        for revoked_module in revoked_modules {
+          self
+            .cgm_runtime_requirements_artifact
+            .remove(&revoked_module);
+        }
+        let modules: IdentifierSet = mutations
+          .iter()
+          .filter_map(|mutation| match mutation {
+            Mutation::ModuleSetHashes { module } => Some(*module),
+            _ => None,
+          })
+          .collect();
+        let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
+        logger.log(format!(
+          "{} modules are affected, {} in total",
+          modules.len(),
+          self.get_module_graph().modules().len()
+        ));
+        modules
+        } else {
+          self.get_module_graph().modules().keys().copied().collect()
+        }
       } else {
         self.get_module_graph().modules().keys().copied().collect()
       }
-    } else {
-      self.get_module_graph().modules().keys().copied().collect()
     };
     self
       .process_modules_runtime_requirements(
@@ -1840,42 +1849,44 @@ impl Compilation {
       )
       .await?;
     let runtime_chunks = self.get_chunk_graph_entries().collect();
-    let process_runtime_requirements_chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
-    {
-      if !self.cgc_runtime_requirements_artifact.is_empty() {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.cgc_runtime_requirements_artifact.remove(removed_chunk);
-      }
-      let affected_chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      for affected_chunk in &affected_chunks {
+    let process_runtime_requirements_chunks = {
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+      {
+        if !self.cgc_runtime_requirements_artifact.is_empty() {
+        let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ChunkRemove { chunk } => Some(chunk),
+          _ => None,
+        });
+        for removed_chunk in removed_chunks {
+          self.cgc_runtime_requirements_artifact.remove(removed_chunk);
+        }
+        let affected_chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+        for affected_chunk in &affected_chunks {
+          self
+            .cgc_runtime_requirements_artifact
+            .remove(affected_chunk);
+        }
+        for runtime_chunk in &runtime_chunks {
+          self.cgc_runtime_requirements_artifact.remove(runtime_chunk);
+        }
         self
           .cgc_runtime_requirements_artifact
-          .remove(affected_chunk);
-      }
-      for runtime_chunk in &runtime_chunks {
-        self.cgc_runtime_requirements_artifact.remove(runtime_chunk);
-      }
-      self
-        .cgc_runtime_requirements_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        affected_chunks.len(),
-        self.chunk_by_ukey.len()
-      ));
-      affected_chunks
+          .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+        let logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
+        logger.log(format!(
+          "{} chunks are affected, {} in total",
+          affected_chunks.len(),
+          self.chunk_by_ukey.len()
+        ));
+        affected_chunks
+        } else {
+          self.chunk_by_ukey.keys().copied().collect()
+        }
       } else {
         self.chunk_by_ukey.keys().copied().collect()
       }
-    } else {
-      self.chunk_by_ukey.keys().copied().collect()
     };
     self
       .process_chunks_runtime_requirements(
@@ -2236,35 +2247,37 @@ impl Compilation {
       }
     }
 
-    let create_hash_chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_HASHES)
-    {
-      if !self.chunk_hashes_artifact.is_empty() {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(*chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.chunk_hashes_artifact.remove(&removed_chunk);
-      }
-      self
-        .chunk_hashes_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_HASHES, %mutations, ?chunks);
-      let logger = self.get_logger("rspack.incremental.chunksHashes");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        chunks.len(),
-        self.chunk_by_ukey.len(),
-      ));
-      chunks
+    let create_hash_chunks = {
+      if let Some(mutations) = self
+        .incremental
+        .mutations_read(IncrementalPasses::CHUNKS_HASHES)
+      {
+        if !self.chunk_hashes_artifact.is_empty() {
+        let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ChunkRemove { chunk } => Some(*chunk),
+          _ => None,
+        });
+        for removed_chunk in removed_chunks {
+          self.chunk_hashes_artifact.remove(&removed_chunk);
+        }
+        self
+          .chunk_hashes_artifact
+          .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+        let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+        tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_HASHES, %mutations, ?chunks);
+        let logger = self.get_logger("rspack.incremental.chunksHashes");
+        logger.log(format!(
+          "{} chunks are affected, {} in total",
+          chunks.len(),
+          self.chunk_by_ukey.len(),
+        ));
+        chunks
+        } else {
+          self.chunk_by_ukey.keys().copied().collect()
+        }
       } else {
         self.chunk_by_ukey.keys().copied().collect()
       }
-    } else {
-      self.chunk_by_ukey.keys().copied().collect()
     };
 
     let mut compilation_hasher = RspackHash::from(&self.options.output);

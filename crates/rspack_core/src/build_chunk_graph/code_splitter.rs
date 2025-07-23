@@ -392,8 +392,10 @@ impl CodeSplitter {
       &mut compilation.chunk_by_ukey,
       &mut compilation.named_chunks,
     );
-    if created && let Some(mutations) = compilation.incremental.mutations_write() {
-      mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+    if created {
+      if let Some(mutations) = compilation.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+      }
     }
     self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
     let runtime = get_entry_runtime(name, options, &compilation.entries);
@@ -403,15 +405,15 @@ impl CodeSplitter {
     if let Some(filename) = &entry_data.options.filename {
       chunk.set_filename_template(Some(filename.clone()));
 
-      if filename.has_hash_placeholder()
-        && let Some(diagnostic) = compilation.incremental.disable_passes(
+      if filename.has_hash_placeholder() {
+        if let Some(diagnostic) = compilation.incremental.disable_passes(
           IncrementalPasses::CHUNKS_RENDER,
           "Chunk filename that dependent on full hash",
           "chunk filename that dependent on full hash is not supported in incremental compilation",
-        )
-      {
-        incremental_diagnostic = diagnostic;
-        compilation.chunk_render_artifact.clear();
+        ) {
+          incremental_diagnostic = diagnostic;
+          compilation.chunk_render_artifact.clear();
+        }
       }
     }
 
@@ -646,8 +648,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             &mut compilation.chunk_by_ukey,
             &mut compilation.named_chunks,
           );
-          if created && let Some(mutations) = compilation.incremental.mutations_write() {
-            mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+          if created {
+            if let Some(mutations) = compilation.incremental.mutations_write() {
+              mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+            }
           }
           self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
           let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
