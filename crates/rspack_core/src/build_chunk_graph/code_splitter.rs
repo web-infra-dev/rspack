@@ -240,7 +240,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) chunk_group_info_map: UkeyMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: Database<ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
-  pub(crate) blocks_by_cgi: UkeyMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
+  pub(crate) incoming_blocks_by_cgi: UkeyMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
   pub(crate) runtime_chunks: UkeySet<ChunkUkey>,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
@@ -251,7 +251,12 @@ pub(crate) struct CodeSplitter {
   chunk_groups_for_combining: UkeyIndexSet<CgiUkey>,
   pub(crate) outdated_chunk_group_info: UkeyIndexSet<CgiUkey>,
   chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
-  pub(crate) block_chunk_groups: HashMap<DependenciesBlockIdentifier, CgiUkey>,
+  pub(crate) block_to_chunk_group: HashMap<DependenciesBlockIdentifier, CgiUkey>,
+
+  // outgoing blocks for a chunk group
+  // 2 direction map
+  pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, UkeySet<CgiUkey>>,
+
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
@@ -847,7 +852,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       let module_graph = compilation.get_module_graph();
 
-      let roots = if let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) {
+      let roots = if let Some(blocks) = self.incoming_blocks_by_cgi.get(&cgi.ukey) {
         let mut blocks = blocks.iter().copied().collect::<Vec<_>>();
         blocks.sort_unstable();
 
@@ -1231,7 +1236,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     self.stat_processed_blocks += 1;
 
-    let chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
+    let chunk_group_info = self
+      .chunk_group_infos
+      .get(&item.chunk_group_info)
+      .expect("should have cgi");
     let runtime = chunk_group_info.runtime.clone();
     let min_available_modules = chunk_group_info.min_available_modules.clone();
 
@@ -1314,6 +1322,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     };
 
+    self
+      .block_owner
+      .entry(block_id)
+      .or_default()
+      .insert(item_chunk_group_info_ukey);
+
     item_chunk_group_info.outgoing_blocks.insert(block_id);
 
     let item_chunk_group_info = self
@@ -1322,7 +1336,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let item_chunk_group = item_chunk_group_info.chunk_group;
     let cgi = self
-      .block_chunk_groups
+      .block_to_chunk_group
       .get(&DependenciesBlockIdentifier::AsyncDependenciesBlock(
         block_id,
       ));
@@ -1330,7 +1344,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mut c: Option<ChunkGroupUkey> = None;
 
     let cgi = if let Some(cgi) = cgi {
-      let cgi = self.chunk_group_infos.expect_get(cgi);
+      let cgi = self
+        .chunk_group_infos
+        .get(cgi)
+        .unwrap_or_else(|| panic!("should have chunk group info for block {block_id:?}"));
       let module_graph = compilation.get_module_graph();
       let block = module_graph
         .block_by_id(&block_id)
@@ -1542,10 +1559,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         c = Some(cgi.chunk_group);
         cgi.ukey
       };
-      self.block_chunk_groups.insert(
+      self.block_to_chunk_group.insert(
         DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id),
         cgi,
       );
+      let blocks = self.incoming_blocks_by_cgi.entry(cgi).or_default();
+      blocks.insert(DependenciesBlockIdentifier::AsyncDependenciesBlock(
+        block_id,
+      ));
       cgi
     };
 
@@ -1919,8 +1940,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       if let Some(process_block) = process_block {
         let initialized = cgi.initialized;
         let mut needs_walk = !initialized || changed;
-
-        let blocks = self.blocks_by_cgi.entry(cgi.ukey).or_default();
+        let blocks = self.incoming_blocks_by_cgi.entry(cgi.ukey).or_default();
         if blocks.insert(process_block.block) {
           needs_walk = true;
         }
@@ -1944,7 +1964,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 }
 
 #[derive(Debug, Clone)]
-enum QueueAction {
+pub(crate) enum QueueAction {
   AddAndEnterEntryModule(AddAndEnterEntryModule),
   AddAndEnterModule(AddAndEnterModule),
   _EnterModule(EnterModule),
@@ -1954,36 +1974,36 @@ enum QueueAction {
 }
 
 #[derive(Debug, Clone)]
-struct AddAndEnterEntryModule {
+pub(crate) struct AddAndEnterEntryModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
 
 #[derive(Debug, Clone)]
-struct AddAndEnterModule {
+pub(crate) struct AddAndEnterModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
 
 #[derive(Debug, Clone)]
-struct EnterModule {
+pub(crate) struct EnterModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
   chunk: ChunkUkey,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct ProcessBlock {
-  module: ModuleIdentifier,
-  block: DependenciesBlockIdentifier,
-  chunk_group_info: CgiUkey,
-  chunk: ChunkUkey,
+pub(crate) struct ProcessBlock {
+  pub(crate) module: ModuleIdentifier,
+  pub(crate) block: DependenciesBlockIdentifier,
+  pub(crate) chunk_group_info: CgiUkey,
+  pub(crate) chunk: ChunkUkey,
 }
 
 #[derive(Debug, Clone)]
-struct ProcessEntryBlock {
+pub(crate) struct ProcessEntryBlock {
   module: ModuleIdentifier,
   block: AsyncDependenciesBlockIdentifier,
   chunk_group_info: CgiUkey,
@@ -2046,7 +2066,7 @@ impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
 }
 
 #[derive(Debug, Clone)]
-struct LeaveModule {
+pub(crate) struct LeaveModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
 }

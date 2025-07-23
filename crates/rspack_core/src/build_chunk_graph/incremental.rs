@@ -9,6 +9,7 @@ use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
+  build_chunk_graph::code_splitter::{ProcessBlock, QueueAction},
   incremental::{IncrementalPasses, Mutation},
   is_runtime_equal, AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation,
   GroupOptions, ModuleIdentifier, RuntimeSpec,
@@ -94,12 +95,22 @@ impl CodeSplitter {
     let Some(cgi_ukey) = self.chunk_group_info_map.remove(&chunk_group_ukey) else {
       return Ok(None);
     };
-    let Some(chunk_group_info) = self.chunk_group_infos.remove(&cgi_ukey) else {
-      return Ok(None);
-    };
-    let Some(chunk_group) = compilation.chunk_group_by_ukey.remove(&chunk_group_ukey) else {
-      return Ok(None);
-    };
+
+    let chunk_group_info = self
+      .chunk_group_infos
+      .remove(&cgi_ukey)
+      .expect("when we have cgi ukey, we have cgi");
+
+    for block in chunk_group_info.outgoing_blocks.iter() {
+      if let Some(infos) = self.block_owner.get_mut(&block) {
+        infos.remove(&cgi_ukey);
+      }
+    }
+
+    let chunk_group = compilation
+      .chunk_group_by_ukey
+      .remove(&chunk_group_ukey)
+      .expect("when we have cgi, we have chunk group");
 
     let chunk_group_name = chunk_group.name().map(|s| s.to_string());
     if let Some(name) = &chunk_group_name {
@@ -128,6 +139,7 @@ impl CodeSplitter {
 
     for parent in chunk_group.parents.iter() {
       let Some(parent_cg) = compilation.chunk_group_by_ukey.get_mut(parent) else {
+        // maybe already removed
         continue;
       };
 
@@ -185,21 +197,11 @@ impl CodeSplitter {
     compilation.chunk_group_by_ukey.remove(&chunk_group_ukey);
 
     let mut edges = vec![];
-    for (parent, _) in &chunk_group_info.parents {
-      let Some(parent_cg) = self
-        .chunk_group_infos
-        .get(parent)
-        .and_then(|cgi| compilation.chunk_group_by_ukey.get(&cgi.chunk_group))
-      else {
-        continue;
-      };
 
-      let Some(blocks) = self.blocks_by_cgi.get(&chunk_group_info.ukey) else {
-        continue;
-      };
-
-      for block in blocks {
-        self.block_chunk_groups.remove(block);
+    // use `if let` because entry don't have incoming_blocks_by_cgi
+    if let Some(incoming_blocks) = self.incoming_blocks_by_cgi.get(&chunk_group_info.ukey) {
+      for block in incoming_blocks {
+        self.block_to_chunk_group.remove(block);
 
         let Some(block) = block.as_async() else {
           continue;
@@ -209,20 +211,28 @@ impl CodeSplitter {
           continue;
         };
 
-        edges.push(ChunkReCreation::Normal(NormalChunkRecreation {
-          block,
-          module: cache.module,
-          cgi: *parent,
-          chunk: parent_cg.chunks[0],
-        }));
-      }
-    }
+        let Some(parents) = self.block_owner.get(&block) else {
+          continue;
+        };
 
-    if let Some(blocks) = self.blocks_by_cgi.get(&cgi_ukey) {
-      for block in blocks {
-        self.block_chunk_groups.remove(block);
+        for parent_cgi in parents {
+          let Some(parent_cg) = self.chunk_group_infos.get(parent_cgi) else {
+            continue;
+          };
+
+          let parent_group = compilation
+            .chunk_group_by_ukey
+            .expect_get(&parent_cg.chunk_group);
+
+          edges.push(ChunkReCreation::Normal(NormalChunkRecreation {
+            block,
+            module: cache.module,
+            cgi: *parent_cgi,
+            chunk: parent_group.chunks[0],
+          }));
+        }
       }
-    }
+    };
 
     self.stat_invalidated_chunk_group += 1;
 
@@ -278,7 +288,7 @@ impl CodeSplitter {
         .chunk_group_info_map
         .get(&group)
         .expect("should have chunk group");
-      let Some(blocks) = self.blocks_by_cgi.get(cgi).cloned() else {
+      let Some(blocks) = self.incoming_blocks_by_cgi.get(cgi).cloned() else {
         continue;
       };
 
@@ -324,7 +334,7 @@ impl CodeSplitter {
     let Some(cgi) = self.chunk_group_infos.get(&cgi_ukey) else {
       return false;
     };
-    let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) else {
+    let Some(blocks) = self.incoming_blocks_by_cgi.get(&cgi.ukey) else {
       return false;
     };
 
@@ -507,6 +517,11 @@ impl CodeSplitter {
       self.chunk_caches.remove(&block);
     }
 
+    // remove async entrypoints
+    compilation
+      .async_entrypoints
+      .retain(|cg_ukey| compilation.chunk_group_by_ukey.contains(cg_ukey));
+
     for edge in edges {
       edge.rebuild(self, compilation)?;
     }
@@ -549,7 +564,7 @@ impl CodeSplitter {
       let chunk = cg.chunks[0];
       let module_graph = compilation.get_module_graph();
 
-      let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) else {
+      let Some(blocks) = self.incoming_blocks_by_cgi.get(&cgi.ukey) else {
         continue;
       };
 
