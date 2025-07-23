@@ -39,7 +39,7 @@ pub struct NativeWatcherOptions {
   pub aggregate_timeout: Option<u32>,
 
   #[napi(ts_type = "string | ((path: string) => boolean)")]
-  /// A function that will be called with the path of a file or directory that is ignored.
+  /// Ignored paths or a function to determine if a path should be ignored.
   pub ignored: Option<JsWatcherIgnored>,
 }
 
