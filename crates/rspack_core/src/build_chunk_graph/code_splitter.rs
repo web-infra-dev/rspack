@@ -1354,8 +1354,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           &mut compilation.chunk_by_ukey,
           &mut compilation.named_chunks,
         );
-        if created && let Some(mutations) = compilation.incremental.mutations_write() {
-          mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+        if created {
+          if let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+          }
         }
         chunk_ukey
       } else {
@@ -1465,35 +1467,77 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }));
         return;
       } else {
-        let cgi = if let Some(chunk_name) = chunk_name
-          && let Some(cgi) = self.named_chunk_groups.get(chunk_name)
-        {
-          let mut cgi = self.chunk_group_infos.expect_get(cgi);
-          let block = module_graph
-            .block_by_id(&block_id)
-            .expect("should have block");
-          let request = block.request().clone();
-          let loc = block.loc();
+        let cgi = if let Some(chunk_name) = chunk_name {
+          if let Some(cgi) = self.named_chunk_groups.get(chunk_name) {
+            let mut cgi = self.chunk_group_infos.expect_get(cgi);
+            let block = module_graph
+              .block_by_id(&block_id)
+              .expect("should have block");
+            let request = block.request().clone();
+            let loc = block.loc();
 
-          if compilation
-            .chunk_group_by_ukey
-            .expect_get(&cgi.chunk_group)
-            .is_initial()
-          {
-            let error = AsyncDependenciesToInitialChunkError(chunk_name.to_string(), loc.clone());
-            compilation.push_diagnostic(Error::from(error).into());
-            cgi = item_chunk_group_info;
+            if compilation
+              .chunk_group_by_ukey
+              .expect_get(&cgi.chunk_group)
+              .is_initial()
+            {
+              let error = AsyncDependenciesToInitialChunkError(chunk_name.to_string(), loc.clone());
+              compilation.push_diagnostic(Error::from(error).into());
+              cgi = item_chunk_group_info;
+            }
+
+            compilation
+              .chunk_group_by_ukey
+              .expect_get_mut(&cgi.chunk_group)
+              .add_origin(Some(module_id), loc, request);
+
+            compilation
+              .chunk_graph
+              .connect_block_and_chunk_group(block_id, cgi.chunk_group);
+            cgi
+          } else {
+            let mut chunk_group = add_chunk_in_group(
+              block.get_group_options(),
+              module_id,
+              block.loc(),
+              block.request().clone(),
+            );
+            let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+
+            self.stat_chunk_group_created += 1;
+            let info = ChunkGroupInfo::new(
+              chunk_group.ukey,
+              item_chunk_group_info.runtime.clone(),
+              item_chunk_group_info.chunk_loading,
+              item_chunk_group_info.async_chunks,
+            );
+
+            let info_ukey = info.ukey;
+            let info = self.chunk_group_infos.entry(info_ukey).or_insert(info);
+
+            self.next_chunk_group_index += 1;
+            chunk_group.index = Some(self.next_chunk_group_index);
+
+            if let Some(name) = chunk_group.kind.name() {
+              self.named_chunk_groups.insert(name.to_owned(), info_ukey);
+              compilation
+                .named_chunk_groups
+                .insert(name.to_owned(), chunk_group.ukey);
+            }
+
+            chunk_group.connect_chunk(chunk);
+
+            self
+              .chunk_group_info_map
+              .insert(chunk_group.ukey, info_ukey);
+
+            compilation
+              .chunk_graph
+              .connect_block_and_chunk_group(block_id, chunk_group.ukey);
+
+            compilation.chunk_group_by_ukey.add(chunk_group);
+            info
           }
-
-          compilation
-            .chunk_group_by_ukey
-            .expect_get_mut(&cgi.chunk_group)
-            .add_origin(Some(module_id), loc, request);
-
-          compilation
-            .chunk_graph
-            .connect_block_and_chunk_group(block_id, cgi.chunk_group);
-          cgi
         } else {
           let mut chunk_group = add_chunk_in_group(
             block.get_group_options(),

@@ -402,10 +402,12 @@ impl ChunkGraph {
       .iter()
       .filter_map(|uri| module_graph.module_by_identifier(uri))
       .filter(|module| {
-        if let Some(source_types) = source_types
-          && let Some(module_source_types) = source_types.get(&module.identifier())
-        {
-          module_source_types.contains(&source_type)
+        if let Some(source_types) = source_types {
+          if let Some(module_source_types) = source_types.get(&module.identifier()) {
+            module_source_types.contains(&source_type)
+          } else {
+            module.source_types(module_graph).contains(&source_type)
+          }
         } else {
           module.source_types(module_graph).contains(&source_type)
         }
