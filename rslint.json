@@ -1,0 +1,15 @@
+[
+  {
+    "language": "javascript",
+    "files": [],
+    "languageOptions": {
+      "parserOptions": {
+        "projectService": false,
+        "project": [
+          "./packages/rspack/tsconfig.json"
+        ]
+      }
+    },
+    "rules": {}
+  }
+]
