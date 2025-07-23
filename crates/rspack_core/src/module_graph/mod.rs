@@ -52,7 +52,7 @@ pub struct ModuleGraphPartial {
   pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, Option<BoxDependency>>,
+  dependencies: UkeyMap<DependencyId, Option<BoxDependency>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
@@ -61,7 +61,7 @@ pub struct ModuleGraphPartial {
   module_graph_modules: IdentifierMap<Option<ModuleGraphModule>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: HashMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: UkeyMap<DependencyId, Option<ModuleGraphConnection>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///

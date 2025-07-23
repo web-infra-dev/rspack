@@ -58,12 +58,12 @@ impl ReadonlyResourceData {
   }
 }
 
-thread_local! {
-  static RESOURCE_DATA_PROPERTIES: RefCell<Vec<Property>> = RefCell::new(Vec::with_capacity(4));
-}
-
 pub struct ReadonlyResourceDataWrapper {
   i: Arc<rspack_core::ResourceData>,
+}
+
+thread_local! {
+  static RESOURCE_DATA_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::new());
 }
 
 impl ToNapiValue for ReadonlyResourceDataWrapper {
@@ -80,7 +80,7 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
     let instance = template.into_instance(&env_wrapper)?;
     let mut object = instance.as_object(&env_wrapper);
 
-    RESOURCE_DATA_PROPERTIES.with(|ref_cell| {
+    RESOURCE_DATA_PROPERTIES_BUFFER.with(|ref_cell| {
       let mut properties = ref_cell.borrow_mut();
       properties.clear();
       properties.push(

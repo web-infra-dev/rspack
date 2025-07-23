@@ -90,7 +90,7 @@ impl ToNapiValue for &ContextInfo {
     if let Some(issuer_layer) = &val.issuer_layer {
       obj.set("issuerLayer", issuer_layer)?;
     }
-    napi::bindgen_prelude::Object::to_napi_value(env, obj)
+    ToNapiValue::to_napi_value(env, obj)
   }
 }
 
@@ -118,7 +118,7 @@ struct ResolveClosureContext {
 impl Drop for ResolveClosureContext {
   fn drop(&mut self) {
     let inner = self.i.take();
-    napi::bindgen_prelude::spawn_blocking(|| drop(inner));
+    rayon::spawn(move || drop(inner));
   }
 }
 
@@ -141,7 +141,7 @@ pub struct RawExternalItemFnCtx {
 impl Drop for RawExternalItemFnCtx {
   fn drop(&mut self) {
     let inner = self.i.take();
-    napi::bindgen_prelude::spawn_blocking(|| drop(inner));
+    rayon::spawn(move || drop(inner));
   }
 }
 
