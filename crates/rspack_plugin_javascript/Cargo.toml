@@ -20,7 +20,7 @@ num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
-regress = { workspace = true, features = ["pattern"] }
+regress = { workspace = true }
 ropey = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
