@@ -455,12 +455,10 @@ impl<'a> ParsedExportSpec<'a> {
   }
 }
 
-/**
- * Do merging of exports info and create export infos from export specs
- *
- * This method is used for the case that the exports info data will not be nested modified
- * that means this exports info can be modified parallelly
- */
+/// Do merging of exports info and create export infos from export specs
+///
+/// This method is used for the case that the exports info data will not be nested modified
+/// that means this exports info can be modified parallelly
 pub fn merge_exports_without_nested(
   mg: &ModuleGraph,
   module_id: &ModuleIdentifier,
