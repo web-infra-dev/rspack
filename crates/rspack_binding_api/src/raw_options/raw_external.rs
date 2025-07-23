@@ -153,8 +153,8 @@ impl RawExternalItemFnCtx {
 
             let merged_options = ResolveOptionsWithDependencyType {
               resolve_options: merged_resolve_options,
-              resolve_to_context: second_clone.resolve_to_context,
-              dependency_category: second_clone.dependency_category,
+              resolve_to_context: first_clone.resolve_to_context,
+              dependency_category: first_clone.dependency_category,
             };
             let resolver = resolver_factory.get(merged_options);
 
