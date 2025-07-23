@@ -11,33 +11,17 @@ import type { FileSystemInfoEntry, Watcher, WatchFileSystem } from "./util/fs";
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/watchpack/blob/main/LICENSE
  */
-const stringToRegexp = (ignored: string) => {
-	if (ignored.length === 0) {
-		return;
-	}
-	const globToRegExp: typeof import("glob-to-regexp") = require("glob-to-regexp");
-	const { source } = globToRegExp(ignored, { globstar: true, extended: true });
-	return `${source.slice(0, -1)}(?:$|\\/)`;
-};
-
-type JsWatcherIgnored = string | ((item: string) => boolean) | undefined;
+type JsWatcherIgnored =
+	| string
+	| string[]
+	| ((item: string) => boolean)
+	| undefined;
 
 const toJsWatcherIgnored = (
 	ignored: Watchpack.WatchOptions["ignored"]
 ): JsWatcherIgnored => {
-	if (Array.isArray(ignored)) {
-		const stringRegexps = ignored.map(i => stringToRegexp(i)).filter(Boolean);
-		if (stringRegexps.length === 0) {
-			return undefined;
-		}
-		return stringRegexps.join("|");
-	}
-	if (typeof ignored === "string") {
-		const stringRegexp = stringToRegexp(ignored);
-		if (!stringRegexp) {
-			return undefined;
-		}
-		return stringRegexp;
+	if (Array.isArray(ignored) || typeof ignored === "string") {
+		return ignored;
 	}
 	if (ignored instanceof RegExp) {
 		return (item: string) => ignored.test(item.replace(/\\/g, "/"));

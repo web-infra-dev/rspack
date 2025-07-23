@@ -15,6 +15,7 @@ pub enum FsWatcherIgnored {
   #[default]
   None,
   Path(String),
+  Paths(Vec<String>),
   Fn(Box<dyn Ignored>),
 }
 
@@ -23,17 +24,23 @@ impl Debug for FsWatcherIgnored {
     match self {
       FsWatcherIgnored::None => write!(f, "FsWatcherIgnored::None"),
       FsWatcherIgnored::Path(s) => write!(f, "FsWatcherIgnored::Pattern({s})"),
+      FsWatcherIgnored::Paths(s) => write!(f, "FsWatcherIgnored::Patterns({s:?})"),
       FsWatcherIgnored::Fn(_) => write!(f, "FsWatcherIgnored::Fn(...)"),
     }
   }
 }
 
 impl FsWatcherIgnored {
-  pub async fn should_be_ignored(&self, path: &str) -> Result<bool> {
+  pub async fn should_be_ignored(&self, p: &str) -> Result<bool> {
     match self {
       FsWatcherIgnored::None => Ok(false),
-      FsWatcherIgnored::Path(s) => Ok(glob_match(s, path.cow_replace("\\", "/").as_bytes())), // Smooth out the differences in the system, specifically for Windows
-      FsWatcherIgnored::Fn(ignored) => ignored.ignore(path).await, // Function-based ignored cannot be empty
+      FsWatcherIgnored::Path(path) => Ok(glob_match(path, p.cow_replace("\\", "/").as_bytes())), // Smooth out the differences in the system, specifically for Windows
+      FsWatcherIgnored::Paths(paths) => Ok(
+        paths
+          .iter()
+          .any(|path| glob_match(path, p.cow_replace("\\", "/").as_bytes())),
+      ),
+      FsWatcherIgnored::Fn(ignored) => ignored.ignore(p).await, // Function-based ignored cannot be empty
     }
   }
 }

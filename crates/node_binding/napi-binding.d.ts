@@ -1511,7 +1511,7 @@ export interface NativeWatcherOptions {
   pollInterval?: number
   aggregateTimeout?: number
   /** Ignored paths or a function to determine if a path should be ignored. */
-  ignored?: string | ((path: string) => boolean)
+  ignored?: string | string[] | ((path: string) => boolean)
 }
 
 export interface NodeFsStats {

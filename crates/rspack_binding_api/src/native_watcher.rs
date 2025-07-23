@@ -17,13 +17,14 @@ impl Ignored for SafetyIgnored {
   }
 }
 
-type JsWatcherIgnored = Either<String, ThreadsafeFunction<String, bool>>;
+type JsWatcherIgnored = Either3<String, Vec<String>, ThreadsafeFunction<String, bool>>;
 
 fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored {
   if let Some(ignored) = ignored {
     match ignored {
-      Either::A(path) => FsWatcherIgnored::Path(path),
-      Either::B(func) => FsWatcherIgnored::Fn(Box::new(SafetyIgnored { f: func })),
+      Either3::A(path) => FsWatcherIgnored::Path(path),
+      Either3::B(paths) => FsWatcherIgnored::Paths(paths),
+      Either3::C(func) => FsWatcherIgnored::Fn(Box::new(SafetyIgnored { f: func })),
     }
   } else {
     FsWatcherIgnored::None
@@ -38,7 +39,7 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "string | ((path: string) => boolean)")]
+  #[napi(ts_type = "string | string[] | ((path: string) => boolean)")]
   /// Ignored paths or a function to determine if a path should be ignored.
   pub ignored: Option<JsWatcherIgnored>,
 }
