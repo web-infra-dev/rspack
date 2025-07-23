@@ -53,6 +53,9 @@ jobs:
       - name: Build x86_64-unknown-linux-gnu native
         run: |
           rustup target add x86_64-unknown-linux-gnu
+          # Compatible with gcc 4.x
+          ln -s "$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld/ld.lld" \
+            "$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld/ld"
           RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
 
       - name: Binary Size-limit

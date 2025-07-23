@@ -47,6 +47,10 @@ runs:
           echo "Corepack version: $(corepack --version)"
           corepack enable
 
+          # Compatible with gcc 4.x
+          ln -s "$(rustc --print sysroot)/lib/rustlib/${{ inputs.target }}/bin/gcc-ld/ld.lld" \
+            "$(rustc --print sysroot)/lib/rustlib/${{ inputs.target }}/bin/gcc-ld/ld"
+
           RUST_TARGET=${{ inputs.target }} ${{ inputs.plugin == 'false' && 'DISABLE_PLUGIN=1' || '' }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}
         options: |

@@ -52,10 +52,18 @@ rustflags = [
   "-C", "link-args=/DEFAULTLIB:ucrt.lib"
 ]
 
+[target.'cfg(target_os = "linux")']
+rustflags = [
+  # Use rust-lld instead of the system linker
+  #
+  # this can be remove after we update rustc https://github.com/rust-lang/rust/pull/140525
+  "-Zlinker-features=+lld",
+]
+
 [target.wasm32-wasip1-threads]
 rustflags = [
-  "-C",
-  "target-feature=+simd128", 
+  "-Zlinker-features=+lld",
+  "-Ctarget-feature=+simd128", 
   "--cfg", "tokio_unstable"
 ]
 
