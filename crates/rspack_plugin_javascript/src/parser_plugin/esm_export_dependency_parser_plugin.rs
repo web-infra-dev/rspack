@@ -56,11 +56,12 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
-    if let ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) = statement
-      && parser
-        .factory_meta
-        .and_then(|meta| meta.side_effect_free)
-        .unwrap_or_default()
+    if parser
+      .factory_meta
+      .and_then(|meta| meta.side_effect_free)
+      .unwrap_or_default()
+      && !parser.forward_names.is_empty()
+      && let ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) = statement
     {
       let mut is_empty = true;
       let not_in_forward_names =
@@ -190,12 +191,12 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     if !is_asi_safe {
       parser.set_asi_position(statement.span_hi());
     }
-    if let Some(export_name) = export_name
-      && parser
-        .factory_meta
-        .and_then(|meta| meta.side_effect_free)
-        .unwrap_or_default()
+    if parser
+      .factory_meta
+      .and_then(|meta| meta.side_effect_free)
+      .unwrap_or_default()
       && !parser.forward_names.is_empty()
+      && let Some(export_name) = export_name
       && !parser.forward_names.contains(export_name)
     {
       dep.set_lazy();
