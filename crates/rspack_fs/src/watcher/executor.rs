@@ -11,8 +11,7 @@ use tokio::sync::{
   Mutex,
 };
 
-use super::{EventAggregateHandler, FsEventKind};
-use crate::watcher::{EventHandler, FsEvent};
+use super::{EventAggregateHandler, EventHandler, FsEvent, FsEventKind};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;

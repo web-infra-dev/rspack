@@ -1499,8 +1499,11 @@ export interface NativeWatcherOptions {
   followSymlinks?: boolean
   pollInterval?: number
   aggregateTimeout?: number
-  /** A function that will be called with the path of a file or directory that is ignored. */
-  ignored?: (path: string) => boolean
+  /**
+   * The ignored paths for the watcher.
+   * It can be a single path, an array of paths, or a regular expression.
+   */
+  ignored?: string | string[] | RegExp
 }
 
 export interface NodeFsStats {

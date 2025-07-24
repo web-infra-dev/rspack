@@ -67,8 +67,8 @@ mod tests {
   use super::*;
   use crate::watcher::path_manager::{PathManager, PathUpdater};
 
-  #[tokio::test]
-  async fn test_find_watch_directories() {
+  #[test]
+  fn test_find_watch_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let path_manager = PathManager::default();
     let file_updater = PathUpdater {
@@ -91,7 +91,6 @@ mod tests {
 
     path_manager
       .update_paths(file_updater, directory_updater, missing_updater)
-      .await
       .unwrap();
     let analyzer = WatcherDirectoriesAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
@@ -109,12 +108,12 @@ mod tests {
     }));
   }
 
-  #[tokio::test]
-  async fn test_find_non_exists_watcher_directories() {
+  #[test]
+  fn test_find_non_exists_watcher_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let dir_0 = ArcPath::from(current_dir.join("src"));
 
-    let path_manager = PathManager::new(None);
+    let path_manager = PathManager::default();
     let file_updater = PathUpdater {
       added: vec![
         current_dir.join("Cargo.toml").to_string_lossy().to_string(),
@@ -141,7 +140,6 @@ mod tests {
     };
     path_manager
       .update_paths(file_updater, directory_updater, missing_updater)
-      .await
       .unwrap();
 
     let analyzer = WatcherDirectoriesAnalyzer::default();
