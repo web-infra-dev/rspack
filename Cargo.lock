@@ -4231,6 +4231,7 @@ dependencies = [
  "fast-glob",
  "notify",
  "pnp",
+ "rayon",
  "rspack_error",
  "rspack_paths",
  "rspack_regex",

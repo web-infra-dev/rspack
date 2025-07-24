@@ -11,7 +11,7 @@ use std::{collections::HashSet, sync::Arc};
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
-pub use ignored::{FsWatcherIgnored, Ignored};
+pub use ignored::FsWatcherIgnored;
 use path_manager::PathManager;
 pub use path_manager::PathUpdater;
 use rspack_error::Result;
@@ -133,8 +133,7 @@ impl FsWatcher {
   ) -> Result<()> {
     self
       .path_manager
-      .update_paths(files, directories, missing)
-      .await?;
+      .update_paths(files, directories, missing)?;
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;

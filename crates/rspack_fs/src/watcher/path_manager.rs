@@ -1,9 +1,9 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
+use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
-use tokio::task::JoinSet;
 
 use super::FsWatcherIgnored;
 
@@ -118,38 +118,32 @@ impl PathUpdater {
   ///
   /// * `paths` - A reference to the set of paths to update.
   /// * `ignored` - An optional reference to an ignored paths filter.
-  pub async fn update(
+  pub fn update(
     self,
     paths: &HashSet<ArcPath>,
     incremental_manager: &IncrementalManager,
-    ignored: Arc<FsWatcherIgnored>,
+    ignored: &FsWatcherIgnored,
   ) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
-    let mut tasks = JoinSet::new();
-
-    for added in added_paths {
-      let ignored_cloned = ignored.clone();
-      tasks.spawn(async move {
-        // Skip ignored paths
-        if ignored_cloned.should_be_ignored(&added).await? {
-          return Ok::<_, rspack_error::Error>(None);
+    for should_be_added in added_paths
+      .par_iter()
+      .map(|added| {
+        if ignored.should_be_ignored(added) {
+          return None; // Skip ignored paths
         }
-        // Return valid path
-        let path = ArcPath::from(PathBuf::from(&added));
-        Ok(Some(path))
-      });
-    }
 
-    let should_added_paths = tasks.join_all().await;
-
-    for should_added_path in should_added_paths {
-      if let Some(path) = should_added_path? {
-        // Insert the path into the set
-        paths.insert(path.clone());
-        incremental_manager.insert_added(path);
-      }
+        let path = ArcPath::from(PathBuf::from(added));
+        Some(path)
+      })
+      .collect::<Vec<_>>()
+      .into_iter()
+      .flatten()
+    {
+      // Insert the path into the set
+      paths.insert(should_be_added.clone());
+      incremental_manager.insert_added(should_be_added);
     }
 
     for removed in removed_paths {
@@ -204,7 +198,7 @@ pub struct PathManager {
   incremental_files: IncrementalManager,
   incremental_directories: IncrementalManager,
   incremental_missing: IncrementalManager,
-  pub ignored: Arc<FsWatcherIgnored>,
+  pub ignored: FsWatcherIgnored,
 }
 
 impl PathManager {
@@ -217,7 +211,7 @@ impl PathManager {
       incremental_files: IncrementalManager::default(),
       incremental_directories: IncrementalManager::default(),
       incremental_missing: IncrementalManager::default(),
-      ignored: Arc::new(ignored),
+      ignored,
     }
   }
 
@@ -228,29 +222,20 @@ impl PathManager {
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
-  pub async fn update_paths(
+  pub fn update_paths(
     &self,
     files: PathUpdater,
     directories: PathUpdater,
     missing: PathUpdater,
   ) -> Result<()> {
-    tokio::try_join!(
-      files.update(
-        &self.files,
-        &self.incremental_files,
-        Arc::clone(&self.ignored),
-      ),
-      directories.update(
-        &self.directories,
-        &self.incremental_directories,
-        Arc::clone(&self.ignored),
-      ),
-      missing.update(
-        &self.missing,
-        &self.incremental_missing,
-        Arc::clone(&self.ignored),
-      ),
+    files.update(&self.files, &self.incremental_files, &self.ignored)?;
+    directories.update(
+      &self.directories,
+      &self.incremental_directories,
+      &self.ignored,
     )?;
+    missing.update(&self.missing, &self.incremental_missing, &self.ignored)?;
+
     Ok(())
   }
 
@@ -262,28 +247,14 @@ impl PathManager {
 
 #[cfg(test)]
 mod tests {
-  use std::{path::PathBuf, sync::Arc};
+  use std::path::PathBuf;
 
-  use async_trait::async_trait;
   use dashmap::DashSet as HashSet;
-  use rspack_error::Result;
 
   use super::*;
-  use crate::Ignored;
 
-  struct TestIgnored {
-    pub ignored: Vec<String>,
-  }
-
-  #[async_trait]
-  impl Ignored for TestIgnored {
-    async fn ignore(&self, path: &str) -> Result<bool> {
-      Ok(self.ignored.iter().any(|ignore| path.contains(ignore)))
-    }
-  }
-
-  #[tokio::test]
-  async fn test_updater() {
+  #[test]
+  fn test_updater() {
     let updater = PathUpdater {
       added: vec![
         "src/index.js".to_string(),
@@ -293,18 +264,11 @@ mod tests {
       removed: vec![],
     };
     let paths: HashSet<ArcPath> = HashSet::new();
-    let ignored = Box::new(TestIgnored {
-      ignored: vec!["node_modules".to_string(), ".git".to_string()],
-    }) as Box<dyn Ignored>;
+    let ignored = FsWatcherIgnored::Paths(vec![".git".to_owned(), "node_modules".to_owned()]);
     let incremental_manager = IncrementalManager::default();
 
     updater
-      .update(
-        &paths,
-        &incremental_manager,
-        Arc::new(FsWatcherIgnored::Fn(ignored)),
-      )
-      .await
+      .update(&paths, &incremental_manager, &ignored)
       .unwrap();
 
     let mut path_iter = paths.into_iter();
@@ -346,12 +310,10 @@ mod tests {
     assert_eq!(all_paths, vec!["src", "src/index.js", "src/page/index.ts"]);
   }
 
-  #[tokio::test]
-  async fn test_manager() {
-    let ignored = Box::new(TestIgnored {
-      ignored: vec!["node_modules".to_string(), ".git".to_string()],
-    }) as Box<dyn Ignored>;
-    let path_manager = PathManager::new(FsWatcherIgnored::Fn(ignored));
+  #[test]
+  fn test_manager() {
+    let ignored = FsWatcherIgnored::Paths(vec!["node_modules".to_string(), ".git".to_string()]);
+    let path_manager = PathManager::new(ignored);
     let files = PathUpdater {
       added: vec!["src/index.js".to_string()],
       removed: vec![],
@@ -366,7 +328,6 @@ mod tests {
     };
     path_manager
       .update_paths(files, directories, missing)
-      .await
       .unwrap();
 
     let accessor = path_manager.access();

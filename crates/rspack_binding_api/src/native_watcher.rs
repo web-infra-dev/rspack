@@ -1,32 +1,18 @@
 use std::boxed::Box;
 
-use async_trait::async_trait;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_fs::{FsWatcher, FsWatcherIgnored, FsWatcherOptions, Ignored, PathUpdater};
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_fs::{FsWatcher, FsWatcherIgnored, FsWatcherOptions, PathUpdater};
 use rspack_regex::RspackRegex;
 
-struct SafetyIgnored {
-  f: ThreadsafeFunction<String, bool>,
-}
-
-#[async_trait]
-impl Ignored for SafetyIgnored {
-  async fn ignore(&self, path: &str) -> rspack_error::Result<bool> {
-    self.f.call_with_sync(path.to_string()).await
-  }
-}
-
-type JsWatcherIgnored = Either4<String, Vec<String>, RspackRegex, ThreadsafeFunction<String, bool>>;
+type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
 fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored {
   if let Some(ignored) = ignored {
     match ignored {
-      Either4::A(path) => FsWatcherIgnored::Path(path),
-      Either4::B(paths) => FsWatcherIgnored::Paths(paths),
-      Either4::C(regex) => FsWatcherIgnored::Regex(regex),
-      Either4::D(func) => FsWatcherIgnored::Fn(Box::new(SafetyIgnored { f: func })),
+      Either3::A(path) => FsWatcherIgnored::Path(path),
+      Either3::B(paths) => FsWatcherIgnored::Paths(paths),
+      Either3::C(regex) => FsWatcherIgnored::Regex(regex),
     }
   } else {
     FsWatcherIgnored::None
@@ -41,8 +27,9 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "string | string[] | RegExp | ((path: string) => boolean)")]
-  /// Ignored paths or a function to determine if a path should be ignored.
+  #[napi(ts_type = "string | string[] | RegExp")]
+  /// The ignored paths for the watcher.
+  /// It can be a single path, an array of paths, or a regular expression.
   pub ignored: Option<JsWatcherIgnored>,
 }
 

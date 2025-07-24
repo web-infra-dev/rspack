@@ -154,8 +154,8 @@ mod tests {
   use super::*;
   use crate::watcher::path_manager::{PathManager, PathUpdater};
 
-  #[tokio::test]
-  async fn test_find_watch_root() {
+  #[test]
+  fn test_find_watch_root() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let file_0 = ArcPath::from(current_dir.join("Cargo.toml"));
     let file_1 = ArcPath::from(current_dir.join("src/lib.rs"));
@@ -182,7 +182,6 @@ mod tests {
     };
     path_manager
       .update_paths(file_updater, directory_updater, missing_updater)
-      .await
       .unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();
@@ -193,8 +192,8 @@ mod tests {
     assert_eq!(watch_patterns[0].mode, notify::RecursiveMode::Recursive);
   }
 
-  #[tokio::test]
-  async fn test_find_with_missing() {
+  #[test]
+  fn test_find_with_missing() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
 
     let path_manager = PathManager::default();
@@ -229,7 +228,6 @@ mod tests {
 
     path_manager
       .update_paths(file_updater, directory_updater, missing_updater)
-      .await
       .unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();

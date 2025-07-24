@@ -11,12 +11,7 @@ import type { FileSystemInfoEntry, Watcher, WatchFileSystem } from "./util/fs";
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/watchpack/blob/main/LICENSE
  */
-type JsWatcherIgnored =
-	| string
-	| string[]
-	| RegExp
-	| ((item: string) => boolean)
-	| undefined;
+type JsWatcherIgnored = string | string[] | RegExp | undefined;
 
 const toJsWatcherIgnored = (
 	ignored: Watchpack.WatchOptions["ignored"]
@@ -29,7 +24,9 @@ const toJsWatcherIgnored = (
 		return ignored;
 	}
 	if (typeof ignored === "function") {
-		return (item: string) => ignored(item);
+		throw new Error(
+			"NativeWatcher does not support using a function for the 'ignored' option"
+		);
 	}
 	if (ignored) {
 		throw new Error(`Invalid option for 'ignored': ${ignored}`);

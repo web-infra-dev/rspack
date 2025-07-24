@@ -15,6 +15,7 @@ dunce        = { workspace = true }
 fast-glob    = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
 pnp          = { workspace = true }
+rayon        = { workspace = true }
 rspack_error = { workspace = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
