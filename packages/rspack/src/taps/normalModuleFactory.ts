@@ -115,8 +115,19 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return async function (arg: string) {
-					const data = JSON.parse(arg) as ResolveData;
+				return async function (arg: binding.JsAfterResolveData) {
+					const data: ResolveData = {
+						contextInfo: {
+							issuer: arg.issuer,
+							issuerLayer: arg.issuerLayer ?? null
+						},
+						request: arg.request,
+						context: arg.context,
+						fileDependencies: arg.fileDependencies,
+						missingDependencies: arg.missingDependencies,
+						contextDependencies: arg.contextDependencies,
+						createData: arg.createData
+					};
 					const ret = await queried.promise(data);
 					return [ret, data.createData];
 				};

@@ -1,6 +1,5 @@
 use napi_derive::napi;
 use rspack_core::NormalModuleCreateData;
-use serde::Serialize;
 
 use crate::JsResourceData;
 
@@ -42,8 +41,6 @@ pub struct JsResolveArgs {
 
 pub type JsResolveOutput = JsResolveArgs;
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct JsCreateData {
   pub request: String,
@@ -51,8 +48,7 @@ pub struct JsCreateData {
   pub resource: String,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
 pub struct JsAfterResolveData {
   pub request: String,
   pub context: String,

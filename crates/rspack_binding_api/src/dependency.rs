@@ -1,9 +1,6 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{
-  bindgen_prelude::{Array, ToNapiValue},
-  Either, Env,
-};
+use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, DependencyId};
 use rspack_napi::OneShotInstanceRef;
@@ -126,36 +123,36 @@ impl Dependency {
     Ok(())
   }
 
-  #[napi(getter, ts_return_type = "Array<string> | undefined")]
-  pub fn ids<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Array<'a>, ()>> {
+  #[napi(getter)]
+  pub fn ids<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Vec<JsString<'a>>, ()>> {
     let (dependency, compilation) = self.as_ref()?;
 
     Ok(match compilation {
       Some(compilation) => {
         let module_graph = compilation.get_module_graph();
         if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
-          let ids = dependency.get_ids(&module_graph);
-          let mut arr = env.create_array(ids.len() as u32)?;
-          for (i, v) in ids.iter().enumerate() {
-            arr.set(i as u32, v.as_str())?;
-          }
-          Either::A(arr)
+          let ids = dependency
+            .get_ids(&module_graph)
+            .iter()
+            .map(|atom| env.create_string(atom.as_str()))
+            .collect::<napi::Result<Vec<_>>>()?;
+          Either::A(ids)
         } else if let Some(dependency) =
           dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
         {
-          let ids = dependency.get_ids(&module_graph);
-          let mut arr = env.create_array(ids.len() as u32)?;
-          for (i, v) in ids.iter().enumerate() {
-            arr.set(i as u32, v.as_str())?;
-          }
-          Either::A(arr)
+          let ids = dependency
+            .get_ids(&module_graph)
+            .iter()
+            .map(|atom| env.create_string(atom.as_str()))
+            .collect::<napi::Result<Vec<_>>>()?;
+          Either::A(ids)
         } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-          let ids = dependency.get_ids(&module_graph);
-          let mut arr = env.create_array(ids.len() as u32)?;
-          for (i, v) in ids.iter().enumerate() {
-            arr.set(i as u32, v.as_str())?;
-          }
-          Either::A(arr)
+          let ids = dependency
+            .get_ids(&module_graph)
+            .iter()
+            .map(|atom| env.create_string(atom.as_str()))
+            .collect::<napi::Result<Vec<_>>>()?;
+          Either::A(ids)
         } else {
           Either::B(())
         }
