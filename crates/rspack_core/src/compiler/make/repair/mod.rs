@@ -6,7 +6,6 @@ pub mod process_dependencies;
 
 use std::sync::Arc;
 
-use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
@@ -20,8 +19,8 @@ use crate::{
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
-  DependencyTemplateType, DependencyType, LazyDependenciesInfo, ModuleFactory, ModuleProfile,
-  ResolverFactory, SharedPluginDriver,
+  DependencyTemplateType, DependencyType, ModuleFactory, ModuleProfile, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]

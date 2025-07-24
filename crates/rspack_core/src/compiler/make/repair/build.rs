@@ -6,11 +6,13 @@ use rustc_hash::FxHashSet;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
-  make::repair::{lazy::ProcessLazyDependenciesTask, HasLazyDependencies},
+  make::repair::{
+    lazy::{ImmediateForwardIdSet, LazyDependenciesInfo, LazyMake, ProcessLazyDependenciesTask},
+    HasLazyDependencies,
+  },
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DependencyParents, LazyDependenciesInfo, LazyMake, Module, ModuleProfile,
-  ResolverFactory, SharedPluginDriver,
+  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -23,7 +25,7 @@ pub struct BuildTask {
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub forward_names: FxHashSet<Atom>,
+  pub forward_ids: ImmediateForwardIdSet,
 }
 
 #[async_trait::async_trait]
@@ -41,7 +43,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile,
       mut module,
       fs,
-      forward_names,
+      forward_ids,
     } = *self;
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_start();
@@ -62,7 +64,7 @@ impl Task<MakeTaskContext> for BuildTask {
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           fs: fs.clone(),
-          forward_names,
+          forward_ids,
         },
         None,
       )
@@ -150,9 +152,9 @@ impl Task<MakeTaskContext> for BuildResultTask {
           module.add_dependency_id(dependency_id);
         }
         if let Some(dep) = dependency.as_module_dependency()
-          && let LazyMake::LazyUntil { forward_name } = dep.lazy()
+          && let LazyMake::LazyUntil { forward_id } = dep.lazy()
         {
-          lazy_dependencies_info.insert(dep.request().into(), forward_name, dependency_id);
+          lazy_dependencies_info.insert(dep.request().into(), forward_id, dependency_id);
         }
         all_dependencies.push(dependency_id);
         module_graph.set_parents(
@@ -202,14 +204,14 @@ impl Task<MakeTaskContext> for BuildResultTask {
         .collect::<FxHashSet<_>>();
       all_dependencies.retain(|dep| !lazy_dependencies.contains(dep));
 
-      if let Some(HasLazyDependencies::Maybe(forward_names)) =
+      if let Some(HasLazyDependencies::Maybe(forward_ids)) =
         context.artifact.module_to_lazy_dependencies.insert(
           module_identifier,
           HasLazyDependencies::Has(lazy_dependencies_info),
         )
       {
         tasks.push(Box::new(ProcessLazyDependenciesTask {
-          forward_names,
+          immediate_forward_ids: forward_ids,
           original_module_identifier: module_identifier,
         }));
       }

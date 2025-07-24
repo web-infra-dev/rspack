@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 
-use super::{add::AddTask, MakeTaskContext};
+use super::{add::AddTask, lazy::MergedForwardIds, MakeTaskContext};
 use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},

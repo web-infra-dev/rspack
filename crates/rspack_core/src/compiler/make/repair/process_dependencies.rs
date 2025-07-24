@@ -13,6 +13,7 @@ pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<DependencyId>,
 }
+
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for ProcessDependenciesTask {
   fn get_task_type(&self) -> TaskType {
@@ -96,6 +97,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         original_module_identifier: Some(module.identifier()),
         original_module_context: module.get_context(),
         original_module_source,
+        // original_merged_forward_ids:
         issuer: module
           .as_normal_module()
           .and_then(|module| module.name_for_condition()),

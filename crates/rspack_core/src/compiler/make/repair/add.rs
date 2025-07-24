@@ -3,7 +3,9 @@ use rustc_hash::FxHashSet;
 
 use super::{build::BuildTask, MakeTaskContext};
 use crate::{
-  make::repair::lazy::{HasLazyDependencies, ProcessLazyDependenciesTask},
+  make::repair::lazy::{
+    HasLazyDependencies, ImmediateForwardIdSet, MergedForwardIds, ProcessLazyDependenciesTask,
+  },
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, Module, ModuleIdentifier, ModuleProfile,
@@ -47,12 +49,14 @@ impl Task<MakeTaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let forward_names = self
-      .dependencies
-      .iter()
-      .filter_map(|dep| dep.as_module_dependency())
-      .filter_map(|dep| dep.forward_name())
-      .collect::<FxHashSet<_>>();
+    let merged_forward_ids = MergedForwardIds::new(
+      self
+        .dependencies
+        .iter()
+        .filter_map(|dep| dep.as_module_dependency())
+        .filter_map(|dep| dep.forward_ids())
+        .collect::<FxHashSet<_>>(),
+    );
 
     // reuse module if module is already added by other dependency
     if module_graph
@@ -76,7 +80,7 @@ impl Task<MakeTaskContext> for AddTask {
           .contains_key(&module_identifier)
         {
           return Ok(vec![Box::new(ProcessLazyDependenciesTask {
-            forward_names,
+            immediate_forward_ids: merged_forward_ids.get_immediate(),
             original_module_identifier: module_identifier,
           })]);
         }
@@ -85,10 +89,10 @@ impl Task<MakeTaskContext> for AddTask {
           .artifact
           .module_to_lazy_dependencies
           .entry(module_identifier)
-          .or_insert_with(|| HasLazyDependencies::Maybe(Default::default()));
-        let pending_forward_names = lazy_dependencies
+          .or_insert_with(|| HasLazyDependencies::Maybe(ImmediateForwardIdSet::default()));
+        let pending_immediate_forward_ids = lazy_dependencies
           .expect_maybe_mut("should not have lazy dependencies for non-built module");
-        pending_forward_names.extend(forward_names);
+        pending_immediate_forward_ids.append(merged_forward_ids.get_immediate());
       }
 
       return Ok(vec![]);
@@ -115,7 +119,7 @@ impl Task<MakeTaskContext> for AddTask {
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
       fs: context.fs.clone(),
-      forward_names,
+      forward_ids: merged_forward_ids.get_immediate(),
     })])
   }
 }

@@ -60,17 +60,17 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
-      && !parser.forward_names.is_empty()
+      && !parser.immediate_forward_ids.is_empty()
       // && parser.build_info.all_star_exports.is_empty()
       && let ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) = statement
     {
       let mut is_empty = true;
-      let not_in_forward_names =
+      let not_in_forward_ids =
         ExportNamedDeclaration::named_export_specifiers(named).all(|(_, export_name, _)| {
           is_empty = false;
-          !parser.forward_names.contains(&export_name)
+          !parser.immediate_forward_ids.contains(&export_name)
         });
-      if not_in_forward_names && !is_empty {
+      if not_in_forward_ids && !is_empty {
         side_effect_dep.set_lazy();
       }
     }
@@ -196,10 +196,10 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
-      && !parser.forward_names.is_empty()
+      && !parser.immediate_forward_ids.is_empty()
       // && parser.build_info.all_star_exports.is_empty()
       && let Some(export_name) = export_name
-      && !parser.forward_names.contains(export_name)
+      && !parser.immediate_forward_ids.contains(export_name)
     {
       dep.set_lazy();
     }

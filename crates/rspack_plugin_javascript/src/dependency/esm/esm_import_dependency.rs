@@ -617,7 +617,7 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 
   fn lazy(&self) -> LazyMake {
     if self.lazy_make {
-      LazyMake::LazyUntil { forward_name: None }
+      LazyMake::LazyUntil { forward_id: None }
     } else {
       LazyMake::Eager
     }

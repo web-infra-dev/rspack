@@ -715,7 +715,7 @@ impl ModuleConcatenationPlugin {
           compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
           // not needed for concatenated module, which is actually build at seal phase, not at make phase
-          forward_names: Default::default(),
+          forward_ids: Default::default(),
         },
         Some(compilation),
       )

@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
+  with::{AsCacheable, AsInner, AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -8,8 +10,8 @@ use rspack_core::{
   to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardIds,
+  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport,
   RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
 };
@@ -38,8 +40,8 @@ pub struct ESMImportSpecifierDependency {
   shorthand: bool,
   asi_safe: bool,
   range: DependencyRange,
-  #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  #[cacheable(with=AsInner<AsVec<AsPreset>>)]
+  ids: Arc<Vec<Atom>>,
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
@@ -81,7 +83,7 @@ impl ESMImportSpecifierDependency {
       shorthand,
       asi_safe,
       range,
-      ids,
+      ids: Arc::new(ids),
       call,
       direct_import,
       export_presence_mode,
@@ -296,8 +298,8 @@ impl ModuleDependency for ESMImportSpecifierDependency {
     &mut self.factorize_info
   }
 
-  fn forward_name(&self) -> Option<Atom> {
-    self.ids.get(0).cloned()
+  fn forward_ids(&self) -> Option<ForwardIds> {
+    Some(ForwardIds::new(self.ids.clone()))
   }
 }
 

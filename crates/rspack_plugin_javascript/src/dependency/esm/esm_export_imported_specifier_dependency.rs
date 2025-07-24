@@ -1,9 +1,9 @@
-use std::hash::BuildHasherDefault;
+use std::{hash::BuildHasherDefault, sync::Arc};
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec, Skip},
+  with::{AsInner, AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -18,11 +18,12 @@ use rspack_core::{
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, LazyMake, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ForwardIds, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, LazyMake, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -44,8 +45,8 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
-  #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  #[cacheable(with=AsInner<AsVec<AsPreset>>)]
+  ids: Arc<Vec<Atom>>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub name: Option<Atom>,
   #[cacheable(with=AsPreset)]
@@ -82,7 +83,7 @@ impl ESMExportImportedSpecifierDependency {
       source_order,
       name,
       request,
-      ids,
+      ids: Arc::new(ids),
       resource_identifier,
       other_star_exports,
       range,
@@ -1406,14 +1407,14 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     &mut self.factorize_info
   }
 
-  fn forward_name(&self) -> Option<Atom> {
-    self.ids.get(0).cloned()
+  fn forward_ids(&self) -> Option<ForwardIds> {
+    Some(ForwardIds::new(self.ids.clone()))
   }
 
   fn lazy(&self) -> LazyMake {
     if self.lazy_make {
       LazyMake::LazyUntil {
-        forward_name: self.name.clone(),
+        forward_id: self.name.clone(),
       }
     } else {
       LazyMake::Eager

@@ -4,55 +4,10 @@ use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{Dependency, FactorizeInfo};
-use crate::{DependencyCondition, DependencyId, ErrorSpan};
-
-#[derive(Debug, Default)]
-pub enum LazyMake {
-  #[default]
-  Eager,
-  LazyUntil {
-    forward_name: Option<Atom>,
-  },
-}
-
-#[derive(Debug, Default)]
-pub struct LazyDependenciesInfo {
-  forward_name_to_request: FxHashMap<Atom, Atom>,
-  request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
-}
-
-impl LazyDependenciesInfo {
-  pub fn is_empty(&self) -> bool {
-    self.request_to_dependencies.is_empty()
-  }
-
-  pub fn insert(&mut self, request: Atom, forward_name: Option<Atom>, dependency_id: DependencyId) {
-    if let Some(forward_name) = forward_name {
-      self
-        .forward_name_to_request
-        .insert(forward_name, request.clone());
-    }
-    self
-      .request_to_dependencies
-      .entry(request)
-      .or_default()
-      .insert(dependency_id);
-  }
-
-  pub fn lazy_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
-    self.request_to_dependencies.values().flatten().copied()
-  }
-
-  pub fn get_requested_lazy_dependencies(
-    &self,
-    forward_name: &Atom,
-  ) -> Option<&FxHashSet<DependencyId>> {
-    self
-      .forward_name_to_request
-      .get(forward_name)
-      .and_then(|request| self.request_to_dependencies.get(request))
-  }
-}
+use crate::{
+  make::repair::lazy::{ForwardIds, LazyMake, MergedForwardIds},
+  DependencyCondition, DependencyId, ErrorSpan,
+};
 
 #[cacheable_dyn]
 pub trait ModuleDependency: Dependency {
@@ -82,7 +37,7 @@ pub trait ModuleDependency: Dependency {
 
   fn unset_lazy(&mut self) {}
 
-  fn forward_name(&self) -> Option<Atom> {
+  fn forward_ids(&self) -> Option<ForwardIds> {
     None
   }
 
