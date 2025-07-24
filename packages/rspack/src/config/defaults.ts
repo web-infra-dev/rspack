@@ -675,7 +675,7 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	F(output, "hotUpdateMainFilename", () => {
-		return `[runtime].[fullhash].hot-update.${output.module ? "mjs" : "json"}`;
+		return `[runtime].[fullhash].hot-update.${output.module ? "json.mjs" : "json"}`;
 	});
 
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);

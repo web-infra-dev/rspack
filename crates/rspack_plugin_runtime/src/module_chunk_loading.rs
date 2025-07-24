@@ -58,15 +58,12 @@ async fn runtime_requirements_in_tree(
         runtime_requirements_mut.insert(RuntimeGlobals::MODULE_CACHE);
         runtime_requirements_mut.insert(RuntimeGlobals::HMR_MODULE_DATA);
         runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-
-        println!("adding HMR_DOWNLOAD_UPDATE_HANDLERS!!!");
       }
       RuntimeGlobals::HMR_DOWNLOAD_MANIFEST if is_enabled_for_chunk => {
         has_chunk_loading = true;
 
         runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
         runtime_requirements_mut.insert(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME);
-        println!("adding GET_UPDATE_MANIFEST_FILENAME!!!");
       }
       RuntimeGlobals::BASE_URI
       | RuntimeGlobals::ON_CHUNKS_LOADED
