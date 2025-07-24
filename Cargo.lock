@@ -4233,6 +4233,7 @@ dependencies = [
  "pnp",
  "rspack_error",
  "rspack_paths",
+ "rspack_regex",
  "rspack_util",
  "tokio",
  "tracing",

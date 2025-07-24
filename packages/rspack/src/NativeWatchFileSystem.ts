@@ -14,17 +14,19 @@ import type { FileSystemInfoEntry, Watcher, WatchFileSystem } from "./util/fs";
 type JsWatcherIgnored =
 	| string
 	| string[]
+	| RegExp
 	| ((item: string) => boolean)
 	| undefined;
 
 const toJsWatcherIgnored = (
 	ignored: Watchpack.WatchOptions["ignored"]
 ): JsWatcherIgnored => {
-	if (Array.isArray(ignored) || typeof ignored === "string") {
+	if (
+		Array.isArray(ignored) ||
+		typeof ignored === "string" ||
+		ignored instanceof RegExp
+	) {
 		return ignored;
-	}
-	if (ignored instanceof RegExp) {
-		return (item: string) => ignored.test(item.replace(/\\/g, "/"));
 	}
 	if (typeof ignored === "function") {
 		return (item: string) => ignored(item);
