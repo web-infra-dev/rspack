@@ -1,4 +1,4 @@
-use crate::{impl_module_methods, Module, MODULE_PROPERTIES_BUFFER};
+use crate::{impl_module_methods, Module};
 
 #[napi]
 #[repr(C)]
@@ -11,12 +11,7 @@ impl ContextModule {
     self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      Self::new_inherited(self, env, &mut properties)
-    })
+    Self::new_inherited(self, env, vec![])
   }
 }
 

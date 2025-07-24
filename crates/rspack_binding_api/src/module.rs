@@ -47,10 +47,6 @@ impl From<JsFactoryMeta> for FactoryMeta {
   }
 }
 
-thread_local! {
-  pub(crate) static MODULE_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::with_capacity(4));
-}
-
 // ## Clarify Access Methods for napi Module to Rust Module
 // Primary access: Query compilation.module_graph using module_identifier
 // Fallback for unregistered modules: Access via raw pointer when modules aren't yet stored in compilation.module_graph (e.g., during loader execution phase)
@@ -216,66 +212,49 @@ impl Module {
       Ok(())
     }
 
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-      properties.push(
-        Property::new()
-          .with_utf8_name("type")?
-          .with_value(&env.create_string(module.module_type().as_str())?),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("context")?
-          .with_getter(context_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("layer")?
-          .with_getter(layer_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("useSourceMap")?
-          .with_getter(use_source_map_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("useSimpleSourceMap")?
-          .with_getter(use_simple_source_map_getter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("factoryMeta")?
-          .with_getter(factory_meta_getter)
-          .with_setter(factory_meta_setter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("buildInfo")?
-          .with_getter(build_info_getter)
-          .with_setter(build_info_setter),
-      );
-      properties.push(
-        Property::new()
-          .with_utf8_name("buildMeta")?
-          .with_value(&Object::new(env)?),
-      );
-      MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
-        let identifier = env.create_string(module.identifier().as_str())?;
-        #[allow(clippy::unwrap_used)]
-        let symbol = once_cell.get().unwrap();
-        properties.push(
-          Property::new()
-            .with_name(env, symbol)?
-            .with_value(&identifier)
-            .with_property_attributes(PropertyAttributes::Configurable),
-        );
-        Ok::<(), napi::Error>(())
-      })?;
+    let mut properties = vec![
+      Property::new()
+        .with_utf8_name("type")?
+        .with_value(&env.create_string(module.module_type().as_str())?),
+      Property::new()
+        .with_utf8_name("context")?
+        .with_getter(context_getter),
+      Property::new()
+        .with_utf8_name("layer")?
+        .with_getter(layer_getter),
+      Property::new()
+        .with_utf8_name("useSourceMap")?
+        .with_getter(use_source_map_getter),
+      Property::new()
+        .with_utf8_name("useSimpleSourceMap")?
+        .with_getter(use_simple_source_map_getter),
+      Property::new()
+        .with_utf8_name("factoryMeta")?
+        .with_getter(factory_meta_getter)
+        .with_setter(factory_meta_setter),
+      Property::new()
+        .with_utf8_name("buildInfo")?
+        .with_getter(build_info_getter)
+        .with_setter(build_info_setter),
+      Property::new()
+        .with_utf8_name("buildMeta")?
+        .with_value(&Object::new(env)?),
+    ];
 
-      object.define_properties(&properties)
+    MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+      let identifier = env.create_string(module.identifier().as_str())?;
+      #[allow(clippy::unwrap_used)]
+      let symbol = once_cell.get().unwrap();
+      properties.push(
+        Property::new()
+          .with_name(env, symbol)?
+          .with_value(&identifier)
+          .with_property_attributes(PropertyAttributes::Configurable),
+      );
+      Ok::<(), napi::Error>(())
     })?;
+
+    object.define_properties(&properties)?;
 
     Ok(instance)
   }

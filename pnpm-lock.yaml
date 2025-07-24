@@ -340,9 +340,6 @@ importers:
       '@swc/types':
         specifier: 0.1.23
         version: 0.1.23
-      '@types/glob-to-regexp':
-        specifier: ^0.4.4
-        version: 0.4.4
       '@types/graceful-fs':
         specifier: 4.1.9
         version: 4.1.9
@@ -3317,9 +3314,6 @@ packages:
 
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
-
-  '@types/glob-to-regexp@0.4.4':
-    resolution: {integrity: sha512-nDKoaKJYbnn1MZxUY0cA1bPmmgZbg0cTq7Rh13d0KWYNOiKbqoR+2d89SnRPszGh7ROzSwZ/GOjZ4jPbmmZ6Eg==}
 
   '@types/graceful-fs@4.1.9':
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
@@ -10749,8 +10743,6 @@ snapshots:
       '@types/node': 20.17.55
 
   '@types/geojson@7946.0.16': {}
-
-  '@types/glob-to-regexp@0.4.4': {}
 
   '@types/graceful-fs@4.1.9':
     dependencies:

@@ -29,6 +29,8 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   }
 
   splitter.split(compilation)?;
+
+  // remove empty chunk groups
   splitter.remove_orphan(compilation)?;
 
   // make sure all module (weak dependency particularly) has a cgm
