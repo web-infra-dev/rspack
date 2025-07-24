@@ -1,6 +1,6 @@
 /*
-* This file is copied from https://github.com/webpack/webpack/blob/main/test/runner/index.js
-* */
+ * This file is copied from https://github.com/webpack/webpack/blob/main/test/runner/index.js
+ * */
 const fs = require("fs");
 const { Module } = require("module");
 const path = require("path");
@@ -430,10 +430,7 @@ class TestRunner {
 					},
 					importModuleDynamically: async (specifier, module) => {
 						const normalizedSpecifier = specifier.startsWith("file:")
-							? `./${path.relative(
-									path.dirname(modulePath),
-									fileURLToPath(specifier)
-								)}`
+							? `./${path.relative(path.dirname(modulePath), fileURLToPath(specifier))}`
 							: specifier.replace(
 									/https:\/\/example.com\/public\/path\//,
 									"./"
