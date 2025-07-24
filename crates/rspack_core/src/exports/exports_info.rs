@@ -210,22 +210,6 @@ impl ExportsInfo {
     changed
   }
 
-  pub fn set_all_known_exports_used(
-    &self,
-    mg: &mut ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    let mut changed = false;
-    let exports_info = self.as_data_mut(mg);
-    for export_info in exports_info.exports_mut().values_mut() {
-      if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
-        continue;
-      }
-      changed |= export_info.set_used(UsageState::Used, runtime);
-    }
-    changed
-  }
-
   pub fn set_used_in_unknown_way(
     &self,
     mg: &mut ModuleGraph,

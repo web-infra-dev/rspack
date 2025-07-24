@@ -57,6 +57,7 @@ futures                                = { workspace = true }
 glob                                   = { workspace = true }
 heck                                   = { workspace = true }
 once_cell                              = { workspace = true }
+rayon                                  = { workspace = true }
 rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
 rspack_javascript_compiler             = { workspace = true }
