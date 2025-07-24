@@ -48,6 +48,7 @@ it("should handle errors gracefully", function () {
 });
 
 it("should provide module context", function () {
-	// In test environment, module context might not be available
+	// Note: rspack does not support module context in RuntimeValue yet
+	// This is a known limitation compared to webpack
 	expect(MODULE_VALUE).toBe("no-module");
 });

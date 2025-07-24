@@ -22,9 +22,12 @@ export interface RuntimeValueOptions {
 
 /**
  * Function type for dynamic value computation at compile time
+ *
+ * Note: The `module` parameter is currently not supported in rspack.
+ * It will always be undefined. This is a known limitation compared to webpack.
  */
 export type RuntimeValueFn = (arg: {
-	/** The current module being processed */
+	/** The current module being processed (not supported in rspack, always undefined) */
 	module?: any;
 	/** The key in DefinePlugin options */
 	key?: string;
@@ -83,7 +86,7 @@ export const DefinePlugin = Object.assign(DefinePluginImpl, {
  * Process DefinePlugin options, handling both static values and RuntimeValues
  * @param define - The DefinePlugin options to process
  * @param compiler - The compiler context with compilation info
- * @returns Processed define options with RuntimeValues executed
+ * @returns Processed define options with RuntimeValues executed or preserved for later
  */
 function processDefineOptions(
 	define: DefinePluginOptions,
@@ -94,9 +97,11 @@ function processDefineOptions(
 
 	for (const [key, value] of Object.entries(define)) {
 		if (value instanceof RuntimeValue) {
-			// Execute runtime value and track dependencies
+			// For now, execute runtime value without module context
+			// TODO: In the future, we should delay execution until parse time
+			// when module context is available
 			const context = {
-				module: compilation?.moduleGraph?.getModule?.(compiler.currentModule),
+				module: undefined, // Module context requires delayed execution
 				key,
 				version:
 					typeof value.options === "object" &&
@@ -109,6 +114,8 @@ function processDefineOptions(
 			};
 
 			try {
+				// Note: This executes at compilation time, not parse time
+				// Module-specific values cannot be supported with current architecture
 				result[key] = value.fn(context);
 
 				// Add dependencies to the compilation for watch mode
