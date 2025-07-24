@@ -177,8 +177,12 @@ const lazyCompilationMiddlewareInternal = (
 		const indices = req.url.slice(lazyCompilationPrefix.length).split("@");
 		req.socket.setNoDelay(true);
 
-		res.setHeader("content-type", "text/event-stream");
-		res.writeHead(200);
+		res.writeHead(200, {
+			"content-type": "text/event-stream",
+			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Methods": "*",
+			"Access-Control-Allow-Headers": "*"
+		});
 		res.write("\n");
 
 		const moduleActivated = [];
