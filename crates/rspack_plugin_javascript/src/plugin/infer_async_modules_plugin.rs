@@ -42,7 +42,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     if build_meta.has_top_level_await {
       async_modules.insert(module_identifier);
     } else {
-      sync_modules.insert(module_identifier);
+      async_modules.insert(module_identifier);
+      // sync_modules.insert(module_identifier);
     }
   }
 

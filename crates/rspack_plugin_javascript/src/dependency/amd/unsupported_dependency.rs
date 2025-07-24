@@ -82,7 +82,7 @@ impl DependencyTemplate for UnsupportedDependencyTemplate {
       .expect("UnsupportedDependencyTemplate should only be used for UnsupportedDependency");
 
     let content = format!(
-      "Object(function webpackMissingModule() {{var e = new Error(\"Cannot find module '{}'\"); e.code = 'MODULE_NOT_FOUND'; throw e;}}())",
+      "Object(function webpackMissingModule() {{var e = new Error(\"Cannot find module2 '{}'\"); e.code = 'MODULE_NOT_FOUND'; throw e;}}())",
       dep.request
     );
     source.replace(dep.range.start, dep.range.end, &content, None);

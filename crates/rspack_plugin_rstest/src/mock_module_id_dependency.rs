@@ -154,8 +154,8 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
       // Await exec init fragment.
       init_fragments.push(Box::new(ConditionalInitFragment::new(
         format!("await __webpack_require__.rstest_exec({module_id})\n"),
-        InitFragmentStage::StageAsyncESMImports,
-        i32::MAX - 1,
+        InitFragmentStage::StageESMImports,
+        1,
         InitFragmentKey::ESMImport(format!("{}_{}", module_id, "mock")),
         None,
         RuntimeCondition::Boolean(true),

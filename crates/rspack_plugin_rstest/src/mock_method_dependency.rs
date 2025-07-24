@@ -119,7 +119,7 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       InitFragmentStage::StageESMImports,
       match dep.position {
         Position::Before => 0,
-        Position::After => i32::MAX - 1,
+        Position::After => 0,
       },
       InitFragmentKey::Const(format!("rstest mock_hoist {request}")),
       None,
