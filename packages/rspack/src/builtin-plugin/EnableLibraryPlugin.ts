@@ -34,7 +34,7 @@ export class EnableLibraryPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin | undefined {
-		const { type } = this;
+		const type = this.type;
 
 		// Only enable once
 		const enabled = getEnabledTypes(compiler);

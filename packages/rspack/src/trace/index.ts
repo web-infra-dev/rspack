@@ -28,6 +28,7 @@ export class JavaScriptTracer {
 	// inspector session for CPU Profiler
 	static session: import("node:inspector").Session;
 	// plugin counter for different channel in trace viewer, choose 100 to avoid conflict with known tracks
+	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: this is a bug of biome which can't analyze cross module usage
 	private static counter = 10000;
 	/**
 	 * only first call take effects, subsequent calls will be ignored
