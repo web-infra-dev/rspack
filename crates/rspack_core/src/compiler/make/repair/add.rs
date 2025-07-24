@@ -119,7 +119,7 @@ impl Task<MakeTaskContext> for AddTask {
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
       fs: context.fs.clone(),
-      forward_ids: merged_forward_ids.get_immediate(),
+      immediate_forward_ids: merged_forward_ids.get_immediate(),
     })])
   }
 }

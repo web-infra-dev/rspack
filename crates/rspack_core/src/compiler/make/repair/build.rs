@@ -25,7 +25,7 @@ pub struct BuildTask {
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub forward_ids: ImmediateForwardIdSet,
+  pub immediate_forward_ids: ImmediateForwardIdSet,
 }
 
 #[async_trait::async_trait]
@@ -43,7 +43,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile,
       mut module,
       fs,
-      forward_ids,
+      immediate_forward_ids,
     } = *self;
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_start();
@@ -64,7 +64,7 @@ impl Task<MakeTaskContext> for BuildTask {
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           fs: fs.clone(),
-          forward_ids,
+          immediate_forward_ids,
         },
         None,
       )

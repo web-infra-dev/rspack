@@ -40,7 +40,7 @@ pub struct ParseContext<'a> {
   pub parse_meta: ParseMeta,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
-  pub forward_ids: ImmediateForwardIdSet,
+  pub immediate_forward_ids: ImmediateForwardIdSet,
 }
 
 #[cacheable]

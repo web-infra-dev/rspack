@@ -47,7 +47,7 @@ pub struct BuildContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub forward_ids: ImmediateForwardIdSet,
+  pub immediate_forward_ids: ImmediateForwardIdSet,
 }
 
 #[cacheable]
