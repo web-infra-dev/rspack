@@ -233,7 +233,8 @@ const describeCases = config => {
 									}
 								} else {
 									const assets = info.entrypoints.main.assets;
-									const result = _require(
+									const result = runner.require(
+										outputDirectory,
 										`./${assets[assets.length - 1].name}`
 									);
 									if (typeof result === "object" && "then" in result)
