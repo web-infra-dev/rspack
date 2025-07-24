@@ -1124,6 +1124,25 @@ impl CodeSplitter {
     let mut entrypoints = HashMap::default();
     let mut skipped = HashSet::<usize>::default();
 
+    let mut assigned_depths = finalize_result
+      .chunks
+      .par_iter()
+      .enumerate()
+      .filter_map(|(idx, (_, cache))| match &cache.chunk_desc {
+        ChunkDesc::Entry(entry_desc) => {
+          let entry_modules = &entry_desc.entry_modules;
+          let mut assign_depths_map = IdentifierMap::default();
+          assign_depths(
+            &mut assign_depths_map,
+            &compilation.get_module_graph(),
+            entry_modules.iter(),
+          );
+          Some((idx, assign_depths_map))
+        }
+        _ => None,
+      })
+      .collect::<HashMap<_, _>>();
+
     for (idx, (reuse, cache)) in finalize_result.chunks.into_iter().enumerate() {
       let chunk_desc = cache.chunk_desc;
 
@@ -1303,12 +1322,9 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
             }
 
             if initial {
-              let mut assign_depths_map = IdentifierMap::default();
-              assign_depths(
-                &mut assign_depths_map,
-                &compilation.get_module_graph(),
-                entry_modules.iter(),
-              );
+              let assign_depths_map = assigned_depths
+                .remove(&idx)
+                .expect("should have assign depths map");
               let mut module_graph = compilation.get_module_graph_mut();
               for (m, depth) in assign_depths_map {
                 module_graph.set_depth_if_lower(&m, depth);
@@ -1593,37 +1609,26 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     idx_by_name: &HashMap<String, usize>,
     chunks_by_block: &HashMap<AsyncDependenciesBlockIdentifier, Vec<usize>>,
   ) -> (Vec<IndexSet<usize>>, Vec<IndexSet<usize>>) {
-    let chunks_len = chunks.len();
     // map that records info about chunk to its parents
     // this is useful when calculate removeAvailableModules, as it needs calculate based on parents
-    let mut chunk_parents: Vec<IndexSet<usize>> = Vec::with_capacity(chunks_len);
-
-    // this is useful when determine chunk index, the order index of chunk is deterministic,
-    // we use chunk outgoing blocks order to ensure that
-    let mut chunk_children: Vec<IndexSet<usize>> = vec![Default::default(); chunks_len];
-
-    let mut parents = HashSet::default();
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      parents.clear();
-      match &cache.chunk_desc {
-        ChunkDesc::Entry(entry) => {
-          if let Some(depend_on) = &entry.options.depend_on {
-            let depend_on_parents: IndexSet<usize> = depend_on
+    let chunk_parents = chunks
+      .par_iter()
+      .enumerate()
+      .map(|(idx, (_, cache))| match &cache.chunk_desc {
+        ChunkDesc::Entry(entry) => entry
+          .options
+          .depend_on
+          .as_ref()
+          .map(|depend_on| {
+            depend_on
               .iter()
               .map(|dep| idx_by_name.get(dep.as_str()).expect("unreachable"))
               .copied()
-              .collect();
-
-            for parent in &depend_on_parents {
-              chunk_children[*parent].insert(idx);
-            }
-
-            chunk_parents.push(depend_on_parents);
-          } else {
-            chunk_parents.push(Default::default());
-          }
-        }
+              .collect::<IndexSet<_>>()
+          })
+          .unwrap_or_default(),
         ChunkDesc::Chunk(chunk) => {
+          let mut parents = IndexSet::default();
           for block in &chunk.incoming_blocks {
             let Some(chunk_parents) = chunks_by_block.get(block) else {
               continue;
@@ -1631,26 +1636,35 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
             parents.extend(chunk_parents);
           }
-          chunk_parents.push(
-            parents
-              .iter()
-              .filter(|parent| **parent != idx)
-              .copied()
-              .collect(),
-          );
-        }
-      }
-    }
 
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      chunk_children[idx].extend(
+          let _ = parents.shift_remove(&idx);
+          parents
+        }
+      })
+      .collect::<Vec<_>>();
+
+    // this is useful when determine chunk index, the order index of chunk is deterministic,
+    // we use chunk outgoing blocks order to ensure that
+    let mut chunk_children = chunks
+      .par_iter()
+      .enumerate()
+      .map(|(idx, (_, cache))| {
         cache
           .chunk_desc
           .outgoings()
           .iter()
           .filter_map(|outgoing_block| chunks_origin_block.get(outgoing_block).copied())
-          .filter(|child| *child != idx),
-      );
+          .filter(|child| *child != idx)
+          .collect::<IndexSet<_>>()
+      })
+      .collect::<Vec<_>>();
+
+    for (idx, parents) in chunk_parents.iter().enumerate().rev() {
+      if matches!(chunks[idx].1.chunk_desc, ChunkDesc::Entry(_)) {
+        for parent in parents.iter().rev() {
+          chunk_children[*parent].insert_before(0, idx);
+        }
+      }
     }
 
     (chunk_parents, chunk_children)
