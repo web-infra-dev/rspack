@@ -181,7 +181,7 @@ class TestRunner {
 	 * @returns {boolean} whether env is jsdom
 	 */
 	jsDom() {
-		return this.testConfig.env === "jsdom" || this.isTargetWeb();
+        return true;
 	}
 
 	/**

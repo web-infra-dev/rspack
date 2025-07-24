@@ -87,9 +87,6 @@ class FakeElement {
 		} else if (node._type === "script" && this._document.onScript) {
 			Promise.resolve().then(() => {
 				this._document.onScript(node.src);
-				if (node.onload) {
-					node.onload({ type: "load", target: node });
-				}
 			});
 		}
 	}
