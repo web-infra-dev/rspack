@@ -9036,7 +9036,7 @@ export class Watching {
 export type WatchOptions = {
     aggregateTimeout?: number;
     followSymlinks?: boolean;
-    ignored?: string | RegExp | string[];
+    ignored?: string | RegExp | (string | RegExp)[];
     poll?: number | boolean;
     stdin?: boolean;
 };
