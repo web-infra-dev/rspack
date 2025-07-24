@@ -82,6 +82,13 @@ class FakeElement {
 				if (node.onload) node.onload({ type: "load", target: node });
 			}, 100);
 		}
+		if(node._type === "script") {
+			this._document.onScript(node.src)
+			node.onload({
+				type: "load",
+				target: node
+			})
+		}
 	}
 
 	removeChild(node) {

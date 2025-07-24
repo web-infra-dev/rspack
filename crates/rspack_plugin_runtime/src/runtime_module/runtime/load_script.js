@@ -24,6 +24,8 @@ __webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 	}
 	inProgress[url] = [done];
 	var onScriptComplete = function (prev, event) {
+
+		console.log("onScriptComplete", event);
 		script.onerror = script.onload = null;
 		clearTimeout(timeout);
 		var doneFns = inProgress[url];

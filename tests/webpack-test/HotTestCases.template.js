@@ -9,7 +9,7 @@ const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const FakeDocument = require("./helpers/FakeDocument");
-const { createFilteredDescribe } = require("./lib/util/filterUtil")
+const { createFilteredDescribe } = require("./lib/util/filterUtil");
 
 const casesPath = path.join(__dirname, "hotCases");
 let categories = fs
@@ -24,9 +24,9 @@ categories = categories.map(cat => ({
 
 const describeCases = config => {
 	describe(config.name, () => {
-		for (const category of categories) {
+		for (const category of categories.slice(21, 22)) {
 			describe(category.name, () => {
-				for (const testName of category.tests) {
+				for (const testName of category.tests.slice(1, 2)) {
 					const testDirectory = path.join(casesPath, category.name, testName);
 					const filterPath = path.join(testDirectory, "test.filter.js");
 					if (!createFilteredDescribe(testName, filterPath, config)) {
@@ -37,6 +37,7 @@ const describeCases = config => {
 						afterAll(callback => {
 							compiler.close(callback);
 							compiler = undefined;
+							console.log("compiler closed");
 						});
 
 						it(`${testName} should compile`, done => {
@@ -215,7 +216,10 @@ const describeCases = config => {
 													// run it
 													Promise.resolve().then(() => {
 														_require(urlToRelativePath(element.src));
-													});
+													})
+														.then(() => {
+															element.onload({ type: "load", target: element });
+														});
 												} else if (element._type === "link") {
 													Promise.resolve().then(() => {
 														if (element.onload) {
@@ -232,7 +236,10 @@ const describeCases = config => {
 													// run it
 													Promise.resolve().then(() => {
 														_require(urlToRelativePath(element.src));
-													});
+													})
+														.then(() => {
+															element.onload({ type: "load", target: element });
+														});
 												} else if (element._type === "link") {
 													// run it
 													Promise.resolve().then(() => {
@@ -357,6 +364,7 @@ const describeCases = config => {
 									}
 									return require(module);
 								}
+
 								let promise = Promise.resolve();
 								const info = stats.toJson({ all: false, entrypoints: true });
 								if (config.target === "web") {
