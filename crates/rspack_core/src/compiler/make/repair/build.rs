@@ -197,7 +197,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
     let mut tasks: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
 
     let dependencies_to_process = if !lazy_dependencies_info.is_empty() {
-      // dbg!(&lazy_dependencies_info);
       let lazy_dependencies = lazy_dependencies_info
         .lazy_dependencies()
         .collect::<FxHashSet<_>>();
