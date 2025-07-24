@@ -344,6 +344,6 @@ mod tests {
 
     all_paths.sort();
 
-    assert_eq!(all_paths, vec!["src", "src/index.js", "src/page/index.ts"]);
+    assert_eq!(all_paths, vec!["src/", "src/index.js", "src/page/index.ts"]);
   }
 }
