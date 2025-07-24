@@ -87,6 +87,9 @@ class FakeElement {
 		} else if (node._type === "script" && this._document.onScript) {
 			Promise.resolve().then(() => {
 				this._document.onScript(node.src);
+				if (node.onload) {
+					node.onload({ type: "load", target: node });
+				}
 			});
 		}
 	}
@@ -222,12 +225,12 @@ class FakeSheet {
 		const filepath = /file:\/\//.test(this._element.href)
 			? new URL(this._element.href)
 			: path.resolve(
-					this._basePath,
-					this._element.href
-						.replace(/^https:\/\/test\.cases\/path\//, "")
-						.replace(/^https:\/\/example\.com\/public\/path\//, "")
-						.replace(/^https:\/\/example\.com\//, "")
-				);
+				this._basePath,
+				this._element.href
+					.replace(/^https:\/\/test\.cases\/path\//, "")
+					.replace(/^https:\/\/example\.com\/public\/path\//, "")
+					.replace(/^https:\/\/example\.com\//, "")
+			);
 		let css = fs.readFileSync(filepath, "utf-8");
 		css = css
 			// Remove comments

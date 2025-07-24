@@ -1,3 +1,6 @@
+/*
+* This file is copied from https://github.com/webpack/webpack/blob/main/test/runner/index.js
+* */
 const fs = require("fs");
 const { Module } = require("module");
 const path = require("path");
