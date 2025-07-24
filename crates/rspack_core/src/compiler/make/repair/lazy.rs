@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rspack_collections::IdentifierMap;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -114,6 +115,7 @@ impl LazyDependenciesInfo {
 pub enum HasLazyDependencies {
   Maybe(ImmediateForwardIdSet),
   Has(LazyDependenciesInfo),
+  KeepForward(IdentifierMap<MergedForwardIds>),
 }
 
 impl HasLazyDependencies {
@@ -167,7 +169,7 @@ impl Task<MakeTaskContext> for ProcessLazyDependenciesTask {
       .module_to_lazy_dependencies
       .get(&original_module_identifier)
       .and_then(|info| match info {
-        HasLazyDependencies::Maybe(_) => None,
+        HasLazyDependencies::Maybe(_) | HasLazyDependencies::KeepForward(_) => None,
         HasLazyDependencies::Has(lazy_dependencies) => Some(lazy_dependencies),
       })
       .expect("only module that has lazy dependencies should run into ProcessLazyDependenciesTask");

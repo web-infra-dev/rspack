@@ -714,8 +714,8 @@ impl ModuleConcatenationPlugin {
           plugin_driver: compilation.plugin_driver.clone(),
           compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
-          // not needed for concatenated module, which is actually build at seal phase, not at make phase
-          forward_ids: Default::default(),
+          // No need to care lazy make for concatenated module, which is actually build at seal phase, not at make phase
+          immediate_forward_ids: Default::default(),
         },
         Some(compilation),
       )
