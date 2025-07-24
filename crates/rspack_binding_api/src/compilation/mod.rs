@@ -163,21 +163,20 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn modules(&self) -> Result<Vec<ModuleObject>> {
+  pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
     let compilation = self.as_ref()?;
-
-    Ok(
-      compilation
-        .get_module_graph()
-        .modules()
-        .keys()
-        .filter_map(|module_id| {
-          compilation
-            .module_by_identifier(module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
-        })
-        .collect::<Vec<_>>(),
-    )
+    let module_graph = compilation.get_module_graph();
+    let modules = module_graph.modules();
+    let mut arr = env.create_array(modules.len() as u32)?;
+    for (i, identifier) in modules.keys().enumerate() {
+      arr.set(
+        i as u32,
+        compilation
+          .module_by_identifier(identifier)
+          .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
+      )?;
+    }
+    Ok(arr)
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
