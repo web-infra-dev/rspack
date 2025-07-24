@@ -343,7 +343,16 @@ version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0700ddab506f33b20a03b13996eccd309a48e5ff77d0d95926aa0210fb4e95f1"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.6.3",
+]
+
+[[package]]
+name = "bit-set"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
+dependencies = [
+ "bit-vec 0.8.0",
 ]
 
 [[package]]
@@ -351,6 +360,12 @@ name = "bit-vec"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
+
+[[package]]
+name = "bit-vec"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
 name = "bitflags"
@@ -1543,7 +1558,18 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "531e46835a22af56d1e3b66f04844bed63158bc094a628bec1d321d9b4c44bf2"
 dependencies = [
- "bit-set",
+ "bit-set 0.5.3",
+ "regex-automata 0.4.9",
+ "regex-syntax 0.8.5",
+]
+
+[[package]]
+name = "fancy-regex"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e24cb5a94bcae1e5408b0effca5cd7172ea3c5755049c5f3af4cd283a165298"
+dependencies = [
+ "bit-set 0.8.0",
  "regex-automata 0.4.9",
  "regex-syntax 0.8.5",
 ]
@@ -3328,7 +3354,7 @@ dependencies = [
  "byteorder",
  "clean-path",
  "concurrent_lru",
- "fancy-regex",
+ "fancy-regex 0.13.0",
  "indexmap 2.7.1",
  "lazy_static",
  "miniz_oxide 0.7.4",
@@ -3339,6 +3365,26 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "thiserror 2.0.9",
+]
+
+[[package]]
+name = "pnp"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab3167cbab15e437e9c7db8a4cf613eb4a77583d4327a8964d50fedd6cf364bd"
+dependencies = [
+ "byteorder",
+ "clean-path",
+ "concurrent_lru",
+ "fancy-regex 0.14.0",
+ "miniz_oxide 0.8.2",
+ "path-slash",
+ "pathdiff",
+ "radix_trie",
+ "rustc-hash 2.1.1",
+ "serde",
+ "serde_json",
  "thiserror 2.0.9",
 ]
 
@@ -4231,7 +4277,7 @@ dependencies = [
  "dunce",
  "fast-glob",
  "notify",
- "pnp",
+ "pnp 0.9.4",
  "rayon",
  "rspack_error",
  "rspack_paths",
@@ -5321,9 +5367,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e3bb6b0edc681de93831f8f3e531b9338afbea4ef6f49534ac025d11d1bca2d"
+checksum = "134749bd1a1bfa618ee0ced72b689dee1fd04304d3442358085bf0115404b230"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -5332,7 +5378,7 @@ dependencies = [
  "futures",
  "indexmap 2.7.1",
  "json-strip-comments",
- "pnp",
+ "pnp 0.12.1",
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
