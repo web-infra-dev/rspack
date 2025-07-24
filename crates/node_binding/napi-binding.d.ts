@@ -328,6 +328,7 @@ export declare class JsCompiler {
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
+  getVirtualFileStore(): VirtualFileStore | null
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -444,6 +445,7 @@ export declare class ModuleGraphConnection {
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**
    * # Safety
    *
@@ -474,6 +476,12 @@ export declare class ReadonlyResourceData {
 export declare class Sources {
   _get(sourceType: string): JsCompatSourceOwned | null
 }
+
+export declare class VirtualFileStore {
+  writeVirtualFileSync(path: string, content: string): void
+  batchWriteVirtualFilesSync(files: Array<JsVirtualFile>): void
+}
+export type JsVirtualFileStore = VirtualFileStore
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName | CustomPluginName
@@ -1454,6 +1462,11 @@ export interface JsTap {
   stage: number
 }
 
+export interface JsVirtualFile {
+  path: string
+  content: string
+}
+
 export interface KnownAssetInfo {
   /** if the asset can be long term cached forever (contains a hash) */
   immutable?: boolean
@@ -2334,6 +2347,7 @@ export interface RawOptions {
   amd?: string
   bail: boolean
   __references: Record<string, any>
+  __virtual_files?: Array<JsVirtualFile>
 }
 
 export interface RawOutputOptions {
