@@ -264,7 +264,10 @@ mod tests {
       removed: vec![],
     };
     let paths: HashSet<ArcPath> = HashSet::new();
-    let ignored = FsWatcherIgnored::Paths(vec![".git".to_owned(), "node_modules".to_owned()]);
+    let ignored = FsWatcherIgnored::Paths(vec![
+      "**/.git/**".to_owned(),
+      "**/node_modules/**".to_owned(),
+    ]);
     let incremental_manager = IncrementalManager::default();
 
     updater
@@ -312,14 +315,17 @@ mod tests {
 
   #[test]
   fn test_manager() {
-    let ignored = FsWatcherIgnored::Paths(vec!["node_modules".to_string(), ".git".to_string()]);
+    let ignored = FsWatcherIgnored::Paths(vec![
+      "**/node_modules/**".to_string(),
+      "**/.git/**".to_string(),
+    ]);
     let path_manager = PathManager::new(ignored);
     let files = PathUpdater {
       added: vec!["src/index.js".to_string()],
       removed: vec![],
     };
     let directories = PathUpdater {
-      added: vec!["src".to_string(), "node_modules".to_string()],
+      added: vec!["src/".to_string(), "node_modules/".to_string()],
       removed: vec![],
     };
     let missing = PathUpdater {

@@ -100,7 +100,7 @@ impl FsWatcher {
   ) {
     self.path_manager.reset();
     self.scanner.scan();
-    if let Err(e) = self.wait_for_event(files, directories, missing).await {
+    if let Err(e) = self.wait_for_event(files, directories, missing) {
       event_aggregate_handler.on_error(e);
       return;
     };
@@ -125,7 +125,7 @@ impl FsWatcher {
     Ok(())
   }
 
-  async fn wait_for_event(
+  fn wait_for_event(
     &mut self,
     files: PathUpdater,
     directories: PathUpdater,
