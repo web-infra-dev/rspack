@@ -10,6 +10,6 @@ module.exports = {
 		concatenateModules: false
 	},
 	experiments: {
-		cache: {type: 'memory'}, // rspack use different config
+		cache: {type: 'memory'}, // rspack uses different config
 	}
 };
