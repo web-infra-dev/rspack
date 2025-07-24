@@ -1,3 +1,5 @@
+import { NoSSR, useLang, usePageData } from '@rspress/core/runtime';
+import { Layout as BaseLayout } from '@rspress/core/theme';
 import {
   Search as PluginAlgoliaSearch,
   ZH_LOCALES,
@@ -5,8 +7,6 @@ import {
 import { Announcement } from '@rstack-dev/doc-ui/announcement';
 import { ConfigProvider } from '@rstack-dev/doc-ui/antd';
 import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
-import { NoSSR, useLang, usePageData } from 'rspress/runtime';
-import { Layout as BaseLayout } from 'rspress/theme';
 import { HomeLayout } from './pages';
 
 // Enable this when we need a new announcement
@@ -75,4 +75,4 @@ const Search = () => {
 
 export { Layout, HomeLayout, Search };
 
-export * from 'rspress/theme';
+export * from '@rspress/core/theme';

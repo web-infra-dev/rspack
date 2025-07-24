@@ -1,5 +1,5 @@
+import { useLang } from '@rspress/core/runtime';
 import type { FC } from 'react';
-import { useLang } from 'rspress/runtime';
 
 type DefaultValue = {
   defaultValue: string;
