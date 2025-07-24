@@ -37,6 +37,36 @@ pub struct ExtendedStatsOptions {
   pub warnings: bool,
 }
 
+impl Default for ExtendedStatsOptions {
+  fn default() -> Self {
+    Self {
+      chunks: true,
+      chunk_modules: true,
+      errors: true,
+      warnings: true,
+      assets: true,
+      hash: true,
+
+      cached_modules: false,
+      chunk_group_auxiliary: false,
+      chunk_group_children: false,
+      chunk_groups: false,
+      chunk_relations: false,
+      depth: false,
+      entrypoints: EntrypointsStatsOption::Bool(false),
+      ids: false,
+      modules: false,
+      module_assets: false,
+      nested_modules: false,
+      optimization_bailout: false,
+      provided_exports: false,
+      reasons: false,
+      source: false,
+      used_exports: false,
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct StatsError<'a> {
   pub name: Option<String>,
