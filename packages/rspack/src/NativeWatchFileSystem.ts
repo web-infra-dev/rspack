@@ -107,14 +107,12 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			(err: Error | null, result) => {
 				const { changedFiles, removedFiles } = result;
 
-				if (this.#inputFileSystem) {
-					const fs = this.#inputFileSystem;
-					for (const item of changedFiles) {
-						fs.purge?.(item);
-					}
-					for (const item of removedFiles) {
-						fs.purge?.(item);
-					}
+				const fs = this.#inputFileSystem;
+				for (const item of changedFiles) {
+					fs.purge?.(item);
+				}
+				for (const item of removedFiles) {
+					fs.purge?.(item);
 				}
 
 				// TODO: add fileTimeInfoEntries and contextTimeInfoEntries
