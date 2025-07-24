@@ -231,12 +231,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               .get_number_of_entry_modules(&chunk_ukey)
               == 0
           {
-            compilation.chunk_graph.remove_chunk(&chunk_ukey);
-            let removed_chunk = compilation.chunk_by_ukey.remove(&chunk_ukey);
+            if let Some(mut removed_chunk) = compilation.chunk_by_ukey.remove(&chunk_ukey) {
+              compilation
+                .chunk_graph
+                .disconnect_chunk(&mut removed_chunk, &mut compilation.chunk_group_by_ukey);
+              compilation.chunk_graph.remove_chunk(&chunk_ukey);
 
-            // Remove from named chunks if it has a name
-            if let Some(chunk) = removed_chunk {
-              if let Some(name) = chunk.name() {
+              // Remove from named chunks if it has a name
+              if let Some(name) = removed_chunk.name() {
                 compilation.named_chunks.remove(name);
               }
             }
