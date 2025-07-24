@@ -61,7 +61,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .factory_meta
         .and_then(|meta| meta.side_effect_free)
         .unwrap_or_default()
-      && parser.build_info.all_star_exports.is_empty()
     {
       let mut is_empty = true;
       let not_in_forward_names =
@@ -196,7 +195,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .factory_meta
         .and_then(|meta| meta.side_effect_free)
         .unwrap_or_default()
-      && parser.build_info.all_star_exports.is_empty()
       && !parser.forward_names.is_empty()
       && !parser.forward_names.contains(export_name)
     {
