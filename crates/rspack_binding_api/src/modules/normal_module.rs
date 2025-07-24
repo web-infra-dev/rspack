@@ -4,10 +4,7 @@ use napi::{
 };
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 
-use crate::{
-  impl_module_methods, plugins::JsLoaderItem, Module, ReadonlyResourceDataWrapper,
-  MODULE_PROPERTIES_BUFFER,
-};
+use crate::{impl_module_methods, plugins::JsLoaderItem, Module, ReadonlyResourceDataWrapper};
 
 #[napi]
 #[repr(C)]
@@ -88,48 +85,31 @@ impl NormalModule {
       Ok(())
     }
 
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resource")?
-          .with_value(&resource),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("request")?
-          .with_value(&request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
-          .with_value(&user_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("rawRequest")?
-          .with_value(&raw_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resourceResolveData")?
-          .with_value(&resource_resolve_data),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("loaders")?
-          .with_value(&loaders),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("matchResource")?
-          .with_getter(match_resource_getter)
-          .with_setter(match_resource_setter),
-      );
-      Self::new_inherited(self, env, &mut properties)
-    })
+    let properties = vec![
+      napi::Property::new()
+        .with_utf8_name("resource")?
+        .with_value(&resource),
+      napi::Property::new()
+        .with_utf8_name("request")?
+        .with_value(&request),
+      napi::Property::new()
+        .with_utf8_name("userRequest")?
+        .with_value(&user_request),
+      napi::Property::new()
+        .with_utf8_name("rawRequest")?
+        .with_value(&raw_request),
+      napi::Property::new()
+        .with_utf8_name("resourceResolveData")?
+        .with_value(&resource_resolve_data),
+      napi::Property::new()
+        .with_utf8_name("loaders")?
+        .with_value(&loaders),
+      napi::Property::new()
+        .with_utf8_name("matchResource")?
+        .with_getter(match_resource_getter)
+        .with_setter(match_resource_setter),
+    ];
+    Self::new_inherited(self, env, properties)
   }
 
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::NormalModule)> {

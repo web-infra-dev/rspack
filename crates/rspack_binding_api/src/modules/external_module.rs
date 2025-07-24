@@ -1,4 +1,4 @@
-use crate::{impl_module_methods, Module, MODULE_PROPERTIES_BUFFER};
+use crate::{impl_module_methods, Module};
 
 #[napi]
 #[repr(C)]
@@ -14,17 +14,10 @@ impl ExternalModule {
     let (_, module) = self.as_ref()?;
     let user_request = env.create_string(module.user_request())?;
 
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
-          .with_value(&user_request),
-      );
-      Self::new_inherited(self, env, &mut properties)
-    })
+    let properties = vec![napi::Property::new()
+      .with_utf8_name("userRequest")?
+      .with_value(&user_request)];
+    Self::new_inherited(self, env, properties)
   }
 
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ExternalModule)> {
