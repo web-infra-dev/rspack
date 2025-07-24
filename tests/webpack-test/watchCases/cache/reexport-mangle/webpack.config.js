@@ -1,14 +1,15 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "production",
-	cache: {
-		type: "memory"
-	},
+	cache: true,
 	output: {
 		pathinfo: true
 	},
 	optimization: {
 		minimize: false,
 		concatenateModules: false
+	},
+	experiments: {
+		cache: {type: 'memory'}, // rspack use different config
 	}
 };
