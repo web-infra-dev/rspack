@@ -154,12 +154,14 @@ impl ESMExportImportedSpecifierDependency {
   ) -> ExportMode {
     let id = &self.id;
     let name = self.name.clone();
-    let imported_module_identifier = if let Some(imported_module_identifier) =
-      module_graph.module_identifier_by_dependency_id(id)
-    {
-      imported_module_identifier
-    } else {
-      return ExportMode::Missing;
+    let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
+    else {
+      // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
+      return if self.lazy_make {
+        ExportMode::LazyMake
+      } else {
+        ExportMode::Missing
+      };
     };
 
     let parent_module = module_graph
@@ -507,7 +509,7 @@ impl ESMExportImportedSpecifierDependency {
     let module_identifier = module.identifier();
     let import_var = compilation.get_import_var(&self.id);
     match mode {
-      ExportMode::Missing | ExportMode::EmptyStar(_) => {
+      ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         fragments.push(
           NormalInitFragment::new(
             "/* empty/unused ESM star reexport */\n".to_string(),
@@ -1097,7 +1099,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   ) -> Option<ExportsSpec> {
     let mode = self.get_mode(mg, None, module_graph_cache);
     match mode {
-      ExportMode::Missing => None,
+      ExportMode::Missing | ExportMode::LazyMake => None,
       ExportMode::Unused(_) => {
         // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L630-L742
         unreachable!()
@@ -1292,6 +1294,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     let mode = self.get_mode(module_graph, runtime, module_graph_cache);
     match mode {
       ExportMode::Missing
+      | ExportMode::LazyMake
       | ExportMode::Unused(_)
       | ExportMode::EmptyStar(_)
       | ExportMode::ReexportUndefined(_) => create_no_exports_referenced(),
@@ -1536,7 +1539,10 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       return;
     }
 
-    if !matches!(mode, ExportMode::Unused(_) | ExportMode::EmptyStar(_)) {
+    if !matches!(
+      mode,
+      ExportMode::LazyMake | ExportMode::Unused(_) | ExportMode::EmptyStar(_)
+    ) {
       esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
       dep.add_export_fragments(code_generatable_context, mode);
     }

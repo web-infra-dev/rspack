@@ -61,6 +61,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
       && !parser.forward_names.is_empty()
+      // && parser.build_info.all_star_exports.is_empty()
       && let ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) = statement
     {
       let mut is_empty = true;
@@ -196,6 +197,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
       && !parser.forward_names.is_empty()
+      // && parser.build_info.all_star_exports.is_empty()
       && let Some(export_name) = export_name
       && !parser.forward_names.contains(export_name)
     {
