@@ -83,8 +83,8 @@ impl BuildDeps {
         // node package path skip recursive search.
         continue;
       }
-      if let Some(childs) = helper.resolve(current.assert_utf8()).await {
-        queue.extend(childs.iter().map(|item| item.as_path().into()));
+      if let Some(children) = helper.resolve(current.assert_utf8()).await {
+        queue.extend(children.iter().map(|item| item.as_path().into()));
       }
     }
 
