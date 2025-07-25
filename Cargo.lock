@@ -4586,6 +4586,7 @@ name = "rspack_plugin_css"
 version = "0.4.10"
 dependencies = [
  "async-trait",
+ "atomic_refcell",
  "cow-utils",
  "css-module-lexer",
  "heck 0.5.0",
