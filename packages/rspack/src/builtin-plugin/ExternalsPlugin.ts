@@ -22,7 +22,8 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin | undefined {
-		const { type, externals } = this;
+		const type = this.type;
+		const externals = this.externals;
 		const raw: RawExternalsPluginOptions = {
 			type,
 			externals: (Array.isArray(externals) ? externals : [externals])
