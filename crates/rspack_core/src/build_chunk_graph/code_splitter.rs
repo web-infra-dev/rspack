@@ -7,6 +7,7 @@ use std::{
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
+use rayon::prelude::*;
 use rspack_collections::{
   impl_item_ukey, Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap,
   IdentifierSet, Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
@@ -24,8 +25,8 @@ use crate::{
   merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
   DependencyId, DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
-  SyntheticDependencyLocation,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  RuntimeSpec, SyntheticDependencyLocation,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -44,7 +45,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<BigUint>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
+  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<ModuleGraphConnection>)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: UkeyIndexSet<CgiUkey>,
   pub parents: IndexMap<CgiUkey, Vec<AsyncDependenciesBlockIdentifier>>,
@@ -59,6 +60,30 @@ pub struct ChunkGroupInfo {
 
   pub outgoing_blocks:
     RawHashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+}
+
+impl Default for ChunkGroupInfo {
+  fn default() -> Self {
+    Self {
+      initialized: false,
+      ukey: CgiUkey::new(),
+      chunk_group: ChunkGroupUkey::default(),
+      chunk_loading: false,
+      async_chunks: false,
+      runtime: RuntimeSpec::default(),
+      min_available_modules: Default::default(),
+      min_available_modules_init: false,
+      available_modules_to_be_merged: Default::default(),
+      skipped_items: Default::default(),
+      skipped_module_connections: Default::default(),
+      children: Default::default(),
+      parents: Default::default(),
+      available_sources: Default::default(),
+      available_children: Default::default(),
+      resulting_available_modules: Default::default(),
+      outgoing_blocks: Default::default(),
+    }
+  }
 }
 
 impl DatabaseItem for ChunkGroupInfo {
@@ -99,18 +124,15 @@ impl ChunkGroupInfo {
 
   fn calculate_resulting_available_modules(
     &mut self,
-    compilation: &Compilation,
+    chunk_group: &ChunkGroup,
     mask_by_chunk: &UkeyMap<ChunkUkey, BigUint>,
-  ) -> BigUint {
+  ) -> () {
     let resulting_available_modules = &mut self.resulting_available_modules;
-    if let Some(resulting_available_modules) = resulting_available_modules.clone() {
-      return resulting_available_modules;
+    if resulting_available_modules.is_some() {
+      return;
     }
 
     let mut new_resulting_available_modules = self.min_available_modules.clone();
-    let chunk_group = compilation
-      .chunk_group_by_ukey
-      .expect_get(&self.chunk_group);
 
     // add the modules from the chunk group to the set
     for chunk in &chunk_group.chunks {
@@ -120,8 +142,7 @@ impl ChunkGroupInfo {
       new_resulting_available_modules |= mask
     }
 
-    *resulting_available_modules = Some(new_resulting_available_modules.clone());
-    new_resulting_available_modules
+    *resulting_available_modules = Some(new_resulting_available_modules);
   }
 
   fn invalidate_resulting_available_modules(&mut self) {
@@ -146,6 +167,12 @@ static NEXT_CGI_UKEY: AtomicU32 = AtomicU32::new(0);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CgiUkey(Ukey, std::marker::PhantomData<ChunkGroupInfo>);
 
+impl Default for CgiUkey {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 // safety: CgiUkey is just numeric identifier, it's safe to impl Send and Sync
 unsafe impl Send for CgiUkey {}
 unsafe impl Sync for CgiUkey {}
@@ -167,7 +194,11 @@ pub(crate) type BlockModulesRuntimeMap = IndexMap<
   OptionalRuntimeSpec,
   IndexMap<
     DependenciesBlockIdentifier,
-    Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>,
+    Vec<(
+      ModuleIdentifier,
+      ConnectionState,
+      Vec<ModuleGraphConnection>,
+    )>,
   >,
 >;
 
@@ -284,6 +315,10 @@ pub(crate) struct CodeSplitter {
 
   // created from edges
   pub(crate) chunk_caches: HashMap<AsyncDependenciesBlockIdentifier, ChunkCreateData>,
+
+  prepared_connection_map: IdentifierMap<
+    IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<ModuleGraphConnection>>,
+  >,
 }
 
 fn add_chunk_in_group(
@@ -313,24 +348,21 @@ fn add_chunk_in_group(
 }
 
 fn get_active_state_of_connections(
-  connections: &[DependencyId],
+  connections: &[ModuleGraphConnection],
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
 ) -> ConnectionState {
   let mut iter = connections.iter();
-  let id = iter.next().expect("should have connection");
-  let mut merged = module_graph
-    .connection_by_dependency_id(id)
-    .expect("should have connection")
-    .active_state(module_graph, runtime, module_graph_cache);
+  let mut merged = iter.next().expect("should have connection").active_state(
+    module_graph,
+    runtime,
+    module_graph_cache,
+  );
   if merged.is_true() {
     return merged;
   }
   for c in iter {
-    let c = module_graph
-      .connection_by_dependency_id(c)
-      .expect("should have connection");
     merged = merged + c.active_state(module_graph, runtime, module_graph_cache);
     if merged.is_true() {
       return merged;
@@ -676,22 +708,36 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   ) -> Result<UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       UkeyIndexMap::default();
-    let mut assign_depths_map = IdentifierMap::default();
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
-    for name in &entries {
-      let (entry_point, modules) = self.prepare_entry_input(name, compilation)?;
-      assign_depths(
-        &mut assign_depths_map,
-        &compilation.get_module_graph(),
-        modules.iter(),
-      );
+
+    let assign_tasks = entries
+      .iter()
+      .map(|name| self.prepare_entry_input(name, compilation))
+      .collect::<Result<Vec<_>>>()?;
+
+    let assign_depths_maps = assign_tasks
+      .par_iter()
+      .map(|(entry_point, modules)| {
+        let mut assign_depths_map = IdentifierMap::default();
+        assign_depths(
+          &mut assign_depths_map,
+          &compilation.get_module_graph(),
+          modules.iter(),
+        );
+        assign_depths_map
+      })
+      .collect::<Vec<_>>();
+
+    for (entry_point, modules) in assign_tasks {
       input_entrypoints_and_modules.insert(entry_point, modules);
     }
 
     // Using this defer insertion strategies to workaround rustc borrow rules
-    for (k, v) in assign_depths_map {
-      compilation.get_module_graph_mut().set_depth(k, v);
+    for assign_depths_map in assign_depths_maps {
+      for (k, v) in assign_depths_map {
+        compilation.get_module_graph_mut().set_depth(k, v);
+      }
     }
 
     for name in &entries {
@@ -970,7 +1016,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     runtime: &RuntimeSpec,
     visited: &mut IdentifierIndexSet,
     ctx: &mut (usize, usize, IndexMap<ModuleIdentifier, (usize, usize)>),
-    compilation: &mut Compilation,
+    compilation: &Compilation,
   ) {
     let block_modules =
       self.get_block_modules(module_identifier.into(), Some(runtime), compilation);
@@ -1597,11 +1643,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module: DependenciesBlockIdentifier,
     runtime: Option<&RuntimeSpec>,
-    compilation: &mut Compilation,
-  ) -> Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)> {
+    compilation: &Compilation,
+  ) -> Vec<(
+    ModuleIdentifier,
+    ConnectionState,
+    Vec<ModuleGraphConnection>,
+  )> {
+    let optional_runtime = runtime.cloned().into();
     if let Some(modules) = self
       .block_modules_runtime_map
-      .get::<OptionalRuntimeSpec>(&runtime.cloned().into())
+      .get::<OptionalRuntimeSpec>(&optional_runtime)
       .and_then(|map| map.get(&module))
     {
       return modules.clone();
@@ -1614,7 +1665,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     );
     self
       .block_modules_runtime_map
-      .get::<OptionalRuntimeSpec>(&runtime.cloned().into())
+      .get::<OptionalRuntimeSpec>(&optional_runtime)
       .and_then(|map| map.get(&module))
       .unwrap_or_else(|| {
         panic!("block_modules_map.get({module:?}) must not empty after extract_block_modules")
@@ -1626,9 +1677,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
   ) {
-    let module_graph = &compilation.get_module_graph();
     let map = self
       .block_modules_runtime_map
       .entry(runtime.cloned().into())
@@ -1639,56 +1689,29 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       map.insert(b.into(), Vec::new());
     }
 
-    // keep the dependency order sorted by span
-    let mut connection_map: IndexMap<
-      (DependenciesBlockIdentifier, ModuleIdentifier),
-      Vec<DependencyId>,
-    > = IndexMap::default();
-
-    for dep_id in module_graph.get_outgoing_deps_in_order(&module) {
-      let dep = module_graph
-        .dependency_by_id(dep_id)
-        .expect("should have dep");
-      if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
-        continue;
-      }
-      if matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)) {
-        continue;
-      }
-      // Dependency created but no module is available.
-      // This could happen when module factorization is failed, but `options.bail` set to `false`
-      let module_graph = compilation.get_module_graph();
-      let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dep_id) else {
-        continue;
-      };
-      let block_id = if let Some(block) = compilation.get_module_graph().get_parent_block(dep_id) {
-        (*block).into()
-      } else {
-        module.into()
-      };
-      connection_map
-        .entry((block_id, *module_identifier))
-        .and_modify(|e| e.push(*dep_id))
-        .or_insert_with(|| vec![*dep_id]);
-    }
+    let connection_map = self
+      .prepared_connection_map
+      .get(&module)
+      .expect("should have outgoing deps");
 
     for ((block_id, module_identifier), connections) in connection_map {
       let modules = map
-        .get_mut(&block_id)
+        .get_mut(block_id)
         .expect("should have modules in block_modules_runtime_map");
       let active_state = get_active_state_of_connections(
-        &connections,
+        connections,
         runtime,
         &compilation.get_module_graph(),
         &compilation.module_graph_cache_artifact,
       );
-      modules.push((module_identifier, active_state, connections));
+      modules.push((*module_identifier, active_state, connections.clone()));
     }
   }
 
   fn process_connect_queue(&mut self, compilation: &mut Compilation) {
     // Figure out new parents for chunk groups
     // to get new available modules for these children
+
     for (chunk_group_info_ukey, targets) in self.queue_connect.drain(..) {
       let chunk_group_info = self
         .chunk_group_infos
@@ -1701,8 +1724,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .extend(targets.iter().map(|(target, _)| target).copied());
 
       // 2. Calculate resulting available modules
-      let resulting_available_modules =
-        chunk_group_info.calculate_resulting_available_modules(compilation, &self.mask_by_chunk);
+      chunk_group_info.calculate_resulting_available_modules(
+        &compilation
+          .chunk_group_by_ukey
+          .expect_get(&chunk_group_ukey),
+        &self.mask_by_chunk,
+      );
+      let resulting_available_modules = chunk_group_info
+        .resulting_available_modules
+        .as_ref()
+        .cloned()
+        .expect("should have resulting available modules");
 
       let runtime = chunk_group_info.runtime.clone();
 
@@ -1888,8 +1920,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       // combine min_available_modules from all resulting_available_modules
       for source_ukey in info.available_sources.clone() {
         let source = self.chunk_group_infos.expect_get_mut(&source_ukey);
-        let resulting_available_modules =
-          source.calculate_resulting_available_modules(compilation, &self.mask_by_chunk);
+        source.calculate_resulting_available_modules(
+          &compilation
+            .chunk_group_by_ukey
+            .expect_get(&source.chunk_group),
+          &self.mask_by_chunk,
+        );
+        let resulting_available_modules = source
+          .resulting_available_modules
+          .as_ref()
+          .expect("should have resulting available modules");
         available_modules |= resulting_available_modules;
       }
 
@@ -1906,60 +1946,150 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
-    let mut changed = false;
+    let mut chunk_groups_merging_batches: Vec<Vec<(CgiUkey, Option<ProcessBlock>)>> = vec![vec![]];
 
+    let mut taked_cgi = HashSet::<CgiUkey>::default();
     for (info_ukey, process_block) in chunk_groups_for_merging {
-      let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
+      if !taked_cgi.insert(info_ukey) {
+        chunk_groups_merging_batches.push(vec![]);
+        taked_cgi.clear();
+      }
+      chunk_groups_merging_batches
+        .last_mut()
+        .unwrap()
+        .push((info_ukey, process_block));
+    }
 
-      if !cgi.available_modules_to_be_merged.is_empty() {
-        let available_modules_to_be_merged =
-          std::mem::take(&mut cgi.available_modules_to_be_merged);
+    for batch in chunk_groups_merging_batches {
+      let chunk_groups_merging_tasks = batch
+        .into_iter()
+        .map(|(info_ukey, process_block)| {
+          let cgi = std::mem::take(self.chunk_group_infos.expect_get_mut(&info_ukey));
+          (info_ukey, process_block, cgi)
+        })
+        .collect::<Vec<_>>();
 
-        self.stat_merged_available_module_sets += available_modules_to_be_merged.len() as u32;
+      let (chunk_group_infos, chunk_groups_merging_results): (Vec<_>, Vec<_>) =
+        chunk_groups_merging_tasks
+          .into_par_iter()
+          .map(|(info_ukey, process_block, mut cgi)| {
+            let mut changed = false;
+            let avaiable_modules_length = cgi.available_modules_to_be_merged.len() as u32;
 
-        let orig = cgi.min_available_modules.clone();
+            if !cgi.available_modules_to_be_merged.is_empty() {
+              let available_modules_to_be_merged =
+                std::mem::take(&mut cgi.available_modules_to_be_merged);
 
-        for modules_to_be_merged in available_modules_to_be_merged {
-          if !cgi.min_available_modules_init {
-            cgi.min_available_modules_init = true;
-            cgi.min_available_modules = modules_to_be_merged;
-            changed = true;
-            continue;
-          }
+              for modules_to_be_merged in available_modules_to_be_merged {
+                if !cgi.min_available_modules_init {
+                  cgi.min_available_modules_init = true;
+                  cgi.min_available_modules = modules_to_be_merged;
+                  changed = true;
+                  continue;
+                }
 
-          cgi.min_available_modules &= modules_to_be_merged;
-          changed |= orig != cgi.min_available_modules;
-        }
+                let orig = cgi.min_available_modules.clone();
+                cgi.min_available_modules &= modules_to_be_merged;
+                changed |= orig != cgi.min_available_modules;
+              }
+            }
+
+            if changed {
+              cgi.invalidate_resulting_available_modules();
+            }
+            (
+              (info_ukey, cgi),
+              (info_ukey, process_block, changed, avaiable_modules_length),
+            )
+          })
+          .unzip();
+
+      for (info_ukey, cgi) in chunk_group_infos {
+        *self.chunk_group_infos.expect_get_mut(&info_ukey) = cgi;
       }
 
-      if changed {
-        cgi.invalidate_resulting_available_modules();
-        self.outdated_chunk_group_info.insert(info_ukey);
-      }
+      for (info_ukey, process_block, changed, avaiable_modules_length) in
+        chunk_groups_merging_results
+      {
+        let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
 
-      if let Some(process_block) = process_block {
-        let initialized = cgi.initialized;
-        let mut needs_walk = !initialized || changed;
-        let blocks = self.incoming_blocks_by_cgi.entry(cgi.ukey).or_default();
-        if blocks.insert(process_block.block) {
-          needs_walk = true;
+        self.stat_merged_available_module_sets += avaiable_modules_length;
+
+        if changed {
+          self.outdated_chunk_group_info.insert(info_ukey);
         }
 
-        if needs_walk {
-          cgi.initialized = true;
+        if let Some(process_block) = process_block {
+          let initialized = cgi.initialized;
+          let mut needs_walk = !initialized || changed;
 
-          // check if we can use cache to initialize it
-          if !initialized && self.recover_from_cache(info_ukey, compilation) {
-            self.stat_use_cache += 1;
-            continue;
+          let blocks = self.incoming_blocks_by_cgi.entry(cgi.ukey).or_default();
+          if blocks.insert(process_block.block) {
+            needs_walk = true;
           }
 
-          self
-            .queue_delayed
-            .push(QueueAction::ProcessBlock(process_block));
+          if needs_walk {
+            cgi.initialized = true;
+
+            // check if we can use cache to initialize it
+            if !initialized && self.recover_from_cache(info_ukey, compilation) {
+              self.stat_use_cache += 1;
+              continue;
+            }
+
+            self
+              .queue_delayed
+              .push(QueueAction::ProcessBlock(process_block));
+          }
         }
       }
     }
+  }
+
+  pub fn prepare(&mut self, compilation: &Compilation) -> Result<()> {
+    let mg = compilation.get_module_graph();
+    self.prepared_connection_map = mg
+      .modules()
+      .keys()
+      .par_bridge()
+      .map(|module| {
+        let mut connection_map = IndexMap::<
+          (DependenciesBlockIdentifier, ModuleIdentifier),
+          Vec<ModuleGraphConnection>,
+        >::default();
+
+        for dep_id in mg.get_outgoing_deps_in_order(module) {
+          let dep = mg.dependency_by_id(dep_id).expect("should have dep");
+          if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
+            continue;
+          }
+          if matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)) {
+            continue;
+          }
+          // Dependency created but no module is available.
+          // This could happen when module factorization is failed, but `options.bail` set to `false`
+          let Some(module_identifier) = mg.module_identifier_by_dependency_id(dep_id) else {
+            continue;
+          };
+          let block_id = if let Some(block) = mg.get_parent_block(dep_id) {
+            (*block).into()
+          } else {
+            (*module).into()
+          };
+          let connection = mg
+            .connection_by_dependency_id(dep_id)
+            .expect("should have connection");
+          connection_map
+            .entry((block_id, *module_identifier))
+            .and_modify(|e| e.push(connection.clone()))
+            .or_insert_with(|| vec![connection.clone()]);
+        }
+
+        (*module, connection_map)
+      })
+      .collect::<IdentifierMap<_>>();
+
+    Ok(())
   }
 }
 
