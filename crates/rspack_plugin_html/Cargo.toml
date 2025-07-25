@@ -10,6 +10,7 @@ default = []
 
 [dependencies]
 anyhow            = { workspace = true }
+atomic_refcell    = { workspace = true }
 cow-utils         = { workspace = true }
 futures           = { workspace = true }
 itertools         = { workspace = true }
