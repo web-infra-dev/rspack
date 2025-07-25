@@ -25,8 +25,8 @@ use crate::{
 
 /// Safety for using [atomic_refcell::AtomicRefCell]:
 ///
-/// [HtmlRspackPlugin::get_compilation_hooks_mut] is only called in [rspack_core::CompilerCompilation] and [rspack_core::CompilerThisCompilation],
-/// which is serial executed in a compilation.
+/// Read in [rspack_core::CompilationProcessAssets]
+/// Write in [rspack_core::CompilerCompilation], [rspack_core::CompilerThisCompilation]
 type ArcHtmlPluginHooks = Arc<AtomicRefCell<HtmlPluginHooks>>;
 
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcHtmlPluginHooks>> =
