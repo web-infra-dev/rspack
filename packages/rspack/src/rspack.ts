@@ -131,7 +131,7 @@ function rspack(
 		try {
 			const { compiler, watch, watchOptions } = create();
 			if (watch) {
-				compiler.watch(watchOptions as any, callback as any);
+				compiler.watch(watchOptions, callback as any);
 			} else {
 				compiler.run((err, stats) => {
 					compiler.close(() => {
