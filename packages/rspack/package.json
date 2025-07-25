@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@ast-grep/napi": "^0.39.1",
-    "@rsbuild/core": "^1.4.6",
+    "@rsbuild/core": "^1.4.10",
     "@rslib/core": "0.10.5",
     "@swc/types": "0.1.23",
     "@types/graceful-fs": "4.1.9",
@@ -65,7 +65,7 @@
     "zod-validation-error": "3.5.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.17.0",
+    "@module-federation/runtime-tools": "0.17.1",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1"
   },
