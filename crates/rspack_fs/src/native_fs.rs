@@ -1,6 +1,7 @@
 use std::{
   fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
+  path::{Path, PathBuf},
 };
 
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
@@ -235,15 +236,14 @@ impl ReadableFileSystem for NativeFileSystem {
       let path = dir.as_std_path();
       match VPath::from(path)? {
         VPath::Zip(info) => {
-          use std::path::{Path, PathBuf};
-
           self.pnp_lru.act(info.physical_base_path(), |zip| {
             for path in zip.dirs.iter().chain(zip.files.keys()) {
               let pathbuf = PathBuf::from(path);
-              let file_name = pathbuf.file_name().unwrap_or_default();
-              let parent_path = pathbuf.parent().unwrap_or(Path::new(""));
-              if PathBuf::from(&info.zip_path) == parent_path {
-                res.push(file_name.to_string_lossy().to_string());
+              if let Some(file_name) = pathbuf.file_name() {
+                let parent_path = pathbuf.parent().unwrap_or(Path::new("."));
+                if PathBuf::from(&info.zip_path) == parent_path {
+                  res.push(file_name.to_string_lossy().to_string());
+                }
               }
             }
           })?;
