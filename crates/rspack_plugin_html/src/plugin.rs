@@ -25,8 +25,7 @@ use crate::{
 
 /// Safety for using [atomic_refcell::AtomicRefCell]:
 ///
-/// Read in [rspack_core::CompilationProcessAssets]
-/// Write in [rspack_core::CompilerCompilation], [rspack_core::CompilerThisCompilation]
+/// Modified in [rspack_core::CompilerCompilation], [rspack_core::CompilerThisCompilation]
 type ArcHtmlPluginHooks = Arc<AtomicRefCell<HtmlPluginHooks>>;
 
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcHtmlPluginHooks>> =
