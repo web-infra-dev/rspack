@@ -71,9 +71,9 @@ compiler.run((err, stats) => {
 启动持续监听，在文件变化后自动启动一次编译流程，每次编译流程完成或因错误中止时触发回调。
 
 ```ts
-watch(
+function watch(
   watchOptions: WatchOptions, // 启动监听的配置
-  handler: (error: Error, stats: Stats) => void // 每次编译流程完成或因错误中止时触发回调
+  handler: (error: Error, stats: Stats) => void, // 每次编译流程完成或因错误中止时触发回调
 ): Watching; // 监听控制实例
 ```
 
@@ -465,10 +465,10 @@ run(
 根据依赖关系执行各个 compiler 的 `watch` 方法，启动持续监听，在文件变化后自动启动一次编译流程。
 
 ```ts
-watch(
-  watchOptions: WatchOptions,
+function watch(
+  watchOptions: WatchOptions | WatchOptions[],
   handler: (err: Error, stats: MultiStats) => void,
-): MultiWatching
+): MultiWatching;
 ```
 
 #### close
