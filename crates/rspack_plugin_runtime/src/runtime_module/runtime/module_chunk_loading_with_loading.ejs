@@ -1,6 +1,6 @@
 // import() chunk loading for javascript
 var installedChunkData = <%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;
-if (installedChunkData !== 0) { // 0 means "already installed".'
+if (installedChunkData !== 0) { // 0 means "already installed".
     // a Promise means "currently loading".
     if (installedChunkData) {
         promises.push(installedChunkData[1]);

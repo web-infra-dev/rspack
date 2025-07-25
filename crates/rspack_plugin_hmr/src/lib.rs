@@ -387,18 +387,23 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       m.extend(content.removed_modules);
       m.into_iter().collect()
     };
+
+    let manifest_content = serde_json::json!({
+      "c": c,
+      "r": r,
+      "m": m,
+    })
+    .to_string();
+
     compilation.emit_asset(
       filename,
       CompilationAsset::new(
         Some(
-          RawStringSource::from(
-            serde_json::json!({
-              "c": c,
-              "r": r,
-              "m": m,
-            })
-            .to_string(),
-          )
+          RawStringSource::from(if compilation.options.output.module {
+            format!("export default {};", manifest_content)
+          } else {
+            manifest_content
+          })
           .boxed(),
         ),
         AssetInfo::default().with_hot_module_replacement(Some(true)),
