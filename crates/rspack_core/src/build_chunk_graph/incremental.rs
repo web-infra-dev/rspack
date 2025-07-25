@@ -1,4 +1,4 @@
-use std::{collections::HashSet, hash::BuildHasherDefault};
+use std::{collections::HashSet, hash::BuildHasherDefault, sync::Arc};
 
 use num_bigint::BigUint;
 use rspack_collections::{
@@ -607,7 +607,7 @@ impl CodeSplitter {
     &self,
     cache: &ChunkCreateData,
     runtime: &RuntimeSpec,
-    new_available_modules: BigUint,
+    new_available_modules: Arc<BigUint>,
     options: Option<&GroupOptions>,
   ) -> bool {
     cache.can_rebuild
@@ -619,7 +619,7 @@ impl CodeSplitter {
   pub fn available_modules_affected(
     &self,
     cache: &ChunkCreateData,
-    new_available_modules: BigUint,
+    new_available_modules: Arc<BigUint>,
   ) -> bool {
     if new_available_modules == cache.available_modules {
       return false;
@@ -629,7 +629,7 @@ impl CodeSplitter {
     // 0010
     // 0100
     // diff: 0110
-    let diff = &cache.available_modules ^ new_available_modules;
+    let diff = cache.available_modules.as_ref() ^ new_available_modules.as_ref();
 
     let cache_result = cache
       .cache_result
@@ -666,7 +666,7 @@ struct CacheResult {
 #[derive(Debug, Clone)]
 pub struct ChunkCreateData {
   // input
-  available_modules: BigUint,
+  available_modules: Arc<BigUint>,
   options: Option<GroupOptions>,
   runtime: RuntimeSpec,
   pub module: ModuleIdentifier,
