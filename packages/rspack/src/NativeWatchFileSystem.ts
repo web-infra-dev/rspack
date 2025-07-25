@@ -105,6 +105,10 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			[Array.from(directories.added!), Array.from(directories.removed!)],
 			[Array.from(missing.added!), Array.from(missing.removed!)],
 			(err: Error | null, result) => {
+				if (!err) {
+					// pause emitting events (avoids clearing aggregated changes and removals on timeout)
+					nativeWatcher.pause();
+				}
 				// !!if there is an error, result maybe a undefined value
 				const changedFiles = result?.changedFiles || [];
 				const removedFiles = result?.removedFiles || [];
