@@ -27,9 +27,8 @@ impl Task<MakeTaskContext> for AddTask {
   }
   async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_identifier = self.module.identifier();
-    let artifact = &mut context.artifact;
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     // reuse module for self referenced module
     if self.module.as_self_module().is_some() {
@@ -49,14 +48,19 @@ impl Task<MakeTaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let merged_forward_ids = MergedForwardIds::new(
-      self
-        .dependencies
-        .iter()
-        .filter_map(|dep| dep.as_module_dependency())
-        .filter_map(|dep| dep.forward_ids())
-        .collect::<FxHashSet<_>>(),
-    );
+    let mut merged_forward_ids = MergedForwardIds::default();
+    for dep in self
+      .dependencies
+      .iter()
+      .filter_map(|dep| dep.as_module_dependency())
+    {
+      dep.lazy().forward_ids(
+        &mut merged_forward_ids,
+        &context.artifact.module_to_lazy_make,
+        &dep.id(),
+        &module_identifier,
+      );
+    }
 
     // reuse module if module is already added by other dependency
     if module_graph
@@ -76,8 +80,8 @@ impl Task<MakeTaskContext> for AddTask {
       {
         if context
           .artifact
-          .module_to_lazy_dependencies
-          .contains_key(&module_identifier)
+          .module_to_lazy_make
+          .has_lazy_dependencies(&module_identifier)
         {
           return Ok(vec![Box::new(ProcessLazyDependenciesTask {
             immediate_forward_ids: merged_forward_ids.get_immediate(),
@@ -85,13 +89,10 @@ impl Task<MakeTaskContext> for AddTask {
           })]);
         }
       } else {
-        let lazy_dependencies = context
+        let pending_immediate_forward_ids = context
           .artifact
-          .module_to_lazy_dependencies
-          .entry(module_identifier)
-          .or_insert_with(|| HasLazyDependencies::Maybe(ImmediateForwardIdSet::default()));
-        let pending_immediate_forward_ids = lazy_dependencies
-          .expect_maybe_mut("should not have lazy dependencies for non-built module");
+          .module_to_lazy_make
+          .maybe_lazy_dependencies(module_identifier);
         pending_immediate_forward_ids.append(merged_forward_ids.get_immediate());
       }
 
@@ -109,7 +110,7 @@ impl Task<MakeTaskContext> for AddTask {
 
     tracing::trace!("Module added: {}", self.module.identifier());
 
-    artifact.built_modules.insert(module_identifier);
+    context.artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
@@ -119,7 +120,7 @@ impl Task<MakeTaskContext> for AddTask {
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
       fs: context.fs.clone(),
-      immediate_forward_ids: merged_forward_ids.get_immediate(),
+      merged_forward_ids,
     })])
   }
 }

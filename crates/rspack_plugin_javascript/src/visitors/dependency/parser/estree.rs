@@ -280,6 +280,10 @@ impl ExportImport<'_> {
       ExportImport::Named(e) => e.get_with_obj(),
     }
   }
+
+  pub fn is_star_export(&self) -> bool {
+    matches!(self, ExportImport::All(ExportAllDeclaration::All(_)))
+  }
 }
 
 #[derive(Debug, Clone, Copy)]

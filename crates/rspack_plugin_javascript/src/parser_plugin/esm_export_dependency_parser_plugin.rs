@@ -55,13 +55,13 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       DependencyType::EsmExport,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
+      true,
     );
     if parser
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
       && !parser.immediate_forward_ids.is_empty()
-      // && parser.build_info.all_star_exports.is_empty()
       && let ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) = statement
     {
       let mut is_empty = true;
@@ -197,7 +197,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
       && !parser.immediate_forward_ids.is_empty()
-      // && parser.build_info.all_star_exports.is_empty()
       && let Some(export_name) = export_name
       && !parser.immediate_forward_ids.contains(export_name)
     {

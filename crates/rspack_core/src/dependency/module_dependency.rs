@@ -28,18 +28,14 @@ pub trait ModuleDependency: Dependency {
   }
 
   fn weak(&self) -> bool {
-    matches!(self.lazy(), LazyMake::LazyUntil { .. })
+    self.lazy().is_lazy()
   }
 
   fn lazy(&self) -> LazyMake {
-    LazyMake::Eager
+    LazyMake::default()
   }
 
   fn unset_lazy(&mut self) {}
-
-  fn forward_ids(&self) -> Option<ForwardIds> {
-    None
-  }
 
   fn get_optional(&self) -> bool {
     false

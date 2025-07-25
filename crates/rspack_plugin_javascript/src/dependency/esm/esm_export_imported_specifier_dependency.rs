@@ -19,8 +19,8 @@ use rspack_core::{
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ForwardIds, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyMake, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  InitFragmentStage, JavascriptParserOptions, LazyMake, LazyMakeKind, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
   UsageState, UsedName,
@@ -1407,17 +1407,26 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     &mut self.factorize_info
   }
 
-  fn forward_ids(&self) -> Option<ForwardIds> {
-    Some(ForwardIds::new(self.ids.clone()))
-  }
-
   fn lazy(&self) -> LazyMake {
-    if self.lazy_make {
-      LazyMake::LazyUntil {
-        forward_id: self.name.clone(),
+    let is_star_export = self.name.is_none();
+    if is_star_export {
+      LazyMake {
+        forward_ids: None,
+        keep_forward: true,
+        kind: LazyMakeKind::Eager,
       }
     } else {
-      LazyMake::Eager
+      LazyMake {
+        forward_ids: Some(ForwardIds::new(self.ids.clone())),
+        keep_forward: true,
+        kind: if self.lazy_make {
+          LazyMakeKind::Lazy {
+            until: self.name.clone(),
+          }
+        } else {
+          LazyMakeKind::Eager
+        },
+      }
     }
   }
 
