@@ -234,6 +234,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "atomic_refcell"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41e67cd8309bbd06cd603a9e693a784ac2e5d1e955f11286e355089fcab3047c"
+
+[[package]]
 name = "auto_impl"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4764,6 +4770,7 @@ name = "rspack_plugin_html"
 version = "0.4.10"
 dependencies = [
  "anyhow",
+ "atomic_refcell",
  "cow-utils",
  "futures",
  "itertools 0.14.0",
