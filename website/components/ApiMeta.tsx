@@ -1,4 +1,4 @@
-import { useLang } from 'rspress/runtime';
+import { useLang } from '@rspress/core/runtime';
 import styles from './ApiMeta.module.scss';
 
 /**

@@ -1,6 +1,6 @@
+import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import { memo } from 'react';
-import { useLang } from 'rspress/runtime';
-import { Link } from 'rspress/theme';
 import { useI18n } from '../../i18n/index';
 import styles from './index.module.scss';
 

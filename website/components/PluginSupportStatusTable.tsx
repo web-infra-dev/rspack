@@ -1,6 +1,6 @@
 import { Table } from '@builtIns/Table';
+import { useLang } from '@rspress/core/runtime';
 import type React from 'react';
-import { useLang } from 'rspress/runtime';
 import { useI18nUrl } from 'theme/i18n';
 import S from './PluginSupportStatusTable.module.scss';
 
