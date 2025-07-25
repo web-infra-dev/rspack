@@ -1587,6 +1587,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .chunk_group_by_ukey
         .expect_get_mut(&item_chunk_group);
       item_chunk_group.add_async_entrypoint(entrypoint);
+      self.incoming_blocks_by_cgi.entry(cgi).or_default().insert(
+        DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id),
+      );
     }
   }
 
