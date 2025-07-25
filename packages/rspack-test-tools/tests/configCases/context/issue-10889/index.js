@@ -10,4 +10,3 @@ it('should parse invalid regex syntax', () => {
 
 	console.log('regex:', a, b, c, d, f, h)
 })
-
