@@ -18,9 +18,9 @@
     "sort-projects-words": "node ./sortProjectWords.js"
   },
   "dependencies": {
-    "@rstack-dev/doc-ui": "1.10.6",
-    "axios": "^1.10.0",
-    "markdown-to-jsx": "^7.7.10",
+    "@rstack-dev/doc-ui": "1.10.8",
+    "axios": "^1.11.0",
+    "markdown-to-jsx": "^7.7.12",
     "mermaid": "^11.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -33,8 +33,8 @@
     "@rspress/plugin-algolia": "2.0.0-beta.22",
     "@rspress/plugin-llms": "2.0.0-beta.22",
     "@rspress/plugin-rss": "2.0.0-beta.22",
-    "@shikijs/transformers": "^3.7.0",
-    "@types/node": "^20.19.8",
+    "@shikijs/transformers": "^3.8.1",
+    "@types/node": "^20.19.9",
     "@types/react": "^19.1.8",
     "@types/semver": "^7.7.0",
     "cspell-ban-words": "0.0.4",

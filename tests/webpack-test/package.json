@@ -38,7 +38,7 @@
     "react-dom": "^19.1.0",
     "rimraf": "^5.0.10",
     "url-loader": "^4.1.1",
-    "source-map": "^0.7.4",
+    "source-map": "^0.7.6",
     "terser": "5.43.1",
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.2",
