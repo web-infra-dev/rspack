@@ -5114,6 +5114,7 @@ name = "rspack_plugin_runtime"
 version = "0.4.10"
 dependencies = [
  "async-trait",
+ "atomic_refcell",
  "cow-utils",
  "derive_more 2.0.1",
  "futures",

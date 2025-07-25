@@ -122,7 +122,7 @@ async fn handle_compilation(
 
   {
     let runtime_plugin_hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
-    let mut runtime_plugin_hooks = runtime_plugin_hooks.write().await;
+    let mut runtime_plugin_hooks = runtime_plugin_hooks.borrow_mut();
     runtime_plugin_hooks
       .create_script
       .tap(create_script::new(self));

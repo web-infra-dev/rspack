@@ -4,6 +4,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use atomic_refcell::AtomicRefCell;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
@@ -17,7 +18,6 @@ use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::fx_hash::FxDashMap;
-use tokio::sync::RwLock;
 
 use crate::{
   runtime_module::{
@@ -36,7 +36,12 @@ use crate::{
   RuntimePluginHooks,
 };
 
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Arc<RwLock<RuntimePluginHooks>>>> =
+/// Safety with [atomic_refcell::AtomicRefCell]
+///
+/// Modified in [rspack_core::CompilerCompilation], [rspack_core::CompilerThisCompilation]
+type ArcRuntimePluginHooks = Arc<AtomicRefCell<RuntimePluginHooks>>;
+
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRuntimePluginHooks>> =
   LazyLock::new(Default::default);
 
 const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
@@ -149,7 +154,7 @@ fn handle_dependency_globals(
 pub struct RuntimePlugin;
 
 impl RuntimePlugin {
-  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<RuntimePluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> ArcRuntimePluginHooks {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -159,7 +164,7 @@ impl RuntimePlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<RuntimePluginHooks>> {
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> ArcRuntimePluginHooks {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
