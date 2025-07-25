@@ -1,3 +1,4 @@
+import { Link } from '@rspress/core/theme';
 import { FullyFeatured as BaseFullyFeatured } from '@rstack-dev/doc-ui/fully-featured';
 import {
   containerStyle,
@@ -7,7 +8,6 @@ import {
   titleStyle,
 } from '@rstack-dev/doc-ui/section-style';
 import { memo } from 'react';
-import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import arrow from './assets/arrow.svg';
 import javascriptApi from './assets/javascriptApi.svg';

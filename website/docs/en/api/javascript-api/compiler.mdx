@@ -465,10 +465,10 @@ run(
 Execute the `watch` method of each compiler according to the dependency relationship to start watching, and start a compilation process after the file changes.
 
 ```ts
-watch(
-  watchOptions: WatchOptions,
+function watch(
+  watchOptions: WatchOptions | WatchOptions[],
   handler: (err: Error, stats: MultiStats) => void,
-): MultiWatching
+): MultiWatching;
 ```
 
 #### close

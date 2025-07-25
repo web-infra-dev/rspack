@@ -1,4 +1,4 @@
-import { NoSSR } from 'rspress/runtime';
+import { NoSSR } from '@rspress/core/runtime';
 import style from './RandomMemberList.module.scss';
 
 interface Member {
