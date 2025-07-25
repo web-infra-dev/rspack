@@ -2630,7 +2630,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
-    raw(compiler: Compiler): BuiltinPlugin | undefined;
+    raw(): BuiltinPlugin | undefined;
 }
 
 // @public
