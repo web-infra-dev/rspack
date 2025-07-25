@@ -10,6 +10,9 @@
         ]
       }
     },
-    "rules": {}
+    "rules": {},
+    "plugins": [
+      "@typescript-eslint"
+    ]
   }
 ]

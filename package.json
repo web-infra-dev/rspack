@@ -84,7 +84,7 @@
     "typescript": "^5.8.3",
     "webpack": "5.99.9",
     "zx": "8.6.1",
-    "@rslint/core": "0.0.6"
+    "@rslint/core": "0.0.7"
   },
   "packageManager": "pnpm@10.10.0",
   "pnpm": {
