@@ -62,6 +62,10 @@ pub fn save_module_graph(
       let module = mg
         .module_by_identifier(identifier)
         .expect("should have module");
+      // TODO remove after diagnostic cacheable
+      if !module.diagnostics().is_empty() {
+        return None;
+      }
       let blocks = module
         .get_blocks()
         .par_iter()
