@@ -368,7 +368,7 @@ class TestRunner {
 			const call = () => {
 				fn.call(
 					this.testConfig.nonEsmThis
-						? this.testConfig.nonEsmThis(module)
+						? this.testConfig.nonEsmThis(mod)
 						: mod.exports,
 					...argValues
 				);
