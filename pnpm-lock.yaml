@@ -92,8 +92,8 @@ importers:
         specifier: 5.99.9
         version: 5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))
       zx:
-        specifier: 8.6.1
-        version: 8.6.1
+        specifier: 8.7.1
+        version: 8.7.1
 
   crates/node_binding:
     devDependencies:
@@ -661,8 +661,8 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
       zx:
-        specifier: 8.6.1
-        version: 8.6.1
+        specifier: 8.7.1
+        version: 8.7.1
 
   tests/bench:
     dependencies:
@@ -8028,8 +8028,8 @@ packages:
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
-  zx@8.6.1:
-    resolution: {integrity: sha512-ig4Gn2e3L9QaQq3OsyDyGKvXFiq7wYvLCPmFJgcneHsr5vTeJefe0SXtDE7qaur9ysv7giAc0CmEtQcS71UA5Q==}
+  zx@8.7.1:
+    resolution: {integrity: sha512-28u1w2LlIfvyvJvYe6pmCipesk8oL5AFMVp+P/U445LcaPgzrU5lNDtAPd6nJvWmoCNyXZz37R/xKOGokccjsw==}
     engines: {node: '>= 12.17.0'}
     hasBin: true
 
@@ -16387,4 +16387,4 @@ snapshots:
 
   zwitch@2.0.4: {}
 
-  zx@8.6.1: {}
+  zx@8.7.1: {}
