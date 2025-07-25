@@ -104,7 +104,7 @@ async fn handle_compilation(
   {
     let real_content_hash_plugin_hooks =
       RealContentHashPlugin::get_compilation_hooks_mut(compilation.id());
-    let mut real_content_hash_plugin_hooks = real_content_hash_plugin_hooks.write().await;
+    let mut real_content_hash_plugin_hooks = real_content_hash_plugin_hooks.borrow_mut();
     real_content_hash_plugin_hooks
       .update_hash
       .tap(update_hash::new(self));
