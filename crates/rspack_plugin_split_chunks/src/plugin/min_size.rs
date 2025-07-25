@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use rayon::prelude::*;
 use rspack_core::{Compilation, SourceType};
 
 use super::ModuleGroupMap;
@@ -101,7 +102,7 @@ impl SplitChunksPlugin {
     module_group_map: &mut ModuleGroupMap,
   ) {
     let invalidated_module_groups = module_group_map
-      .iter_mut()
+      .par_iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
         // Fast path
