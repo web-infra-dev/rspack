@@ -18,7 +18,7 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.done.tapPromise("PLUGIN", async stats => {
 					const { errors } = stats.toJson({ errors: true });
-					if (index == 0) {
+					if (index === 0) {
 						expect(errors.length).toBe(1);
 						expect(errors[0].message).toMatch("LoaderError");
 					} else {
