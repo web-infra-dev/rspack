@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_collections::IdentifierMap;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -10,39 +8,14 @@ use crate::{
   DependencyId, ModuleIdentifier,
 };
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct ForwardIds(Arc<Vec<Atom>>);
-
-impl ForwardIds {
-  pub fn new(ids: Arc<Vec<Atom>>) -> ForwardIds {
-    Self(ids)
-  }
-}
-
-#[derive(Debug)]
-pub struct MergedForwardIds(FxHashSet<ForwardIds>);
-
-impl MergedForwardIds {
-  pub fn new(set: FxHashSet<ForwardIds>) -> MergedForwardIds {
-    MergedForwardIds(set)
-  }
-
-  pub fn get_immediate(&self) -> ImmediateForwardIdSet {
-    ImmediateForwardIdSet(
-      self
-        .0
-        .iter()
-        .flat_map(|forward_ids| forward_ids.0.first())
-        .cloned()
-        .collect(),
-    )
-  }
-}
-
 #[derive(Debug, Default)]
-pub struct ImmediateForwardIdSet(FxHashSet<Atom>);
+pub struct ForwardedIdSet(FxHashSet<Atom>);
 
-impl ImmediateForwardIdSet {
+impl ForwardedIdSet {
+  pub fn new(set: FxHashSet<Atom>) -> Self {
+    Self(set)
+  }
+
   pub fn append(&mut self, other: Self) {
     self.0.extend(other.0);
   }
@@ -57,21 +30,33 @@ impl ImmediateForwardIdSet {
 }
 
 #[derive(Debug, Default)]
-pub enum LazyMake {
-  #[default]
-  Eager,
-  LazyUntil {
-    forward_id: Option<Atom>,
-  },
+pub struct LazyMake {
+  pub forward_id: Option<Atom>,
+  pub kind: LazyMakeKind,
 }
 
 #[derive(Debug, Default)]
-pub struct LazyDependenciesInfo {
+pub enum LazyMakeKind {
+  #[default]
+  Eager,
+  Lazy {
+    until: Option<Atom>,
+  },
+}
+
+impl LazyMake {
+  pub fn is_lazy(&self) -> bool {
+    matches!(self.kind, LazyMakeKind::Lazy { .. })
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct LazyDependencies {
   forward_id_to_request: FxHashMap<Atom, Atom>,
   request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
 }
 
-impl LazyDependenciesInfo {
+impl LazyDependencies {
   pub fn is_empty(&self) -> bool {
     self.request_to_dependencies.is_empty()
   }
@@ -95,9 +80,9 @@ impl LazyDependenciesInfo {
 
   pub fn get_requested_lazy_dependencies<'a>(
     &self,
-    immediate_forward_ids: &'a ImmediateForwardIdSet,
+    forwarded_ids: &'a ForwardedIdSet,
   ) -> impl Iterator<Item = DependencyId> + use<'a, '_> {
-    immediate_forward_ids
+    forwarded_ids
       .0
       .iter()
       .filter_map(|forward_id| {
@@ -106,20 +91,19 @@ impl LazyDependenciesInfo {
           .get(forward_id)
           .and_then(|request| self.request_to_dependencies.get(request))
       })
-      .flat_map(|deps| deps)
+      .flatten()
       .copied()
   }
 }
 
 #[derive(Debug)]
 pub enum HasLazyDependencies {
-  Maybe(ImmediateForwardIdSet),
-  Has(LazyDependenciesInfo),
-  KeepForward(IdentifierMap<MergedForwardIds>),
+  Maybe(ForwardedIdSet),
+  Has(LazyDependencies),
 }
 
 impl HasLazyDependencies {
-  pub fn expect_has(&self, msg: &str) -> &LazyDependenciesInfo {
+  pub fn expect_has(&self, msg: &str) -> &LazyDependencies {
     if let HasLazyDependencies::Has(lazy_dependencies_info) = self {
       lazy_dependencies_info
     } else {
@@ -127,7 +111,7 @@ impl HasLazyDependencies {
     }
   }
 
-  pub fn expect_maybe_mut(&mut self, msg: &str) -> &mut ImmediateForwardIdSet {
+  pub fn expect_maybe_mut(&mut self, msg: &str) -> &mut ForwardedIdSet {
     if let HasLazyDependencies::Maybe(pending_forward_ids) = self {
       pending_forward_ids
     } else {
@@ -135,7 +119,7 @@ impl HasLazyDependencies {
     }
   }
 
-  pub fn into_maybe(self) -> Option<ImmediateForwardIdSet> {
+  pub fn into_maybe(self) -> Option<ForwardedIdSet> {
     if let HasLazyDependencies::Maybe(pending_forward_ids) = self {
       Some(pending_forward_ids)
     } else {
@@ -144,9 +128,51 @@ impl HasLazyDependencies {
   }
 }
 
+#[derive(Debug, Default)]
+pub struct ModuleToLazyMake {
+  module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
+}
+
+impl ModuleToLazyMake {
+  pub fn get_lazy_dependencies(&self, module: &ModuleIdentifier) -> Option<&LazyDependencies> {
+    self
+      .module_to_lazy_dependencies
+      .get(module)
+      .and_then(|info| match info {
+        HasLazyDependencies::Maybe(_) => None,
+        HasLazyDependencies::Has(lazy_dependencies) => Some(lazy_dependencies),
+      })
+  }
+
+  pub fn update_module_lazy_dependencies(
+    &mut self,
+    module: ModuleIdentifier,
+    to: Option<LazyDependencies>,
+  ) -> Option<HasLazyDependencies> {
+    match to {
+      Some(lazy_dependencies) => self
+        .module_to_lazy_dependencies
+        .insert(module, HasLazyDependencies::Has(lazy_dependencies)),
+      None => self.module_to_lazy_dependencies.remove(&module),
+    }
+  }
+
+  pub fn has_lazy_dependencies(&self, module: &ModuleIdentifier) -> bool {
+    self.module_to_lazy_dependencies.contains_key(module)
+  }
+
+  pub fn maybe_lazy_dependencies(&mut self, module: ModuleIdentifier) -> &mut ForwardedIdSet {
+    self
+      .module_to_lazy_dependencies
+      .entry(module)
+      .or_insert_with(|| HasLazyDependencies::Maybe(ForwardedIdSet::default()))
+      .expect_maybe_mut("should be maybe lazy dependencies")
+  }
+}
+
 #[derive(Debug)]
 pub struct ProcessLazyDependenciesTask {
-  pub immediate_forward_ids: ImmediateForwardIdSet,
+  pub forwarded_ids: ForwardedIdSet,
   pub original_module_identifier: ModuleIdentifier,
 }
 
@@ -160,21 +186,17 @@ impl Task<MakeTaskContext> for ProcessLazyDependenciesTask {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
     let ProcessLazyDependenciesTask {
-      immediate_forward_ids,
+      forwarded_ids,
       original_module_identifier,
     } = *self;
 
     let lazy_dependencies = context
       .artifact
-      .module_to_lazy_dependencies
-      .get(&original_module_identifier)
-      .and_then(|info| match info {
-        HasLazyDependencies::Maybe(_) | HasLazyDependencies::KeepForward(_) => None,
-        HasLazyDependencies::Has(lazy_dependencies) => Some(lazy_dependencies),
-      })
+      .module_to_lazy_make
+      .get_lazy_dependencies(&original_module_identifier)
       .expect("only module that has lazy dependencies should run into ProcessLazyDependenciesTask");
     let dependencies_to_process = lazy_dependencies
-      .get_requested_lazy_dependencies(&immediate_forward_ids)
+      .get_requested_lazy_dependencies(&forwarded_ids)
       .collect::<Vec<_>>();
     for dep in &dependencies_to_process {
       if let Some(dep) = module_graph

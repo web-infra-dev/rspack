@@ -1,9 +1,9 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::hash::BuildHasherDefault;
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsOption, AsPreset, AsVec, Skip},
+  with::{AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -18,8 +18,8 @@ use rspack_core::{
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ForwardIds, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyMake, ModuleDependency, ModuleGraph,
+  GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, LazyMake, LazyMakeKind, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
@@ -45,8 +45,8 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
-  #[cacheable(with=AsInner<AsVec<AsPreset>>)]
-  ids: Arc<Vec<Atom>>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  ids: Vec<Atom>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub name: Option<Atom>,
   #[cacheable(with=AsPreset)]
@@ -83,7 +83,7 @@ impl ESMExportImportedSpecifierDependency {
       source_order,
       name,
       request,
-      ids: Arc::new(ids),
+      ids,
       resource_identifier,
       other_star_exports,
       range,
@@ -1407,17 +1407,24 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     &mut self.factorize_info
   }
 
-  fn forward_ids(&self) -> Option<ForwardIds> {
-    Some(ForwardIds::new(self.ids.clone()))
-  }
-
   fn lazy(&self) -> LazyMake {
-    if self.lazy_make {
-      LazyMake::LazyUntil {
-        forward_id: self.name.clone(),
+    let is_star_export = self.name.is_none();
+    if is_star_export {
+      LazyMake {
+        forward_id: None,
+        kind: LazyMakeKind::Eager,
       }
     } else {
-      LazyMake::Eager
+      LazyMake {
+        forward_id: self.ids.first().cloned(),
+        kind: if self.lazy_make {
+          LazyMakeKind::Lazy {
+            until: self.name.clone(),
+          }
+        } else {
+          LazyMakeKind::Eager
+        },
+      }
     }
   }
 

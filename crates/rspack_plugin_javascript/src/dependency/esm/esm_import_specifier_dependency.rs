@@ -1,19 +1,18 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsInner, AsOption, AsPreset, AsVec, Skip},
+  with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
-  to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardIds,
-  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  create_exports_object_referenced, export_from_import, get_exports_type,
+  make::repair::lazy::LazyMakeKind, property_access, to_normal_comment, AsContextDependency,
+  ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, GetUsedNameParam, ImportAttributes, JavascriptParserOptions, LazyMake,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -40,8 +39,8 @@ pub struct ESMImportSpecifierDependency {
   shorthand: bool,
   asi_safe: bool,
   range: DependencyRange,
-  #[cacheable(with=AsInner<AsVec<AsPreset>>)]
-  ids: Arc<Vec<Atom>>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
@@ -83,7 +82,7 @@ impl ESMImportSpecifierDependency {
       shorthand,
       asi_safe,
       range,
-      ids: Arc::new(ids),
+      ids,
       call,
       direct_import,
       export_presence_mode,
@@ -298,8 +297,11 @@ impl ModuleDependency for ESMImportSpecifierDependency {
     &mut self.factorize_info
   }
 
-  fn forward_ids(&self) -> Option<ForwardIds> {
-    Some(ForwardIds::new(self.ids.clone()))
+  fn lazy(&self) -> LazyMake {
+    LazyMake {
+      forward_id: self.ids.first().cloned(),
+      kind: LazyMakeKind::Eager,
+    }
   }
 }
 

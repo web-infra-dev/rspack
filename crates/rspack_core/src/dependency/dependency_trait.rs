@@ -5,7 +5,7 @@ use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_location::DependencyLocation;
-use rspack_util::{atom::Atom, ext::AsAny};
+use rspack_util::ext::AsAny;
 
 use super::{
   dependency_template::AsDependencyCodeGeneration, module_dependency::*, DependencyCategory,

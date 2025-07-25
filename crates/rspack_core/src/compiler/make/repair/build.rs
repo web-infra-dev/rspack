@@ -1,13 +1,12 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
-use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   make::repair::{
-    lazy::{ImmediateForwardIdSet, LazyDependenciesInfo, LazyMake, ProcessLazyDependenciesTask},
+    lazy::{ForwardedIdSet, LazyDependencies, LazyMake, LazyMakeKind, ProcessLazyDependenciesTask},
     HasLazyDependencies,
   },
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -25,7 +24,7 @@ pub struct BuildTask {
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub immediate_forward_ids: ImmediateForwardIdSet,
+  pub forwarded_ids: ForwardedIdSet,
 }
 
 #[async_trait::async_trait]
@@ -43,7 +42,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile,
       mut module,
       fs,
-      immediate_forward_ids,
+      forwarded_ids,
     } = *self;
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_start();
@@ -64,7 +63,7 @@ impl Task<MakeTaskContext> for BuildTask {
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           fs: fs.clone(),
-          immediate_forward_ids,
+          forwarded_ids,
         },
         None,
       )
@@ -139,7 +138,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
       .build_dependencies
       .add_batch_file(&build_info.build_dependencies);
 
-    let mut lazy_dependencies_info = LazyDependenciesInfo::default();
+    let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
@@ -152,9 +151,12 @@ impl Task<MakeTaskContext> for BuildResultTask {
           module.add_dependency_id(dependency_id);
         }
         if let Some(dep) = dependency.as_module_dependency()
-          && let LazyMake::LazyUntil { forward_id } = dep.lazy()
+          && let LazyMake {
+            kind: LazyMakeKind::Lazy { until },
+            ..
+          } = dep.lazy()
         {
-          lazy_dependencies_info.insert(dep.request().into(), forward_id, dependency_id);
+          lazy_dependencies.insert(dep.request().into(), until.clone(), dependency_id);
         }
         all_dependencies.push(dependency_id);
         module_graph.set_parents(
@@ -198,20 +200,19 @@ impl Task<MakeTaskContext> for BuildResultTask {
 
     let mut tasks: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
 
-    let dependencies_to_process = if !lazy_dependencies_info.is_empty() {
-      let lazy_dependencies = lazy_dependencies_info
+    let dependencies_to_process = if !lazy_dependencies.is_empty() {
+      let lazy_dependency_ids = lazy_dependencies
         .lazy_dependencies()
         .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !lazy_dependencies.contains(dep));
+      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
 
-      if let Some(HasLazyDependencies::Maybe(forward_ids)) =
-        context.artifact.module_to_lazy_dependencies.insert(
-          module_identifier,
-          HasLazyDependencies::Has(lazy_dependencies_info),
-        )
+      if let Some(HasLazyDependencies::Maybe(forward_ids)) = context
+        .artifact
+        .module_to_lazy_make
+        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies))
       {
         tasks.push(Box::new(ProcessLazyDependenciesTask {
-          immediate_forward_ids: forward_ids,
+          forwarded_ids: forward_ids,
           original_module_identifier: module_identifier,
         }));
       }
@@ -220,8 +221,8 @@ impl Task<MakeTaskContext> for BuildResultTask {
     } else {
       context
         .artifact
-        .module_to_lazy_dependencies
-        .remove(&module_identifier);
+        .module_to_lazy_make
+        .update_module_lazy_dependencies(module_identifier, None);
       all_dependencies
     };
 

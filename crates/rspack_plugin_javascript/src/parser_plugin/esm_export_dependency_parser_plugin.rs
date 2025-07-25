@@ -56,21 +56,41 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
+    // if parser
+    //   .factory_meta
+    //   .and_then(|meta| meta.side_effect_free)
+    //   .unwrap_or_default()
+    //   && !parser.forwarded_ids.is_empty()
+    //   && !statement.is_star_export()
+    // {
+    //   side_effect_dep.set_lazy();
+    // }
     if parser
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
-      && !parser.immediate_forward_ids.is_empty()
-      // && parser.build_info.all_star_exports.is_empty()
-      && let ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) = statement
+      && !parser.forwarded_ids.is_empty()
     {
-      let mut is_empty = true;
-      let not_in_forward_ids =
-        ExportNamedDeclaration::named_export_specifiers(named).all(|(_, export_name, _)| {
-          is_empty = false;
-          !parser.immediate_forward_ids.contains(&export_name)
-        });
-      if not_in_forward_ids && !is_empty {
+      let lazy = match statement {
+        ExportImport::All(all) => {
+          if let Some(name) = all.exported_name() {
+            !parser.forwarded_ids.contains(name)
+          } else {
+            false
+          }
+        }
+        ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) => {
+          let mut is_empty = true;
+          let not_contains =
+            ExportNamedDeclaration::named_export_specifiers(named).all(|(_, export_name, _)| {
+              is_empty = false;
+              !parser.forwarded_ids.contains(&export_name)
+            });
+          not_contains && !is_empty
+        }
+        _ => false,
+      };
+      if lazy {
         side_effect_dep.set_lazy();
       }
     }
@@ -196,10 +216,9 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
-      && !parser.immediate_forward_ids.is_empty()
-      // && parser.build_info.all_star_exports.is_empty()
+      && !parser.forwarded_ids.is_empty()
       && let Some(export_name) = export_name
-      && !parser.immediate_forward_ids.contains(export_name)
+      && !parser.forwarded_ids.contains(export_name)
     {
       dep.set_lazy();
     }

@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyMake,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyMake, LazyMakeKind,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
@@ -616,10 +616,13 @@ impl ModuleDependency for ESMImportSideEffectDependency {
   }
 
   fn lazy(&self) -> LazyMake {
-    if self.lazy_make {
-      LazyMake::LazyUntil { forward_id: None }
-    } else {
-      LazyMake::Eager
+    LazyMake {
+      forward_id: None,
+      kind: if self.lazy_make {
+        LazyMakeKind::Lazy { until: None }
+      } else {
+        LazyMakeKind::Eager
+      },
     }
   }
 

@@ -1,14 +1,14 @@
 mod cutout;
 pub mod repair;
 
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_error::{Diagnostic, Result};
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, repair::repair};
 use crate::{
-  make::repair::lazy::HasLazyDependencies, utils::FileCounter, BuildDependency, Compilation,
+  make::repair::lazy::ModuleToLazyMake, utils::FileCounter, BuildDependency, Compilation,
   DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
 };
 
@@ -42,7 +42,7 @@ pub struct MakeArtifact {
 
   // data
   pub module_graph_partial: ModuleGraphPartial,
-  pub module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
+  pub module_to_lazy_make: ModuleToLazyMake,
   // statistical data, which can be regenerated from module_graph_partial and used as index.
   pub make_failed_module: IdentifierSet,
   pub make_failed_dependencies: HashSet<DependencyId>,
