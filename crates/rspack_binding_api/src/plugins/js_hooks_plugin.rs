@@ -510,7 +510,7 @@ async fn rsdoctor_hooks_adapter_compilation(
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let hooks = RsdoctorPlugin::get_compilation_hooks_mut(compilation.id());
-  let mut hooks = hooks.write().await;
+  let mut hooks = hooks.borrow_mut();
   hooks
     .module_graph
     .intercept(self.register_rsdoctor_plugin_module_graph_taps.clone());

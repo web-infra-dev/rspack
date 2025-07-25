@@ -40,7 +40,7 @@ use crate::{
   CssPlugin,
 };
 
-/// Safety for using [atomic_refcell::AtomicRefCell]:
+/// Safety with [atomic_refcell::AtomicRefCell]:
 ///
 /// Modified in [rspack_core::CompilerCompilation]
 type ArcCssModulesPluginHooks = Arc<AtomicRefCell<CssModulesPluginHooks>>;

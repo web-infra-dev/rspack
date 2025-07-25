@@ -23,7 +23,7 @@ use crate::{
   BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
 };
 
-/// Safety for using [atomic_refcell::AtomicRefCell]:
+/// Safety with [atomic_refcell::AtomicRefCell]:
 ///
 /// Modified in [rspack_core::CompilerCompilation], [rspack_core::CompilerThisCompilation]
 type ArcHtmlPluginHooks = Arc<AtomicRefCell<HtmlPluginHooks>>;

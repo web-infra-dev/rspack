@@ -5064,6 +5064,7 @@ name = "rspack_plugin_rsdoctor"
 version = "0.4.10"
 dependencies = [
  "async-trait",
+ "atomic_refcell",
  "futures",
  "indexmap 2.7.1",
  "rayon",
