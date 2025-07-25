@@ -56,15 +56,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
-    // if parser
-    //   .factory_meta
-    //   .and_then(|meta| meta.side_effect_free)
-    //   .unwrap_or_default()
-    //   && !parser.forwarded_ids.is_empty()
-    //   && !statement.is_star_export()
-    // {
-    //   side_effect_dep.set_lazy();
-    // }
     if parser
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
