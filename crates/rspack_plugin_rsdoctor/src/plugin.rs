@@ -41,9 +41,9 @@ pub type SendAssets =
 pub type SendModuleSources =
   Arc<dyn Fn(RsdoctorModuleIdsPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
-/// Safety with [atomic_refcell::AtomicRefCell]
+/// Safety with [atomic_refcell::AtomicRefCell]:
 ///
-/// Modified in [rspack_core::CompilerCompilation]
+/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RsdoctorPlugin::get_compilation_hooks_mut]
 type ArcRsdoctorPluginHooks = Arc<AtomicRefCell<RsdoctorPluginHooks>>;
 
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRsdoctorPluginHooks>> =

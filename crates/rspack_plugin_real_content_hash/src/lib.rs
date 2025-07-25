@@ -30,9 +30,9 @@ type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 pub static QUOTE_META: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
-/// Safety with [atomic_refcell::AtomicRefCell]
+/// Safety with [atomic_refcell::AtomicRefCell]:
 ///
-/// Modified in [rspack_core::CompilerThisCompilation]
+/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RealContentHashPlugin::get_compilation_hooks_mut]
 type ArcReadContentHashPluginHooks = Arc<AtomicRefCell<RealContentHashPluginHooks>>;
 
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcReadContentHashPluginHooks>> =
