@@ -409,6 +409,10 @@ impl ObjectFinalize for JsCompiler {
     });
 
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
+
+    rayon::spawn(|| {
+      drop(self);
+    });
     Ok(())
   }
 }
