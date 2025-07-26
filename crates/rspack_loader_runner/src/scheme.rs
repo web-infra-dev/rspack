@@ -98,17 +98,24 @@ pub fn get_scheme(specifier: &str) -> Scheme {
   }
 
   let mut next = chars.next();
-  while let Some((_, ch)) = next
-    && ((ch >= A_LOWER_CASE && ch <= Z_LOWER_CASE)
-      || (ch >= A_UPPER_CASE && ch <= Z_UPPER_CASE)
-      || (ch >= ZERO && ch <= NINE)
-      || ch == PLUS
-      || ch == HYPHEN)
-  {
-    if chars.peek().is_none() {
-      return Scheme::None;
+  loop {
+    if let Some((_, ch)) = next {
+      if (ch >= A_LOWER_CASE && ch <= Z_LOWER_CASE)
+        || (ch >= A_UPPER_CASE && ch <= Z_UPPER_CASE)
+        || (ch >= ZERO && ch <= NINE)
+        || ch == PLUS
+        || ch == HYPHEN
+      {
+        if chars.peek().is_none() {
+          return Scheme::None;
+        }
+        next = chars.next();
+      } else {
+        break;
+      }
+    } else {
+      break;
     }
-    next = chars.next();
   }
 
   // Scheme must end with colon

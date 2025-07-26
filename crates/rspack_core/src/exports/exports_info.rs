@@ -96,10 +96,10 @@ impl ExportsInfo {
         changed = true;
       }
       if let Some(exclude_exports) = &exclude_exports {
-        if let Some(export_name) = export_info.name()
-          && exclude_exports.contains(export_name)
-        {
-          continue;
+        if let Some(export_name) = export_info.name() {
+          if exclude_exports.contains(export_name) {
+            continue;
+          }
         }
       }
       if !matches!(

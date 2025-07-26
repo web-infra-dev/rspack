@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod algo;
 mod napi;
 

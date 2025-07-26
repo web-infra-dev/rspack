@@ -38,11 +38,16 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Install Rust Toolchain
+      - name: Install Rust Toolchain (Nightly)
         uses: ./.github/actions/rustup
         with:
           save-if: true
           key: check
+
+      - name: Install Stable Rust 1.88.0 for cargo check
+        shell: bash
+        run: |
+          rustup toolchain install 1.88.0 -c rustc -c cargo -c rust-std
 
       - name: Run Cargo codegen
         run: cargo codegen
@@ -57,11 +62,33 @@ jobs:
 
       - name: Run Cargo Check (all strategy)
         if: ${{ inputs.cargo-check-strategy == 'all' }}
-        run: cargo check --workspace --all-targets --locked
+        shell: bash
+        run: |
+          # Temporarily rename config files to use stable config only
+          mv .cargo/config.toml .cargo/config.nightly.toml
+          mv .cargo/config.stable.toml .cargo/config.toml
+          
+          # Run cargo check with stable rust
+          cargo +1.88.0 check --workspace --all-targets --locked
+          
+          # Restore original config files
+          mv .cargo/config.toml .cargo/config.stable.toml
+          mv .cargo/config.nightly.toml .cargo/config.toml
 
       - name: Run Cargo Check (separated strategy)
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        run: cargo workspaces exec cargo check --all-targets --locked
+        shell: bash
+        run: |
+          # Temporarily rename config files to use stable config only
+          mv .cargo/config.toml .cargo/config.nightly.toml
+          mv .cargo/config.stable.toml .cargo/config.toml
+          
+          # Run cargo check with stable rust
+          cargo workspaces exec cargo +1.88.0 check --all-targets --locked
+          
+          # Restore original config files
+          mv .cargo/config.toml .cargo/config.stable.toml
+          mv .cargo/config.nightly.toml .cargo/config.toml
 
       - name: Run Clippy
         uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1

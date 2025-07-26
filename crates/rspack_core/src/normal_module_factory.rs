@@ -300,9 +300,9 @@ impl NormalModuleFactory {
         .call(data, &mut resource_data, &scheme)
         .await?;
       resource_data
-    } else if !context_scheme.is_none()
+    } else if !context_scheme.is_none() {
       // resource within scheme
-      && let Some(resource_data) = {
+      let resource_data_option = {
         let mut resource_data = ResourceData::new(resource.clone());
         let handled = plugin_driver
           .normal_module_factory_hooks
@@ -311,13 +311,13 @@ impl NormalModuleFactory {
           .await?
           .unwrap_or_default();
         handled.then_some(resource_data)
-      }
-    {
-      resource_data
-    } else {
-      // resource without scheme and without path
-      if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
-        ResourceData::new(resource.clone()).path(Utf8PathBuf::from(""))
+      };
+      if let Some(resource_data) = resource_data_option {
+        resource_data
+      } else {
+        // resource without scheme and without path
+        if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
+          ResourceData::new(resource.clone()).path(Utf8PathBuf::from(""))
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {
@@ -368,12 +368,12 @@ impl NormalModuleFactory {
           }
         }
       }
+      }
     };
 
-    let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
-      && let Some(module_type) = captures.get(1)
-    {
+    let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data {
+      if let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource) {
+        if let Some(module_type) = captures.get(1) {
       match_module_type = Some(module_type.as_str().into());
       match_resource_data.resource = match_resource_data
         .resource
@@ -382,6 +382,36 @@ impl NormalModuleFactory {
         .to_owned();
 
       vec![]
+        } else {
+          //TODO: with contextScheme
+          self
+            .calculate_module_rules(
+              if let Some(match_resource_data) = match_resource_data.as_ref() {
+                match_resource_data
+              } else {
+                &resource_data
+              },
+              data.dependencies[0].as_ref(),
+              data.issuer.as_deref(),
+              data.issuer_layer.as_deref(),
+            )
+            .await?
+        }
+      } else {
+        //TODO: with contextScheme
+        self
+          .calculate_module_rules(
+            if let Some(match_resource_data) = match_resource_data.as_ref() {
+              match_resource_data
+            } else {
+              &resource_data
+            },
+            data.dependencies[0].as_ref(),
+            data.issuer.as_deref(),
+            data.issuer_layer.as_deref(),
+          )
+          .await?
+      }
     } else {
       //TODO: with contextScheme
       self

@@ -245,11 +245,10 @@ impl CodeSplitter {
       self.invalidate_chunk_group(cg, compilation)?;
     }
 
-    if let Some(name) = chunk_group_name
-      && chunk_group.is_initial()
-      && chunk_group.parents.is_empty()
-    {
-      return Ok(Some(vec![ChunkReCreation::Entry(name)]));
+    if let Some(name) = chunk_group_name {
+      if chunk_group.is_initial() && chunk_group.parents.is_empty() {
+        return Ok(Some(vec![ChunkReCreation::Entry(name)]));
+      }
     }
 
     if edges.is_empty() {

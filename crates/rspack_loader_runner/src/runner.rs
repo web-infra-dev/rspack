@@ -17,11 +17,11 @@ use crate::{
 
 impl<Context> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
-    if let Some(plugin) = &self.plugin
-      && plugin.should_yield(self).await?
-    {
-      plugin.clone().start_yielding(self).await?;
-      return Ok(true);
+    if let Some(plugin) = &self.plugin {
+      if plugin.should_yield(self).await? {
+        plugin.clone().start_yielding(self).await?;
+        return Ok(true);
+      }
     }
     Ok(false)
   }
@@ -35,19 +35,19 @@ async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
-  if let Some(plugin) = &loader_context.plugin
-    && let Some(processed_resource) = plugin
+  if let Some(plugin) = &loader_context.plugin {
+    if let Some(processed_resource) = plugin
       .process_resource(&loader_context.resource_data)
       .await?
-  {
-    loader_context.content = Some(processed_resource);
+    {
+      loader_context.content = Some(processed_resource);
+    }
   }
 
   let resource_data = &loader_context.resource_data;
   if loader_context.content.is_none() {
-    if let Some(resource_path) = resource_data.resource_path.as_deref()
-      && !resource_path.as_str().is_empty()
-    {
+    if let Some(resource_path) = resource_data.resource_path.as_deref() {
+      if !resource_path.as_str().is_empty() {
       let resource_path_owned = resource_path.to_owned();
       // use spawn_blocking to avoid block,see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
       let result = spawn_blocking(move || fs.read_sync(resource_path_owned.as_path()))
@@ -55,6 +55,7 @@ async fn process_resource<Context: Send>(
         .map_err(|e| error!("{e}, spawn task failed"))?;
       let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
+      }
     } else if !resource_data.get_scheme().is_none() {
       let resource = &resource_data.resource;
       let scheme = resource_data.get_scheme();
@@ -76,10 +77,10 @@ async fn create_loader_context<Context>(
   context: Context,
 ) -> Result<LoaderContext<Context>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
-  if let Some(resource_path) = &resource_data.resource_path
-    && resource_path.is_absolute()
-  {
-    file_dependencies.insert(resource_path.clone().into_std_path_buf());
+  if let Some(resource_path) = &resource_data.resource_path {
+    if resource_path.is_absolute() {
+      file_dependencies.insert(resource_path.clone().into_std_path_buf());
+    }
   }
 
   let mut loader_context = LoaderContext {

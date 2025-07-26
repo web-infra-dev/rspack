@@ -30,10 +30,13 @@ impl CgmHashArtifact {
     module: ModuleIdentifier,
     hashes: RuntimeSpecMap<RspackHashDigest>,
   ) -> bool {
-    if let Some(old) = self.module_to_hashes.get(&module)
-      && old == &hashes
-    {
-      false
+    if let Some(old) = self.module_to_hashes.get(&module) {
+      if old == &hashes {
+        false
+      } else {
+        self.module_to_hashes.insert(module, hashes);
+        true
+      }
     } else {
       self.module_to_hashes.insert(module, hashes);
       true

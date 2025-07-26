@@ -1,5 +1,3 @@
-#![feature(try_find)]
-
 mod field_names;
 mod tagged_union;
 

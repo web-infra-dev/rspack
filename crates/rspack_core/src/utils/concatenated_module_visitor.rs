@@ -65,14 +65,14 @@ impl Visit for IdentCollector {
 
   /// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1173-L1197
   fn visit_class_expr(&mut self, node: &ClassExpr) {
-    if let Some(ref ident) = node.ident
-      && node.class.super_class.is_some()
-    {
-      self.ids.push(ConcatenatedModuleIdent {
-        id: ident.clone(),
-        shorthand: false,
-        is_class_expr_with_ident: true,
-      });
+    if let Some(ref ident) = node.ident {
+      if node.class.super_class.is_some() {
+        self.ids.push(ConcatenatedModuleIdent {
+          id: ident.clone(),
+          shorthand: false,
+          is_class_expr_with_ident: true,
+        });
+      }
     }
     node.class.visit_with(self);
   }

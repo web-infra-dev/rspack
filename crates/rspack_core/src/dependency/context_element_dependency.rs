@@ -110,13 +110,13 @@ impl Dependency for ContextElementDependency {
             .map(|m| m.get_exports_type(module_graph, module_graph_cache, is_strict))
         });
 
-        if let Some(exports_type) = exports_type
-          && matches!(
+        if let Some(exports_type) = exports_type {
+          if matches!(
             exports_type,
             ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-          )
-        {
-          return create_exports_object_referenced();
+          ) {
+            return create_exports_object_referenced();
+          }
         }
       }
 

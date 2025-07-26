@@ -394,14 +394,16 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache)
-          && let Some(request) = request
-        {
+        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+          if let Some(request) = request {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
             throw_missing_module_error_block(&get_request_string(request))
           )
+          } else {
+            String::new()
+          }
         } else {
           String::new()
         };
@@ -413,9 +415,8 @@ impl ExternalModule {
         )
       }
       "module" => {
-        if compilation.options.output.module
-          && let Some(request) = request
-        {
+        if compilation.options.output.module {
+          if let Some(request) = request {
           let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary {
             let mut hasher = RspackHash::from(&compilation.options.output);
             request.primary.hash(&mut hasher);
@@ -546,8 +547,12 @@ impl ExternalModule {
             get_source_for_import(request, compilation, &self.dependency_meta.attributes)
           )
         }
+      } else {
+        String::new()
       }
-      "script" if let Some(request) = request => {
+    }
+      "script" => {
+        if let Some(request) = request {
         let url_and_global = extract_url_and_global(request.primary())?;
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
@@ -573,6 +578,9 @@ if(typeof {global} !== "undefined") return resolve();
           url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
           load_script = RuntimeGlobals::LOAD_SCRIPT.name()
         )
+        } else {
+          String::new()
+        }
       }
       _ => {
         let external_variable = if let Some(request) = request {
@@ -766,7 +774,8 @@ impl Module for ExternalModule {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
-      "asset" if let Some(request) = request => {
+      "asset" => {
+        if let Some(request) = request {
         cgr.add(
           SourceType::JavaScript,
           RawStringSource::from(format!(
@@ -778,8 +787,10 @@ impl Module for ExternalModule {
         cgr
           .data
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
+        }
       }
-      "css-import" if let Some(request) = request => {
+      "css-import" => {
+        if let Some(request) = request {
         cgr.add(
           SourceType::Css,
           RawStringSource::from(format!(
@@ -788,6 +799,7 @@ impl Module for ExternalModule {
           ))
           .boxed(),
         );
+        }
       }
       _ => {
         let (source, chunk_init_fragments, runtime_requirements) = self.get_source(

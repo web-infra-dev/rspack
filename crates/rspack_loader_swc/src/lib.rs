@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 mod collect_ts_info;
 mod options;

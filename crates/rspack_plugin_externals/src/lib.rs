@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 mod electron_target_plugin;
 mod http_externals_plugin;

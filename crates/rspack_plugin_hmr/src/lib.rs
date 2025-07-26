@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 mod hot_module_replacement;
 

@@ -21,9 +21,9 @@ impl FlushDiagnostic for StringDiagnosticDisplay {
 impl FlushDiagnostic for StandardStreamLock<'_> {}
 pub trait DiagnosticDisplay {
   type Output;
-  fn emit_batch_diagnostic(
+  fn emit_batch_diagnostic<'a>(
     &mut self,
-    diagnostics: impl Iterator<Item = &Diagnostic>,
+    diagnostics: impl Iterator<Item = &'a Diagnostic>,
   ) -> Self::Output;
   fn emit_diagnostic(&mut self, diagnostic: &Diagnostic) -> Self::Output;
 }
@@ -34,9 +34,9 @@ pub struct StdioDiagnosticDisplay;
 impl DiagnosticDisplay for StdioDiagnosticDisplay {
   type Output = crate::Result<()>;
 
-  fn emit_batch_diagnostic(
+  fn emit_batch_diagnostic<'a>(
     &mut self,
-    diagnostics: impl Iterator<Item = &Diagnostic>,
+    diagnostics: impl Iterator<Item = &'a Diagnostic>,
   ) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let mut lock_writer = writer.lock();
@@ -93,9 +93,9 @@ impl WriteColor for StringDiagnosticDisplay {
 impl DiagnosticDisplay for StringDiagnosticDisplay {
   type Output = crate::Result<String>;
 
-  fn emit_batch_diagnostic(
+  fn emit_batch_diagnostic<'a>(
     &mut self,
-    diagnostics: impl Iterator<Item = &Diagnostic>,
+    diagnostics: impl Iterator<Item = &'a Diagnostic>,
   ) -> Self::Output {
     emit_batch_diagnostic(diagnostics, self)?;
     if self.sorted {
@@ -121,9 +121,9 @@ pub struct ColoredStringDiagnosticDisplay;
 impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
   type Output = crate::Result<String>;
 
-  fn emit_batch_diagnostic(
+  fn emit_batch_diagnostic<'a>(
     &mut self,
-    diagnostics: impl Iterator<Item = &Diagnostic>,
+    diagnostics: impl Iterator<Item = &'a Diagnostic>,
   ) -> Self::Output {
     let mut buf = Buffer::ansi();
     for d in diagnostics {
@@ -139,8 +139,8 @@ impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
   }
 }
 
-fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
-  diagnostics: impl Iterator<Item = &Diagnostic>,
+fn emit_batch_diagnostic<'a, T: Write + WriteColor + FlushDiagnostic>(
+  diagnostics: impl Iterator<Item = &'a Diagnostic>,
   writer: &mut T,
 ) -> crate::Result<()> {
   for diagnostic in diagnostics {
@@ -182,9 +182,9 @@ impl DiagnosticDisplayer {
 impl DiagnosticDisplay for DiagnosticDisplayer {
   type Output = crate::Result<String>;
 
-  fn emit_batch_diagnostic(
+  fn emit_batch_diagnostic<'a>(
     &mut self,
-    diagnostics: impl Iterator<Item = &Diagnostic>,
+    diagnostics: impl Iterator<Item = &'a Diagnostic>,
   ) -> Self::Output {
     match self {
       Self::Colored(d) => d.emit_batch_diagnostic(diagnostics),

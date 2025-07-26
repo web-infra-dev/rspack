@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;

@@ -134,10 +134,10 @@ impl Visit for ExportedEnumCollector<'_> {
       }
     }
     for stmt in node.body.iter().filter_map(|item| item.as_stmt()) {
-      if let Stmt::Decl(Decl::TsEnum(enum_decl)) = stmt
-        && self.export_idents.contains(&enum_decl.id.sym)
-      {
-        self.collect(enum_decl);
+      if let Stmt::Decl(Decl::TsEnum(enum_decl)) = stmt {
+        if self.export_idents.contains(&enum_decl.id.sym) {
+          self.collect(enum_decl);
+        }
       }
     }
   }

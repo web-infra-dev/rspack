@@ -69,10 +69,12 @@ impl ModuleIssuer {
   }
 
   pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a BoxModule> {
-    if let Some(id) = self.identifier()
-      && let Some(module) = module_graph.module_by_identifier(id)
-    {
-      Some(module)
+    if let Some(id) = self.identifier() {
+      if let Some(module) = module_graph.module_by_identifier(id) {
+        Some(module)
+      } else {
+        None
+      }
     } else {
       None
     }
@@ -725,20 +727,24 @@ impl Module for NormalModule {
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
-    if let Some(deps) = self.code_generation_dependencies.as_deref()
-      && !deps.is_empty()
-    {
-      Some(deps)
+    if let Some(deps) = self.code_generation_dependencies.as_deref() {
+      if !deps.is_empty() {
+        Some(deps)
+      } else {
+        None
+      }
     } else {
       None
     }
   }
 
   fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
-    if let Some(deps) = self.presentational_dependencies.as_deref()
-      && !deps.is_empty()
-    {
-      Some(deps)
+    if let Some(deps) = self.presentational_dependencies.as_deref() {
+      if !deps.is_empty() {
+        Some(deps)
+      } else {
+        None
+      }
     } else {
       None
     }
@@ -832,9 +838,8 @@ impl NormalModule {
       return Ok(RawBufferSource::from(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
-    if source_map_kind.enabled()
-      && let Some(source_map) = source_map
-    {
+    if source_map_kind.enabled() {
+      if let Some(source_map) = source_map {
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
@@ -844,11 +849,12 @@ impl NormalModule {
         })
         .boxed(),
       );
+      }
     }
-    if source_map_kind.enabled()
-      && let Content::String(content) = content
-    {
+    if source_map_kind.enabled() {
+      if let Content::String(content) = content {
       return Ok(OriginalSource::new(content, self.request()).boxed());
+      }
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }

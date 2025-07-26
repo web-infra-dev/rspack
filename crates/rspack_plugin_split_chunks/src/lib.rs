@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 mod common;
 mod module_group;

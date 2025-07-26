@@ -100,10 +100,22 @@ impl Debug for Content {
       Self::Buffer(_) => "Buffer",
     };
 
+    // Find a safe char boundary at or after the given index
+    let safe_index = if s.len() <= 20 {
+      s.len()
+    } else {
+      // Find a char boundary at or after position 20
+      let mut index = 20;
+      while index < s.len() && !s.is_char_boundary(index) {
+        index += 1;
+      }
+      index
+    };
+
     content
       .field(
         ty,
-        &s[0..usize::min(s.len(), s.ceil_char_boundary(20))].to_owned(),
+        &s[0..usize::min(s.len(), safe_index)].to_owned(),
       )
       .finish()
   }

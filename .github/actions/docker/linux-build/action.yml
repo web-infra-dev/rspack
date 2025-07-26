@@ -42,6 +42,10 @@ runs:
           set -e
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
+          
+          # Ensure nightly toolchain is available for node_binding builds
+          rustup toolchain install nightly -c rustc -c cargo -c rust-std
+          rustup target add ${{ inputs.target }} --toolchain nightly
 
           npm install -g corepack@0.31.0 --force
           echo "Corepack version: $(corepack --version)"

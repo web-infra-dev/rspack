@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};

@@ -189,9 +189,8 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   fn get_nested_exports_info_impl(&self, name: Option<&[Atom]>) -> Option<ExportsInfo> {
-    if let Some(name) = name
-      && !name.is_empty()
-    {
+    if let Some(name) = name {
+      if !name.is_empty() {
       let info = self.get_read_only_export_info(&name[0]);
       if let Some(exports_info) = &info.exports_info() {
         let redirect = self.redirect(*exports_info, true);
@@ -199,6 +198,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       } else {
         return None;
       }
+      } 
     }
     Some(self.entry)
   }
@@ -455,11 +455,11 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   pub fn is_export_provided(&self, names: &[Atom]) -> Option<ExportProvided> {
     let name = names.first()?;
     let info_data = self.get_read_only_export_info(name);
-    if let Some(nested_exports_info) = &info_data.exports_info()
-      && names.len() > 1
-    {
-      let redirected = self.redirect(*nested_exports_info, true);
-      return redirected.is_export_provided(&names[1..]);
+    if let Some(nested_exports_info) = &info_data.exports_info() {
+      if names.len() > 1 {
+        let redirected = self.redirect(*nested_exports_info, true);
+        return redirected.is_export_provided(&names[1..]);
+      }
     }
     let provided = info_data.provided()?;
 
@@ -486,11 +486,11 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       return self.other_exports_info().get_used(runtime);
     }
     let info_data = self.get_read_only_export_info(&names[0]);
-    if let Some(exports_info) = &info_data.exports_info()
-      && names.len() > 1
-    {
-      let redirected = self.redirect(*exports_info, true);
-      return redirected.get_used(&names[1..], runtime);
+    if let Some(exports_info) = &info_data.exports_info() {
+      if names.len() > 1 {
+        let redirected = self.redirect(*exports_info, true);
+        return redirected.get_used(&names[1..], runtime);
+      }
     }
     info_data.get_used(runtime)
   }
@@ -721,9 +721,8 @@ impl ExportsInfoGetter {
         if names.len() == 1 {
           return Some(UsedName::Normal(arr));
         }
-        if let Some(exports_info) = &export_info.exports_info()
-          && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
-        {
+        if let Some(exports_info) = &export_info.exports_info() {
+          if export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed {
           let nested_exports_info: PrefetchedExportsInfoWrapper<'_> =
             info.redirect(*exports_info, true);
           let nested = Self::get_used_name(
@@ -737,6 +736,7 @@ impl ExportsInfoGetter {
           };
           arr.extend(nested);
           return Some(UsedName::Normal(arr));
+          }
         }
         arr.extend(names.iter().skip(1).cloned());
         Some(UsedName::Normal(arr))

@@ -346,15 +346,16 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         for m in modules.iter() {
           let codegen_result = compilation.code_generation_results.get(m, Some(&runtime));
 
-          if let Some(source) = codegen_result.get(&SourceType::Asset)
-            && let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>()
-            && let Some(asset_info) = codegen_result.data.get::<CodeGenerationDataAssetInfo>()
-          {
-            let filename = filename.filename();
-            compilation.emit_asset(
-              filename.to_owned(),
-              CompilationAsset::new(Some(source.clone()), asset_info.inner().clone()),
-            );
+          if let Some(source) = codegen_result.get(&SourceType::Asset) {
+            if let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() {
+              if let Some(asset_info) = codegen_result.data.get::<CodeGenerationDataAssetInfo>() {
+                let filename = filename.filename();
+                compilation.emit_asset(
+                  filename.to_owned(),
+                  CompilationAsset::new(Some(source.clone()), asset_info.inner().clone()),
+                );
+              }
+            }
           }
         }
       }

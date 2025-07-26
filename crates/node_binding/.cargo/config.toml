@@ -1,0 +1,3 @@
+# Cargo config specific to node_binding crate to enable nightly optimizations
+[unstable]
+no-embed-metadata = true

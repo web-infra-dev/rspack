@@ -57,6 +57,12 @@ jobs:
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: ${{ runner.environment != 'self-hosted'  || runner.os != 'Windows' }}
 
+      # Install nightly toolchain for node_binding builds
+      - name: Install Nightly Toolchain for Node Binding
+        run: |
+          rustup toolchain install nightly -c rustc -c cargo -c rust-std -c clippy -c rustfmt
+          rustup target add ${{ inputs.target }} --toolchain nightly
+
       # setup rust target for native runner
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}

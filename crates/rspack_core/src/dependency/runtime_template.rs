@@ -131,10 +131,9 @@ pub fn export_from_import(
 
   let mut exclude_default_export_name = None;
   if default_interop {
-    if !export_name.is_empty()
-      && let Some(first_export_name) = export_name.first()
-      && first_export_name == "default"
-    {
+    if !export_name.is_empty() {
+      if let Some(first_export_name) = export_name.first() {
+        if first_export_name == "default" {
       match exports_type {
         ExportsType::Dynamic => {
           if is_call {
@@ -161,17 +160,20 @@ pub fn export_from_import(
         }
         _ => {}
       }
+        }
+      }
     } else if !export_name.is_empty() {
       if matches!(exports_type, ExportsType::DefaultOnly) {
         return format!(
           "/* non-default import from non-esm module */undefined\n{}",
           property_access(export_name, 1)
         );
-      } else if !matches!(exports_type, ExportsType::Namespace)
-        && let Some(first_export_name) = export_name.first()
-        && first_export_name == "__esModule"
-      {
-        return "/* __esModule */true".to_string();
+      } else if !matches!(exports_type, ExportsType::Namespace) {
+        if let Some(first_export_name) = export_name.first() {
+          if first_export_name == "__esModule" {
+            return "/* __esModule */true".to_string();
+          }
+        }
       }
     } else if matches!(
       exports_type,
@@ -365,10 +367,16 @@ pub fn module_id(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) =
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
-    module_id_expr(&compilation.options, request, module_id)
+    if let Some(module_id) =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+    {
+      module_id_expr(&compilation.options, request, module_id)
+    } else if weak {
+      "null /* weak dependency, without id */".to_string()
+    } else {
+      missing_module(request)
+    }
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -677,15 +685,21 @@ pub fn module_raw(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) =
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    format!(
-      "{}({})",
-      RuntimeGlobals::REQUIRE,
-      module_id_expr(&compilation.options, request, module_id)
-    )
+    if let Some(module_id) =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+    {
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      format!(
+        "{}({})",
+        RuntimeGlobals::REQUIRE,
+        module_id_expr(&compilation.options, request, module_id)
+      )
+    } else if weak {
+      weak_error(request)
+    } else {
+      missing_module(request)
+    }
   } else if weak {
     weak_error(request)
   } else {

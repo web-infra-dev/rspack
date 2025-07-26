@@ -1,4 +1,3 @@
-#![feature(get_mut_unchecked)]
 mod helpers;
 pub use helpers::*;
 mod common_js_chunk_format;

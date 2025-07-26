@@ -8,22 +8,29 @@ use syn::{
 pub fn expand_merge_from_derive(input: DeriveInput) -> Result<TokenStream> {
   let name = input.ident;
   let generics = add_trait_bounds(input.generics);
-  let chose_base = input.attrs.iter().try_find(|a| -> Result<bool> {
-    match &a.meta {
-      Meta::List(list) => {
-        if !list.path.is_ident("merge_from") {
-          return Ok(false);
+  let chose_base = {
+    let mut result = None;
+    for a in input.attrs.iter() {
+      match &a.meta {
+        Meta::List(list) => {
+          if !list.path.is_ident("merge_from") {
+            continue;
+          }
+          let mut chose_base = false;
+          list.parse_nested_meta(|meta| {
+            chose_base = meta.path.is_ident("enum_base");
+            Ok(())
+          })?;
+          if chose_base {
+            result = Some(a);
+            break;
+          }
         }
-        let mut chose_base = false;
-        list.parse_nested_meta(|meta| {
-          chose_base = meta.path.is_ident("enum_base");
-          Ok(())
-        })?;
-        Ok(chose_base)
+        _ => continue,
       }
-      _ => Ok(false),
     }
-  })?;
+    result
+  };
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
   let body = body(input.data, chose_base)?;
   Ok(quote! {

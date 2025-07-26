@@ -105,10 +105,10 @@ impl<'a> ModuleGraph<'a> {
   }
 
   fn loop_partials<T>(&self, f: impl Fn(&ModuleGraphPartial) -> Option<&T>) -> Option<&T> {
-    if let Some(active) = &self.active
-      && let Some(r) = f(active)
-    {
-      return Some(r);
+    if let Some(active) = &self.active {
+      if let Some(r) = f(active) {
+        return Some(r);
+      }
     }
 
     for item in self.partials.iter().rev().flatten() {
@@ -730,10 +730,10 @@ impl<'a> ModuleGraph<'a> {
     }
 
     // set to origin module outgoing connection
-    if let Some(identifier) = origin_module_id
-      && let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier)
-    {
-      original_mgm.add_outgoing_connection(dependency_id);
+    if let Some(identifier) = origin_module_id {
+      if let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier) {
+        original_mgm.add_outgoing_connection(dependency_id);
+      }
     };
   }
 

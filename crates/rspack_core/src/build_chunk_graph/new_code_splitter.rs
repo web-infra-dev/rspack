@@ -292,70 +292,70 @@ impl CreateChunkRoot {
           splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
         }
 
-        if let Some(group_option) = block.get_group_options()
-          && let Some(entry_options) = group_option.entry_options()
-        {
-          let mut entry_modules = IdentifierSet::default();
-          for dep_id in block.get_dependencies() {
-            let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) else {
-              continue;
-            };
-            entry_modules.insert(*m);
-          }
+        if let Some(group_option) = block.get_group_options() {
+          if let Some(entry_options) = group_option.entry_options() {
+            let mut entry_modules = IdentifierSet::default();
+            for dep_id in block.get_dependencies() {
+              let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) else {
+                continue;
+              };
+              entry_modules.insert(*m);
+            }
 
-          chunks.push(ChunkDesc::Entry(Box::new(EntryChunkDesc {
-            initial: false,
-            options: entry_options.clone(),
-            modules_ordinal: ctx.module_ordinal,
-            entry: entry_options.name.clone(),
-            entry_modules: entry_modules.iter().copied().collect(),
-            chunk_modules: ctx.chunk_modules,
-            outgoing_blocks: ctx.out_goings,
-            incoming_blocks: block_ids.iter().copied().collect(),
-            pre_order_indices: ctx.pre_order_indices,
-            post_order_indices: ctx.post_order_indices,
-            runtime: runtime.clone(),
-          })))
-        } else {
-          let blocks = block_ids.iter().map(|block_id| {
-            module_graph
-              .block_by_id(block_id)
-              .expect("should have block")
-          });
+            chunks.push(ChunkDesc::Entry(Box::new(EntryChunkDesc {
+              initial: false,
+              options: entry_options.clone(),
+              modules_ordinal: ctx.module_ordinal,
+              entry: entry_options.name.clone(),
+              entry_modules: entry_modules.iter().copied().collect(),
+              chunk_modules: ctx.chunk_modules,
+              outgoing_blocks: ctx.out_goings,
+              incoming_blocks: block_ids.iter().copied().collect(),
+              pre_order_indices: ctx.pre_order_indices,
+              post_order_indices: ctx.post_order_indices,
+              runtime: runtime.clone(),
+            })))
+          } else {
+            let blocks = block_ids.iter().map(|block_id| {
+              module_graph
+                .block_by_id(block_id)
+                .expect("should have block")
+            });
 
-          let mut options = block
-            .get_group_options()
-            .and_then(|opt| opt.normal_options())
-            .cloned();
+            let mut options = block
+              .get_group_options()
+              .and_then(|opt| opt.normal_options())
+              .cloned();
 
-          // If uses webpackChunkName to merge chunks, the options should be merged
-          for block in blocks {
-            if let Some(GroupOptions::ChunkGroup(block_options)) = block.get_group_options() {
-              if let Some(group_options) = &mut options {
-                group_options.preload_order =
-                  group_options.preload_order.max(block_options.preload_order);
+            // If uses webpackChunkName to merge chunks, the options should be merged
+            for block in blocks {
+              if let Some(GroupOptions::ChunkGroup(block_options)) = block.get_group_options() {
+                if let Some(group_options) = &mut options {
+                  group_options.preload_order =
+                    group_options.preload_order.max(block_options.preload_order);
 
-                group_options.prefetch_order = group_options
-                  .prefetch_order
-                  .max(block_options.prefetch_order);
-              } else {
-                options = Some(block_options.clone());
+                  group_options.prefetch_order = group_options
+                    .prefetch_order
+                    .max(block_options.prefetch_order);
+                } else {
+                  options = Some(block_options.clone());
+                }
               }
             }
+
+            chunks.push(ChunkDesc::Chunk(Box::new(NormalChunkDesc {
+              chunk_modules: ctx.chunk_modules,
+              options,
+              modules_ordinal: ctx.module_ordinal,
+              pre_order_indices: ctx.pre_order_indices,
+              post_order_indices: ctx.post_order_indices,
+
+              incoming_blocks: block_ids.iter().copied().collect(),
+              outgoing_blocks: ctx.out_goings,
+
+              runtime: runtime.clone(),
+            })));
           }
-
-          chunks.push(ChunkDesc::Chunk(Box::new(NormalChunkDesc {
-            chunk_modules: ctx.chunk_modules,
-            options,
-            modules_ordinal: ctx.module_ordinal,
-            pre_order_indices: ctx.pre_order_indices,
-            post_order_indices: ctx.post_order_indices,
-
-            incoming_blocks: block_ids.iter().copied().collect(),
-            outgoing_blocks: ctx.out_goings,
-
-            runtime: runtime.clone(),
-          })));
         }
 
         chunks
@@ -1140,7 +1140,7 @@ impl CodeSplitter {
 
       match chunk_desc {
         ChunkDesc::Entry(entry_desc) => {
-          let box EntryChunkDesc {
+          let EntryChunkDesc {
             entry,
             entry_modules,
             chunk_modules,
@@ -1152,7 +1152,7 @@ impl CodeSplitter {
             post_order_indices,
             runtime,
             ..
-          } = entry_desc;
+          } = &**entry_desc;
 
           let entry_chunk_ukey =
             if reuse && let Some(chunk) = self.cache_chunks.remove(&cache.cache_ukey) {
@@ -1362,7 +1362,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           }
         }
         ChunkDesc::Chunk(chunk_desc) => {
-          let box NormalChunkDesc {
+          let NormalChunkDesc {
             options,
             chunk_modules,
             pre_order_indices,
@@ -1370,7 +1370,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
             incoming_blocks,
             runtime,
             ..
-          } = chunk_desc;
+          } = &**chunk_desc;
 
           let modules = chunk_modules;
 
