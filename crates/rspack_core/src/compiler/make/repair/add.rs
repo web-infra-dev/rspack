@@ -1,7 +1,9 @@
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
 use super::{build::BuildTask, MakeTaskContext};
 use crate::{
+  make::repair::lazy::{ForwardedIdSet, ProcessLazyDependenciesTask},
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, Module, ModuleIdentifier, ModuleProfile,
@@ -23,10 +25,10 @@ impl Task<MakeTaskContext> for AddTask {
   }
   async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_identifier = self.module.identifier();
-    let artifact = &mut context.artifact;
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+      &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
+    // reuse module for self referenced module
     if self.module.as_self_module().is_some() {
       let issuer = self
         .module_graph_module
@@ -41,10 +43,19 @@ impl Task<MakeTaskContext> for AddTask {
         *issuer,
       )?;
 
-      // reused module
       return Ok(vec![]);
     }
 
+    let forwarded_ids = ForwardedIdSet::new(
+      self
+        .dependencies
+        .iter()
+        .filter_map(|dep| dep.as_module_dependency())
+        .filter_map(|dep| dep.lazy().forward_id.clone())
+        .collect::<FxHashSet<_>>(),
+    );
+
+    // reuse module if module is already added by other dependency
     if module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .is_some()
@@ -56,7 +67,28 @@ impl Task<MakeTaskContext> for AddTask {
         module_identifier,
       )?;
 
-      // reused module
+      if module_graph
+        .module_by_identifier(&module_identifier)
+        .is_some()
+      {
+        if context
+          .artifact
+          .module_to_lazy_make
+          .has_lazy_dependencies(&module_identifier)
+        {
+          return Ok(vec![Box::new(ProcessLazyDependenciesTask {
+            forwarded_ids,
+            original_module_identifier: module_identifier,
+          })]);
+        }
+      } else {
+        let pending_forwarded_ids = context
+          .artifact
+          .module_to_lazy_make
+          .maybe_lazy_dependencies(module_identifier);
+        pending_forwarded_ids.append(forwarded_ids);
+      }
+
       return Ok(vec![]);
     }
 
@@ -71,7 +103,7 @@ impl Task<MakeTaskContext> for AddTask {
 
     tracing::trace!("Module added: {}", self.module.identifier());
 
-    artifact.built_modules.insert(module_identifier);
+    context.artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
@@ -81,6 +113,7 @@ impl Task<MakeTaskContext> for AddTask {
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
       fs: context.fs.clone(),
+      forwarded_ids,
     })])
   }
 }

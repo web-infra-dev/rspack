@@ -1,6 +1,7 @@
 pub mod add;
 pub mod build;
 pub mod factorize;
+pub mod lazy;
 pub mod process_dependencies;
 
 use std::sync::Arc;
@@ -13,6 +14,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::MakeArtifact;
 use crate::{
   incremental::Incremental,
+  make::repair::lazy::HasLazyDependencies,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},

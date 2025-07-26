@@ -9,10 +9,10 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, TypeReexportPresenceMode,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyMake, LazyMakeKind,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -73,6 +73,7 @@ pub struct ESMImportSideEffectDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
+  lazy_make: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -99,7 +100,12 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       source_map,
       factorize_info: Default::default(),
+      lazy_make: false,
     }
+  }
+
+  pub fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 }
 
@@ -607,6 +613,21 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
+  }
+
+  fn lazy(&self) -> LazyMake {
+    LazyMake {
+      forward_id: None,
+      kind: if self.lazy_make {
+        LazyMakeKind::Lazy { until: None }
+      } else {
+        LazyMakeKind::Eager
+      },
+    }
+  }
+
+  fn unset_lazy(&mut self) {
+    self.lazy_make = false;
   }
 }
 

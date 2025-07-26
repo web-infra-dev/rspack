@@ -50,7 +50,6 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JavaScriptParserAndGenerator")
       .field("parser_plugins", &"...")
-      .field("parser_pre_plugins", &"...")
       .finish()
   }
 }
@@ -132,12 +131,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_layer,
       resource_data,
       compiler_options,
+      factory_meta,
       build_info,
       build_meta,
       module_identifier,
       loaders,
       module_parser_options,
       mut parse_meta,
+      forwarded_ids,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -254,14 +255,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         compiler_options,
         module_type,
         module_layer,
-        build_info,
+        factory_meta,
         build_meta,
+        build_info,
         module_identifier,
         module_parser_options,
         &mut semicolons,
         unresolved_mark,
         &mut self.parser_plugins,
         parse_meta,
+        forwarded_ids,
       )
     }) {
       Ok(result) => result,

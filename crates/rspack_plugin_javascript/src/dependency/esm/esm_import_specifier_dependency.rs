@@ -4,14 +4,15 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
-  to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  create_exports_object_referenced, export_from_import, get_exports_type,
+  make::repair::lazy::LazyMakeKind, property_access, to_normal_comment, AsContextDependency,
+  ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, GetUsedNameParam, ImportAttributes, JavascriptParserOptions, LazyMake,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -183,10 +184,6 @@ impl Dependency for ESMImportSpecifierDependency {
     ConnectionState::Active(false)
   }
 
-  fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    self.get_ids(mg)
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
@@ -298,6 +295,13 @@ impl ModuleDependency for ESMImportSpecifierDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
+  }
+
+  fn lazy(&self) -> LazyMake {
+    LazyMake {
+      forward_id: self.ids.first().cloned(),
+      kind: LazyMakeKind::Eager,
+    }
   }
 }
 

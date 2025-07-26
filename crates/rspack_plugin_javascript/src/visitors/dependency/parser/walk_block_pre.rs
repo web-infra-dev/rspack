@@ -146,17 +146,9 @@ impl JavascriptParser<'_> {
         });
       }
       ExportNamedDeclaration::Specifiers(named) => {
-        for spec in named.specifiers.iter() {
-          let (local_id, exported_name, exported_name_span) = match spec {
-              ExportSpecifier::Namespace(_) => unreachable!("should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"),
-              ExportSpecifier::Default(s) => {
-                (JS_DEFAULT_KEYWORD.clone(), s.exported.sym.clone(), s.exported.span())
-              },
-              ExportSpecifier::Named(n) => {
-                let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
-                (n.orig.atom().clone(), exported_name.atom().clone(), exported_name.span())
-              },
-            };
+        for (local_id, exported_name, exported_name_span) in
+          ExportNamedDeclaration::named_export_specifiers(named)
+        {
           if let Some(src) = &named.src {
             self.plugin_drive.clone().export_import_specifier(
               self,

@@ -18,6 +18,7 @@ use tracing::instrument;
 
 pub use self::{
   compilation::*,
+  make::repair::lazy::{ForwardedIdSet, LazyMake, LazyMakeKind},
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
   rebuild::CompilationRecords,
 };

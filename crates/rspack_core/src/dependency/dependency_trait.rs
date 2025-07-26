@@ -5,7 +5,7 @@ use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_location::DependencyLocation;
-use rspack_util::{atom::Atom, ext::AsAny};
+use rspack_util::ext::AsAny;
 
 use super::{
   dependency_template::AsDependencyCodeGeneration, module_dependency::*, DependencyCategory,
@@ -89,13 +89,6 @@ pub trait Dependency:
 
   fn source_order(&self) -> Option<i32> {
     None
-  }
-
-  // TODO: remove this once incremental build chunk graph is stable.
-  // For now only `ESMImportSpecifierDependency` and
-  // `ESMExportImportedSpecifierDependency` can use this method
-  fn _get_ids<'a>(&'a self, _mg: &'a ModuleGraph) -> &'a [Atom] {
-    unreachable!()
   }
 
   fn resource_identifier(&self) -> Option<&str> {
