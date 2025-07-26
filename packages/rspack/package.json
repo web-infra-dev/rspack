@@ -47,7 +47,7 @@
   "devDependencies": {
     "@ast-grep/napi": "^0.39.1",
     "@rsbuild/core": "^1.4.10",
-    "@rslib/core": "0.10.5",
+    "@rslib/core": "0.11.0",
     "@swc/types": "0.1.23",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
