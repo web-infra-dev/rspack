@@ -229,13 +229,27 @@ impl Combinator {
     let used_exports_chunk_sets_in_graph = &mut self.used_exports_chunk_sets_in_graph;
     let used_exports_chunk_sets_by_count = &mut self.used_exports_chunk_sets_by_count;
 
-    for module in module_graph.modules().keys() {
-      let grouped_chunks = Self::group_chunks_by_exports(
-        module,
-        chunk_graph.get_module_chunks(*module).iter().cloned(),
-        module_graph,
-        chunk_by_ukey,
-      );
+    let modules = module_graph.modules().keys().copied().collect::<Vec<_>>();
+
+    let mut module_grouped_chunks = modules
+      .par_iter()
+      .map(|module| {
+        (
+          *module,
+          Self::group_chunks_by_exports(
+            module,
+            chunk_graph.get_module_chunks(*module).iter().cloned(),
+            module_graph,
+            chunk_by_ukey,
+          ),
+        )
+      })
+      .collect::<IdentifierMap<_>>();
+
+    for module in modules {
+      let grouped_chunks = module_grouped_chunks
+        .remove(&module)
+        .expect("should have grouped chunks");
       for chunks in &grouped_chunks {
         if chunks.is_empty() {
           continue;
@@ -244,7 +258,7 @@ impl Combinator {
         used_exports_chunk_sets_in_graph.insert(chunk_key, chunks.clone());
       }
 
-      grouped_by_exports.insert(*module, grouped_chunks);
+      grouped_by_exports.insert(module, grouped_chunks);
     }
 
     for chunks in used_exports_chunk_sets_in_graph.values() {
