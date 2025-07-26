@@ -137,8 +137,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
     let chunk_ukey = self.chunk_ukey;
     let res = hooks
-      .read()
-      .await
+      .borrow()
       .create_script
       .call(CreateScriptData {
         code: create_script_code,
