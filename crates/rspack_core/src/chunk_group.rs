@@ -54,6 +54,14 @@ pub struct ChunkGroup {
   pub(crate) is_over_size_limit: Option<bool>,
 }
 
+impl Default for ChunkGroup {
+  fn default() -> Self {
+    Self::new(ChunkGroupKind::Normal {
+      options: Default::default(),
+    })
+  }
+}
+
 impl ChunkGroup {
   pub fn new(kind: ChunkGroupKind) -> Self {
     Self {
