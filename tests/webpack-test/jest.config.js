@@ -100,6 +100,7 @@ module.exports = {
 		// "<rootDir>/WatchDetection.test.js",
 		// "<rootDir>/WatchSuspend.test.js",
 		"<rootDir>/WatchTestCases.longtest.js",
+		"<rootDir>/NativeWatcherTestCases.longtest.js",
 		// "<rootDir>/WatcherEvents.test.js",
 		// "<rootDir>/WebpackError.unittest.js",
 		// "<rootDir>/cleverMerge.unittest.js",
