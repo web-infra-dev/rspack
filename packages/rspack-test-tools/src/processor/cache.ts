@@ -108,7 +108,8 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 				library: { type: "commonjs2" }
 			},
 			optimization: {
-				moduleIds: "named"
+				moduleIds: "named",
+				emitOnErrors: true
 			},
 			target: this._cacheOptions.target,
 			experiments: {
