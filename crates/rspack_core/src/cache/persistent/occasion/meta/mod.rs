@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::Arc;
 
 use rspack_cacheable::{cacheable, from_bytes, to_bytes};
 use rspack_error::Result;
@@ -17,16 +17,12 @@ struct Meta {
 /// Meta Occasion is used to save compiler state.
 #[derive(Debug)]
 pub struct MetaOccasion {
-  initialized: AtomicBool,
   storage: Arc<dyn Storage>,
 }
 
 impl MetaOccasion {
   pub fn new(storage: Arc<dyn Storage>) -> Self {
-    Self {
-      initialized: AtomicBool::new(false),
-      storage,
-    }
+    Self { storage }
   }
 
   #[tracing::instrument("Cache::Occasion::Meta::save", skip_all)]
@@ -43,15 +39,6 @@ impl MetaOccasion {
 
   #[tracing::instrument("Cache::Occasion::Meta::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<()> {
-    // avoid duplicate initialization
-    if self.initialized.load(std::sync::atomic::Ordering::SeqCst) {
-      return Ok(());
-    }
-
-    self
-      .initialized
-      .store(true, std::sync::atomic::Ordering::SeqCst);
-
     let Some((_, value)) = self.storage.load(SCOPE).await?.pop() else {
       return Ok(());
     };

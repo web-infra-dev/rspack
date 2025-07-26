@@ -1,18 +1,22 @@
+mod build_dependencies;
 mod cacheable_context;
 mod occasion;
 pub mod snapshot;
 pub mod storage;
-mod version;
-use std::{hash::Hash, path::PathBuf, sync::Arc};
+
+use std::{
+  hash::{DefaultHasher, Hash, Hasher},
+  sync::Arc,
+};
 
 pub use cacheable_context::{CacheableContext, FromContext};
-use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPath;
 use rspack_workspace::rspack_pkg_version;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
+  build_dependencies::{BuildDeps, BuildDepsOptions},
   occasion::{MakeOccasion, MetaOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{create_storage, Storage, StorageOptions},
@@ -20,12 +24,12 @@ use self::{
 use super::Cache;
 use crate::{
   make::{MakeArtifact, MakeArtifactState},
-  Compilation, CompilerOptions,
+  Compilation, CompilerOptions, Logger,
 };
 
 #[derive(Debug, Clone, Hash)]
 pub struct PersistentCacheOptions {
-  pub build_dependencies: Vec<PathBuf>,
+  pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
@@ -34,11 +38,15 @@ pub struct PersistentCacheOptions {
 /// Persistent cache implementation
 #[derive(Debug)]
 pub struct PersistentCache {
-  storage: Arc<dyn Storage>,
+  initialized: bool,
+  build_deps: BuildDeps,
   snapshot: Snapshot,
+  storage: Arc<dyn Storage>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
   async_mode: bool,
+  // TODO replace to logger and output warnings directly.
+  warnings: Vec<String>,
 }
 
 impl PersistentCache {
@@ -50,17 +58,15 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
     let async_mode = compiler_options.mode.is_development();
-    let version = version::get_version(
-      input_filesystem.clone(),
-      &option.build_dependencies,
-      |hasher| {
-        compiler_path.hash(hasher);
-        option.hash(hasher);
-        rspack_pkg_version!().hash(hasher);
-        compiler_options.name.hash(hasher);
-        compiler_options.mode.hash(hasher);
-      },
-    );
+    let version = {
+      let mut hasher = DefaultHasher::new();
+      compiler_path.hash(&mut hasher);
+      option.hash(&mut hasher);
+      rspack_pkg_version!().hash(&mut hasher);
+      compiler_options.name.hash(&mut hasher);
+      compiler_options.mode.hash(&mut hasher);
+      hex::encode(hasher.finish().to_ne_bytes())
+    };
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
     let context = Arc::new(CacheableContext {
       options: compiler_options,
@@ -69,66 +75,43 @@ impl PersistentCache {
     let make_occasion = MakeOccasion::new(storage.clone(), context);
     let meta_occasion = MetaOccasion::new(storage.clone());
     Self {
+      initialized: false,
+      build_deps: BuildDeps::new(
+        &option.build_dependencies,
+        input_filesystem.clone(),
+        storage.clone(),
+      ),
       snapshot: Snapshot::new(option.snapshot.clone(), input_filesystem, storage.clone()),
       storage,
       make_occasion,
       meta_occasion,
       async_mode,
+      warnings: Default::default(),
     }
   }
-}
 
-#[async_trait::async_trait]
-impl Cache for PersistentCache {
-  async fn before_compile(&mut self, compilation: &mut Compilation) -> Result<bool> {
-    // TODO move meta_occasion.recovery to a init fn of Cache trait and call init after create cache.
-    self.meta_occasion.recovery().await?;
-
-    // rebuild will pass modified_files and removed_files from js side,
-    // so only calculate them when build.
-    if !compilation.is_rebuild {
-      let (is_hot_start, modified_paths, removed_paths) =
-        self.snapshot.calc_modified_paths().await?;
-      tracing::debug!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
-      compilation.modified_files.extend(modified_paths);
-      compilation.removed_files.extend(removed_paths);
-      return Ok(is_hot_start);
+  async fn initialize(&mut self) {
+    if self.initialized {
+      return;
     }
-    Ok(false)
+    self.initialized = true;
+
+    if let Err(err) = self.build_deps.validate().await {
+      self.warnings.push(err.to_string());
+    }
+    if let Err(err) = self.meta_occasion.recovery().await {
+      self.warnings.push(err.to_string());
+    }
   }
 
-  async fn after_compile(&mut self, compilation: &Compilation) -> Result<()> {
-    // save meta
-    self.meta_occasion.save();
-
-    // save snapshot
-    // TODO add a all_dependencies to collect dependencies
-    let (_, file_added, file_removed) = compilation.file_dependencies();
-    let (_, context_added, context_removed) = compilation.context_dependencies();
-    let (_, missing_added, missing_removed) = compilation.missing_dependencies();
-    let (_, build_added, build_removed) = compilation.build_dependencies();
-    let modified_paths: HashSet<ArcPath> = compilation
-      .modified_files
-      .iter()
-      .chain(file_added)
-      .chain(context_added)
-      .chain(missing_added)
-      .chain(build_added)
-      .cloned()
-      .collect();
-    let removed_paths: HashSet<ArcPath> = compilation
-      .removed_files
-      .iter()
-      .chain(file_removed)
-      .chain(context_removed)
-      .chain(missing_removed)
-      .chain(build_removed)
-      .cloned()
-      .collect();
-    self.snapshot.remove(removed_paths.into_iter());
-    self.snapshot.add(modified_paths.into_iter()).await;
-
-    let rx = self.storage.trigger_save()?;
+  async fn save(&mut self) {
+    let rx = match self.storage.trigger_save() {
+      Ok(rx) => rx,
+      Err(err) => {
+        self.warnings.push(err.to_string());
+        return;
+      }
+    };
     if self.async_mode {
       tokio::spawn(async {
         if let Err(err) = rx.await.expect("should receive message") {
@@ -136,23 +119,84 @@ impl Cache for PersistentCache {
           println!("persistent cache save failed. {err}");
         }
       });
-    } else {
-      rx.await.expect("should receive message")?;
+    } else if let Err(err) = rx.await.expect("should receive message") {
+      self.warnings.push(err.to_string());
     }
+  }
+}
 
-    Ok(())
+#[async_trait::async_trait]
+impl Cache for PersistentCache {
+  async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
+    self.initialize().await;
+
+    // rebuild will pass modified_files and removed_files from js side,
+    // so only calculate them when build.
+    if !compilation.is_rebuild {
+      let (is_hot_start, modified_paths, removed_paths, _) =
+        match self.snapshot.calc_modified_paths().await {
+          Ok(res) => res,
+          Err(err) => {
+            self.warnings.push(err.to_string());
+            return false;
+          }
+        };
+      tracing::debug!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
+      compilation.modified_files.extend(modified_paths);
+      compilation.removed_files.extend(removed_paths);
+      return is_hot_start;
+    }
+    false
   }
 
-  async fn before_make(&mut self, make_artifact: &mut MakeArtifact) -> Result<()> {
+  async fn after_compile(&mut self, compilation: &Compilation) {
+    // save meta
+    self.meta_occasion.save();
+
+    // save snapshot
+    // TODO add a all_dependencies to collect dependencies
+    let (_, file_added, file_removed) = compilation.file_dependencies();
+    let (_, context_added, context_removed) = compilation.context_dependencies();
+    let (_, build_added, _) = compilation.build_dependencies();
+    let modified_paths: HashSet<ArcPath> = compilation
+      .modified_files
+      .iter()
+      .chain(file_added)
+      .chain(context_added)
+      .cloned()
+      .collect();
+    let removed_paths: HashSet<ArcPath> = compilation
+      .removed_files
+      .iter()
+      .chain(file_removed)
+      .chain(context_removed)
+      .cloned()
+      .collect();
+    self.snapshot.remove(removed_paths.into_iter());
+    self.snapshot.add(modified_paths.into_iter()).await;
+    self
+      .warnings
+      .extend(self.build_deps.add(build_added.cloned()).await);
+
+    self.save().await;
+
+    let logger = compilation.get_logger("rspack.persistentCache");
+    for msg in std::mem::take(&mut self.warnings) {
+      logger.warn(msg);
+    }
+  }
+
+  async fn before_make(&mut self, make_artifact: &mut MakeArtifact) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
     if matches!(make_artifact.state, MakeArtifactState::Uninitialized(..)) {
-      *make_artifact = self.make_occasion.recovery().await?;
+      match self.make_occasion.recovery().await {
+        Ok(artifact) => *make_artifact = artifact,
+        Err(err) => self.warnings.push(err.to_string()),
+      }
     }
-    Ok(())
   }
 
-  async fn after_make(&mut self, make_artifact: &MakeArtifact) -> Result<()> {
+  async fn after_make(&mut self, make_artifact: &MakeArtifact) {
     self.make_occasion.save(make_artifact);
-    Ok(())
   }
 }
