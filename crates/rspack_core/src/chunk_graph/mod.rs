@@ -1,10 +1,10 @@
 use core::fmt;
-use std::{borrow::Cow, collections::HashSet};
+use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierMap, UkeyMap};
-use rspack_util::env::has_query;
-use rustc_hash::FxHashMap as HashMap;
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_util::{atom::Atom, env::has_query};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
@@ -15,6 +15,84 @@ pub mod chunk_graph_module;
 pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
 pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
 
+#[derive(Debug, Clone)]
+pub enum Ref {
+  Symbol(SymbolRef),
+  Inline(String),
+}
+
+#[derive(Clone)]
+pub struct SymbolRef {
+  pub module: ModuleIdentifier,
+  pub symbol: Atom,
+  pub ids: Vec<Atom>,
+  renderer: Arc<dyn Fn(&SymbolRef) -> String + Send + Sync>,
+}
+
+impl std::fmt::Debug for SymbolRef {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("SymbolRef")
+      .field("module", &self.module)
+      .field("symbol", &self.symbol)
+      .field("ids", &self.ids)
+      .finish()
+  }
+}
+
+impl SymbolRef {
+  pub fn new(
+    module: ModuleIdentifier,
+    symbol: Atom,
+    ids: Vec<Atom>,
+    renderer: Arc<dyn Fn(&SymbolRef) -> String + Send + Sync>,
+  ) -> Self {
+    Self {
+      module,
+      symbol,
+      ids,
+      renderer,
+    }
+  }
+
+  pub fn render(&self) -> String {
+    (self.renderer)(self)
+  }
+}
+
+pub trait BindingRenderer {
+  fn render(&self) -> Cow<str>;
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ExternalInterop {
+  pub from_module: ModuleIdentifier,
+  pub required_symbol: Option<Atom>,
+  pub default_access: Option<Atom>,
+  pub namespace_object: Option<Atom>,
+  pub namespace_object2: Option<Atom>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ChunkLinkContext {
+  // specifier order doesn't matter, we can sort them based on name
+  pub exports: IdentifierMap<HashSet<Atom>>,
+
+  // import order matters, it affects execution order
+  pub imports: IdentifierIndexMap<HashMap<Atom, Atom>>,
+
+  // const symbol = __webpack_require__(module_id)
+  pub required: IdentifierIndexMap<ExternalInterop>,
+
+  pub needed_namespace_objects: IdentifierIndexSet,
+  pub namespace_object_sources: IdentifierMap<String>,
+
+  pub hoisted_modules: IdentifierIndexSet,
+  pub decl_modules: IdentifierIndexSet,
+
+  pub refs: HashMap<String, Ref>,
+  pub used_names: HashSet<Atom>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
   /// If a module is imported dynamically, it will be assigned to a unique ChunkGroup
@@ -24,6 +102,9 @@ pub struct ChunkGraph {
   chunk_graph_chunk_by_chunk_ukey: UkeyMap<ChunkUkey, ChunkGraphChunk>,
 
   runtime_ids: HashMap<String, Option<String>>,
+
+  // only used for esm output
+  pub link: Option<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
 impl ChunkGraph {
@@ -39,7 +120,8 @@ impl ChunkGraph {
   // 1. support chunk_group dump visualizer
   pub fn to_dot(&self, compilation: &Compilation) -> std::result::Result<String, fmt::Error> {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
-    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
+    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> =
+      HashSet::default();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
     let module_graph = compilation.get_module_graph();
     // generate following chunk_group_info as dto record info
