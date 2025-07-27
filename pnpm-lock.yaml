@@ -32,8 +32,8 @@ importers:
         specifier: 7.30.7
         version: 7.30.7(@types/node@20.19.9)
       '@rslint/core':
-        specifier: 0.0.7
-        version: 0.0.7
+        specifier: 0.0.9
+        version: 0.0.9
       '@rspack/cli':
         specifier: workspace:*
         version: link:packages/rspack-cli
@@ -581,10 +581,10 @@ importers:
         version: 4.17.21
       postcss-loader:
         specifier: ^8.1.1
-        version: 8.1.1(@rspack/core@packages+rspack)(postcss@8.5.4)(typescript@5.8.3)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
+        version: 8.1.1(@rspack/core@packages+rspack)(postcss@8.5.6)(typescript@5.8.3)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       postcss-pxtorem:
         specifier: ^6.1.0
-        version: 6.1.0(postcss@8.5.4)
+        version: 6.1.0(postcss@8.5.6)
       raw-loader:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
@@ -2665,8 +2665,8 @@ packages:
       typescript:
         optional: true
 
-  '@rslint/core@0.0.7':
-    resolution: {integrity: sha512-8HelgIiTZ1YZg6246fVo128z4aq23jW1O9BIT7iYOPViVbVf7p0NyU7lBcqnKnZV7w2jBy6nCb9dGI6X4+rtIQ==}
+  '@rslint/core@0.0.9':
+    resolution: {integrity: sha512-rhH24Bzotq/b+PPYI/jZsm77uKsAA+/uD/hqDd9UxwpwnqdPNG3IG4UbqN476Zem21WX+HV+fuHmYgwMys1oIw==}
     hasBin: true
 
   '@rspack/binding-darwin-arm64@1.4.10':
@@ -9859,7 +9859,7 @@ snapshots:
       '@microsoft/api-extractor': 7.52.9(@types/node@24.1.0)
       typescript: 5.8.3
 
-  '@rslint/core@0.0.7': {}
+  '@rslint/core@0.0.9': {}
 
   '@rspack/binding-darwin-arm64@1.4.10':
     optional: true
@@ -14583,18 +14583,6 @@ snapshots:
       postcss: 8.5.6
       ts-node: 10.9.2(@swc/core@1.12.0(@swc/helpers@0.5.17))(@types/node@24.1.0)(typescript@5.8.3)
 
-  postcss-loader@8.1.1(@rspack/core@packages+rspack)(postcss@8.5.4)(typescript@5.8.3)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))):
-    dependencies:
-      cosmiconfig: 9.0.0(typescript@5.8.3)
-      jiti: 1.21.7
-      postcss: 8.5.4
-      semver: 7.7.2
-    optionalDependencies:
-      '@rspack/core': link:packages/rspack
-      webpack: 5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))
-    transitivePeerDependencies:
-      - typescript
-
   postcss-loader@8.1.1(@rspack/core@packages+rspack)(postcss@8.5.6)(typescript@5.8.3)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))):
     dependencies:
       cosmiconfig: 9.0.0(typescript@5.8.3)
@@ -14633,9 +14621,9 @@ snapshots:
       postcss: 8.5.6
       postcss-selector-parser: 6.1.2
 
-  postcss-pxtorem@6.1.0(postcss@8.5.4):
+  postcss-pxtorem@6.1.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.4
+      postcss: 8.5.6
 
   postcss-selector-parser@6.1.2:
     dependencies:
