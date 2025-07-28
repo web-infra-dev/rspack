@@ -17,6 +17,10 @@ class Plugin {
 						"./index.js?query",
 						{},
 						(error, res, req) => {
+							expect(
+								normalResolver.resolveSync({}, __dirname, "./index.js?query")
+							).toBe(res);
+
 							expect(error).toBeNull();
 							expect(res).toBe(path.join(__dirname, "/index.js?query"));
 							// Webpack does not have resource field

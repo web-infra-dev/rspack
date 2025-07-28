@@ -17,6 +17,10 @@ class Plugin {
 						"./index.js#fragment",
 						{},
 						(error, res, req) => {
+							expect(
+								normalResolver.resolveSync({}, __dirname, "./index.js#fragment")
+							).toBe(res);
+
 							expect(error).toBeNull();
 							expect(res).toBe(path.join(__dirname, "/index.js#fragment"));
 							// Webpack does not have resource field
