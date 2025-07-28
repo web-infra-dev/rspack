@@ -32,7 +32,7 @@ runs:
       uses: stormslowly/rust-cache@8269079380bc35105b3ed8b0f1f7c9557c6dec93 # v0.0.2
       if: ${{ runner.environment == 'self-hosted' }}
       with:
-        prefix-key: "RCache-L-pshu1"
+        prefix-key: "RCache-L-4"
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
         fullmatch-only: "true"
