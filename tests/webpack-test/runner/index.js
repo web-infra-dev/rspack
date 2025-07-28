@@ -430,10 +430,7 @@ class TestRunner {
 					},
 					importModuleDynamically: async (specifier, module) => {
 						const normalizedSpecifier = specifier.startsWith("file:")
-							? `./${path.relative(
-								path.dirname(modulePath),
-								fileURLToPath(specifier)
-							)}`
+							? `./${path.relative(path.dirname(modulePath), fileURLToPath(specifier))}`
 							: specifier.replace(
 								/https:\/\/example.com\/public\/path\//,
 								"./"
@@ -507,17 +504,12 @@ class TestRunner {
 			const EventSource = require("../helpers/EventSourceForNode");
 
 			const document = new FakeDocument(outputDirectory);
-
-			console.log('this.testConfig.evaluateScriptOnAttached',this.testConfig.evaluateScriptOnAttached);
 			if (this.testConfig.evaluateScriptOnAttached) {
 				document.onScript = src => {
 					this.require(outputDirectory, urlToRelativePath(src));
 				};
 			}
 			const fetch = async url => {
-
-				console.log("fetch", url);
-
 				try {
 					const buffer = await new Promise((resolve, reject) => {
 						fs.readFile(urlToPath(url, this.outputDirectory), (err, b) =>
