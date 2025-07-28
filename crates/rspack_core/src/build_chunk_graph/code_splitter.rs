@@ -1872,58 +1872,106 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
-    let mut changed = false;
+    let mut chunk_groups_merging_batches: Vec<Vec<(CgiUkey, Option<ProcessBlock>)>> = vec![vec![]];
 
+    // take chunk group infos and process parallelly
+    // cause the chunk group info keys may be duplicated with different process blocks
+    // so a new batch will be created when chunk group info key has been exists
+    let mut taken_cgi = HashSet::<CgiUkey>::default();
     for (info_ukey, process_block) in chunk_groups_for_merging {
-      let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
+      if !taken_cgi.insert(info_ukey) {
+        chunk_groups_merging_batches.push(vec![]);
+        taken_cgi.clear();
+        taken_cgi.insert(info_ukey);
+      }
+      chunk_groups_merging_batches
+        .last_mut()
+        .expect("should have last batch")
+        .push((info_ukey, process_block));
+    }
 
-      if !cgi.available_modules_to_be_merged.is_empty() {
-        let available_modules_to_be_merged =
-          std::mem::take(&mut cgi.available_modules_to_be_merged);
+    for batch in chunk_groups_merging_batches {
+      let chunk_groups_merging_tasks = batch
+        .into_iter()
+        .map(|(info_ukey, process_block)| {
+          let cgi = std::mem::take(self.chunk_group_infos.expect_get_mut(&info_ukey));
+          (info_ukey, process_block, cgi)
+        })
+        .collect::<Vec<_>>();
 
-        self.stat_merged_available_module_sets += available_modules_to_be_merged.len() as u32;
+      let (chunk_group_infos, chunk_group_merging_results): (Vec<_>, Vec<_>) =
+        chunk_groups_merging_tasks
+          .into_par_iter()
+          .map(|(info_ukey, process_block, mut cgi)| {
+            let mut changed = false;
+            let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
 
-        let orig = cgi.min_available_modules.clone();
+            if !cgi.available_modules_to_be_merged.is_empty() {
+              let available_modules_to_be_merged =
+                std::mem::take(&mut cgi.available_modules_to_be_merged);
 
-        for modules_to_be_merged in available_modules_to_be_merged {
-          if !cgi.min_available_modules_init {
-            cgi.min_available_modules_init = true;
-            cgi.min_available_modules = modules_to_be_merged;
-            changed = true;
-            continue;
-          }
+              for modules_to_be_merged in available_modules_to_be_merged {
+                if !cgi.min_available_modules_init {
+                  cgi.min_available_modules_init = true;
+                  cgi.min_available_modules = modules_to_be_merged;
+                  changed = true;
+                  continue;
+                }
 
-          cgi.min_available_modules =
-            Arc::new(cgi.min_available_modules.as_ref() & modules_to_be_merged.as_ref());
-          changed |= orig != cgi.min_available_modules;
-        }
+                let orig = cgi.min_available_modules.clone();
+                cgi.min_available_modules =
+                  Arc::new(cgi.min_available_modules.as_ref() & modules_to_be_merged.as_ref());
+                changed |= orig != cgi.min_available_modules;
+              }
+            }
+
+            if changed {
+              cgi.invalidate_resulting_available_modules();
+            }
+            (
+              (info_ukey, cgi),
+              (info_ukey, process_block, changed, available_modules_length),
+            )
+          })
+          .unzip();
+
+      for (info_ukey, cgi) in chunk_group_infos {
+        *self.chunk_group_infos.expect_get_mut(&info_ukey) = cgi;
       }
 
-      if changed {
-        cgi.invalidate_resulting_available_modules();
-        self.outdated_chunk_group_info.insert(info_ukey);
-      }
+      for (info_ukey, process_block, changed, available_modules_length) in
+        chunk_group_merging_results
+      {
+        let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
 
-      if let Some(process_block) = process_block {
-        let initialized = cgi.initialized;
-        let mut needs_walk = !initialized || changed;
-        let blocks = self.incoming_blocks_by_cgi.entry(cgi.ukey).or_default();
-        if blocks.insert(process_block.block) {
-          needs_walk = true;
+        self.stat_merged_available_module_sets += available_modules_length;
+
+        if changed {
+          self.outdated_chunk_group_info.insert(info_ukey);
         }
 
-        if needs_walk {
-          cgi.initialized = true;
+        if let Some(process_block) = process_block {
+          let initialized = cgi.initialized;
+          let mut needs_walk = !initialized || changed;
 
-          // check if we can use cache to initialize it
-          if !initialized && self.recover_from_cache(info_ukey, compilation) {
-            self.stat_use_cache += 1;
-            continue;
+          let blocks = self.incoming_blocks_by_cgi.entry(cgi.ukey).or_default();
+          if blocks.insert(process_block.block) {
+            needs_walk = true;
           }
 
-          self
-            .queue_delayed
-            .push(QueueAction::ProcessBlock(process_block));
+          if needs_walk {
+            cgi.initialized = true;
+
+            // check if we can use cache to initialize it
+            if !initialized && self.recover_from_cache(info_ukey, compilation) {
+              self.stat_use_cache += 1;
+              continue;
+            }
+
+            self
+              .queue_delayed
+              .push(QueueAction::ProcessBlock(process_block));
+          }
         }
       }
     }
