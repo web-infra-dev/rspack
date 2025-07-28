@@ -384,8 +384,8 @@ importers:
         specifier: workspace:*
         version: link:../../crates/node_binding
       memfs:
-        specifier: 4.17.2
-        version: 4.17.2
+        specifier: 4.20.0
+        version: 4.20.0
 
   packages/rspack-cli:
     dependencies:
@@ -6047,10 +6047,6 @@ packages:
 
   medium-zoom@1.1.0:
     resolution: {integrity: sha512-ewyDsp7k4InCUp3jRmwHBRFGyjBimKps/AJLjRSox+2q/2H4p/PNpQf+pwONWlJiOudkBXtbdmVbFjqyybfTmQ==}
-
-  memfs@4.17.2:
-    resolution: {integrity: sha512-NgYhCOWgovOXSzvYgUW0LQ7Qy72rWQMGGFJDoWg4G30RHd3z77VbYdtJ4fembJXBy8pMIUA31XNAupobOQlwdg==}
-    engines: {node: '>= 4.0.0'}
 
   memfs@4.20.0:
     resolution: {integrity: sha512-VKta4Y+0CPo0NvYMOE7vvhaNe4K5WTP077G1S4PS0h0joX0f15NosPT6y48rOpKLCh48nnlgY/TdRPwiKCIIkg==}
@@ -14539,13 +14535,6 @@ snapshots:
   media-typer@0.3.0: {}
 
   medium-zoom@1.1.0: {}
-
-  memfs@4.17.2:
-    dependencies:
-      '@jsonjoy.com/json-pack': 1.2.0(tslib@2.8.1)
-      '@jsonjoy.com/util': 1.6.0(tslib@2.8.1)
-      tree-dump: 1.0.3(tslib@2.8.1)
-      tslib: 2.8.1
 
   memfs@4.20.0:
     dependencies:
