@@ -893,7 +893,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         continue;
       };
 
-      let mut visited = IdentifierIndexSet::default();
+      let mut visited = IdentifierSet::default();
 
       let mut ctx = (0, 0, Default::default());
       for root in roots {
@@ -968,16 +968,15 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     module_identifier: ModuleIdentifier,
     runtime: &RuntimeSpec,
-    visited: &mut IdentifierIndexSet,
+    visited: &mut IdentifierSet,
     ctx: &mut (usize, usize, IndexMap<ModuleIdentifier, (usize, usize)>),
     compilation: &mut Compilation,
   ) {
-    let block_modules =
-      self.get_block_modules(module_identifier.into(), Some(runtime), compilation);
-    if visited.contains(&module_identifier) {
+    if !visited.insert(module_identifier) {
       return;
     }
-    visited.insert(module_identifier);
+    let block_modules =
+      self.get_block_modules(module_identifier.into(), Some(runtime), compilation);
 
     let indices = ctx.2.entry(module_identifier).or_default();
 
