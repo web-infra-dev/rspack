@@ -31,6 +31,7 @@ type JsonObjectTypes = { [index: string]: JsonValueTypes } & {
 };
 
 export interface ResolveRequest {
+	resource: string;
 	path: string;
 	query: string;
 	fragment: string;
@@ -64,7 +65,7 @@ export class Resolver {
 				return;
 			}
 			const req = text ? (JSON.parse(text) as ResolveRequest) : undefined;
-			callback(error, req ? req.path : false, req);
+			callback(error, req ? req.resource : false, req);
 		});
 	}
 

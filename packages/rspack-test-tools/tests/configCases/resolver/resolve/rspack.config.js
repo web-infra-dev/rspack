@@ -18,8 +18,25 @@ class Plugin {
 						(error, res, req) => {
 							expect(error).toBeNull();
 							expect(res).toBe(path.join(__dirname, "/index.js"));
-							expect(req.path).toBe(path.join(__dirname, "/index.js"));
-							callback();
+							expect(req.resource).toBe(path.join(__dirname, "/index.js"));
+
+							// With query
+							normalResolver.resolve(
+								{},
+								__dirname,
+								"./index.js?query",
+								{},
+								(error, res, req) => {
+									expect(error).toBeNull();
+									expect(res).toBe(path.join(__dirname, "/index.js?query"));
+									expect(req.resource).toBe(
+										path.join(__dirname, "/index.js?query")
+									);
+									expect(req.path).toBe(path.join(__dirname, "/index.js"));
+									expect(req.query).toBe("?query");
+									callback();
+								}
+							);
 						}
 					);
 				}

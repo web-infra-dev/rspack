@@ -19,6 +19,7 @@ use crate::{
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolveRequest {
+  pub resource: String,
   pub path: String,
   pub query: String,
   pub fragment: String,
@@ -28,9 +29,11 @@ pub struct ResolveRequest {
 
 impl From<rspack_core::Resource> for ResolveRequest {
   fn from(value: rspack_core::Resource) -> Self {
+    let resource = value.full_path();
     let (description_file_path, description_file_data) =
       value.description_data.map(|data| data.into_parts()).unzip();
     Self {
+      resource,
       path: value.path.to_string(),
       query: value.query,
       fragment: value.fragment,
