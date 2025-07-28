@@ -42,19 +42,21 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_order();
     let dynamic_import_fetch_priority = parser.javascript_options.dynamic_import_fetch_priority;
 
-    let magic_comment_options = match parser
+    let magic_comment_options = if parser
       .javascript_options
       .import_magic_comments
       .unwrap_or(true)
     {
-      true => try_extract_webpack_magic_comment(
+      try_extract_webpack_magic_comment(
         parser.source_file,
         &parser.comments,
         node.span,
         dyn_imported.span(),
         &mut parser.warning_diagnostics,
-      ),
-      false => return None,
+      )
+    } else {
+      // TODO: need to add a field to store the original comments and render them in the template
+      Default::default()
     };
 
     if magic_comment_options
