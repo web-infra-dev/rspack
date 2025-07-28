@@ -6064,8 +6064,6 @@ interface ResolveRequest {
     path: string;
     // (undocumented)
     query: string;
-    // (undocumented)
-    resource: string;
 }
 
 // @public (undocumented)
