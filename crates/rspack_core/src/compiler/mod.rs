@@ -242,23 +242,17 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    match self.cache.before_compile(&mut self.compilation).await {
-      Ok(_is_hot) => {
-        // TODO: disable it for now, enable it once persistent cache is added to all artifacts
-        // if is_hot {
-        //   // If it's a hot start, we can use incremental
-        //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
-        // }
-      }
-      Err(err) => self.compilation.push_diagnostic(err.into()),
-    }
+    let _is_hot = self.cache.before_compile(&mut self.compilation).await;
+    // TODO: disable it for now, enable it once persistent cache is added to all artifacts
+    // if is_hot {
+    //   // If it's a hot start, we can use incremental
+    //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+    // }
 
     self.compile().await?;
     self.old_cache.begin_idle();
     self.compile_done().await?;
-    if let Err(err) = self.cache.after_compile(&self.compilation).await {
-      self.compilation.push_diagnostic(err.into());
-    }
+    self.cache.after_compile(&self.compilation).await;
     Ok(())
   }
 
@@ -286,13 +280,10 @@ impl Compiler {
     let logger = self.compilation.get_logger("rspack.Compiler");
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
-    if let Err(err) = self
+    self
       .cache
       .before_make(&mut self.compilation.make_artifact)
-      .await
-    {
-      self.compilation.push_diagnostic(err.into());
-    }
+      .await;
 
     if let Some(e) = self
       .plugin_driver
@@ -319,9 +310,7 @@ impl Compiler {
 
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
-    if let Err(err) = self.cache.after_make(&self.compilation.make_artifact).await {
-      self.compilation.push_diagnostic(err.into());
-    }
+    self.cache.after_make(&self.compilation.make_artifact).await;
     logger.time_end(start);
     let start = logger.time("seal compilation");
     #[cfg(feature = "debug_tool")]

@@ -3,7 +3,9 @@ const fs = require("fs/promises");
 
 let content = 1;
 
-const buildDependency = path.join(__dirname, "test.log");
+const logA = path.join(__dirname, "./configs/a.log");
+const logB = path.join(__dirname, "./configs/b.log");
+const BuildDependency = path.join(__dirname, "./configs/index.js");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -11,7 +13,7 @@ module.exports = {
 	experiments: {
 		cache: {
 			type: "persistent",
-			buildDependencies: [buildDependency],
+			buildDependencies: [BuildDependency],
 			snapshot: {
 				immutablePaths: [path.join(__dirname, "./file.js")]
 			}
@@ -23,7 +25,23 @@ module.exports = {
 				compiler.hooks.beforeCompile.tapPromise(
 					"Test Plugin",
 					async function () {
-						await fs.writeFile(buildDependency, String(content));
+						if (content == 1) {
+							// init
+							await fs.writeFile(logA, String(content));
+							await fs.writeFile(logB, String(content));
+						} else if (content == 2) {
+							// do nothing
+						} else if (content == 3) {
+							// update a.log
+							await fs.writeFile(logA, String(content));
+						} else if (content == 4) {
+							// update b.log
+							await fs.writeFile(logB, String(content));
+						} else if (content == 5) {
+							// do nothing
+						} else if (content == 6) {
+							await fs.writeFile(BuildDependency, String(content));
+						}
 						content++;
 					}
 				);
