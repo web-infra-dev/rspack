@@ -4028,9 +4028,6 @@ dependencies = [
 [[package]]
 name = "rspack_browser"
 version = "0.4.10"
-dependencies = [
- "tokio",
-]
 
 [[package]]
 name = "rspack_browserslist"
