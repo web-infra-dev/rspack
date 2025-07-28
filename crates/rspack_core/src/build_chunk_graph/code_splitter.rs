@@ -1904,7 +1904,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .into_par_iter()
           .map(|(info_ukey, process_block, mut cgi)| {
             let mut changed = false;
-            let avaiable_modules_length = cgi.available_modules_to_be_merged.len() as u32;
+            let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
 
             if !cgi.available_modules_to_be_merged.is_empty() {
               let available_modules_to_be_merged =
@@ -1930,7 +1930,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             }
             (
               (info_ukey, cgi),
-              (info_ukey, process_block, changed, avaiable_modules_length),
+              (info_ukey, process_block, changed, available_modules_length),
             )
           })
           .unzip();
@@ -1939,12 +1939,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         *self.chunk_group_infos.expect_get_mut(&info_ukey) = cgi;
       }
 
-      for (info_ukey, process_block, changed, avaiable_modules_length) in
+      for (info_ukey, process_block, changed, available_modules_length) in
         chunk_group_merging_results
       {
         let cgi = self.chunk_group_infos.expect_get_mut(&info_ukey);
 
-        self.stat_merged_available_module_sets += avaiable_modules_length;
+        self.stat_merged_available_module_sets += available_modules_length;
 
         if changed {
           self.outdated_chunk_group_info.insert(info_ukey);
