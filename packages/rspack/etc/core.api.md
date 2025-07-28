@@ -3366,6 +3366,7 @@ export type JavascriptParserOptions = {
     importDynamic?: boolean;
     inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+    importMagicComments?: boolean;
 };
 
 // @public (undocumented)

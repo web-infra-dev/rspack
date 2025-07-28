@@ -42,13 +42,21 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_order();
     let dynamic_import_fetch_priority = parser.javascript_options.dynamic_import_fetch_priority;
 
-    let magic_comment_options = try_extract_webpack_magic_comment(
-      parser.source_file,
-      &parser.comments,
-      node.span,
-      dyn_imported.span(),
-      &mut parser.warning_diagnostics,
-    );
+    let magic_comment_options = match parser
+      .javascript_options
+      .import_magic_comments
+      .unwrap_or(true)
+    {
+      true => try_extract_webpack_magic_comment(
+        parser.source_file,
+        &parser.comments,
+        node.span,
+        dyn_imported.span(),
+        &mut parser.warning_diagnostics,
+      ),
+      false => return None,
+    };
+
     if magic_comment_options
       .get_webpack_ignore()
       .unwrap_or_default()

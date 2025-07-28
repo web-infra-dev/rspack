@@ -193,6 +193,7 @@ Object {
         dynamicImportPreload: false,
         exprContextCritical: true,
         importDynamic: true,
+        importMagicComments: true,
         importMeta: true,
         inlineConst: false,
         requireAsExpression: true,

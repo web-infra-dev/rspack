@@ -306,6 +306,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importMeta", true);
 	D(parserOptions, "inlineConst", false);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
+	D(parserOptions, "importMagicComments", true);
 };
 
 const applyJsonGeneratorOptionsDefaults = (

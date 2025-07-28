@@ -2144,6 +2144,11 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   typeReexportsPresence?: string
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  importMagicComments?: boolean
 }
 
 export interface RawJsonGeneratorOptions {

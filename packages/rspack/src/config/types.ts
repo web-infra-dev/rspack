@@ -1104,6 +1104,12 @@ export type JavascriptParserOptions = {
 
 	/** Whether to tolerant exportsPresence for type reexport */
 	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+
+	/**
+	 * Enable or disable parsing magic comments in import() statements.
+	 * @default true
+	 */
+	importMagicComments?: boolean;
 };
 
 export type JsonParserOptions = {

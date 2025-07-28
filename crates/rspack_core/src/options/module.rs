@@ -282,6 +282,7 @@ pub struct JavascriptParserOptions {
   pub require_resolve: Option<bool>,
   pub import_dynamic: Option<bool>,
   pub inline_const: Option<bool>,
+  pub import_magic_comments: Option<bool>,
 }
 
 #[cacheable]
