@@ -1,9 +1,8 @@
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
 
 use super::{build::BuildTask, MakeTaskContext};
 use crate::{
-  make::repair::lazy::{ForwardedIdSet, ProcessLazyDependenciesTask},
+  make::repair::lazy::{ForwardedIdSet, ProcessUnlazyDependenciesTask},
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, Module, ModuleIdentifier, ModuleProfile,
@@ -46,14 +45,7 @@ impl Task<MakeTaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let forwarded_ids = ForwardedIdSet::new(
-      self
-        .dependencies
-        .iter()
-        .filter_map(|dep| dep.as_module_dependency())
-        .filter_map(|dep| dep.lazy().forward_id.clone())
-        .collect::<FxHashSet<_>>(),
-    );
+    let forwarded_ids = ForwardedIdSet::from_dependencies(&self.dependencies);
 
     // reuse module if module is already added by other dependency
     if module_graph
@@ -75,8 +67,9 @@ impl Task<MakeTaskContext> for AddTask {
           .artifact
           .module_to_lazy_make
           .has_lazy_dependencies(&module_identifier)
+          && !forwarded_ids.is_empty()
         {
-          return Ok(vec![Box::new(ProcessLazyDependenciesTask {
+          return Ok(vec![Box::new(ProcessUnlazyDependenciesTask {
             forwarded_ids,
             original_module_identifier: module_identifier,
           })]);
@@ -85,7 +78,8 @@ impl Task<MakeTaskContext> for AddTask {
         let pending_forwarded_ids = context
           .artifact
           .module_to_lazy_make
-          .maybe_lazy_dependencies(module_identifier);
+          .as_pending_forwarded_ids(module_identifier)
+          .expect("should be pending if module is not in the module graph");
         pending_forwarded_ids.append(forwarded_ids);
       }
 

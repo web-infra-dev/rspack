@@ -18,9 +18,9 @@ use rspack_core::{
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, LazyMake, LazyMakeKind, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  ForwardId, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, LazyMake, LazyMakeKind, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
   UsageState, UsedName,
@@ -1409,22 +1409,25 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
 
   fn lazy(&self) -> LazyMake {
     let is_star_export = self.name.is_none();
-    if is_star_export {
-      LazyMake {
-        forward_id: None,
-        kind: LazyMakeKind::Eager,
-      }
-    } else {
-      LazyMake {
-        forward_id: self.ids.first().cloned(),
-        kind: if self.lazy_make {
-          LazyMakeKind::Lazy {
-            until: self.name.clone(),
-          }
-        } else {
-          LazyMakeKind::Eager
-        },
-      }
+    LazyMake {
+      forward_id: Some(if is_star_export {
+        ForwardId::All
+      } else if let Some(id) = self.ids.first() {
+        ForwardId::Id(id.clone())
+      } else {
+        ForwardId::All
+      }),
+      kind: if self.lazy_make {
+        LazyMakeKind::Lazy {
+          until: Some(if let Some(name) = &self.name {
+            ForwardId::Id(name.clone())
+          } else {
+            ForwardId::All
+          }),
+        }
+      } else {
+        LazyMakeKind::Eager
+      },
     }
   }
 

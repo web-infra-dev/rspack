@@ -28,13 +28,13 @@ use serde::Serialize;
 
 use crate::{
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, make::repair::lazy::ForwardedIdSet, AsyncDependenciesBlock, BindingCell,
-  BoxDependency, BoxDependencyTemplate, BoxModuleDependency, ChunkGraph, ChunkUkey,
-  CodeGenerationResult, CollectedTypeScriptInfo, Compilation, CompilationAsset, CompilationId,
-  CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, ExportProvided, ExternalModule, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  get_target, AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate,
+  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo,
+  Compilation, CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
+  ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -44,7 +44,6 @@ pub struct BuildContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
-  pub forwarded_ids: ForwardedIdSet,
 }
 
 #[cacheable]

@@ -20,7 +20,7 @@ use crate::{
   utils::object_properties::get_attributes,
   visitors::{
     create_traceable_error, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
-    ExportLocal, ExportNamedDeclaration, JavascriptParser, TagInfoData,
+    ExportLocal, JavascriptParser, TagInfoData,
   },
 };
 
@@ -55,35 +55,14 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       DependencyType::EsmExport,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
+      statement.is_star_export(),
     );
     if parser
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
-      && !parser.forwarded_ids.is_empty()
     {
-      let lazy = match statement {
-        ExportImport::All(all) => {
-          if let Some(name) = all.exported_name() {
-            !parser.forwarded_ids.contains(name)
-          } else {
-            false
-          }
-        }
-        ExportImport::Named(ExportNamedDeclaration::Specifiers(named)) => {
-          let mut is_empty = true;
-          let not_contains =
-            ExportNamedDeclaration::named_export_specifiers(named).all(|(_, export_name, _)| {
-              is_empty = false;
-              !parser.forwarded_ids.contains(&export_name)
-            });
-          not_contains && !is_empty
-        }
-        _ => false,
-      };
-      if lazy {
-        side_effect_dep.set_lazy();
-      }
+      side_effect_dep.set_lazy();
     }
     parser.dependencies.push(Box::new(side_effect_dep));
     Some(true)
@@ -207,9 +186,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .factory_meta
       .and_then(|meta| meta.side_effect_free)
       .unwrap_or_default()
-      && !parser.forwarded_ids.is_empty()
-      && let Some(export_name) = export_name
-      && !parser.forwarded_ids.contains(export_name)
     {
       dep.set_lazy();
     }

@@ -78,6 +78,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       DependencyType::EsmImport,
       attributes,
       Some(parser.source_map.clone()),
+      false,
     );
     parser.dependencies.push(Box::new(dependency));
 

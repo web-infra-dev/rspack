@@ -14,11 +14,11 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{atoms::Atom, common::Span};
 
 use crate::{
-  make::repair::lazy::ForwardedIdSet, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate,
-  BoxLoader, BoxModuleDependency, BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData,
-  Compilation, CompilerOptions, ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta,
-  Module, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
+  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
+  ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -40,7 +40,6 @@ pub struct ParseContext<'a> {
   pub parse_meta: ParseMeta,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
-  pub forwarded_ids: ForwardedIdSet,
 }
 
 #[cacheable]

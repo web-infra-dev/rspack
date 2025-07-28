@@ -9,7 +9,7 @@ use rspack_core::{
   ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, GetUsedNameParam, ImportAttributes, JavascriptParserOptions, LazyMake,
+  FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes, JavascriptParserOptions, LazyMake,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleReferenceOptions,
   PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName,
@@ -299,7 +299,11 @@ impl ModuleDependency for ESMImportSpecifierDependency {
 
   fn lazy(&self) -> LazyMake {
     LazyMake {
-      forward_id: self.ids.first().cloned(),
+      forward_id: Some(if let Some(id) = self.ids.first() {
+        ForwardId::Id(id.clone())
+      } else {
+        ForwardId::All
+      }),
       kind: LazyMakeKind::Eager,
     }
   }

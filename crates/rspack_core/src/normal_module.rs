@@ -577,7 +577,6 @@ impl Module for NormalModule {
         build_info: &mut self.build_info,
         build_meta: &mut self.build_meta,
         parse_meta: loader_result.parse_meta,
-        forwarded_ids: build_context.forwarded_ids,
       })
       .await?
       .split_into_parts();

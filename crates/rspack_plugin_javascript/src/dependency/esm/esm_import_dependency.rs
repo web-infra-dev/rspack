@@ -8,7 +8,7 @@ use rspack_core::{
   BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyMake, LazyMakeKind,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
@@ -74,6 +74,7 @@ pub struct ESMImportSideEffectDependency {
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
+  star_export: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -86,6 +87,7 @@ impl ESMImportSideEffectDependency {
     dependency_type: DependencyType,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
+    star_export: bool,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
@@ -101,6 +103,7 @@ impl ESMImportSideEffectDependency {
       source_map,
       factorize_info: Default::default(),
       lazy_make: false,
+      star_export,
     }
   }
 
@@ -619,7 +622,9 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     LazyMake {
       forward_id: None,
       kind: if self.lazy_make {
-        LazyMakeKind::Lazy { until: None }
+        LazyMakeKind::Lazy {
+          until: self.star_export.then_some(ForwardId::All),
+        }
       } else {
         LazyMakeKind::Eager
       },

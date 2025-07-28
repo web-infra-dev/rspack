@@ -5,33 +5,82 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
   make::repair::{process_dependencies::ProcessDependenciesTask, MakeTaskContext},
   task_loop::{Task, TaskResult, TaskType},
-  DependencyId, ModuleIdentifier,
+  BoxDependency, DependencyId, ModuleIdentifier,
 };
 
-#[derive(Debug, Default)]
-pub struct ForwardedIdSet(FxHashSet<Atom>);
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum ForwardId {
+  All,
+  Id(Atom),
+}
+
+#[derive(Debug)]
+pub enum ForwardedIdSet {
+  All,
+  IdSet(FxHashSet<Atom>),
+}
 
 impl ForwardedIdSet {
-  pub fn new(set: FxHashSet<Atom>) -> Self {
-    Self(set)
+  pub fn empty() -> Self {
+    Self::IdSet(FxHashSet::default())
+  }
+
+  pub fn from_dependencies(dependencies: &[BoxDependency]) -> Self {
+    let mut set = FxHashSet::default();
+    for forward_id in dependencies
+      .iter()
+      .filter_map(|dep| dep.as_module_dependency())
+      .filter_map(|dep| dep.lazy().forward_id)
+    {
+      match forward_id {
+        ForwardId::All => return Self::All,
+        ForwardId::Id(id) => {
+          set.insert(id);
+        }
+      }
+    }
+    Self::IdSet(set)
   }
 
   pub fn append(&mut self, other: Self) {
-    self.0.extend(other.0);
+    match self {
+      Self::All => {}
+      Self::IdSet(set) => match other {
+        Self::All => {
+          *self = Self::All;
+        }
+        Self::IdSet(other) => {
+          set.extend(other);
+        }
+      },
+    }
   }
 
   pub fn is_empty(&self) -> bool {
-    self.0.is_empty()
+    match self {
+      Self::All => false,
+      Self::IdSet(set) => set.is_empty(),
+    }
   }
 
   pub fn contains(&self, id: &Atom) -> bool {
-    self.0.contains(id)
+    match self {
+      Self::All => true,
+      Self::IdSet(set) => set.contains(id),
+    }
+  }
+
+  pub fn remove(&mut self, id: &Atom) -> bool {
+    match self {
+      Self::All => true,
+      Self::IdSet(set) => set.remove(id),
+    }
   }
 }
 
 #[derive(Debug, Default)]
 pub struct LazyMake {
-  pub forward_id: Option<Atom>,
+  pub forward_id: Option<ForwardId>,
   pub kind: LazyMakeKind,
 }
 
@@ -40,7 +89,7 @@ pub enum LazyMakeKind {
   #[default]
   Eager,
   Lazy {
-    until: Option<Atom>,
+    until: Option<ForwardId>,
   },
 }
 
@@ -54,78 +103,65 @@ impl LazyMake {
 pub struct LazyDependencies {
   forward_id_to_request: FxHashMap<Atom, Atom>,
   request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
+  fallback_dependencies: FxHashSet<DependencyId>,
 }
 
 impl LazyDependencies {
   pub fn is_empty(&self) -> bool {
-    self.request_to_dependencies.is_empty()
+    self.request_to_dependencies.is_empty() && self.fallback_dependencies.is_empty()
   }
 
-  pub fn insert(&mut self, request: Atom, forward_id: Option<Atom>, dependency_id: DependencyId) {
-    if let Some(forward_id) = forward_id {
-      self
-        .forward_id_to_request
-        .insert(forward_id, request.clone());
-    }
-    self
-      .request_to_dependencies
-      .entry(request)
-      .or_default()
-      .insert(dependency_id);
-  }
-
-  pub fn lazy_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
-    self.request_to_dependencies.values().flatten().copied()
-  }
-
-  pub fn get_requested_lazy_dependencies<'a>(
-    &self,
-    forwarded_ids: &'a ForwardedIdSet,
-  ) -> impl Iterator<Item = DependencyId> + use<'a, '_> {
-    forwarded_ids
-      .0
-      .iter()
-      .filter_map(|forward_id| {
+  pub fn insert(&mut self, request: Atom, until: Option<ForwardId>, dependency_id: DependencyId) {
+    if matches!(&until, Some(ForwardId::All)) {
+      self.fallback_dependencies.insert(dependency_id);
+    } else {
+      if let Some(ForwardId::Id(forward_id)) = until {
         self
           .forward_id_to_request
-          .get(forward_id)
-          .and_then(|request| self.request_to_dependencies.get(request))
-      })
+          .insert(forward_id, request.clone());
+      }
+      self
+        .request_to_dependencies
+        .entry(request)
+        .or_default()
+        .insert(dependency_id);
+    }
+  }
+
+  pub fn all_lazy_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
+    self
+      .request_to_dependencies
+      .values()
       .flatten()
+      .chain(self.fallback_dependencies.iter())
       .copied()
+  }
+
+  pub fn requested_lazy_dependencies(
+    &self,
+    forwarded_ids: &ForwardedIdSet,
+  ) -> FxHashSet<DependencyId> {
+    match forwarded_ids {
+      ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
+      ForwardedIdSet::IdSet(set) => set
+        .iter()
+        .flat_map(|forward_id| {
+          self
+            .forward_id_to_request
+            .get(forward_id)
+            .and_then(|request| self.request_to_dependencies.get(request))
+            .unwrap_or(&self.fallback_dependencies)
+        })
+        .copied()
+        .collect(),
+    }
   }
 }
 
 #[derive(Debug)]
 pub enum HasLazyDependencies {
-  Maybe(ForwardedIdSet),
+  Pending(ForwardedIdSet),
   Has(LazyDependencies),
-}
-
-impl HasLazyDependencies {
-  pub fn expect_has(&self, msg: &str) -> &LazyDependencies {
-    if let HasLazyDependencies::Has(lazy_dependencies_info) = self {
-      lazy_dependencies_info
-    } else {
-      panic!("{}", msg);
-    }
-  }
-
-  pub fn expect_maybe_mut(&mut self, msg: &str) -> &mut ForwardedIdSet {
-    if let HasLazyDependencies::Maybe(pending_forward_ids) = self {
-      pending_forward_ids
-    } else {
-      panic!("{}", msg);
-    }
-  }
-
-  pub fn into_maybe(self) -> Option<ForwardedIdSet> {
-    if let HasLazyDependencies::Maybe(pending_forward_ids) = self {
-      Some(pending_forward_ids)
-    } else {
-      None
-    }
-  }
 }
 
 #[derive(Debug, Default)]
@@ -139,7 +175,7 @@ impl ModuleToLazyMake {
       .module_to_lazy_dependencies
       .get(module)
       .and_then(|info| match info {
-        HasLazyDependencies::Maybe(_) => None,
+        HasLazyDependencies::Pending(_) => None,
         HasLazyDependencies::Has(lazy_dependencies) => Some(lazy_dependencies),
       })
   }
@@ -161,23 +197,29 @@ impl ModuleToLazyMake {
     self.module_to_lazy_dependencies.contains_key(module)
   }
 
-  pub fn maybe_lazy_dependencies(&mut self, module: ModuleIdentifier) -> &mut ForwardedIdSet {
-    self
+  pub fn as_pending_forwarded_ids(
+    &mut self,
+    module: ModuleIdentifier,
+  ) -> Option<&mut ForwardedIdSet> {
+    match self
       .module_to_lazy_dependencies
       .entry(module)
-      .or_insert_with(|| HasLazyDependencies::Maybe(ForwardedIdSet::default()))
-      .expect_maybe_mut("should be maybe lazy dependencies")
+      .or_insert_with(|| HasLazyDependencies::Pending(ForwardedIdSet::empty()))
+    {
+      HasLazyDependencies::Pending(forwarded_ids) => Some(forwarded_ids),
+      HasLazyDependencies::Has(_) => None,
+    }
   }
 }
 
 #[derive(Debug)]
-pub struct ProcessLazyDependenciesTask {
+pub struct ProcessUnlazyDependenciesTask {
   pub forwarded_ids: ForwardedIdSet,
   pub original_module_identifier: ModuleIdentifier,
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for ProcessLazyDependenciesTask {
+impl Task<MakeTaskContext> for ProcessUnlazyDependenciesTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
@@ -185,7 +227,7 @@ impl Task<MakeTaskContext> for ProcessLazyDependenciesTask {
   async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
-    let ProcessLazyDependenciesTask {
+    let ProcessUnlazyDependenciesTask {
       forwarded_ids,
       original_module_identifier,
     } = *self;
@@ -195,9 +237,7 @@ impl Task<MakeTaskContext> for ProcessLazyDependenciesTask {
       .module_to_lazy_make
       .get_lazy_dependencies(&original_module_identifier)
       .expect("only module that has lazy dependencies should run into ProcessLazyDependenciesTask");
-    let dependencies_to_process = lazy_dependencies
-      .get_requested_lazy_dependencies(&forwarded_ids)
-      .collect::<Vec<_>>();
+    let dependencies_to_process = lazy_dependencies.requested_lazy_dependencies(&forwarded_ids);
     for dep in &dependencies_to_process {
       if let Some(dep) = module_graph
         .dependency_by_id_mut(dep)
@@ -207,7 +247,7 @@ impl Task<MakeTaskContext> for ProcessLazyDependenciesTask {
       }
     }
     return Ok(vec![Box::new(ProcessDependenciesTask {
-      dependencies: dependencies_to_process,
+      dependencies: dependencies_to_process.into_iter().collect(),
       original_module_identifier,
     })]);
   }
