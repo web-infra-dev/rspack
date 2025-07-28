@@ -21,6 +21,8 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     Default::default()
   };
 
+  splitter.prepare(compilation)?;
+
   splitter.update_with_compilation(compilation)?;
 
   if !enable_incremental || splitter.chunk_group_infos.is_empty() {
