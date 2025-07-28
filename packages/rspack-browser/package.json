@@ -3,7 +3,7 @@
   "version": "1.4.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
-  "description": "The fast Rust-based web bundler with webpack-compatible API for running in the browser. This is still in early stage and may not follow the semver.",
+  "description": "Rspack for running in the browser. This is still in early stage and may not follow the semver.",
   "type": "module",
   "main": "./dist/index.mjs",
   "types": "./dist/browser/index.d.ts",
@@ -30,7 +30,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack",
-    "directory": "packages/rspack"
-  },
-  "packageManager": "pnpm@10.10.0"
+    "directory": "packages/rspack-browser"
+  }
 }
