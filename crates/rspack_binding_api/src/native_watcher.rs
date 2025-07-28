@@ -1,19 +1,21 @@
-use std::{boxed::Box, sync::Arc};
+use std::boxed::Box;
 
-use async_trait::async_trait;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_fs::{FsWatcher, FsWatcherOptions, Ignored, PathUpdater};
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_fs::{FsWatcher, FsWatcherIgnored, FsWatcherOptions, PathUpdater};
+use rspack_regex::RspackRegex;
 
-struct SafetyIgnored {
-  f: ThreadsafeFunction<String, bool>,
-}
+type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
-#[async_trait]
-impl Ignored for SafetyIgnored {
-  async fn ignore(&self, path: &str) -> rspack_error::Result<bool> {
-    self.f.call_with_sync(path.to_string()).await
+fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored {
+  if let Some(ignored) = ignored {
+    match ignored {
+      Either3::A(path) => FsWatcherIgnored::Path(path),
+      Either3::B(paths) => FsWatcherIgnored::Paths(paths),
+      Either3::C(regex) => FsWatcherIgnored::Regex(regex),
+    }
+  } else {
+    FsWatcherIgnored::None
   }
 }
 
@@ -25,9 +27,10 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "(path: string) => boolean")]
-  /// A function that will be called with the path of a file or directory that is ignored.
-  pub ignored: Option<ThreadsafeFunction<String, bool>>,
+  #[napi(ts_type = "string | string[] | RegExp")]
+  /// The ignored paths for the watcher.
+  /// It can be a single path, an array of paths, or a regular expression.
+  pub ignored: Option<JsWatcherIgnored>,
 }
 
 #[napi]
@@ -46,17 +49,13 @@ pub struct NativeWatcher {
 impl NativeWatcher {
   #[napi(constructor)]
   pub fn new(options: NativeWatcherOptions) -> Self {
-    let ignored = options
-      .ignored
-      .map(|f| Arc::new(SafetyIgnored { f: f.clone() }) as Arc<dyn Ignored>);
-
     let watcher = FsWatcher::new(
       FsWatcherOptions {
         follow_symlinks: options.follow_symlinks.unwrap_or(false),
         poll_interval: options.poll_interval,
         aggregate_timeout: options.aggregate_timeout,
       },
-      ignored,
+      to_fs_watcher_ignored(options.ignored.clone()),
     );
 
     Self {

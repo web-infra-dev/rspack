@@ -71,7 +71,7 @@ export class HotUpdatePlugin {
 					filePath,
 					this.updateIndex - 1
 				);
-				if (content === oldContent) {
+				if (this.updateIndex !== 0 && content === oldContent) {
 					return;
 				}
 				await fs.writeFile(filePath, content);

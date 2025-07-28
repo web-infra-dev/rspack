@@ -1,3 +1,6 @@
+/*
+ * This file is copied from https://github.com/webpack/webpack/blob/main/test/runner/index.js
+ * */
 const fs = require("fs");
 const { Module } = require("module");
 const path = require("path");
@@ -178,7 +181,7 @@ class TestRunner {
 	 * @returns {boolean} whether env is jsdom
 	 */
 	jsDom() {
-		return this.testConfig.env === "jsdom" || this.isTargetWeb();
+        return true;
 	}
 
 	/**
@@ -365,7 +368,7 @@ class TestRunner {
 			const call = () => {
 				fn.call(
 					this.testConfig.nonEsmThis
-						? this.testConfig.nonEsmThis(module)
+						? this.testConfig.nonEsmThis(mod)
 						: mod.exports,
 					...argValues
 				);
@@ -400,7 +403,7 @@ class TestRunner {
 			);
 		const esmCache = new Map();
 		const { category, name, round } = this.testMeta;
-		const esmIdentifier = `${category.name}-${name}-${round || 0}`;
+		const esmIdentifier = `${category}-${name}-${round || 0}`;
 		let esmContext = null;
 		return (moduleInfo, context) => {
 			const asModule = require("../helpers/asModule");

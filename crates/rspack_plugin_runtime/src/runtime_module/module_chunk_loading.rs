@@ -259,8 +259,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks
-          .read()
-          .await
+          .borrow()
           .link_prefetch
           .call(LinkPrefetchData {
             code: link_prefetch_code,
@@ -323,8 +322,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks
-          .read()
-          .await
+          .borrow()
           .link_preload
           .call(LinkPreloadData {
             code: link_preload_code,

@@ -2630,7 +2630,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
-    raw(compiler: Compiler): BuiltinPlugin | undefined;
+    raw(): BuiltinPlugin | undefined;
 }
 
 // @public
@@ -4791,7 +4791,7 @@ export class MultiCompiler {
     // (undocumented)
     validateDependencies(callback: liteTapable.Callback<Error, MultiStats>): boolean;
     // (undocumented)
-    watch(watchOptions: WatchOptions, handler: liteTapable.Callback<Error, MultiStats>): MultiWatching;
+    watch(watchOptions: WatchOptions | WatchOptions[], handler: liteTapable.Callback<Error, MultiStats>): MultiWatching;
     // (undocumented)
     get watchFileSystem(): WatchFileSystem;
     set watchFileSystem(value: WatchFileSystem);

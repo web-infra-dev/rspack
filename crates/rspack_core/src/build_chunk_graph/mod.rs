@@ -21,6 +21,8 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     Default::default()
   };
 
+  splitter.prepare(compilation)?;
+
   splitter.update_with_compilation(compilation)?;
 
   if !enable_incremental || splitter.chunk_group_infos.is_empty() {
@@ -29,6 +31,8 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   }
 
   splitter.split(compilation)?;
+
+  // remove empty chunk groups
   splitter.remove_orphan(compilation)?;
 
   // make sure all module (weak dependency particularly) has a cgm

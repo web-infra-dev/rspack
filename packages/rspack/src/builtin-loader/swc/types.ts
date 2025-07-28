@@ -26,6 +26,10 @@ export type SwcLoaderOptions = Config & {
 	 */
 	rspackExperiments?: {
 		import?: PluginImportOptions;
+		/**
+		 * Collects information from TypeScript's AST for consumption by subsequent Rspack processes,
+		 * providing better TypeScript development experience and smaller output bundle size.
+		 */
 		collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
 	};
 };

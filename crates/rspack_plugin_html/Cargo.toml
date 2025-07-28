@@ -10,6 +10,7 @@ default = []
 
 [dependencies]
 anyhow            = { workspace = true }
+atomic_refcell    = { workspace = true }
 cow-utils         = { workspace = true }
 futures           = { workspace = true }
 itertools         = { workspace = true }
@@ -29,7 +30,6 @@ sugar_path        = { workspace = true }
 swc_core          = { workspace = true }
 swc_html          = { workspace = true }
 swc_html_minifier = { workspace = true, features = ["custom-css-minifier"] }
-tokio             = { workspace = true, features = ["sync"] }
 tracing           = { workspace = true }
 urlencoding       = { workspace = true }
 

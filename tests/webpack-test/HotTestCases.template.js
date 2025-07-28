@@ -224,8 +224,7 @@ const describeCases = config => {
 
 									for (const file of info.entrypoints.main.assets) {
 										if (file.name.endsWith(".css")) {
-											const link =
-												runner._moduleScope.document.createElement("link");
+											const link = runner._moduleScope.document.createElement("link");
 											link.href = file.name;
 											runner._moduleScope.document.head.appendChild(link);
 										} else {

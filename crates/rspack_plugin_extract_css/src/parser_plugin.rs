@@ -52,6 +52,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
             )| {
               Box::new(CssDependency::new(
                 identifier.into(),
+                parser.get_module_layer().cloned(),
                 layer.clone(),
                 content.clone(),
                 context.clone(),

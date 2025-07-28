@@ -1,4 +1,4 @@
-import { useLocation as useNativeLocation } from 'rspress/runtime';
+import { useLocation as useNativeLocation } from '@rspress/core/runtime';
 
 function useLocation() {
   const location = useNativeLocation();

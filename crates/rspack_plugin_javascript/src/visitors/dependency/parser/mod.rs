@@ -476,6 +476,10 @@ impl<'parser> JavascriptParser<'parser> {
     curr_path.span() == expr_span
   }
 
+  pub fn get_module_layer(&self) -> Option<&ModuleLayer> {
+    self.module_layer
+  }
+
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_mut_variable(id))

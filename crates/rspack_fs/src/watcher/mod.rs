@@ -1,6 +1,7 @@
 mod analyzer;
 mod disk_watcher;
 mod executor;
+mod ignored;
 mod path_manager;
 mod scanner;
 mod trigger;
@@ -10,8 +11,9 @@ use std::{collections::HashSet, sync::Arc};
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
+pub use ignored::FsWatcherIgnored;
 use path_manager::PathManager;
-pub use path_manager::{Ignored, PathUpdater};
+pub use path_manager::PathUpdater;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
 use scanner::Scanner;
@@ -70,7 +72,7 @@ pub struct FsWatcher {
 }
 
 impl FsWatcher {
-  pub fn new(options: FsWatcherOptions, ignored: Option<Arc<dyn Ignored>>) -> Self {
+  pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager = Arc::new(PathManager::new(ignored));
@@ -98,7 +100,7 @@ impl FsWatcher {
   ) {
     self.path_manager.reset();
     self.scanner.scan();
-    if let Err(e) = self.wait_for_event(files, directories, missing).await {
+    if let Err(e) = self.wait_for_event(files, directories, missing) {
       event_aggregate_handler.on_error(e);
       return;
     };
@@ -123,7 +125,7 @@ impl FsWatcher {
     Ok(())
   }
 
-  async fn wait_for_event(
+  fn wait_for_event(
     &mut self,
     files: PathUpdater,
     directories: PathUpdater,
@@ -131,8 +133,7 @@ impl FsWatcher {
   ) -> Result<()> {
     self
       .path_manager
-      .update_paths(files, directories, missing)
-      .await?;
+      .update_paths(files, directories, missing)?;
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;

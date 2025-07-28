@@ -110,6 +110,19 @@ pub struct ExportsSpec {
   pub exclude_exports: Option<FxHashSet<Atom>>,
 }
 
+impl ExportsSpec {
+  pub fn has_nested_exports(&self) -> bool {
+    match &self.exports {
+      ExportsOfExportsSpec::UnknownExports => false,
+      ExportsOfExportsSpec::NoExports => false,
+      ExportsOfExportsSpec::Names(names) => names.iter().any(|name| match name {
+        ExportNameOrSpec::String(_) => false,
+        ExportNameOrSpec::ExportSpec(spec) => spec.exports.is_some(),
+      }),
+    }
+  }
+}
+
 pub trait DependencyConditionFn: Sync + Send {
   fn get_connection_state(
     &self,

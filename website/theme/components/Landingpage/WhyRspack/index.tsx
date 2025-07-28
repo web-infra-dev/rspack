@@ -1,10 +1,10 @@
+import { Link } from '@rspress/core/theme';
 import {
   containerStyle,
   innerContainerStyle,
 } from '@rstack-dev/doc-ui/section-style';
 import { WhyRspack as BaseWhyRspack } from '@rstack-dev/doc-ui/why-rspack';
 import { memo, useMemo } from 'react';
-import { Link } from 'rspress/theme';
 import { useI18n, useI18nUrl } from '../../../i18n';
 import CompatibleJson from './assets/Compatible.json';
 import Compatible from './assets/Compatible.svg';

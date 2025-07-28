@@ -1,10 +1,10 @@
+import { Link } from '@rspress/core/theme';
 import { BuiltWithRspack } from '@rstack-dev/doc-ui/built-with-rspack';
 import {
   containerStyle,
   innerContainerStyle,
 } from '@rstack-dev/doc-ui/section-style';
 import { memo } from 'react';
-import { Link } from 'rspress/theme';
 import { useI18n } from '../../../i18n';
 import abbLogo from './assets/abb.svg';
 import alibabaLogo from './assets/alibaba.svg';
