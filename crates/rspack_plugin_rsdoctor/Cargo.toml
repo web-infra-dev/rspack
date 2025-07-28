@@ -18,6 +18,7 @@ rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_paths       = { workspace = true }
+rspack_plugin_devtool = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
 tokio              = { workspace = true }

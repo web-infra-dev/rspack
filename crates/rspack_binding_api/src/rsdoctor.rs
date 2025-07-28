@@ -8,8 +8,8 @@ use rspack_plugin_rsdoctor::{
   RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph, RsdoctorModuleGraphModule,
   RsdoctorModuleId, RsdoctorModuleIdsPatch, RsdoctorModuleOriginalSource,
   RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature, RsdoctorPluginModuleGraphFeature,
-  RsdoctorPluginOptions, RsdoctorSideEffect, RsdoctorSourcePosition, RsdoctorSourceRange,
-  RsdoctorStatement, RsdoctorVariable,
+  RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature, RsdoctorSideEffect,
+  RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement, RsdoctorVariable,
 };
 
 #[napi(object)]
@@ -448,10 +448,25 @@ pub struct RawRsdoctorPluginOptions {
   pub module_graph_features: Either<bool, Vec<String>>,
   #[napi(ts_type = "boolean | Array<'graph' | 'assets'>")]
   pub chunk_graph_features: Either<bool, Vec<String>>,
+  #[napi(ts_type = "{ module?: boolean; cheap?: boolean } | undefined")]
+  pub source_map_features: Option<JsRsdoctorSourceMapFeatures>,
+}
+
+#[napi(object)]
+pub struct JsRsdoctorSourceMapFeatures {
+  pub cheap: Option<bool>,
 }
 
 impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
   fn from(value: RawRsdoctorPluginOptions) -> Self {
+    let mut source_map_features = RsdoctorPluginSourceMapFeature { cheap: false };
+
+    if let Some(features) = value.source_map_features {
+      if let Some(cheap) = features.cheap {
+        source_map_features.cheap = cheap;
+      }
+    }
+
     Self {
       module_graph_features: match value.module_graph_features {
         Either::A(true) => HashSet::from([
@@ -476,6 +491,7 @@ impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
           .map(RsdoctorPluginChunkGraphFeature::from)
           .collect::<HashSet<_>>(),
       },
+      source_map_features,
     }
   }
 }
