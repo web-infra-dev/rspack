@@ -7,7 +7,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
   DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleGraph, RuntimeSpec, SourceType,
+  ModuleGraph, ModuleLayer, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -25,10 +25,11 @@ pub(crate) struct CssModule {
   pub(crate) identifier: String,
   pub(crate) content: String,
   pub(crate) _context: String,
+  pub(crate) module_layer: Option<ModuleLayer>,
   pub(crate) media: Option<String>,
   pub(crate) supports: Option<String>,
   pub(crate) source_map: Option<String>,
-  pub(crate) layer: Option<String>,
+  pub(crate) css_layer: Option<String>,
   pub(crate) identifier_index: u32,
 
   factory_meta: Option<FactoryMeta>,
@@ -47,7 +48,7 @@ impl CssModule {
       "css|{}|{}|{}|{}|{}}}",
       dep.identifier,
       itoa!(dep.identifier_index),
-      dep.layer.as_deref().unwrap_or_default(),
+      dep.css_layer.as_deref().unwrap_or_default(),
       dep.supports.as_deref().unwrap_or_default(),
       dep.media.as_deref().unwrap_or_default(),
     )
@@ -56,7 +57,8 @@ impl CssModule {
     Self {
       identifier: dep.identifier,
       content: dep.content,
-      layer: dep.layer.clone(),
+      module_layer: dep.module_layer.clone(),
+      css_layer: dep.css_layer.clone(),
       _context: dep.context,
       media: dep.media,
       supports: dep.supports,
@@ -84,7 +86,7 @@ impl CssModule {
     let mut hasher = RspackHash::from(&options.output);
 
     self.content.hash(&mut hasher);
-    if let Some(layer) = &self.layer {
+    if let Some(layer) = &self.css_layer {
       layer.hash(&mut hasher);
     }
     self.supports.hash(&mut hasher);
@@ -109,7 +111,7 @@ impl Module for CssModule {
       } else {
         "".into()
       },
-      if let Some(layer) = &self.layer {
+      if let Some(layer) = &self.css_layer {
         format!(" (layer {layer})")
       } else {
         "".into()
@@ -187,6 +189,10 @@ impl Module for CssModule {
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.build_info.hash.dyn_hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.module_layer.as_ref()
   }
 }
 
