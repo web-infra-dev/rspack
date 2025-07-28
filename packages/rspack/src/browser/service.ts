@@ -1,5 +1,5 @@
 export enum RequestType {}
 
 export async function run() {
-	throw "Not support browser";
+	throw new Error("Not support browser");
 }

@@ -35,9 +35,12 @@ export function nonWebpackRequire(compiler: Compiler): RequireFn {
 							const module = { exports: {} };
 							const exports = module.exports;
 							const createRequire = () => {
-								throw "@rspack/browser doesn't support `require` in loaders yet";
+								throw new Error(
+									"@rspack/browser doesn't support `require` in loaders yet"
+								);
 							};
 
+							// rslint-disable no-implied-eval
 							const wrapper = new Function(
 								"module",
 								"exports",
