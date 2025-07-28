@@ -10,17 +10,19 @@ class Plugin {
 				"PLUGIN",
 				(modules, callback) => {
 					const normalResolver = compiler.resolverFactory.get("normal");
+					// With fragment
 					normalResolver.resolve(
 						{},
 						__dirname,
-						"./index.js",
+						"./index.js#fragment",
 						{},
 						(error, res, req) => {
 							expect(error).toBeNull();
-							expect(res).toBe(path.join(__dirname, "/index.js"));
+							expect(res).toBe(path.join(__dirname, "/index.js#fragment"));
 							// Webpack does not have resource field
 							expect(req.resource).toBe(undefined);
 							expect(req.path).toBe(path.join(__dirname, "/index.js"));
+							expect(req.fragment).toBe("#fragment");
 							callback();
 						}
 					);

@@ -10,17 +10,19 @@ class Plugin {
 				"PLUGIN",
 				(modules, callback) => {
 					const normalResolver = compiler.resolverFactory.get("normal");
+					// With query
 					normalResolver.resolve(
 						{},
 						__dirname,
-						"./index.js",
+						"./index.js?query",
 						{},
 						(error, res, req) => {
 							expect(error).toBeNull();
-							expect(res).toBe(path.join(__dirname, "/index.js"));
+							expect(res).toBe(path.join(__dirname, "/index.js?query"));
 							// Webpack does not have resource field
 							expect(req.resource).toBe(undefined);
 							expect(req.path).toBe(path.join(__dirname, "/index.js"));
+							expect(req.query).toBe("?query");
 							callback();
 						}
 					);
