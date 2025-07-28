@@ -23,12 +23,10 @@ categories = categories.map(cat => ({
 }));
 
 const describeCases = config => {
-	console.log(config);
-
-	return describe(config.name, () => {
-		for (const category of categories.slice(0, 1)) {
+	describe(config.name, () => {
+		for (const category of categories) {
 			describe(category.name, () => {
-				for (const testName of category.tests.slice(0, 1)) {
+				for (const testName of category.tests) {
 					const testDirectory = path.join(casesPath, category.name, testName);
 					const filterPath = path.join(testDirectory, "test.filter.js");
 					if (!createFilteredDescribe(testName, filterPath, config)) {
@@ -37,16 +35,12 @@ const describeCases = config => {
 					describe(testName, () => {
 						let compiler;
 						afterAll(callback => {
-							compiler.close(() => {
-								console.log("compiler closed");
-								callback();
-							});
+							compiler.close(callback);
 							compiler = undefined;
 						});
 
 						it(`${testName} should compile`, done => {
 							const webpack = require("@rspack/core");
-
 							const outputDirectory = path.join(
 								__dirname,
 								"js",
@@ -217,7 +211,6 @@ const describeCases = config => {
 									NEXT: _next
 								});
 
-
 								let promise = Promise.resolve();
 								const info = stats.toJson({ all: false, entrypoints: true });
 								if (config.target === "web") {
@@ -243,15 +236,13 @@ const describeCases = config => {
 										outputDirectory,
 										`./${assets[assets.length - 1].name}`
 									);
-									if (typeof result === "object" && "then" in result) {
+									if (typeof result === "object" && "then" in result)
 										promise = promise.then(() => result);
-									}
 								}
 								promise.then(
 									() => {
-										if (getNumberOfTests() < 1) {
+										if (getNumberOfTests() < 1)
 											return done(new Error("No tests exported by test case"));
-										}
 
 										done();
 									},
@@ -278,5 +269,4 @@ const describeCases = config => {
 	});
 };
 
-// eslint-disable-next-line jest/no-export
 module.exports.describeCases = describeCases;

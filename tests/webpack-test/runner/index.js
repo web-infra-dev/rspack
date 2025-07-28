@@ -108,12 +108,12 @@ class TestRunner {
 	 * @param {TestRunnerOptions} options test runner options
 	 */
 	constructor({
-								target,
-								outputDirectory,
-								testMeta,
-								testConfig,
-								webpackOptions
-							}) {
+		target,
+		outputDirectory,
+		testMeta,
+		testConfig,
+		webpackOptions
+	}) {
 		/** @type {string|string[]} */
 		this.target = target;
 		/** @type {string} */
@@ -432,9 +432,9 @@ class TestRunner {
 						const normalizedSpecifier = specifier.startsWith("file:")
 							? `./${path.relative(path.dirname(modulePath), fileURLToPath(specifier))}`
 							: specifier.replace(
-								/https:\/\/example.com\/public\/path\//,
-								"./"
-							);
+									/https:\/\/example.com\/public\/path\//,
+									"./"
+								);
 						const result = await this.require(
 							path.dirname(modulePath),
 							normalizedSpecifier,
@@ -457,8 +457,8 @@ class TestRunner {
 								path.dirname(
 									referencingModule.identifier
 										? referencingModule.identifier.slice(
-											esmIdentifier.length + 1
-										)
+												esmIdentifier.length + 1
+											)
 										: fileURLToPath(referencingModule.url)
 								),
 								specifier,
