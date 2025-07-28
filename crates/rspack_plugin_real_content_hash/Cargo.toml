@@ -9,6 +9,7 @@ version.workspace = true
 
 [dependencies]
 aho-corasick   = { workspace = true }
+atomic_refcell = { workspace = true }
 derive_more    = { workspace = true, features = ["debug"] }
 indexmap       = { workspace = true }
 once_cell      = { workspace = true }
@@ -21,7 +22,6 @@ rspack_hash    = { workspace = true }
 rspack_hook    = { workspace = true }
 rspack_util    = { workspace = true }
 rustc-hash     = { workspace = true }
-tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true }
 
 [package.metadata.cargo-shear]

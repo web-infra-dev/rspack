@@ -454,7 +454,7 @@ async fn html_hooks_adapter_compilation(
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
-  let mut hooks = hooks.write().await;
+  let mut hooks = hooks.borrow_mut();
   hooks.before_asset_tag_generation.intercept(
     self
       .register_html_plugin_before_asset_tag_generation_taps
@@ -490,7 +490,7 @@ async fn runtime_hooks_adapter_compilation(
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
-  let mut hooks = hooks.write().await;
+  let mut hooks = hooks.borrow_mut();
   hooks
     .create_script
     .intercept(self.register_runtime_plugin_create_script_taps.clone());
@@ -510,7 +510,7 @@ async fn rsdoctor_hooks_adapter_compilation(
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let hooks = RsdoctorPlugin::get_compilation_hooks_mut(compilation.id());
-  let mut hooks = hooks.write().await;
+  let mut hooks = hooks.borrow_mut();
   hooks
     .module_graph
     .intercept(self.register_rsdoctor_plugin_module_graph_taps.clone());
