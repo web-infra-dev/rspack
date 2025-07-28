@@ -683,22 +683,48 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   ) -> Result<UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       UkeyIndexMap::default();
-    let mut assign_depths_map = IdentifierMap::default();
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
-    for name in &entries {
-      let (entry_point, modules) = self.prepare_entry_input(name, compilation)?;
-      assign_depths(
-        &mut assign_depths_map,
-        &compilation.get_module_graph(),
-        modules.iter(),
-      );
+
+    let outgoings = {
+      let mg = compilation.get_module_graph();
+      mg.modules()
+        .keys()
+        .par_bridge()
+        .map(|m| {
+          (
+            *m,
+            mg.get_outgoing_connections(m)
+              .map(|con| *con.module_identifier())
+              .collect::<Vec<_>>(),
+          )
+        })
+        .collect::<IdentifierMap<_>>()
+    };
+
+    let assign_tasks = entries
+      .iter()
+      .map(|name| self.prepare_entry_input(name, compilation))
+      .collect::<Result<Vec<_>>>()?;
+
+    let assign_depths_maps = assign_tasks
+      .par_iter()
+      .map(|(_, modules)| {
+        let mut assign_depths_map = IdentifierMap::default();
+        assign_depths(&mut assign_depths_map, modules.iter(), &outgoings);
+        assign_depths_map
+      })
+      .collect::<Vec<_>>();
+
+    for (entry_point, modules) in assign_tasks {
       input_entrypoints_and_modules.insert(entry_point, modules);
     }
 
     // Using this defer insertion strategies to workaround rustc borrow rules
-    for (k, v) in assign_depths_map {
-      compilation.get_module_graph_mut().set_depth(k, v);
+    for assign_depths_map in assign_depths_maps {
+      for (k, v) in assign_depths_map {
+        compilation.get_module_graph_mut().set_depth_if_lower(&k, v);
+      }
     }
 
     for name in &entries {
