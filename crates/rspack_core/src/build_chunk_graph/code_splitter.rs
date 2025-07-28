@@ -983,7 +983,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
     let block_modules =
-      self.get_block_modules(module_identifier.into(), Some(runtime), compilation);
+      self.get_block_modules(module_identifier.into(), Some(runtime.clone()), compilation);
 
     let indices = ctx.2.entry(module_identifier).or_default();
 
