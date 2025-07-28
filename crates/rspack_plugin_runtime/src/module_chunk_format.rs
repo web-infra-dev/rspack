@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
@@ -137,12 +137,10 @@ async fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_id__ = {} ;\n",
-    chunk_id_json_string
+    "export const __webpack_id__ = {chunk_id_json_string} ;\n",
   )));
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_ids__ = [{}];\n",
-    chunk_id_json_string
+    "export const __webpack_ids__ = [{chunk_id_json_string}];\n",
   )));
   sources.add(RawStringSource::from_static(
     "export const __webpack_modules__ = ",

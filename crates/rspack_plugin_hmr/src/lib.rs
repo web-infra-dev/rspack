@@ -400,7 +400,7 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       CompilationAsset::new(
         Some(
           RawStringSource::from(if compilation.options.output.module {
-            format!("export default {};", manifest_content)
+            format!("export default {manifest_content};")
           } else {
             manifest_content
           })
