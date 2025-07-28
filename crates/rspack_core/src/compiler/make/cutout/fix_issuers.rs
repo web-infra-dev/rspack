@@ -157,8 +157,8 @@ impl FixIssuers {
     self.need_check_modules.insert(module_identifier);
   }
 
-  /// The 1st step of self.fix_artifact, apply `self.force_build_module_issuers` to module graph, and
-  /// return the modules and their parents whose issuer not in the incoming connections.
+  /// The 1st step of self.fix_artifact, apply `self.force_build_module_issuers` to module graph.
+  /// Returns the modules and their parents whose issuer not in the incoming connections.
   ///
   /// This function will traverse the `self.need_check_modules`
   /// 1. remove not exist module.
@@ -204,7 +204,7 @@ impl FixIssuers {
   }
 
   /// The 2nd step of self.fix_artifact, try to set first mgm.incoming_connection as issuer.
-  /// return the modules and their parents whose issuer has been set.
+  /// Returns the modules and their parents whose issuer has been set.
   ///
   /// This function will traverse the `need_update_issuer_modules` returned in previous step
   /// 1. if a module has no parent module, revoke the module and add its child modules
@@ -300,7 +300,7 @@ impl FixIssuers {
   }
 
   /// The 3rd step of self.fix_artifact, set available issuer from parents.
-  /// return the modules and their parents whose parents are cycled.
+  /// Returns the modules and their parents whose parents are cycled.
   ///
   /// This function will traverse the `need_check_available_modules` returned in previous step
   /// 1. call IssuerHelper.calc_issuer to get a issuer
@@ -359,7 +359,7 @@ impl FixIssuers {
   }
 
   /// The 4th step of self.fix_artifact, clean cycled modules.
-  /// return the modules and their parents whose issuer has been removed.
+  /// Returns the modules and their parents whose issuer has been removed.
   ///
   /// This function will traverse the `clean_modules` returned in previous step,
   /// recursively check whether the incoming_connections of all parent modules of the current module can be used as the issuer,
