@@ -82,25 +82,24 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
 
           init_fragments.push(init.boxed());
         }
-      } else if dep.r#type == NameType::DirName {
-        if let Some(resource_path) = resource_path {
-          if let Some(parent_path) = resource_path.parent() {
-            // If the parent path is None, we use an empty string
-            // to avoid issues with the path being undefined.
-            let init = NormalInitFragment::new(
-              format!(
-                "const __dirname = {};\n",
-                json_stringify(parent_path.as_std_path())
-              ),
-              InitFragmentStage::StageConstants,
-              0,
-              InitFragmentKey::Const(format!("rstest __dirname {}", m.id())),
-              None,
-            );
+      } else if dep.r#type == NameType::DirName
+        && let Some(resource_path) = resource_path
+        && let Some(parent_path) = resource_path.parent()
+      {
+        // If the parent path is None, we use an empty string
+        // to avoid issues with the path being undefined.
+        let init = NormalInitFragment::new(
+          format!(
+            "const __dirname = {};\n",
+            json_stringify(parent_path.as_std_path())
+          ),
+          InitFragmentStage::StageConstants,
+          0,
+          InitFragmentKey::Const(format!("rstest __dirname {}", m.id())),
+          None,
+        );
 
-            init_fragments.push(init.boxed());
-          }
-        }
+        init_fragments.push(init.boxed());
       }
     }
   }

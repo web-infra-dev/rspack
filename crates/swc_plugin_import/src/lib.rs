@@ -11,14 +11,14 @@ use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Deserialize;
 use swc_core::{
-  common::{errors::HANDLER, util::take::Take, BytePos, Span, SyntaxContext, DUMMY_SP},
+  common::{BytePos, DUMMY_SP, Span, SyntaxContext, errors::HANDLER, util::take::Take},
   ecma::{
     ast::{
       Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
       ImportSpecifier, Module, ModuleDecl, ModuleExportName, ModuleItem, Str,
     },
     atoms::Atom,
-    visit::{visit_mut_pass, VisitMut, VisitWith},
+    visit::{VisitMut, VisitWith, visit_mut_pass},
   },
 };
 
@@ -475,7 +475,7 @@ impl VisitMut for ImportPlugin<'_> {
 
           for (specifier_idx, specifier) in var.specifiers.iter().enumerate() {
             match specifier {
-              ImportSpecifier::Named(ref s) => {
+              ImportSpecifier::Named(s) => {
                 let imported = s.imported.as_ref().map(|imported| match imported {
                   ModuleExportName::Ident(ident) => ident.sym.to_string(),
                   ModuleExportName::Str(str) => str.value.to_string(),
@@ -514,8 +514,8 @@ impl VisitMut for ImportPlugin<'_> {
                   rm_specifier.insert(specifier_idx);
                 }
               }
-              ImportSpecifier::Default(ref _s) => {}
-              ImportSpecifier::Namespace(ref _ns) => {}
+              ImportSpecifier::Default(_s) => {}
+              ImportSpecifier::Namespace(_ns) => {}
             }
           }
           if rm_specifier.len() == var.specifiers.len() {

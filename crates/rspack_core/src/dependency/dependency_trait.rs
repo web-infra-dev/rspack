@@ -1,6 +1,6 @@
 use std::{any::Any, fmt::Debug};
 
-use dyn_clone::{clone_trait_object, DynClone};
+use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
@@ -8,13 +8,13 @@ use rspack_location::DependencyLocation;
 use rspack_util::{atom::Atom, ext::AsAny};
 
 use super::{
-  dependency_template::AsDependencyCodeGeneration, module_dependency::*, DependencyCategory,
-  DependencyId, DependencyRange, DependencyType, ExportsSpec,
+  DependencyCategory, DependencyId, DependencyRange, DependencyType, ExportsSpec,
+  dependency_template::AsDependencyCodeGeneration, module_dependency::*,
 };
 use crate::{
-  create_exports_object_referenced, AsContextDependency, ConnectionState, Context,
-  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  RuntimeSpec, UsedByExports,
+  AsContextDependency, ConnectionState, Context, ExtendedReferencedExport, ImportAttributes,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, RuntimeSpec, UsedByExports,
+  create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]

@@ -84,7 +84,7 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
 /// First introduced at https://github.com/webpack/webpack/commit/5563ee9e583602eb38ab21219a327d346cd16218#r120784061
 /// Introduced at https://github.com/webpack/webpack/commit/c76be4d7383f35b3260dafefbcd24cac245d9e42
 /// Fix https://github.com/webpack/webpack/issues/14014
-pub fn relative_path_to_request(rel: &str) -> Cow<str> {
+pub fn relative_path_to_request(rel: &str) -> Cow<'_, str> {
   if rel.is_empty() {
     Cow::Borrowed("./.")
   } else if rel == ".." {
@@ -118,10 +118,10 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
 static ZERO_WIDTH_SPACE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
 
-pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<str> {
+pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
   ZERO_WIDTH_SPACE.replace_all(s, "$1")
 }
 
-pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<str> {
+pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
   s.cow_replace("#", "\u{200b}#")
 }

@@ -1,7 +1,7 @@
 use quote::quote;
 use syn::{
-  parse::{Parse, ParseStream, Parser},
   Pat, PatIdent, Result, Token,
+  parse::{Parse, ParseStream, Parser},
 };
 
 pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
@@ -158,10 +158,10 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
   let real_sig = sig.clone();
 
   for arg in sig.inputs.iter_mut().skip(1) {
-    if let syn::FnArg::Typed(syn::PatType { pat, .. }) = arg {
-      if let Pat::Ident(PatIdent { mutability, .. }) = &mut **pat {
-        *mutability = None;
-      }
+    if let syn::FnArg::Typed(syn::PatType { pat, .. }) = arg
+      && let Pat::Ident(PatIdent { mutability, .. }) = &mut **pat
+    {
+      *mutability = None;
     }
   }
 

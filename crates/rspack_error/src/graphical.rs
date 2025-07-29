@@ -150,12 +150,8 @@ impl GraphicalReportHandler {
   /// Render a [`Diagnostic`]. This function is mostly internal and meant to
   /// be called by the toplevel [`ReportHandler`] handler, but is made public
   /// to make it easier (possible) to test in isolation from global state.
-  pub fn render_report(
-    &self,
-    f: &mut impl fmt::Write,
-    diagnostic: &(dyn Diagnostic),
-  ) -> fmt::Result {
-    // CHANGE: skip `render_header`
+  pub fn render_report(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
+    // CHANGE: skip, `render_header` is not used in rspack
     // self.render_header(f, diagnostic)?;
     self.render_causes(f, diagnostic)?;
     let src = diagnostic.source_code();
@@ -173,7 +169,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn render_header(&self, f: &mut impl fmt::Write, diagnostic: &(dyn Diagnostic)) -> fmt::Result {
+  fn render_header(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
     let severity_style = match diagnostic.severity() {
       Some(Severity::Error) | None => self.theme.styles.error,
       Some(Severity::Warning) => self.theme.styles.warning,
@@ -208,7 +204,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn render_causes(&self, f: &mut impl fmt::Write, diagnostic: &(dyn Diagnostic)) -> fmt::Result {
+  fn render_causes(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
     let (severity_style, severity_icon) = match diagnostic.severity() {
       Some(Severity::Error) | None => (self.theme.styles.error, &self.theme.characters.error),
       Some(Severity::Warning) => (self.theme.styles.warning, &self.theme.characters.warning),
@@ -282,7 +278,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn render_footer(&self, f: &mut impl fmt::Write, diagnostic: &(dyn Diagnostic)) -> fmt::Result {
+  fn render_footer(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
     if let Some(help) = diagnostic.help() {
       let width = self.termwidth.saturating_sub(4);
       let initial_indent = "  help: ".style(self.theme.styles.help).to_string();
@@ -297,7 +293,7 @@ impl GraphicalReportHandler {
   fn render_related(
     &self,
     f: &mut impl fmt::Write,
-    diagnostic: &(dyn Diagnostic),
+    diagnostic: &dyn Diagnostic,
     parent_src: Option<&dyn SourceCode>,
   ) -> fmt::Result {
     if let Some(related) = diagnostic.related() {
@@ -322,60 +318,60 @@ impl GraphicalReportHandler {
   fn render_snippets(
     &self,
     f: &mut impl fmt::Write,
-    diagnostic: &(dyn Diagnostic),
+    diagnostic: &dyn Diagnostic,
     opt_source: Option<&dyn SourceCode>,
   ) -> fmt::Result {
-    if let Some(source) = opt_source {
-      if let Some(labels) = diagnostic.labels() {
-        let mut labels = labels.collect::<Vec<_>>();
-        labels.sort_unstable_by_key(|l| l.inner().offset());
-        if !labels.is_empty() {
-          let contents = labels
-            .iter()
-            .map(|label| source.read_span(label.inner(), self.context_lines, self.context_lines))
-            .collect::<Result<Vec<Box<dyn SpanContents<'_>>>, MietteError>>()
-            .map_err(|_| fmt::Error)?;
-          let mut contexts = Vec::with_capacity(contents.len());
-          for (right, right_conts) in labels.iter().cloned().zip(contents.iter()) {
-            if contexts.is_empty() {
-              contexts.push((right, right_conts));
-            } else {
-              let (left, left_conts) = contexts.last().unwrap().clone();
-              let left_end = left.offset() + left.len();
-              let right_end = right.offset() + right.len();
-              if left_conts.line() + left_conts.line_count() >= right_conts.line() {
-                // The snippets will overlap, so we create one Big Chunky Boi
-                let new_span = LabeledSpan::new(
-                  left.label().map(String::from),
-                  left.offset(),
-                  if right_end >= left_end {
-                    // Right end goes past left end
-                    right_end - left.offset()
-                  } else {
-                    // right is contained inside left
-                    left.len()
-                  },
-                );
-                if source
-                  .read_span(new_span.inner(), self.context_lines, self.context_lines)
-                  .is_ok()
-                {
-                  contexts.pop();
-                  contexts.push((
-                    // We'll throw this away later
-                    new_span, left_conts,
-                  ));
+    if let Some(source) = opt_source
+      && let Some(labels) = diagnostic.labels()
+    {
+      let mut labels = labels.collect::<Vec<_>>();
+      labels.sort_unstable_by_key(|l| l.inner().offset());
+      if !labels.is_empty() {
+        let contents = labels
+          .iter()
+          .map(|label| source.read_span(label.inner(), self.context_lines, self.context_lines))
+          .collect::<Result<Vec<Box<dyn SpanContents<'_>>>, MietteError>>()
+          .map_err(|_| fmt::Error)?;
+        let mut contexts = Vec::with_capacity(contents.len());
+        for (right, right_conts) in labels.iter().cloned().zip(contents.iter()) {
+          if contexts.is_empty() {
+            contexts.push((right, right_conts));
+          } else {
+            let (left, left_conts) = contexts.last().unwrap().clone();
+            let left_end = left.offset() + left.len();
+            let right_end = right.offset() + right.len();
+            if left_conts.line() + left_conts.line_count() >= right_conts.line() {
+              // The snippets will overlap, so we create one Big Chunky Boi
+              let new_span = LabeledSpan::new(
+                left.label().map(String::from),
+                left.offset(),
+                if right_end >= left_end {
+                  // Right end goes past left end
+                  right_end - left.offset()
                 } else {
-                  contexts.push((right, right_conts));
-                }
+                  // right is contained inside left
+                  left.len()
+                },
+              );
+              if source
+                .read_span(new_span.inner(), self.context_lines, self.context_lines)
+                .is_ok()
+              {
+                contexts.pop();
+                contexts.push((
+                  // We'll throw this away later
+                  new_span, left_conts,
+                ));
               } else {
                 contexts.push((right, right_conts));
               }
+            } else {
+              contexts.push((right, right_conts));
             }
           }
-          for (ctx, _) in contexts {
-            self.render_context(f, source, &ctx, &labels[..])?;
-          }
+        }
+        for (ctx, _) in contexts {
+          self.render_context(f, source, &ctx, &labels[..])?;
         }
       }
     }
@@ -825,7 +821,7 @@ impl GraphicalReportHandler {
 }
 
 impl ReportHandler for GraphicalReportHandler {
-  fn debug(&self, diagnostic: &(dyn Diagnostic), f: &mut fmt::Formatter<'_>) -> fmt::Result {
+  fn debug(&self, diagnostic: &dyn Diagnostic, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if f.alternate() {
       return fmt::Debug::fmt(diagnostic, f);
     }

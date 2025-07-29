@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod hot_module_replacement;
 
 use std::collections::hash_map;
@@ -8,14 +6,14 @@ use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
-  chunk_graph_chunk::ChunkId,
-  rspack_sources::{RawStringSource, SourceExt},
   ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
   DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
   RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
+  chunk_graph_chunk::ChunkId,
+  rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};

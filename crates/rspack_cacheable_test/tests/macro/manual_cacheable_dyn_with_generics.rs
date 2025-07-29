@@ -1,4 +1,4 @@
-use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, r#dyn::VTablePtr, to_bytes};
+use rspack_cacheable::{r#dyn::VTablePtr, enable_cacheable as cacheable, from_bytes, to_bytes};
 
 #[test]
 #[cfg_attr(miri, ignore)]
@@ -18,13 +18,13 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
 
     use rspack_cacheable::{
       __private::rkyv::{
+        ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
         bytecheck::CheckBytes,
         ptr_meta,
         traits::{ArchivePointee, LayoutRaw},
-        ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
       },
-      r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn},
       DeserializeError, Deserializer, SerializeError, Serializer, Validator,
+      r#dyn::{ArchivedDynMetadata, DeserializeDyn, validation::CHECK_BYTES_REGISTRY},
     };
 
     unsafe impl<T> ptr_meta::Pointee for dyn Animal<T> {
@@ -101,7 +101,7 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
       ) -> Result<(), DeserializeError> {
         let vtable = VTablePtr::new(ptr_meta::metadata(value));
         if let Some(check_bytes_dyn) = CHECK_BYTES_REGISTRY.get(&vtable) {
-          check_bytes_dyn(value.cast(), context)?;
+          unsafe { check_bytes_dyn(value.cast(), context)? };
           Ok(())
         } else {
           Err(DeserializeError::DynCheckBytesNotRegister)
@@ -134,13 +134,13 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
     use rspack_cacheable::{
       __private::{
         inventory,
-        rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
-      },
-      r#dyn::{
-        validation::{default_check_bytes_dyn, CheckBytesEntry},
-        DeserializeDyn, DynEntry,
+        rkyv::{ArchiveUnsized, Archived, Deserialize, DeserializeUnsized, ptr_meta},
       },
       DeserializeError, Deserializer,
+      r#dyn::{
+        DeserializeDyn, DynEntry,
+        validation::{CheckBytesEntry, default_check_bytes_dyn},
+      },
     };
 
     const fn get_vtable() -> VTablePtr {
@@ -194,13 +194,13 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
     use rspack_cacheable::{
       __private::{
         inventory,
-        rkyv::{ptr_meta, ArchiveUnsized, Archived, Deserialize, DeserializeUnsized},
-      },
-      r#dyn::{
-        validation::{default_check_bytes_dyn, CheckBytesEntry},
-        DeserializeDyn, DynEntry,
+        rkyv::{ArchiveUnsized, Archived, Deserialize, DeserializeUnsized, ptr_meta},
       },
       DeserializeError, Deserializer,
+      r#dyn::{
+        DeserializeDyn, DynEntry,
+        validation::{CheckBytesEntry, default_check_bytes_dyn},
+      },
     };
 
     const fn get_vtable() -> VTablePtr {

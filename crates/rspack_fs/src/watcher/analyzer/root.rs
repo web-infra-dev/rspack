@@ -99,7 +99,8 @@ impl PathTree {
 
   fn find_root_recursive(&self, path: ArcPath) -> ArcPath {
     // If the path is already a root, return it
-    let parent_path = match path.parent() {
+
+    match path.parent() {
       Some(parent) => {
         // If the parent exists in the tree, continue searching up
         if self.inner.get(&ArcPath::from(parent)).is_some() {
@@ -109,8 +110,7 @@ impl PathTree {
         }
       }
       None => path,
-    };
-    parent_path
+    }
   }
 
   fn add_path_recursive(&self, path: &ArcPath) {

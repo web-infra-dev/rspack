@@ -6,10 +6,10 @@ use rayon::iter::{
 };
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_error::{
+  Diagnostic, Result,
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
   },
-  Diagnostic, Result,
 };
 use rustc_hash::FxHashMap as HashMap;
 
@@ -49,7 +49,7 @@ impl<'compilation> Stats<'compilation> {
 }
 
 impl Stats<'_> {
-  pub fn get_assets(&self) -> (Vec<StatsAsset>, Vec<StatsAssetsByChunkName>) {
+  pub fn get_assets(&self) -> (Vec<StatsAsset<'_>>, Vec<StatsAssetsByChunkName<'_>>) {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     let mut compilation_file_to_auxiliary_chunks: HashMap<&String, Vec<&Chunk>> =
       HashMap::default();
@@ -588,7 +588,7 @@ impl Stats<'_> {
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
-  ) -> Vec<StatsChunkGroup> {
+  ) -> Vec<StatsChunkGroup<'_>> {
     self
       .compilation
       .entrypoints
@@ -603,7 +603,7 @@ impl Stats<'_> {
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
-  ) -> Vec<StatsChunkGroup> {
+  ) -> Vec<StatsChunkGroup<'_>> {
     let mut named_chunk_groups: Vec<StatsChunkGroup> = self
       .compilation
       .named_chunk_groups
@@ -1112,27 +1112,27 @@ impl Stats<'_> {
     // 'depth' is used for sorting in the JavaScript side, so it should always be computed.
     stats.depth = module_graph.get_depth(&identifier);
 
-    if options.nested_modules {
-      if let Some(module) = module.as_concatenated_module() {
-        let mut modules: Vec<StatsModule> = module
-          .get_modules()
-          .par_iter()
-          .filter_map(|m| module_graph.module_by_identifier(&m.id))
-          .map(|module| {
-            self.get_module(
-              module_graph,
-              module_graph_cache,
-              module,
-              executed,
-              root_modules,
-              options,
-            )
-          })
-          .collect::<Result<_>>()?;
-        sort_modules(&mut modules);
-        stats.modules = Some(modules);
-      };
-    }
+    if options.nested_modules
+      && let Some(module) = module.as_concatenated_module()
+    {
+      let mut modules: Vec<StatsModule> = module
+        .get_modules()
+        .par_iter()
+        .filter_map(|m| module_graph.module_by_identifier(&m.id))
+        .map(|module| {
+          self.get_module(
+            module_graph,
+            module_graph_cache,
+            module,
+            executed,
+            root_modules,
+            options,
+          )
+        })
+        .collect::<Result<_>>()?;
+      sort_modules(&mut modules);
+      stats.modules = Some(modules);
+    };
 
     if options.source {
       stats.source = module.source();
@@ -1146,7 +1146,7 @@ impl Stats<'_> {
     identifier: &ModuleIdentifier,
     module: &ExecutedRuntimeModule,
     options: &ExtendedStatsOptions,
-  ) -> Result<StatsModule> {
+  ) -> Result<StatsModule<'_>> {
     let built = false;
     let code_generated = self.compilation.code_generated_modules.contains(identifier);
 

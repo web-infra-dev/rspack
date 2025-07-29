@@ -22,12 +22,11 @@ impl Visit for DependencyVisitor {
       Callee::Expr(box Expr::Ident(ident)) => ident.sym == "require",
       _ => false,
     };
-    if is_match_ident {
-      if let Some(args) = node.args.first() {
-        if let box Expr::Lit(Lit::Str(s)) = &args.expr {
-          self.requests.push(s.value.to_string());
-        }
-      }
+    if is_match_ident
+      && let Some(args) = node.args.first()
+      && let box Expr::Lit(Lit::Str(s)) = &args.expr
+    {
+      self.requests.push(s.value.to_string());
     }
   }
 
@@ -89,7 +88,9 @@ export { h as default } from "./h";
     visitor.requests.sort();
     assert_eq!(
       visitor.requests,
-      vec!["./a", "./a", "./b", "./b", "./c", "./d", "./e", "./f", "./g", "./h"]
+      vec![
+        "./a", "./a", "./b", "./b", "./c", "./d", "./e", "./f", "./g", "./h"
+      ]
     );
   }
 }

@@ -1,8 +1,8 @@
 use std::{
   collections::HashMap,
   sync::{
-    atomic::{AtomicU64, Ordering},
     LazyLock, Mutex,
+    atomic::{AtomicU64, Ordering},
   },
 };
 
@@ -27,15 +27,14 @@ pub fn create_track_descriptor(
   parent_uuid: Option<u64>,
   name: Option<impl AsRef<str>>,
 ) -> idl::TrackDescriptor {
-  let desc = idl::TrackDescriptor {
+  idl::TrackDescriptor {
     uuid: Some(uuid),
     parent_uuid,
     static_or_dynamic_name: name
       .map(|s| s.as_ref().to_string())
       .map(idl::track_descriptor::StaticOrDynamicName::Name),
     ..Default::default()
-  };
-  desc
+  }
 }
 
 pub fn create_event(

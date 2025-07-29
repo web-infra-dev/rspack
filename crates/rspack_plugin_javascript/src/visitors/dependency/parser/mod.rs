@@ -19,7 +19,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   common::{
-    comments::Comments, util::take::Take, BytePos, Mark, SourceFile, SourceMap, Span, Spanned,
+    BytePos, Mark, SourceFile, SourceMap, Span, Spanned, comments::Comments, util::take::Take,
   },
   ecma::{
     ast::{
@@ -32,13 +32,13 @@ use swc_core::{
 };
 
 use crate::{
+  BoxJavascriptParserPlugin,
   dependency::local_module::LocalModule,
   parser_plugin::{self, InnerGraphState, JavaScriptParserPluginDrive, JavascriptParserPlugin},
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::scope_info::{
     FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
   },
-  BoxJavascriptParserPlugin,
 };
 
 pub trait TagInfoData: Clone + Sized + 'static {

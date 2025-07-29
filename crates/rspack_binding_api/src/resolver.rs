@@ -1,19 +1,18 @@
 use std::{path::Path, sync::Arc};
 
 use napi::{
-  bindgen_prelude::{block_on, Function},
   Either,
+  bindgen_prelude::{Function, block_on},
 };
 use napi_derive::napi;
 use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory};
 use serde::Serialize;
 
 use crate::{
-  callbackify,
+  ErrorCode, callbackify,
   raw_resolve::{
-    normalize_raw_resolve_options_with_dependency_type, RawResolveOptionsWithDependencyType,
+    RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
   },
-  ErrorCode,
 };
 
 #[derive(Debug, Serialize)]

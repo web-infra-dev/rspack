@@ -11,8 +11,8 @@ use swc_core::{atoms::Atom, common::Spanned};
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::ProvideDependency, parser_and_generator::JavaScriptParserAndGenerator,
-  visitors::JavascriptParser, BoxJavascriptParserPlugin,
+  BoxJavascriptParserPlugin, dependency::ProvideDependency,
+  parser_and_generator::JavaScriptParserAndGenerator, visitors::JavascriptParser,
 };
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;

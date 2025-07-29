@@ -12,33 +12,34 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use base64::prelude::*;
 use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
-use rspack_error::{miette::MietteDiagnostic, AnyhowResultToRspackResultExt, Error};
+use rspack_error::{AnyhowResultToRspackResultExt, Error, miette::MietteDiagnostic};
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
+    BoolOr,
     config::{
       BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, JsMinifyFormatOptions,
       Rc, RootMode, SourceMapsConfig,
     },
-    sourcemap, BoolOr,
+    sourcemap,
   },
   common::{
+    FileName, GLOBALS, Mark, SourceFile, SourceMap,
     comments::{Comments, SingleThreadedComments},
     errors::Handler,
-    FileName, Mark, SourceFile, SourceMap, GLOBALS,
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
     parser::{
-      parse_file_as_commonjs, parse_file_as_module, parse_file_as_program, parse_file_as_script,
-      Syntax,
+      Syntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
+      parse_file_as_script,
     },
     transforms::base::helpers::{self, Helpers},
   },
@@ -47,8 +48,8 @@ use swc_error_reporters::handler::try_with_handler;
 use url::Url;
 
 use super::{
-  stringify::{PrintOptions, SourceMapConfig},
   JavaScriptCompiler, TransformOutput,
+  stringify::{PrintOptions, SourceMapConfig},
 };
 
 impl JavaScriptCompiler {
@@ -86,11 +87,12 @@ fn parse_swcrc(s: &str) -> Result<Rc, anyhow::Error> {
       Category::Data => "unmatched data",
       Category::Eof => "unexpected eof",
     };
+    let mut line_buffer = itoa::Buffer::new();
+    let line_str = line_buffer.format(line);
+    let mut column_buffer = itoa::Buffer::new();
+    let column_str = column_buffer.format(column);
     anyhow::Error::new(e).context(format!(
-      "failed to deserialize .swcrc (json) file: {}: {}:{}",
-      msg,
-      itoa!(line),
-      itoa!(column)
+      "failed to deserialize .swcrc (json) file: {msg}: {line_str}:{column_str}"
     ))
   }
 
@@ -192,29 +194,29 @@ fn read_config(opts: &SwcOptions, name: &FileName) -> Result<Option<Config>, any
           .into_config(Some(filename_path))
           .context("failed to process config file")?;
 
-        if let Some(c) = &mut config {
-          if c.jsc.base_url != PathBuf::new() {
-            let joined = dir.join(&c.jsc.base_url);
-            c.jsc.base_url = if cfg!(target_os = "windows") && c.jsc.base_url.as_os_str() == "." {
-              dir.canonicalize().with_context(|| {
-                format!(
-                  "failed to canonicalize base url using the path of \
+        if let Some(c) = &mut config
+          && c.jsc.base_url != PathBuf::new()
+        {
+          let joined = dir.join(&c.jsc.base_url);
+          c.jsc.base_url = if cfg!(target_os = "windows") && c.jsc.base_url.as_os_str() == "." {
+            dir.canonicalize().with_context(|| {
+              format!(
+                "failed to canonicalize base url using the path of \
                                   .swcrc\nDir: {}\n(Used logic for windows)",
-                  dir.display(),
-                )
-              })?
-            } else {
-              joined.canonicalize().with_context(|| {
-                format!(
-                  "failed to canonicalize base url using the path of \
+                dir.display(),
+              )
+            })?
+          } else {
+            joined.canonicalize().with_context(|| {
+              format!(
+                "failed to canonicalize base url using the path of \
                                   .swcrc\nPath: {}\nDir: {}\nbaseUrl: {}",
-                  joined.display(),
-                  dir.display(),
-                  c.jsc.base_url.display()
-                )
-              })?
-            };
-          }
+                joined.display(),
+                dir.display(),
+                c.jsc.base_url.display()
+              )
+            })?
+          };
         }
 
         return Ok(config);

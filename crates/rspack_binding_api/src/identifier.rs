@@ -17,6 +17,6 @@ impl From<Identifier> for JsIdentifier {
 
 impl ToNapiValue for JsIdentifier {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    ToNapiValue::to_napi_value(env, val.0.as_str())
+    unsafe { ToNapiValue::to_napi_value(env, val.0.as_str()) }
   }
 }

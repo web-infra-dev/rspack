@@ -1,9 +1,9 @@
 use napi::Either;
 use rspack_core::{
-  diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
-  NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
+  AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
+  NormalModuleLoaderStartYielding, RunnerContext, diagnostics::CapturedLoaderError,
 };
-use rspack_error::{miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, miette::IntoDiagnostic};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 

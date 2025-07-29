@@ -4,13 +4,12 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec, Skip},
 };
 use rspack_core::{
-  create_exports_object_referenced, module_raw, AsContextDependency, Compilation, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  UsedName,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedName, create_exports_object_referenced, module_raw,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;

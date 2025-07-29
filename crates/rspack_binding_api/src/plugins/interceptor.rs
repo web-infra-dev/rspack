@@ -7,18 +7,18 @@ use std::{
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::{
-  bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
   Env, JsValue,
+  bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, rspack_sources::RawStringSource, AfterResolveResult, AssetEmittedInfo,
-  BeforeResolveResult, BindingCell, BoxModule, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
-  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
-  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
-  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BindingCell, BoxModule, ChunkUkey,
+  Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
+  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
+  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
+  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
+  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -41,7 +41,7 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme,
+  Scheme, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -126,8 +126,10 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let t = JsTap::from_napi_value(env, napi_val)?;
-    ThreadsafeJsTap::from_js_tap(t, Env::from_raw(env))
+    unsafe {
+      let t = JsTap::from_napi_value(env, napi_val)?;
+      ThreadsafeJsTap::from_js_tap(t, Env::from_raw(env))
+    }
   }
 }
 

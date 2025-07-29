@@ -15,18 +15,18 @@ use swc_core::{
 };
 
 use crate::{
+  JavascriptParserPlugin,
   dependency::{
+    AMDRequireContextDependency,
     amd_define_dependency::AMDDefineDependency,
     amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
     amd_require_item_dependency::AMDRequireItemDependency,
     local_module_dependency::LocalModuleDependency,
-    AMDRequireContextDependency,
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    context_reg_exp, create_context_dependency, scope_info::FreeName, JavascriptParser, Statement,
+    JavascriptParser, Statement, context_reg_exp, create_context_dependency, scope_info::FreeName,
   },
-  JavascriptParserPlugin,
 };
 
 pub struct AMDDefineDependencyParserPlugin;

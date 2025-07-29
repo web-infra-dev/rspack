@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_core::{rspack_sources::Source, Compilation};
+use rspack_core::{Compilation, rspack_sources::Source};
 use rspack_hook::define_hook;
 
 define_hook!(RealContentHashPluginUpdateHash: SeriesBail(compilation: &Compilation, assets: &[Arc<dyn Source>], old_hash: &str) -> String);

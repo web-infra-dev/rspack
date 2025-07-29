@@ -9,9 +9,10 @@ use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
+  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, GroupOptions,
+  ModuleIdentifier, RuntimeSpec,
   incremental::{IncrementalPasses, Mutation},
-  is_runtime_equal, AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation,
-  GroupOptions, ModuleIdentifier, RuntimeSpec,
+  is_runtime_equal,
 };
 
 #[derive(Debug, Clone)]
@@ -143,11 +144,11 @@ impl CodeSplitter {
 
       parent_cg.children.swap_remove_full(&chunk_group_ukey);
 
-      if let Some(parent_cgi) = self.chunk_group_info_map.get(parent) {
-        if let Some(parent_cgi) = self.chunk_group_infos.get_mut(parent_cgi) {
-          parent_cgi.children.swap_remove(&cgi_ukey);
-          parent_cgi.available_children.swap_remove(&cgi_ukey);
-        }
+      if let Some(parent_cgi) = self.chunk_group_info_map.get(parent)
+        && let Some(parent_cgi) = self.chunk_group_infos.get_mut(parent_cgi)
+      {
+        parent_cgi.children.swap_remove(&cgi_ukey);
+        parent_cgi.available_children.swap_remove(&cgi_ukey);
       }
     }
 

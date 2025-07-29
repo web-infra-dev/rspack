@@ -4,19 +4,19 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  filter_runtime, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
-  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject,
+  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode,
   ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, TypeReexportPresenceMode,
+  TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime, import_statement,
 };
 use rspack_error::{
-  miette::{MietteDiagnostic, Severity},
   Diagnostic, DiagnosticExt, TraceableError,
+  miette::{MietteDiagnostic, Severity},
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -164,32 +164,32 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let key = format!("ESM import {module_key}");
 
   // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
-  if let Some(import_emitted_map) = import_emitted_runtime::get_map() {
-    if let Some(ref_module) = ref_module {
-      let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
+  if let Some(import_emitted_map) = import_emitted_runtime::get_map()
+    && let Some(ref_module) = ref_module
+  {
+    let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
 
-      let old_runtime_condition = match emitted_modules.get(ref_module) {
-        Some(v) => v.to_owned(),
-        None => RuntimeCondition::Boolean(false),
-      };
+    let old_runtime_condition = match emitted_modules.get(ref_module) {
+      Some(v) => v.to_owned(),
+      None => RuntimeCondition::Boolean(false),
+    };
 
-      let mut merged_runtime_condition = runtime_condition.clone();
-      if !matches!(old_runtime_condition, RuntimeCondition::Boolean(false))
-        && !matches!(merged_runtime_condition, RuntimeCondition::Boolean(true))
+    let mut merged_runtime_condition = runtime_condition.clone();
+    if !matches!(old_runtime_condition, RuntimeCondition::Boolean(false))
+      && !matches!(merged_runtime_condition, RuntimeCondition::Boolean(true))
+    {
+      if matches!(merged_runtime_condition, RuntimeCondition::Boolean(false))
+        || matches!(old_runtime_condition, RuntimeCondition::Boolean(true))
       {
-        if matches!(merged_runtime_condition, RuntimeCondition::Boolean(false))
-          || matches!(old_runtime_condition, RuntimeCondition::Boolean(true))
-        {
-          merged_runtime_condition = old_runtime_condition;
-        } else {
-          merged_runtime_condition
-            .as_spec_mut()
-            .expect("should be spec")
-            .extend(old_runtime_condition.as_spec().expect("should be spec"));
-        }
+        merged_runtime_condition = old_runtime_condition;
+      } else {
+        merged_runtime_condition
+          .as_spec_mut()
+          .expect("should be spec")
+          .extend(old_runtime_condition.as_spec().expect("should be spec"));
       }
-      emitted_modules.insert(*ref_module, merged_runtime_condition);
     }
+    emitted_modules.insert(*ref_module, merged_runtime_condition);
   }
 
   let is_async_module =

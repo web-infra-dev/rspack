@@ -24,13 +24,12 @@ impl ExportInfoData {
           return None;
         }
       } else if let Some(used_in_runtime) = self.used_in_runtime() {
-        if let Some(runtime) = runtime {
-          if runtime
+        if let Some(runtime) = runtime
+          && runtime
             .iter()
             .all(|item| !used_in_runtime.contains_key(item))
-          {
-            return None;
-          }
+        {
+          return None;
         }
       } else {
         return None;
@@ -92,7 +91,7 @@ impl ExportInfoData {
     }
   }
 
-  pub fn get_rename_info(&self) -> Cow<str> {
+  pub fn get_rename_info(&self) -> Cow<'_, str> {
     match (self.used_name(), self.name()) {
       (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
       (Some(used), None) => return format!("renamed to {used}").into(),
@@ -115,7 +114,7 @@ impl ExportInfoData {
     .into()
   }
 
-  pub fn get_used_info(&self) -> Cow<str> {
+  pub fn get_used_info(&self) -> Cow<'_, str> {
     if let Some(global_used) = self.global_used() {
       return match global_used {
         UsageState::Unused => "unused".into(),
@@ -192,7 +191,7 @@ impl ExportInfoData {
     self.used_name().is_some()
   }
 
-  pub fn get_max_target(&self) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+  pub fn get_max_target(&self) -> Cow<'_, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
     if self.target().len() <= 1 {
       return Cow::Borrowed(self.target());
     }

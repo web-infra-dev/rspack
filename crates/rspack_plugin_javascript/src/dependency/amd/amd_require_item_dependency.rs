@@ -1,9 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  module_raw, AffectType, AsContextDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  AffectType, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource, module_raw,
 };
 use rspack_util::atom::Atom;
 

@@ -8,9 +8,9 @@ use super::{
   overwrite::overwrite_tasks,
 };
 use crate::{
-  compiler::make::repair::{factorize::FactorizeTask, MakeTaskContext},
-  utils::task_loop::{Task, TaskResult, TaskType},
   Context, Dependency, LoaderImportDependency, ModuleProfile,
+  compiler::make::repair::{MakeTaskContext, factorize::FactorizeTask},
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 /// A task for generate import module entry.

@@ -1,6 +1,6 @@
 use std::{ptr::NonNull, sync::Arc};
 
-pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
+pub use rspack_loader_runner::{Content, Loader, LoaderContext, run_loaders};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{CompilationId, CompilerId, CompilerOptions, Module, ResolverFactory};

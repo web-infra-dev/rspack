@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use dyn_clone::{clone_trait_object, DynClone};
+use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;

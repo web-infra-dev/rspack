@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 use std::sync::LazyLock;
 
 use async_trait::async_trait;

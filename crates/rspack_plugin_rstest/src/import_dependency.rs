@@ -1,10 +1,9 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  block_promise, get_exports_type, module_id_expr, module_raw, weak_error,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   FakeNamespaceObjectMode, ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  TemplateReplaceSource, block_promise, get_exports_type, module_id_expr, module_raw, weak_error,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 

@@ -1,7 +1,7 @@
 use napi::bindgen_prelude::within_runtime_if_available;
 use rspack_javascript_compiler::{
-  minify::JsMinifyOptions, transform::SwcOptions, JavaScriptCompiler,
-  TransformOutput as CompilerTransformOutput,
+  JavaScriptCompiler, TransformOutput as CompilerTransformOutput, minify::JsMinifyOptions,
+  transform::SwcOptions,
 };
 use swc_core::ecma::ast::noop_pass;
 

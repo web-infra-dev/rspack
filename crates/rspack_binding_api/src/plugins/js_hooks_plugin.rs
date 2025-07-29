@@ -6,7 +6,7 @@ use rspack_core::{
   ApplyContext, Compilation, CompilationId, CompilationParams, CompilerCompilation,
   CompilerOptions, PluginContext,
 };
-use rspack_hook::{plugin, plugin_hook, Hook as _};
+use rspack_hook::{Hook as _, plugin, plugin_hook};
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::JsPlugin;
 use rspack_plugin_rsdoctor::RsdoctorPlugin;

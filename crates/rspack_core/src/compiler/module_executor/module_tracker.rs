@@ -1,11 +1,11 @@
-use std::collections::{hash_map::Entry, VecDeque};
+use std::collections::{VecDeque, hash_map::Entry};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 
 use super::context::ExecutorTaskContext;
 use crate::{
-  make::repair::MakeTaskContext, task_loop::Task, DependencyId, ModuleIdentifier, ModuleIssuer,
+  DependencyId, ModuleIdentifier, ModuleIssuer, make::repair::MakeTaskContext, task_loop::Task,
 };
 
 type BoxTask = Box<dyn Task<ExecutorTaskContext>>;

@@ -8,21 +8,20 @@ use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifier;
 use rspack_core::{
-  property_access,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
   DependencyType::WasmImport,
   ExportsInfoGetter, Filename, GenerateContext, GetUsedNameParam, Module, ModuleDependency,
   ModuleGraph, ModuleId, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsedName,
+  StaticExportsDependency, StaticExportsSpec, UsedName, property_access,
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::itoa;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::{dependency::WasmImportDependency, ModuleIdToFileName};
+use crate::{ModuleIdToFileName, dependency::WasmImportDependency};
 
 #[cacheable]
 #[derive(Debug)]
@@ -179,7 +178,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .for_each(|(dep, mgm)| {
             if let Some(mgm) = mgm {
               if !dep_modules.contains_key(&mgm.module_identifier) {
-                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", itoa!(dep_modules.len()));
+                let mut len_buffer = itoa::Buffer::new();
+                let len_str = len_buffer.format(dep_modules.len());
+                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", len_str);
                 let val = (
                   import_var.clone(),
                   ChunkGraph::get_module_id(

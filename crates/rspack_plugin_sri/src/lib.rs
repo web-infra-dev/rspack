@@ -155,19 +155,19 @@ impl Plugin for SubresourceIntegrityPlugin {
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
     options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
-    if let ChunkLoading::Enable(chunk_loading) = &options.output.chunk_loading {
-      if matches!(
+    if let ChunkLoading::Enable(chunk_loading) = &options.output.chunk_loading
+      && matches!(
         chunk_loading,
         ChunkLoadingType::Require | ChunkLoadingType::AsyncNode
-      ) {
-        ctx
-          .context
-          .compiler_hooks
-          .this_compilation
-          .tap(warn_non_web::new(self));
+      )
+    {
+      ctx
+        .context
+        .compiler_hooks
+        .this_compilation
+        .tap(warn_non_web::new(self));
 
-        return Ok(());
-      }
+      return Ok(());
     }
 
     ctx

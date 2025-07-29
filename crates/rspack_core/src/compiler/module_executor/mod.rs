@@ -14,7 +14,7 @@ use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::{
   sync::{
-    mpsc::{unbounded_channel, UnboundedSender},
+    mpsc::{UnboundedSender, unbounded_channel},
     oneshot,
   },
   task,
@@ -24,9 +24,9 @@ use self::{
   ctrl::{CtrlTask, Event},
   execute::ExecuteModuleResult,
 };
-use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
+use super::make::{MakeArtifact, MakeParam, repair::MakeTaskContext, update_module_graph};
 use crate::{
-  task_loop::run_task_loop, Compilation, CompilationAsset, Context, DependencyId, PublicPath,
+  Compilation, CompilationAsset, Context, DependencyId, PublicPath, task_loop::run_task_loop,
 };
 
 #[derive(Debug, Default)]

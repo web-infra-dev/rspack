@@ -29,14 +29,14 @@ impl Scanner {
     tokio::spawn(async move {
       for file in files.iter() {
         let filepath = file.deref();
-        if !filepath.exists() {
-          if let Some(tx) = &_tx {
-            // If the file does not exist, send a delete event
-            let _ = tx.send(FsEvent {
-              path: filepath.clone(),
-              kind: FsEventKind::Remove,
-            });
-          }
+        if !filepath.exists()
+          && let Some(tx) = &_tx
+        {
+          // If the file does not exist, send a delete event
+          let _ = tx.send(FsEvent {
+            path: filepath.clone(),
+            kind: FsEventKind::Remove,
+          });
         }
       }
     });
@@ -46,14 +46,14 @@ impl Scanner {
     tokio::spawn(async move {
       for dir in directories.iter() {
         let dirpath = dir.deref();
-        if !dirpath.exists() {
-          if let Some(tx) = &_tx {
-            // If the directory does not exist, send a delete event
-            let _ = tx.send(FsEvent {
-              path: dirpath.clone(),
-              kind: FsEventKind::Remove,
-            });
-          }
+        if !dirpath.exists()
+          && let Some(tx) = &_tx
+        {
+          // If the directory does not exist, send a delete event
+          let _ = tx.send(FsEvent {
+            path: dirpath.clone(),
+            kind: FsEventKind::Remove,
+          });
         }
       }
     });

@@ -5,9 +5,9 @@ use swc_core::{
 };
 
 use crate::{
-  utils::eval::{evaluate_to_identifier, evaluate_to_string, BasicEvaluatedExpression},
-  visitors::JavascriptParser,
   JavascriptParserPlugin,
+  utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier, evaluate_to_string},
+  visitors::JavascriptParser,
 };
 
 pub struct AMDParserPlugin;

@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  incremental::IncrementalPasses, ApplyContext, ChunkGraph, Compilation, CompilationModuleIds,
-  CompilerOptions, Plugin, PluginContext,
+  ApplyContext, ChunkGraph, Compilation, CompilationModuleIds, CompilerOptions, Plugin,
+  PluginContext, incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

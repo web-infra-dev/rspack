@@ -9,10 +9,10 @@ use tokio::sync::oneshot::Sender;
 
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
-  utils::task_loop::{Task, TaskResult, TaskType},
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
   FactorizeInfo, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug, Clone)]
@@ -192,10 +192,10 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
             }
           }
         }
-        if let Some(c) = mg.connection_by_dependency_id(dep_id) {
-          if !modules.contains(c.module_identifier()) {
-            queue.push_back(*c.module_identifier());
-          }
+        if let Some(c) = mg.connection_by_dependency_id(dep_id)
+          && !modules.contains(c.module_identifier())
+        {
+          queue.push_back(*c.module_identifier());
         }
       }
     }

@@ -5,25 +5,25 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_error::{error, Result};
+use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{get_scheme, Loader, Scheme};
+use rspack_loader_runner::{Loader, Scheme, get_scheme};
 use rspack_paths::Utf8PathBuf;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
 use swc_core::common::Span;
 
 use crate::{
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource, AssetInlineGeneratorOptions, AssetResourceGeneratorOptions,
-  BoxLoader, BoxModule, CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
+  AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
+  CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
   CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
   DependencyRange, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
   ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
   ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, RunnerContext, SharedPluginDriver,
+  ResourceParsedData, RunnerContext, SharedPluginDriver, diagnostics::EmptyDependency,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -569,12 +569,11 @@ impl NormalModuleFactory {
         .after_resolve
         .call(data, &mut create_data)
         .await?
+        && !plugin_result
       {
-        if !plugin_result {
-          // ignored
-          // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
-          return Ok(Some(ModuleFactoryResult::default()));
-        }
+        // ignored
+        // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
+        return Ok(Some(ModuleFactoryResult::default()));
       }
 
       create_data

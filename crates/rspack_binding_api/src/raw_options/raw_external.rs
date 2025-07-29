@@ -1,8 +1,8 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
 use napi::{
-  bindgen_prelude::{Either4, Function, FunctionCallContext, Object, Promise, ToNapiValue},
   Either, Env,
+  bindgen_prelude::{Either4, Function, FunctionCallContext, Object, Promise, ToNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{
@@ -14,8 +14,8 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  callbackify, normalize_raw_resolve_options_with_dependency_type, ErrorCode,
-  RawResolveOptionsWithDependencyType, ResolveRequest,
+  ErrorCode, RawResolveOptionsWithDependencyType, ResolveRequest, callbackify,
+  normalize_raw_resolve_options_with_dependency_type,
 };
 
 #[napi(object)]
@@ -84,13 +84,15 @@ impl ToNapiValue for &ContextInfo {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    let env_wrapper = Env::from(env);
-    let mut obj = Object::new(&env_wrapper)?;
-    obj.set("issuer", &val.issuer)?;
-    if let Some(issuer_layer) = &val.issuer_layer {
-      obj.set("issuerLayer", issuer_layer)?;
+    unsafe {
+      let env_wrapper = Env::from(env);
+      let mut obj = Object::new(&env_wrapper)?;
+      obj.set("issuer", &val.issuer)?;
+      if let Some(issuer_layer) = &val.issuer_layer {
+        obj.set("issuerLayer", issuer_layer)?;
+      }
+      ToNapiValue::to_napi_value(env, obj)
     }
-    ToNapiValue::to_napi_value(env, obj)
   }
 }
 
@@ -148,7 +150,7 @@ impl Drop for RawExternalItemFnCtx {
 #[napi]
 impl RawExternalItemFnCtx {
   #[napi]
-  pub fn data(&self) -> RawExternalItemFnCtxData {
+  pub fn data(&self) -> RawExternalItemFnCtxData<'_> {
     #[allow(clippy::unwrap_used)]
     let inner = self.i.as_ref().unwrap();
     RawExternalItemFnCtxData {

@@ -5,10 +5,10 @@ use rspack_core::{Resolve, ResolverFactory};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
 
 use crate::{
-  raw_resolve::{
-    normalize_raw_resolve_options_with_dependency_type, RawResolveOptionsWithDependencyType,
-  },
   JsResolver, RspackResultToNapiResultExt,
+  raw_resolve::{
+    RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
+  },
 };
 
 #[napi]
@@ -67,23 +67,29 @@ impl JsResolverFactory {
   ) -> napi::Result<JsResolver> {
     match r#type.as_str() {
       "normal" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
-        let resolver_factory = self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
+        let options =
+          normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
+        let resolver_factory =
+          self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
         Ok(JsResolver::new(resolver_factory, options))
       }
       "loader" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
-        let resolver_factory = self.get_loader_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
+        let options =
+          normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
+        let resolver_factory =
+          self.get_loader_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
         Ok(JsResolver::new(resolver_factory, options))
       }
       "context" => {
-        let options = normalize_raw_resolve_options_with_dependency_type(raw, true).to_napi_result()?;
-        let resolver_factory = self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
+        let options =
+          normalize_raw_resolve_options_with_dependency_type(raw, true).to_napi_result()?;
+        let resolver_factory =
+          self.get_resolver_factory(*options.resolve_options.clone().unwrap_or_default());
         Ok(JsResolver::new(resolver_factory, options))
       }
-      _ => {
-        Err(napi::Error::from_reason(format!("Invalid resolver type '{type}' specified. Rspack only supports 'normal', 'context', and 'loader' types.")))
-      }
+      _ => Err(napi::Error::from_reason(format!(
+        "Invalid resolver type '{type}' specified. Rspack only supports 'normal', 'context', and 'loader' types."
+      ))),
     }
   }
 }
