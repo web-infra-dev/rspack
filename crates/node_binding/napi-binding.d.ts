@@ -1146,6 +1146,11 @@ export interface JsRsdoctorSideEffect {
   variable?: number
 }
 
+export interface JsRsdoctorSourceMapFeatures {
+  cheap?: boolean
+  module?: boolean
+}
+
 export interface JsRsdoctorSourcePosition {
   line?: number
   column?: number
@@ -2492,6 +2497,7 @@ export interface RawResolveTsconfigOptions {
 export interface RawRsdoctorPluginOptions {
   moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
+  sourceMapFeatures?: { module?: boolean; cheap?: boolean } | undefined
 }
 
 export interface RawRslibPluginOptions {

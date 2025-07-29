@@ -6168,6 +6168,10 @@ const RsdoctorPluginImpl: {
 type RsdoctorPluginOptions = {
     moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
     chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+    sourceMapFeatures?: {
+        module?: boolean;
+        cheap?: boolean;
+    };
 };
 
 // @public (undocumented)

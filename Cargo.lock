@@ -5030,6 +5030,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_paths",
+ "rspack_plugin_devtool",
  "rspack_util",
  "rustc-hash 2.1.1",
  "tokio",
