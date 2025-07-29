@@ -215,7 +215,7 @@ impl From<Restriction> for rspack_resolver::Restriction {
         panic!("Should specify path or regex")
       }
       (None, Some(regex)) => {
-        let re = Regex::new(&regex).expect("Regex is wrong");
+        let re = Regex::new(&regex).unwrap_or_else(|_| panic!("Invalid regex pattern: {regex}"));
         Self::Fn(Arc::new(move |path| {
           re.is_match(path.to_str().unwrap_or_default())
         }))
@@ -247,7 +247,7 @@ impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
           rspack_resolver::TsconfigReferences::Auto
         }
         Some(Either::A(opt)) => {
-          panic!("`{opt}` is not a valid option for  tsconfig references")
+          panic!("`{opt}` is not a valid option for tsconfig references")
         }
         Some(Either::B(paths)) => rspack_resolver::TsconfigReferences::Paths(
           paths.into_iter().map(PathBuf::from).collect::<Vec<_>>(),
