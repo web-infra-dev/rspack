@@ -126,7 +126,6 @@ impl CodeSplitter {
       };
 
       child_cgi.available_sources.swap_remove(&cgi_ukey);
-      child_cgi.parents.swap_remove(&cgi_ukey);
 
       if let Some(child_cg) = compilation
         .chunk_group_by_ukey
@@ -502,7 +501,7 @@ impl CodeSplitter {
 
     for m in affected_modules {
       for module_map in self.block_modules_runtime_map.values_mut() {
-        module_map.swap_remove(&DependenciesBlockIdentifier::Module(m));
+        module_map.remove(&DependenciesBlockIdentifier::Module(m));
       }
 
       let more_edges = self.invalidate_from_module(m, compilation)?;
@@ -583,7 +582,7 @@ impl CodeSplitter {
           ChunkCreateData {
             available_modules: cgi.min_available_modules.clone(),
             options: block_options.get_group_options().cloned(),
-            runtime: cgi.runtime.clone(),
+            runtime: cgi.runtime.as_ref().clone(),
             can_rebuild,
             module,
             cache_result: can_rebuild.then(|| CacheResult {

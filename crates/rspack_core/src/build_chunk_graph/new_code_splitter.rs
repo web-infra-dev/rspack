@@ -1054,7 +1054,11 @@ impl CodeSplitter {
     ukey
   }
 
-  fn create_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
+  fn create_chunks(
+    &mut self,
+    compilation: &mut Compilation,
+    outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  ) -> Result<()> {
     let mut errors = vec![];
 
     let mut roots = self.analyze_module_graph(compilation)?;
@@ -1132,11 +1136,7 @@ impl CodeSplitter {
         ChunkDesc::Entry(entry_desc) => {
           let entry_modules = &entry_desc.entry_modules;
           let mut assign_depths_map = IdentifierMap::default();
-          assign_depths(
-            &mut assign_depths_map,
-            &compilation.get_module_graph(),
-            entry_modules.iter(),
-          );
+          assign_depths(&mut assign_depths_map, entry_modules.iter(), outgoings);
           Some((idx, assign_depths_map))
         }
         _ => None,
@@ -1785,6 +1785,23 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     compilation.chunk_graph.add_module(m);
   }
 
+  let outgoings = compilation
+    .get_module_graph()
+    .modules()
+    .keys()
+    .par_bridge()
+    .map(|m| {
+      (
+        *m,
+        compilation
+          .get_module_graph()
+          .get_outgoing_connections(m)
+          .map(|con| *con.module_identifier())
+          .collect::<Vec<_>>(),
+      )
+    })
+    .collect::<IdentifierMap<_>>();
+
   let mutations = compilation
     .incremental
     .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
@@ -1814,7 +1831,7 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
   };
 
   // fill chunks with its modules
-  splitter.create_chunks(compilation)?;
+  splitter.create_chunks(compilation, &outgoings)?;
 
   compilation.code_splitting_cache.new_code_splitter = splitter;
 

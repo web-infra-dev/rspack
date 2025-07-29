@@ -132,17 +132,17 @@ impl CodeSplittingCache {
         };
         miss_in_previous = false;
 
-        for (outgoing, state, _) in outgoings {
+        for (outgoing, state, _) in outgoings.iter() {
           // we must insert module even if state is false
           // because we need to keep the import order
           previous_modules
             .entry(*outgoing)
             .and_modify(|v| {
               if state.is_not_false() {
-                *v = state;
+                *v = *state;
               }
             })
-            .or_insert(state);
+            .or_insert(*state);
         }
       });
 
