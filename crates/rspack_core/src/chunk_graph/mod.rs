@@ -21,6 +21,15 @@ pub enum Ref {
   Inline(String),
 }
 
+impl Ref {
+  pub fn render(&self) -> Cow<'_, str> {
+    match self {
+      Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
+      Ref::Inline(inline) => Cow::Borrowed(inline),
+    }
+  }
+}
+
 #[derive(Clone)]
 pub struct SymbolRef {
   pub module: ModuleIdentifier,
@@ -60,7 +69,7 @@ impl SymbolRef {
 }
 
 pub trait BindingRenderer {
-  fn render(&self) -> Cow<str>;
+  fn render<'a>(&'a self) -> Cow<'a, str>;
 }
 
 #[derive(Debug, Clone, Default)]

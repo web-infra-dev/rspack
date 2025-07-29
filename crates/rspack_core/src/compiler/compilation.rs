@@ -51,8 +51,7 @@ use crate::{
   Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
-    ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
-    update_module_graph,
+    MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
   },
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
