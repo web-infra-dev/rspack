@@ -205,13 +205,11 @@ impl ConcatenationScope {
       .expect("should have module info");
 
     let export_data = hex::encode(id.as_str());
+    let mut index_buffer = itoa::Buffer::new();
+    let index_str = index_buffer.format(info.index());
 
-    let ref_string = format!(
-      "__WEBPACK_MODULE_DYNAMIC_REFERENCE__{}_{}_{}",
-      itoa!(info.index()),
-      already_in_chunk,
-      export_data
-    );
+    let ref_string =
+      format!("__WEBPACK_MODULE_DYNAMIC_REFERENCE__{index_str}_{already_in_chunk}_{export_data}");
 
     let entry = self.dyn_refs.entry(*module).or_default();
     entry.insert((ref_string.clone(), id.clone()));

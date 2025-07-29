@@ -13,14 +13,17 @@ use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
   runtime::{render_module, render_runtime_modules},
 };
-use rspack_util::{atom::Atom, fx_hash::FxHashMap};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxHashMap, FxIndexSet},
+};
 
 #[inline]
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
   compilation.chunk_by_ukey.expect_get(&chunk_ukey)
 }
 
-use crate::EsmLibraryPlugin;
+use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
 
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
@@ -168,7 +171,7 @@ impl EsmLibraryPlugin {
     // render cross module links
     let mut runtime_source = ConcatSource::default();
     let mut render_source = ConcatSource::default();
-    let mut export_specifiers: Vec<Cow<str>> = chunk_link
+    let mut export_specifiers: FxIndexSet<Cow<str>> = chunk_link
       .static_exports
       .iter()
       .map(|s| Cow::Borrowed(s.as_str()))
@@ -306,24 +309,18 @@ impl EsmLibraryPlugin {
             } else {
               raw_symbol.clone()
             };
-            let Some(local_symbol) = info.internal_names.get(&symbol) else {
+            let Some(local_symbol) = info.get_internal_name(&symbol) else {
               return Err(error!(
                 "module {id} should already set internal names for export: {symbol}, internal_names: {:?}",
                 &info.internal_names
               ));
             };
 
-            if is_default {
-              if !already_export_default {
-                export_specifiers.push(Cow::Owned(format!("{} as default", local_symbol)));
-                already_export_default = true;
-              } else {
-                // we have conflicted default export, fallback to normal export
-                // TODO: give warning
-                export_specifiers.push(Cow::Borrowed(local_symbol.as_str()));
-              }
+            if is_default && !already_export_default {
+              export_specifiers.insert(Cow::Owned(format!("{local_symbol} as default")));
+              already_export_default = true;
             } else {
-              export_specifiers.push(Cow::Borrowed(local_symbol.as_str()));
+              export_specifiers.insert(Cow::Borrowed(local_symbol.as_str()));
             }
           }
         }
@@ -339,7 +336,11 @@ impl EsmLibraryPlugin {
     if !export_specifiers.is_empty() {
       final_source.add(RawStringSource::from(format!(
         "export {{ {} }};\n",
-        export_specifiers.join(", ")
+        export_specifiers
+          .into_iter()
+          .map(|s| s.to_string())
+          .collect::<Vec<_>>()
+          .join(", ")
       )));
     }
 
@@ -380,7 +381,6 @@ impl EsmLibraryPlugin {
     compilation: &'me Compilation,
   ) -> Result<ConcatSource> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
     let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
@@ -390,7 +390,6 @@ impl EsmLibraryPlugin {
     let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
     let use_require = require_function || intercept_module_execution || module_used;
     let mut source = ConcatSource::default();
-    let mut allow_inline_startup = true;
 
     if use_require || module_cache {
       source.add(RawSource::from_static(
@@ -476,6 +475,12 @@ impl EsmLibraryPlugin {
         let final_name = match binding_ref {
           Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
           Ref::Inline(inline) => Cow::Borrowed(inline),
+        };
+
+        let final_name = if *in_same_chunk {
+          final_name.into_owned()
+        } else {
+          format!("{NAMESPACE_SYMBOL}.{final_name}")
         };
 
         for ref_atom in refs {
