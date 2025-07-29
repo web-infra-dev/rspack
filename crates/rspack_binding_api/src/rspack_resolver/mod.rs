@@ -42,12 +42,18 @@ async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResu
   }
 }
 
-#[allow(clippy::needless_pass_by_value)]
 #[napi]
 pub fn sync(path: String, request: String) -> ResolveResult {
   let path = PathBuf::from(path);
   let resolver = Resolver::new(ResolveOptions::default());
   runtime::Handle::current().block_on(resolve(&resolver, &path, &request))
+}
+
+#[napi(js_name = "async")]
+pub async fn async_(path: String, request: String) -> ResolveResult {
+  let path = PathBuf::from(path);
+  let resolver = Resolver::new(ResolveOptions::default());
+  resolve(&resolver, &path, &request).await
 }
 
 #[napi]
