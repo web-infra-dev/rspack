@@ -20,6 +20,7 @@ pub struct ModernModuleImportDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   factorize_info: FactorizeInfo,
+  pub comments: Vec<(bool, String)>,
 }
 
 impl ModernModuleImportDependency {
@@ -30,6 +31,7 @@ impl ModernModuleImportDependency {
     external_type: ExternalType,
     range: DependencyRange,
     attributes: Option<ImportAttributes>,
+    comments: Vec<(bool, String)>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
@@ -42,6 +44,7 @@ impl ModernModuleImportDependency {
       attributes,
       resource_identifier,
       factorize_info: Default::default(),
+      comments,
     }
   }
 }
@@ -147,7 +150,20 @@ impl DependencyTemplate for ModernModuleImportDependencyTemplate {
         dep.range.start,
         dep.range.end,
         format!(
-          "import({}{})",
+          "import({}{}{})",
+          {
+            let mut comments_string = String::new();
+
+            for (line_comment, comment) in dep.comments.iter() {
+              if *line_comment {
+                comments_string.push_str(&format!("//{comment}\n"));
+              } else {
+                comments_string.push_str(&format!("/*{comment}*/ "));
+              }
+            }
+
+            comments_string
+          },
           serde_json::to_string(request_and_external_type.primary())
             .expect("invalid json to_string"),
           attributes_str

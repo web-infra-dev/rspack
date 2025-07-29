@@ -12,7 +12,8 @@ it("modern-module-dynamic-import-runtime", () => {
 	expect(initialChunk).toContain('const reactNs = await import("react-alias")');
 	expect(initialChunk).toContain('const vueNs = await import("vue-alias")');
 	expect(initialChunk).toContain('const jqueryNs = await import("jquery-alias", { with: {"type":"url"} })');
-
+	expect(initialChunk).toContain(`const reactNs2 = await import(/* 123 */ // 456
+/*webpackChunkName: 'useless'*/ "react-alias")`)
 	expect(asyncChunk).toContain('const litNs = await import("lit-alias")');
 	expect(asyncChunk).toContain('const solidNs = await import("solid-alias")');
 

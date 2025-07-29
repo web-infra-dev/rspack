@@ -227,7 +227,7 @@ pub struct JavascriptParser<'parser> {
   pub source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
   pub parse_meta: ParseMeta,
-  pub(crate) comments: Option<&'parser dyn Comments>,
+  pub comments: Option<&'parser dyn Comments>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,

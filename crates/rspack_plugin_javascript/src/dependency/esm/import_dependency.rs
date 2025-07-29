@@ -66,6 +66,7 @@ pub struct ImportDependency {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub referenced_exports: Option<Vec<Atom>>,
   pub attributes: Option<ImportAttributes>,
+  pub comments: Vec<(bool, String)>,
   pub resource_identifier: String,
   pub factorize_info: FactorizeInfo,
   pub optional: bool,
@@ -78,6 +79,7 @@ impl ImportDependency {
     referenced_exports: Option<Vec<Atom>>,
     attributes: Option<ImportAttributes>,
     optional: bool,
+    comments: Vec<(bool, String)>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
@@ -90,6 +92,7 @@ impl ImportDependency {
       resource_identifier,
       factorize_info: Default::default(),
       optional,
+      comments,
     }
   }
 }

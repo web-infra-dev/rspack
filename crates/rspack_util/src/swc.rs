@@ -1,9 +1,10 @@
+use rustc_hash::FxHashSet;
 use swc_config::types::BoolOr;
 use swc_core::{
   atoms::Atom,
   base::config::JsMinifyCommentOption,
   common::{
-    comments::{Comment, CommentKind, SingleThreadedComments},
+    comments::{Comment, CommentKind, Comments, SingleThreadedComments},
     BytePos,
   },
 };
@@ -93,4 +94,41 @@ pub fn minify_file_comments(
       t.retain(preserve_excl);
     }
   }
+}
+
+pub fn get_swc_comments(
+  comments: Option<&dyn Comments>,
+  lo: BytePos,
+  hi: BytePos,
+) -> Vec<(bool, String)> {
+  let mut result = vec![];
+  let mut visited = FxHashSet::default();
+
+  comments.with_leading(lo, |comments| {
+    for comment in comments {
+      if !visited.insert(comment.span) {
+        continue;
+      }
+
+      result.push((
+        matches!(comment.kind, CommentKind::Line),
+        comment.text.to_string(),
+      ));
+    }
+  });
+
+  comments.with_trailing(hi, |comments| {
+    for comment in comments {
+      if !visited.insert(comment.span) {
+        continue;
+      }
+
+      result.push((
+        matches!(comment.kind, CommentKind::Line),
+        comment.text.to_string(),
+      ));
+    }
+  });
+
+  result
 }

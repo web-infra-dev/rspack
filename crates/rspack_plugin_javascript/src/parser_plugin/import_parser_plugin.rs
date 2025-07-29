@@ -5,6 +5,7 @@ use rspack_core::{
   DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap, SpanExt,
 };
 use rspack_error::miette::Severity;
+use rspack_util::swc::get_swc_comments;
 use swc_core::{
   common::Spanned,
   ecma::{ast::CallExpr, atoms::Atom},
@@ -121,12 +122,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         parser.dependencies.push(Box::new(dep));
         return Some(true);
       }
+
       let dep = Box::new(ImportDependency::new(
         param.string().as_str().into(),
         node.span.into(),
         exports,
         attributes,
         parser.in_try,
+        get_swc_comments(
+          parser.comments,
+          dyn_imported.span().lo,
+          dyn_imported.span().hi,
+        ),
       ));
       let source_map: SharedSourceMap = parser.source_map.clone();
       let mut block = AsyncDependenciesBlock::new(
