@@ -12,7 +12,7 @@ use rspack_plugin_javascript::{
   visitors::JavascriptParser,
   JavascriptParserPlugin,
 };
-use rspack_util::{atom::Atom, json_stringify};
+use rspack_util::{atom::Atom, json_stringify, swc::get_swc_comments};
 use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{CallExpr, Ident, MemberExpr, UnaryExpr},
@@ -131,12 +131,20 @@ impl RstestParserPlugin {
           if let Some(lit) = lit.as_str() {
             let mut attrs = ImportAttributes::default();
             attrs.insert("rstest".to_string(), "importActual".to_string());
+
+            let imported_span = call_expr.args.first().expect("should have one arg");
+
             let dep = Box::new(ImportDependency::new(
               Atom::from(lit.value.as_ref()),
               call_expr.span.into(),
               None,
               Some(attrs),
               parser.in_try,
+              get_swc_comments(
+                parser.comments,
+                imported_span.span().lo,
+                imported_span.span().hi,
+              ),
             ));
 
             let source_map: SharedSourceMap = parser.source_map.clone();
@@ -410,6 +418,8 @@ impl RstestParserPlugin {
             if let Some(mocked_target) = self.calc_mocked_target(&lit.value).as_std_path().to_str()
             {
               if is_esm {
+                let imported_span = call_expr.args.first().expect("should have one arg");
+
                 let mut attrs = ImportAttributes::default();
                 attrs.insert("rstest".to_string(), "importMock".to_string());
                 let dep = Box::new(ImportDependency::new(
@@ -418,6 +428,11 @@ impl RstestParserPlugin {
                   None,
                   Some(attrs),
                   parser.in_try,
+                  get_swc_comments(
+                    parser.comments,
+                    imported_span.span().lo,
+                    imported_span.span().hi,
+                  ),
                 ));
 
                 let source_map: SharedSourceMap = parser.source_map.clone();

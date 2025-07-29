@@ -271,6 +271,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
                   external_module.external_type.clone(),
                   import_dependency.range.clone(),
                   import_dependency.get_attributes().cloned(),
+                  import_dependency.comments.clone(),
                 );
 
                 deps_to_replace.push(Box::new(new_dep));
