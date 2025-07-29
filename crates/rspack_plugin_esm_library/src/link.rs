@@ -1,19 +1,19 @@
 use std::{collections::hash_map::Entry, sync::Arc};
 
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap, UkeySet};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments, ChunkLinkContext, ChunkUkey,
-  Compilation, ConcatenatedModuleIdent, ExportProvided, ExportsInfoGetter, ExportsType,
-  ExternalInterop, FindTargetResult, GetUsedNameParam, IdentCollector,
-  MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, Ref, RuntimeGlobals,
-  SourceType, SymbolRef, UsageState, UsedName, UsedNameItem, find_new_name,
-  get_js_chunk_filename_template, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, rspack_sources::ReplaceSource, to_normal_comment,
+  find_new_name, get_js_chunk_filename_template, property_access, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
+  to_normal_comment, BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments,
+  ChunkLinkContext, ChunkUkey, Compilation, ConcatenatedModuleIdent, ExportProvided,
+  ExportsInfoGetter, ExportsType, ExternalInterop, FindTargetResult, GetUsedNameParam,
+  IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleInfo, PathData, PrefetchExportsInfoMode, Ref, RuntimeGlobals, SourceType,
+  SymbolRef, UsageState, UsedName, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
-use rspack_error::Result;
+use rspack_error::{error, Diagnostic, Result};
 use rspack_javascript_compiler::ast::Ast;
-use rspack_plugin_javascript::{JsPlugin, RenderSource, visitors::swc_visitor::resolver};
+use rspack_plugin_javascript::{visitors::swc_visitor::resolver, JsPlugin, RenderSource};
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap},
@@ -23,7 +23,7 @@ use swc_core::{
   common::{FileName, SyntaxContext},
   ecma::{
     ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
+    parser::{parse_file_as_module, Syntax},
   },
 };
 
@@ -101,14 +101,16 @@ impl EsmLibraryPlugin {
 
     // link imported specifier with exported symbol
     let mut needed_namespace_objects_by_ukey = UkeyMap::default();
-    self.link_imports_and_exports(
+    let errors = self.link_imports_and_exports(
       compilation,
       &mut link,
       concate_modules_map,
       &mut needed_namespace_objects_by_ukey,
     );
+    compilation.extend_diagnostics(errors);
 
     for (ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
+      dbg!(&needed_namespace_objects);
       let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
       let mut visited = FxHashSet::default();
 
@@ -606,7 +608,8 @@ impl EsmLibraryPlugin {
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
-  ) {
+  ) -> Vec<Diagnostic> {
+    let mut errors = vec![];
     let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
     let mut exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashSet<Atom>>>::default();
     let mut imports = UkeyMap::<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>::default();
@@ -746,6 +749,8 @@ impl EsmLibraryPlugin {
             if let Ref::Symbol(symbol_binding) = &mut binding {
               let module_id = symbol_binding.module;
               let ref_chunk = Self::get_module_chunk(module_id, compilation);
+
+              dbg!(&symbol_binding.symbol);
 
               if &ref_chunk != chunk {
                 // ref chunk should expose the symbol
@@ -961,6 +966,42 @@ impl EsmLibraryPlugin {
         }
       }
 
+      for (_, (in_same_chunk, binding_ref)) in &mut dyn_refs {
+        if let Ref::Symbol(symbol_ref) = binding_ref {
+          let ref_module_info = concate_modules_map
+            .get(&symbol_ref.module)
+            .expect("should have module info");
+
+          let ModuleInfo::Concatenated(ref_module_info) = ref_module_info else {
+            continue;
+          };
+
+          let Some(internal_symbol) = ref_module_info.get_internal_name(&symbol_ref.symbol) else {
+            errors.push(Diagnostic::from(error!(
+              "should have internal name for {}",
+              &symbol_ref.symbol
+            )));
+            continue;
+          };
+
+          symbol_ref.symbol = internal_symbol.clone();
+
+          // we only deconflict symbol within same scope
+          if !*in_same_chunk {
+            continue;
+          }
+
+          if all_used_names.contains(&symbol_ref.symbol) {
+            let new_name = find_new_name(symbol_ref.symbol.as_str(), all_used_names, &vec![]);
+
+            all_used_names.insert(new_name.clone());
+            symbol_ref.symbol = new_name;
+          } else {
+            all_used_names.insert(symbol_ref.symbol.clone());
+          }
+        }
+      }
+
       chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
       chunk_link.refs = refs;
       chunk_link.dyn_refs = dyn_refs;
@@ -976,6 +1017,8 @@ impl EsmLibraryPlugin {
     for (chunk, required) in required {
       link.entry(chunk).or_default().required = required;
     }
+
+    errors
   }
 
   fn is_interop_name(

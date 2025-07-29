@@ -220,6 +220,50 @@ pub struct ConcatenatedModuleInfo {
   pub public_path_auto_replace: Option<bool>,
 }
 
+impl ConcatenatedModuleInfo {
+  pub fn get_internal_name<'me, 'other>(&'me self, atom: &'other Atom) -> Option<&'me Atom> {
+    if let Some(name) = self.internal_names.get(atom) {
+      return Some(name);
+    }
+
+    if let Some(name) = &self.namespace_export_symbol
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    dbg!(&self.namespace_object_name);
+    if let Some(name) = &self.namespace_object_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_default_access_used
+      && let Some(name) = &self.interop_default_access_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_namespace_object_used
+      && let Some(name) = &self.interop_namespace_object_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_namespace_object2_used
+      && let Some(name) = &self.interop_namespace_object2_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    None
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExternalModuleInfo {
   pub index: usize,
