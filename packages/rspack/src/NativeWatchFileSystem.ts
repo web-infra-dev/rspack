@@ -1,6 +1,11 @@
 import binding from "@rspack/binding";
 import type Watchpack from "watchpack";
-import type { FileSystemInfoEntry, Watcher, WatchFileSystem } from "./util/fs";
+import type {
+	FileSystemInfoEntry,
+	InputFileSystem,
+	Watcher,
+	WatchFileSystem
+} from "./util/fs";
 
 /**
  * The following code is modified based on
@@ -36,6 +41,11 @@ const toJsWatcherIgnored = (
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
+	#inputFileSystem: InputFileSystem;
+
+	constructor(inputFileSystem: InputFileSystem) {
+		this.#inputFileSystem = inputFileSystem;
+	}
 
 	watch(
 		files: Iterable<string> & {
@@ -95,7 +105,21 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			[Array.from(directories.added!), Array.from(directories.removed!)],
 			[Array.from(missing.added!), Array.from(missing.removed!)],
 			(err: Error | null, result) => {
-				const { changedFiles, removedFiles } = result;
+				if (err) {
+					return callback(err, new Map(), new Map(), new Set(), new Set());
+				}
+				nativeWatcher.pause();
+				const changedFiles = result.changedFiles;
+				const removedFiles = result.removedFiles;
+				if (this.#inputFileSystem?.purge) {
+					const fs = this.#inputFileSystem;
+					for (const item of changedFiles) {
+						fs.purge?.(item);
+					}
+					for (const item of removedFiles) {
+						fs.purge?.(item);
+					}
+				}
 				// TODO: add fileTimeInfoEntries and contextTimeInfoEntries
 				callback(
 					err,

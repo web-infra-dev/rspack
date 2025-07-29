@@ -25,6 +25,14 @@ export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
+	/**
+	 * Enable native watcher.
+	 *
+	 * Default is true, but it can be set to false to use the fallback js watchpack.
+	 * ## Notice
+	 * This option is not supported in WASM environment, because the rust dependency notify is not supported in WASM.
+	 * So we will set it to false in WASM environment, whatever the value you set here.
+	 */
 	nativeWatcher?: boolean;
 }
 
@@ -276,10 +284,13 @@ export class WatchProcessor<
 			options.optimization ??= {};
 			options.experiments ??= {};
 			options.experiments.css ??= true;
-			if (nativeWatcher) {
+
+			// Enable native watcher by default.
+			// But we can't run native watcher in WASM environment. Because rust dependency notify is not supported in WASM.
+			if (!global.isWasm) {
 				(
 					options as TCompilerOptions<ECompilerType.Rspack>
-				).experiments!.nativeWatcher ??= true;
+				).experiments!.nativeWatcher ??= nativeWatcher ?? true;
 			}
 
 			(

@@ -251,7 +251,7 @@ fn create_execute_aggregate_task(
           let mut files = files.lock().await;
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
-            return;
+            continue;
           }
           std::mem::take(&mut *files)
         };

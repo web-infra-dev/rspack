@@ -88,9 +88,16 @@ impl DiskWatcher {
     for pattern in already_watched_paths.difference(&current_should_watch_paths) {
       // If the path is no longer in the patterns to watch, unwatch it
       if let Some(watcher) = &mut self.inner {
-        watcher
-          .unwatch(pattern)
-          .map_err(|e| rspack_error::error!(e))?;
+        // FIXME:
+        // we will unwatch the path is unnecessary, but we don't have a way to check if the path is still in the patterns
+        // notify will remove the watch path when path is removed in it's inner.
+        // If we unwatch the path again, it will return a error.
+        // So we just ignore the error here.
+        if let Err(e) = watcher.unwatch(pattern) {
+          if !matches!(e.kind, notify::ErrorKind::WatchNotFound) {
+            return Err(rspack_error::error!(e));
+          }
+        }
       }
     }
 
