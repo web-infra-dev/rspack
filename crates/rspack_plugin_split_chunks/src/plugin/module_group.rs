@@ -17,6 +17,7 @@ use rustc_hash::{FxHashMap, FxHasher};
 
 use super::ModuleGroupMap;
 use crate::{
+  common::ModuleSizes,
   module_group::{compare_entries, CacheGroupIdx, ModuleGroup},
   options::{
     cache_group::CacheGroup,
@@ -294,14 +295,15 @@ impl SplitChunksPlugin {
     let mut iter: std::collections::hash_map::Iter<String, ModuleGroup> = module_group_map.iter();
     let (key, mut best_module_group) = iter.next().expect("at least have one item");
 
-    let mut best_entry_key = key.clone();
+    let mut best_entry_key = key;
     for (key, each_module_group) in iter {
       if compare_entries(best_module_group, each_module_group) < 0f64 {
-        best_entry_key = key.clone();
+        best_entry_key = key;
         best_module_group = each_module_group;
       }
     }
 
+    let best_entry_key = best_entry_key.clone();
     let best_module_group = module_group_map
       .remove(&best_entry_key)
       .expect("This should never happen, please file an issue");
@@ -312,6 +314,7 @@ impl SplitChunksPlugin {
   pub(crate) async fn prepare_module_group_map(
     &self,
     compilation: &Compilation,
+    module_sizes: &ModuleSizes,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
 
@@ -337,8 +340,8 @@ impl SplitChunksPlugin {
 
     let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
       modules.values().for_each(|module| {
-        let s = unsafe { token.used((&self, module, compilation, &module_group_map, &combinator)) };
-        s.spawn(|(plugin, module, compilation, module_group_map, combinator)| async move {
+        let s = unsafe { token.used((&self, module, compilation, &module_group_map, &combinator, &module_sizes)) };
+        s.spawn(|(plugin, module, compilation, module_group_map, combinator, module_sizes)| async move {
           let module = &***module;
           let belong_to_chunks = compilation
               .chunk_graph
@@ -454,7 +457,8 @@ impl SplitChunksPlugin {
                 },
                 module_group_map,
                 &mut chunk_key_to_string,
-                compilation
+                compilation,
+                module_sizes,
               ).await?;
             }
           }
@@ -480,9 +484,9 @@ impl SplitChunksPlugin {
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &UkeySet<ChunkUkey>,
     compilation: &Compilation,
+    module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
-    let module_graph = compilation.get_module_graph();
     let keys_of_invalid_group = module_group_map
       .iter_mut()
       .par_bridge()
@@ -498,10 +502,7 @@ impl SplitChunksPlugin {
         current_module_group.modules.iter().for_each(|module| {
           if other_module_group.modules.contains(module) {
             tracing::trace!("remove module({module}) from {key}");
-            let module = module_graph
-              .module_by_identifier(module)
-              .unwrap_or_else(|| panic!("Module({module}) not found"));
-            other_module_group.remove_module(&**module, compilation);
+            other_module_group.remove_module(*module, module_sizes);
           }
         });
 
@@ -540,7 +541,7 @@ impl SplitChunksPlugin {
         }
 
         // Validate `min_size` again
-        if Self::remove_min_size_violating_modules(key, compilation, other_module_group, cache_group)
+        if Self::remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes)
           || !Self::check_min_size_reduction(&other_module_group.sizes, &cache_group.min_size_reduction, other_module_group.chunks.len()) {
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",
@@ -624,6 +625,7 @@ async fn merge_matched_item_into_module_group_map(
   module_group_map: &DashMap<String, ModuleGroup>,
   chunk_key_to_string: &mut HashMap<ChunksKey, String, ChunksKeyHashBuilder>,
   compilation: &Compilation,
+  module_sizes: &ModuleSizes,
 ) -> Result<()> {
   let MatchedItem {
     idx,
@@ -675,7 +677,7 @@ async fn merge_matched_item_into_module_group_map(
       .or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group))
   };
 
-  module_group.add_module(module, compilation);
+  module_group.add_module(module.identifier(), module_sizes);
   module_group
     .chunks
     .extend(selected_chunks.iter().map(|c| c.ukey()));

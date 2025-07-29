@@ -45,12 +45,17 @@ impl SplitChunksPlugin {
   async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");
-    let mut module_group_map = self.prepare_module_group_map(compilation).await?;
+
+    let module_sizes = Self::get_module_sizes(compilation);
+
+    let mut module_group_map = self
+      .prepare_module_group_map(compilation, &module_sizes)
+      .await?;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);
 
     let start: rspack_core::StartTime = logger.time("ensure min size fit");
-    self.ensure_min_size_fit(compilation, &mut module_group_map);
+    self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
     logger.time_end(start);
 
     let start = logger.time("process module group map");
@@ -145,6 +150,7 @@ impl SplitChunksPlugin {
         &mut module_group_map,
         &used_chunks,
         compilation,
+        &module_sizes,
       );
       // })
     }

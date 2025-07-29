@@ -5,6 +5,7 @@ use std::{
 
 use derive_more::Debug;
 use futures::future::BoxFuture;
+use rspack_collections::IdentifierMap;
 use rspack_core::{Chunk, Compilation, Module, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
@@ -165,3 +166,5 @@ pub struct FallbackCacheGroup {
   pub max_initial_size: SplitChunkSizes,
   pub automatic_name_delimiter: String,
 }
+
+pub(crate) type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
