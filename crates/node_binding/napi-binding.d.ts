@@ -475,7 +475,7 @@ export declare class Sources {
   _get(sourceType: string): JsCompatSourceOwned | null
 }
 
-export declare function async(path: string, request: string): Promise<ResolveResult>
+export declare function async(path: string, request: string): Promise<string | null>
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName | CustomPluginName
@@ -2747,13 +2747,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
-}
-
-export interface ResolveResult {
-  path?: string
-  error?: string
-  /** "type" field in the package.json file */
-  moduleType?: string
 }
 
 export interface SourceMapDevToolPluginOptions {
