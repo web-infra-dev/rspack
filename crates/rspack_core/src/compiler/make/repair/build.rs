@@ -6,9 +6,7 @@ use rustc_hash::FxHashSet;
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   make::repair::{
-    lazy::{
-      ForwardedIdSet, LazyDependencies, LazyMake, LazyMakeKind, ProcessUnlazyDependenciesTask,
-    },
+    lazy::{ForwardedIdSet, LazyDependencies, ProcessUnlazyDependenciesTask},
     HasLazyDependencies,
   },
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -151,13 +149,8 @@ impl Task<MakeTaskContext> for BuildResultTask {
      -> Vec<Box<AsyncDependenciesBlock>> {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
-        if let Some(dep) = dependency.as_module_dependency()
-          && let LazyMake {
-            kind: LazyMakeKind::Lazy { until },
-            ..
-          } = dep.lazy()
-        {
-          lazy_dependencies.insert(dep.request().into(), until.clone(), dependency_id);
+        if let Some(until) = dependency.lazy() {
+          lazy_dependencies.insert(&dependency, until);
         }
         if current_block.is_none() {
           module.add_dependency_id(dependency_id);

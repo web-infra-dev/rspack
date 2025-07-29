@@ -5,9 +5,9 @@ use rspack_core::{
   property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
   Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam,
-  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ForwardId,
+  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
 };
 use swc_core::atoms::Atom;
 
@@ -114,6 +114,10 @@ impl Dependency for ESMExportExpressionDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
+  }
+
+  fn forward_id(&self) -> ForwardId {
+    ForwardId::Id(JS_DEFAULT_KEYWORD.clone())
   }
 }
 

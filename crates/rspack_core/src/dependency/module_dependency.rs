@@ -2,7 +2,7 @@ use dyn_clone::clone_trait_object;
 use rspack_cacheable::cacheable_dyn;
 
 use super::{Dependency, FactorizeInfo};
-use crate::{make::repair::lazy::LazyMake, DependencyCondition, ErrorSpan};
+use crate::{DependencyCondition, ErrorSpan};
 
 #[cacheable_dyn]
 pub trait ModuleDependency: Dependency {
@@ -23,14 +23,8 @@ pub trait ModuleDependency: Dependency {
   }
 
   fn weak(&self) -> bool {
-    self.lazy().is_lazy()
+    self.lazy().is_some()
   }
-
-  fn lazy(&self) -> LazyMake {
-    LazyMake::default()
-  }
-
-  fn unset_lazy(&mut self) {}
 
   fn get_optional(&self) -> bool {
     false

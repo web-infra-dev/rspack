@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyMake, LazyMakeKind,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
@@ -564,6 +564,26 @@ impl Dependency for ESMImportSideEffectDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
   }
+
+  fn forward_id(&self) -> ForwardId {
+    ForwardId::Empty
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    self.lazy_make.then(|| {
+      if self.star_export {
+        LazyUntil::Fallback
+      } else {
+        LazyUntil::NoUntil
+      }
+    })
+  }
+
+  fn unset_lazy(&mut self) -> bool {
+    let changed = self.lazy_make;
+    self.lazy_make = false;
+    changed
+  }
 }
 
 struct ESMImportSideEffectDependencyCondition;
@@ -616,23 +636,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
-  }
-
-  fn lazy(&self) -> LazyMake {
-    LazyMake {
-      forward_id: None,
-      kind: if self.lazy_make {
-        LazyMakeKind::Lazy {
-          until: self.star_export.then_some(ForwardId::All),
-        }
-      } else {
-        LazyMakeKind::Eager
-      },
-    }
-  }
-
-  fn unset_lazy(&mut self) {
-    self.lazy_make = false;
   }
 }
 

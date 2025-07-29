@@ -13,8 +13,8 @@ use super::{
 };
 use crate::{
   create_exports_object_referenced, AsContextDependency, ConnectionState, Context,
-  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  RuntimeSpec, UsedByExports,
+  ExtendedReferencedExport, ForwardId, ImportAttributes, LazyUntil, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, RuntimeSpec, UsedByExports,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -113,6 +113,18 @@ pub trait Dependency:
   }
 
   fn could_affect_referencing_module(&self) -> AffectType;
+
+  fn forward_id(&self) -> ForwardId {
+    ForwardId::All
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    None
+  }
+
+  fn unset_lazy(&mut self) -> bool {
+    false
+  }
 }
 
 impl dyn Dependency + '_ {

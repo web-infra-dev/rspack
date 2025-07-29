@@ -19,8 +19,8 @@ use rspack_core::{
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ForwardId, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyMake, LazyMakeKind, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
   UsageState, UsedName,
@@ -1356,6 +1356,33 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::Transitive
   }
+
+  fn forward_id(&self) -> ForwardId {
+    let is_star_export = self.name.is_none();
+    if is_star_export {
+      ForwardId::All
+    } else if let Some(id) = self.ids.first() {
+      ForwardId::Id(id.clone())
+    } else {
+      ForwardId::All
+    }
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    self.lazy_make.then(|| {
+      if let Some(name) = &self.name {
+        LazyUntil::Id(name.clone())
+      } else {
+        LazyUntil::Fallback
+      }
+    })
+  }
+
+  fn unset_lazy(&mut self) -> bool {
+    let changed = self.lazy_make;
+    self.lazy_make = false;
+    changed
+  }
 }
 
 struct ESMExportImportedSpecifierDependencyCondition(DependencyId);
@@ -1405,34 +1432,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
-  }
-
-  fn lazy(&self) -> LazyMake {
-    let is_star_export = self.name.is_none();
-    LazyMake {
-      forward_id: Some(if is_star_export {
-        ForwardId::All
-      } else if let Some(id) = self.ids.first() {
-        ForwardId::Id(id.clone())
-      } else {
-        ForwardId::All
-      }),
-      kind: if self.lazy_make {
-        LazyMakeKind::Lazy {
-          until: Some(if let Some(name) = &self.name {
-            ForwardId::Id(name.clone())
-          } else {
-            ForwardId::All
-          }),
-        }
-      } else {
-        LazyMakeKind::Eager
-      },
-    }
-  }
-
-  fn unset_lazy(&mut self) {
-    self.lazy_make = false;
   }
 }
 

@@ -12,6 +12,7 @@ use crate::{
 pub enum ForwardId {
   All,
   Id(Atom),
+  Empty,
 }
 
 #[derive(Debug)]
@@ -27,16 +28,13 @@ impl ForwardedIdSet {
 
   pub fn from_dependencies(dependencies: &[BoxDependency]) -> Self {
     let mut set = FxHashSet::default();
-    for forward_id in dependencies
-      .iter()
-      .filter_map(|dep| dep.as_module_dependency())
-      .filter_map(|dep| dep.lazy().forward_id)
-    {
-      match forward_id {
+    for dep in dependencies {
+      match dep.forward_id() {
         ForwardId::All => return Self::All,
         ForwardId::Id(id) => {
           set.insert(id);
         }
+        ForwardId::Empty => {}
       }
     }
     Self::IdSet(set)
@@ -78,31 +76,18 @@ impl ForwardedIdSet {
   }
 }
 
-#[derive(Debug, Default)]
-pub struct LazyMake {
-  pub forward_id: Option<ForwardId>,
-  pub kind: LazyMakeKind,
-}
-
-#[derive(Debug, Default)]
-pub enum LazyMakeKind {
-  #[default]
-  Eager,
-  Lazy {
-    until: Option<ForwardId>,
-  },
-}
-
-impl LazyMake {
-  pub fn is_lazy(&self) -> bool {
-    matches!(self.kind, LazyMakeKind::Lazy { .. })
-  }
+pub enum LazyUntil {
+  Fallback,
+  NoUntil,
+  Id(Atom),
+  Local(Atom),
 }
 
 #[derive(Debug, Default)]
 pub struct LazyDependencies {
   forward_id_to_request: FxHashMap<Atom, Atom>,
   request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
+  terminal_forward_ids: FxHashSet<Atom>,
   fallback_dependencies: FxHashSet<DependencyId>,
 }
 
@@ -111,11 +96,14 @@ impl LazyDependencies {
     self.request_to_dependencies.is_empty() && self.fallback_dependencies.is_empty()
   }
 
-  pub fn insert(&mut self, request: Atom, until: Option<ForwardId>, dependency_id: DependencyId) {
-    if matches!(&until, Some(ForwardId::All)) {
-      self.fallback_dependencies.insert(dependency_id);
-    } else {
-      if let Some(ForwardId::Id(forward_id)) = until {
+  pub fn insert(&mut self, dependency: &BoxDependency, until: LazyUntil) {
+    if matches!(&until, LazyUntil::Fallback) {
+      self.fallback_dependencies.insert(*dependency.id());
+    } else if let LazyUntil::Local(forward_id) = &until {
+      self.terminal_forward_ids.insert(forward_id.clone());
+    } else if let Some(dep) = dependency.as_module_dependency() {
+      let request = Atom::from(dep.request());
+      if let LazyUntil::Id(forward_id) = until {
         self
           .forward_id_to_request
           .insert(forward_id, request.clone());
@@ -124,7 +112,7 @@ impl LazyDependencies {
         .request_to_dependencies
         .entry(request)
         .or_default()
-        .insert(dependency_id);
+        .insert(*dependency.id());
     }
   }
 
@@ -145,6 +133,7 @@ impl LazyDependencies {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
       ForwardedIdSet::IdSet(set) => set
         .iter()
+        .filter(|forward_id| !self.terminal_forward_ids.contains(forward_id))
         .flat_map(|forward_id| {
           self
             .forward_id_to_request
@@ -237,17 +226,18 @@ impl Task<MakeTaskContext> for ProcessUnlazyDependenciesTask {
       .module_to_lazy_make
       .get_lazy_dependencies(&original_module_identifier)
       .expect("only module that has lazy dependencies should run into ProcessLazyDependenciesTask");
-    let dependencies_to_process = lazy_dependencies.requested_lazy_dependencies(&forwarded_ids);
-    for dep in &dependencies_to_process {
-      if let Some(dep) = module_graph
-        .dependency_by_id_mut(dep)
-        .and_then(|dep| dep.as_module_dependency_mut())
-      {
-        dep.unset_lazy();
-      }
-    }
+    let dependencies_to_process = lazy_dependencies
+      .requested_lazy_dependencies(&forwarded_ids)
+      .into_iter()
+      .filter(|dep| {
+        let Some(dep) = module_graph.dependency_by_id_mut(&dep) else {
+          return false;
+        };
+        dep.unset_lazy()
+      })
+      .collect();
     return Ok(vec![Box::new(ProcessDependenciesTask {
-      dependencies: dependencies_to_process.into_iter().collect(),
+      dependencies: dependencies_to_process,
       original_module_identifier,
     })]);
   }

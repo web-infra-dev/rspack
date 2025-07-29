@@ -4,15 +4,14 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  create_exports_object_referenced, export_from_import, get_exports_type,
-  make::repair::lazy::LazyMakeKind, property_access, to_normal_comment, AsContextDependency,
-  ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes, JavascriptParserOptions, LazyMake,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleReferenceOptions,
-  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedByExports, UsedName,
+  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
+  to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
+  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
+  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -263,6 +262,14 @@ impl Dependency for ESMImportSpecifierDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
   }
+
+  fn forward_id(&self) -> ForwardId {
+    if let Some(id) = self.ids.first() {
+      ForwardId::Id(id.clone())
+    } else {
+      ForwardId::All
+    }
+  }
 }
 
 #[cacheable_dyn]
@@ -295,17 +302,6 @@ impl ModuleDependency for ESMImportSpecifierDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
-  }
-
-  fn lazy(&self) -> LazyMake {
-    LazyMake {
-      forward_id: Some(if let Some(id) = self.ids.first() {
-        ForwardId::Id(id.clone())
-      } else {
-        ForwardId::All
-      }),
-      kind: LazyMakeKind::Eager,
-    }
   }
 }
 
