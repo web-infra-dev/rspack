@@ -112,6 +112,7 @@ impl fmt::Display for RsdoctorPluginChunkGraphFeature {
 
 #[derive(Debug, Hash, PartialEq, Eq, Default)]
 pub struct RsdoctorPluginSourceMapFeature {
+  pub module: bool,
   pub cheap: bool,
 }
 
@@ -500,7 +501,7 @@ impl Plugin for RsdoctorPlugin {
 
     SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
       cheap: self.options.source_map_features.cheap,
-      module: true,
+      module: self.options.source_map_features.module,
     })
     .apply(ctx, options)?;
 

@@ -455,15 +455,22 @@ pub struct RawRsdoctorPluginOptions {
 #[napi(object)]
 pub struct JsRsdoctorSourceMapFeatures {
   pub cheap: Option<bool>,
+  pub module: Option<bool>,
 }
 
 impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
   fn from(value: RawRsdoctorPluginOptions) -> Self {
-    let mut source_map_features = RsdoctorPluginSourceMapFeature { cheap: false };
+    let mut source_map_features = RsdoctorPluginSourceMapFeature {
+      cheap: false,
+      module: true,
+    };
 
     if let Some(features) = value.source_map_features {
       if let Some(cheap) = features.cheap {
         source_map_features.cheap = cheap;
+      }
+      if let Some(module) = features.module {
+        source_map_features.module = module;
       }
     }
 

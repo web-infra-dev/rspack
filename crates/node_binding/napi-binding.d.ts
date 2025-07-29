@@ -1148,6 +1148,7 @@ export interface JsRsdoctorSideEffect {
 
 export interface JsRsdoctorSourceMapFeatures {
   cheap?: boolean
+  module?: boolean
 }
 
 export interface JsRsdoctorSourcePosition {
