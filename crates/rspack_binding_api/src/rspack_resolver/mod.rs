@@ -1,3 +1,7 @@
+//! Port rspack_resolver napi
+//!
+//! This module is generally copied from https://github.com/web-infra-dev/rspack-resolver/blob/main/napi/src/lib.rs
+
 use std::{
   path::{Path, PathBuf},
   sync::Arc,
