@@ -208,20 +208,19 @@ pub struct TsconfigOptions {
   pub references: Option<Either<String, Vec<String>>>,
 }
 
-impl Into<rspack_resolver::Restriction> for Restriction {
-  fn into(self) -> rspack_resolver::Restriction {
-    match (self.path, self.regex) {
+impl From<Restriction> for rspack_resolver::Restriction {
+  fn from(r: Restriction) -> Self {
+    match (r.path, r.regex) {
       (None, None) => {
         panic!("Should specify path or regex")
       }
       (None, Some(regex)) => {
-        let re = Regex::new(&regex).unwrap();
-
-        rspack_resolver::Restriction::Fn(Arc::new(move |path| {
+        let re = Regex::new(&regex).expect("Regex is wrong");
+        Self::Fn(Arc::new(move |path| {
           re.is_match(path.to_str().unwrap_or_default())
         }))
       }
-      (Some(path), None) => rspack_resolver::Restriction::Path(PathBuf::from(path)),
+      (Some(path), None) => Self::Path(PathBuf::from(path)),
       (Some(_), Some(_)) => {
         panic!("Restriction can't be path and regex at the same time")
       }
@@ -229,26 +228,26 @@ impl Into<rspack_resolver::Restriction> for Restriction {
   }
 }
 
-impl Into<rspack_resolver::EnforceExtension> for EnforceExtension {
-  fn into(self) -> rspack_resolver::EnforceExtension {
-    match self {
-      EnforceExtension::Auto => rspack_resolver::EnforceExtension::Auto,
-      EnforceExtension::Enabled => rspack_resolver::EnforceExtension::Enabled,
-      EnforceExtension::Disabled => rspack_resolver::EnforceExtension::Disabled,
+impl From<EnforceExtension> for rspack_resolver::EnforceExtension {
+  fn from(extension: EnforceExtension) -> Self {
+    match extension {
+      EnforceExtension::Auto => Self::Auto,
+      EnforceExtension::Enabled => Self::Enabled,
+      EnforceExtension::Disabled => Self::Disabled,
     }
   }
 }
 
-impl Into<rspack_resolver::TsconfigOptions> for TsconfigOptions {
-  fn into(self) -> rspack_resolver::TsconfigOptions {
-    rspack_resolver::TsconfigOptions {
-      config_file: PathBuf::from(self.config_file),
-      references: match self.references {
+impl From<TsconfigOptions> for rspack_resolver::TsconfigOptions {
+  fn from(options: TsconfigOptions) -> Self {
+    Self {
+      config_file: PathBuf::from(options.config_file),
+      references: match options.references {
         Some(Either::A(string)) if string.as_str() == "auto" => {
           rspack_resolver::TsconfigReferences::Auto
         }
         Some(Either::A(opt)) => {
-          panic!("`{}` is not a valid option for  tsconfig references", opt)
+          panic!("`{opt}` is not a valid option for  tsconfig references")
         }
         Some(Either::B(paths)) => rspack_resolver::TsconfigReferences::Paths(
           paths.into_iter().map(PathBuf::from).collect::<Vec<_>>(),
@@ -262,9 +261,9 @@ impl Into<rspack_resolver::TsconfigOptions> for TsconfigOptions {
 type StrOrStrListType = Either<String, Vec<String>>;
 pub struct StrOrStrList(pub StrOrStrListType);
 
-impl Into<Vec<String>> for StrOrStrList {
-  fn into(self) -> Vec<String> {
-    match self {
+impl From<StrOrStrList> for Vec<String> {
+  fn from(value: StrOrStrList) -> Self {
+    match value {
       StrOrStrList(Either::A(s)) => Vec::from([s]),
       StrOrStrList(Either::B(a)) => a,
     }
