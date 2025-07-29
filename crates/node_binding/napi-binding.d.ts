@@ -488,6 +488,8 @@ export declare class Sources {
   _get(sourceType: string): JsCompatSourceOwned | null
 }
 
+export declare function async(path: string, request: string): Promise<ResolveResult>
+
 export interface BuiltinPlugin {
   name: BuiltinPluginName | CustomPluginName
   options: unknown

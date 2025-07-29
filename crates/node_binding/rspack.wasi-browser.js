@@ -102,6 +102,7 @@ export const RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
 export const ReadonlyResourceData = __napiModule.exports.ReadonlyResourceData
 export const ResolverFactory = __napiModule.exports.ResolverFactory
 export const Sources = __napiModule.exports.Sources
+export const async = __napiModule.exports.async
 export const BuiltinPluginName = __napiModule.exports.BuiltinPluginName
 export const cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 export const EnforceExtension = __napiModule.exports.EnforceExtension
