@@ -157,8 +157,8 @@ impl FixIssuers {
     self.need_check_modules.insert(module_identifier);
   }
 
-  /// The 1st step of self.fix_artifact, apply `self.force_build_module_issuers` to module graph, and
-  /// return the modules and their parents whose issuer not in the incoming connections.
+  /// The 1st step of self.fix_artifact, apply `self.force_build_module_issuers` to module graph.
+  /// Returns the modules and their parents whose issuer not in the incoming connections.
   ///
   /// This function will traverse the `self.need_check_modules`
   /// 1. remove not exist module.
@@ -204,7 +204,7 @@ impl FixIssuers {
   }
 
   /// The 2nd step of self.fix_artifact, try to set first mgm.incoming_connection as issuer.
-  /// return the modules and their parents whose issuer has been set.
+  /// Returns the modules and their parents whose issuer has been set.
   ///
   /// This function will traverse the `need_update_issuer_modules` returned in previous step
   /// 1. if a module has no parent module, revoke the module and add its child modules
@@ -300,7 +300,7 @@ impl FixIssuers {
   }
 
   /// The 3rd step of self.fix_artifact, set available issuer from parents.
-  /// return the modules and their parents whose parents are cycled.
+  /// Returns the modules and their parents whose parents are cycled.
   ///
   /// This function will traverse the `need_check_available_modules` returned in previous step
   /// 1. call IssuerHelper.calc_issuer to get a issuer
@@ -359,6 +359,7 @@ impl FixIssuers {
   }
 
   /// The 4th step of self.fix_artifact, clean cycled modules.
+  /// Returns the modules and their parents whose issuer has been removed.
   ///
   /// This function will traverse the `clean_modules` returned in previous step,
   /// recursively check whether the incoming_connections of all parent modules of the current module can be used as the issuer,
@@ -369,7 +370,7 @@ impl FixIssuers {
     artifact: &mut MakeArtifact,
     helper: &mut IssuerHelper,
     clean_modules: IdentifierMap<IdentifierSet>,
-  ) {
+  ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
     let mut revoke_module = IdentifierSet::default();
     let mut module_graph = artifact.get_module_graph_mut();
     for (mid, paths) in clean_modules {
@@ -435,31 +436,71 @@ impl FixIssuers {
       revoke_module.extend(useless_module);
     }
 
+    // calculate need_update_issuer_modules by revoke module
+    let mut need_update_issuer_modules = IdentifierMap::default();
+    for mid in &revoke_module {
+      for child_con in module_graph.get_outgoing_connections(mid) {
+        let child_mid = child_con.module_identifier();
+        if need_update_issuer_modules.contains_key(child_mid) {
+          continue;
+        }
+        if revoke_module.contains(child_mid) {
+          continue;
+        }
+        let child_mgm = module_graph
+          .module_graph_module_by_identifier(child_mid)
+          .expect("should mgm exist");
+        if matches!(child_mgm.issuer(), ModuleIssuer::Some(x) if x == mid) {
+          let child_module_parents = child_mgm
+            .incoming_connections()
+            .iter()
+            .filter_map(|dep_id| {
+              let origin_module_identifier = module_graph
+                .connection_by_dependency_id(dep_id)
+                .expect("should have connection")
+                .original_module_identifier;
+              if let Some(mid) = origin_module_identifier
+                && revoke_module.contains(&mid)
+              {
+                return None;
+              }
+              Some(origin_module_identifier)
+            })
+            .collect();
+          need_update_issuer_modules.insert(*child_mid, child_module_parents);
+        }
+      }
+    }
     for mid in revoke_module {
       artifact.revoke_module(&mid);
     }
+
+    need_update_issuer_modules
   }
 
   /// fix artifact module graph issuers
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
-    let need_update_issuer_modules = self.apply_force_build_module_issuer(artifact);
-    if need_update_issuer_modules.is_empty() {
-      return;
-    }
+    let mut need_update_issuer_modules = self.apply_force_build_module_issuer(artifact);
 
-    let need_check_available_modules =
-      Self::try_set_first_incoming(artifact, need_update_issuer_modules);
-    if need_check_available_modules.is_empty() {
-      return;
-    }
+    loop {
+      if need_update_issuer_modules.is_empty() {
+        return;
+      }
+      let need_check_available_modules =
+        Self::try_set_first_incoming(artifact, need_update_issuer_modules);
+      if need_check_available_modules.is_empty() {
+        return;
+      }
 
-    let mut helper = IssuerHelper::default();
-    let need_clean_cycle_modules =
-      Self::set_available_issuer(artifact, &mut helper, need_check_available_modules);
-    if need_clean_cycle_modules.is_empty() {
-      return;
-    }
+      let mut helper = IssuerHelper::default();
+      let need_clean_cycle_modules =
+        Self::set_available_issuer(artifact, &mut helper, need_check_available_modules);
+      if need_clean_cycle_modules.is_empty() {
+        return;
+      }
 
-    Self::clean_cycle_module(artifact, &mut helper, need_clean_cycle_modules);
+      need_update_issuer_modules =
+        Self::clean_cycle_module(artifact, &mut helper, need_clean_cycle_modules);
+    }
   }
 }
