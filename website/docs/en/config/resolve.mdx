@@ -38,9 +38,106 @@ Define a field, such as `browser`, that should be parsed in accordance with [thi
 ## resolve.conditionNames
 
 - **Type:** `string[]`
-- **Default:** `[]`
 
-Same as node's [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) for the `exports` and `imports` fields in package.json.
+Specifies the condition names used to match entry points in the [`exports` field](https://nodejs.org/api/packages.html#packages_exports) of a package.
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['require', 'node'],
+  },
+};
+```
+
+### Default value
+
+Rspack's default `conditionNames` are determined by [mode](/config/mode), [target](/config/target) and module type.
+
+```js
+// For ES modules
+['import', 'module', 'webpack', mode, target];
+
+// For CommonJS
+['require', 'module', 'webpack', mode, target];
+
+// For CSS module
+['webpack', mode, 'style'];
+```
+
+In the above example:
+
+- `mode` is determined by [mode](/config/mode) config, which is `development` in development mode and `production` in other modes.
+- `target` is determined by [target](/config/target) config:
+  - If `target` includes `web`, it will be `browser`.
+  - If `target` includes `node`, it will be `node`.
+  - If `target` includes `webworker`, it will be `worker`.
+  - If `target` includes `electron`, it will be `electron`.
+  - If `target` includes `nwjs`, it will be `nwjs`.
+
+### Example
+
+Rspack will match [export conditions](https://nodejs.org/api/packages.html#conditional-exports) that are listed within the `resolve.conditionNames` array.
+
+Note that the key order in the `exports` object determines priority. During condition matching, earlier entries have higher priority than later entries.
+
+For example:
+
+```json title="package.json"
+{
+  "name": "foo",
+  "exports": {
+    ".": {
+      "import": "./index-import.js",
+      "require": "./index-require.js",
+      "node": "./index-node.js"
+    },
+    "./bar": {
+      "node": "./bar-node.js",
+      "require": "./bar-require.js"
+    },
+    "./baz": {
+      "import": "./baz-import.js",
+      "node": "./baz-node.js"
+    }
+  }
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['require', 'node'],
+  },
+};
+```
+
+Importing:
+
+- `'foo'` will resolve to `'foo/index-require.js'`
+- `'foo/bar'` will resolve to `'foo/bar-node.js'` as the `"node"` key comes before `"require"` key in the conditional exports object.
+- `'foo/baz'` will resolve to `'foo/baz-node.js'`
+
+### Extend default value
+
+If you want to add your custom contitions names while still retaining the default Rspack values, you can use `"..."`:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['my-custom-condition', '...'],
+  },
+};
+```
+
+Alternatively, to prioritize the default value first and then add your custom condition names:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['...', 'my-custom-condition'],
+  },
+};
+```
 
 ## resolve.descriptionFiles
 
