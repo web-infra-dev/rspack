@@ -38,9 +38,106 @@ import WebpackLicense from '@components/WebpackLicense';
 ## resolve.conditionNames
 
 - **类型：** `string[]`
-- **默认值：** `[]`
 
-与 node 的 [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) 相同，用于 package.json 中的 `exports` 和 `imports` 字段。
+指定用于匹配包 [`exports` 字段](https://nodejs.org/api/packages.html#packages_exports) 入口点的 condition names（条件名称）。
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['require', 'node'],
+  },
+};
+```
+
+### 默认值
+
+Rspack 默认的 `conditionNames` 由 [mode](/config/mode)、[target](/config/target) 和模块类型共同决定。
+
+```js
+// 针对 ES modules
+['import', 'module', 'webpack', mode, target];
+
+// 针对 CommonJS
+['require', 'module', 'webpack', mode, target];
+
+// 针对 CSS 模块
+['webpack', mode, 'style'];
+```
+
+在上述示例中：
+
+- `mode` 由 [mode](/config/mode) 配置决定，开发模式下为 `development`，其他模式为 `production`。
+- `target` 由 [target](/config/target) 配置决定：
+  - 如果 `target` 包含 `web`，则为 `browser`。
+  - 如果 `target` 包含 `node`，则为 `node`。
+  - 如果 `target` 包含 `webworker`，则为 `worker`。
+  - 如果 `target` 包含 `electron`，则为 `electron`。
+  - 如果 `target` 包含 `nwjs`，则为 `nwjs`。
+
+### 示例
+
+Rspack 会匹配 `resolve.conditionNames` 数组中列出的 [export conditions](https://nodejs.org/api/packages.html#conditional-exports)。
+
+注意，`exports` 对象中 key 的顺序决定了优先级。在条件匹配时，前面的入口优先级高于后面的入口。
+
+例如：
+
+```json title="package.json"
+{
+  "name": "foo",
+  "exports": {
+    ".": {
+      "import": "./index-import.js",
+      "require": "./index-require.js",
+      "node": "./index-node.js"
+    },
+    "./bar": {
+      "node": "./bar-node.js",
+      "require": "./bar-require.js"
+    },
+    "./baz": {
+      "import": "./baz-import.js",
+      "node": "./baz-node.js"
+    }
+  }
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['require', 'node'],
+  },
+};
+```
+
+导入时：
+
+- `'foo'` 会被解析为 `'foo/index-require.js'`
+- `'foo/bar'` 会被解析为 `'foo/bar-node.js'`，因为在条件导出对象中 `"node"` 键优先于 `"require"` 键
+- `'foo/baz'` 会被解析为 `'foo/baz-node.js'`
+
+### 扩展默认值
+
+如果你希望在保留 Rspack 默认值的同时添加自定义的 condition names，可以使用 `"..."`：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['my-custom-condition', '...'],
+  },
+};
+```
+
+或者，如果你想让默认值优先，再追加自定义 condition names：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    conditionNames: ['...', 'my-custom-condition'],
+  },
+};
+```
 
 ## resolve.descriptionFiles
 
