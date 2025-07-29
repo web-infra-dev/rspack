@@ -285,16 +285,12 @@ impl Compiler {
       .before_make(&mut self.compilation.make_artifact)
       .await;
 
-    if let Some(e) = self
+    self
       .plugin_driver
       .compiler_hooks
       .make
       .call(&mut self.compilation)
-      .await
-      .err()
-    {
-      self.compilation.push_diagnostic(e.into());
-    }
+      .await?;
     logger.time_end(make_hook_start);
     self.compilation.make().await?;
     logger.time_end(make_start);
