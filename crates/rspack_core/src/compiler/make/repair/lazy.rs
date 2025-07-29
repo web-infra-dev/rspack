@@ -230,7 +230,7 @@ impl Task<MakeTaskContext> for ProcessUnlazyDependenciesTask {
       .requested_lazy_dependencies(&forwarded_ids)
       .into_iter()
       .filter(|dep| {
-        let Some(dep) = module_graph.dependency_by_id_mut(&dep) else {
+        let Some(dep) = module_graph.dependency_by_id_mut(dep) else {
           return false;
         };
         dep.unset_lazy()
