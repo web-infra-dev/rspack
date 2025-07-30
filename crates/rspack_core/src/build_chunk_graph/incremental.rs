@@ -540,7 +540,7 @@ impl CodeSplitter {
         .copied()
         .collect::<IdentifierSet>();
 
-      let curr_entry_chunk_ukey = compilation.entrypoint_by_name(&entry).chunks[0];
+      let curr_entry_chunk_ukey = compilation.entrypoint_by_name(entry).chunks[0];
       let prev_entry_modules = compilation
         .chunk_graph
         .get_chunk_entry_modules(&curr_entry_chunk_ukey)
