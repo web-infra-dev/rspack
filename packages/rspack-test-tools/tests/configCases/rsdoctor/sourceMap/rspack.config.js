@@ -20,22 +20,13 @@ module.exports = {
 				compiler.hooks.afterEmit.tap("TestPlugin::SourceMap", compilation => {
 					const assets = compilation.getAssets();
 
-					console.log(
-						"Generated assets:",
-						assets.map(a => a.name)
-					);
-
 					// Check if each JS and CSS asset has a source map
 					const jsCssAssets = assets.filter(
 						asset => asset.name.endsWith(".js") || asset.name.endsWith(".css")
 					);
 
 					jsCssAssets.forEach(asset => {
-						console.log(
-							`Asset: ${asset.name}, has source map: ${asset.source.map() !== null}`
-						);
-						expect(asset.source.map()).toBeDefined();
-						expect(asset.source.map()).not.toBeNull();
+						expect(asset.source.map()).toBeTruthy();
 					});
 
 					const sourceMapAssets = assets.filter(asset =>
@@ -54,11 +45,7 @@ module.exports = {
 					);
 					// Check if each asset has a source map
 					jsCssAssets.forEach(asset => {
-						console.log(
-							`Asset: ${asset.name}, has source map: ${asset.source.map() !== null}`
-						);
-						expect(asset.source.map()).toBeDefined();
-						expect(asset.source.map()).not.toBeNull();
+						expect(asset.source.map()).toBeTruthy();
 					});
 
 					const sourceMapAssets = assets.filter(asset =>
