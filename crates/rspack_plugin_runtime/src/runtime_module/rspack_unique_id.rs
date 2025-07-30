@@ -1,6 +1,6 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, Compilation, RuntimeModule, RuntimeModuleStage};
+use rspack_core::{Compilation, RuntimeModule, RuntimeModuleStage, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]

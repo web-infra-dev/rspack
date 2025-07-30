@@ -1,8 +1,8 @@
 use async_trait::async_trait;
-use futures::{future::join_all, TryFutureExt};
+use futures::{TryFutureExt, future::join_all};
 use itertools::Itertools;
 
-use super::{util::get_indexed_packs, SplitPackStrategy};
+use super::{SplitPackStrategy, util::get_indexed_packs};
 use crate::{
   error::{Error, ErrorType, Result, ValidateResult},
   pack::{data::PackScope, strategy::ScopeValidateStrategy},
@@ -82,24 +82,24 @@ mod tests {
   use rustc_hash::FxHashSet as HashSet;
 
   use crate::{
+    FileSystem,
     error::{Error, ErrorType, Result, ValidateResult},
     pack::{
       data::{PackOptions, PackScope, RootMeta, ScopeMeta},
       strategy::{
+        ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
         split::{
           handle_file::prepare_scope,
           util::{
             flag_scope_wrote,
             test_pack_utils::{
-              clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
-              mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
+              UpdateVal, clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
+              mock_scope_meta_file, mock_updates, save_scope,
             },
           },
         },
-        ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
       },
     },
-    FileSystem,
   };
 
   async fn test_valid_meta(scope_path: Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {

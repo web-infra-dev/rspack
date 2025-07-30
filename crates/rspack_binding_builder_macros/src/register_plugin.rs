@@ -1,8 +1,8 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-  parse::{Parse, ParseStream},
   Expr, LitStr, Token,
+  parse::{Parse, ParseStream},
 };
 
 pub struct RegisterPluginInput {

@@ -6,7 +6,7 @@ pub mod stringify;
 pub mod transform;
 
 use rspack_sources::SourceMap;
-use swc_core::common::{Globals, SourceMap as SwcSourceMap, GLOBALS};
+use swc_core::common::{GLOBALS, Globals, SourceMap as SwcSourceMap};
 
 #[derive(Default)]
 /// JavaScriptCompiler is a struct that represents a JavaScript compiler instance.

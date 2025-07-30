@@ -5,10 +5,10 @@ use std::{
 };
 
 use napi::{
+  Env, JsValue, Status, Unknown, ValueType,
   bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue},
   sys::{self, napi_env},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env, JsValue, Status, Unknown, ValueType,
 };
 use oneshot::Receiver;
 use rspack_error::{Error, Result};

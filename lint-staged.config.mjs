@@ -1,5 +1,5 @@
 export default {
-	"*.rs": "rustfmt --edition 2024",
+	"*.rs": "rustfmt",
 	"*.{ts,tsx,js,mjs,yaml,yml}":
 		"node ./node_modules/prettier/bin/prettier.cjs --write",
 	"*.toml": "npx @taplo/cli format",

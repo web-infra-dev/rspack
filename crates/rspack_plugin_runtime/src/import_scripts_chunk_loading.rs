@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::runtime_module::{is_enabled_for_chunk, ImportScriptsChunkLoadingRuntimeModule};
+use crate::runtime_module::{ImportScriptsChunkLoadingRuntimeModule, is_enabled_for_chunk};
 
 #[plugin]
 #[derive(Debug, Default)]

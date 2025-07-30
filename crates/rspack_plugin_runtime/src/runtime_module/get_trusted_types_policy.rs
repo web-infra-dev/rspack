@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals,
-  RuntimeModule,
+  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
+  impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;

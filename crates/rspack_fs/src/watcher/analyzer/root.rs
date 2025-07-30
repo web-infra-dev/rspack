@@ -1,3 +1,4 @@
+#![allow(unused)]
 use dashmap::DashSet as HashSet;
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxDashMap as HashMap;

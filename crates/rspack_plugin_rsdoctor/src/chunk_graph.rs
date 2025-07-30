@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::sync::{Arc, atomic::AtomicI32};
 
 use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};

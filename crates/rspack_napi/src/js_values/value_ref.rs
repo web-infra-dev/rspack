@@ -7,10 +7,10 @@
 use std::ptr;
 
 use napi::{
+  Result,
   bindgen_prelude::ToNapiValue,
   check_status, sys,
   sys::{napi_env, napi_value},
-  Result,
 };
 
 pub struct Ref {

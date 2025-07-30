@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use glob::glob;
-use rspack_javascript_compiler::{transform::SwcOptions, JavaScriptCompiler};
+use rspack_javascript_compiler::{JavaScriptCompiler, transform::SwcOptions};
 use rspack_swc_plugin_ts_collector::TypeExportsCollector;
 use rustc_hash::FxHashSet;
 use swc_core::{

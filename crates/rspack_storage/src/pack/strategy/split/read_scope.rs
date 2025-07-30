@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::{future::join_all, TryFutureExt};
+use futures::{TryFutureExt, future::join_all};
 use itertools::Itertools;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-use super::{util::get_indexed_packs, SplitPackStrategy};
+use super::{SplitPackStrategy, util::get_indexed_packs};
 use crate::{
+  FileSystem,
   error::{Error, ErrorType, Result},
   pack::{
     data::{Pack, PackFileMeta, PackKeys, PackScope, ScopeMeta},
     strategy::{PackMainContents, PackReadStrategy, ScopeReadStrategy},
   },
-  FileSystem,
 };
 
 #[async_trait]
@@ -283,17 +283,17 @@ mod tests {
   use rspack_paths::Utf8Path;
 
   use crate::{
+    FileSystem,
     error::Result,
     pack::{
       data::{PackOptions, PackScope, ScopeMeta},
       strategy::{
+        ScopeReadStrategy, SplitPackStrategy,
         split::util::test_pack_utils::{
           clean_strategy, create_strategies, mock_pack_file, mock_scope_meta_file,
         },
-        ScopeReadStrategy, SplitPackStrategy,
       },
     },
-    FileSystem,
   };
 
   async fn mock_scope(path: &Utf8Path, fs: &dyn FileSystem, options: &PackOptions) -> Result<()> {
@@ -359,8 +359,10 @@ mod tests {
       .flat_map(|pack| pack.contents.expect_value().to_owned())
       .map(|x| x.as_ref().to_owned())
       .collect::<HashSet<_>>();
-    assert!(all_contents
-      .contains(format!("val_{}_{}_{}", scope.options.bucket_size - 1, 2, 9).as_bytes()));
+    assert!(
+      all_contents
+        .contains(format!("val_{}_{}_{}", scope.options.bucket_size - 1, 2, 9).as_bytes())
+    );
 
     Ok(())
   }

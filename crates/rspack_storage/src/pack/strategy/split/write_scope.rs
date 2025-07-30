@@ -6,11 +6,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::JoinError;
 
 use super::{
+  SplitPackStrategy,
   handle_file::{
     move_files, prepare_scope_dirs, redirect_to_path, remove_files, remove_lock, write_lock,
   },
   util::{choose_bucket, flag_scope_wrote},
-  SplitPackStrategy,
 };
 use crate::{
   error::Result,
@@ -378,15 +378,15 @@ mod tests {
   use crate::{
     error::Result,
     pack::{
+      SplitPackStrategy,
       data::{PackOptions, PackScope},
       strategy::{
-        split::util::test_pack_utils::{
-          clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
-          get_bucket_pack_sizes, mock_updates, save_scope, UpdateVal,
-        },
         ScopeReadStrategy, ScopeWriteStrategy,
+        split::util::test_pack_utils::{
+          UpdateVal, clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
+          get_bucket_pack_sizes, mock_updates, save_scope,
+        },
       },
-      SplitPackStrategy,
     },
   };
 
