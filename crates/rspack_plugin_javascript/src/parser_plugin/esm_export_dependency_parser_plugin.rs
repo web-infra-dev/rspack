@@ -58,9 +58,13 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       statement.is_star_export(),
     );
     if parser
-      .factory_meta
-      .and_then(|meta| meta.side_effect_free)
-      .unwrap_or_default()
+      .compiler_options
+      .experiments
+      .lazy_make_side_effects_free_barrel_file
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
     {
       side_effect_dep.set_lazy();
     }
@@ -183,9 +187,13 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       parser.set_asi_position(statement.span_hi());
     }
     if parser
-      .factory_meta
-      .and_then(|meta| meta.side_effect_free)
-      .unwrap_or_default()
+      .compiler_options
+      .experiments
+      .lazy_make_side_effects_free_barrel_file
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
     {
       dep.set_lazy();
     }

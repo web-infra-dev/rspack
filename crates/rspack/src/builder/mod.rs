@@ -3805,6 +3805,7 @@ impl ExperimentsBuilder {
       inline_const: false,
       inline_enum: false,
       type_reexports_presence: false,
+      lazy_make_side_effects_free_barrel_file: false,
     })
   }
 }

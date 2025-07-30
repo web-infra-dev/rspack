@@ -45,7 +45,15 @@ impl Task<MakeTaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let forwarded_ids = ForwardedIdSet::from_dependencies(&self.dependencies);
+    let forwarded_ids = if context
+      .compiler_options
+      .experiments
+      .lazy_make_side_effects_free_barrel_file
+    {
+      ForwardedIdSet::from_dependencies(&self.dependencies)
+    } else {
+      ForwardedIdSet::All
+    };
 
     // reuse module if module is already added by other dependency
     if module_graph
@@ -59,28 +67,34 @@ impl Task<MakeTaskContext> for AddTask {
         module_identifier,
       )?;
 
-      if module_graph
-        .module_by_identifier(&module_identifier)
-        .is_some()
+      if context
+        .compiler_options
+        .experiments
+        .lazy_make_side_effects_free_barrel_file
       {
-        if context
-          .artifact
-          .module_to_lazy_make
-          .has_lazy_dependencies(&module_identifier)
-          && !forwarded_ids.is_empty()
+        if module_graph
+          .module_by_identifier(&module_identifier)
+          .is_some()
         {
-          return Ok(vec![Box::new(ProcessUnlazyDependenciesTask {
-            forwarded_ids,
-            original_module_identifier: module_identifier,
-          })]);
+          if context
+            .artifact
+            .module_to_lazy_make
+            .has_lazy_dependencies(&module_identifier)
+            && !forwarded_ids.is_empty()
+          {
+            return Ok(vec![Box::new(ProcessUnlazyDependenciesTask {
+              forwarded_ids,
+              original_module_identifier: module_identifier,
+            })]);
+          }
+        } else {
+          let pending_forwarded_ids = context
+            .artifact
+            .module_to_lazy_make
+            .as_pending_forwarded_ids(module_identifier)
+            .expect("should be pending if module is not in the module graph");
+          pending_forwarded_ids.append(forwarded_ids);
         }
-      } else {
-        let pending_forwarded_ids = context
-          .artifact
-          .module_to_lazy_make
-          .as_pending_forwarded_ids(module_identifier)
-          .expect("should be pending if module is not in the module graph");
-        pending_forwarded_ids.append(forwarded_ids);
       }
 
       return Ok(vec![]);
