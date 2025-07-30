@@ -66,7 +66,7 @@ jobs:
   bench:
     uses: ./.github/workflows/reusable-build-bench.yml
     if: inputs.bench
-    needs: [build, codspeed]
+    needs: codspeed
     with:
       target: ${{ inputs.target }}
       runner: ${{ inputs.runner }}
