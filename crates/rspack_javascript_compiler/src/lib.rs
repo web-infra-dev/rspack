@@ -2,7 +2,6 @@
 // for the reason why this feature is needed.
 #![feature(abi_custom)]
 #![allow(internal_features)]
-#![feature(rustc_attrs)]
 
 pub mod ast;
 mod compiler;
