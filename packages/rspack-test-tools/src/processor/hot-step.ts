@@ -238,6 +238,9 @@ export class HotSnapshotProcessor<
 						return str.split(raw).join(replacement);
 					}, str)
 					.replace(/\/\/ (\d+)\s+(?=var cssReload)/, "")
+					.replaceAll(/var data = "(?:.*)"/g, match => {
+						return decodeURIComponent(match).replaceAll(/\\/g, "/");
+					})
 			);
 		};
 
