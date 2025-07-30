@@ -225,7 +225,7 @@ impl Task<MakeTaskContext> for ProcessUnlazyDependenciesTask {
       .artifact
       .module_to_lazy_make
       .get_lazy_dependencies(&original_module_identifier)
-      .expect("only module that has lazy dependencies should run into ProcessLazyDependenciesTask");
+      .expect("only module has lazy dependencies should run into ProcessUnlazyDependenciesTask");
     let dependencies_to_process = lazy_dependencies
       .requested_lazy_dependencies(&forwarded_ids)
       .into_iter()
