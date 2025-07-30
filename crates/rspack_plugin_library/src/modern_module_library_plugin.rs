@@ -314,64 +314,62 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
               };
 
               if let Some(external_module) = import_module.as_external_module() {
-                if reexport_dep.request == external_module.user_request() {
-                  if let Some(connections) =
-                    module_id_to_connections.get(reexport_connection.module_identifier())
-                  {
-                    let reexport_star_count = connections
-                      .iter()
-                      .filter(|c| {
-                        if let Some(dep) = mg.dependency_by_id(c) {
-                          if let Some(dep) = dep
-                            .as_any()
-                            .downcast_ref::<ESMExportImportedSpecifierDependency>()
-                          {
-                            return self.reexport_star_from_external_module(dep, &mg);
-                          }
+                if let Some(connections) =
+                  module_id_to_connections.get(reexport_connection.module_identifier())
+                {
+                  let reexport_star_count = connections
+                    .iter()
+                    .filter(|c| {
+                      if let Some(dep) = mg.dependency_by_id(c) {
+                        if let Some(dep) = dep
+                          .as_any()
+                          .downcast_ref::<ESMExportImportedSpecifierDependency>()
+                        {
+                          return self.reexport_star_from_external_module(dep, &mg);
                         }
-
-                        false
-                      })
-                      .count();
-
-                    let side_effect_count = connections
-                      .iter()
-                      .filter(|c| {
-                        if let Some(dep) = mg.dependency_by_id(c) {
-                          if dep
-                            .as_any()
-                            .downcast_ref::<ESMImportSideEffectDependency>()
-                            .is_some()
-                          {
-                            return true;
-                          }
-                        }
-
-                        false
-                      })
-                      .count();
-
-                    // Every ESMExportImportedSpecifierDependency comes along with an ESMImportSideEffectDependency.
-                    // So if there are an equal number of ESMExportImportedSpecifierDependency (export star) and ESMImportSideEffectDependency,
-                    // we can consider that it only contains reexport star, and safely remove it.
-                    if side_effect_count == reexport_star_count
-                      && side_effect_count + reexport_star_count == connections.len()
-                    {
-                      for c in connections.iter() {
-                        external_connections.insert(*c);
                       }
+
+                      false
+                    })
+                    .count();
+
+                  let side_effect_count = connections
+                    .iter()
+                    .filter(|c| {
+                      if let Some(dep) = mg.dependency_by_id(c) {
+                        if dep
+                          .as_any()
+                          .downcast_ref::<ESMImportSideEffectDependency>()
+                          .is_some()
+                        {
+                          return true;
+                        }
+                      }
+
+                      false
+                    })
+                    .count();
+
+                  // Every ESMExportImportedSpecifierDependency comes along with an ESMImportSideEffectDependency.
+                  // So if there are an equal number of ESMExportImportedSpecifierDependency (export star) and ESMImportSideEffectDependency,
+                  // we can consider that it only contains reexport star, and safely remove it.
+                  if side_effect_count == reexport_star_count
+                    && side_effect_count + reexport_star_count == connections.len()
+                  {
+                    for c in connections.iter() {
+                      external_connections.insert(*c);
                     }
                   }
-
-                  let new_dep = ModernModuleReexportStarExternalDependency::new(
-                    *dep_id,
-                    reexport_dep.request.as_str().into(),
-                    external_module.request.clone(),
-                    external_module.external_type.clone(),
-                  );
-
-                  deps_to_replace.push(Box::new(new_dep));
                 }
+
+                let new_dep = ModernModuleReexportStarExternalDependency::new(
+                  *dep_id,
+                  reexport_dep.request.as_str().into(),
+                  external_module.request.clone(),
+                  external_module.external_type.clone(),
+                );
+
+                deps_to_replace.push(Box::new(new_dep));
               }
             }
           }
