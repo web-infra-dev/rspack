@@ -5,6 +5,7 @@ use rspack_collections::{
   IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeySet,
 };
 use rspack_error::Result;
+use rspack_util::fx_hash::FxIndexSet;
 use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
@@ -14,13 +15,13 @@ use crate::{
   GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ChunkReCreation {
   Entry(String),
   Normal(NormalChunkRecreation),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct NormalChunkRecreation {
   pub block: AsyncDependenciesBlockIdentifier,
   module: ModuleIdentifier,
@@ -524,12 +525,45 @@ impl CodeSplitter {
 
     // If after edges rebuild there are still some entries not included in entrypoints
     // then they are new added entries and we build them.
-    let new_entries: Vec<_> = compilation
-      .entries
-      .keys()
-      .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
-      .map(|entry| ChunkReCreation::Entry(entry.to_owned()))
-      .collect();
+    let mut new_entries: FxIndexSet<_> = Default::default();
+    let module_graph = compilation.get_module_graph();
+
+    for (entry, data) in &compilation.entries {
+      if !compilation.entrypoints.contains_key(entry) {
+        new_entries.insert(ChunkReCreation::Entry(entry.to_owned()));
+        continue;
+      }
+
+      let curr_modules = data
+        .all_dependencies()
+        .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+        .copied()
+        .collect::<IdentifierSet>();
+
+      let curr_entry_chunk_ukey = compilation.entrypoint_by_name(&entry).chunks[0];
+      let prev_entry_modules = compilation
+        .chunk_graph
+        .get_chunk_entry_modules(&curr_entry_chunk_ukey)
+        .into_iter()
+        .collect::<IdentifierSet>();
+
+      for m in &curr_modules {
+        // there is new entry
+        if !prev_entry_modules.contains(m) {
+          new_entries.insert(ChunkReCreation::Entry(entry.to_owned()));
+          break;
+        }
+      }
+
+      for m in prev_entry_modules {
+        if !curr_modules.contains(&m) {
+          // there is removed entry
+          new_entries.insert(ChunkReCreation::Entry(entry.to_owned()));
+          break;
+        }
+      }
+    }
+
     for edge in new_entries {
       edge.rebuild(self, compilation)?;
     }
