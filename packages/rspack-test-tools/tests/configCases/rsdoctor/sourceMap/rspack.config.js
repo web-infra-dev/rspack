@@ -5,41 +5,34 @@ const path = require("path");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	devtool: "source-map",
+	devtool: false,
 	plugins: [
 		new RsdoctorPlugin({
 			moduleGraphFeatures: false,
 			chunkGraphFeatures: false,
 			sourceMapFeatures: {
-				cheap: true
+				cheap: true,
+				module: true
 			}
 		}),
 		{
 			apply(compiler) {
 				compiler.hooks.afterEmit.tap("TestPlugin::SourceMap", compilation => {
 					const assets = compilation.getAssets();
+
+					// Check if each JS and CSS asset has a source map
+					const jsCssAssets = assets.filter(
+						asset => asset.name.endsWith(".js") || asset.name.endsWith(".css")
+					);
+
+					jsCssAssets.forEach(asset => {
+						expect(asset.source.map()).toBeTruthy();
+					});
+
 					const sourceMapAssets = assets.filter(asset =>
 						asset.name.endsWith(".map")
 					);
-
-					console.log(
-						"Generated assets:",
-						assets.map(a => a.name)
-					);
-					console.log(
-						"Source map assets:",
-						sourceMapAssets.map(a => a.name)
-					);
-
-					expect(sourceMapAssets.length).toBeGreaterThan(0);
-					const mainSourceMap = sourceMapAssets.find(asset =>
-						asset.name.includes("bundle0.js.map")
-					);
-					expect(mainSourceMap).toBeDefined();
-					expect(mainSourceMap.source.size()).toBeGreaterThan(0);
-					const sourceMapContent = mainSourceMap.source.source();
-					expect(sourceMapContent).toContain('"sources"');
-					expect(sourceMapContent).toContain('"mappings"');
+					expect(sourceMapAssets.length).toBe(0);
 				});
 			}
 		},
@@ -47,10 +40,18 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.afterEmit.tap("TestPlugin::CheapOnly", compilation => {
 					const assets = compilation.getAssets();
+					const jsCssAssets = assets.filter(
+						asset => asset.name.endsWith(".js") || asset.name.endsWith(".css")
+					);
+					// Check if each asset has a source map
+					jsCssAssets.forEach(asset => {
+						expect(asset.source.map()).toBeTruthy();
+					});
+
 					const sourceMapAssets = assets.filter(asset =>
 						asset.name.endsWith(".map")
 					);
-					expect(sourceMapAssets.length).toBeGreaterThan(0);
+					expect(sourceMapAssets.length).toBe(0);
 				});
 			}
 		}
