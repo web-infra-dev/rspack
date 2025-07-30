@@ -9,10 +9,11 @@ use camino::Utf8Path;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
-  DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
+  ApplyContext, BoxDependency, BoxModule, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationParams, CompilerOptions,
+  CompilerThisCompilation, Context, DependencyCategory, DependencyType, ModuleExt,
+  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryCreateModule,
+  NormalModuleFactoryFactorize, Plugin, PluginContext, PluginDriver,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
@@ -21,6 +22,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
 use super::{
+  consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_module::ConsumeSharedModule,
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
 };
@@ -170,12 +172,14 @@ pub struct ConsumeSharedPlugin {
   resolver: Mutex<Option<Arc<Resolver>>>,
   compiler_context: Mutex<Option<Context>>,
   matched_consumes: RwLock<Option<Arc<MatchedConsumes>>>,
+  plugin_driver: Mutex<Option<Arc<PluginDriver>>>,
 }
 
 impl ConsumeSharedPlugin {
   pub fn new(options: ConsumeSharedPluginOptions) -> Self {
     Self::new_inner(
       options,
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -208,6 +212,16 @@ impl ConsumeSharedPlugin {
   fn get_resolver(&self) -> Arc<Resolver> {
     let lock = self.resolver.lock().expect("should lock");
     lock.clone().expect("init_resolver first")
+  }
+
+  fn init_plugin_driver(&self, plugin_driver: Arc<PluginDriver>) {
+    let mut lock = self.plugin_driver.lock().expect("should lock");
+    *lock = Some(plugin_driver);
+  }
+
+  fn get_plugin_driver(&self) -> Arc<PluginDriver> {
+    let lock = self.plugin_driver.lock().expect("should lock");
+    lock.clone().expect("init_plugin_driver first")
   }
 
   async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
@@ -298,7 +312,7 @@ impl ConsumeSharedPlugin {
 
   async fn create_consume_shared_module(
     &self,
-    context: &Context,
+    original_data: &ModuleFactoryCreateData,
     request: &str,
     config: Arc<ConsumeOptions>,
     mut add_diagnostic: impl FnMut(Diagnostic),
@@ -307,39 +321,87 @@ impl ConsumeSharedPlugin {
     let import_resolved = match &config.import {
       None => None,
       Some(import) => {
-        let resolver = self.get_resolver();
-        resolver
-          .resolve(
-            if direct_fallback {
-              self.get_context()
-            } else {
-              context.clone()
-            }
-            .as_ref(),
-            import,
-          )
+        // Only call before_resolve hooks to allow custom resolution logic
+        let fallback_context = if direct_fallback {
+          self.get_context()
+        } else {
+          original_data.context.clone()
+        };
+
+        let fallback_dependency: BoxDependency =
+          Box::new(ConsumeSharedFallbackDependency::new(import.clone()));
+        let mut create_data = ModuleFactoryCreateData {
+          resolve_options: None,
+          context: fallback_context.clone(),
+          dependencies: vec![fallback_dependency],
+          issuer: None,
+          issuer_identifier: None,
+          issuer_layer: None,
+          compiler_id: original_data.compiler_id,
+          compilation_id: original_data.compilation_id,
+          request: import.clone(),
+          diagnostics: Default::default(),
+          file_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          options: original_data.options.clone(),
+          resolver_factory: original_data.resolver_factory.clone(),
+        };
+
+        // Call only the before_resolve hooks to allow custom plugins to modify the resolve data
+        let plugin_driver = self.get_plugin_driver();
+        match plugin_driver
+          .normal_module_factory_hooks
+          .before_resolve
+          .call(&mut create_data)
           .await
-          .map_err(|_e| {
+        {
+          Ok(Some(false)) => {
+            // Hook returned false, meaning resolution should be ignored
+            None
+          }
+          Ok(_) => {
+            // Hooks completed successfully, now use the (potentially modified) request for resolution
+            let final_request = &create_data.request;
+            let resolver = self.get_resolver();
+            match resolver
+              .resolve(fallback_context.as_ref(), final_request)
+              .await
+            {
+              Ok(ResolveResult::Resource(resource)) => Some(resource.path.as_str().to_string()),
+              Ok(ResolveResult::Ignored) => None,
+              Err(_e) => {
+                add_diagnostic(Diagnostic::error(
+                  "ModuleNotFoundError".into(),
+                  format!("resolving fallback for shared module {request}"),
+                ));
+                None
+              }
+            }
+          }
+          Err(_e) => {
             add_diagnostic(Diagnostic::error(
               "ModuleNotFoundError".into(),
-              format!("resolving fallback for shared module {request}"),
-            ))
-          })
-          .ok()
+              format!("before_resolve hook failed for fallback {request}"),
+            ));
+            None
+          }
+        }
       }
-    }
-    .and_then(|i| match i {
-      ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
-      ResolveResult::Ignored => None,
-    });
+    };
     let required_version = self
-      .get_required_version(context, request, config.clone(), add_diagnostic)
+      .get_required_version(
+        &original_data.context,
+        request,
+        config.clone(),
+        add_diagnostic,
+      )
       .await;
     ConsumeSharedModule::new(
       if direct_fallback {
         self.get_context()
       } else {
-        context.clone()
+        original_data.context.clone()
       },
       ConsumeOptions {
         import: import_resolved
@@ -371,6 +433,7 @@ async fn this_compilation(
   );
   self.init_context(compilation);
   self.init_resolver(compilation);
+  self.init_plugin_driver(compilation.plugin_driver.clone());
   self
     .init_matched_consumes(compilation, self.get_resolver())
     .await;
@@ -391,19 +454,20 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   let request = dep.request();
   let consumes = self.get_matched_consumes();
   if let Some(matched) = consumes.unresolved.get(request) {
+    let mut temp_diagnostics = Vec::new();
     let module = self
-      .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
-        data.diagnostics.push(d)
-      })
+      .create_consume_shared_module(data, request, matched.clone(), |d| temp_diagnostics.push(d))
       .await;
+    data.diagnostics.extend(temp_diagnostics);
     return Ok(Some(module.boxed()));
   }
   for (prefix, options) in &consumes.prefixed {
     if request.starts_with(prefix) {
       let remainder = &request[prefix.len()..];
+      let mut temp_diagnostics = Vec::new();
       let module = self
         .create_consume_shared_module(
-          &data.context,
+          data,
           request,
           Arc::new(ConsumeOptions {
             import: options.import.as_ref().map(|i| i.to_owned() + remainder),
@@ -416,9 +480,10 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             singleton: options.singleton,
             eager: options.eager,
           }),
-          |d| data.diagnostics.push(d),
+          |d| temp_diagnostics.push(d),
         )
         .await;
+      data.diagnostics.extend(temp_diagnostics);
       return Ok(Some(module.boxed()));
     }
   }
@@ -440,11 +505,13 @@ async fn create_module(
   let resource = &create_data.resource_resolve_data.resource;
   let consumes = self.get_matched_consumes();
   if let Some(options) = consumes.resolved.get(resource) {
+    let mut temp_diagnostics = Vec::new();
     let module = self
-      .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
-        data.diagnostics.push(d)
+      .create_consume_shared_module(data, resource, options.clone(), |d| {
+        temp_diagnostics.push(d)
       })
       .await;
+    data.diagnostics.extend(temp_diagnostics);
     return Ok(Some(module.boxed()));
   }
   Ok(None)
