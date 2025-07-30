@@ -56,7 +56,6 @@
 // return we're not supposed to modify `%rsp` or `%rax`.
 #[cfg(target_arch = "x86_64")]
 #[unsafe(naked)]
-#[no_mangle]
 #[rustc_std_internal_symbol]
 pub unsafe extern "custom" fn __rust_probestack() {
   #[cfg(not(all(target_env = "sgx", target_vendor = "fortanix")))]
@@ -144,7 +143,6 @@ pub unsafe extern "custom" fn __rust_probestack() {
 //
 // The ABI here is the same as x86_64, except everything is 32-bits large.
 #[unsafe(naked)]
-#[no_mangle]
 #[rustc_std_internal_symbol]
 pub unsafe extern "custom" fn __rust_probestack() {
   core::arch::naked_asm!(
@@ -195,7 +193,6 @@ pub unsafe extern "custom" fn __rust_probestack() {
 //   MSVC x64's __chkstk and cygwin/mingw's ___chkstk_ms do not adjust %rsp
 //   themselves.
 #[unsafe(naked)]
-#[no_mangle]
 #[rustc_std_internal_symbol]
 pub unsafe extern "custom" fn __rust_probestack() {
   core::arch::naked_asm!(
