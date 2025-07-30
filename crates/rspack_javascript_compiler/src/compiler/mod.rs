@@ -1,5 +1,12 @@
 use std::sync::Arc;
 
+// Wasmer depends on the __rust_probestack symbol
+// This symbol is now mangled and no longer exposed (on nightly). Therefore, building wasmer fails during linking.
+// Added this symbol back as a workaround.
+// See: https://github.com/wasmerio/wasmer/issues/5610
+#[doc(hidden)]
+pub mod compiler_builtins_probestack;
+
 pub mod minify;
 pub mod parse;
 pub mod stringify;
