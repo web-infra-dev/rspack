@@ -179,10 +179,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .par_iter_mut()
     .filter(|(filename, original)| {
       // propagate span in rayon to keep parent relation
-      if !JAVASCRIPT_ASSET_REGEXP.is_match(filename) {
-        return false
-      }
-
       let is_matched = match_object(options, filename);
 
       if !is_matched || original.get_info().minimized.unwrap_or(false) {
@@ -378,6 +374,8 @@ pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
     if !condition.try_match(str) {
       return false;
     }
+  } else if !JAVASCRIPT_ASSET_REGEXP.is_match(str) {
+    return false;
   }
   if let Some(condition) = &obj.include {
     if !condition.try_match(str) {
@@ -389,6 +387,7 @@ pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
       return false;
     }
   }
+
   true
 }
 
