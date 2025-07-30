@@ -46,7 +46,9 @@ async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResu
 pub fn sync(path: String, request: String) -> ResolveResult {
   let path = PathBuf::from(path);
   let resolver = Resolver::new(ResolveOptions::default());
-  runtime::Handle::current().block_on(resolve(&resolver, &path, &request))
+  napi::bindgen_prelude::within_runtime_if_available(|| {
+    runtime::Handle::current().block_on(resolve(&resolver, &path, &request))
+  })
 }
 
 #[napi(js_name = "async")]
