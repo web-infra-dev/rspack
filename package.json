@@ -59,7 +59,7 @@
     "pnpm": "10.10.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.1.2",
+    "@biomejs/biome": "^2.1.3",
     "@continuous-auth/client": "^2.3.2",
     "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "7.52.9",
