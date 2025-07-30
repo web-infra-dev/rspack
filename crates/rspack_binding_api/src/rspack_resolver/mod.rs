@@ -105,7 +105,9 @@ impl ResolverFactory {
   #[napi]
   pub fn sync(&self, directory: String, request: String) -> ResolveResult {
     let path = PathBuf::from(directory);
-    runtime::Handle::current().block_on(resolve(&self.resolver, &path, &request))
+    napi::bindgen_prelude::within_runtime_if_available(|| {
+      runtime::Handle::current().block_on(resolve(&self.resolver, &path, &request))
+    })
   }
 
   /// Asynchronously resolve `specifier` at an absolute path to a `directory`.
