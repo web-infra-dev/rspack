@@ -7,7 +7,7 @@ it('should compile', () => {
 			break;
 		case "1":
 			const mainChunk = __STATS__.chunks.find(c => c.id === 'main');
-			const find = mainChunk.modules.find(m => m.name.includes('plugin-include'));
+			const find = mainChunk.modules.find(m => m.name.includes('plugin-included'));
 
 			expect(find).toBeDefined()
 			break;
