@@ -8,7 +8,7 @@ use regex::Regex;
 ///
 /// Options are directly ported from [enhanced-resolve](https://github.com/webpack/enhanced-resolve#resolver-options).
 ///
-/// See [webpack resolve](https://webpack.js.org/configuration/resolve/) for information and examples
+/// See [rspack resolve](https://rspack.rs/config/resolve) for information and examples
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct NapiResolveOptions {
@@ -90,7 +90,7 @@ pub struct NapiResolveOptions {
 
   /// Request passed to resolve is already fully specified and extensions or main files are not resolved for it (they are still resolved for internal requests).
   ///
-  /// See also webpack configuration [resolve.fullySpecified](https://webpack.js.org/configuration/module/#resolvefullyspecified)
+  /// See also rspack configuration [resolve.fullySpecified](https://rspack.rs/config/resolve#resolvefullyspecified)
   ///
   /// Default `false`
   pub fully_specified: Option<bool>,
