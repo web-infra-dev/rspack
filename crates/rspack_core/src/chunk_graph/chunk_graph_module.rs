@@ -127,6 +127,16 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.contains(module_identifier)
   }
 
+  pub fn is_any_module_in_chunk(
+    &self,
+    mut module_identifiers: impl Iterator<Item = &ModuleIdentifier>,
+    chunk_ukey: ChunkUkey,
+  ) -> bool {
+    let chunk_graph_chunk = self.expect_chunk_graph_chunk(&chunk_ukey);
+    module_identifiers
+      .any(|module_identifier| chunk_graph_chunk.modules.contains(module_identifier))
+  }
+
   pub(crate) fn expect_chunk_graph_module_mut(
     &mut self,
     module_identifier: ModuleIdentifier,
