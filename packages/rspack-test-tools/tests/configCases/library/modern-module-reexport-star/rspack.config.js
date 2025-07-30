@@ -26,7 +26,6 @@ const config = {
 		}
 	},
 	optimization: {
-		concatenateModules: false,
 		avoidEntryIife: true,
 		concatenateModules: true,
 		minimize: false
