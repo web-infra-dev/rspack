@@ -347,8 +347,8 @@ import {
 	ResolverFactory,
 	registerGlobalTrace,
 	async as resolveAsync,
-	sync as resolveSync, 
-	syncTraceEvent 
+	sync as resolveSync,
+	syncTraceEvent
 } from "@rspack/binding";
 import { createNativePlugin } from "./builtin-plugin";
 ///// Experiments SWC /////
