@@ -16,8 +16,14 @@ class Plugin {
 						"./index.js",
 						{},
 						(error, res, req) => {
+							expect(
+								normalResolver.resolveSync({}, __dirname, "./index.js")
+							).toBe(res);
+
 							expect(error).toBeNull();
 							expect(res).toBe(path.join(__dirname, "/index.js"));
+							// Webpack does not have resource field
+							expect(req.resource).toBe(undefined);
 							expect(req.path).toBe(path.join(__dirname, "/index.js"));
 							callback();
 						}

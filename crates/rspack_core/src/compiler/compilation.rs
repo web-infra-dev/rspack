@@ -2978,8 +2978,8 @@ impl AssetInfoRelated {
 /// the same time.
 pub fn assign_depths(
   assign_map: &mut IdentifierMap<usize>,
-  mg: &ModuleGraph,
   modules: impl Iterator<Item = &ModuleIdentifier>,
+  outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
   let mut q = VecDeque::new();
@@ -2995,8 +2995,8 @@ pub fn assign_depths(
         vac.insert(depth);
       }
     };
-    for con in mg.get_outgoing_connections(&id) {
-      q.push_back((*con.module_identifier(), depth + 1));
+    for con in outgoings.get(&id).expect("should have outgoings").iter() {
+      q.push_back((*con, depth + 1));
     }
   }
 }

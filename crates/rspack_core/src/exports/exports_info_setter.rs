@@ -115,4 +115,50 @@ impl ExportsInfoData {
 
     changed
   }
+
+  /// TODO: remove this method
+  /// This method is a copy of `set_used_without_info` and not considered the `redirect_to`.
+  /// It should only be used when you know the `redirect_to` does not exist and you need to modify
+  /// exports info data in parallel. Remove this method after refactoring `set_used_without_info`.
+  pub fn set_owned_used_without_info(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
+    let mut changed = false;
+    for export_info in self.exports_mut().values_mut() {
+      let flag = export_info.set_used_without_info(runtime);
+      changed |= flag;
+    }
+    let other_exports_info = self.other_exports_info_mut();
+    let flag = other_exports_info.set_used(UsageState::NoInfo, None);
+    changed |= flag;
+    if other_exports_info.can_mangle_use() != Some(false) {
+      other_exports_info.set_can_mangle_use(Some(false));
+      changed = true;
+    }
+    changed
+  }
+
+  /// TODO: remove this method
+  /// This method is a copy of `set_used_in_unknown_way` and not considered the `redirect_to`.
+  /// It should only be used when you know the `redirect_to` does not exist and you need to modify
+  /// exports info data in parallel. Remove this method after refactoring `set_used_in_unknown_way`.
+  pub fn set_owned_used_in_unknown_way(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
+    let mut changed = false;
+    for export_info in self.exports_mut().values_mut() {
+      if export_info.set_used_in_unknown_way(runtime) {
+        changed = true;
+      }
+    }
+    let other_exports_info = self.other_exports_info_mut();
+    if other_exports_info.set_used_conditionally(
+      Box::new(|value| value < &UsageState::Unknown),
+      UsageState::Unknown,
+      runtime,
+    ) {
+      changed = true;
+    }
+    if other_exports_info.can_mangle_use() != Some(false) {
+      other_exports_info.set_can_mangle_use(Some(false));
+      changed = true;
+    }
+    changed
+  }
 }

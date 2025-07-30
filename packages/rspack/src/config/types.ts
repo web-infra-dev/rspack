@@ -704,7 +704,10 @@ export type ResolveOptions = {
 	/** Path alias */
 	alias?: ResolveAlias;
 
-	/** Same as node's [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) for the exports and imports fields in package.json. */
+	/**
+	 * Specifies the condition names used to match entry points in the `exports` field of a package.
+	 * @link https://nodejs.org/api/packages.html#packages_exports
+	 */
 	conditionNames?: string[];
 
 	/**

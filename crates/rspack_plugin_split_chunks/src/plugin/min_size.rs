@@ -1,9 +1,12 @@
-use std::ops::Deref;
-
+use rayon::prelude::*;
+use rspack_collections::IdentifierMap;
 use rspack_core::{Compilation, SourceType};
+use rustc_hash::FxHashMap;
 
 use super::ModuleGroupMap;
-use crate::{module_group::ModuleGroup, CacheGroup, SplitChunkSizes, SplitChunksPlugin};
+use crate::{
+  common::ModuleSizes, module_group::ModuleGroup, CacheGroup, SplitChunkSizes, SplitChunksPlugin,
+};
 
 impl SplitChunksPlugin {
   pub(crate) fn check_min_size_reduction(
@@ -33,9 +36,9 @@ impl SplitChunksPlugin {
   /// Return `true` if the `ModuleGroup` become empty.
   pub(crate) fn remove_min_size_violating_modules(
     module_group_key: &str,
-    compilation: &Compilation,
     module_group: &mut ModuleGroup,
     cache_group: &CacheGroup,
+    module_sizes: &ModuleSizes,
   ) -> bool {
     // Find out what `SourceType`'s size is not fit the min_size
     let violating_source_types: Box<[SourceType]> = module_group
@@ -64,20 +67,19 @@ impl SplitChunksPlugin {
     })
     .collect::<Box<[_]>>();
 
-    let module_graph = compilation.get_module_graph();
     // Remove modules having violating SourceType
     let violating_modules = module_group
       .modules
       .iter()
       .filter_map(|module_id| {
-        let module = module_graph
-          .module_by_identifier(module_id)
-          .expect("Should have a module");
+        let sizes = module_sizes
+          .get(module_id)
+          .expect("should have module size");
         let having_violating_source_type = violating_source_types
           .iter()
-          .any(|ty: &SourceType| module.source_types(&module_graph).contains(ty));
+          .any(|ty: &SourceType| sizes.contains_key(ty));
         if having_violating_source_type {
-          Some(module)
+          Some(*module_id)
         } else {
           None
         }
@@ -86,9 +88,9 @@ impl SplitChunksPlugin {
 
     // question: After removing violating modules, the size of other `SourceType`s of this `ModuleGroup`
     // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
-    violating_modules.into_iter().for_each(|violating_module| {
-      module_group.remove_module(violating_module.deref(), compilation)
-    });
+    violating_modules
+      .into_iter()
+      .for_each(|violating_module| module_group.remove_module(violating_module, module_sizes));
 
     module_group.modules.is_empty()
   }
@@ -97,11 +99,11 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn ensure_min_size_fit(
     &self,
-    compilation: &Compilation,
     module_group_map: &mut ModuleGroupMap,
+    module_sizes: &ModuleSizes,
   ) {
     let invalidated_module_groups = module_group_map
-      .iter_mut()
+      .par_iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
         // Fast path
@@ -116,9 +118,9 @@ impl SplitChunksPlugin {
 
         if Self::remove_min_size_violating_modules(
           module_group_key,
-          compilation,
           module_group,
           cache_group,
+          module_sizes,
         ) || !Self::check_min_size_reduction(
           &module_group.sizes,
           &cache_group.min_size_reduction,
@@ -138,5 +140,22 @@ impl SplitChunksPlugin {
       );
       module_group_map.remove(&key);
     });
+  }
+
+  pub(crate) fn get_module_sizes(compilation: &Compilation) -> ModuleSizes {
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .modules()
+      .values()
+      .par_bridge()
+      .map(|module| {
+        let sizes = module
+          .source_types(&module_graph)
+          .iter()
+          .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
+          .collect::<FxHashMap<_, _>>();
+        (module.identifier(), sizes)
+      })
+      .collect::<IdentifierMap<_>>()
   }
 }

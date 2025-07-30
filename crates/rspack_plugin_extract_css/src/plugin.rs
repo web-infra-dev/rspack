@@ -436,7 +436,7 @@ despite it was not able to fulfill desired ordering with these modules:
           source.add(RawStringSource::from(format!("@media {media} {{\n")));
         }
 
-        if let Some(layer) = &module.layer {
+        if let Some(layer) = &module.css_layer {
           source.add(RawStringSource::from(format!("@layer {layer} {{\n")));
         }
 
@@ -478,7 +478,7 @@ despite it was not able to fulfill desired ordering with these modules:
           source.add(RawStringSource::from_static("}\n"));
         }
 
-        if module.layer.is_some() {
+        if module.css_layer.is_some() {
           source.add(RawStringSource::from_static("}\n"));
         }
       }

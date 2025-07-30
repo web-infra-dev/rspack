@@ -615,17 +615,6 @@ export interface JsAfterEmitData {
   uid?: number
 }
 
-export interface JsAfterResolveData {
-  request: string
-  context: string
-  issuer: string
-  issuerLayer?: string
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  createData?: JsCreateData
-}
-
 export interface JsAfterTemplateExecutionData {
   html: string
   headTags: Array<JsHtmlPluginTag>
@@ -1157,6 +1146,11 @@ export interface JsRsdoctorSideEffect {
   variable?: number
 }
 
+export interface JsRsdoctorSourceMapFeatures {
+  cheap?: boolean
+  module?: boolean
+}
+
 export interface JsRsdoctorSourcePosition {
   line?: number
   column?: number
@@ -1510,8 +1504,11 @@ export interface NativeWatcherOptions {
   followSymlinks?: boolean
   pollInterval?: number
   aggregateTimeout?: number
-  /** A function that will be called with the path of a file or directory that is ignored. */
-  ignored?: (path: string) => boolean
+  /**
+   * The ignored paths for the watcher.
+   * It can be a single path, an array of paths, or a regular expression.
+   */
+  ignored?: string | string[] | RegExp
 }
 
 export interface NodeFsStats {
@@ -2500,6 +2497,7 @@ export interface RawResolveTsconfigOptions {
 export interface RawRsdoctorPluginOptions {
   moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
+  sourceMapFeatures?: { module?: boolean; cheap?: boolean } | undefined
 }
 
 export interface RawRslibPluginOptions {
@@ -2734,7 +2732,7 @@ export interface RegisterJsTaps {
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveArgs) => Promise<JsResolveArgs>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
-  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
+  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: string) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>

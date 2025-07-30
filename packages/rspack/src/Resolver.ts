@@ -64,7 +64,13 @@ export class Resolver {
 				return;
 			}
 			const req = text ? (JSON.parse(text) as ResolveRequest) : undefined;
-			callback(error, req ? req.path : false, req);
+			callback(
+				error,
+				req
+					? `${req.path.replace(/#/g, "\u200b#")}${req.query.replace(/#/g, "\u200b#")}${req.fragment}`
+					: false,
+				req
+			);
 		});
 	}
 

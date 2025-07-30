@@ -446,7 +446,7 @@ impl CodeSplitter {
 
     // iterate module graph to find block runtime and its parents
     // let mut blocks_with_runtime = HashMap::default();
-    let mut stack = vec![];
+    let mut batch = vec![];
     let mut visited = HashSet::default();
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -490,80 +490,94 @@ impl CodeSplitter {
         .chain(entry_data.include_dependencies.iter())
         .for_each(|dep_id| {
           if let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) {
-            stack.push((*m, Cow::Borrowed(runtime), chunk_loading));
+            batch.push((*m, Cow::Borrowed(runtime), chunk_loading));
           }
         });
     }
 
-    while let Some((module, runtime, chunk_loading)) = stack.pop() {
-      if !visited.insert((module, runtime.clone())) {
-        continue;
+    loop {
+      let tasks = std::mem::take(&mut batch);
+
+      let mut new_tasks = Vec::new();
+      for (module, runtime, chunk_loading) in tasks {
+        if visited.insert((module, runtime.clone())) {
+          new_tasks.push((module, runtime, chunk_loading));
+        }
       }
+      new_tasks.reverse();
 
-      let guard =
-        self.outgoings_modules(&module, runtime.as_ref(), &module_graph, module_graph_cache);
-      let (modules, blocks) = guard.as_ref();
-      let blocks = blocks.clone();
-      for m in modules {
-        stack.push((*m, runtime.clone(), chunk_loading));
-      }
+      let tasks = new_tasks;
 
-      for block_id in blocks {
-        index_by_block.entry(block_id).or_insert_with(|| {
-          next_idx += 1;
-          next_idx
-        });
+      let outgoings = tasks
+        .par_iter()
+        .map(|(_module, runtime, _)| {
+          self.outgoings_modules(_module, runtime.as_ref(), &module_graph, module_graph_cache)
+        })
+        .collect::<Vec<_>>();
 
-        let Some(block) = module_graph.block_by_id(&block_id) else {
-          continue;
-        };
+      for ((_, runtime, chunk_loading), outgoings) in tasks.into_iter().zip(outgoings.into_iter()) {
+        let (modules, blocks) = outgoings.as_ref();
+        let blocks = blocks.clone();
+        for m in modules {
+          batch.push((*m, runtime.clone(), chunk_loading));
+        }
 
-        // when disable chunk loading, only async entrypoint can be created, disable normal chunk
-        let entry_options = block
-          .get_group_options()
-          .and_then(|option| option.entry_options());
-        let is_entry = entry_options.is_some();
-        let should_create = chunk_loading || entry_options.is_some();
-        let block = module_graph
-          .block_by_id(&block_id)
-          .expect("should have block");
+        for block_id in blocks {
+          index_by_block.entry(block_id).or_insert_with(|| {
+            next_idx += 1;
+            next_idx
+          });
 
-        let child_chunk_loading = entry_options.map_or(chunk_loading, |opt| {
-          !matches!(
-            opt.chunk_loading.as_ref().unwrap_or(global_chunk_loading),
-            ChunkLoading::Disable
-          ) && opt
-            .async_chunks
-            .unwrap_or(compilation.options.output.async_chunks)
-        });
-        let child_runtime = if should_create {
-          if let Some(name) = block.get_group_options().and_then(|options| {
-            options
-              .name()
-              .or_else(|| entry_options.and_then(|entry| entry.name.as_deref()))
-          }) && let Some(root) = named_roots.get_mut(name)
-          {
-            // already created with name, let old_runtime = root.get_runtime();
-            let old_runtime = root.get_runtime();
-            let new_runtime = if is_entry {
-              // async entrypoint has unique runtime, do not merge runtime
-              old_runtime.clone()
-            } else {
-              let new_runtime = merge_runtime(&runtime, old_runtime);
-              self.module_deps.entry(new_runtime.clone()).or_default();
-              root.set_runtime(new_runtime.clone());
-              new_runtime
-            };
+          let Some(block) = module_graph.block_by_id(&block_id) else {
+            continue;
+          };
 
-            match root {
-              CreateChunkRoot::Entry(_, options, _) => {
-                if entry_options.is_some() {
-                  diagnostics.push(Diagnostic::from(error!(
-                    "Two entrypoints with the same name {}",
-                    name
-                  )));
-                } else {
-                  diagnostics.push(
+          // when disable chunk loading, only async entrypoint can be created, disable normal chunk
+          let entry_options = block
+            .get_group_options()
+            .and_then(|option| option.entry_options());
+          let is_entry = entry_options.is_some();
+          let should_create = chunk_loading || entry_options.is_some();
+          let block = module_graph
+            .block_by_id(&block_id)
+            .expect("should have block");
+
+          let child_chunk_loading = entry_options.map_or(chunk_loading, |opt| {
+            !matches!(
+              opt.chunk_loading.as_ref().unwrap_or(global_chunk_loading),
+              ChunkLoading::Disable
+            ) && opt
+              .async_chunks
+              .unwrap_or(compilation.options.output.async_chunks)
+          });
+          let child_runtime = if should_create {
+            if let Some(name) = block.get_group_options().and_then(|options| {
+              options
+                .name()
+                .or_else(|| entry_options.and_then(|entry| entry.name.as_deref()))
+            }) && let Some(root) = named_roots.get_mut(name)
+            {
+              // already created with name, let old_runtime = root.get_runtime();
+              let old_runtime = root.get_runtime();
+              let new_runtime = if is_entry {
+                // async entrypoint has unique runtime, do not merge runtime
+                old_runtime.clone()
+              } else {
+                let new_runtime = merge_runtime(&runtime, old_runtime);
+                self.module_deps.entry(new_runtime.clone()).or_default();
+                root.set_runtime(new_runtime.clone());
+                new_runtime
+              };
+
+              match root {
+                CreateChunkRoot::Entry(_, options, _) => {
+                  if entry_options.is_some() {
+                    diagnostics.push(Diagnostic::from(error!(
+                      "Two entrypoints with the same name {}",
+                      name
+                    )));
+                  } else {
+                    diagnostics.push(
                     Diagnostic::from(
                       error!(
                         format!("It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.", name)
@@ -571,90 +585,97 @@ impl CodeSplitter {
                     )
                   );
 
+                    options
+                      .dependencies
+                      .extend(block.get_dependencies().iter().copied());
+                  }
+                }
+                CreateChunkRoot::Block(async_dependencies_block_identifiers, _) => {
+                  if !async_dependencies_block_identifiers.contains(&block_id) {
+                    async_dependencies_block_identifiers.push(block_id);
+                  }
+                  // should re-visit all children bringing new runtime
+                  async_dependencies_block_identifiers
+                    .iter()
+                    .filter(|id| **id != block_id)
+                    .for_each(|root_block| {
+                      let root_block = module_graph
+                        .block_by_id(root_block)
+                        .expect("should have block");
+                      root_block
+                        .get_dependencies()
+                        .iter()
+                        .filter_map(|dep_id| {
+                          module_graph.module_identifier_by_dependency_id(dep_id)
+                        })
+                        .for_each(|m| {
+                          batch.push((*m, Cow::Owned(new_runtime.clone()), child_chunk_loading));
+                        });
+                    });
+                }
+              }
+
+              Cow::Owned(new_runtime)
+            } else if let Some(root) = roots.get_mut(&block_id) {
+              // already created
+              let old_runtime = root.get_runtime();
+              let new_runtime = if is_entry {
+                // async entrypoint has unique runtime, do not merge runtime
+                old_runtime.clone()
+              } else {
+                let new_runtime = merge_runtime(&runtime, old_runtime);
+                self.module_deps.entry(new_runtime.clone()).or_default();
+                root.set_runtime(new_runtime.clone());
+                new_runtime
+              };
+              Cow::Owned(new_runtime)
+            } else {
+              let rt = if let Some(entry_options) = entry_options {
+                RuntimeSpec::from_entry_options(entry_options)
+                  .map(|rt| {
+                    self.module_deps.entry(rt.clone()).or_default();
+                    Cow::Owned(rt)
+                  })
+                  .unwrap_or(runtime.clone())
+              } else {
+                runtime.clone()
+              };
+
+              if let Some(name) = block.get_group_options().and_then(|options| {
+                options.name().or_else(|| {
                   options
-                    .dependencies
-                    .extend(block.get_dependencies().iter().copied());
-                }
-              }
-              CreateChunkRoot::Block(async_dependencies_block_identifiers, _) => {
-                if !async_dependencies_block_identifiers.contains(&block_id) {
-                  async_dependencies_block_identifiers.push(block_id);
-                }
-                // should re-visit all children bringing new runtime
-                async_dependencies_block_identifiers
-                  .iter()
-                  .filter(|id| **id != block_id)
-                  .for_each(|root_block| {
-                    let root_block = module_graph
-                      .block_by_id(root_block)
-                      .expect("should have block");
-                    root_block
-                      .get_dependencies()
-                      .iter()
-                      .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
-                      .for_each(|m| {
-                        stack.push((*m, Cow::Owned(new_runtime.clone()), child_chunk_loading));
-                      });
-                  });
-              }
-            }
-
-            Cow::Owned(new_runtime)
-          } else if let Some(root) = roots.get_mut(&block_id) {
-            // already created
-            let old_runtime = root.get_runtime();
-            let new_runtime = if is_entry {
-              // async entrypoint has unique runtime, do not merge runtime
-              old_runtime.clone()
-            } else {
-              let new_runtime = merge_runtime(&runtime, old_runtime);
-              self.module_deps.entry(new_runtime.clone()).or_default();
-              root.set_runtime(new_runtime.clone());
-              new_runtime
-            };
-            Cow::Owned(new_runtime)
-          } else {
-            let rt = if let Some(entry_options) = entry_options {
-              RuntimeSpec::from_entry_options(entry_options)
-                .map(|rt| {
-                  self.module_deps.entry(rt.clone()).or_default();
-                  Cow::Owned(rt)
+                    .entry_options()
+                    .and_then(|entry_options| entry_options.name.as_deref())
                 })
-                .unwrap_or(runtime.clone())
-            } else {
-              runtime.clone()
-            };
-
-            if let Some(name) = block.get_group_options().and_then(|options| {
-              options.name().or_else(|| {
-                options
-                  .entry_options()
-                  .and_then(|entry_options| entry_options.name.as_deref())
-              })
-            }) {
-              named_roots.insert(
-                name.to_string(),
-                CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
-              );
-            } else {
-              roots.insert(
-                block_id,
-                CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
-              );
+              }) {
+                named_roots.insert(
+                  name.to_string(),
+                  CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
+                );
+              } else {
+                roots.insert(
+                  block_id,
+                  CreateChunkRoot::Block(vec![block_id], rt.clone().into_owned()),
+                );
+              }
+              rt.clone()
             }
-            rt.clone()
-          }
-        } else {
-          runtime.clone()
-        };
+          } else {
+            runtime.clone()
+          };
 
-        block
-          .get_dependencies()
-          .iter()
-          .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
-          .for_each(|module| {
-            stack.push((*module, child_runtime.clone(), child_chunk_loading));
-          });
+          block
+            .get_dependencies()
+            .iter()
+            .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+            .for_each(|module| {
+              batch.push((*module, child_runtime.clone(), child_chunk_loading));
+            });
+        }
+      }
+
+      if batch.is_empty() {
+        break;
       }
     }
 
@@ -1033,7 +1054,11 @@ impl CodeSplitter {
     ukey
   }
 
-  fn create_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
+  fn create_chunks(
+    &mut self,
+    compilation: &mut Compilation,
+    outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  ) -> Result<()> {
     let mut errors = vec![];
 
     let mut roots = self.analyze_module_graph(compilation)?;
@@ -1102,6 +1127,21 @@ impl CodeSplitter {
     let mut async_entrypoints = HashSet::default();
     let mut entrypoints = HashMap::default();
     let mut skipped = HashSet::<usize>::default();
+
+    let mut assigned_depths = finalize_result
+      .chunks
+      .par_iter()
+      .enumerate()
+      .filter_map(|(idx, (_, cache))| match &cache.chunk_desc {
+        ChunkDesc::Entry(entry_desc) => {
+          let entry_modules = &entry_desc.entry_modules;
+          let mut assign_depths_map = IdentifierMap::default();
+          assign_depths(&mut assign_depths_map, entry_modules.iter(), outgoings);
+          Some((idx, assign_depths_map))
+        }
+        _ => None,
+      })
+      .collect::<HashMap<_, _>>();
 
     for (idx, (reuse, cache)) in finalize_result.chunks.into_iter().enumerate() {
       let chunk_desc = cache.chunk_desc;
@@ -1282,12 +1322,9 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
             }
 
             if initial {
-              let mut assign_depths_map = IdentifierMap::default();
-              assign_depths(
-                &mut assign_depths_map,
-                &compilation.get_module_graph(),
-                entry_modules.iter(),
-              );
+              let assign_depths_map = assigned_depths
+                .remove(&idx)
+                .expect("should have assign depths map");
               let mut module_graph = compilation.get_module_graph_mut();
               for (m, depth) in assign_depths_map {
                 module_graph.set_depth_if_lower(&m, depth);
@@ -1572,37 +1609,26 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     idx_by_name: &HashMap<String, usize>,
     chunks_by_block: &HashMap<AsyncDependenciesBlockIdentifier, Vec<usize>>,
   ) -> (Vec<IndexSet<usize>>, Vec<IndexSet<usize>>) {
-    let chunks_len = chunks.len();
     // map that records info about chunk to its parents
     // this is useful when calculate removeAvailableModules, as it needs calculate based on parents
-    let mut chunk_parents: Vec<IndexSet<usize>> = Vec::with_capacity(chunks_len);
-
-    // this is useful when determine chunk index, the order index of chunk is deterministic,
-    // we use chunk outgoing blocks order to ensure that
-    let mut chunk_children: Vec<IndexSet<usize>> = vec![Default::default(); chunks_len];
-
-    let mut parents = HashSet::default();
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      parents.clear();
-      match &cache.chunk_desc {
-        ChunkDesc::Entry(entry) => {
-          if let Some(depend_on) = &entry.options.depend_on {
-            let depend_on_parents: IndexSet<usize> = depend_on
+    let chunk_parents = chunks
+      .par_iter()
+      .enumerate()
+      .map(|(idx, (_, cache))| match &cache.chunk_desc {
+        ChunkDesc::Entry(entry) => entry
+          .options
+          .depend_on
+          .as_ref()
+          .map(|depend_on| {
+            depend_on
               .iter()
               .map(|dep| idx_by_name.get(dep.as_str()).expect("unreachable"))
               .copied()
-              .collect();
-
-            for parent in &depend_on_parents {
-              chunk_children[*parent].insert(idx);
-            }
-
-            chunk_parents.push(depend_on_parents);
-          } else {
-            chunk_parents.push(Default::default());
-          }
-        }
+              .collect::<IndexSet<_>>()
+          })
+          .unwrap_or_default(),
         ChunkDesc::Chunk(chunk) => {
+          let mut parents = IndexSet::default();
           for block in &chunk.incoming_blocks {
             let Some(chunk_parents) = chunks_by_block.get(block) else {
               continue;
@@ -1610,26 +1636,35 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
             parents.extend(chunk_parents);
           }
-          chunk_parents.push(
-            parents
-              .iter()
-              .filter(|parent| **parent != idx)
-              .copied()
-              .collect(),
-          );
-        }
-      }
-    }
 
-    for (idx, (_, cache)) in chunks.iter().enumerate() {
-      chunk_children[idx].extend(
+          let _ = parents.shift_remove(&idx);
+          parents
+        }
+      })
+      .collect::<Vec<_>>();
+
+    // this is useful when determine chunk index, the order index of chunk is deterministic,
+    // we use chunk outgoing blocks order to ensure that
+    let mut chunk_children = chunks
+      .par_iter()
+      .enumerate()
+      .map(|(idx, (_, cache))| {
         cache
           .chunk_desc
           .outgoings()
           .iter()
           .filter_map(|outgoing_block| chunks_origin_block.get(outgoing_block).copied())
-          .filter(|child| *child != idx),
-      );
+          .filter(|child| *child != idx)
+          .collect::<IndexSet<_>>()
+      })
+      .collect::<Vec<_>>();
+
+    for (idx, parents) in chunk_parents.iter().enumerate().rev() {
+      if matches!(chunks[idx].1.chunk_desc, ChunkDesc::Entry(_)) {
+        for parent in parents.iter().rev() {
+          chunk_children[*parent].insert_before(0, idx);
+        }
+      }
     }
 
     (chunk_parents, chunk_children)
@@ -1750,6 +1785,23 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     compilation.chunk_graph.add_module(m);
   }
 
+  let outgoings = compilation
+    .get_module_graph()
+    .modules()
+    .keys()
+    .par_bridge()
+    .map(|m| {
+      (
+        *m,
+        compilation
+          .get_module_graph()
+          .get_outgoing_connections(m)
+          .map(|con| *con.module_identifier())
+          .collect::<Vec<_>>(),
+      )
+    })
+    .collect::<IdentifierMap<_>>();
+
   let mutations = compilation
     .incremental
     .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
@@ -1779,7 +1831,7 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
   };
 
   // fill chunks with its modules
-  splitter.create_chunks(compilation)?;
+  splitter.create_chunks(compilation, &outgoings)?;
 
   compilation.code_splitting_cache.new_code_splitter = splitter;
 

@@ -1,15 +1,11 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
-use async_trait::async_trait;
 use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
+use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
-use tokio::task::JoinSet;
 
-#[async_trait]
-pub trait Ignored: Send + Sync {
-  async fn ignore(&self, path: &str) -> Result<bool>;
-}
+use super::FsWatcherIgnored;
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the PathRegister. This allows iteration over all registered paths as a single sequence.
@@ -122,40 +118,32 @@ impl PathUpdater {
   ///
   /// * `paths` - A reference to the set of paths to update.
   /// * `ignored` - An optional reference to an ignored paths filter.
-  pub async fn update(
+  pub fn update(
     self,
     paths: &HashSet<ArcPath>,
     incremental_manager: &IncrementalManager,
-    ignored: Option<Arc<dyn Ignored>>,
+    ignored: &FsWatcherIgnored,
   ) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
-    let mut tasks = JoinSet::new();
-
-    for added in added_paths {
-      let ignored_cloned = ignored.clone();
-      tasks.spawn(async move {
-        // Skip ignored paths
-        if let Some(ignored) = &ignored_cloned {
-          if ignored.ignore(&added).await? {
-            return Ok::<_, rspack_error::Error>(None);
-          }
+    for should_be_added in added_paths
+      .par_iter()
+      .map(|added| {
+        if ignored.should_be_ignored(added) {
+          return None; // Skip ignored paths
         }
-        // Return valid path
-        let path = ArcPath::from(PathBuf::from(&added));
-        Ok(Some(path))
-      });
-    }
 
-    let should_added_paths = tasks.join_all().await;
-
-    for should_added_path in should_added_paths {
-      if let Some(path) = should_added_path? {
-        // Insert the path into the set
-        paths.insert(path.clone());
-        incremental_manager.insert_added(path);
-      }
+        let path = ArcPath::from(PathBuf::from(added));
+        Some(path)
+      })
+      .collect::<Vec<_>>()
+      .into_iter()
+      .flatten()
+    {
+      // Insert the path into the set
+      paths.insert(should_be_added.clone());
+      incremental_manager.insert_added(should_be_added);
     }
 
     for removed in removed_paths {
@@ -210,12 +198,12 @@ pub struct PathManager {
   incremental_files: IncrementalManager,
   incremental_directories: IncrementalManager,
   incremental_missing: IncrementalManager,
-  pub ignored: Option<Arc<dyn Ignored>>,
+  pub ignored: FsWatcherIgnored,
 }
 
 impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
-  pub fn new(ignored: Option<Arc<dyn Ignored>>) -> Self {
+  pub fn new(ignored: FsWatcherIgnored) -> Self {
     Self {
       files: HashSet::new(),
       directories: HashSet::new(),
@@ -234,29 +222,20 @@ impl PathManager {
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
-  pub async fn update_paths(
+  pub fn update_paths(
     &self,
     files: PathUpdater,
     directories: PathUpdater,
     missing: PathUpdater,
   ) -> Result<()> {
-    tokio::try_join!(
-      files.update(
-        &self.files,
-        &self.incremental_files,
-        self.ignored.as_ref().map(|i| i.clone()),
-      ),
-      directories.update(
-        &self.directories,
-        &self.incremental_directories,
-        self.ignored.as_ref().map(|i| i.clone()),
-      ),
-      missing.update(
-        &self.missing,
-        &self.incremental_missing,
-        self.ignored.as_ref().map(|i| i.clone()),
-      ),
+    files.update(&self.files, &self.incremental_files, &self.ignored)?;
+    directories.update(
+      &self.directories,
+      &self.incremental_directories,
+      &self.ignored,
     )?;
+    missing.update(&self.missing, &self.incremental_missing, &self.ignored)?;
+
     Ok(())
   }
 
@@ -268,27 +247,14 @@ impl PathManager {
 
 #[cfg(test)]
 mod tests {
-  use std::{path::PathBuf, sync::Arc};
+  use std::path::PathBuf;
 
-  use async_trait::async_trait;
   use dashmap::DashSet as HashSet;
-  use rspack_error::Result;
 
   use super::*;
 
-  struct TestIgnored {
-    pub ignored: Vec<String>,
-  }
-
-  #[async_trait]
-  impl Ignored for TestIgnored {
-    async fn ignore(&self, path: &str) -> Result<bool> {
-      Ok(self.ignored.iter().any(|ignore| path.contains(ignore)))
-    }
-  }
-
-  #[tokio::test]
-  async fn test_updater() {
+  #[test]
+  fn test_updater() {
     let updater = PathUpdater {
       added: vec![
         "src/index.js".to_string(),
@@ -298,14 +264,14 @@ mod tests {
       removed: vec![],
     };
     let paths: HashSet<ArcPath> = HashSet::new();
-    let ignored = Arc::new(TestIgnored {
-      ignored: vec!["node_modules".to_string(), ".git".to_string()],
-    });
+    let ignored = FsWatcherIgnored::Paths(vec![
+      "**/.git/**".to_owned(),
+      "**/node_modules/**".to_owned(),
+    ]);
     let incremental_manager = IncrementalManager::default();
 
     updater
-      .update(&paths, &incremental_manager, Some(ignored))
-      .await
+      .update(&paths, &incremental_manager, &ignored)
       .unwrap();
 
     let mut path_iter = paths.into_iter();
@@ -330,7 +296,7 @@ mod tests {
     let miss_0 = ArcPath::from(PathBuf::from("src/page/index.ts"));
     missing.insert(miss_0);
 
-    let mut path_manager = PathManager::new(None);
+    let mut path_manager = PathManager::default();
     path_manager.files.extend(files);
     path_manager.directories.extend(directories);
     path_manager.missing.extend(missing);
@@ -347,18 +313,19 @@ mod tests {
     assert_eq!(all_paths, vec!["src", "src/index.js", "src/page/index.ts"]);
   }
 
-  #[tokio::test]
-  async fn test_manager() {
-    let ignored = Arc::new(TestIgnored {
-      ignored: vec!["node_modules".to_string(), ".git".to_string()],
-    });
-    let path_manager = PathManager::new(Some(ignored));
+  #[test]
+  fn test_manager() {
+    let ignored = FsWatcherIgnored::Paths(vec![
+      "**/node_modules/**".to_string(),
+      "**/.git/**".to_string(),
+    ]);
+    let path_manager = PathManager::new(ignored);
     let files = PathUpdater {
       added: vec!["src/index.js".to_string()],
       removed: vec![],
     };
     let directories = PathUpdater {
-      added: vec!["src".to_string(), "node_modules".to_string()],
+      added: vec!["src/".to_string(), "node_modules/".to_string()],
       removed: vec![],
     };
     let missing = PathUpdater {
@@ -367,7 +334,6 @@ mod tests {
     };
     path_manager
       .update_paths(files, directories, missing)
-      .await
       .unwrap();
 
     let accessor = path_manager.access();
@@ -378,6 +344,6 @@ mod tests {
 
     all_paths.sort();
 
-    assert_eq!(all_paths, vec!["src", "src/index.js", "src/page/index.ts"]);
+    assert_eq!(all_paths, vec!["src/", "src/index.js", "src/page/index.ts"]);
   }
 }

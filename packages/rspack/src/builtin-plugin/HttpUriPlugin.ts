@@ -128,7 +128,7 @@ export class HttpUriPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin | undefined {
-		const { options } = this;
+		const options = this.options;
 		const lockfileLocation =
 			options.lockfileLocation ??
 			path.join(

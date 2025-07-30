@@ -1,8 +1,11 @@
 use derive_more::Debug;
 use rspack_collections::{IdentifierSet, UkeySet};
-use rspack_core::{ChunkUkey, Compilation, Module};
+use rspack_core::{ChunkUkey, ModuleIdentifier};
 
-use crate::{common::SplitChunkSizes, CacheGroup};
+use crate::{
+  common::{ModuleSizes, SplitChunkSizes},
+  CacheGroup,
+};
 
 /// `ModuleGroup` is a abstraction of middle step for splitting chunks.
 ///
@@ -49,30 +52,30 @@ impl ModuleGroup {
     }
   }
 
-  pub fn add_module(&mut self, module: &dyn Module, compilation: &Compilation) {
+  pub fn add_module(&mut self, module: ModuleIdentifier, module_sizes: &ModuleSizes) {
     let old_len = self.modules.len();
-    let module_graph = compilation.get_module_graph();
-    self.modules.insert(module.identifier());
+    self.modules.insert(module);
 
     if self.modules.len() != old_len {
-      module.source_types(&module_graph).iter().for_each(|ty| {
+      let module_sizes = module_sizes.get(&module).expect("should have module size");
+      for (ty, s) in module_sizes.iter() {
         let size = self.sizes.entry(*ty).or_default();
-        *size += module.size(Some(ty), Some(compilation));
-      });
+        *size += s;
+      }
     }
   }
 
-  pub fn remove_module(&mut self, module: &dyn Module, compilation: &Compilation) {
+  pub fn remove_module(&mut self, module: ModuleIdentifier, module_sizes: &ModuleSizes) {
     let old_len = self.modules.len();
-    self.modules.remove(&module.identifier());
+    self.modules.remove(&module);
 
-    let module_graph = compilation.get_module_graph();
     if self.modules.len() != old_len {
-      module.source_types(&module_graph).iter().for_each(|ty| {
+      let module_sizes = module_sizes.get(&module).expect("should have module size");
+      for (ty, s) in module_sizes.iter() {
         let size = self.sizes.entry(*ty).or_default();
-        *size -= module.size(Some(ty), Some(compilation));
-        *size = size.max(0.0)
-      });
+        *size -= s;
+        *size = size.max(0.0);
+      }
     }
   }
 

@@ -1,6 +1,6 @@
+import { useNavigate } from '@rspress/core/runtime';
 import { Hero as BaseHero } from '@rstack-dev/doc-ui/hero';
 import { memo, useCallback } from 'react';
-import { useNavigate } from 'rspress/runtime';
 import { useI18n, useI18nUrl } from '../../../i18n';
 
 const Hero = memo(() => {

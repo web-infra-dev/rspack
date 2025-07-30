@@ -228,7 +228,7 @@ pub struct JavascriptParser<'parser> {
   pub source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
   pub parse_meta: ParseMeta,
-  pub(crate) comments: Option<&'parser dyn Comments>,
+  pub comments: Option<&'parser dyn Comments>,
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
@@ -478,6 +478,10 @@ impl<'parser> JavascriptParser<'parser> {
       return false;
     };
     curr_path.span() == expr_span
+  }
+
+  pub fn get_module_layer(&self) -> Option<&ModuleLayer> {
+    self.module_layer
   }
 
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {

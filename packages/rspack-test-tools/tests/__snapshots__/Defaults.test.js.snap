@@ -44,7 +44,7 @@ Object {
     inlineEnum: false,
     layers: false,
     lazyCompilation: false,
-    parallelCodeSplitting: true,
+    parallelCodeSplitting: false,
     parallelLoader: false,
     rspackFuture: Object {
       bundlerInfo: Object {

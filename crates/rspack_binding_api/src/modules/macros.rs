@@ -5,7 +5,7 @@ macro_rules! impl_module_methods {
       fn new_inherited<'a>(
         self,
         env: &'a napi::Env,
-        mut properties: Vec<napi::Property>,
+        properties: &mut Vec<napi::Property>,
       ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'a, Self>> {
         use napi::bindgen_prelude::{JavaScriptClassExt, JsObjectValue, JsValue};
 
@@ -238,7 +238,7 @@ macro_rules! impl_module_methods {
           );
           Ok::<(), napi::Error>(())
         })?;
-        object.define_properties(&properties)?;
+        object.define_properties(properties)?;
 
         Ok(instance)
       }

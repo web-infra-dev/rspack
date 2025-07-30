@@ -67,9 +67,7 @@ impl JsResolver {
   pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, ()>> {
     block_on(async {
       match self.resolver.resolve(Path::new(&path), &request).await {
-        Ok(rspack_core::ResolveResult::Resource(resource)) => {
-          Ok(Either::A(resource.path.to_string()))
-        }
+        Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(Either::A(resource.full_path())),
         Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(())),
         Err(err) => Err(napi::Error::from_reason(format!("{err:?}"))),
       }

@@ -11,37 +11,22 @@ import type { FileSystemInfoEntry, Watcher, WatchFileSystem } from "./util/fs";
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/watchpack/blob/main/LICENSE
  */
-const stringToRegexp = (ignored: string) => {
-	if (ignored.length === 0) {
-		return;
-	}
-	const globToRegExp: typeof import("glob-to-regexp") = require("glob-to-regexp");
-	const { source } = globToRegExp(ignored, { globstar: true, extended: true });
-	return `${source.slice(0, -1)}(?:$|\\/)`;
-};
+type JsWatcherIgnored = string | string[] | RegExp | undefined;
 
-const ignoredToFunction = (ignored: Watchpack.WatchOptions["ignored"]) => {
-	if (Array.isArray(ignored)) {
-		const stringRegexps = ignored.map(i => stringToRegexp(i)).filter(Boolean);
-		if (stringRegexps.length === 0) {
-			return () => false;
-		}
-		const regexp = new RegExp(stringRegexps.join("|"));
-		return (item: string) => regexp.test(item.replace(/\\/g, "/"));
-	}
-	if (typeof ignored === "string") {
-		const stringRegexp = stringToRegexp(ignored);
-		if (!stringRegexp) {
-			return () => false;
-		}
-		const regexp = new RegExp(stringRegexp);
-		return (item: string) => regexp.test(item.replace(/\\/g, "/"));
-	}
-	if (ignored instanceof RegExp) {
-		return (item: string) => ignored.test(item.replace(/\\/g, "/"));
+const toJsWatcherIgnored = (
+	ignored: Watchpack.WatchOptions["ignored"]
+): JsWatcherIgnored => {
+	if (
+		Array.isArray(ignored) ||
+		typeof ignored === "string" ||
+		ignored instanceof RegExp
+	) {
+		return ignored;
 	}
 	if (typeof ignored === "function") {
-		return (item: string) => ignored(item);
+		throw new Error(
+			"NativeWatcher does not support using a function for the 'ignored' option"
+		);
 	}
 	if (ignored) {
 		throw new Error(`Invalid option for 'ignored': ${ignored}`);
@@ -157,7 +142,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			followSymlinks: options.followSymlinks,
 			aggregateTimeout: options.aggregateTimeout,
 			pollInterval: typeof options.poll === "boolean" ? 0 : options.poll,
-			ignored: ignoredToFunction(options.ignored)
+			ignored: toJsWatcherIgnored(options.ignored)
 		};
 		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
 		this.#inner = nativeWatcher;

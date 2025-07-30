@@ -62,7 +62,7 @@ impl MakeOccasion {
     artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies, isolated_modules);
 
     // regenerate statistical data
-    // TODO remove set make_failed_module after all of module are cacheable
+    // TODO set make_failed_module after module.diagnostic are cacheable
     // make failed module include diagnostic that do not support cache, so recovery will not include failed module
     artifact.make_failed_module = Default::default();
     // recovery *_dep

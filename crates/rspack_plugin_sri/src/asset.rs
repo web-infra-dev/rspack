@@ -208,6 +208,7 @@ fn digest_chunks(compilation: &Compilation) -> Vec<HashSet<ChunkUkey>> {
       visited_chunk_groups.insert(chunk_group);
       if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
         batch_chunk_groups.extend(chunk_group.children.iter());
+        batch_chunk_groups.extend(chunk_group.async_entrypoints_iterable());
         for chunk in chunk_group.chunks.iter() {
           if visited_chunks.contains(chunk) {
             continue;
