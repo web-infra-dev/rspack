@@ -184,9 +184,9 @@ export declare class ConcatenatedModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string   | null): number
+  size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo   | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ContextModule {
@@ -195,9 +195,9 @@ export declare class ContextModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string   | null): number
+  size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo   | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class Dependency {
@@ -215,7 +215,7 @@ export declare class Diagnostics {
   values(): Array<RspackError>
   get(index: number): RspackError | undefined
   set(index: number, error: RspackError): void
-  spliceWithArray(index: number, deleteCount?: number   | null, newItems?: Array<RspackError>   | null): Array<RspackError>
+  spliceWithArray(index: number, deleteCount?: number | undefined | null, newItems?: Array<RspackError> | undefined | null): Array<RspackError>
 }
 
 export declare class EntryDataDto {
@@ -258,9 +258,9 @@ export declare class ExternalModule {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string   | null): number
+  size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo   | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class JsCompilation {
@@ -280,7 +280,7 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, assetInfo?: AssetInfo   | null): void
+  emitAsset(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): ChunkGroup[]
@@ -317,7 +317,7 @@ export declare class JsCompilation {
   addEntry(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void): void
   get codeGenerationResults(): CodeGenerationResults
-  createStatsWarnings(warnings: Array<RspackError>, colored?: boolean   | null): JsStatsError[]
+  createStatsWarnings(warnings: Array<RspackError>, colored?: boolean | undefined | null): JsStatsError[]
 }
 
 export declare class JsCompiler {
@@ -406,7 +406,7 @@ export declare class JsModuleGraph {
 export declare class JsResolver {
   resolveSync(path: string, request: string): string | undefined
   resolve(path: string, request: string, callback: (err: null | Error, req?: string) => void): void
-  withOptions(raw?: RawResolveOptionsWithDependencyType   | null): JsResolver
+  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
 export declare class JsResolverFactory {
@@ -429,9 +429,9 @@ export declare class Module {
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
-  size(ty?: string   | null): number
+  size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo   | null): void
+  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ModuleGraphConnection {
@@ -463,7 +463,7 @@ export declare class NativeWatchResult {
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
-  getResolve(options?: RawResolveOptionsWithDependencyType   | null): (context: string, path: string, callback: (error?: Error, text?: string) => void) => void
+  getResolve(options?: RawResolveOptionsWithDependencyType | undefined | null): (context: string, path: string, callback: (error?: Error, text?: string) => void) => void
 }
 
 export declare class ReadonlyResourceData {
