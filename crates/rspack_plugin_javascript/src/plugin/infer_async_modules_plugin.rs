@@ -2,9 +2,9 @@ use linked_hash_set::LinkedHashSet;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  incremental::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Logger,
   ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

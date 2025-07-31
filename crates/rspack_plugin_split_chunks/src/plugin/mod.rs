@@ -14,7 +14,7 @@ use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use rustc_hash::FxHashMap;
 use tracing::instrument;
 
-use crate::{common::FallbackCacheGroup, module_group::ModuleGroup, CacheGroup, SplitChunkSizes};
+use crate::{CacheGroup, SplitChunkSizes, common::FallbackCacheGroup, module_group::ModuleGroup};
 
 type ModuleGroupMap = FxHashMap<String, ModuleGroup>;
 
@@ -83,7 +83,10 @@ impl SplitChunksPlugin {
       );
 
       let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
-      tracing::trace!("{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reason());
+      tracing::trace!(
+        "{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}",
+        new_chunk_mut.chunk_reason()
+      );
 
       if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
         chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
@@ -118,7 +121,10 @@ impl SplitChunksPlugin {
 
         if used_chunks_len < cache_group.min_chunks as usize {
           // `min_size` is not satisfied, ignore this invalid `ModuleGroup`
-          tracing::trace!("ModuleGroup({module_group_key}) is skipped. Reason: used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})", cache_group.min_chunks);
+          tracing::trace!(
+            "ModuleGroup({module_group_key}) is skipped. Reason: used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})",
+            cache_group.min_chunks
+          );
           continue;
           // return;
         }

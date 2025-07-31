@@ -1,9 +1,8 @@
 use std::{any::Any, sync::Arc};
 
 use rspack_cacheable::{
-  enable_cacheable as cacheable, from_bytes, to_bytes,
+  DeserializeError, SerializeError, enable_cacheable as cacheable, from_bytes, to_bytes,
   with::{As, AsConverter},
-  DeserializeError, SerializeError,
 };
 
 #[derive(Debug, PartialEq, Eq)]

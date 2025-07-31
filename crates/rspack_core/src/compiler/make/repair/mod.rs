@@ -12,13 +12,13 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeArtifact;
 use crate::{
-  incremental::Incremental,
-  module_graph::{ModuleGraph, ModuleGraphPartial},
-  old_cache::Cache as OldCache,
-  utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
   DependencyTemplateType, DependencyType, ModuleFactory, ModuleProfile, ResolverFactory,
   SharedPluginDriver,
+  incremental::Incremental,
+  module_graph::{ModuleGraph, ModuleGraphPartial},
+  old_cache::Cache as OldCache,
+  utils::task_loop::{Task, run_task_loop},
 };
 
 #[derive(Debug)]
@@ -62,7 +62,7 @@ impl MakeTaskContext {
   }
 
   // TODO use module graph with make artifact
-  pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraph {
+  pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraph<'_> {
     ModuleGraph::new([None, None], Some(partial))
   }
 

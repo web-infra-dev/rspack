@@ -1,7 +1,7 @@
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeyMap};
 use rspack_error::Diagnostic;
 
-use crate::{chunk_graph_chunk::ChunkId, ChunkRenderResult, ChunkUkey, ModuleId, RuntimeGlobals};
+use crate::{ChunkRenderResult, ChunkUkey, ModuleId, RuntimeGlobals, chunk_graph_chunk::ChunkId};
 
 mod cgm_hash_artifact;
 mod cgm_runtime_requirement_artifact;

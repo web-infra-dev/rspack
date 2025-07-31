@@ -1,6 +1,6 @@
 use std::{any::Any, sync::Arc};
 
-use rspack_cacheable::{cacheable, with::AsConverter, DeserializeError, SerializeError};
+use rspack_cacheable::{DeserializeError, SerializeError, cacheable, with::AsConverter};
 use rspack_fs::ReadableFileSystem;
 
 use crate::CompilerOptions;

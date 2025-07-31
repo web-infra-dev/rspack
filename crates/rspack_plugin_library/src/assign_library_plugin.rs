@@ -4,15 +4,16 @@ use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, CompilerOptions, EntryData, ExportProvided, Filename, LibraryExport,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
+  PluginContext, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, UsageState,
   get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportProvided, Filename,
-  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData,
-  Plugin, PluginContext, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, UsageState,
+  to_identifier,
 };
-use rspack_error::{error, error_bail, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error, error_bail};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -20,7 +21,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
 
-use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.AssignLibraryPlugin";
 
@@ -228,9 +229,9 @@ async fn render(
       .await?[0];
     if !is_name_valid(base) {
       let base_identifier = to_identifier(base);
-      return Err(
-        error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
-      );
+      return Err(error!(
+        "Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"
+      ));
     }
     let mut source = ConcatSource::default();
     source.add(RawStringSource::from(format!("var {base};\n")));

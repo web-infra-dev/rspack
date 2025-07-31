@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule};
+use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]

@@ -14,7 +14,7 @@ impl VTablePtr {
   /// The casting target `T` must be consistent with the `T` in VTablePtr::new<T>
   /// Currently it is implemented by store VTablePtr as values in HashMap to associate the types with __DYN_ID
   pub const unsafe fn cast<T: ?Sized>(self) -> DynMetadata<T> {
-    core::mem::transmute(self.0)
+    unsafe { core::mem::transmute(self.0) }
   }
 }
 unsafe impl Send for VTablePtr {}

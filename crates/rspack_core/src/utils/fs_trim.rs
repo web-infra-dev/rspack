@@ -110,7 +110,7 @@ mod test {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::Utf8Path;
 
-  use crate::{trim_dir, KeepPattern};
+  use crate::{KeepPattern, trim_dir};
 
   #[tokio::test]
   async fn async_fs_test() {
@@ -139,13 +139,15 @@ mod test {
         .is_ok()
     );
 
-    assert!(trim_dir(
-      &fs,
-      Utf8Path::new("/ex"),
-      KeepPattern::Path(Utf8Path::new("/ex/a2"))
-    )
-    .await
-    .is_ok());
+    assert!(
+      trim_dir(
+        &fs,
+        Utf8Path::new("/ex"),
+        KeepPattern::Path(Utf8Path::new("/ex/a2"))
+      )
+      .await
+      .is_ok()
+    );
 
     let children = WritableFileSystem::read_dir(&fs, Utf8Path::new("/ex"))
       .await

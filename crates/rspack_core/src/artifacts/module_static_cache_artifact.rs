@@ -1,6 +1,6 @@
 use std::sync::{
-  atomic::{AtomicBool, Ordering},
   Arc, RwLock,
+  atomic::{AtomicBool, Ordering},
 };
 
 use readable_identifier::*;

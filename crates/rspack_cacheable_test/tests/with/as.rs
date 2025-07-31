@@ -1,9 +1,8 @@
 use std::{any::Any, path::PathBuf};
 
 use rspack_cacheable::{
-  enable_cacheable as cacheable,
+  DeserializeError, SerializeError, enable_cacheable as cacheable,
   with::{As, AsConverter},
-  DeserializeError, SerializeError,
 };
 
 #[derive(Debug, PartialEq, Eq)]

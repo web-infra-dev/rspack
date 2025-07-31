@@ -1,6 +1,6 @@
 use rspack_core::{
-  compare_modules_by_pre_order_index_or_identifier, incremental::IncrementalPasses, ApplyContext,
-  CompilationModuleIds, CompilerOptions, Plugin, PluginContext,
+  ApplyContext, CompilationModuleIds, CompilerOptions, Plugin, PluginContext,
+  compare_modules_by_pre_order_index_or_identifier, incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

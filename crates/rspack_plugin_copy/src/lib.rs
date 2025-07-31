@@ -1,22 +1,21 @@
-#![feature(let_chains)]
 use std::{
   borrow::Cow,
   fmt::Display,
   hash::Hash,
   ops::DerefMut,
-  path::{Path, PathBuf, MAIN_SEPARATOR},
+  path::{MAIN_SEPARATOR, Path, PathBuf},
   sync::{Arc, LazyLock, Mutex},
 };
 
 use dashmap::DashSet;
 use derive_more::Debug;
-use futures::future::{join_all, BoxFuture};
+use futures::future::{BoxFuture, join_all};
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{RawSource, Source},
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  rspack_sources::{RawSource, Source},
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
@@ -189,7 +188,8 @@ impl CopyRspackPlugin {
             absolute_filename: &absolute_filename,
           })
           .await;
-          let to = match result {
+
+          match result {
             Ok(to) => to,
             Err(e) => {
               diagnostics
@@ -201,8 +201,7 @@ impl CopyRspackPlugin {
                 ));
               "".to_string()
             }
-          };
-          to
+          }
         }
       };
 
@@ -664,42 +663,41 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Handle permission copying after all assets are emitted
   for (pattern_index, source_path, dest_path) in permission_copies.iter() {
-    if let Some(pattern) = self.patterns.get(*pattern_index) {
-      if pattern.copy_permissions.unwrap_or(false) {
-        if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
-          // Make sure the output directory exists
-          if let Some(parent) = dest_path.parent() {
-            compilation
-              .output_filesystem
-              .create_dir_all(parent)
-              .await
-              .unwrap_or_else(|e| {
-                logger.warn(format!("Failed to create directory {parent:?}: {e}"));
-              });
-          }
+    if let Some(pattern) = self.patterns.get(*pattern_index)
+      && pattern.copy_permissions.unwrap_or(false)
+      && let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await
+    {
+      // Make sure the output directory exists
+      if let Some(parent) = dest_path.parent() {
+        compilation
+          .output_filesystem
+          .create_dir_all(parent)
+          .await
+          .unwrap_or_else(|e| {
+            logger.warn(format!("Failed to create directory {parent:?}: {e}"));
+          });
+      }
 
-          // Make sure the file exists before trying to set permissions
-          if !dest_path.exists() {
-            logger.warn(format!(
-              "Destination file {dest_path:?} does not exist, cannot copy permissions"
-            ));
-            continue;
-          }
+      // Make sure the file exists before trying to set permissions
+      if !dest_path.exists() {
+        logger.warn(format!(
+          "Destination file {dest_path:?} does not exist, cannot copy permissions"
+        ));
+        continue;
+      }
 
-          if let Err(e) = compilation
-            .output_filesystem
-            .set_permissions(dest_path, permissions)
-            .await
-          {
-            logger.warn(format!(
-              "Failed to copy permissions from {source_path:?} to {dest_path:?}: {e}"
-            ));
-          } else {
-            logger.log(format!(
-              "Successfully copied permissions from {source_path:?} to {dest_path:?}"
-            ));
-          }
-        }
+      if let Err(e) = compilation
+        .output_filesystem
+        .set_permissions(dest_path, permissions)
+        .await
+      {
+        logger.warn(format!(
+          "Failed to copy permissions from {source_path:?} to {dest_path:?}: {e}"
+        ));
+      } else {
+        logger.log(format!(
+          "Successfully copied permissions from {source_path:?} to {dest_path:?}"
+        ));
       }
     }
   }

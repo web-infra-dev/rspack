@@ -30,7 +30,7 @@ macro_rules! impl_module_methods {
         }
 
         #[js_function]
-        fn layer_getter(ctx: napi::CallContext) -> napi::Result<napi::Either<&String, ()>> {
+        fn layer_getter(ctx: napi::CallContext<'_>) -> napi::Result<napi::Either<&String, ()>> {
           let this = ctx.this::<napi::JsObject>()?;
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
@@ -255,7 +255,7 @@ macro_rules! impl_module_methods {
       pub fn original_source(
         &mut self,
         env: &napi::Env,
-      ) -> napi::Result<napi::Either<$crate::JsCompatSource, ()>> {
+      ) -> napi::Result<napi::Either<$crate::JsCompatSource<'_>, ()>> {
         self.module.original_source(env)
       }
 

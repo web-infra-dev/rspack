@@ -14,7 +14,7 @@ use crate::{
     eval::{self, BasicEvaluatedExpression},
     object_properties::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop},
   },
-  visitors::{clean_regexp_in_context_module, context_reg_exp, expr_name, JavascriptParser},
+  visitors::{JavascriptParser, clean_regexp_in_context_module, context_reg_exp, expr_name},
 };
 
 fn create_import_meta_context_dependency(

@@ -1,9 +1,9 @@
 use std::{
-  collections::{hash_map, HashMap},
+  collections::{HashMap, hash_map},
   hash::{BuildHasherDefault, Hash, Hasher},
 };
 
-use dashmap::{mapref::entry::Entry, DashMap};
+use dashmap::{DashMap, mapref::entry::Entry};
 use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
@@ -17,14 +17,14 @@ use rustc_hash::{FxHashMap, FxHasher};
 
 use super::ModuleGroupMap;
 use crate::{
+  SplitChunksPlugin,
   common::ModuleSizes,
-  module_group::{compare_entries, CacheGroupIdx, ModuleGroup},
+  module_group::{CacheGroupIdx, ModuleGroup, compare_entries},
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
     chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx},
   },
-  SplitChunksPlugin,
 };
 
 type ChunksKey = u64;
@@ -191,7 +191,7 @@ impl Combinator {
     &mut self,
     module_graph: &ModuleGraph,
     chunk_graph: &ChunkGraph,
-  ) -> ChunkSetsInGraph {
+  ) -> ChunkSetsInGraph<'_> {
     let chunk_sets_in_graph = &mut self.chunk_sets_in_graph;
     let chunk_sets_by_count = &mut self.chunk_sets_by_count;
 
@@ -216,7 +216,7 @@ impl Combinator {
     (&self.chunk_sets_in_graph, &self.chunk_sets_by_count)
   }
 
-  fn group_by_chunks(&self) -> ChunkSetsInGraph {
+  fn group_by_chunks(&self) -> ChunkSetsInGraph<'_> {
     (&self.chunk_sets_in_graph, &self.chunk_sets_by_count)
   }
 
@@ -225,7 +225,7 @@ impl Combinator {
     module_graph: &ModuleGraph,
     chunk_graph: &ChunkGraph,
     chunk_by_ukey: &ChunkByUkey,
-  ) -> ChunkSetsInGraph {
+  ) -> ChunkSetsInGraph<'_> {
     let grouped_by_exports = &mut self.grouped_by_exports;
     let used_exports_chunk_sets_in_graph = &mut self.used_exports_chunk_sets_in_graph;
     let used_exports_chunk_sets_by_count = &mut self.used_exports_chunk_sets_by_count;
@@ -276,7 +276,7 @@ impl Combinator {
     )
   }
 
-  fn group_by_used_exports(&self) -> ChunkSetsInGraph {
+  fn group_by_used_exports(&self) -> ChunkSetsInGraph<'_> {
     (
       &self.used_exports_chunk_sets_in_graph,
       &self.used_exports_chunk_sets_by_count,
@@ -518,11 +518,10 @@ impl SplitChunksPlugin {
 
         // Since there are modules removed, make sure the rest of chunks are all used.
         other_module_group.chunks.retain(|c| {
-          let is_used_chunk = other_module_group
+          other_module_group
             .modules
             .iter()
-            .any(|m| compilation.chunk_graph.is_module_in_chunk(m, *c));
-          is_used_chunk
+            .any(|m| compilation.chunk_graph.is_module_in_chunk(m, *c))
         });
 
         let cache_group = other_module_group.get_cache_group(&self.cache_groups);

@@ -1,19 +1,19 @@
 use std::{fmt::Display, ptr};
 
 use napi::{
+  Env, JsValue, Property, PropertyAttributes, Status, Unknown, ValueType,
   bindgen_prelude::{External, FromNapiValue, JsObjectValue, Object, ToNapiValue},
   sys::{self, napi_env, napi_value},
-  Env, JsValue, Property, PropertyAttributes, Status, Unknown, ValueType,
 };
 use napi_derive::napi;
 use rspack_core::Compilation;
 use rspack_error::{
-  miette::{self, Severity},
   Diagnostic, DiagnosticExt, Error, Result, RspackSeverity,
+  miette::{self, Severity},
 };
 use rspack_napi::napi::check_status;
 
-use crate::{define_symbols, DependencyLocation, ModuleObject};
+use crate::{DependencyLocation, ModuleObject, define_symbols};
 
 pub enum ErrorCode {
   Napi(napi::Status),
@@ -107,148 +107,155 @@ impl ToNapiValue for RspackError {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    let env_wrapper = Env::from(env);
-    let Self {
-      name,
-      message,
-      details,
-      stack,
-      module,
-      loc,
-      hide_stack,
-      file,
-      error,
-      rust_diagnostic,
-      ..
-    } = val;
+    unsafe {
+      let env_wrapper = Env::from(env);
+      let Self {
+        name,
+        message,
+        details,
+        stack,
+        module,
+        loc,
+        hide_stack,
+        file,
+        error,
+        rust_diagnostic,
+        ..
+      } = val;
 
-    let js_string = env_wrapper.create_string(&message)?;
-    let mut obj = ptr::null_mut();
-    check_status!(unsafe {
-      sys::napi_create_error(env, ptr::null_mut(), js_string.raw(), &mut obj)
-    })?;
+      let js_string = env_wrapper.create_string(&message)?;
+      let mut obj = ptr::null_mut();
+      check_status!(sys::napi_create_error(
+        env,
+        ptr::null_mut(),
+        js_string.raw(),
+        &mut obj
+      ))?;
 
-    let mut obj = Object::from_raw(env, obj);
-    obj.set("name", name)?;
-    if let Some(details) = details {
-      obj.set("details", details)?;
+      let mut obj = Object::from_raw(env, obj);
+      obj.set("name", name)?;
+      if let Some(details) = details {
+        obj.set("details", details)?;
+      }
+      if let Some(stack) = stack {
+        obj.set("stack", stack)?;
+      } else {
+        obj.set("stack", ())?;
+      }
+      if let Some(module) = module {
+        obj.set("module", module)?;
+      }
+      if let Some(loc) = loc {
+        obj.set("loc", loc)?;
+      }
+      if let Some(hide_stack) = hide_stack {
+        obj.set("hideStack", hide_stack)?;
+      }
+      if let Some(file) = file {
+        obj.set("file", file)?;
+      }
+      if let Some(error) = error {
+        obj.set("error", *error)?;
+      }
+      if let Some(rust_diagnostic) = rust_diagnostic {
+        RUST_ERROR_SYMBOL.with(|symbol| {
+          let napi_val = ToNapiValue::to_napi_value(env, External::new(rust_diagnostic))?;
+          let unknown = Unknown::from_napi_value(env, napi_val)?;
+          obj.define_properties(&[Property::new()
+            .with_name(&env_wrapper, symbol.get())?
+            .with_value(&unknown)
+            .with_property_attributes(PropertyAttributes::Configurable)])
+        })?;
+      }
+      ToNapiValue::to_napi_value(env, obj)
     }
-    if let Some(stack) = stack {
-      obj.set("stack", stack)?;
-    } else {
-      obj.set("stack", ())?;
-    }
-    if let Some(module) = module {
-      obj.set("module", module)?;
-    }
-    if let Some(loc) = loc {
-      obj.set("loc", loc)?;
-    }
-    if let Some(hide_stack) = hide_stack {
-      obj.set("hideStack", hide_stack)?;
-    }
-    if let Some(file) = file {
-      obj.set("file", file)?;
-    }
-    if let Some(error) = error {
-      obj.set("error", *error)?;
-    }
-    if let Some(rust_diagnostic) = rust_diagnostic {
-      RUST_ERROR_SYMBOL.with(|symbol| {
-        let napi_val = ToNapiValue::to_napi_value(env, External::new(rust_diagnostic))?;
-        let unknown = Unknown::from_napi_value(env, napi_val)?;
-        obj.define_properties(&[Property::new()
-          .with_name(&env_wrapper, symbol.get())?
-          .with_value(&unknown)
-          .with_property_attributes(PropertyAttributes::Configurable)])
-      })?;
-    }
-    ToNapiValue::to_napi_value(env, obj)
   }
 }
 
 impl FromNapiValue for RspackError {
   unsafe fn from_napi_value(env: napi_env, napi_val: napi_value) -> napi::Result<RspackError> {
-    let unknown = Unknown::from_napi_value(env, napi_val)?;
-    if unknown.get_type()? != ValueType::Object {
-      let message = unknown.coerce_to_string()?.into_utf8()?.into_owned()?;
-      return Ok(Self {
-        severity: None,
-        name: "Error".to_string(),
-        message,
-        details: None,
-        stack: None,
-        module: None,
-        loc: None,
-        hide_stack: None,
-        file: None,
-        error: None,
-        parent_error_name: None,
-        rust_diagnostic: None,
-      });
-    }
-
-    let obj = Object::from_unknown(unknown)?;
-    let name: String = obj
-      .get("name")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "name");
-        err
-      })?
-      .ok_or_else(|| napi::Error::new(Status::InvalidArg, "Missing field name"))?;
-    let message: String = obj
-      .get("message")
-      .map_err(|mut err| {
-        err.reason = format!("{} on {}.{}", err.reason, "RspackError", "message");
-        err
-      })?
-      .ok_or_else(|| napi::Error::new(Status::InvalidArg, "Missing field message"))?;
-
-    let details: Option<String> = obj.get("details").ok().flatten();
-    let stack: Option<String> = obj.get("stack").ok().flatten();
-    let module: Option<ModuleObject> = obj.get("module").ok().flatten();
-    let loc: Option<DependencyLocation> = obj.get("loc").ok().flatten();
-    let mut hide_stack: Option<bool> = obj.get("hideStack").ok().flatten();
-    if hide_stack.is_none() {
-      let literal = obj.get::<String>("hideStack").ok().flatten();
-      if literal == Some("true".to_string()) {
-        hide_stack = Some(true);
-      } else if literal == Some("false".to_string()) {
-        hide_stack = Some(false);
+    unsafe {
+      let unknown = Unknown::from_napi_value(env, napi_val)?;
+      if unknown.get_type()? != ValueType::Object {
+        let message = unknown.coerce_to_string()?.into_utf8()?.into_owned()?;
+        return Ok(Self {
+          severity: None,
+          name: "Error".to_string(),
+          message,
+          details: None,
+          stack: None,
+          module: None,
+          loc: None,
+          hide_stack: None,
+          file: None,
+          error: None,
+          parent_error_name: None,
+          rust_diagnostic: None,
+        });
       }
-    }
-    let file: Option<String> = obj.get("file").ok().flatten();
-    let error: Option<RspackError> = obj.get("error").ok().flatten();
-    let rust_diagnostic = RUST_ERROR_SYMBOL.with(|once_cell| {
-      #[allow(clippy::unwrap_used)]
-      let napi_val = ToNapiValue::to_napi_value(env, once_cell.get().unwrap())?;
-      let symbol = Unknown::from_napi_value(env, napi_val)?;
-      if let Ok(unknown) = obj.get_property::<Unknown, Unknown>(symbol) {
-        if unknown.get_type()? != napi::ValueType::External {
-          return Ok(None);
+
+      let obj = Object::from_unknown(unknown)?;
+      let name: String = obj
+        .get("name")
+        .map_err(|mut err| {
+          err.reason = format!("{} on {}.{}", err.reason, "RspackError", "name");
+          err
+        })?
+        .ok_or_else(|| napi::Error::new(Status::InvalidArg, "Missing field name"))?;
+      let message: String = obj
+        .get("message")
+        .map_err(|mut err| {
+          err.reason = format!("{} on {}.{}", err.reason, "RspackError", "message");
+          err
+        })?
+        .ok_or_else(|| napi::Error::new(Status::InvalidArg, "Missing field message"))?;
+
+      let details: Option<String> = obj.get("details").ok().flatten();
+      let stack: Option<String> = obj.get("stack").ok().flatten();
+      let module: Option<ModuleObject> = obj.get("module").ok().flatten();
+      let loc: Option<DependencyLocation> = obj.get("loc").ok().flatten();
+      let mut hide_stack: Option<bool> = obj.get("hideStack").ok().flatten();
+      if hide_stack.is_none() {
+        let literal = obj.get::<String>("hideStack").ok().flatten();
+        if literal == Some("true".to_string()) {
+          hide_stack = Some(true);
+        } else if literal == Some("false".to_string()) {
+          hide_stack = Some(false);
         }
-        let external =
-          <&External<Diagnostic> as FromNapiValue>::from_napi_value(env, unknown.raw())?;
-        return Ok::<_, napi::Error>(Some(external.as_ref().clone()));
       }
-      Ok(None)
-    })?;
+      let file: Option<String> = obj.get("file").ok().flatten();
+      let error: Option<RspackError> = obj.get("error").ok().flatten();
+      let rust_diagnostic = RUST_ERROR_SYMBOL.with(|once_cell| {
+        #[allow(clippy::unwrap_used)]
+        let napi_val = ToNapiValue::to_napi_value(env, once_cell.get().unwrap())?;
+        let symbol = Unknown::from_napi_value(env, napi_val)?;
+        if let Ok(unknown) = obj.get_property::<Unknown, Unknown>(symbol) {
+          if unknown.get_type()? != napi::ValueType::External {
+            return Ok(None);
+          }
+          let external =
+            <&External<Diagnostic> as FromNapiValue>::from_napi_value(env, unknown.raw())?;
+          return Ok::<_, napi::Error>(Some(external.as_ref().clone()));
+        }
+        Ok(None)
+      })?;
 
-    let val = Self {
-      severity: None,
-      name,
-      message,
-      details,
-      stack,
-      module,
-      loc,
-      hide_stack,
-      file,
-      error: error.map(Box::new),
-      parent_error_name: None,
-      rust_diagnostic,
-    };
-    Ok(val)
+      let val = Self {
+        severity: None,
+        name,
+        message,
+        details,
+        stack,
+        module,
+        loc,
+        hide_stack,
+        file,
+        error: error.map(Box::new),
+        parent_error_name: None,
+        rust_diagnostic,
+      };
+      Ok(val)
+    }
   }
 }
 
@@ -333,13 +340,13 @@ impl RspackError {
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     let mut module = None;
-    if let Some(module_identifier) = diagnostic.module_identifier() {
-      if let Some(m) = compilation.module_by_identifier(&module_identifier) {
-        module = Some(ModuleObject::with_ref(
-          m.as_ref(),
-          compilation.compiler_id(),
-        ));
-      }
+    if let Some(module_identifier) = diagnostic.module_identifier()
+      && let Some(m) = compilation.module_by_identifier(&module_identifier)
+    {
+      module = Some(ModuleObject::with_ref(
+        m.as_ref(),
+        compilation.compiler_id(),
+      ));
     }
 
     let error: Option<RspackError> = diagnostic.diagnostic_source().map(Into::into);

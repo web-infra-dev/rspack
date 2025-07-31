@@ -14,7 +14,7 @@ use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 
-use crate::{get_scheme, Scheme};
+use crate::{Scheme, get_scheme};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Content {

@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
 use rspack_cacheable::{
-  enable_cacheable as cacheable,
+  DeserializeError, SerializeError, enable_cacheable as cacheable,
   with::{AsString, AsStringConverter},
-  DeserializeError, SerializeError,
 };
 
 #[cacheable(with=AsString)]

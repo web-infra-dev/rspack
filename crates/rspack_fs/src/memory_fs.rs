@@ -8,9 +8,9 @@ use std::{
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  file_metadata::FilePermissions, Error, FileMetadata, IntermediateFileSystem,
-  IntermediateFileSystemExtras, IoResultToFsResultExt, ReadStream, ReadableFileSystem, Result,
-  WritableFileSystem, WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
+  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  file_metadata::FilePermissions,
 };
 
 fn current_time() -> u64 {
@@ -130,10 +130,10 @@ impl MemoryFileSystem {
     let files = self.files.lock().expect("should get lock");
     let mut res: HashSet<String> = HashSet::default();
     for path in files.keys() {
-      if let Ok(relative) = path.strip_prefix(dir) {
-        if let Some(s) = relative.iter().next() {
-          res.insert(s.to_string());
-        }
+      if let Ok(relative) = path.strip_prefix(dir)
+        && let Some(s) = relative.iter().next()
+      {
+        res.insert(s.to_string());
       }
     }
     Ok(res.into_iter().collect())
@@ -157,10 +157,10 @@ impl WritableFileSystem for MemoryFileSystem {
       return Ok(());
     }
 
-    if let Some(p) = dir.parent() {
-      if !self.contains_dir(p)? {
-        return Err(new_error("parent directory not exist"));
-      }
+    if let Some(p) = dir.parent()
+      && !self.contains_dir(p)?
+    {
+      return Err(new_error("parent directory not exist"));
     }
 
     let mut files = self.files.lock().expect("should get lock");
@@ -488,9 +488,11 @@ mod tests {
     );
 
     // stat
-    assert!(WritableFileSystem::stat(&fs, Utf8Path::new("/a/file1/c/d"))
-      .await
-      .is_err());
+    assert!(
+      WritableFileSystem::stat(&fs, Utf8Path::new("/a/file1/c/d"))
+        .await
+        .is_err()
+    );
     let file1_meta = WritableFileSystem::stat(&fs, Utf8Path::new("/a/file1"))
       .await
       .unwrap();
@@ -536,9 +538,11 @@ mod tests {
         .await
         .is_ok(),
     );
-    assert!(WritableFileSystem::stat(&fs, Utf8Path::new("/a/file2"))
-      .await
-      .is_err(),);
+    assert!(
+      WritableFileSystem::stat(&fs, Utf8Path::new("/a/file2"))
+        .await
+        .is_err(),
+    );
 
     // remove dir
     assert!(
@@ -551,11 +555,15 @@ mod tests {
         .await
         .is_err(),
     );
-    assert!(WritableFileSystem::remove_dir_all(&fs, Utf8Path::new("/a"))
-      .await
-      .is_ok(),);
-    assert!(WritableFileSystem::stat(&fs, Utf8Path::new("/a/file1"))
-      .await
-      .is_err(),);
+    assert!(
+      WritableFileSystem::remove_dir_all(&fs, Utf8Path::new("/a"))
+        .await
+        .is_ok(),
+    );
+    assert!(
+      WritableFileSystem::stat(&fs, Utf8Path::new("/a/file1"))
+        .await
+        .is_err(),
+    );
   }
 }

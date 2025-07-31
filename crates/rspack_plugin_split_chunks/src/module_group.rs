@@ -3,8 +3,8 @@ use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_core::{ChunkUkey, ModuleIdentifier};
 
 use crate::{
-  common::{ModuleSizes, SplitChunkSizes},
   CacheGroup,
+  common::{ModuleSizes, SplitChunkSizes},
 };
 
 /// `ModuleGroup` is a abstraction of middle step for splitting chunks.

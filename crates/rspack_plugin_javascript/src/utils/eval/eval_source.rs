@@ -1,12 +1,12 @@
 use std::{fmt::Display, sync::Arc};
 
-use rspack_error::{miette::Severity, TraceableError};
+use rspack_error::{TraceableError, miette::Severity};
 use serde_json::json;
 use swc_core::{
   common::{FileName, Spanned},
   ecma::{
     ast::EsVersion,
-    parser::{parse_file_as_expr, EsSyntax, Syntax},
+    parser::{EsSyntax, Syntax, parse_file_as_expr},
   },
 };
 

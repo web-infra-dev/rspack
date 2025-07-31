@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 use std::{borrow::Cow, collections::HashSet, hash::Hasher, path::PathBuf};
 
 use asset_exports_dependency::AssetExportsDependency;
@@ -7,17 +5,17 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorImportMode, AssetInfo,
   AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph, NormalModule, ParseContext,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
-  RuntimeGlobals, RuntimeSpec, SourceType, NAMESPACE_OBJECT_EXPORT,
+  Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
+  NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PublicPath,
+  RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{
-  error, Diagnostic, IntoTWithDiagnosticArray, Result, ToStringResultToRspackResultExt,
+  Diagnostic, IntoTWithDiagnosticArray, Result, ToStringResultToRspackResultExt, error,
 };
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
@@ -196,7 +194,9 @@ impl AssetParserAndGenerator {
           )
         });
     }
-    Err(error!("DataUrl can't be generated automatically. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl"))
+    Err(error!(
+      "DataUrl can't be generated automatically. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl"
+    ))
   }
 
   fn get_encoding(
@@ -516,7 +516,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     let import_mode = self.get_import_mode(module_generator_options)?;
 
-    let result = match generate_context.requested_source_type {
+    match generate_context.requested_source_type {
       SourceType::JavaScript | SourceType::CssUrl => {
         let exported_content = if parsed_asset_config.is_inline() {
           let resource_data: &ResourceData = normal_module.resource_resolved_data();
@@ -695,9 +695,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
       ),
-    };
-
-    result
+    }
   }
 
   fn get_concatenation_bailout_reason(

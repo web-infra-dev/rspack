@@ -256,6 +256,6 @@ static META_REG: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
 });
 
-pub fn quote_meta(str: &str) -> Cow<str> {
+pub fn quote_meta(str: &str) -> Cow<'_, str> {
   META_REG.replace_all(str, "\\$0")
 }

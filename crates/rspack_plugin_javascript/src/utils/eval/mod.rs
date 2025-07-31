@@ -23,7 +23,7 @@ pub use self::{
   eval_member_expr::eval_member_expression,
   eval_new_expr::eval_new_expression,
   eval_source::eval_source,
-  eval_tpl_expr::{eval_tagged_tpl_expression, eval_tpl_expression, TemplateStringKind},
+  eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
 };
 use crate::visitors::ExportedVariableInfo;
@@ -412,7 +412,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.array = Some(array);
   }
 
-  pub fn options(&self) -> &Vec<BasicEvaluatedExpression> {
+  pub fn options(&self) -> &Vec<BasicEvaluatedExpression<'_>> {
     self.options.as_ref().expect("options should not empty")
   }
 
@@ -583,7 +583,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
       .expect("quasis must exists for template string")
   }
 
-  pub fn items(&self) -> &Vec<BasicEvaluatedExpression> {
+  pub fn items(&self) -> &Vec<BasicEvaluatedExpression<'_>> {
     assert!(self.is_array());
     self.items.as_ref().expect("items must exists for array")
   }

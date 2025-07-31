@@ -96,10 +96,10 @@ impl HttpCache {
   ) -> Result<FetchResultType> {
     let cached_result = self.read_from_cache(url).await?;
 
-    if let Some(ref cached) = cached_result {
-      if !options.upgrade || cached.meta.fresh {
-        return Ok(FetchResultType::Content(cached.clone()));
-      }
+    if let Some(ref cached) = cached_result
+      && (!options.upgrade || cached.meta.fresh)
+    {
+      return Ok(FetchResultType::Content(cached.clone()));
     }
 
     self.fetch_content_raw(url, cached_result).await
@@ -120,10 +120,10 @@ impl HttpCache {
     );
     headers.insert("user-agent".to_string(), "webpack".to_string());
 
-    if let Some(cached) = &cached_result {
-      if let Some(etag) = &cached.meta.etag {
-        headers.insert("if-none-match".to_string(), etag.clone());
-      }
+    if let Some(cached) = &cached_result
+      && let Some(etag) = &cached.meta.etag
+    {
+      headers.insert("if-none-match".to_string(), etag.clone());
     }
 
     let response = self.http_client.get(url, &headers).await?;
@@ -136,73 +136,70 @@ impl HttpCache {
     let (store_lock, store_cache, valid_until) = parse_cache_control(&cache_control, request_time);
 
     // Handle 304 Not Modified (similar to webpack)
-    if status == 304 {
-      if let Some(cached) = cached_result {
-        let new_valid_until = valid_until.max(cached.meta.valid_until);
-        return Ok(FetchResultType::Content(ContentFetchResult {
-          meta: FetchResultMeta {
-            fresh: true,
-            store_lock,
-            store_cache,
-            valid_until: new_valid_until,
-            etag: etag.or(cached.meta.etag),
-          },
-          ..cached
-        }));
-      }
+    if status == 304
+      && let Some(cached) = cached_result
+    {
+      let new_valid_until = valid_until.max(cached.meta.valid_until);
+      return Ok(FetchResultType::Content(ContentFetchResult {
+        meta: FetchResultMeta {
+          fresh: true,
+          store_lock,
+          store_cache,
+          valid_until: new_valid_until,
+          etag: etag.or(cached.meta.etag),
+        },
+        ..cached
+      }));
     }
 
     // Improved handling of redirects to match webpack
-    if let Some(location) = location {
-      if (301..=308).contains(&status) {
-        // Resolve relative redirects like webpack does
-        let absolute_location = match Url::parse(&location) {
-          Ok(loc) => loc.to_string(), // Already absolute
-          Err(_) => {
-            // Relative URL, resolve against original
-            match Url::parse(url) {
-              Ok(base_url) => base_url
-                .join(&location)
-                .map(|u| u.to_string())
-                .unwrap_or(location.clone()),
-              Err(_) => location.clone(), // Can't resolve, use as is
-            }
-          }
-        };
-
-        // If we had a cached redirect that's unchanged, use the cached meta
-        if let Some(cached) = &cached_result {
-          if let FetchResultType::Redirect(cached_redirect) =
-            fetch_cache_result_to_fetch_result_type(cached)
-          {
-            if cached_redirect.location == absolute_location
-              && cached_redirect.meta.valid_until >= valid_until
-              && cached_redirect.meta.store_lock == store_lock
-              && cached_redirect.meta.store_cache == store_cache
-              && cached_redirect.meta.etag == etag
-            {
-              return Ok(FetchResultType::Redirect(RedirectFetchResult {
-                meta: FetchResultMeta {
-                  fresh: true,
-                  ..cached_redirect.meta
-                },
-                ..cached_redirect
-              }));
-            }
+    if let Some(location) = location
+      && (301..=308).contains(&status)
+    {
+      // Resolve relative redirects like webpack does
+      let absolute_location = match Url::parse(&location) {
+        Ok(loc) => loc.to_string(), // Already absolute
+        Err(_) => {
+          // Relative URL, resolve against original
+          match Url::parse(url) {
+            Ok(base_url) => base_url
+              .join(&location)
+              .map(|u| u.to_string())
+              .unwrap_or(location.clone()),
+            Err(_) => location.clone(), // Can't resolve, use as is
           }
         }
+      };
 
+      // If we had a cached redirect that's unchanged, use the cached meta
+      if let Some(cached) = &cached_result
+        && let FetchResultType::Redirect(cached_redirect) =
+          fetch_cache_result_to_fetch_result_type(cached)
+        && cached_redirect.location == absolute_location
+        && cached_redirect.meta.valid_until >= valid_until
+        && cached_redirect.meta.store_lock == store_lock
+        && cached_redirect.meta.store_cache == store_cache
+        && cached_redirect.meta.etag == etag
+      {
         return Ok(FetchResultType::Redirect(RedirectFetchResult {
-          location: absolute_location,
           meta: FetchResultMeta {
             fresh: true,
-            store_lock,
-            store_cache,
-            valid_until,
-            etag,
+            ..cached_redirect.meta
           },
+          ..cached_redirect
         }));
       }
+
+      return Ok(FetchResultType::Redirect(RedirectFetchResult {
+        location: absolute_location,
+        meta: FetchResultMeta {
+          fresh: true,
+          store_lock,
+          store_cache,
+          valid_until,
+          etag,
+        },
+      }));
     }
 
     if !(200..=299).contains(&status) {

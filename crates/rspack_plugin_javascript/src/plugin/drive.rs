@@ -1,6 +1,6 @@
 use rspack_core::{
-  rspack_sources::BoxSource, BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation,
-  ModuleIdentifier,
+  BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, ModuleIdentifier,
+  rspack_sources::BoxSource,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;

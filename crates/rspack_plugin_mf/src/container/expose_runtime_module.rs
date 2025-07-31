@@ -1,6 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, SourceType,
+  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, SourceType, impl_runtime_module,
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;

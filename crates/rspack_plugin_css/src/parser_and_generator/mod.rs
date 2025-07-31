@@ -11,18 +11,18 @@ use rspack_cacheable::{
   with::{AsCacheable, AsMap, AsOption, AsVec},
 };
 use rspack_core::{
-  diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  remove_bom,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
   DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
   ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
   TemplateContext, UsageState,
+  diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
+  remove_bom,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{
-  miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
+  IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray, miette::Diagnostic,
 };
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{atom::Atom, ext::DynHash};
@@ -35,9 +35,9 @@ use crate::{
     CssSelfReferenceLocalIdentReplacement, CssSupports, CssUrlDependency,
   },
   utils::{
-    css_modules_exports_to_concatenate_module_string, css_modules_exports_to_string,
-    css_parsing_traceable_error, export_locals_convention, normalize_url,
-    replace_module_request_prefix, unescape, LocalIdentOptions,
+    LocalIdentOptions, css_modules_exports_to_concatenate_module_string,
+    css_modules_exports_to_string, css_parsing_traceable_error, export_locals_convention,
+    normalize_url, replace_module_request_prefix, unescape,
   },
 };
 
@@ -478,7 +478,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
-    let result = match generate_context.requested_source_type {
+    match generate_context.requested_source_type {
       SourceType::Css => {
         generate_context
           .runtime_requirements
@@ -655,9 +655,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
       ),
-    };
-
-    result
+    }
   }
 
   fn get_concatenation_bailout_reason(

@@ -1,10 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, ChunkGraph,
-  Compilation, Dependency, DependencyCodeGeneration, DependencyId, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration, DependencyId,
+  DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraphCacheArtifact, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_no_exports_referenced,
 };
 use rspack_util::ext::DynHash;
 

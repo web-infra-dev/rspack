@@ -10,5 +10,5 @@ pub struct ModuleInfo {
 #[async_trait::async_trait]
 pub trait Backend: std::fmt::Debug + Send + Sync {
   async fn module(&mut self, original_module: ModuleIdentifier, path: String)
-    -> Result<ModuleInfo>;
+  -> Result<ModuleInfo>;
 }

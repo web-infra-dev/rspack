@@ -19,17 +19,17 @@ mod napi_binding {
 
   use derive_more::Debug;
   use napi::{
-    bindgen_prelude::{Object, ToNapiValue},
     Env,
+    bindgen_prelude::{Object, ToNapiValue},
   };
   use once_cell::sync::OnceCell;
-  use rspack_napi::{object_assign, ThreadsafeOneShotRef};
+  use rspack_napi::{ThreadsafeOneShotRef, object_assign};
   use rspack_sources::BoxSource;
   use rustc_hash::FxHashMap;
 
   use crate::{
-    with_thread_local_allocator, AssetInfo, CodeGenerationResult, CodeGenerationResults,
-    CompilationAsset, SourceType,
+    AssetInfo, CodeGenerationResult, CodeGenerationResults, CompilationAsset, SourceType,
+    with_thread_local_allocator,
   };
 
   pub struct WeakBindingCell<T: ?Sized> {

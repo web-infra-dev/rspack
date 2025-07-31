@@ -40,7 +40,7 @@ impl JsPathData {
     }
   }
 
-  pub fn to_path_data(&self) -> rspack_core::PathData {
+  pub fn to_path_data(&self) -> rspack_core::PathData<'_> {
     rspack_core::PathData {
       filename: self.filename.as_deref(),
       chunk_name: self.chunk.as_ref().and_then(|c| c.name.as_deref()),

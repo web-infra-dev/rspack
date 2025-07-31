@@ -76,11 +76,13 @@ impl FromNapiValue for JsContextModuleFactoryBeforeResolveDataWrapper {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let instance =
-      <ClassInstance<JsContextModuleFactoryBeforeResolveData> as FromNapiValue>::from_napi_value(
-        env, napi_val,
-      )?;
-    Ok(Self(instance.0.clone()))
+    unsafe {
+      let instance =
+        <ClassInstance<JsContextModuleFactoryBeforeResolveData> as FromNapiValue>::from_napi_value(
+          env, napi_val,
+        )?;
+      Ok(Self(instance.0.clone()))
+    }
   }
 }
 
@@ -89,8 +91,10 @@ impl ToNapiValue for JsContextModuleFactoryBeforeResolveDataWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    let js_val = JsContextModuleFactoryBeforeResolveData(val.0);
-    ToNapiValue::to_napi_value(env, js_val)
+    unsafe {
+      let js_val = JsContextModuleFactoryBeforeResolveData(val.0);
+      ToNapiValue::to_napi_value(env, js_val)
+    }
   }
 }
 
@@ -197,11 +201,13 @@ impl FromNapiValue for JsContextModuleFactoryAfterResolveDataWrapper {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let instance =
-      <ClassInstance<JsContextModuleFactoryAfterResolveData> as FromNapiValue>::from_napi_value(
-        env, napi_val,
-      )?;
-    Ok(Self(instance.0.clone()))
+    unsafe {
+      let instance =
+        <ClassInstance<JsContextModuleFactoryAfterResolveData> as FromNapiValue>::from_napi_value(
+          env, napi_val,
+        )?;
+      Ok(Self(instance.0.clone()))
+    }
   }
 }
 
@@ -210,8 +216,10 @@ impl ToNapiValue for JsContextModuleFactoryAfterResolveDataWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    let js_val = JsContextModuleFactoryAfterResolveData(val.0);
-    ToNapiValue::to_napi_value(env, js_val)
+    unsafe {
+      let js_val = JsContextModuleFactoryAfterResolveData(val.0);
+      ToNapiValue::to_napi_value(env, js_val)
+    }
   }
 }
 

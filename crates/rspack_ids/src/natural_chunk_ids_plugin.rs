@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  incremental::IncrementalPasses, ApplyContext, Chunk, CompilationChunkIds, CompilerOptions,
-  Plugin, PluginContext,
+  ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
+  incremental::IncrementalPasses,
 };
 use rspack_hook::{plugin, plugin_hook};
 

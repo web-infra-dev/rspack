@@ -2,8 +2,8 @@ use std::{
   cmp,
   cmp::Ordering,
   sync::{
-    atomic::{AtomicU32, Ordering::Relaxed},
     Arc, LazyLock,
+    atomic::{AtomicU32, Ordering::Relaxed},
   },
   time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -359,10 +359,10 @@ async fn build_module(
     .lock()
     .await
     .replace(module.identifier());
-  if let ProgressPluginOptions::Default(options) = &self.options {
-    if !options.profile {
-      self.update_throttled().await?;
-    }
+  if let ProgressPluginOptions::Default(options) = &self.options
+    && !options.profile
+  {
+    self.update_throttled().await?;
   }
 
   Ok(())

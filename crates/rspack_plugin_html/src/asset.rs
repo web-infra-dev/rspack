@@ -6,15 +6,15 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
   AssetInfo, Compilation, CompilationAsset, Filename, PathData,
+  rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
-use rspack_error::{miette, AnyhowResultToRspackResultExt, Result};
+use rspack_error::{AnyhowResultToRspackResultExt, Result, miette};
 use rspack_paths::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
@@ -95,10 +95,10 @@ impl HtmlPluginAssets {
         Path::new(asset_name.split("?").next().unwrap_or_default()).extension()
       {
         let mut asset_uri = format!("{}{}", assets.public_path, url_encode_path(&asset_name));
-        if config.hash.unwrap_or_default() {
-          if let Some(hash) = compilation.get_hash() {
-            asset_uri = append_hash(&asset_uri, hash);
-          }
+        if config.hash.unwrap_or_default()
+          && let Some(hash) = compilation.get_hash()
+        {
+          asset_uri = append_hash(&asset_uri, hash);
         }
         let final_path = generate_posix_path(&asset_uri);
         if extension.eq_ignore_ascii_case("css") {
@@ -146,10 +146,10 @@ impl HtmlPluginAssets {
 
       let mut favicon_link_path = favicon_path.to_string_lossy().to_string();
 
-      if config.hash.unwrap_or_default() {
-        if let Some(hash) = compilation.get_hash() {
-          favicon_link_path = append_hash(&favicon_link_path, hash);
-        }
+      if config.hash.unwrap_or_default()
+        && let Some(hash) = compilation.get_hash()
+      {
+        favicon_link_path = append_hash(&favicon_link_path, hash);
       }
 
       Some(generate_posix_path(&favicon_link_path).into())
@@ -195,10 +195,10 @@ impl HtmlPluginAssetTags {
     );
 
     // create base tag
-    if let Some(base) = &config.base {
-      if let Some(tag) = HtmlPluginTag::create_base(base) {
-        asset_tags.meta.push(tag);
-      }
+    if let Some(base) = &config.base
+      && let Some(tag) = HtmlPluginTag::create_base(base)
+    {
+      asset_tags.meta.push(tag);
     }
 
     // create title tag

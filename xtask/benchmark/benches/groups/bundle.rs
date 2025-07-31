@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use criterion::{criterion_group, Criterion};
-use rspack_tasks::{within_compiler_context, within_compiler_context_sync, CompilerContext};
+use criterion::{Criterion, criterion_group};
+use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 use tokio::runtime;
 
-use crate::groups::bundle::util::{derive_projects, CompilerBuilderGenerator};
+use crate::groups::bundle::util::{CompilerBuilderGenerator, derive_projects};
 
 pub mod basic_react;
 pub mod threejs;

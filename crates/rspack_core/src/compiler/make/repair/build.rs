@@ -2,11 +2,11 @@ use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
 
-use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
+use super::{MakeTaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
-  utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]

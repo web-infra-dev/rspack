@@ -6,11 +6,11 @@ use std::{
 };
 
 use napi::{
+  Env, Result,
   bindgen_prelude::{
-    check_status, ClassInstance, JavaScriptClassExt, ToNapiValue, TypeName, ValidateNapiValue,
+    ClassInstance, JavaScriptClassExt, ToNapiValue, TypeName, ValidateNapiValue, check_status,
   },
   sys::{self, napi_env},
-  Env, Result,
 };
 
 use crate::OneShotRef;

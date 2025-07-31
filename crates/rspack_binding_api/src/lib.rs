@@ -1,5 +1,4 @@
 #![recursion_limit = "256"]
-#![feature(let_chains)]
 #![feature(try_blocks)]
 #![allow(deprecated)]
 
@@ -10,14 +9,14 @@ use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use fs_node::HybridFileSystem;
-use napi::{bindgen_prelude::*, CallContext};
+use napi::{CallContext, bindgen_prelude::*};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
-use rspack_tasks::{within_compiler_context_sync, CompilerContext, CURRENT_COMPILER_CONTEXT};
+use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rspack_util::tracing_preset::{
   TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
 };
@@ -122,7 +121,7 @@ pub use swc::*;
 use swc_core::common::util::take::Take;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
-  layer::SubscriberExt, reload, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+  EnvFilter, Layer, Registry, layer::SubscriberExt, reload, util::SubscriberInitExt,
 };
 pub use utils::*;
 
@@ -431,7 +430,7 @@ enum TraceState {
 #[cfg(target_family = "wasm")]
 const _: () = {
   #[used]
-  #[link_section = ".init_array"]
+  #[unsafe(link_section = ".init_array")]
   static __CTOR: unsafe extern "C" fn() = init;
 
   unsafe extern "C" fn init() {

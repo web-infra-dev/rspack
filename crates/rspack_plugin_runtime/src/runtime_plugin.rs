@@ -7,11 +7,11 @@ use async_trait::async_trait;
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
   ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationId, CompilationParams,
   CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerCompilation,
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, PublicPath, RuntimeGlobals,
-  RuntimeModuleExt, SourceType,
+  RuntimeModuleExt, SourceType, get_css_chunk_filename_template, get_js_chunk_filename_template,
+  has_hash_placeholder,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -20,20 +20,21 @@ use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
+  RuntimePluginHooks,
   runtime_module::{
-    chunk_has_css, chunk_has_js, is_enabled_for_chunk, AmdDefineRuntimeModule,
-    AmdOptionsRuntimeModule, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
-    ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
-    CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
-    CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
+    AmdDefineRuntimeModule, AmdOptionsRuntimeModule, AsyncRuntimeModule,
+    AutoPublicPathRuntimeModule, BaseUriRuntimeModule, ChunkNameRuntimeModule,
+    ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
+    CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule,
+    CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
     ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
     GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
     GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
     LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule,
     NonceRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
-    RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+    RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule, chunk_has_css,
+    chunk_has_js, is_enabled_for_chunk,
   },
-  RuntimePluginHooks,
 };
 
 /// Safety with [atomic_refcell::AtomicRefCell]:

@@ -1,14 +1,14 @@
 use std::{
   collections::HashSet,
   sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
   },
 };
 
 use tokio::sync::{
-  mpsc::{self, UnboundedReceiver, UnboundedSender},
   Mutex,
+  mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEvent, FsEventKind};

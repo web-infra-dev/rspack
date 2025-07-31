@@ -4,9 +4,9 @@ mod impl_disable;
 mod impl_with;
 
 use args::CacheableArgs;
+use r#impl::impl_cacheable;
 use impl_disable::impl_disable_cacheable;
 use impl_with::impl_cacheable_with;
-use r#impl::impl_cacheable;
 
 pub fn cacheable(
   args: proc_macro::TokenStream,

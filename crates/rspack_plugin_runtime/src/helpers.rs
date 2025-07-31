@@ -2,12 +2,11 @@ use std::hash::Hash;
 
 use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
-  get_js_chunk_filename_template,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, SourceType, get_js_chunk_filename_template,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
-use rspack_error::{error, Result};
+use rspack_error::{Result, error};
 use rspack_hash::RspackHash;
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rustc_hash::FxHashSet as HashSet;
@@ -67,10 +66,10 @@ pub fn get_all_chunks(
         if chunk == exclude_chunk1 {
           continue;
         }
-        if let Some(exclude_chunk2) = exclude_chunk2 {
-          if chunk == exclude_chunk2 {
-            continue;
-          }
+        if let Some(exclude_chunk2) = exclude_chunk2
+          && chunk == exclude_chunk2
+        {
+          continue;
         }
         chunks.insert(*chunk);
       }
@@ -80,17 +79,17 @@ pub fn get_all_chunks(
           continue;
         }
         visit_chunk_groups.insert(*parent);
-        if let Some(chunk_group) = chunk_group_by_ukey.get(parent) {
-          if chunk_group.is_initial() {
-            add_chunks(
-              chunk_group_by_ukey,
-              chunks,
-              &chunk_group.ukey,
-              exclude_chunk1,
-              exclude_chunk2,
-              visit_chunk_groups,
-            );
-          }
+        if let Some(chunk_group) = chunk_group_by_ukey.get(parent)
+          && chunk_group.is_initial()
+        {
+          add_chunks(
+            chunk_group_by_ukey,
+            chunks,
+            &chunk_group.ukey,
+            exclude_chunk1,
+            exclude_chunk2,
+            visit_chunk_groups,
+          );
         }
       }
     }

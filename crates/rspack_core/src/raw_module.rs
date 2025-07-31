@@ -5,17 +5,17 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
   BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState,
   Context, DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
 };
 
 #[impl_source_map_config]
@@ -109,7 +109,7 @@ impl Module for RawModule {
     self.source.as_ref()
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     Cow::Borrowed(&self.readable_identifier)
   }
 

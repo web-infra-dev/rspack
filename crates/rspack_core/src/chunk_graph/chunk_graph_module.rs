@@ -14,10 +14,10 @@ use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
 
 use crate::{
-  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
-  ModuleIdsArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
-  RuntimeSpecSet,
+  AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  for_each_runtime,
 };
 
 #[cacheable]

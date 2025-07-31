@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{property_access, ConstDependency, SpanExt};
+use rspack_core::{ConstDependency, SpanExt, property_access};
 use rspack_error::miette::Severity;
 use swc_core::{
   common::{Span, Spanned},
@@ -11,8 +11,8 @@ use super::JavascriptParserPlugin;
 use crate::{
   utils::eval,
   visitors::{
-    create_traceable_error, expr_name, AllowedMemberTypes, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, RootName,
+    AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, RootName,
+    create_traceable_error, expr_name,
   },
 };
 

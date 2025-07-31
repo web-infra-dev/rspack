@@ -1,8 +1,8 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-  parse_quote, spanned::Spanned, Attribute, Data, DeriveInput, Error, Fields, Generics, Ident,
-  Index, Meta, Result,
+  Attribute, Data, DeriveInput, Error, Fields, Generics, Ident, Index, Meta, Result, parse_quote,
+  spanned::Spanned,
 };
 
 pub fn expand_merge_from_derive(input: DeriveInput) -> Result<TokenStream> {

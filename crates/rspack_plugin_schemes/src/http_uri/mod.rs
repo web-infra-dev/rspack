@@ -4,7 +4,7 @@ mod lockfile;
 use std::{fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
-use http_cache::{fetch_content, ContentFetchResult, FetchResultType};
+use http_cache::{ContentFetchResult, FetchResultType, fetch_content};
 pub use http_cache::{HttpClient, HttpResponse};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -14,8 +14,8 @@ use rspack_core::{
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
 use rspack_error::{
-  miette::{self, diagnostic},
   AnyhowResultToRspackResultExt, Result,
+  miette::{self, diagnostic},
 };
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};

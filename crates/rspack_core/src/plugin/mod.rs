@@ -7,7 +7,7 @@ pub use context::*;
 pub use plugin_driver::*;
 use rspack_error::Result;
 
-use crate::{compiler::CompilationId, CompilerOptions};
+use crate::{CompilerOptions, compiler::CompilationId};
 
 #[async_trait::async_trait]
 pub trait Plugin: fmt::Debug + Send + Sync {

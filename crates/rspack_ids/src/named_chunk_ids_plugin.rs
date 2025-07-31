@@ -1,10 +1,10 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
 use rspack_core::{
-  chunk_graph_chunk::ChunkId,
-  incremental::{self, IncrementalPasses, Mutation, Mutations},
   ApplyContext, ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds,
   CompilerOptions, Logger, Plugin, PluginContext,
+  chunk_graph_chunk::ChunkId,
+  incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
@@ -130,12 +130,14 @@ fn assign_named_chunk_ids(
       });
       let mut i = 0;
       for item in items {
-        let mut formatted_name = format!("{name}{}", itoa!(i));
+        let mut i_buffer = itoa::Buffer::new();
+        let mut formatted_name = format!("{name}{}", i_buffer.format(i));
         while name_to_items_keys.contains(&formatted_name)
           && used_ids.contains_key(formatted_name.as_str())
         {
           i += 1;
-          formatted_name = format!("{name}{}", itoa!(i));
+          let mut i_buffer = itoa::Buffer::new();
+          formatted_name = format!("{name}{}", i_buffer.format(i));
         }
         let name: ChunkId = formatted_name.into();
         if ChunkGraph::set_chunk_id(chunk_ids, item, name.clone())

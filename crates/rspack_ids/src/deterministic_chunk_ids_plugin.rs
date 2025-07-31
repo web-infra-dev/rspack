@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  incremental::IncrementalPasses, ApplyContext, CompilationChunkIds, CompilerOptions, Plugin,
-  PluginContext,
+  ApplyContext, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
+  incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

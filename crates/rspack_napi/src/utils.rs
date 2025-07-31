@@ -1,6 +1,6 @@
 use napi::{
-  bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object, Unknown},
   Env, JsValue,
+  bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object, Unknown},
 };
 
 pub fn downcast_into<T: FromNapiValue + 'static>(o: Unknown) -> napi::Result<T> {

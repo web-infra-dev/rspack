@@ -2,7 +2,7 @@ use rspack_core::{
   ApplyContext, CompilerOptions, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
   Plugin, PluginContext, ResourceData, Scheme,
 };
-use rspack_error::{error, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
 use url::Url;

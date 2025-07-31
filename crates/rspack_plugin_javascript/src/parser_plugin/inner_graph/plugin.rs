@@ -10,11 +10,11 @@ use swc_core::{
 
 use super::state::UsageCallback;
 use crate::{
+  ClassExt,
   dependency::PureExpressionDependency,
   is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
-  parser_plugin::{JavascriptParserPlugin, DEFAULT_STAR_JS_WORD},
+  parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   visitors::{JavascriptParser, Statement, TagInfoData, TopLevelScope},
-  ClassExt,
 };
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]

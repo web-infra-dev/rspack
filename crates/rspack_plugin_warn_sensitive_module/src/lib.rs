@@ -58,14 +58,13 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
 
   for module in module_graph.modules().values() {
     // Ignore `data:` URLs, because it's not a real path
-    if let Some(normal_module) = module.as_normal_module() {
-      if normal_module
+    if let Some(normal_module) = module.as_normal_module()
+      && normal_module
         .resource_resolved_data()
         .encoded_content
         .is_some()
-      {
-        continue;
-      }
+    {
+      continue;
     }
 
     let identifier = module.identifier();

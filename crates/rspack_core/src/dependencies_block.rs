@@ -211,5 +211,7 @@ impl DependenciesBlock for AsyncDependenciesBlock {
 
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(code(AsyncDependencyToInitialChunkError))]
-#[error("It's not allowed to load an initial chunk on demand. The chunk name \"{0}\" is already used by an entrypoint.")]
+#[error(
+  "It's not allowed to load an initial chunk on demand. The chunk name \"{0}\" is already used by an entrypoint."
+)]
 pub struct AsyncDependenciesToInitialChunkError(pub String, pub Option<DependencyLocation>);

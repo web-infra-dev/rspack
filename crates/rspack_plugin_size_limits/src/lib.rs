@@ -92,7 +92,11 @@ impl SizeLimitsPlugin {
       .collect::<Vec<String>>()
       .join("");
     let title = String::from("assets over size limit warning");
-    let message = format!("asset size limit: The following asset(s) exceed the recommended size limit ({}). This can impact web performance.\nAssets:{}", format_size(limit), asset_list);
+    let message = format!(
+      "asset size limit: The following asset(s) exceed the recommended size limit ({}). This can impact web performance.\nAssets:{}",
+      format_size(limit),
+      asset_list
+    );
 
     Self::add_diagnostic(hints, title, message, diagnostics);
   }
@@ -184,10 +188,10 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       for filename in entry.get_files(&compilation.chunk_by_ukey) {
         let asset = compilation.assets().get(&filename);
 
-        if let Some(asset) = asset {
-          if self.asset_filter(&filename, asset).await {
-            files.push(filename);
-          }
+        if let Some(asset) = asset
+          && self.asset_filter(&filename, asset).await
+        {
+          files.push(filename);
         }
       }
 
@@ -224,7 +228,9 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
       if !has_async_chunk {
         let title = String::from("no async chunks warning");
-        let message = String::from("Rspack performance recommendations:\nYou can limit the size of your bundles by using import() to lazy load some parts of your application.\nFor more info visit https://rspack.rs/guide/optimization/code-splitting");
+        let message = String::from(
+          "Rspack performance recommendations:\nYou can limit the size of your bundles by using import() to lazy load some parts of your application.\nFor more info visit https://rspack.rs/guide/optimization/code-splitting",
+        );
 
         Self::add_diagnostic(hints, title, message, &mut diagnostics);
       }

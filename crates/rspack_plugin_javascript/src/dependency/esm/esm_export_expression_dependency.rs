@@ -2,12 +2,12 @@ use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  property_access, rspack_sources::ReplacementEnforce, AsContextDependency, AsModuleDependency,
-  Dependency, DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam,
-  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedName, DEFAULT_EXPORT,
+  AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec,
+  ExportsSpec, GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
+  RuntimeGlobals, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access, rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
 
@@ -212,7 +212,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     } else {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
-      let content = if let Some(ref mut scope) = concatenation_scope {
+      let content = if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
         format!(
           "/* ESM default export */ {} {DEFAULT_EXPORT} = ",

@@ -1,12 +1,11 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  get_entry_runtime, property_access,
-  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
   LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext,
-  RuntimeGlobals, UsageState,
+  RuntimeGlobals, UsageState, get_entry_runtime, property_access,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;

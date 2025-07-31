@@ -2,7 +2,7 @@ use std::{borrow::Cow, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use rspack_error::{error, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -11,11 +11,12 @@ use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
-  resolve, BoxDependency, CompilationId, ContextElementDependency, ContextModule,
-  ContextModuleOptions, DependencyCategory, DependencyId, DependencyType, ErrorSpan, FactoryMeta,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  RawModule, ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
+  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, FactoryMeta, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  resolve,
 };
 
 #[derive(Debug)]
@@ -102,10 +103,10 @@ impl ModuleFactory for ContextModuleFactory {
       BeforeResolveResult::Data(before_resolve_result) => {
         let (factorize_result, context_module_options) =
           self.resolve(data, before_resolve_result).await?;
-        if let Some(context_module_options) = context_module_options {
-          if let Some(factorize_result) = self.after_resolve(data, context_module_options).await? {
-            return Ok(factorize_result);
-          }
+        if let Some(context_module_options) = context_module_options
+          && let Some(factorize_result) = self.after_resolve(data, context_module_options).await?
+        {
+          return Ok(factorize_result);
         }
 
         Ok(factorize_result)

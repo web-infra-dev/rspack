@@ -1,10 +1,11 @@
 use rayon::prelude::*;
 use rspack_core::{
+  BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace,
+  Compilation, RuntimeGlobals, SourceType,
   chunk_graph_chunk::ChunkId,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, RuntimeGlobals, SourceType,
+  to_normal_comment,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::diff_mode::is_diff_mode;

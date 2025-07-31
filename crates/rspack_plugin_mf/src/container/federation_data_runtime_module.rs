@@ -7,8 +7,8 @@
 use async_trait::async_trait;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::chunk_has_js;
