@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet as HashSet;
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
   FactorizeInfo, FileCounter,
-  make::{MakeArtifact, MakeArtifactState},
+  compilation::make::{MakeArtifact, MakeArtifactState},
 };
 
 /// Make Occasion is used to save MakeArtifact
@@ -94,7 +94,6 @@ impl MakeOccasion {
     artifact.context_dependencies = context_dep;
     artifact.missing_dependencies = missing_dep;
     artifact.build_dependencies = build_dep;
-    artifact.reset_dependencies_incremental_info();
 
     Ok(artifact)
   }

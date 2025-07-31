@@ -2,7 +2,7 @@ use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
 
-use super::{MakeTaskContext, process_dependencies::ProcessDependenciesTask};
+use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
@@ -22,11 +22,11 @@ pub struct BuildTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for BuildTask {
+impl Task<TaskContext> for BuildTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Background
   }
-  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
     let Self {
       compiler_id,
       compilation_id,
@@ -65,7 +65,7 @@ impl Task<MakeTaskContext> for BuildTask {
       current_profile.mark_building_end();
     }
 
-    result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
+    result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
@@ -84,11 +84,11 @@ struct BuildResultTask {
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for BuildResultTask {
+impl Task<TaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
       mut module,
       build_result,
@@ -105,8 +105,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
     let build_info = module.build_info();
 
     let artifact = &mut context.artifact;
-    let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+    let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     if !module.diagnostics().is_empty() {
       artifact.make_failed_module.insert(module.identifier());

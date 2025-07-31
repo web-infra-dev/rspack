@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
 
-use super::super::MakeArtifact;
+use super::MakeArtifact;
 use crate::{ModuleGraph, ModuleIdentifier, ModuleIssuer};
 
 /// Result of IssuerHelper.is_issuer.
@@ -100,7 +100,7 @@ impl IssuerHelper {
   }
 }
 
-/// A toolkit for cutout to fix module graph issuers.
+/// A toolkit for cutout to fix module graph issuers and clean isolated modules.
 #[derive(Debug, Default)]
 pub struct FixIssuers {
   /// Collect issuer of force_build_module.

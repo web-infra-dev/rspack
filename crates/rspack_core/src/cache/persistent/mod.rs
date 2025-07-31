@@ -24,7 +24,7 @@ use self::{
 use super::Cache;
 use crate::{
   Compilation, CompilerOptions, Logger,
-  make::{MakeArtifact, MakeArtifactState},
+  compilation::make::{MakeArtifact, MakeArtifactState},
 };
 
 #[derive(Debug, Clone, Hash)]

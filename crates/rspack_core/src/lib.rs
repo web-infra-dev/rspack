@@ -1,9 +1,11 @@
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
+mod compilation;
 mod exports;
 pub use artifacts::*;
 pub use binding::*;
+pub use compilation::make::ExecuteModuleId;
 pub use exports::*;
 mod dependencies_block;
 pub mod diagnostics;
