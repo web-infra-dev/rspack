@@ -272,7 +272,7 @@ export const run = async (
 							// To handle errors, you should not call `wait()` on send request
 							// result;
 							result = await Promise.all(
-								ids.map(id => pendingRequests.get(id))
+								ids.map(async id => pendingRequests.get(id))
 							);
 
 							if (!isArray) {

@@ -40,11 +40,11 @@ export default class NodeEnvironmentPlugin {
 			debug: infrastructureLogging.debug || false,
 			console:
 				infrastructureLogging.console ||
-				(nodeConsole({
+				nodeConsole({
 					colors: infrastructureLogging.colors,
 					appendOnly: infrastructureLogging.appendOnly,
 					stream: infrastructureLogging.stream!
-				}) as LoggerConsole)
+				})
 		});
 
 		const inputFileSystem: InputFileSystem = new CachedInputFileSystem(

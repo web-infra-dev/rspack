@@ -934,9 +934,9 @@ export const getRspackOptionsSchema = memoize(() => {
 		if (!Array.isArray(config?.externals)) {
 			checkExternalItem(config?.externals, ["externals"]);
 		} else {
-			config.externals.forEach((external, index) =>
-				checkExternalItem(external, ["externals", index])
-			);
+			config.externals.forEach((external, index) => {
+				checkExternalItem(external, ["externals", index]);
+			});
 		}
 
 		function checkExternalItem(

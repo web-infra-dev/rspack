@@ -163,7 +163,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: JsRsdoctorModuleGraph) {
-					return await queried.promise(data);
+					return queried.promise(data);
 				};
 			}
 		),
@@ -176,7 +176,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: JsRsdoctorChunkGraph) {
-					return await queried.promise(data);
+					return queried.promise(data);
 				};
 			}
 		),
@@ -189,7 +189,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: JsRsdoctorModuleIdsPatch) {
-					return await queried.promise(data);
+					return queried.promise(data);
 				};
 			}
 		),
@@ -202,7 +202,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: JsRsdoctorModuleSourcesPatch) {
-					return await queried.promise(data);
+					return queried.promise(data);
 				};
 			}
 		),
@@ -215,7 +215,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: JsRsdoctorAssetPatch) {
-					return await queried.promise(data);
+					return queried.promise(data);
 				};
 			}
 		)

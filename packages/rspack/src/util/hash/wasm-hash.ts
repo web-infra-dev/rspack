@@ -178,7 +178,7 @@ const create = (
 	digestSize: number
 ): WasmHash => {
 	if (instancesPool.length > 0) {
-		const old = instancesPool.pop() as WasmHash;
+		const old = instancesPool.pop()!;
 		old.reset();
 		return old;
 	}

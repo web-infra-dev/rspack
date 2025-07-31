@@ -188,12 +188,12 @@ type ByPass = (
 type ProxyConfigArray = (
 	| ProxyConfigArrayItem
 	| ((
-			req?: Request | undefined,
-			res?: Response | undefined,
-			next?: NextFunction | undefined
+			req?: Request,
+			res?: Response,
+			next?: NextFunction
 	  ) => ProxyConfigArrayItem)
 )[];
-type Callback = (stats?: Stats | MultiStats | undefined) => any;
+type Callback = (stats?: Stats | MultiStats) => any;
 type DevMiddlewareContext<
 	_RequestInternal extends IncomingMessage = IncomingMessage,
 	_ResponseInternal extends ServerResponse = ServerResponse
@@ -302,7 +302,7 @@ export type DevServerOptions<
 		| ((
 				req: Request,
 				res: Response,
-				context: DevMiddlewareContext<Request, Response> | undefined
+				context: DevMiddlewareContext | undefined
 		  ) => Headers)
 		| undefined;
 	onListening?: ((devServer: Server) => void) | undefined;

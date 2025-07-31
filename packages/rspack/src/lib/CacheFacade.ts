@@ -57,7 +57,7 @@ export class ItemCacheFacade implements BaseCache {
 	/**
 	 * @returns promise with the data
 	 */
-	getPromise<T>(): Promise<T | undefined> {
+	async getPromise<T>(): Promise<T | undefined> {
 		return new Promise((resolve, reject) => {
 			this._cache.get<T>(this._name, this._etag, (err, data) => {
 				if (err) {
@@ -82,7 +82,7 @@ export class ItemCacheFacade implements BaseCache {
 	 * @param data the value to store
 	 * @returns promise signals when the value is stored
 	 */
-	storePromise<T>(data: T): Promise<void> {
+	async storePromise<T>(data: T): Promise<void> {
 		return new Promise((resolve, reject) => {
 			this._cache.store(this._name, this._etag, data, err => {
 				if (err) {
@@ -104,12 +104,21 @@ export class ItemCacheFacade implements BaseCache {
 		callback: CallbackNormalErrorCache<T>
 	) {
 		this.get((err, cacheEntry) => {
-			if (err) return callback(err);
+			if (err) {
+				callback(err);
+				return;
+			}
 			if (cacheEntry !== undefined) return cacheEntry;
 			computer((err, result) => {
-				if (err) return callback(err);
+				if (err) {
+					callback(err);
+					return;
+				}
 				this.store(result, err => {
-					if (err) return callback(err);
+					if (err) {
+						callback(err);
+						return;
+					}
 					callback(null, result);
 				});
 			});
@@ -210,7 +219,10 @@ export class CacheFacade {
 	 * @param etag the etag
 	 * @returns promise with the data
 	 */
-	getPromise<T>(identifier: string, etag: Etag | null): Promise<T | undefined> {
+	async getPromise<T>(
+		identifier: string,
+		etag: Etag | null
+	): Promise<T | undefined> {
 		return new Promise((resolve, reject) => {
 			this._cache.get<T>(`${this._name}|${identifier}`, etag, (err, data) => {
 				if (err) {
@@ -244,7 +256,7 @@ export class CacheFacade {
 	 * @param data the value to store
 	 * @returns promise signals when the value is stored
 	 */
-	storePromise<T>(
+	async storePromise<T>(
 		identifier: string,
 		etag: Etag | null,
 		data: T
@@ -274,12 +286,21 @@ export class CacheFacade {
 		callback: CallbackNormalErrorCache<T>
 	): void {
 		this.get<T>(identifier, etag, (err, cacheEntry) => {
-			if (err) return callback(err);
+			if (err) {
+				callback(err);
+				return;
+			}
 			if (cacheEntry !== undefined) return cacheEntry;
 			computer((err, result) => {
-				if (err) return callback(err);
+				if (err) {
+					callback(err);
+					return;
+				}
 				this.store(identifier, etag, result, err => {
-					if (err) return callback(err);
+					if (err) {
+						callback(err);
+						return;
+					}
 					callback(null, result);
 				});
 			});

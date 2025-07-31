@@ -114,7 +114,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function (module: Module) {
-					return queried.call(module);
+					queried.call(module);
 				};
 			}
 		),
@@ -128,7 +128,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function (module: Module) {
-					return queried.call(module);
+					queried.call(module);
 				};
 			}
 		),
@@ -141,7 +141,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function (module: Module) {
-					return queried.call(module);
+					queried.call(module);
 				};
 			}
 		),
@@ -188,18 +188,16 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 							if (id) moduleCache[id] = moduleObject;
 
-							tryRunOrWebpackError(
-								() =>
-									queried.call(
-										{
-											codeGenerationResult: new CodeGenerationResult(result),
-											moduleObject
-										},
-										// TODO: Simplify this without assignments once https://github.com/web-infra-dev/rspack/pull/10036 is released in Rslib.
-										{ __webpack_require__: __webpack_require__ }
-									),
-								"Compilation.hooks.executeModule"
-							);
+							tryRunOrWebpackError(() => {
+								queried.call(
+									{
+										codeGenerationResult: new CodeGenerationResult(result),
+										moduleObject
+									},
+									// TODO: Simplify this without assignments once https://github.com/web-infra-dev/rspack/pull/10036 is released in Rslib.
+									{ __webpack_require__: __webpack_require__ }
+								);
+							}, "Compilation.hooks.executeModule");
 							moduleObject.loaded = true;
 							return moduleObject.exports;
 						};
@@ -244,9 +242,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return async function () {
-					return await queried.promise(
-						getCompiler().__internal__get_compilation()!.modules
-					);
+					queried.promise(getCompiler().__internal__get_compilation()!.modules);
 				};
 			}
 		),
@@ -260,7 +256,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function () {
-					return queried.call(
+					queried.call(
 						getCompiler().__internal__get_compilation()!.modules.values()
 					);
 				};
@@ -291,7 +287,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return async function () {
-					return await queried.promise(
+					queried.promise(
 						getCompiler().__internal__get_compilation()!.chunks,
 						getCompiler().__internal__get_compilation()!.modules
 					);
@@ -308,7 +304,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return async function () {
-					return await queried.promise(
+					queried.promise(
 						getCompiler().__internal__get_compilation()!.chunks,
 						getCompiler().__internal__get_compilation()!.modules
 					);
@@ -332,7 +328,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					let digestResult: Buffer | string;
 					if (getCompiler().options.output.hashDigest) {
 						digestResult = hash.digest(
-							getCompiler().options.output.hashDigest as string
+							getCompiler().options.output.hashDigest!
 						);
 					} else {
 						digestResult = hash.digest();
@@ -352,7 +348,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function ({ chunk, filename }: binding.JsChunkAssetArgs) {
-					return queried.call(chunk, filename);
+					queried.call(chunk, filename);
 				};
 			}
 		),
@@ -365,9 +361,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return async function () {
-					return await queried.promise(
-						getCompiler().__internal__get_compilation()!.assets
-					);
+					queried.promise(getCompiler().__internal__get_compilation()!.assets);
 				};
 			}
 		),
@@ -381,9 +375,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function () {
-					return queried.call(
-						getCompiler().__internal__get_compilation()!.assets
-					);
+					queried.call(getCompiler().__internal__get_compilation()!.assets);
 				};
 			}
 		),
@@ -396,7 +388,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function () {
-					return queried.call();
+					queried.call();
 				};
 			}
 		),
@@ -409,7 +401,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return async function () {
-					return await queried.promise();
+					queried.promise();
 				};
 			}
 		)

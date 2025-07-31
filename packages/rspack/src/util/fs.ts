@@ -566,9 +566,9 @@ export type IntermediateFileSystemExtras = {
 		arg2: (arg0: null | NodeJS.ErrnoException) => void
 	) => void;
 	mkdirSync: MkdirSync;
-	write: Write<Buffer>;
+	write: Write;
 	open: Open;
-	read: Read<Buffer>;
+	read: Read;
 	close: (
 		arg0: number,
 		arg1: (arg0: null | NodeJS.ErrnoException) => void
@@ -583,14 +583,17 @@ export function rmrf(
 	fs.stat(p, (err, stats) => {
 		if (err) {
 			if (err.code === "ENOENT") {
-				return callback();
+				callback();
+				return;
 			}
-			return callback(err);
+			callback(err);
+			return;
 		}
 		if (stats!.isDirectory()) {
 			fs.readdir(p, (err, files) => {
 				if (err) {
-					return callback(err);
+					callback(err);
+					return;
 				}
 				let count = files!.length;
 				if (count === 0) {
@@ -601,7 +604,8 @@ export function rmrf(
 						const fullPath = join(fs, p, file);
 						rmrf(fs, fullPath, err => {
 							if (err) {
-								return callback(err);
+								callback(err);
+								return;
 							}
 							count--;
 							if (count === 0) {

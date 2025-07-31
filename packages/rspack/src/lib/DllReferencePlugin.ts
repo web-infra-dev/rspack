@@ -166,15 +166,20 @@ export class DllReferencePlugin {
 								manifestParameter,
 								"utf8",
 								(err, result) => {
-									if (err) return reject(err);
+									if (err) {
+										reject(err);
+										return;
+									}
 
-									if (!result)
-										return reject(
+									if (!result) {
+										reject(
 											new DllManifestError(
 												manifestParameter,
 												`Can't read anything from ${manifestParameter}`
 											)
 										);
+										return;
+									}
 
 									try {
 										const manifest: DllReferencePluginOptionsManifest =

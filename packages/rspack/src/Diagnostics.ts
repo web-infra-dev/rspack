@@ -8,7 +8,7 @@ export function createDiagnosticArray(
 	adm: Diagnostics & { [$proxy]?: RspackError[] }
 ): RspackError[] {
 	if ($proxy in adm) {
-		return adm[$proxy] as RspackError[];
+		return adm[$proxy]!;
 	}
 
 	const array: RspackError[] & {

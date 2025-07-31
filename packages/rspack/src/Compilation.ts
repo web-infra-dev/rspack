@@ -218,7 +218,7 @@ export class Compilation {
 		log: liteTapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
 		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
-		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>>;
 		optimizeTree: liteTapable.AsyncSeriesHook<
 			[Iterable<Chunk>, Iterable<Module>]
 		>;
@@ -227,38 +227,33 @@ export class Compilation {
 			void
 		>;
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
-		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
+		chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+		chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
 		processWarnings: liteTapable.SyncWaterfallHook<[WebpackError[]]>;
-		succeedModule: liteTapable.SyncHook<[Module], void>;
-		stillValidModule: liteTapable.SyncHook<[Module], void>;
+		succeedModule: liteTapable.SyncHook<[Module]>;
+		stillValidModule: liteTapable.SyncHook<[Module]>;
 
 		statsPreset: liteTapable.HookMap<
-			liteTapable.SyncHook<
-				[Partial<StatsOptions>, CreateStatsOptionsContext],
-				void
-			>
+			liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>
 		>;
 		statsNormalize: liteTapable.SyncHook<
-			[Partial<StatsOptions>, CreateStatsOptionsContext],
-			void
+			[Partial<StatsOptions>, CreateStatsOptionsContext]
 		>;
-		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
-		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions]>;
+		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions]>;
 
 		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
 		additionalTreeRuntimeRequirements: liteTapable.SyncHook<
-			[Chunk, Set<string>],
-			void
+			[Chunk, Set<string>]
 		>;
 		runtimeRequirementInTree: liteTapable.HookMap<
 			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
-		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
-		seal: liteTapable.SyncHook<[], void>;
+		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+		seal: liteTapable.SyncHook<[]>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 		needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
 	}>;
@@ -325,7 +320,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					throw new Error(errorMessage("it's using 'intercept'"));
 				},
 				tap: (options: liteTapable.Options, fn: liteTapable.Fn<T, void>) => {
-					processAssetsHook.tap(getOptions(options), () => fn(...getArgs()));
+					processAssetsHook.tap(getOptions(options), () => {
+						fn(...getArgs());
+					});
 				},
 				tapAsync: (
 					options: liteTapable.Options,
@@ -339,7 +336,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					options: liteTapable.Options,
 					fn: liteTapable.FnPromise<T, void>
 				) => {
-					processAssetsHook.tapPromise(getOptions(options), () =>
+					processAssetsHook.tapPromise(getOptions(options), async () =>
 						fn(...getArgs())
 					);
 				},
@@ -571,8 +568,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			// properties in the prototype chain
 			const options: Partial<NormalizedStatsOptions> = {};
 			for (const key in optionsOrPreset) {
-				options[key as keyof NormalizedStatsOptions] =
-					optionsOrPreset[key as keyof StatsValue];
+				options[key] = optionsOrPreset[key as keyof StatsValue];
 			}
 			if (options.preset !== undefined) {
 				this.hooks.statsPreset.for(options.preset).call(options, context);
@@ -883,7 +879,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	fileDependencies = createFakeCompilationDependencies(
 		() => this.#inner.dependencies().fileDependencies,
-		d => this.#inner.addFileDependencies(d)
+		d => {
+			this.#inner.addFileDependencies(d);
+		}
 	);
 
 	get __internal__addedFileDependencies() {
@@ -912,17 +910,23 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	contextDependencies = createFakeCompilationDependencies(
 		() => this.#inner.dependencies().contextDependencies,
-		d => this.#inner.addContextDependencies(d)
+		d => {
+			this.#inner.addContextDependencies(d);
+		}
 	);
 
 	missingDependencies = createFakeCompilationDependencies(
 		() => this.#inner.dependencies().missingDependencies,
-		d => this.#inner.addMissingDependencies(d)
+		d => {
+			this.#inner.addMissingDependencies(d);
+		}
 	);
 
 	buildDependencies = createFakeCompilationDependencies(
 		() => this.#inner.dependencies().buildDependencies,
-		d => this.#inner.addBuildDependencies(d)
+		d => {
+			this.#inner.addBuildDependencies(d);
+		}
 	);
 
 	getStats() {

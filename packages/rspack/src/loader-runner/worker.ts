@@ -108,7 +108,7 @@ async function loaderImpl(
 		);
 	};
 	loaderContext.getResolve = function getResolve(options) {
-		return (context, request, callback) => {
+		return async (context, request, callback) => {
 			if (!callback) {
 				return new Promise((resolve, reject) => {
 					sendRequest(RequestType.GetResolve, options, context, request).then(
@@ -237,7 +237,7 @@ async function loaderImpl(
 		},
 		createHash: type => {
 			return createHash(
-				type || loaderContext._compilation.outputOptions!.hashFunction!
+				type || loaderContext._compilation.outputOptions.hashFunction!
 			);
 		}
 	};
@@ -294,7 +294,7 @@ async function loaderImpl(
 	} as NormalModule;
 
 	// @ts-expect-error
-	loaderContext.importModule = function importModule(
+	loaderContext.importModule = async function importModule(
 		request,
 		options,
 		callback
@@ -399,7 +399,7 @@ async function loaderImpl(
 	};
 
 	loaderContext.cacheable = function cacheable(flag: boolean) {
-		if (flag === false) {
+		if (!flag) {
 			sendRequest(RequestType.SetCacheable, false);
 		}
 	};
@@ -557,7 +557,7 @@ function createSendRequest(
 	workerPort: MessagePort,
 	workerSyncPort: MessagePort
 ): SendRequestFunction {
-	const sendRequest = ((requestType, ...args) => {
+	const sendRequest = (async (requestType, ...args) => {
 		const id = nextId++;
 		workerPort.postMessage({
 			type: "request",

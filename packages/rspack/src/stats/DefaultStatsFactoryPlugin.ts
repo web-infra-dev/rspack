@@ -970,7 +970,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const statsCompilation = getStatsCompilation(compilation);
 			const array = statsCompilation.modules;
 			const groupedModules = factory.create(`${type}.modules`, array, context);
-			const limited = spaceLimited(groupedModules, options.modulesSpace!);
+			const limited = spaceLimited(groupedModules, options.modulesSpace);
 			object.modules = limited.children;
 			object.filteredModules = limited.filteredChildren;
 		},
@@ -1001,7 +1001,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					!chunkGroupChildren &&
 					array.every(({ chunkGroup }) => {
 						if (chunkGroup.chunks.length !== 1) return false;
-						const chunk = chunks[chunkGroup.chunks[0]!];
+						const chunk = chunks[chunkGroup.chunks[0]];
 						return (
 							chunk &&
 							chunk.files.size === 1 &&

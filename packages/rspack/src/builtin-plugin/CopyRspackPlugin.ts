@@ -35,12 +35,12 @@ export const CopyRspackPlugin = create(
 			const originalTransform = pattern.transform;
 			if (originalTransform) {
 				if (typeof originalTransform === "object") {
-					pattern.transform = (input, absoluteFilename) =>
+					pattern.transform = async (input, absoluteFilename) =>
 						Promise.resolve(
 							originalTransform.transformer(input, absoluteFilename)
 						) as Promise<string> | Promise<Buffer>;
 				} else {
-					pattern.transform = (input, absoluteFilename) =>
+					pattern.transform = async (input, absoluteFilename) =>
 						Promise.resolve(originalTransform(input, absoluteFilename)) as
 							| Promise<string>
 							| Promise<Buffer>;

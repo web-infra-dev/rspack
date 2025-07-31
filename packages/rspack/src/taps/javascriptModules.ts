@@ -26,7 +26,7 @@ export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
 					let digestResult: Buffer | string;
 					if (getCompiler().options.output.hashDigest) {
 						digestResult = hash.digest(
-							getCompiler().options.output.hashDigest as string
+							getCompiler().options.output.hashDigest!
 						);
 					} else {
 						digestResult = hash.digest();

@@ -278,7 +278,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 					) {
 						return;
 					}
-					const hwpHooks = getHooks!(compilation);
+					const hwpHooks = getHooks(compilation);
 					hwpHooks.beforeAssetTagGeneration.tapPromise(
 						PLUGIN_NAME,
 						async data => {

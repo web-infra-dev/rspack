@@ -29,7 +29,9 @@ export class AsyncTask<Param, Ret> {
 			this.#isRunning = false;
 			if (this.#params.length) {
 				this.#isRunning = true;
-				queueMicrotask(() => this.#exec_internal());
+				queueMicrotask(() => {
+					this.#exec_internal();
+				});
 			}
 
 			for (let i = 0; i < results.length; i++) {
@@ -42,7 +44,9 @@ export class AsyncTask<Param, Ret> {
 
 	exec(param: Param, callback: TaskCallback<Ret>) {
 		if (!this.#isRunning) {
-			queueMicrotask(() => this.#exec_internal());
+			queueMicrotask(() => {
+				this.#exec_internal();
+			});
 			this.#isRunning = true;
 		}
 

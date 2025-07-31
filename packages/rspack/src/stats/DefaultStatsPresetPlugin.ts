@@ -319,7 +319,7 @@ export class DefaultStatsPresetPlugin {
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap("DefaultStatsPresetPlugin", compilation => {
 			for (const key of Object.keys(NAMED_PRESETS)) {
-				const defaults = NAMED_PRESETS[key as keyof typeof NAMED_PRESETS];
+				const defaults = NAMED_PRESETS[key];
 				compilation.hooks.statsPreset
 					.for(key)
 					.tap("DefaultStatsPresetPlugin", (options, context) => {

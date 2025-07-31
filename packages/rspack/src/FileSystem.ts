@@ -107,11 +107,12 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 		});
 		this.readFile = memoizeFn(() => util.promisify(fs.readFile.bind(fs)));
 		this.stat = memoizeFn(() => {
-			return (name: string) => {
+			return async (name: string) => {
 				return new Promise((resolve, reject) => {
 					fs.stat(name, (err, stats) => {
 						if (err) {
-							return reject(err);
+							reject(err);
+							return;
 						}
 						resolve(stats && __to_binding_stat(stats));
 					});
@@ -119,11 +120,12 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 			};
 		});
 		this.lstat = memoizeFn(() => {
-			return (name: string) => {
+			return async (name: string) => {
 				return new Promise((resolve, reject) => {
 					(fs.lstat || fs.stat)(name, (err, stats) => {
 						if (err) {
-							return reject(err);
+							reject(err);
+							return;
 						}
 						resolve(stats && __to_binding_stat(stats));
 					});
@@ -131,12 +133,13 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 			};
 		});
 		this.realpath = memoizeFn(() => {
-			return (name: string) => {
+			return async (name: string) => {
 				return new Promise((resolve, reject) => {
 					if (fs.realpath) {
 						fs.realpath(name, (err, path) => {
 							if (err) {
-								return reject(err);
+								reject(err);
+								return;
 							}
 							resolve(path);
 						});
@@ -242,7 +245,7 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
 		this.write = memoizeFn(() => {
 			const writeFn = util.promisify(fs.write.bind(fs));
 			return async (fd: number, content: Buffer, position: number) => {
-				return await writeFn(fd, content, {
+				return writeFn(fd, content, {
 					position
 				});
 			};
@@ -250,7 +253,7 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
 		this.writeAll = memoizeFn(() => {
 			const writeFn = util.promisify(fs.writeFile.bind(fs));
 			return async (fd: number, content: Buffer) => {
-				return await writeFn(fd, content);
+				writeFn(fd, content);
 			};
 		});
 		this.read = memoizeFn(() => {

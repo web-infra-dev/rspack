@@ -430,7 +430,8 @@ class Compiler {
 		} = {}
 	) {
 		if (this.running) {
-			return callback(new ConcurrentCompilationError());
+			callback(new ConcurrentCompilationError());
+			return;
 		}
 
 		this.modifiedFiles = options.modifiedFiles;
@@ -457,7 +458,8 @@ class Compiler {
 			_compilation: Compilation | undefined
 		) => {
 			if (err) {
-				return finalCallback(err);
+				finalCallback(err);
+				return;
 			}
 
 			const compilation = _compilation!;
@@ -470,11 +472,15 @@ class Compiler {
 				const stats = new Stats(compilation);
 				this.hooks.done.callAsync(stats, err => {
 					if (err) {
-						return finalCallback(err);
+						finalCallback(err);
+						return;
 					}
 
 					this.hooks.additionalPass.callAsync(err => {
-						if (err) return finalCallback(err);
+						if (err) {
+							finalCallback(err);
+							return;
+						}
 						this.compile(onCompiled);
 					});
 				});
@@ -486,20 +492,23 @@ class Compiler {
 			const stats = new Stats(compilation);
 			this.hooks.done.callAsync(stats, err => {
 				if (err) {
-					return finalCallback(err);
+					finalCallback(err);
+					return;
 				}
-				return finalCallback(null, stats);
+				finalCallback(null, stats);
 			});
 		};
 
 		const run = () => {
 			this.hooks.beforeRun.callAsync(this, err => {
 				if (err) {
-					return finalCallback(err);
+					finalCallback(err);
+					return;
 				}
 				this.hooks.run.callAsync(this, err => {
 					if (err) {
-						return finalCallback(err);
+						finalCallback(err);
+						return;
 					}
 					this.compile(onCompiled);
 				});
@@ -508,7 +517,10 @@ class Compiler {
 
 		if (this.idle) {
 			this.cache.endIdle(err => {
-				if (err) return callback(err);
+				if (err) {
+					callback(err);
+					return;
+				}
 				this.idle = false;
 				run();
 			});
@@ -542,7 +554,8 @@ class Compiler {
 
 		this.compile((err, compilation) => {
 			if (err) {
-				return finalCallback(err);
+				finalCallback(err);
+				return;
 			}
 
 			assertNotNill(compilation);
@@ -561,7 +574,7 @@ class Compiler {
 				entries.push(...ep.chunks);
 			}
 
-			return finalCallback(null, entries, compilation);
+			finalCallback(null, entries, compilation);
 		});
 	}
 
@@ -672,22 +685,25 @@ class Compiler {
 		const params = this.#newCompilationParams();
 		this.hooks.beforeCompile.callAsync(params, (err: any) => {
 			if (err) {
-				return callback(err);
+				callback(err);
+				return;
 			}
 			this.hooks.compile.call(params);
 			this.#resetThisCompilation();
 
 			this.#build(err => {
 				if (err) {
-					return callback(err);
+					callback(err);
+					return;
 				}
 				this.#compilation!.startTime = startTime;
 				this.#compilation!.endTime = Date.now();
 				this.hooks.afterCompile.callAsync(this.#compilation!, err => {
 					if (err) {
-						return callback(err);
+						callback(err);
+						return;
 					}
-					return callback(null, this.#compilation);
+					callback(null, this.#compilation);
 				});
 			});
 		});
@@ -702,11 +718,15 @@ class Compiler {
 			return;
 		}
 		this.hooks.shutdown.callAsync(err => {
-			if (err) return callback(err);
+			if (err) {
+				callback(err);
+				return;
+			}
 			this.cache.shutdown(() => {
 				this.#getInstance((error, instance) => {
 					if (error) {
-						return callback(error);
+						callback(error);
+						return;
 					}
 					instance!.close();
 					callback();
@@ -718,7 +738,8 @@ class Compiler {
 	#build(callback: (error: Error | null) => void) {
 		this.#getInstance((error, instance) => {
 			if (error) {
-				return callback(error);
+				callback(error);
+				return;
 			}
 			if (!this.#initial) {
 				instance!.rebuild(
@@ -806,11 +827,13 @@ class Compiler {
 	): void {
 		const error = checkVersion();
 		if (error) {
-			return callback(error);
+			callback(error);
+			return;
 		}
 
 		if (this.#instance) {
-			return callback(null, this.#instance);
+			callback(null, this.#instance);
+			return;
 		}
 
 		const options = this.options;

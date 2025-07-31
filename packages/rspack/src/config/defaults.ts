@@ -1180,7 +1180,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
-					obj[prop] = newArray as any;
+					obj[prop] = newArray;
 				}
 				const items = factory();
 				if (items !== undefined) {

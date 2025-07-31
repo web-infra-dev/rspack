@@ -57,7 +57,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 			const processResolveResult = this.#processResolveResult;
 
 			return async (ctx: RawExternalItemFnCtx) => {
-				return await new Promise((resolve, reject) => {
+				return new Promise((resolve, reject) => {
 					const data = ctx.data();
 					const promise = item(
 						{
@@ -72,7 +72,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 								const rawResolve = options ? getRawResolve(options) : undefined;
 								const resolve = ctx.getResolve(rawResolve);
 
-								return (
+								return async (
 									context: string,
 									request: string,
 									callback?: ResolveCallback
@@ -111,12 +111,15 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 					) as Promise<ExternalItemValue> | ExternalItemValue | undefined;
 					if ((promise as Promise<ExternalItemValue>)?.then) {
 						(promise as Promise<ExternalItemValue>).then(
-							result =>
+							result => {
 								resolve({
 									result: getRawExternalItemValueFormFnResult(result),
 									externalType: undefined
-								}),
-							e => reject(e)
+								});
+							},
+							e => {
+								reject(e);
+							}
 						);
 					} else if (item.length === 1) {
 						// No callback and no promise returned, regarded as a synchronous function

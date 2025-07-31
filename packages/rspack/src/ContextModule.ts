@@ -29,7 +29,7 @@ Object.defineProperty(binding.ContextModule.prototype, "emitFile", {
 		source: Source,
 		assetInfo?: binding.AssetInfo
 	) {
-		return this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
+		this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
 	}
 });
 

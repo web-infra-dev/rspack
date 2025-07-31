@@ -127,9 +127,17 @@ export default function ({
 				currentIndent = currentIndent.slice(0, currentIndent.length - 2);
 		},
 
-		profile: console.profile && (name => console.profile(name)),
+		profile:
+			console.profile &&
+			(name => {
+				console.profile(name);
+			}),
 
-		profileEnd: console.profileEnd && (name => console.profileEnd(name)),
+		profileEnd:
+			console.profileEnd &&
+			(name => {
+				console.profileEnd(name);
+			}),
 		clear: (!appendOnly &&
 			console.clear &&
 			(() => {

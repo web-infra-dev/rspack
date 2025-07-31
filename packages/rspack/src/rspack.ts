@@ -141,7 +141,9 @@ function rspack(
 			}
 			return compiler;
 		} catch (err: any) {
-			process.nextTick(() => callback(err));
+			process.nextTick(() => {
+				callback(err);
+			});
 			return null;
 		}
 	} else {

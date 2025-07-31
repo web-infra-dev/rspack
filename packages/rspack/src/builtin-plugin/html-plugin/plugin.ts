@@ -252,7 +252,7 @@ const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
 	createHtmlTagObject: (
 		tagName: string,
 		attributes?: Record<string, string | boolean>,
-		innerHTML?: string | undefined
+		innerHTML?: string
 	) => JsHtmlPluginTag;
 	version: number;
 };
@@ -278,7 +278,7 @@ const voidTags = [
 HtmlRspackPlugin.createHtmlTagObject = (
 	tagName: string,
 	attributes?: Record<string, string | boolean>,
-	innerHTML?: string | undefined
+	innerHTML?: string
 ): JsHtmlPluginTag => {
 	return {
 		tagName,

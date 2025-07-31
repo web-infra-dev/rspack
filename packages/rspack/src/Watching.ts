@@ -108,7 +108,8 @@ export class Watching {
 					this.compiler.contextTimestamps = undefined;
 					this.compiler.modifiedFiles = undefined;
 					this.compiler.removedFiles = undefined;
-					return this.handler(err);
+					this.handler(err);
+					return;
 				}
 				this.#invalidate(
 					fileTimeInfoEntries,
@@ -293,13 +294,19 @@ export class Watching {
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
-			if (err) return this._done(err);
+			if (err) {
+				this._done(err);
+				return;
+			}
 
 			const onCompiled = (
 				err: Error | null,
 				_compilation: Compilation | undefined
 			) => {
-				if (err) return this._done(err);
+				if (err) {
+					this._done(err);
+					return;
+				}
 
 				const compilation = _compilation!;
 
@@ -311,16 +318,22 @@ export class Watching {
 					compilation.endTime = Date.now();
 					const stats = new Stats(compilation);
 					this.compiler.hooks.done.callAsync(stats, err => {
-						if (err) return this._done(err, compilation);
+						if (err) {
+							this._done(err, compilation);
+							return;
+						}
 
 						this.compiler.hooks.additionalPass.callAsync(err => {
-							if (err) return this._done(err, compilation);
+							if (err) {
+								this._done(err, compilation);
+								return;
+							}
 							this.compiler.compile(onCompiled);
 						});
 					});
 					return;
 				}
-				this._done(null, this.compiler._lastCompilation!);
+				this._done(null, this.compiler._lastCompilation);
 			};
 
 			this.compiler.compile(onCompiled);
@@ -350,7 +363,8 @@ export class Watching {
 		};
 
 		if (error) {
-			return handleError(error);
+			handleError(error);
+			return;
 		}
 		assert(compilation);
 
@@ -413,7 +427,10 @@ export class Watching {
 		);
 
 		this.compiler.hooks.done.callAsync(stats, err => {
-			if (err) return handleError(err, cbs);
+			if (err) {
+				handleError(err, cbs);
+				return;
+			}
 			this.handler(null, stats);
 
 			process.nextTick(() => {
@@ -426,7 +443,7 @@ export class Watching {
 				}
 			});
 			for (const cb of cbs) cb(null);
-			this.compiler.hooks.afterDone.call(stats!);
+			this.compiler.hooks.afterDone.call(stats);
 		});
 	}
 

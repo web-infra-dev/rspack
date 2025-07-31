@@ -35,11 +35,13 @@ const needCalls = (
 	let leftTimes = times;
 	return err => {
 		if (--leftTimes === 0) {
-			return callback();
+			callback();
+			return;
 		}
 		if (err && leftTimes > 0) {
 			leftTimes = 0;
-			return callback();
+			callback();
+			return;
 		}
 	};
 };
@@ -89,14 +91,16 @@ export class Cache {
 				result = undefined;
 			}
 			if (gotHandlers.length > 1) {
-				const innerCallback = needCalls(gotHandlers.length, () =>
-					callback(null, result)
-				);
+				const innerCallback = needCalls(gotHandlers.length, () => {
+					callback(null, result);
+				});
 				for (const gotHandler of gotHandlers) {
 					gotHandler(result, innerCallback);
 				}
 			} else if (gotHandlers.length === 1) {
-				gotHandlers[0](result, () => callback(null, result));
+				gotHandlers[0](result, () => {
+					callback(null, result);
+				});
 			} else {
 				callback(null, result);
 			}

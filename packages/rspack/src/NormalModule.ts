@@ -34,7 +34,7 @@ Object.defineProperty(binding.NormalModule.prototype, "emitFile", {
 		source: Source,
 		assetInfo?: binding.AssetInfo
 	) {
-		return this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
+		this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
 	}
 });
 
@@ -118,20 +118,23 @@ Object.defineProperty(binding.NormalModule, "getCompilationHooks", {
 				readResourceForScheme: new liteTapable.HookMap(scheme => {
 					const hook = hooks!.readResource.for(scheme);
 					return createFakeHook({
-						tap: (options: string, fn: any) =>
+						tap: (options: string, fn: any) => {
 							hook.tap(options, (loaderContext: LoaderContext) =>
 								fn(loaderContext.resource)
-							),
-						tapAsync: (options: string, fn: any) =>
+							);
+						},
+						tapAsync: (options: string, fn: any) => {
 							hook.tapAsync(
 								options,
 								(loaderContext: LoaderContext, callback: any) =>
 									fn(loaderContext.resource, callback)
-							),
-						tapPromise: (options: string, fn: any) =>
+							);
+						},
+						tapPromise: (options: string, fn: any) => {
 							hook.tapPromise(options, (loaderContext: LoaderContext) =>
 								fn(loaderContext.resource)
-							)
+							);
+						}
 					}) as any;
 				}),
 				readResource: new liteTapable.HookMap(

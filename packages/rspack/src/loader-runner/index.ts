@@ -333,7 +333,7 @@ export async function runLoaders(
 		context.cacheable = true;
 	};
 
-	loaderContext.importModule = function importModule(
+	loaderContext.importModule = async function importModule(
 		request,
 		userOptions,
 		callback
@@ -417,7 +417,7 @@ export async function runLoaders(
 					);
 			});
 		}
-		return compiler._lastCompilation!.__internal_getInner().importModule(
+		compiler._lastCompilation!.__internal_getInner().importModule(
 			request,
 			options.layer,
 			options.publicPath,
@@ -543,7 +543,7 @@ export async function runLoaders(
 	loaderContext.getResolve = function getResolve(options) {
 		const resolver = getResolver();
 		const child = options ? resolver.withOptions(options) : resolver;
-		return (context, request, callback) => {
+		return async (context, request, callback) => {
 			if (callback) {
 				child.resolve({}, context, request, getResolveContext(), callback);
 				return;
@@ -629,7 +629,7 @@ export async function runLoaders(
 		} else {
 			source = new RawSource(content);
 		}
-		loaderContext._module.emitFile(name, source!, assetInfo!);
+		loaderContext._module.emitFile(name, source!, assetInfo);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 	loaderContext.experiments = {
@@ -728,7 +728,7 @@ export async function runLoaders(
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
 		get: () => (cacheable: boolean) => {
-			if (cacheable === false) {
+			if (!cacheable) {
 				context.cacheable = cacheable;
 			}
 		}
@@ -823,7 +823,7 @@ export async function runLoaders(
 		handleIncomingRequest: HandleIncomingRequest;
 	} {
 		return {
-			handleIncomingRequest(requestType, ...args) {
+			async handleIncomingRequest(requestType, ...args) {
 				switch (requestType) {
 					case RequestType.AddDependency: {
 						loaderContext.addDependency(args[0]);

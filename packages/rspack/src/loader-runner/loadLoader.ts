@@ -53,9 +53,11 @@ export default function loadLoader(
 				const retry = loadLoader.bind(null, loader, callback);
 				return void setImmediate(retry);
 			}
-			return callback(e);
+			callback(e);
+			return;
 		}
-		return handleResult(loader, module, callback);
+		handleResult(loader, module, callback);
+		return;
 	}
 }
 
@@ -65,11 +67,12 @@ function handleResult(
 	callback: (err?: unknown) => void
 ): void {
 	if (typeof module !== "function" && typeof module !== "object") {
-		return callback(
+		callback(
 			new LoaderLoadingError(
 				`Module '${loader.path}' is not a loader (export function or es6 module)`
 			)
 		);
+		return;
 	}
 	loader.normal = typeof module === "function" ? module : module.default;
 	loader.pitch = (module as ModuleObject).pitch;
@@ -81,11 +84,12 @@ function handleResult(
 		typeof loader.normal !== "function" &&
 		typeof loader.pitch !== "function"
 	) {
-		return callback(
+		callback(
 			new LoaderLoadingError(
 				`Module '${loader.path}' is not a loader (must have normal or pitch function)`
 			)
 		);
+		return;
 	}
 	callback();
 }

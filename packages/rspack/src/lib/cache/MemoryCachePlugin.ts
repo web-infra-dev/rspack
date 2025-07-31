@@ -41,7 +41,7 @@ export default class MemoryCachePlugin {
 					} else {
 						cache.set(identifier, { etag: dataEtag, data: result });
 					}
-					return callback(null);
+					callback(null);
 				});
 			}
 		);

@@ -29,7 +29,9 @@ class MultiWatching {
 		if (callback) {
 			asyncLib.each(
 				this.watchings,
-				(watching, callback) => watching.invalidate(callback),
+				(watching, callback) => {
+					watching.invalidate(callback);
+				},
 				// cannot be resolved without assertion
 				// Type 'Error | null | undefined' is not assignable to type 'Error | null'
 				callback as (err: Error | null | undefined) => void
@@ -49,12 +51,13 @@ class MultiWatching {
 		if (callback) {
 			asyncLib.each(
 				this.watchings,
-				(watching, callback) =>
+				(watching, callback) => {
 					watching.invalidateWithChangesAndRemovals(
 						changedFiles,
 						removedFiles,
 						callback
-					),
+					);
+				},
 				// cannot be resolved without assertion
 				// Type 'Error | null | undefined' is not assignable to type 'Error | null'
 				callback as (err: Error | null | undefined) => void

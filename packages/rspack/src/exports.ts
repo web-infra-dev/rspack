@@ -1,6 +1,6 @@
 // this is a hack to be compatible with plugin which detect webpack's version
-const rspackVersion = RSPACK_VERSION as string;
-const version = WEBPACK_VERSION as string;
+const rspackVersion = RSPACK_VERSION;
+const version = WEBPACK_VERSION;
 
 export { rspackVersion, version };
 

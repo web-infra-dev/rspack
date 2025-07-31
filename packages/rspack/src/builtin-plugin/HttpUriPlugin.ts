@@ -44,7 +44,10 @@ export type HttpUriPluginOptions = {
 const getHttp = memoize(() => require("node:http"));
 const getHttps = memoize(() => require("node:https"));
 
-function fetch(url: string, options: { headers: Record<string, string> }) {
+async function fetch(
+	url: string,
+	options: { headers: Record<string, string> }
+) {
 	const parsedURL = new URL(url);
 	const send: typeof import("node:http") =
 		parsedURL.protocol === "https:" ? getHttps() : getHttp();
@@ -63,13 +66,11 @@ function fetch(url: string, options: { headers: Record<string, string> }) {
 					/** @type {Readable} */
 					let stream = res;
 					if (contentEncoding === "gzip") {
-						stream = stream.pipe(createGunzip()) as any as IncomingMessage;
+						stream = stream.pipe(createGunzip()) as IncomingMessage;
 					} else if (contentEncoding === "br") {
-						stream = stream.pipe(
-							createBrotliDecompress()
-						) as any as IncomingMessage;
+						stream = stream.pipe(createBrotliDecompress()) as IncomingMessage;
 					} else if (contentEncoding === "deflate") {
-						stream = stream.pipe(createInflate()) as any as IncomingMessage;
+						stream = stream.pipe(createInflate()) as IncomingMessage;
 					}
 					const chunks: Buffer[] = [];
 					stream.on("data", chunk => {

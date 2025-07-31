@@ -358,7 +358,7 @@ export class MultiCompiler {
 			if (errored) return;
 			if (err) {
 				errored = true;
-				return asyncLib.each(
+				asyncLib.each(
 					nodes,
 					(node, callback) => {
 						if (node.compiler.watching) {
@@ -367,8 +367,11 @@ export class MultiCompiler {
 							callback();
 						}
 					},
-					() => callback(err)
+					() => {
+						callback(err);
+					}
 				);
+				return;
 			}
 			node.result = stats;
 			running--;
@@ -434,8 +437,12 @@ export class MultiCompiler {
 					i,
 					nodeDone.bind(null, node) as liteTapable.Callback<Error, Stats>,
 					() => node.state !== "starting" && node.state !== "running",
-					() => nodeChange(node),
-					() => nodeInvalid(node)
+					() => {
+						nodeChange(node);
+					},
+					() => {
+						nodeInvalid(node);
+					}
 				))
 			);
 		});
@@ -540,19 +547,23 @@ export class MultiCompiler {
 		}
 	) {
 		if (this.running) {
-			return callback(new ConcurrentCompilationError());
+			callback(new ConcurrentCompilationError());
+			return;
 		}
 		this.running = true;
 
 		if (this.validateDependencies(callback)) {
 			this.#runGraph(
 				() => {},
-				(compiler, _, callback) => compiler.run(callback, options),
+				(compiler, _, callback) => {
+					compiler.run(callback, options);
+				},
 				(err, stats) => {
 					this.running = false;
 
 					if (callback !== undefined) {
-						return callback(err, stats);
+						callback(err, stats);
+						return;
 					}
 				}
 			);
