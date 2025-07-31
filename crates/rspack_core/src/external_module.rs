@@ -548,7 +548,8 @@ impl ExternalModule {
           )
         }
       }
-      "script" if let Some(request) = request => {
+      "script" if request.is_some() => {
+        let request = request.expect("request should be some");
         let url_and_global = extract_url_and_global(request.primary())?;
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
@@ -767,28 +768,32 @@ impl Module for ExternalModule {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
-      "asset" if let Some(request) = request => {
-        cgr.add(
-          SourceType::JavaScript,
-          RawStringSource::from(format!(
-            "module.exports = {};",
-            serde_json::to_string(request.primary()).to_rspack_result()?
-          ))
-          .boxed(),
-        );
-        cgr
-          .data
-          .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
+      "asset" => {
+        if let Some(request) = request {
+          cgr.add(
+            SourceType::JavaScript,
+            RawStringSource::from(format!(
+              "module.exports = {};",
+              serde_json::to_string(request.primary()).to_rspack_result()?
+            ))
+            .boxed(),
+          );
+          cgr
+            .data
+            .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
+        }
       }
-      "css-import" if let Some(request) = request => {
-        cgr.add(
-          SourceType::Css,
-          RawStringSource::from(format!(
-            "@import url({});",
-            serde_json::to_string(request.primary()).to_rspack_result()?
-          ))
-          .boxed(),
-        );
+      "css-import" => {
+        if let Some(request) = request {
+          cgr.add(
+            SourceType::Css,
+            RawStringSource::from(format!(
+              "@import url({});",
+              serde_json::to_string(request.primary()).to_rspack_result()?
+            ))
+            .boxed(),
+          );
+        }
       }
       _ => {
         let (source, chunk_init_fragments, runtime_requirements) = self.get_source(

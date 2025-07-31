@@ -1,5 +1,4 @@
 #![recursion_limit = "256"]
-#![feature(try_blocks)]
 #![allow(deprecated)]
 
 #[macro_use]

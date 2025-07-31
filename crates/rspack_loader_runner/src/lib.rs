@@ -1,5 +1,3 @@
-#![feature(round_char_boundary)]
-
 mod content;
 mod context;
 mod loader;

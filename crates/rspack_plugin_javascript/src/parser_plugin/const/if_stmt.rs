@@ -112,16 +112,19 @@ fn get_hoisted_declarations<'a>(
           collect_from_block_stm(finalizer, &mut stmt_stack);
         }
       }
-      Stmt::Decl(decl)
-        if let Some(r#fn) = decl.as_fn_decl()
-          && include_function_declarations =>
-      {
+      Stmt::Decl(decl) if decl.as_fn_decl().is_some() && include_function_declarations => {
+        let r#fn = decl
+          .as_fn_decl()
+          .expect("decl is `FunctionDeclaration` in `if_guard`");
         collect_declaration_from_ident(&r#fn.ident, &mut declarations);
       }
-      Stmt::Decl(decl)
-        if let Some(var) = decl.as_var()
-          && let Some(decls) = get_var_kind_decls(var) =>
-      {
+      Stmt::Decl(decl) if decl.as_var().is_some() => {
+        let Some(var) = decl.as_var() else {
+          continue;
+        };
+        let Some(decls) = get_var_kind_decls(var) else {
+          continue;
+        };
         for decl in decls {
           collect_declaration_from_pat(&decl.name, &mut declarations);
         }

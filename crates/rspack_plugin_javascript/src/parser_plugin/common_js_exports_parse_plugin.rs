@@ -50,11 +50,11 @@ fn get_member_expression_info<E: ExprLike>(
           .map(|n| n.to_owned())
           .collect::<Vec<_>>()
       })?;
-    match expr.obj {
-      box Expr::Call(_) => Some(members),
-      box Expr::Ident(_) => Some(members),
-      box Expr::MetaProp(_) => Some(members),
-      box Expr::This(_) => Some(members),
+    match &*expr.obj {
+      Expr::Call(_) => Some(members),
+      Expr::Ident(_) => Some(members),
+      Expr::MetaProp(_) => Some(members),
+      Expr::This(_) => Some(members),
       _ if expr_matcher::is_module_exports(&*expr.obj) => Some(members),
       _ => None,
     }
@@ -240,7 +240,12 @@ impl JavascriptParser<'_> {
     node
       .callee
       .as_expr()
-      .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && self.is_unresolved_ident("require")))
+      .map(|expr| match &**expr {
+        Expr::Ident(ident) if &ident.sym == "require" && self.is_unresolved_ident("require") => {
+          true
+        }
+        _ => false,
+      })
       .unwrap_or_default()
   }
 
@@ -505,11 +510,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         && parser.is_exports_or_module_exports_or_this_expr(expr)
         && let Some(arg2) = call_expr.args.get(2)
       {
-        let Some(ExprOrSpread {
-          expr: box Expr::Lit(Lit::Str(str)),
-          ..
-        }) = call_expr.args.get(1)
-        else {
+        let Some(ExprOrSpread { expr, .. }) = call_expr.args.get(1) else {
+          return None;
+        };
+        let Expr::Lit(Lit::Str(str)) = &**expr else {
           return None;
         };
 
@@ -524,11 +528,17 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           );
         }
 
-        let base = if parser.is_exports_expr(&**expr) {
+        let Some(ExprOrSpread {
+          expr: first_expr, ..
+        }) = call_expr.args.first()
+        else {
+          return None;
+        };
+        let base = if parser.is_exports_expr(&**first_expr) {
           ExportsBase::DefinePropertyExports
-        } else if expr_matcher::is_module_exports(&**expr) {
+        } else if expr_matcher::is_module_exports(&**first_expr) {
           ExportsBase::DefinePropertyModuleExports
-        } else if parser.is_top_level_this_expr(&**expr) {
+        } else if parser.is_top_level_this_expr(&**first_expr) {
           ExportsBase::DefinePropertyThis
         } else {
           panic!("Unexpected expr type");
