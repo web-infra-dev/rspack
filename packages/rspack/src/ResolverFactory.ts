@@ -35,12 +35,12 @@ export class ResolverFactory {
 
 	constructor(
 		pnp: boolean,
-		resolveOptons: Resolve,
+		resolveOptions: Resolve,
 		loaderResolveOptions: Resolve
 	) {
 		this.#binding = new binding.JsResolverFactory(
 			pnp,
-			getRawResolve(resolveOptons),
+			getRawResolve(resolveOptions),
 			getRawResolve(loaderResolveOptions)
 		);
 	}
