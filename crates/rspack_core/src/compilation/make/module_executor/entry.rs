@@ -3,13 +3,13 @@ use std::collections::hash_map::Entry;
 use rspack_error::miette::diagnostic;
 
 use super::{
+  super::graph_updater::repair::{context::TaskContext, factorize::FactorizeTask},
   context::{ExecutorTaskContext, ImportModuleMeta},
   execute::ExecuteTask,
   overwrite::overwrite_tasks,
 };
 use crate::{
   Context, Dependency, LoaderImportDependency, ModuleProfile,
-  compiler::make::repair::{MakeTaskContext, factorize::FactorizeTask},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -53,7 +53,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
         let dep_id = *dep.id();
 
         let mut mg =
-          MakeTaskContext::get_module_graph_mut(&mut origin_context.artifact.module_graph_partial);
+          TaskContext::get_module_graph_mut(&mut origin_context.artifact.module_graph_partial);
         mg.add_dependency(dep.clone());
 
         res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {

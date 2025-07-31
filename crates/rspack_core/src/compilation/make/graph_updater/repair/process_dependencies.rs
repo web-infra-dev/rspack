@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{MakeTaskContext, factorize::FactorizeTask};
+use super::{TaskContext, factorize::FactorizeTask};
 use crate::{
   ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -14,19 +14,19 @@ pub struct ProcessDependenciesTask {
   pub dependencies: Vec<DependencyId>,
 }
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for ProcessDependenciesTask {
+impl Task<TaskContext> for ProcessDependenciesTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
 
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let Self {
       original_module_identifier,
       dependencies,
     } = *self;
     let mut sorted_dependencies = HashMap::default();
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
+      &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     for dependency_id in dependencies {
       let dependency = module_graph
@@ -65,7 +65,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
       .module_by_identifier(&original_module_identifier)
       .expect("Module expected");
 
-    let mut res: Vec<Box<dyn Task<MakeTaskContext>>> = vec![];
+    let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
       let current_profile = context
         .compiler_options

@@ -1,15 +1,15 @@
-use super::context::ExecutorTaskContext;
-use crate::{
-  compiler::make::repair::{
-    MakeTaskContext, add::AddTask, factorize::FactorizeResultTask,
+use super::{
+  super::graph_updater::repair::{
+    add::AddTask, context::TaskContext, factorize::FactorizeResultTask,
     process_dependencies::ProcessDependenciesTask,
   },
-  utils::task_loop::{Task, TaskResult, TaskType},
+  context::ExecutorTaskContext,
 };
+use crate::utils::task_loop::{Task, TaskResult, TaskType};
 
-/// Transform tasks with MakeTaskContext to tasks with ExecutorTaskContext.
+/// Transform tasks with TaskContext to tasks with ExecutorTaskContext.
 pub fn overwrite_tasks(
-  tasks: Vec<Box<dyn Task<MakeTaskContext>>>,
+  tasks: Vec<Box<dyn Task<TaskContext>>>,
 ) -> Vec<Box<dyn Task<ExecutorTaskContext>>> {
   tasks
     .into_iter()
@@ -17,11 +17,11 @@ pub fn overwrite_tasks(
     .collect()
 }
 
-/// A wrapped task to run MakeTaskContext task.
+/// A wrapped task to run TaskContext task.
 ///
 /// This task will intercept the result of the inner task and trigger tracker.on_*
 #[derive(Debug)]
-pub struct OverwriteTask(Box<dyn Task<MakeTaskContext>>);
+pub struct OverwriteTask(Box<dyn Task<TaskContext>>);
 
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for OverwriteTask {

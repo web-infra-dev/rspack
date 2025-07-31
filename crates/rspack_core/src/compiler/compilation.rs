@@ -33,12 +33,7 @@ use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
-use super::{
-  CompilerId,
-  make::{MakeArtifact, MakeParam, make_module_graph, update_module_graph},
-  module_executor::ModuleExecutor,
-  rebuild::CompilationRecords,
-};
+use super::{CompilerId, rebuild::CompilationRecords};
 use crate::{
   AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
   CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
@@ -47,12 +42,16 @@ use crate::{
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial,
-  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory,
-  RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  EntryOptions, EntryRuntime, Entrypoint, Filename, ImportVarMap, Logger, MemoryGCStorage,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
+  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SourceType, Stats,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
+  compilation::make::{
+    ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
+    update_module_graph,
+  },
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
@@ -283,6 +282,7 @@ pub struct Compilation {
 
   import_var_map: IdentifierDashMap<ImportVarMap>,
 
+  // TODO move to MakeArtifact
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
 
@@ -658,7 +658,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntry(
+      vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -709,7 +709,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntry(
+      vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -932,7 +932,6 @@ impl Compilation {
 
   #[instrument("Compilation:make",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn make(&mut self) -> Result<()> {
-    self.make_artifact.reset_dependencies_incremental_info();
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -941,7 +940,7 @@ impl Compilation {
     }
 
     let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = make_module_graph(self, artifact).await?;
+    self.make_artifact = make(self, artifact).await?;
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -961,7 +960,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       artifact,
-      vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
+      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
 
@@ -1345,26 +1344,21 @@ impl Compilation {
 
   #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
     let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    self.make_artifact = finish_make(self, make_artifact).await?;
 
     let logger = self.get_logger("rspack.Compilation");
 
-    self.in_finish_make.store(false, Ordering::Release);
+    // sync assets to module graph from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await?;
+      self.module_executor = Some(module_executor);
+    }
+
+    // make finished, make artifact should be readonly thereafter.
 
     // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
@@ -1402,13 +1396,6 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
-
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await?;
-      self.module_executor = Some(module_executor);
-    }
 
     logger.time_end(start);
 
