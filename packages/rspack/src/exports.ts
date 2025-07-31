@@ -340,9 +340,14 @@ export {
 } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
+///// Experiments rspack_resolver
 import {
 	cleanupGlobalTrace,
+	EnforceExtension,
+	ResolverFactory,
 	registerGlobalTrace,
+	async as resolveAsync,
+	sync as resolveSync,
 	syncTraceEvent
 } from "@rspack/binding";
 import { createNativePlugin } from "./builtin-plugin";
@@ -370,6 +375,12 @@ interface Experiments {
 		minify: typeof minify;
 		transformSync: typeof transformSync;
 		minifySync: typeof minifySync;
+	};
+	resolver: {
+		ResolverFactory: typeof ResolverFactory;
+		EnforceExtension: typeof EnforceExtension;
+		async: typeof resolveAsync;
+		sync: typeof resolveSync;
 	};
 	CssChunkingPlugin: typeof CssChunkingPlugin;
 	createNativePlugin: typeof createNativePlugin;
@@ -415,6 +426,12 @@ export const experiments: Experiments = {
 		transform,
 		minifySync,
 		transformSync
+	},
+	resolver: {
+		ResolverFactory,
+		EnforceExtension,
+		async: resolveAsync,
+		sync: resolveSync
 	},
 	CssChunkingPlugin,
 	createNativePlugin

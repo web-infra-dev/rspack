@@ -3902,6 +3902,7 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "rayon",
+ "regex",
  "ropey",
  "rspack_allocator",
  "rspack_browserslist",
@@ -3969,6 +3970,7 @@ dependencies = [
  "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
+ "rspack_resolver",
  "rspack_tasks",
  "rspack_tracing",
  "rspack_util",
@@ -5288,9 +5290,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134749bd1a1bfa618ee0ced72b689dee1fd04304d3442358085bf0115404b230"
+checksum = "fbe5f72302219f584a16ffabdc8f89a4fc245d7c8b185df09db9fc11d55ac846"
 dependencies = [
  "async-trait",
  "cfg-if",
