@@ -33,7 +33,7 @@ export default function loadLoader(
 	if (IS_BROWSER) {
 		// Why is IS_BROWSER used here:
 		// @see [../utils/require.ts]
-		nonWebpackRequire(compiler)(loader.path).then(module => {
+		nonWebpackRequire()(loader.path).then(module => {
 			handleResult(loader, module, callback);
 		}, callback);
 		return;

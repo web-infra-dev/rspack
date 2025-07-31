@@ -137,9 +137,9 @@ const HtmlRspackPluginImpl = create(
 						);
 					}
 					try {
-						const renderer = (await nonWebpackRequire(compilation!.compiler)(
-							templateFilePath
-						)) as (data: Record<string, unknown>) => Promise<string> | string;
+						const renderer = (await nonWebpackRequire()(templateFilePath)) as (
+							data: Record<string, unknown>
+						) => Promise<string> | string;
 						if (c.templateParameters === false) {
 							return await renderer({});
 						}

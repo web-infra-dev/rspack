@@ -255,7 +255,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 			typeof this.options.htmlPlugin === "string" &&
 			this.options.htmlPlugin !== NATIVE_HTML_PLUGIN
 		) {
-			nonWebpackRequire(compiler)(this.options.htmlPlugin)
+			nonWebpackRequire()(this.options.htmlPlugin)
 				.then(htmlPlugin => {
 					const getHooks: (compilation: Compilation) => HtmlPluginHooks =
 						htmlPlugin.getCompilationHooks || htmlPlugin.getHooks;
