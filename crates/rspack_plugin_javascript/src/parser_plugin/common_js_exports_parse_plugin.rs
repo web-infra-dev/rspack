@@ -240,11 +240,14 @@ impl JavascriptParser<'_> {
     node
       .callee
       .as_expr()
-      .map(|expr| match &**expr {
-        Expr::Ident(ident) if &ident.sym == "require" && self.is_unresolved_ident("require") => {
-          true
+      .map(|expr| {
+        if matches!(
+          &**expr,
+          Expr::Ident(ident) if &ident.sym == "require" && self.is_unresolved_ident("require")
+        ) {
+          return true;
         }
-        _ => false,
+        false
       })
       .unwrap_or_default()
   }
@@ -510,9 +513,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         && parser.is_exports_or_module_exports_or_this_expr(expr)
         && let Some(arg2) = call_expr.args.get(2)
       {
-        let Some(ExprOrSpread { expr, .. }) = call_expr.args.get(1) else {
-          return None;
-        };
+        let ExprOrSpread { expr, .. } = call_expr.args.get(1)?;
         let Expr::Lit(Lit::Str(str)) = &**expr else {
           return None;
         };
@@ -528,12 +529,9 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           );
         }
 
-        let Some(ExprOrSpread {
+        let ExprOrSpread {
           expr: first_expr, ..
-        }) = call_expr.args.first()
-        else {
-          return None;
-        };
+        } = call_expr.args.first()?;
         let base = if parser.is_exports_expr(&**first_expr) {
           ExportsBase::DefinePropertyExports
         } else if expr_matcher::is_module_exports(&**first_expr) {
