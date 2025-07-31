@@ -43,8 +43,8 @@ Object {
     inlineConst: false,
     inlineEnum: false,
     layers: false,
+    lazyBarrel: false,
     lazyCompilation: false,
-    lazyMakeSideEffectsFreeBarrelFile: false,
     parallelCodeSplitting: false,
     parallelLoader: false,
     rspackFuture: Object {

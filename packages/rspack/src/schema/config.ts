@@ -1426,7 +1426,7 @@ export const getRspackOptionsSchema = memoize(() => {
 			inlineConst: z.boolean(),
 			inlineEnum: z.boolean(),
 			typeReexportsPresence: z.boolean(),
-			lazyMakeSideEffectsFreeBarrelFile: z.boolean(),
+			lazyBarrel: z.boolean(),
 			nativeWatcher: z.boolean()
 		})
 		.partial() satisfies z.ZodType<t.Experiments>;

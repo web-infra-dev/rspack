@@ -644,7 +644,7 @@ export interface ExperimentsNormalized {
 	inlineConst?: boolean;
 	inlineEnum?: boolean;
 	typeReexportsPresence?: boolean;
-	lazyMakeSideEffectsFreeBarrelFile?: boolean;
+	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
 }
 

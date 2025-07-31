@@ -2377,7 +2377,7 @@ export type Experiments = {
     inlineConst?: boolean;
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
-    lazyMakeSideEffectsFreeBarrelFile?: boolean;
+    lazyBarrel?: boolean;
 };
 
 // @public (undocumented)
@@ -2436,9 +2436,9 @@ export interface ExperimentsNormalized {
     // (undocumented)
     layers?: boolean;
     // (undocumented)
-    lazyCompilation?: false | LazyCompilationOptions;
+    lazyBarrel?: boolean;
     // (undocumented)
-    lazyMakeSideEffectsFreeBarrelFile?: boolean;
+    lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)

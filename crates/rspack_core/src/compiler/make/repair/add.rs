@@ -45,11 +45,7 @@ impl Task<MakeTaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let forwarded_ids = if context
-      .compiler_options
-      .experiments
-      .lazy_make_side_effects_free_barrel_file
-    {
+    let forwarded_ids = if context.compiler_options.experiments.lazy_barrel {
       ForwardedIdSet::from_dependencies(&self.dependencies)
     } else {
       ForwardedIdSet::All
@@ -67,11 +63,7 @@ impl Task<MakeTaskContext> for AddTask {
         module_identifier,
       )?;
 
-      if context
-        .compiler_options
-        .experiments
-        .lazy_make_side_effects_free_barrel_file
-      {
+      if context.compiler_options.experiments.lazy_barrel {
         if module_graph
           .module_by_identifier(&module_identifier)
           .is_some()

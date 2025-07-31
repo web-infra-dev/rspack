@@ -2735,7 +2735,7 @@ export type Experiments = {
 	 * Enable lazy make side effects free barrel file
 	 * @default false
 	 */
-	lazyMakeSideEffectsFreeBarrelFile?: boolean;
+	lazyBarrel?: boolean;
 };
 //#endregion
 

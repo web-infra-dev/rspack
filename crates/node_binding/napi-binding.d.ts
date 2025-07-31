@@ -1919,7 +1919,7 @@ useInputFileSystem?: false | Array<RegExp>
 inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
-lazyMakeSideEffectsFreeBarrelFile: boolean
+lazyBarrel: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
