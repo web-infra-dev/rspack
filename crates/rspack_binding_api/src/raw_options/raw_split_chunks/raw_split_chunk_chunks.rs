@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use napi::{bindgen_prelude::Either3, JsString};
+use napi::{JsString, bindgen_prelude::Either3};
 use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
 use rspack_regex::RspackRegex;
 
