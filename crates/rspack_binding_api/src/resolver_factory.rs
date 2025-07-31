@@ -95,7 +95,7 @@ impl JsResolverFactory {
       Some(resolver_factory) => resolver_factory.clone(),
       None => {
         let resolver_factory = Arc::new(ResolverFactory::new(
-          self.resolve_options.clone(),
+          self.loader_resolve_options.clone(),
           self.input_filesystem.clone(),
         ));
         self.loader_resolver_factory = Some(resolver_factory.clone());

@@ -69,9 +69,9 @@ export class ResolverFactory {
 				resolveOptionsWithDepType,
 				options
 			);
-			const resolver = this.get(type, mergedOptions);
-			childCache.set(options, resolver);
-			return resolver;
+			const newResolver = this.get(type, mergedOptions);
+			childCache.set(options, newResolver);
+			return newResolver;
 		};
 		return resolver;
 	}
