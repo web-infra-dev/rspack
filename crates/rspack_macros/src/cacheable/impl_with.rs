@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, visit_mut::VisitMut, Field, GenericParam, Item};
+use syn::{Field, GenericParam, Item, parse_macro_input, visit_mut::VisitMut};
 
 use super::CacheableArgs;
 

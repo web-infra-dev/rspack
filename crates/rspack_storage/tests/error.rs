@@ -78,10 +78,12 @@ mod test_storage_error {
     writer.flush().await?;
 
     // test
-    assert!(storage
-      .load("test_scope")
-      .await
-      .is_err_and(|e| e.to_string().contains("parse option meta failed")));
+    assert!(
+      storage
+        .load("test_scope")
+        .await
+        .is_err_and(|e| e.to_string().contains("parse option meta failed"))
+    );
 
     // resume
     let mut writer = fs.write_file(&meta_file).await?;

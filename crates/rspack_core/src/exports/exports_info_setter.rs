@@ -73,12 +73,11 @@ impl ExportsInfoData {
         export_info.set_can_mangle_provide(Some(false));
         changed = true;
       }
-      if let Some(exclude_exports) = &exclude_exports {
-        if let Some(export_name) = export_info.name()
-          && exclude_exports.contains(export_name)
-        {
-          continue;
-        }
+      if let Some(exclude_exports) = &exclude_exports
+        && let Some(export_name) = export_info.name()
+        && exclude_exports.contains(export_name)
+      {
+        continue;
       }
       if !matches!(
         export_info.provided(),

@@ -4,14 +4,13 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::{BoxSource, RawStringSource},
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
   DependencyId, EntryDependency, FactoryMeta, Module, ModuleGraph, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource},
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 
 use super::dll_entry_dependency::DllEntryDependency;
@@ -73,7 +72,7 @@ impl Module for DllModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     self.identifier().as_str().into()
   }
 

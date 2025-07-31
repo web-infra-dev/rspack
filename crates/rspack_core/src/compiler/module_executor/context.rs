@@ -1,7 +1,7 @@
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::module_tracker::ModuleTracker;
-use crate::{make::repair::MakeTaskContext, DependencyId, ModuleIdentifier};
+use crate::{DependencyId, ModuleIdentifier, make::repair::MakeTaskContext};
 
 /// The meta data for import_module.
 ///

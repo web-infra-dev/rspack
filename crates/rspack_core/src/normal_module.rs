@@ -3,8 +3,8 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   ptr::NonNull,
   sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
   },
 };
 
@@ -15,10 +15,10 @@ use rspack_cacheable::{
   with::{AsMap, AsOption, AsPreset, Skip},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
-use rspack_error::{error, Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity};
+use rspack_error::{Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity, error};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
+use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
@@ -30,19 +30,18 @@ use rspack_util::{
 };
 use rustc_hash::FxHasher;
 use serde_json::json;
-use tracing::{info_span, Instrument};
+use tracing::{Instrument, info_span};
 
 use crate::{
-  contextify,
+  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
+  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
+  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
   diagnostics::{CapturedLoaderError, ModuleBuildError},
-  get_context, impl_module_meta_info, module_update_hash, AsyncDependenciesBlockIdentifier,
-  BoxDependencyTemplate, BoxLoader, BoxModule, BoxModuleDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope,
-  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, GenerateContext,
-  GeneratorOptions, LibIdentOptions, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  get_context, impl_module_meta_info, module_update_hash,
 };
 
 #[cacheable]
@@ -357,7 +356,7 @@ impl Module for NormalModule {
     self.source.as_ref()
   }
 
-  fn readable_identifier(&self, context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, context: &Context) -> Cow<'_, str> {
     Cow::Owned(context.shorten(&self.user_request))
   }
 
@@ -455,13 +454,13 @@ impl Module for NormalModule {
           .with_details(captured_error.details)
         } else {
           self.build_info.cacheable = false;
-          if let Some(file_path) = &self.resource_data.resource_path {
-            if file_path.is_absolute() {
-              self
-                .build_info
-                .file_dependencies
-                .insert(file_path.clone().into_std_path_buf().into());
-            }
+          if let Some(file_path) = &self.resource_data.resource_path
+            && file_path.is_absolute()
+          {
+            self
+              .build_info
+              .file_dependencies
+              .insert(file_path.clone().into_std_path_buf().into());
           }
           let node_error = r.downcast_ref::<NodeError>();
           let stack = node_error.and_then(|e| e.stack.clone());
@@ -710,7 +709,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<'_, str>> {
     let mut ident = String::new();
     if let Some(layer) = &self.layer {
       ident += "(";
@@ -822,7 +821,7 @@ impl Diagnosable for NormalModule {
     self.diagnostics.append(&mut diagnostics);
   }
 
-  fn diagnostics(&self) -> Cow<[Diagnostic]> {
+  fn diagnostics(&self) -> Cow<'_, [Diagnostic]> {
     Cow::Borrowed(&self.diagnostics)
   }
 }

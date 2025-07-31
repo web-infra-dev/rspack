@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use indexmap::IndexSet;
 use rspack_core::{AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation};
 
-use crate::{integrity::compute_integrity, SubresourceIntegrityHashFunction};
+use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
 
 pub const SRI_HASH_VARIABLE_REFERENCE: &str = "__webpack_require__.sriHashes";
 

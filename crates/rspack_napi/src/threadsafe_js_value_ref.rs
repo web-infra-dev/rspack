@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use napi::{bindgen_prelude::*, Ref};
+use napi::{Ref, bindgen_prelude::*};
 
 use crate::JsCallback;
 

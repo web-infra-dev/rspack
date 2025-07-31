@@ -1,11 +1,11 @@
 use rspack_error::Result;
 
-use super::{build::BuildTask, MakeTaskContext};
+use super::{MakeTaskContext, build::BuildTask};
 use crate::{
+  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
   make::repair::lazy::{ForwardedIdSet, ProcessUnlazyDependenciesTask},
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
 };
 
 #[derive(Debug)]

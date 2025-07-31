@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse::Parser, parse_macro_input, ItemStruct};
+use syn::{ItemStruct, parse::Parser, parse_macro_input};
 
 pub fn impl_runtime_module(
   _args: proc_macro::TokenStream,
@@ -216,7 +216,7 @@ pub fn impl_runtime_module(
       fn add_diagnostics(&mut self, _diagnostics: Vec<rspack_error::Diagnostic>) {
         unreachable!()
       }
-      fn diagnostics(&self) -> std::borrow::Cow<[rspack_error::Diagnostic]> {
+      fn diagnostics(&self) -> std::borrow::Cow<'_, [rspack_error::Diagnostic]> {
         std::borrow::Cow::Owned(vec![])
       }
     }

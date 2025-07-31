@@ -2,11 +2,11 @@
 // which creates a implicit compiler context to support isolated parallel compiler state
 use std::{
   future::Future,
-  sync::{atomic::AtomicU32, Arc},
+  sync::{Arc, atomic::AtomicU32},
 };
 
 use tokio::{
-  task::{futures::TaskLocalFuture, JoinHandle},
+  task::{JoinHandle, futures::TaskLocalFuture},
   task_local,
 };
 

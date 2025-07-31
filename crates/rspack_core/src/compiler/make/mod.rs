@@ -8,8 +8,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, repair::repair};
 use crate::{
-  make::repair::lazy::ModuleToLazyMake, utils::FileCounter, BuildDependency, Compilation,
-  DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  BuildDependency, Compilation, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial,
+  ModuleIdentifier, make::repair::lazy::ModuleToLazyMake, utils::FileCounter,
 };
 
 #[derive(Debug)]
@@ -54,10 +54,10 @@ pub struct MakeArtifact {
 }
 
 impl MakeArtifact {
-  pub fn get_module_graph(&self) -> ModuleGraph {
+  pub fn get_module_graph(&self) -> ModuleGraph<'_> {
     ModuleGraph::new([Some(&self.module_graph_partial), None], None)
   }
-  pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
+  pub fn get_module_graph_mut(&mut self) -> ModuleGraph<'_> {
     ModuleGraph::new([None, None], Some(&mut self.module_graph_partial))
   }
   // TODO remove it

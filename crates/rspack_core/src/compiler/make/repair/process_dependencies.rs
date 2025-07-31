@@ -2,10 +2,10 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{factorize::FactorizeTask, MakeTaskContext};
+use super::{MakeTaskContext, factorize::FactorizeTask};
 use crate::{
-  utils::task_loop::{Task, TaskResult, TaskType},
   ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile,
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]

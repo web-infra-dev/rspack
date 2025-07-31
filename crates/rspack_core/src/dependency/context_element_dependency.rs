@@ -9,11 +9,11 @@ use swc_core::ecma::atoms::Atom;
 
 use super::{AffectType, FactorizeInfo};
 use crate::{
-  create_exports_object_referenced, AsContextDependency, AsDependencyCodeGeneration, Context,
-  ContextMode, ContextNameSpaceObject, ContextOptions, ContextTypePrefix, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  ReferencedExport, RuntimeSpec,
+  AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
+  ContextOptions, ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
+  ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, RuntimeSpec,
+  create_exports_object_referenced,
 };
 
 #[cacheable]

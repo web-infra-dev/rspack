@@ -4,14 +4,15 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
   create_exports_object_referenced, export_from_import, get_exports_type, property_access,
-  to_normal_comment, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -22,8 +23,8 @@ use super::{
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{
-  get_dependency_used_by_exports_condition, visitors::DestructuringAssignmentProperty,
-  InlineValueDependencyCondition,
+  InlineValueDependencyCondition, get_dependency_used_by_exports_condition,
+  visitors::DestructuringAssignmentProperty,
 };
 
 #[cacheable]

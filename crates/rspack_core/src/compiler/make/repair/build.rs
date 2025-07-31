@@ -3,15 +3,15 @@ use std::{collections::VecDeque, sync::Arc};
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
 
-use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
+use super::{MakeTaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
-  make::repair::{
-    lazy::{ForwardedIdSet, LazyDependencies, ProcessUnlazyDependenciesTask},
-    HasLazyDependencies,
-  },
-  utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  make::repair::{
+    HasLazyDependencies,
+    lazy::{ForwardedIdSet, LazyDependencies, ProcessUnlazyDependenciesTask},
+  },
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]

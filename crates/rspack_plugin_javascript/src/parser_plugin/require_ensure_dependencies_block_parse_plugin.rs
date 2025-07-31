@@ -14,7 +14,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{RequireEnsureDependency, RequireEnsureItemDependency},
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{expr_matcher::is_require_ensure, JavascriptParser, Statement},
+  visitors::{JavascriptParser, Statement, expr_matcher::is_require_ensure},
 };
 
 pub struct RequireEnsureDependenciesBlockParserPlugin;
@@ -190,12 +190,12 @@ pub(crate) struct FunctionExpression<'a> {
 }
 
 pub(crate) trait GetFunctionExpression {
-  fn get_function_expr(&self) -> Option<FunctionExpression>;
+  fn get_function_expr(&self) -> Option<FunctionExpression<'_>>;
   fn inner_paren(&self) -> &Self;
 }
 
 impl GetFunctionExpression for Expr {
-  fn get_function_expr(&self) -> Option<FunctionExpression> {
+  fn get_function_expr(&self) -> Option<FunctionExpression<'_>> {
     match self.inner_paren() {
       Expr::Fn(fn_expr) => Some(FunctionExpression {
         func: Either::Left(fn_expr),

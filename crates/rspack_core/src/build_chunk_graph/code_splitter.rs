@@ -1,7 +1,7 @@
 use std::{
   collections::{HashSet as RawHashSet, VecDeque},
   hash::{BuildHasherDefault, Hash},
-  sync::{atomic::AtomicU32, Arc},
+  sync::{Arc, atomic::AtomicU32},
 };
 
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
@@ -9,24 +9,24 @@ use itertools::Itertools;
 use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{
-  impl_item_ukey, Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap,
-  IdentifierSet, Ukey, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet,
+  Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey,
+  UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet, impl_item_ukey,
 };
-use rspack_error::{error, Diagnostic, Error, Result};
+use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
 use crate::{
-  assign_depths,
+  AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
+  ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock, DependencyId,
+  DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
+  SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
   incremental::{IncrementalPasses, Mutation},
-  merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
-  DependencyId, DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
-  SyntheticDependencyLocation,
+  merge_runtime,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -368,10 +368,10 @@ impl CodeSplitter {
         let module_graph = compilation.get_module_graph();
         let dep = module_graph.dependency_by_id(dep_id);
         let mut request = None;
-        if let Some(dep) = dep {
-          if let Some(d) = dep.as_any().downcast_ref::<EntryDependency>() {
-            request = Some(d.request().to_string());
-          }
+        if let Some(dep) = dep
+          && let Some(d) = dep.as_any().downcast_ref::<EntryDependency>()
+        {
+          request = Some(d.request().to_string());
         }
         request
       })
@@ -929,25 +929,40 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
-    logger.log(format!(
-      "{} queue items processed ({} blocks)",
-      itoa!(self.stat_processed_queue_items),
-      itoa!(self.stat_processed_blocks)
-    ));
-    logger.log(format!(
-      "{} chunk groups connected",
-      itoa!(self.stat_connected_chunk_groups),
-    ));
-    logger.log(format!(
-      "{} chunk groups processed for merging ({} module sets)",
-      itoa!(self.stat_processed_chunk_groups_for_merging),
-      itoa!(self.stat_merged_available_module_sets),
-    ));
-    logger.log(format!(
-      "{} chunk group info updated ({} already connected chunk groups reconnected)",
-      itoa!(self.stat_chunk_group_info_updated),
-      itoa!(self.stat_child_chunk_groups_reconnected),
-    ));
+    {
+      let mut processed_queue_buffer = itoa::Buffer::new();
+      let processed_queue_str = processed_queue_buffer.format(self.stat_processed_queue_items);
+      let mut processed_blocks_buffer = itoa::Buffer::new();
+      let processed_blocks_str = processed_blocks_buffer.format(self.stat_processed_blocks);
+      logger.log(format!(
+        "{processed_queue_str} queue items processed ({processed_blocks_str} blocks)"
+      ));
+
+      let mut connected_chunk_groups_buffer = itoa::Buffer::new();
+      let connected_chunk_groups_str =
+        connected_chunk_groups_buffer.format(self.stat_connected_chunk_groups);
+      logger.log(format!(
+        "{connected_chunk_groups_str} chunk groups connected",
+      ));
+
+      let mut processed_chunk_groups_buffer = itoa::Buffer::new();
+      let processed_chunk_groups_str =
+        processed_chunk_groups_buffer.format(self.stat_processed_chunk_groups_for_merging);
+      let mut merged_module_sets_buffer = itoa::Buffer::new();
+      let merged_module_sets_str =
+        merged_module_sets_buffer.format(self.stat_merged_available_module_sets);
+      logger.log(format!(
+        "{processed_chunk_groups_str} chunk groups processed for merging ({merged_module_sets_str} module sets)",
+      ));
+
+      let mut chunk_group_info_buffer = itoa::Buffer::new();
+      let chunk_group_info_str = chunk_group_info_buffer.format(self.stat_chunk_group_info_updated);
+      let mut reconnected_buffer = itoa::Buffer::new();
+      let reconnected_str = reconnected_buffer.format(self.stat_child_chunk_groups_reconnected);
+      logger.log(format!(
+        "{chunk_group_info_str} chunk group info updated ({reconnected_str} already connected chunk groups reconnected)",
+      ));
+    }
 
     if compilation
       .incremental

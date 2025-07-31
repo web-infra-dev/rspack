@@ -7,20 +7,20 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use cow_utils::CowUtils;
 use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
-use rspack_error::{miette, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, miette};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
-  asset::{create_favicon_asset, create_html_asset, HtmlPluginAssetTags, HtmlPluginAssets},
+  AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
+  BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
+  asset::{HtmlPluginAssetTags, HtmlPluginAssets, create_favicon_asset, create_html_asset},
   config::{HtmlInject, HtmlRspackPluginOptions},
   injector::AssetInjector,
   parser::HtmlCompiler,
   template::HtmlTemplate,
-  AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
-  BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
 };
 
 /// Safety with [atomic_refcell::AtomicRefCell]:

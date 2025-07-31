@@ -1,18 +1,18 @@
 use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
-use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::task::spawn_blocking;
-use tracing::{info_span, Instrument};
+use tracing::{Instrument, info_span};
 
 use crate::{
+  ParseMeta,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
-  ParseMeta,
 };
 
 impl<Context> LoaderContext<Context> {
@@ -258,8 +258,8 @@ mod test {
   use rspack_error::Result;
   use rspack_fs::NativeFileSystem;
 
-  use super::{run_loaders, Loader, LoaderContext, ResourceData};
-  use crate::{content::Content, plugin::LoaderRunnerPlugin, AdditionalData};
+  use super::{Loader, LoaderContext, ResourceData, run_loaders};
+  use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
 
   struct TestContentPlugin;
 
@@ -449,16 +449,18 @@ mod test {
     });
 
     // Ignore error: Final loader didn't return a Buffer or String
-    assert!(run_loaders(
-      vec![p1, p2, c1, c2],
-      rs.clone(),
-      Some(Arc::new(TestContentPlugin)),
-      (),
-      Arc::new(NativeFileSystem::new(false))
-    )
-    .await
-    .err()
-    .is_some());
+    assert!(
+      run_loaders(
+        vec![p1, p2, c1, c2],
+        rs.clone(),
+        Some(Arc::new(TestContentPlugin)),
+        (),
+        Arc::new(NativeFileSystem::new(false))
+      )
+      .await
+      .err()
+      .is_some()
+    );
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
 
@@ -467,16 +469,18 @@ mod test {
     let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
     // Ignore error: Final loader didn't return a Buffer or String
-    assert!(run_loaders(
-      vec![p1, p2, p3],
-      rs.clone(),
-      Some(Arc::new(TestContentPlugin)),
-      (),
-      Arc::new(NativeFileSystem::new(false))
-    )
-    .await
-    .err()
-    .is_some());
+    assert!(
+      run_loaders(
+        vec![p1, p2, p3],
+        rs.clone(),
+        Some(Arc::new(TestContentPlugin)),
+        (),
+        Arc::new(NativeFileSystem::new(false))
+      )
+      .await
+      .err()
+      .is_some()
+    );
     IDENTS.with(|i| {
       // should not execute p3, as p2 pitched successfully.
       assert!(!i.borrow().contains(&"pitch-normal-normal-2".to_string()));
@@ -620,15 +624,17 @@ mod test {
     }
 
     // Ignore error: Final loader didn't return a Buffer or String
-    assert!(run_loaders(
-      vec![Arc::new(Normal2), Arc::new(Normal)],
-      rs,
-      Some(Arc::new(TestContentPlugin)),
-      (),
-      Arc::new(NativeFileSystem::new(false))
-    )
-    .await
-    .err()
-    .is_some());
+    assert!(
+      run_loaders(
+        vec![Arc::new(Normal2), Arc::new(Normal)],
+        rs,
+        Some(Arc::new(TestContentPlugin)),
+        (),
+        Arc::new(NativeFileSystem::new(false))
+      )
+      .await
+      .err()
+      .is_some()
+    );
   }
 }

@@ -5,7 +5,7 @@ use std::{
   sync::atomic::AtomicU32,
 };
 
-use dyn_clone::{clone_trait_object, DynClone};
+use dyn_clone::{DynClone, clone_trait_object};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
 use rspack_error::Result;
@@ -15,8 +15,8 @@ use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  merge_runtime, property_name, runtime_condition_expression, ExportsArgument, GenerateContext,
-  RuntimeCondition, RuntimeGlobals,
+  ExportsArgument, GenerateContext, RuntimeCondition, RuntimeGlobals, merge_runtime, property_name,
+  runtime_condition_expression,
 };
 
 static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);

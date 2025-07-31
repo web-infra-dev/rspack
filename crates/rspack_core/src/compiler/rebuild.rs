@@ -8,11 +8,11 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
+  ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   fast_set,
   incremental::{Incremental, IncrementalPasses},
-  ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {

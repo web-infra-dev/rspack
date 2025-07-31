@@ -1,6 +1,6 @@
 use std::{ffi::CString, ptr};
 
-use napi::{bindgen_prelude::*, sys::napi_value, Env, Error};
+use napi::{Env, Error, bindgen_prelude::*, sys::napi_value};
 use rspack_error::NodeError;
 
 pub trait NapiErrorToRspackErrorExt {

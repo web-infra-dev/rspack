@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse_macro_input, Fields, ItemStruct};
+use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn field_names(
   _args: proc_macro::TokenStream,

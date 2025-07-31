@@ -9,8 +9,8 @@ use rspack_util::itoa;
 use swc_core::atoms::Atom;
 
 use crate::{
-  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
   ModuleIdentifier,
+  concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
 };
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
@@ -130,13 +130,10 @@ impl ConcatenationScope {
       "ns".to_string()
     };
 
+    let mut index_buffer = itoa::Buffer::new();
+    let index_str = index_buffer.format(info.index());
     format!(
-      "__WEBPACK_MODULE_REFERENCE__{}_{}{}{}{}__._",
-      itoa!(info.index()),
-      export_data,
-      call_flag,
-      direct_import_flag,
-      asi_safe_flag
+      "__WEBPACK_MODULE_REFERENCE__{index_str}_{export_data}{call_flag}{direct_import_flag}{asi_safe_flag}__._"
     )
   }
 

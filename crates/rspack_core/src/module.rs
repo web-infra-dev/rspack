@@ -27,14 +27,14 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
 use crate::{
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate,
-  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo,
-  Compilation, CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
+  ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
+  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
   ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
   PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType,
+  SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
 };
 
 pub struct BuildContext {
@@ -246,7 +246,7 @@ pub trait Module:
   fn source(&self) -> Option<&BoxSource>;
 
   /// User readable identifier of the module.
-  fn readable_identifier(&self, _context: &Context) -> Cow<str>;
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str>;
 
   /// The size of the original source, which will used as a parameter for code-splitting.
   /// Only when calculating the size of the RuntimeModule is the Compilation depended on
@@ -326,7 +326,7 @@ pub trait Module:
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest>;
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
     None
   }
@@ -644,7 +644,7 @@ mod test {
 
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
-  use rspack_error::{impl_empty_diagnosable_trait, Result};
+  use rspack_error::{Result, impl_empty_diagnosable_trait};
   use rspack_hash::RspackHashDigest;
   use rspack_sources::BoxSource;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
@@ -719,7 +719,7 @@ mod test {
           unreachable!()
         }
 
-        fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+        fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
           self.0.clone().into()
         }
 

@@ -1,8 +1,8 @@
 use std::{
   borrow::Cow,
   sync::{
-    atomic::{AtomicBool, Ordering},
     Arc, LazyLock,
+    atomic::{AtomicBool, Ordering},
   },
 };
 
@@ -10,14 +10,14 @@ use itertools::Itertools as _;
 use regex::Regex;
 use rspack_core::{ConstDependency, RuntimeGlobals, SpanExt as _};
 use rustc_hash::{FxHashMap, FxHashSet};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use swc_core::common::{Span, Spanned as _};
 
 use super::DefineValue;
 use crate::{
-  utils::eval::{evaluate_to_string, BasicEvaluatedExpression},
-  visitors::{DestructuringAssignmentProperty, JavascriptParser},
   JavascriptParserPlugin,
+  utils::eval::{BasicEvaluatedExpression, evaluate_to_string},
+  visitors::{DestructuringAssignmentProperty, JavascriptParser},
 };
 
 static TYPEOF_OPERATOR_REGEXP: LazyLock<Regex> =
@@ -584,7 +584,7 @@ fn to_code(
   code: &Value,
   asi_safe: Option<bool>,
   obj_keys: Option<FxHashSet<DestructuringAssignmentProperty>>,
-) -> Cow<str> {
+) -> Cow<'_, str> {
   fn wrap_ansi(code: Cow<str>, is_arr: bool, asi_safe: Option<bool>) -> Cow<str> {
     match asi_safe {
       Some(true) if is_arr => code,

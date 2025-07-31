@@ -15,9 +15,9 @@ use swc_core::{
 };
 
 use super::{
-  esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
-  url_plugin::get_url_request,
   JavascriptParserPlugin,
+  esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
+  url_plugin::get_url_request,
 };
 use crate::{
   dependency::{CreateScriptUrlDependency, WorkerDependency},

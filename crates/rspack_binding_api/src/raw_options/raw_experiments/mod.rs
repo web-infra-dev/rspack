@@ -3,10 +3,10 @@ mod raw_incremental;
 mod raw_rspack_future;
 
 use napi_derive::napi;
-use raw_cache::{normalize_raw_experiment_cache_options, RawExperimentCacheOptions};
+use raw_cache::{RawExperimentCacheOptions, normalize_raw_experiment_cache_options};
 use raw_incremental::RawIncremental;
 use raw_rspack_future::RawRspackFuture;
-use rspack_core::{incremental::IncrementalOptions, Experiments};
+use rspack_core::{Experiments, incremental::IncrementalOptions};
 use rspack_regex::RspackRegex;
 
 use super::WithFalse;

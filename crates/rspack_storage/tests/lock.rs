@@ -2,7 +2,7 @@
 mod test_storage_lock {
   use std::{
     path::PathBuf,
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{Arc, atomic::AtomicUsize},
   };
 
   use rspack_fs::{FileMetadata, MemoryFileSystem, NativeFileSystem};
@@ -111,10 +111,11 @@ mod test_storage_lock {
       );
     }
     let rx = storage.trigger_save()?;
-    assert!(rx
-      .await
-      .expect("should save")
-      .is_err_and(|e| e.to_string().contains("move failed")));
+    assert!(
+      rx.await
+        .expect("should save")
+        .is_err_and(|e| e.to_string().contains("move failed"))
+    );
     assert!(fs.exists(&root.join(version).join("move.lock")).await?);
     Ok(())
   }

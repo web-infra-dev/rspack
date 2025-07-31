@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_error::{Result, SerdeResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
+use crate::{LIGHTNINGCSS_LOADER_IDENTIFIER, config::Config};
 
 #[plugin]
 #[derive(Debug)]

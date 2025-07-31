@@ -7,13 +7,13 @@ use swc_core::{
 };
 
 use super::{
+  JavascriptParser,
   estree::{
     ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
     ExportLocal, ExportNamedDeclaration, MaybeNamedClassDecl, Statement,
   },
-  JavascriptParser,
 };
-use crate::{parser_plugin::JavascriptParserPlugin, JS_DEFAULT_KEYWORD};
+use crate::{JS_DEFAULT_KEYWORD, parser_plugin::JavascriptParserPlugin};
 
 impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {

@@ -1,6 +1,6 @@
 [package]
 description       = "Rslib native plugin"
-edition           = "2021"
+edition.workspace = true
 license           = "MIT"
 name              = "rspack_plugin_rslib"
 repository        = "https://github.com/web-infra-dev/rspack"

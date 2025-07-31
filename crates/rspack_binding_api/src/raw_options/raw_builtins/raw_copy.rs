@@ -1,8 +1,8 @@
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use napi::{
-  bindgen_prelude::{Buffer, FnArgs, Promise},
   Either,
+  bindgen_prelude::{Buffer, FnArgs, Promise},
 };
 use napi_derive::napi;
 use rspack_core::rspack_sources::RawSource;

@@ -8,7 +8,7 @@ use crate::{
   dependency::ModuleArgumentDependency,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{expr_matcher, expression_not_supported, extract_member_root, JavascriptParser},
+  visitors::{JavascriptParser, expr_matcher, expression_not_supported, extract_member_root},
 };
 
 const WEBPACK_HASH: &str = "__webpack_hash__";

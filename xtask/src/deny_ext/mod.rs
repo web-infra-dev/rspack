@@ -9,14 +9,13 @@ fn check_setting_default_features_false(
   let mut errors = Vec::new();
   // Check each dependency for default-features=false
   for (dep_name, dep_value) in workspace_deps {
-    if let Some(table) = dep_value.as_table() {
-      if !table.contains_key("default-features")
-        || table.get("default-features") != Some(&toml::Value::Boolean(false))
-      {
-        errors.push(format!(
-          "Dependency '{dep_name}' does not have default-features=false",
-        ));
-      }
+    if let Some(table) = dep_value.as_table()
+      && (!table.contains_key("default-features")
+        || table.get("default-features") != Some(&toml::Value::Boolean(false)))
+    {
+      errors.push(format!(
+        "Dependency '{dep_name}' does not have default-features=false",
+      ));
     }
   }
   errors

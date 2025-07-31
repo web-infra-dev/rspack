@@ -83,15 +83,14 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               if let Some(stripped) = e.strip_prefix("internal ") {
                 stripped.to_string()
               } else {
-                format!(
-                  "webpack/container/reference/{}{}",
-                  key,
-                  if i > 0 {
-                    format!("/fallback-{}", itoa!(i))
-                  } else {
-                    Default::default()
-                  }
-                )
+                let fallback_suffix = if i > 0 {
+                  let mut i_buffer = itoa::Buffer::new();
+                  let i_str = i_buffer.format(i);
+                  format!("/fallback-{}", i_str)
+                } else {
+                  Default::default()
+                };
+                format!("webpack/container/reference/{}{}", key, fallback_suffix)
               }
             })
             .collect(),

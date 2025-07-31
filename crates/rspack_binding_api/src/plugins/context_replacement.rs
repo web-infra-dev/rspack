@@ -1,6 +1,6 @@
 use napi::bindgen_prelude::Object;
 use napi_derive::napi;
-use rspack_error::{miette::IntoDiagnostic, Error};
+use rspack_error::{Error, miette::IntoDiagnostic};
 use rspack_plugin_context_replacement::ContextReplacementPluginOptions;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap;

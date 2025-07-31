@@ -3,30 +3,30 @@ use std::{borrow::Cow, sync::Arc};
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
+  ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
+  DependencyRange, GenerateContext, Module, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, CollectedTypeScriptInfo,
-  Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module,
-  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem,
-  SourceType, TemplateContext, TemplateReplaceSource, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
 };
-use rspack_error::{miette::Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, miette::Diagnostic};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{comments::Comments, input::SourceFileInput, FileName, SyntaxContext},
+  common::{FileName, SyntaxContext, comments::Comments, input::SourceFileInput},
   ecma::{
     ast,
-    parser::{lexer::Lexer, EsSyntax, Syntax},
+    parser::{EsSyntax, Syntax, lexer::Lexer},
   },
 };
 use swc_node_comments::SwcComments;
 
 use crate::{
-  dependency::ESMCompatibilityDependency,
-  visitors::{scan_dependencies, semicolon, swc_visitor::resolver, ScanDependenciesResult},
   BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo,
+  dependency::ESMCompatibilityDependency,
+  visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
 
 fn module_type_to_is_module(value: &ModuleType) -> IsModule {

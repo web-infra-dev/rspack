@@ -1,10 +1,10 @@
 use std::{
-  collections::{hash_map, VecDeque},
+  collections::{VecDeque, hash_map},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   sync::{
-    atomic::{AtomicBool, AtomicU32, Ordering},
     Arc,
+    atomic::{AtomicBool, AtomicU32, Ordering},
   },
 };
 
@@ -20,8 +20,8 @@ use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
 use rspack_error::{
-  error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity,
-  Severity, ToStringResultToRspackResultExt,
+  Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity, Severity,
+  ToStringResultToRspackResultExt, error, miette::diagnostic,
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -34,30 +34,30 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
 use super::{
-  make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
+  CompilerId,
+  make::{MakeArtifact, MakeParam, make_module_graph, update_module_graph},
   module_executor::ModuleExecutor,
   rebuild::CompilationRecords,
-  CompilerId,
 };
 use crate::{
+  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
+  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
+  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
+  ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult,
+  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
+  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
+  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
+  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial,
+  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory,
+  RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
-  old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
-  to_identifier, AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount,
-  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact,
-  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact,
-  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats,
+  old_cache::{Cache as OldCache, CodeSplittingCache, use_code_splitting_cache},
+  to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -439,7 +439,7 @@ impl Compilation {
     std::mem::swap(&mut self.make_artifact, make_artifact);
   }
 
-  pub fn get_module_graph(&self) -> ModuleGraph {
+  pub fn get_module_graph(&self) -> ModuleGraph<'_> {
     if let Some(other_module_graph) = &self.other_module_graph {
       ModuleGraph::new(
         [
@@ -476,7 +476,7 @@ impl Compilation {
     None
   }
 
-  pub fn get_module_graph_mut(&mut self) -> ModuleGraph {
+  pub fn get_module_graph_mut(&mut self) -> ModuleGraph<'_> {
     if let Some(other) = &mut self.other_module_graph {
       ModuleGraph::new(
         [Some(self.make_artifact.get_module_graph_partial()), None],
@@ -603,15 +603,19 @@ impl Compilation {
     let mut import_var_map_of_module = self.import_var_map.entry(*parent_module_id).or_default();
     let len = import_var_map_of_module.len();
 
-    let import_var = match import_var_map_of_module.entry(module_id) {
+    match import_var_map_of_module.entry(module_id) {
       hash_map::Entry::Occupied(occ) => occ.get().clone(),
       hash_map::Entry::Vacant(vac) => {
-        let import_var = format!("{}__WEBPACK_IMPORTED_MODULE_{}__", user_request, itoa!(len));
+        let mut b = itoa::Buffer::new();
+        let import_var = format!(
+          "{}__WEBPACK_IMPORTED_MODULE_{}__",
+          user_request,
+          b.format(len)
+        );
         vac.insert(import_var.clone());
         import_var
       }
-    };
-    import_var
+    }
   }
 
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
@@ -738,7 +742,7 @@ impl Compilation {
       _ => {
         return Err(error!(
           "Called Compilation.updateAsset for not existing filename {filename}"
-        ))
+        ));
       }
     };
     self.emit_asset(
@@ -897,7 +901,7 @@ impl Compilation {
     &self.logging
   }
 
-  pub fn get_stats(&self) -> Stats {
+  pub fn get_stats(&self) -> Stats<'_> {
     Stats::new(self)
   }
 
@@ -1142,25 +1146,24 @@ impl Compilation {
 
   #[instrument("Compilation::create_chunk_assets",target=TRACING_BENCH_TARGET, skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    if self.options.output.filename.has_hash_placeholder()
+    if (self.options.output.filename.has_hash_placeholder()
       || self.options.output.chunk_filename.has_hash_placeholder()
       || self.options.output.css_filename.has_hash_placeholder()
       || self
         .options
         .output
         .css_chunk_filename
-        .has_hash_placeholder()
-    {
-      if let Some(diagnostic) = self.incremental.disable_passes(
+        .has_hash_placeholder())
+      && let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_RENDER,
         "Chunk filename that dependent on full hash",
         "chunk filename that dependent on full hash is not supported in incremental compilation",
-      ) {
-        if let Some(diagnostic) = diagnostic {
-          self.push_diagnostic(diagnostic);
-        }
-        self.chunk_render_artifact.clear();
+      )
+    {
+      if let Some(diagnostic) = diagnostic {
+        self.push_diagnostic(diagnostic);
       }
+      self.chunk_render_artifact.clear();
     }
 
     let chunks = if let Some(mutations) = self

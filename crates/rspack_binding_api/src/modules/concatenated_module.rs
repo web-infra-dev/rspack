@@ -1,4 +1,4 @@
-use crate::{impl_module_methods, Module, ModuleObject, MODULE_PROPERTIES_BUFFER};
+use crate::{MODULE_PROPERTIES_BUFFER, Module, ModuleObject, impl_module_methods};
 
 #[napi]
 #[repr(C)]
@@ -10,7 +10,7 @@ impl ConcatenatedModule {
   pub(crate) fn custom_into_instance(
     self,
     env: &napi::Env,
-  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
     MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
       let mut properties = ref_cell.borrow_mut();
       properties.clear();

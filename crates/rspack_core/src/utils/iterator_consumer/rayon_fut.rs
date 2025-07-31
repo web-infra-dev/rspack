@@ -51,7 +51,7 @@ mod test {
 
   use futures::future::join_all;
   use rayon::prelude::*;
-  use tokio::time::{sleep, Duration};
+  use tokio::time::{Duration, sleep};
 
   use super::RayonFutureConsumer;
 

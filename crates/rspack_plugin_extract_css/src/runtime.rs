@@ -1,8 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_collections::UkeySet;
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage,
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::get_chunk_runtime_requirements;

@@ -45,7 +45,7 @@ impl ScopeMetaState {
   }
   pub fn expect_value_mut(&mut self) -> &mut ScopeMeta {
     match self {
-      ScopeMetaState::Value(ref mut v) => v,
+      ScopeMetaState::Value(v) => v,
       ScopeMetaState::Pending => panic!("should have scope meta"),
     }
   }
@@ -139,16 +139,16 @@ impl PackScope {
       .iter()
       .flatten()
       .filter_map(|pack| {
-        if let (Some(keys), Some(contents)) = (pack.keys.get_value(), pack.contents.get_value()) {
-          if keys.len() == contents.len() {
-            return Some(
-              keys
-                .iter()
-                .enumerate()
-                .map(|(index, key)| (key.clone(), contents[index].clone()))
-                .collect_vec(),
-            );
-          }
+        if let (Some(keys), Some(contents)) = (pack.keys.get_value(), pack.contents.get_value())
+          && keys.len() == contents.len()
+        {
+          return Some(
+            keys
+              .iter()
+              .enumerate()
+              .map(|(index, key)| (key.clone(), contents[index].clone()))
+              .collect_vec(),
+          );
         }
         None
       })

@@ -1,9 +1,10 @@
 use napi::{
+  Env, JsValue,
   bindgen_prelude::{
     Array, Either, FromNapiValue, JsObjectValue, Object, ToNapiValue, TypeName, Unknown,
     ValidateNapiValue,
   },
-  sys, Env, JsValue,
+  sys,
 };
 use napi_derive::napi;
 use rspack_core::Reflector;
@@ -67,35 +68,39 @@ pub struct AssetInfo {
 
 impl FromNapiValue for AssetInfo {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
-    let known = KnownAssetInfo::from_napi_value(env, napi_val)?;
-    let known_field_names = FxHashSet::from_iter(KnownAssetInfo::field_names());
+    unsafe {
+      let known = KnownAssetInfo::from_napi_value(env, napi_val)?;
+      let known_field_names = FxHashSet::from_iter(KnownAssetInfo::field_names());
 
-    let mut extras = serde_json::Map::new();
-    let object = Object::from_napi_value(env, napi_val)?;
-    let names = Array::from_napi_value(env, object.get_property_names()?.raw())?;
-    for index in 0..names.len() {
-      if let Some(name) = names.get::<String>(index)? {
-        if !known_field_names.contains(&name) {
+      let mut extras = serde_json::Map::new();
+      let object = Object::from_napi_value(env, napi_val)?;
+      let names = Array::from_napi_value(env, object.get_property_names()?.raw())?;
+      for index in 0..names.len() {
+        if let Some(name) = names.get::<String>(index)?
+          && !known_field_names.contains(&name)
+        {
           let value = object.get_named_property::<Unknown>(&name)?;
           if let Some(json_value) = unknown_to_json_value(value)? {
             extras.insert(name, json_value);
           }
         }
       }
-    }
 
-    Ok(Self { known, extras })
+      Ok(Self { known, extras })
+    }
   }
 }
 
 impl ToNapiValue for AssetInfo {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> napi::Result<sys::napi_value> {
-    let napi_value = ToNapiValue::to_napi_value(env, val.known)?;
-    let mut js_object = Object::from_napi_value(env, napi_value)?;
-    for (key, value) in val.extras {
-      js_object.set_named_property(&key, value)?;
+    unsafe {
+      let napi_value = ToNapiValue::to_napi_value(env, val.known)?;
+      let mut js_object = Object::from_napi_value(env, napi_value)?;
+      for (key, value) in val.extras {
+        js_object.set_named_property(&key, value)?;
+      }
+      Ok(napi_value)
     }
-    Ok(napi_value)
   }
 }
 

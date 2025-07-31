@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
 use rspack_collections::Identifier;
 use rspack_core::{
-  chunk_graph_chunk::ChunkId, impl_runtime_module, Compilation, RuntimeModule, RuntimeModuleStage,
+  Compilation, RuntimeModule, RuntimeModuleStage, chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rustc_hash::FxHasher;
 

@@ -3,10 +3,10 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_core::CompilationId;
 use rspack_plugin_html::{
-  asset::{HtmlPluginAssetTags, HtmlPluginAssets},
-  tag::{HtmlPluginAttribute, HtmlPluginTag},
   AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
   BeforeAssetTagGenerationData, BeforeEmitData,
+  asset::{HtmlPluginAssetTags, HtmlPluginAssets},
+  tag::{HtmlPluginAttribute, HtmlPluginTag},
 };
 use rustc_hash::FxHashMap as HashMap;
 

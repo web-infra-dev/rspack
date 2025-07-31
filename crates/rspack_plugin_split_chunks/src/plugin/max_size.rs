@@ -13,8 +13,8 @@ use std::{borrow::Cow, hash::Hash};
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  incremental::Mutation, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
-  SourceType, DEFAULT_DELIMITER,
+  ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier, SourceType,
+  incremental::Mutation,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -556,8 +556,8 @@ impl SplitChunksPlugin {
 
             let mut is_invalid = false;
             allow_max_size.iter().for_each(|(ty, ty_max_size)| {
-              if let Some(ty_min_size) = min_size.get(ty) {
-                if ty_min_size > ty_max_size {
+              if let Some(ty_min_size) = min_size.get(ty)
+                && ty_min_size > ty_max_size {
                   is_invalid = true;
                   tracing::warn!(
                     "minSize({}) should not be bigger than maxSize({})",
@@ -565,7 +565,6 @@ impl SplitChunksPlugin {
                     ty_max_size
                   );
                 }
-              }
             });
             if is_invalid {
               allow_max_size.to_mut().combine_with(min_size, &f64::max);
@@ -644,12 +643,12 @@ impl SplitChunksPlugin {
           .name()
           .map(|name| format!("{name}{delimiter}{group_key}"));
 
-        if let Some(n) = name.clone() {
-          if n.len() > 100 {
-            let s = &n[0..100];
-            let k = hash_filename(&n, &compilation.options);
-            name = Some(format!("{s}{delimiter}{k}"));
-          }
+        if let Some(n) = name.clone()
+          && n.len() > 100
+        {
+          let s = &n[0..100];
+          let k = hash_filename(&n, &compilation.options);
+          name = Some(format!("{s}{delimiter}{k}"));
         }
 
         if index != last_index {
@@ -698,13 +697,12 @@ impl SplitChunksPlugin {
           group.nodes.iter().for_each(|module| {
             compilation.chunk_graph.add_chunk(new_part_ukey);
 
-            if let Some(module) = compilation.module_by_identifier(&module.module) {
-              if module
+            if let Some(module) = compilation.module_by_identifier(&module.module)
+              && module
                 .chunk_condition(&new_part_ukey, compilation)
                 .is_some_and(|condition| !condition)
-              {
-                return;
-              }
+            {
+              return;
             }
 
             // Add module to new chunk

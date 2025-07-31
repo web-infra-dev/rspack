@@ -1,5 +1,5 @@
 use rspack_core::{BoxDependency, DependencyRange};
-use rspack_plugin_javascript::{visitors::JavascriptParser, JavascriptParserPlugin};
+use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 use rspack_util::fx_hash::FxDashMap;
 use serde::Deserialize;
 

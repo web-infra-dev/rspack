@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod collect_ts_info;
 mod options;
 mod plugin;
@@ -11,8 +9,8 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{Mode, RunnerContext, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY};
-use rspack_error::{miette, Diagnostic, Result};
+use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext};
+use rspack_error::{Diagnostic, Result, miette};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 pub use rspack_workspace::rspack_swc_core_version;
@@ -68,10 +66,10 @@ impl SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = loader_context.source_map().cloned() {
-        if let Ok(source_map) = pre_source_map.to_json() {
-          swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
-        }
+      if let Some(pre_source_map) = loader_context.source_map().cloned()
+        && let Ok(source_map) = pre_source_map.to_json()
+      {
+        swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
       }
       swc_options.filename = resource_path.as_str().to_string();
       swc_options.source_file_name = Some(resource_path.as_str().to_string());

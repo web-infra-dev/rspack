@@ -6,7 +6,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::runtime_module::{
-  is_enabled_for_chunk, ReadFileChunkLoadingRuntimeModule, RequireChunkLoadingRuntimeModule,
+  ReadFileChunkLoadingRuntimeModule, RequireChunkLoadingRuntimeModule, is_enabled_for_chunk,
 };
 
 #[plugin]

@@ -12,14 +12,17 @@ use rspack_core::{
 use rspack_error::miette::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
-use swc_core::common::{comments::Comments, BytePos, Mark, SourceFile, SourceMap};
+use swc_core::{
+  common::{BytePos, Mark, SourceFile, SourceMap, comments::Comments},
+  ecma::atoms::Atom,
+};
 
 pub use self::{
-  context_dependency_helper::{create_context_dependency, ContextModuleScanResult},
+  context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
-    estree::*, AllowedMemberTypes, CallExpressionInfo, CallHooksName,
-    DestructuringAssignmentProperty, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
-    RootName, TagInfoData, TopLevelScope,
+    AllowedMemberTypes, CallExpressionInfo, CallHooksName, DestructuringAssignmentProperty,
+    ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, RootName, TagInfoData,
+    TopLevelScope, estree::*,
   },
   util::*,
 };

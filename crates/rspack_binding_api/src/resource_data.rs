@@ -4,9 +4,9 @@ use std::{
 };
 
 use napi::{
+  Env, JsValue, Property,
   bindgen_prelude::{JavaScriptClassExt, JsObjectValue, ToNapiValue},
   sys::napi_value,
-  Env, JsValue, Property,
 };
 use napi_derive::napi;
 

@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 mod parser_plugin;
 mod plugin;
 

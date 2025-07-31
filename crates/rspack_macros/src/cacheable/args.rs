@@ -1,6 +1,7 @@
 use syn::{
+  Result, Token,
   parse::{Parse, ParseStream},
-  parse_quote, Result, Token,
+  parse_quote,
 };
 
 mod kw {

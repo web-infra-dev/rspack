@@ -65,10 +65,10 @@ impl Snapshot {
     if options.is_immutable_path(&path_str) {
       return None;
     }
-    if options.is_managed_path(&path_str) {
-      if let Some(v) = helper.package_version(path).await {
-        return Some(v);
-      }
+    if options.is_managed_path(&path_str)
+      && let Some(v) = helper.package_version(path).await
+    {
+      return Some(v);
     }
     if let Some(h) = helper.path_hash(path).await {
       return Some(h);

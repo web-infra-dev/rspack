@@ -1,6 +1,6 @@
 use rspack_core::{
-  get_context, parse_resource, CachedConstDependency, ConstDependency, NodeDirnameOption,
-  NodeFilenameOption, NodeGlobalOption, RuntimeGlobals,
+  CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
+  RuntimeGlobals, get_context, parse_resource,
 };
 use sugar_path::SugarPath;
 

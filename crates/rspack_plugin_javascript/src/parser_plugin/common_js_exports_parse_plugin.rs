@@ -19,8 +19,8 @@ use crate::{
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    expr_like::ExprLike, expr_matcher, AllowedMemberTypes, JavascriptParser, MemberExpressionInfo,
-    TopLevelScope,
+    AllowedMemberTypes, JavascriptParser, MemberExpressionInfo, TopLevelScope, expr_like::ExprLike,
+    expr_matcher,
   },
 };
 

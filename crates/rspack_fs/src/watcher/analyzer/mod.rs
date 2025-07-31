@@ -1,4 +1,4 @@
-use crate::watcher::{path_manager::PathAccessor, WatchPattern};
+use crate::watcher::{WatchPattern, path_manager::PathAccessor};
 
 mod directories;
 mod root;

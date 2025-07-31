@@ -11,9 +11,11 @@ macro_rules! assert_snapshot {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn options() {
-  assert_snapshot!(Compiler::builder()
-    .optimization(Optimization::builder().module_ids("unknown".to_string()))
-    .build());
+  assert_snapshot!(
+    Compiler::builder()
+      .optimization(Optimization::builder().module_ids("unknown".to_string()))
+      .build()
+  );
 
   assert_snapshot!(Compiler::builder().target(vec![]).build());
 }

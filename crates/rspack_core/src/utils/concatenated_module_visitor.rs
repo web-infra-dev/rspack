@@ -1,6 +1,6 @@
 use swc_core::ecma::{
   ast::{ClassExpr, Ident, ObjectPatProp, Prop},
-  visit::{noop_visit_type, Visit, VisitWith},
+  visit::{Visit, VisitWith, noop_visit_type},
 };
 
 #[derive(Clone, Debug)]

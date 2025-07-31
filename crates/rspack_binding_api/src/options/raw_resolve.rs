@@ -182,14 +182,21 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
   type Error = rspack_error::Error;
   fn try_from(value: RawResolveTsconfigOptions) -> Result<Self, Self::Error> {
     let references = match value.references_type.as_str() {
-      "manual" => TsconfigReferences::Paths(value.references.unwrap_or_default().into_iter().map(Into::into).collect()),
+      "manual" => TsconfigReferences::Paths(
+        value
+          .references
+          .unwrap_or_default()
+          .into_iter()
+          .map(Into::into)
+          .collect(),
+      ),
       "auto" => TsconfigReferences::Auto,
       "disabled" => TsconfigReferences::Disabled,
       _ => panic!(
-          "Failed to resolve the references type {}. Expected type is `auto`, `manual` or `disabled`.",
-          value.references_type
-      )
-  };
+        "Failed to resolve the references type {}. Expected type is `auto`, `manual` or `disabled`.",
+        value.references_type
+      ),
+    };
     Ok(TsconfigOptions {
       config_file: value.config_file.into(),
       references,

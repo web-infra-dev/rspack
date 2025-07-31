@@ -7,7 +7,7 @@ use std::{
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_dojang::{Context, Dojang, Operand};
-use rspack_error::{error, miette, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error, miette};
 use serde_json::{Map, Value};
 
 use crate::{Environment, RuntimeGlobals};

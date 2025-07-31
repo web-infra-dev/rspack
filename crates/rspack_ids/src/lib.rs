@@ -1,6 +1,5 @@
 #![feature(iter_intersperse)]
 #![feature(iter_order_by)]
-#![feature(let_chains)]
 
 mod deterministic_module_ids_plugin;
 pub use deterministic_module_ids_plugin::*;

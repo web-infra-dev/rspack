@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  incremental::IncrementalPasses, ApplyContext, Chunk, CompilationChunkIds, CompilerOptions,
-  Plugin, PluginContext,
+  ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
+  incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -51,10 +51,10 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
     for chunk_group_ukey in chunk.groups() {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
         for parent_ukey in &chunk_group.parents {
-          if let Some(parent) = chunk_group_by_ukey.get(parent_ukey) {
-            if parent.is_initial() {
-              occurs += 1;
-            }
+          if let Some(parent) = chunk_group_by_ukey.get(parent_ukey)
+            && parent.is_initial()
+          {
+            occurs += 1;
           }
         }
       }

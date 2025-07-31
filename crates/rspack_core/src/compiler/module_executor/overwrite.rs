@@ -1,8 +1,8 @@
 use super::context::ExecutorTaskContext;
 use crate::{
   compiler::make::repair::{
-    add::AddTask, factorize::FactorizeResultTask, process_dependencies::ProcessDependenciesTask,
-    MakeTaskContext,
+    MakeTaskContext, add::AddTask, factorize::FactorizeResultTask,
+    process_dependencies::ProcessDependenciesTask,
   },
   utils::task_loop::{Task, TaskResult, TaskType},
 };

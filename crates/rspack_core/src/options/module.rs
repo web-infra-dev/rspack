@@ -11,7 +11,7 @@ use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
-use rspack_util::{try_all, try_any, MergeFrom};
+use rspack_util::{MergeFrom, try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::OnceCell;
 

@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod ast;
 mod dependency;
 mod loading_plugin;

@@ -6,11 +6,11 @@ use std::{
 
 use inventory;
 use rkyv::{
+  Archived, Portable, SerializeUnsized,
   bytecheck::{CheckBytes, StructCheckContext},
   ptr_meta::{DynMetadata, Pointee},
   rancor::{Fallible, Trace},
   traits::NoUndef,
-  Archived, Portable, SerializeUnsized,
 };
 
 pub mod validation;
@@ -77,6 +77,7 @@ impl<T: ?Sized> PartialEq for ArchivedDynMetadata<T> {
   }
 }
 impl<T: ?Sized> Eq for ArchivedDynMetadata<T> {}
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl<T: ?Sized> PartialOrd for ArchivedDynMetadata<T> {
   #[inline]
   fn partial_cmp(&self, other: &ArchivedDynMetadata<T>) -> Option<::core::cmp::Ordering> {
@@ -111,24 +112,28 @@ where
     value: *const Self,
     context: &mut C,
   ) -> ::core::result::Result<(), C::Error> {
-    Archived::<u64>::check_bytes(&raw const (*value).dyn_id, context).map_err(|e| {
-      C::Error::trace(
-        e,
-        StructCheckContext {
-          struct_name: "ArchivedDynMetadata",
-          field_name: "dyn_id",
-        },
-      )
-    })?;
-    PhantomData::<T>::check_bytes(&raw const (*value).phantom, context).map_err(|e| {
-      C::Error::trace(
-        e,
-        StructCheckContext {
-          struct_name: "ArchivedDynMetadata",
-          field_name: "phantom",
-        },
-      )
-    })?;
+    unsafe {
+      Archived::<u64>::check_bytes(&raw const (*value).dyn_id, context).map_err(|e| {
+        C::Error::trace(
+          e,
+          StructCheckContext {
+            struct_name: "ArchivedDynMetadata",
+            field_name: "dyn_id",
+          },
+        )
+      })?;
+    }
+    unsafe {
+      PhantomData::<T>::check_bytes(&raw const (*value).phantom, context).map_err(|e| {
+        C::Error::trace(
+          e,
+          StructCheckContext {
+            struct_name: "ArchivedDynMetadata",
+            field_name: "phantom",
+          },
+        )
+      })?;
+    }
     Ok(())
   }
 }

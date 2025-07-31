@@ -10,13 +10,14 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::{
+  ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
+  PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource},
-  to_identifier, ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext,
-  LocalIdentName, PathData, ResourceData, RuntimeGlobals, RESERVED_IDENTIFIER,
+  to_identifier,
 };
 use rspack_error::{
-  miette::Diagnostic, DiagnosticExt, Result, RspackSeverity, ToStringResultToRspackResultExt,
-  TraceableError,
+  DiagnosticExt, Result, RspackSeverity, ToStringResultToRspackResultExt, TraceableError,
+  miette::Diagnostic,
 };
 use rspack_hash::RspackHash;
 use rspack_util::{identifier::make_paths_relative, itoa, json_stringify};
@@ -115,10 +116,8 @@ impl LocalIdentNameRenderOptions<'_> {
 static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
 
-pub fn escape_css(s: &str) -> Cow<str> {
-  let escaped = UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]));
-
-  escaped
+pub fn escape_css(s: &str) -> Cow<'_, str> {
+  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]))
 }
 
 pub(crate) fn export_locals_convention(
@@ -250,7 +249,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     concatenation_scope,
     ..
   } = generate_context;
-  let Some(ref mut scope) = concatenation_scope else {
+  let Some(scope) = concatenation_scope else {
     return Ok(());
   };
   let module_graph = compilation.get_module_graph();
@@ -302,7 +301,9 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     }
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = Cow::Owned(format!("{identifier}{}", itoa!(i)));
+      let mut i_buffer = itoa::Buffer::new();
+      let i_str = i_buffer.format(i);
+      identifier = Cow::Owned(format!("{identifier}{}", i_str));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
@@ -327,17 +328,17 @@ static UNESCAPE: LazyLock<Regex> =
 static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
 
 // `\/foo` in css should be treated as `foo` in js
-pub fn unescape(s: &str) -> Cow<str> {
+pub fn unescape(s: &str) -> Cow<'_, str> {
   UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
     caps
       .get(0)
       .and_then(|m| {
         let m = m.as_str();
         if m.len() > 2 {
-          if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16) {
-            if let Some(ch) = char::from_u32(r_u32) {
-              return Some(format!("{ch}"));
-            }
+          if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16)
+            && let Some(ch) = char::from_u32(r_u32)
+          {
+            return Some(format!("{ch}"));
           }
           None
         } else {
@@ -392,10 +393,10 @@ pub fn normalize_url(s: &str) -> String {
   if DATA.is_match(&result) {
     return result.to_string();
   }
-  if result.contains('%') {
-    if let Ok(r) = urlencoding::decode(&result) {
-      return r.to_string();
-    }
+  if result.contains('%')
+    && let Ok(r) = urlencoding::decode(&result)
+  {
+    return r.to_string();
   }
 
   result.to_string()

@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse::Parser, parse_macro_input, ItemStruct};
+use syn::{ItemStruct, parse::Parser, parse_macro_input};
 
 pub fn impl_source_map_config(
   _args: proc_macro::TokenStream,
