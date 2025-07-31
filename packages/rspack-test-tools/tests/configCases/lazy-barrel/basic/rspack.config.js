@@ -7,7 +7,8 @@ const allModules = fs
 		dirent =>
 			dirent.isFile() &&
 			dirent.name !== "package.json" &&
-			dirent.name !== "rspack.config.js"
+			dirent.name !== "rspack.config.js" &&
+			dirent.name !== "test.filter.js"
 	)
 	.map(dirent => path.resolve(dirent.parentPath, dirent.name));
 
