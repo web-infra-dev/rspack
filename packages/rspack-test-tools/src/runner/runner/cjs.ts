@@ -13,7 +13,6 @@ import { BasicRunner } from "./basic";
 
 declare global {
 	var printLogger: boolean;
-	var isWasm: boolean;
 }
 
 const define = (...args: unknown[]) => {
