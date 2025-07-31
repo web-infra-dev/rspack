@@ -93,10 +93,10 @@ impl DiskWatcher {
         // The `notify` crate automatically removes the watch path when it is removed internally.
         // If we attempt to unwatch the path again, it may return an error.
         // Consider enhancing the tracking of paths to avoid unnecessary `unwatch` calls and handle errors more robustly.
-        if let Err(e) = watcher.unwatch(pattern) {
-          if !matches!(e.kind, notify::ErrorKind::WatchNotFound) {
-            return Err(rspack_error::error!(e));
-          }
+        if let Err(e) = watcher.unwatch(pattern)
+          && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
+        {
+          return Err(rspack_error::error!(e));
         }
       }
     }
