@@ -208,9 +208,9 @@ impl ContextModule {
     &self.options.context_options
   }
 
-  fn get_fake_map(
+  fn get_fake_map<'a>(
     &self,
-    dependencies: impl IntoIterator<Item = &DependencyId>,
+    dependencies: impl IntoIterator<Item = &'a DependencyId>,
     compilation: &Compilation,
   ) -> FakeMapValue {
     let dependencies = dependencies.into_iter();
@@ -306,9 +306,9 @@ impl ContextModule {
     )
   }
 
-  fn get_user_request_map(
+  fn get_user_request_map<'a>(
     &self,
-    dependencies: impl IntoIterator<Item = &DependencyId>,
+    dependencies: impl IntoIterator<Item = &'a DependencyId>,
     compilation: &Compilation,
   ) -> FxIndexMap<String, Option<String>> {
     let module_graph = compilation.get_module_graph();

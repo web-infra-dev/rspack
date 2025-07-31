@@ -19,12 +19,14 @@ impl Visit for DependencyVisitor {
   fn visit_call_expr(&mut self, node: &CallExpr) {
     let is_match_ident = match &node.callee {
       Callee::Import(_) => true,
-      Callee::Expr(box Expr::Ident(ident)) => ident.sym == "require",
+      Callee::Expr(expr) if matches!(expr.as_ref(), Expr::Ident(ident) if ident.sym == "require") => {
+        true
+      }
       _ => false,
     };
     if is_match_ident
       && let Some(args) = node.args.first()
-      && let box Expr::Lit(Lit::Str(s)) = &args.expr
+      && let Expr::Lit(Lit::Str(s)) = args.expr.as_ref()
     {
       self.requests.push(s.value.to_string());
     }

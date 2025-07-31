@@ -9,6 +9,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use futures::future::BoxFuture;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -160,12 +161,12 @@ macro_rules! process_runtime_requirement_hook_macro {
     async fn $name(
       self: $s,
       requirements: &mut RuntimeGlobals,
-      call_hook: impl async Fn(
+      call_hook: impl for<'a> Fn(
         $c,
-        &RuntimeGlobals,
-        &RuntimeGlobals,
-        &mut RuntimeGlobals,
-      ) -> Result<()>,
+        &'a RuntimeGlobals,
+        &'a RuntimeGlobals,
+        &'a mut RuntimeGlobals,
+      ) -> BoxFuture<'a, Result<()>>,
     ) -> Result<()> {
       let mut runtime_requirements_mut = *requirements;
       let mut runtime_requirements;
@@ -1992,11 +1993,14 @@ impl Compilation {
                   compilation
                     .process_runtime_requirement_hook(&mut runtime_requirements, {
                       let plugin_driver = plugin_driver.clone();
-                      async move |compilation,
+                      move |compilation,
                                   all_runtime_requirements,
                                   runtime_requirements,
                                   runtime_requirements_mut| {
-                        plugin_driver
+                        Box::pin({
+                          let plugin_driver = plugin_driver.clone();
+                          async move {
+                          plugin_driver
                           .compilation_hooks
                           .runtime_requirement_in_module
                           .call(
@@ -2007,8 +2011,9 @@ impl Compilation {
                             runtime_requirements_mut,
                           )
                           .await
-                          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInModule"))?;
-                        Ok(())
+                            .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInModule"))?;
+                          Ok(())
+                        }})
                       }
                     })
                     .await?;
@@ -2072,25 +2077,30 @@ impl Compilation {
       self
         .process_runtime_requirement_hook_mut(&mut set, {
           let plugin_driver = plugin_driver.clone();
-          async move |compilation,
-                      all_runtime_requirements,
-                      runtime_requirements,
-                      runtime_requirements_mut| {
-            plugin_driver
-              .compilation_hooks
-              .runtime_requirement_in_chunk
-              .call(
-                compilation,
-                &chunk_ukey,
+          move |compilation,
                 all_runtime_requirements,
                 runtime_requirements,
-                runtime_requirements_mut,
-              )
-              .await
-              .map_err(|e| {
-                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
-              })?;
-            Ok(())
+                runtime_requirements_mut| {
+            Box::pin({
+              let plugin_driver = plugin_driver.clone();
+              async move {
+                plugin_driver
+                  .compilation_hooks
+                  .runtime_requirement_in_chunk
+                  .call(
+                    compilation,
+                    &chunk_ukey,
+                    all_runtime_requirements,
+                    runtime_requirements,
+                    runtime_requirements_mut,
+                  )
+                  .await
+                  .map_err(|e| {
+                    e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
+                  })?;
+                Ok(())
+              }
+            })
           }
         })
         .await?;
@@ -2123,25 +2133,30 @@ impl Compilation {
       self
         .process_runtime_requirement_hook_mut(&mut set, {
           let plugin_driver = plugin_driver.clone();
-          async move |compilation,
-                      all_runtime_requirements,
-                      runtime_requirements,
-                      runtime_requirements_mut| {
-            plugin_driver
-              .compilation_hooks
-              .runtime_requirement_in_tree
-              .call(
-                compilation,
-                &entry_ukey,
+          move |compilation,
                 all_runtime_requirements,
                 runtime_requirements,
-                runtime_requirements_mut,
-              )
-              .await
-              .map_err(|e| {
-                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
-              })?;
-            Ok(())
+                runtime_requirements_mut| {
+            Box::pin({
+              let plugin_driver = plugin_driver.clone();
+              async move {
+                plugin_driver
+                  .compilation_hooks
+                  .runtime_requirement_in_tree
+                  .call(
+                    compilation,
+                    &entry_ukey,
+                    all_runtime_requirements,
+                    runtime_requirements,
+                    runtime_requirements_mut,
+                  )
+                  .await
+                  .map_err(|e| {
+                    e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
+                  })?;
+                Ok(())
+              }
+            })
           }
         })
         .await?;
@@ -2175,12 +2190,12 @@ impl Compilation {
   process_runtime_requirement_hook_macro!(
     process_runtime_requirement_hook,
     &Compilation,
-    &Compilation
+    &'a Compilation
   );
   process_runtime_requirement_hook_macro!(
     process_runtime_requirement_hook_mut,
     &mut Compilation,
-    &mut Compilation
+    &'a mut Compilation
   );
 
   #[instrument(name = "Compilation:create_hash",target=TRACING_BENCH_TARGET, skip_all)]
@@ -2979,9 +2994,9 @@ impl AssetInfoRelated {
 
 /// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
 /// the same time.
-pub fn assign_depths(
+pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
-  modules: impl Iterator<Item = &ModuleIdentifier>,
+  modules: impl Iterator<Item = &'a ModuleIdentifier>,
   outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720

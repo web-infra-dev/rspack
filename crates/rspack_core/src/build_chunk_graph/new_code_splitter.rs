@@ -1159,7 +1159,7 @@ impl CodeSplitter {
 
       match chunk_desc {
         ChunkDesc::Entry(entry_desc) => {
-          let box EntryChunkDesc {
+          let EntryChunkDesc {
             entry,
             entry_modules,
             chunk_modules,
@@ -1171,7 +1171,7 @@ impl CodeSplitter {
             post_order_indices,
             runtime,
             ..
-          } = entry_desc;
+          } = *entry_desc;
 
           let entry_chunk_ukey =
             if reuse && let Some(chunk) = self.cache_chunks.remove(&cache.cache_ukey) {
@@ -1378,7 +1378,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           }
         }
         ChunkDesc::Chunk(chunk_desc) => {
-          let box NormalChunkDesc {
+          let NormalChunkDesc {
             options,
             chunk_modules,
             pre_order_indices,
@@ -1386,7 +1386,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
             incoming_blocks,
             runtime,
             ..
-          } = chunk_desc;
+          } = *chunk_desc;
 
           let modules = chunk_modules;
 

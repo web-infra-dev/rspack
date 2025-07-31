@@ -1,5 +1,3 @@
-#![feature(box_patterns)]
-
 pub mod asset;
 pub mod config;
 pub mod injector;

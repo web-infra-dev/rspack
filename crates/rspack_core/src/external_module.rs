@@ -548,7 +548,8 @@ impl ExternalModule {
           )
         }
       }
-      "script" if let Some(request) = request => {
+      "script" if request.is_some() => {
+        let request = request.expect("request should be some");
         let url_and_global = extract_url_and_global(request.primary())?;
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
@@ -767,7 +768,8 @@ impl Module for ExternalModule {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
-      "asset" if let Some(request) = request => {
+      "asset" if request.is_some() => {
+        let request = request.expect("request should be some");
         cgr.add(
           SourceType::JavaScript,
           RawStringSource::from(format!(
@@ -780,7 +782,8 @@ impl Module for ExternalModule {
           .data
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
       }
-      "css-import" if let Some(request) = request => {
+      "css-import" if request.is_some() => {
+        let request = request.expect("request should be some");
         cgr.add(
           SourceType::Css,
           RawStringSource::from(format!(

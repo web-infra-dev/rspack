@@ -58,7 +58,7 @@ pub fn remove_available_modules(
   let mut stack = roots
     .iter()
     .filter(|root| {
-      let is_entry = matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(box EntryChunkDesc{initial, ..}) if *initial);
+      let is_entry = matches!(&chunks[**root].1.chunk_desc, ChunkDesc::Entry(entry_desc) if matches!(entry_desc.as_ref(), EntryChunkDesc{initial, ..} if *initial));
       let is_entry_without_depend_on = is_entry && chunk_incomings[**root].is_empty();
       if is_entry_without_depend_on {
         pending.insert(**root);
@@ -123,7 +123,7 @@ pub fn remove_available_modules(
 
         if matches!(
           &child_chunk,
-          ChunkDesc::Entry(box EntryChunkDesc { initial, .. }) if !initial
+          ChunkDesc::Entry(entry_desc) if matches!(entry_desc.as_ref(), EntryChunkDesc { initial, .. } if !initial)
         ) {
           // async entrypoint has no dependOn and no parent modules
           stack.push((AvailableModules::default(), *child, false));
@@ -153,12 +153,16 @@ pub fn remove_available_modules(
     .enumerate()
     .for_each(|(chunk_index, available)| {
       let mut removed = HashSet::default();
+
+      // Allow reference casting to support casting &T to &mut T.
+      // See Safety message down below for more details.
+      #[allow(invalid_reference_casting)]
       let chunk =
       // Safety:
       // we only modify a chunk at a time
         unsafe {
           let ptr = &chunks[chunk_index].1.chunk_desc as *const ChunkDesc as *mut ChunkDesc;
-          ptr.as_mut_unchecked()
+          &mut *ptr
         };
 
       let Some(available) = available else {
@@ -183,7 +187,8 @@ pub fn remove_available_modules(
         !in_parent
       });
 
-      if let ChunkDesc::Entry(box entry_chunk) = chunk {
+      if let ChunkDesc::Entry(entry_chunk) = chunk {
+        let entry_chunk = entry_chunk.as_mut();
         entry_chunk.entry_modules.retain(|m| {
           !available.is_module_available(*ordinal_by_modules.get(m).expect("should have module"))
         });
