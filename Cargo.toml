@@ -144,7 +144,7 @@ rspack_binding_api                     = { version = "=0.4.11", path = "crates/r
 rspack_binding_build                   = { version = "=0.4.11", path = "crates/rspack_binding_build", default-features = false }
 rspack_binding_builder                 = { version = "=0.4.11", path = "crates/rspack_binding_builder", default-features = false }
 rspack_binding_builder_macros          = { version = "=0.4.11", path = "crates/rspack_binding_builder_macros", default-features = false }
-rspack_browser                         = { version = "=0.4.10", path = "crates/rspack_browser", default-features = false }
+rspack_browser                         = { version = "=0.4.11", path = "crates/rspack_browser", default-features = false }
 rspack_browserslist                    = { version = "=0.4.11", path = "crates/rspack_browserslist", default-features = false }
 rspack_cacheable                       = { version = "=0.4.11", path = "crates/rspack_cacheable", default-features = false }
 rspack_collections                     = { version = "=0.4.11", path = "crates/rspack_collections", default-features = false }
@@ -220,6 +220,7 @@ rspack_tasks                           = { version = "=0.4.11", path = "crates/r
 rspack_tracing                         = { version = "=0.4.11", path = "crates/rspack_tracing", default-features = false }
 rspack_tracing_perfetto                = { version = "=0.4.11", path = "crates/rspack_tracing_perfetto", default-features = false }
 rspack_util                            = { version = "=0.4.11", path = "crates/rspack_util", default-features = false }
+rspack_workspace                       = { version = "=0.4.11", path = "crates/rspack_workspace", default-features = false }
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
