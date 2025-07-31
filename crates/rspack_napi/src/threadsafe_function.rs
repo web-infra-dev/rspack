@@ -11,9 +11,9 @@ use napi::{
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 #[cfg(not(feature = "browser"))]
-use oneshot::{channel, Receiver};
+use oneshot::{Receiver, channel};
 #[cfg(feature = "browser")]
-use rspack_browser::oneshot::{channel, Receiver};
+use rspack_browser::oneshot::{Receiver, channel};
 use rspack_error::{Error, Result};
 
 use crate::{JsCallback, NapiErrorToRspackErrorExt};
