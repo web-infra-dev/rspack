@@ -3,9 +3,9 @@ use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  make::repair::{process_dependencies::ProcessDependenciesTask, MakeTaskContext},
-  task_loop::{Task, TaskResult, TaskType},
   BoxDependency, DependencyId, ModuleIdentifier,
+  make::repair::{MakeTaskContext, process_dependencies::ProcessDependenciesTask},
+  task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

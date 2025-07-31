@@ -12,10 +12,7 @@ use rspack_core::{
 use rspack_error::miette::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
-use swc_core::{
-  common::{BytePos, Mark, SourceFile, SourceMap, comments::Comments},
-  ecma::atoms::Atom,
-};
+use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, comments::Comments};
 
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},

@@ -1,8 +1,8 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationBuildModule, CompilationId,
-  CompilationOptimizeDependencies, CompilationSucceedModule, CompilerId, CompilerOptions,
-  FactoryMeta, Plugin, PluginContext, RuntimeSpec, get_entry_runtime,
+  CompilationOptimizeDependencies, CompilerId, CompilerOptions, FactoryMeta, Plugin, PluginContext,
+  RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
