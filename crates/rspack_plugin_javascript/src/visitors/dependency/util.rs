@@ -40,16 +40,18 @@ pub(crate) mod expr_like {
   impl ExprLikeEqIgnoreSpan for dyn ExprLike {
     fn expr_like_eq_ignore_span(&self, other: &dyn ExprLike) -> bool {
       match (self, other) {
-        (left, right)
-          if let Some(left) = left.as_member()
-            && let Some(right) = right.as_member() =>
-        {
+        (left, right) if left.as_member().is_some() && right.as_member().is_some() => {
+          let left = left
+            .as_member()
+            .expect("`left` is `MemberExpr` in `if_guard`");
+          let right = right
+            .as_member()
+            .expect("`right` is `MemberExpr` in `if_guard`");
           left.dyn_eq_ignore_span(right)
         }
-        (left, right)
-          if let Some(left) = left.as_ident()
-            && let Some(right) = right.as_ident() =>
-        {
+        (left, right) if left.as_ident().is_some() && right.as_ident().is_some() => {
+          let left = left.as_ident().expect("`left` is `Ident` in `if_guard`");
+          let right = right.as_ident().expect("`right` is `Ident` in `if_guard`");
           left.dyn_eq_ignore_span(right)
         }
         _ => false,

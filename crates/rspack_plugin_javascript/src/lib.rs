@@ -1,5 +1,3 @@
-#![feature(if_let_guard)]
-#![feature(box_patterns)]
 #![recursion_limit = "256"]
 
 pub mod dependency;

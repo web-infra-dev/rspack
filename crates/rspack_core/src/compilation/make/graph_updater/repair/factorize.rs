@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 
-use super::{MakeTaskContext, add::AddTask};
+use super::{TaskContext, add::AddTask};
 use crate::{
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportsInfoData,
   FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
@@ -30,11 +30,11 @@ pub struct FactorizeTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for FactorizeTask {
+impl Task<TaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Background
   }
-  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_start();
     }
@@ -150,11 +150,11 @@ pub struct FactorizeResultTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for FactorizeResultTask {
+impl Task<TaskContext> for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
@@ -191,8 +191,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       *dep_factorize_info = std::mem::take(&mut factorize_info);
     }
 
-    let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+    let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");

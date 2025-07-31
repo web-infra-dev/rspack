@@ -165,8 +165,9 @@ fn handle_worker<'a>(
   if let Some(expr_or_spread) = args.first()
     && let ExprOrSpread {
       spread: None,
-      expr: box Expr::New(new_url_expr),
+      expr: expr_box,
     } = expr_or_spread
+    && let Expr::New(new_url_expr) = &**expr_box
     && let Some((request, start, end)) = get_url_request(parser, new_url_expr)
   {
     let path = ParsedNewWorkerPath {

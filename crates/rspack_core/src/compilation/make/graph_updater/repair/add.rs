@@ -1,6 +1,6 @@
 use rspack_error::Result;
 
-use super::{MakeTaskContext, build::BuildTask};
+use super::{TaskContext, build::BuildTask};
 use crate::{
   BoxDependency, Module, ModuleIdentifier, ModuleProfile,
   module_graph::{ModuleGraph, ModuleGraphModule},
@@ -17,15 +17,14 @@ pub struct AddTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for AddTask {
+impl Task<TaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;
-    let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+    let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     if self.module.as_self_module().is_some() {
       let issuer = self

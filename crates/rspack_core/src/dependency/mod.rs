@@ -179,7 +179,8 @@ impl DependencyCondition {
     match self {
       Self::False => ConnectionState::Active(false),
       Self::Fn(f) => f.get_connection_state(connection, runtime, mg, module_graph_cache),
-      Self::Composed(box (primary, rest)) => {
+      Self::Composed(boxed) => {
+        let (primary, rest) = boxed.as_ref();
         let primary_state =
           primary.get_connection_state(connection, runtime, mg, module_graph_cache);
         let rest_state = rest.get_connection_state(connection, runtime, mg, module_graph_cache);

@@ -397,7 +397,8 @@ impl JavascriptParserPlugin for APIPlugin {
   fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
     macro_rules! not_supported_call {
       ($check: ident, $name: literal) => {
-        if let Callee::Expr(box Expr::Member(expr)) = &call_expr.callee
+        if let Callee::Expr(expr_box) = &call_expr.callee
+          && let Expr::Member(expr) = &**expr_box
           && expr_matcher::$check(&Expr::Member(expr.to_owned()))
         {
           let (warning, dep) = expression_not_supported(

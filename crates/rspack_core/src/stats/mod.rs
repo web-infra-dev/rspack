@@ -20,8 +20,9 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
+  Compilation, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
+  compilation::make::ExecutedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]

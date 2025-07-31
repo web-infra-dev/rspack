@@ -5,9 +5,13 @@ use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
-use super::{MakeArtifact, MakeParam};
+use super::{MakeArtifact, UpdateParam};
 use crate::{BuildDependency, FactorizeInfo};
 
+/// Cutout module graph.
+///
+/// This toolkit can remove useless module and dependency through `UpdateParam` and
+/// do some post-processing on module graph like clean up isolated module.
 #[derive(Debug, Default)]
 pub struct Cutout {
   fix_issuers: FixIssuers,
@@ -15,12 +19,20 @@ pub struct Cutout {
 }
 
 impl Cutout {
+  /// Cutout artifact, the first step to incrementally update MakeArtifact.
+  ///
+  /// This step will remove useless module and dependency through `UpdateParam` and return
+  /// the dependencyId and original module identifier of breaking point in the module graph.
+  /// If we have a module graph like "A -> B -> C -> D", and the modules to remove are C and D,
+  /// it will return the dependency of B->C.
   pub fn cutout_artifact(
     &mut self,
     artifact: &mut MakeArtifact,
-    params: Vec<MakeParam>,
+    params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
+    // the entry dependencies after update module graph
     let mut next_entry_dependencies = HashSet::default();
+    // whether to clean up useless entry dependencies
     let mut clean_entry_dependencies = false;
     let mut force_build_modules = IdentifierSet::default();
     let mut force_build_deps = HashSet::default();
@@ -29,14 +41,14 @@ impl Cutout {
 
     for item in params {
       match item {
-        MakeParam::BuildEntry(deps) => {
+        UpdateParam::BuildEntry(deps) => {
           next_entry_dependencies = deps;
         }
-        MakeParam::BuildEntryAndClean(deps) => {
+        UpdateParam::BuildEntryAndClean(deps) => {
           next_entry_dependencies = deps;
           clean_entry_dependencies = true;
         }
-        MakeParam::CheckNeedBuild => {
+        UpdateParam::CheckNeedBuild => {
           force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
             if module.need_build() {
               Some(module.identifier())
@@ -45,7 +57,7 @@ impl Cutout {
             }
           }));
         }
-        MakeParam::ModifiedFiles(files) | MakeParam::RemovedFiles(files) => {
+        UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
           for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
@@ -53,6 +65,7 @@ impl Cutout {
               force_build_modules.insert(module.identifier());
             }
           }
+          // only failed dependencies need to check
           for dep_id in &artifact.make_failed_dependencies {
             let dep = module_graph
               .dependency_by_id(dep_id)
@@ -63,13 +76,13 @@ impl Cutout {
             }
           }
         }
-        MakeParam::ForceBuildDeps(deps) => {
+        UpdateParam::ForceBuildDeps(deps) => {
           force_build_deps.extend(deps);
         }
-        MakeParam::ForceBuildModules(modules) => {
+        UpdateParam::ForceBuildModules(modules) => {
           force_build_modules.extend(modules);
         }
-        MakeParam::CheckIsolatedModules(modules) => {
+        UpdateParam::CheckIsolatedModules(modules) => {
           for mid in modules {
             self.fix_issuers.add_need_check_module(mid);
           }
@@ -143,6 +156,7 @@ impl Cutout {
       .collect()
   }
 
+  /// Fix artifact, the last step to incrementally update MakeArtifact.
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let Self {
       fix_issuers,

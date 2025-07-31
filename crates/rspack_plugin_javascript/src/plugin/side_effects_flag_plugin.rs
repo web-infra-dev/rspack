@@ -265,8 +265,8 @@ impl SideEffectsFlagPluginVisitor<'_> {
           return;
         }
 
-        let pure_test = match stmt.test {
-          Some(box ref test) => is_pure_expression(test, self.unresolved_ctxt, self.comments),
+        let pure_test = match &stmt.test {
+          Some(test) => is_pure_expression(test, self.unresolved_ctxt, self.comments),
           None => true,
         };
 
