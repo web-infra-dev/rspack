@@ -111,16 +111,15 @@ declare namespace Rspack {
 		onErrored?: (event: ErroredEvent) => void;
 	}
 
-	enum HotUpdateStatus {
-		idle = "idle",
-		check = "check",
-		prepare = "prepare",
-		ready = "ready",
-		dispose = "dispose",
-		apply = "apply",
-		abort = "abort",
-		fail = "fail"
-	}
+	type HotUpdateStatus =
+		| "idle"
+		| "check"
+		| "prepare"
+		| "ready"
+		| "dispose"
+		| "apply"
+		| "abort"
+		| "fail";
 
 	interface Hot {
 		accept: {
