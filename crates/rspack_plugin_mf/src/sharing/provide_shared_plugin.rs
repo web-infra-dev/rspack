@@ -233,12 +233,43 @@ async fn normal_module_factory_module(
     return Ok(());
   }
   let request = &create_data.raw_request;
-  {
+  let current_request = &data.request;
+
+  // Check if the current request has an __original_package query parameter
+  let original_package = if let Some(query_start) = current_request.find("?__original_package=") {
+    let param_start = query_start + 20; // Length of "?__original_package="
+    if let Some(param_end) = current_request[param_start..].find('&') {
+      Some(&current_request[param_start..param_start + param_end])
+    } else {
+      Some(&current_request[param_start..])
+    }
+  } else {
+    None
+  };
+
+  if let Some(package) = original_package {
+    eprintln!(
+      "ProvideSharedPlugin: Found __original_package parameter: '{}' for request: '{}'",
+      package, current_request
+    );
+  }
+
+  // Create list of requests to check: original request and extracted package name
+  let mut requests_to_check = vec![request.as_str()];
+  if let Some(package) = original_package {
+    requests_to_check.push(package);
+  }
+
+  for request_to_check in requests_to_check {
     let match_provides = self.match_provides.read().await;
-    if let Some(config) = match_provides.get(request) {
+    if let Some(config) = match_provides.get(request_to_check) {
+      eprintln!(
+        "ProvideSharedPlugin: Found match for '{}' with share_key: '{}'",
+        request_to_check, config.share_key
+      );
       self
         .provide_shared_module(
-          request,
+          request_to_check,
           &config.share_key,
           &config.share_scope,
           config.version.as_ref(),
@@ -251,6 +282,7 @@ async fn normal_module_factory_module(
           |d| data.diagnostics.push(d),
         )
         .await;
+      break; // Found a match, stop checking
     }
   }
   for (prefix, config) in self.prefix_match_provides.read().await.iter() {
