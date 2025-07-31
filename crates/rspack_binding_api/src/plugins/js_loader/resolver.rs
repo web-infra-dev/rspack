@@ -6,15 +6,15 @@ use std::{
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
-  Resolver, Resource, RunnerContext, BUILTIN_LOADER_PREFIX,
+  BUILTIN_LOADER_PREFIX, BoxLoader, Context, Loader, ModuleRuleUseLoader,
+  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
-use rspack_error::{error, Result, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt};
+use rspack_error::{Result, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt, error};
 use rspack_hook::plugin_hook;
-use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
+use rspack_loader_lightningcss::{LIGHTNINGCSS_LOADER_IDENTIFIER, config::Config};
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
-use rspack_loader_swc::{SwcLoader, SWC_LOADER_IDENTIFIER};
+use rspack_loader_swc::{SWC_LOADER_IDENTIFIER, SwcLoader};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;

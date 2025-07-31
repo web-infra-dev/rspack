@@ -7,14 +7,12 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
-  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
-  property_name, to_normal_comment, AsContextDependency, ConditionalInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyCondition,
-  DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment,
-  ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
-  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
+  AsContextDependency, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DetermineExportAssignmentsKey, ESMExportInitFragment, ExportMode, ExportModeDynamicReexport,
+  ExportModeEmptyStar, ExportModeFakeNamespaceObject, ExportModeNormalReexport,
+  ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
@@ -23,10 +21,13 @@ use rspack_core::{
   ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
   PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
   StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, to_normal_comment,
 };
 use rspack_error::{
-  miette::{MietteDiagnostic, Severity},
   Diagnostic, DiagnosticExt, TraceableError,
+  miette::{MietteDiagnostic, Severity},
 };
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
@@ -1099,9 +1100,11 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       ExportMode::EmptyStar(mode) => Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Names(vec![]),
         hide_export: mode.hidden,
-        dependencies: Some(vec![*mg
-          .module_identifier_by_dependency_id(self.id())
-          .expect("should have module")]),
+        dependencies: Some(vec![
+          *mg
+            .module_identifier_by_dependency_id(self.id())
+            .expect("should have module"),
+        ]),
         ..Default::default()
       }),
       ExportMode::ReexportDynamicDefault(mode) => {
@@ -1169,9 +1172,11 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       }
       ExportMode::ReexportUndefined(mode) => Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(mode.name)]),
-        dependencies: Some(vec![*mg
-          .module_identifier_by_dependency_id(self.id())
-          .expect("should have module id")]),
+        dependencies: Some(vec![
+          *mg
+            .module_identifier_by_dependency_id(self.id())
+            .expect("should have module id"),
+        ]),
         ..Default::default()
       }),
       ExportMode::NormalReexport(mode) => {
@@ -1506,7 +1511,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let mode = dep.get_mode(&module_graph, *runtime, module_graph_cache);
 
-    if let Some(ref mut scope) = concatenation_scope {
+    if let Some(scope) = concatenation_scope {
       if let ExportMode::ReexportUndefined(mode) = mode {
         scope.register_raw_export(
           mode.name.clone(),

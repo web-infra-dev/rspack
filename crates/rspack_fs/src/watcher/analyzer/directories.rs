@@ -1,3 +1,4 @@
+#![allow(unused)]
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 

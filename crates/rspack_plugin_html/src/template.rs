@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use itertools::Itertools;
 use rspack_core::{Compilation, CrossOriginLoading, Mode};
-use rspack_dojang::{dojang::DojangOptions, Dojang, Operand};
+use rspack_dojang::{Dojang, Operand, dojang::DojangOptions};
 use rspack_error::{
-  miette, AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt,
+  AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt, miette,
 };
 use rspack_paths::AssertUtf8;
 use serde_json::Value;

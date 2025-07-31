@@ -3,13 +3,13 @@ use std::hash::Hash;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
   DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleGraph, ModuleLayer, RuntimeSpec, SourceType,
+  ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
+  module_update_hash, rspack_sources::BoxSource,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{ext::DynHash, itoa};
 
@@ -44,10 +44,12 @@ pub(crate) struct CssModule {
 
 impl CssModule {
   pub fn new(dep: CssDependency) -> Self {
+    let mut identifier_index_buffer = itoa::Buffer::new();
+    let identifier_index_str = identifier_index_buffer.format(dep.identifier_index);
     let identifier__ = format!(
       "css|{}|{}|{}|{}|{}}}",
       dep.identifier,
-      itoa!(dep.identifier_index),
+      identifier_index_str,
       dep.css_layer.as_deref().unwrap_or_default(),
       dep.supports.as_deref().unwrap_or_default(),
       dep.media.as_deref().unwrap_or_default(),
@@ -102,15 +104,18 @@ impl CssModule {
 impl Module for CssModule {
   impl_module_meta_info!();
 
-  fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<str> {
+  fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<'_, str> {
+    let index_suffix = if self.identifier_index > 0 {
+      let mut index_buffer = itoa::Buffer::new();
+      let index_str = index_buffer.format(self.identifier_index);
+      format!("({})", index_str)
+    } else {
+      "".into()
+    };
     std::borrow::Cow::Owned(format!(
       "css {}{}{}{}{}",
       context.shorten(&self.identifier),
-      if self.identifier_index > 0 {
-        format!("({})", itoa!(self.identifier_index))
-      } else {
-        "".into()
-      },
+      index_suffix,
       if let Some(layer) = &self.css_layer {
         format!(" (layer {layer})")
       } else {

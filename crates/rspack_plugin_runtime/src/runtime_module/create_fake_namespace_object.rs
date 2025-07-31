@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, Compilation, RuntimeModule};
+use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]

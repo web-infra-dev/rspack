@@ -21,7 +21,7 @@ static IDENTIFIER_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("should init regex"));
 
 #[inline]
-pub fn to_identifier(v: &str) -> Cow<str> {
+pub fn to_identifier(v: &str) -> Cow<'_, str> {
   // Avoid any unnecessary cost
   match IDENTIFIER_NAME_REPLACE_REGEX.replace_all(v, "_$1") {
     Cow::Borrowed(_) => escape_identifier(v),
@@ -47,7 +47,7 @@ pub fn to_identifier_with_escaped(v: String) -> String {
   }
 }
 
-pub fn escape_identifier(v: &str) -> Cow<str> {
+pub fn escape_identifier(v: &str) -> Cow<'_, str> {
   IDENTIFIER_REGEXP.replace_all(v, "_")
 }
 

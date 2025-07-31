@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]

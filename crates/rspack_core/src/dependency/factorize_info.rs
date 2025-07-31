@@ -79,7 +79,7 @@ impl FactorizeInfo {
     false
   }
 
-  pub fn related_dep_ids(&self) -> Cow<[DependencyId]> {
+  pub fn related_dep_ids(&self) -> Cow<'_, [DependencyId]> {
     match &self {
       Self::Success => Cow::Owned(vec![]),
       Self::Failed {
@@ -88,7 +88,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn file_dependencies(&self) -> Cow<HashSet<ArcPath>> {
+  pub fn file_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
     match &self {
       Self::Success => Cow::Owned(Default::default()),
       Self::Failed {
@@ -97,7 +97,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn context_dependencies(&self) -> Cow<HashSet<ArcPath>> {
+  pub fn context_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
     match &self {
       Self::Success => Cow::Owned(Default::default()),
       Self::Failed {
@@ -107,7 +107,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn missing_dependencies(&self) -> Cow<HashSet<ArcPath>> {
+  pub fn missing_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
     match &self {
       Self::Success => Cow::Owned(Default::default()),
       Self::Failed {
@@ -117,7 +117,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn diagnostics(&self) -> Cow<[Diagnostic]> {
+  pub fn diagnostics(&self) -> Cow<'_, [Diagnostic]> {
     match &self {
       Self::Success => Cow::Owned(vec![]),
       Self::Failed { diagnostics, .. } => Cow::Borrowed(diagnostics),

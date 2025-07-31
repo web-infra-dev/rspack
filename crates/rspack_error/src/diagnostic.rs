@@ -7,7 +7,7 @@ use rspack_collections::Identifier;
 use rspack_location::DependencyLocation;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-use crate::{graphical::GraphicalReportHandler, Error};
+use crate::{Error, graphical::GraphicalReportHandler};
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum RspackSeverity {
@@ -262,9 +262,9 @@ pub trait Diagnosable {
 
   fn add_diagnostics(&mut self, _diagnostics: Vec<Diagnostic>);
 
-  fn diagnostics(&self) -> Cow<[Diagnostic]>;
+  fn diagnostics(&self) -> Cow<'_, [Diagnostic]>;
 
-  fn first_error(&self) -> Option<Cow<Diagnostic>> {
+  fn first_error(&self) -> Option<Cow<'_, Diagnostic>> {
     match self.diagnostics() {
       Cow::Borrowed(diagnostics) => diagnostics
         .iter()
@@ -294,7 +294,7 @@ macro_rules! impl_empty_diagnosable_trait {
           ty = stringify!($ty)
         )
       }
-      fn diagnostics(&self) -> std::borrow::Cow<[$crate::Diagnostic]> {
+      fn diagnostics(&self) -> std::borrow::Cow<'_, [$crate::Diagnostic]> {
         std::borrow::Cow::Owned(vec![])
       }
     }

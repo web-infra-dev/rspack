@@ -8,13 +8,13 @@ pub use swc_core::base::BoolOrDataConfig;
 use swc_core::{
   atoms::Atom,
   base::{
-    config::{IsModule, JsMinifyCommentOption, JsMinifyFormatOptions, SourceMapsConfig},
     BoolOr,
+    config::{IsModule, JsMinifyCommentOption, JsMinifyFormatOptions, SourceMapsConfig},
   },
   common::{
+    BytePos, FileName, Mark,
     comments::{Comments, SingleThreadedComments},
     errors::HANDLER,
-    BytePos, FileName, Mark,
   },
   ecma::{
     ast::Ident,
@@ -25,17 +25,17 @@ use swc_core::{
       hygiene::hygiene,
       resolver,
     },
-    visit::{noop_visit_type, Visit, VisitMutWith},
+    visit::{Visit, VisitMutWith, noop_visit_type},
   },
 };
 pub use swc_ecma_minifier::option::{
-  terser::{TerserCompressorOptions, TerserEcmaVersion},
   MangleOptions, MinifyOptions, TopLevelOptions,
+  terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
 
 use super::{
-  stringify::{PrintOptions, SourceMapConfig},
   JavaScriptCompiler, TransformOutput,
+  stringify::{PrintOptions, SourceMapConfig},
 };
 use crate::error::with_rspack_error_handler;
 
@@ -108,10 +108,10 @@ impl JavaScriptCompiler {
 
           // https://github.com/swc-project/swc/issues/2254
           if opts.module.unwrap_or(false) {
-            if let Some(opts) = &mut min_opts.compress {
-              if opts.top_level.is_none() {
-                opts.top_level = Some(TopLevelOptions { functions: true });
-              }
+            if let Some(opts) = &mut min_opts.compress
+              && opts.top_level.is_none()
+            {
+              opts.top_level = Some(TopLevelOptions { functions: true });
             }
 
             if let Some(opts) = &mut min_opts.mangle {

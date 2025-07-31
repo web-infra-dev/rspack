@@ -3,13 +3,13 @@ use std::sync::Arc;
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 
-use super::{add::AddTask, MakeTaskContext};
+use super::{MakeTaskContext, add::AddTask};
 use crate::{
-  module_graph::ModuleGraphModule,
-  utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportsInfoData,
   FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
   ModuleLayer, ModuleProfile, Resolve, ResolverFactory,
+  module_graph::ModuleGraphModule,
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]

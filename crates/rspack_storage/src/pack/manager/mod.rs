@@ -5,16 +5,16 @@ use std::sync::Arc;
 use futures::future::join_all;
 use queue::TaskQueue;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
+use tokio::sync::{Mutex, oneshot, oneshot::Receiver};
 
 use super::{
+  ScopeUpdates,
   data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions},
   strategy::{ScopeStrategy, WriteScopeResult},
-  ScopeUpdates,
 };
 use crate::{
-  error::{Error, ErrorType, ValidateResult},
   ItemPairs, Result,
+  error::{Error, ErrorType, ValidateResult},
 };
 
 type ScopeMap = HashMap<String, PackScope>;
@@ -307,13 +307,13 @@ mod tests {
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
+    BridgeFileSystem, FileSystem, ItemKey, ItemValue,
     error::Result,
     pack::{
       data::{PackOptions, RootOptions},
       manager::ScopeManager,
       strategy::SplitPackStrategy,
     },
-    BridgeFileSystem, FileSystem, ItemKey, ItemValue,
   };
 
   fn mock_key(id: usize) -> ItemKey {

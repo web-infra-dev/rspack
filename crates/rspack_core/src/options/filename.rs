@@ -13,9 +13,9 @@ use rspack_cacheable::{
   with::{AsPreset, Unsupported},
 };
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_util::{atom::Atom, ext::CowExt, MergeFrom};
+use rspack_util::{MergeFrom, atom::Atom, ext::CowExt};
 
-use crate::{parse_resource, AssetInfo, PathData, ReplaceAllPlaceholder, ResourceParsedData};
+use crate::{AssetInfo, PathData, ReplaceAllPlaceholder, ResourceParsedData, parse_resource};
 
 static FILE_PLACEHOLDER: &str = "[file]";
 static BASE_PLACEHOLDER: &str = "[base]";
@@ -173,10 +173,10 @@ fn hash_len(hash: &str, len: Option<usize>) -> usize {
 pub fn has_hash_placeholder(template: &str) -> bool {
   for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
     let offset = key.len() - 1;
-    if let Some(start) = template.find(&key[..offset]) {
-      if template[start + offset..].find(']').is_some() {
-        return true;
-      }
+    if let Some(start) = template.find(&key[..offset])
+      && template[start + offset..].find(']').is_some()
+    {
+      return true;
     }
   }
   false
@@ -184,10 +184,10 @@ pub fn has_hash_placeholder(template: &str) -> bool {
 
 pub fn has_content_hash_placeholder(template: &str) -> bool {
   let offset = CONTENT_HASH_PLACEHOLDER.len() - 1;
-  if let Some(start) = template.find(&CONTENT_HASH_PLACEHOLDER[..offset]) {
-    if template[start + offset..].find(']').is_some() {
-      return true;
-    }
+  if let Some(start) = template.find(&CONTENT_HASH_PLACEHOLDER[..offset])
+    && template[start + offset..].find(']').is_some()
+  {
+    return true;
   }
   false
 }

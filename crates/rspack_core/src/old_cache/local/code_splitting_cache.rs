@@ -7,13 +7,13 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
+  ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Logger,
+  ModuleIdentifier,
   build_chunk_graph::{
     code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
     new_code_splitter::CodeSplitter as NewCodeSplitter,
   },
   incremental::{IncrementalPasses, Mutation},
-  ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Logger,
-  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]

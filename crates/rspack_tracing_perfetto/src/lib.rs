@@ -5,15 +5,16 @@
 use std::io::Write;
 
 pub use bytes::BytesMut;
-use idl_helpers::{create_event, create_track_descriptor, unique_uuid, DebugAnnotations};
+use idl_helpers::{DebugAnnotations, create_event, create_track_descriptor, unique_uuid};
 pub use micromegas_perfetto::protos::{self as idl};
 pub use prost;
 use prost::Message;
 use tracing::{
+  Event, Id, Subscriber,
   field::{Field, Visit},
-  span, Event, Id, Subscriber,
+  span,
 };
-use tracing_subscriber::{fmt::MakeWriter, layer::Context, registry::LookupSpan, Layer};
+use tracing_subscriber::{Layer, fmt::MakeWriter, layer::Context, registry::LookupSpan};
 
 use crate::idl_helpers::create_scope_sliced_packet;
 
@@ -269,16 +270,14 @@ where
     // We don't check the filter here -- we've already checked it when we handled the span on
     // `on_new_span`. Iff we successfully attached a track packet to the span, then we'll also
     // update the trace packet with the debug data here.
-    if let Some(extension) = span.extensions_mut().get_mut::<PerfettoSpanState>() {
-      if let Some(idl::trace_packet::Data::TrackEvent(ref mut event)) =
-        &mut extension.trace.packet[0].data
-      {
-        let mut debug_annotations = DebugAnnotations::default();
-        values.record(&mut debug_annotations);
-        event
-          .debug_annotations
-          .append(&mut debug_annotations.annotations);
-      }
+    if let Some(extension) = span.extensions_mut().get_mut::<PerfettoSpanState>()
+      && let Some(idl::trace_packet::Data::TrackEvent(event)) = &mut extension.trace.packet[0].data
+    {
+      let mut debug_annotations = DebugAnnotations::default();
+      values.record(&mut debug_annotations);
+      event
+        .debug_annotations
+        .append(&mut debug_annotations.annotations);
     };
   }
 

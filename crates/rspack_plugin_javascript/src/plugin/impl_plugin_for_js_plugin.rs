@@ -2,14 +2,14 @@ use std::{hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_core::{
-  get_js_chunk_filename_template,
-  rspack_sources::{BoxSource, CachedSource, SourceExt},
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
   CompilerOptions, ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph,
   ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext, RenderManifestEntry,
   RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  get_js_chunk_filename_template,
+  rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -17,34 +17,35 @@ use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
 use crate::{
+  JsPlugin, JsPluginInner,
   dependency::{
+    AMDRequireContextDependencyTemplate, CommonJsExportRequireDependencyTemplate,
+    CommonJsExportsDependencyTemplate, CommonJsFullRequireDependencyTemplate,
+    CommonJsRequireContextDependencyTemplate, CommonJsRequireDependencyTemplate,
+    CommonJsSelfReferenceDependencyTemplate, CreateScriptUrlDependencyTemplate,
+    ESMAcceptDependencyTemplate, ESMCompatibilityDependencyTemplate,
+    ESMExportExpressionDependencyTemplate, ESMExportHeaderDependencyTemplate,
+    ESMExportImportedSpecifierDependencyTemplate, ESMExportSpecifierDependencyTemplate,
+    ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
+    ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
+    ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
+    ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ModuleArgumentDependencyTemplate,
+    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
+    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
+    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
+    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate,
+    WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
     amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
     local_module_dependency::LocalModuleDependencyTemplate,
-    unsupported_dependency::UnsupportedDependencyTemplate, AMDRequireContextDependencyTemplate,
-    CommonJsExportRequireDependencyTemplate, CommonJsExportsDependencyTemplate,
-    CommonJsFullRequireDependencyTemplate, CommonJsRequireContextDependencyTemplate,
-    CommonJsRequireDependencyTemplate, CommonJsSelfReferenceDependencyTemplate,
-    CreateScriptUrlDependencyTemplate, ESMAcceptDependencyTemplate,
-    ESMCompatibilityDependencyTemplate, ESMExportExpressionDependencyTemplate,
-    ESMExportHeaderDependencyTemplate, ESMExportImportedSpecifierDependencyTemplate,
-    ESMExportSpecifierDependencyTemplate, ESMImportSideEffectDependencyTemplate,
-    ESMImportSpecifierDependencyTemplate, ExportInfoDependencyTemplate,
-    ExternalModuleDependencyTemplate, ImportContextDependencyTemplate, ImportDependencyTemplate,
-    ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
-    ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
-    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
-    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
-    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
-    RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
-    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate,
-    WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
+    unsupported_dependency::UnsupportedDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
-  JsPlugin, JsPluginInner,
 };
 
 #[plugin_hook(CompilerCompilation for JsPlugin)]

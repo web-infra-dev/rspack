@@ -1,17 +1,16 @@
 use std::{collections::HashMap, io::Write};
 
 use rspack_tracing_perfetto::{
-  idl,
+  BytesMut, PerfettoLayer, idl,
   idl::TrackDescriptor,
   idl_helpers::{
-    create_event, create_scope_sliced_packet, create_track_descriptor, unique_uuid,
-    DebugAnnotations,
+    DebugAnnotations, create_event, create_scope_sliced_packet, create_track_descriptor,
+    unique_uuid,
   },
   prost::Message,
-  BytesMut, PerfettoLayer,
 };
 static JAVASCRIPT_ANALYSIS_TRACK: &str = "JavaScript Analysis";
-use crate::{tracer::Layered, Tracer};
+use crate::{Tracer, tracer::Layered};
 #[derive(Default)]
 pub struct PerfettoTracer {
   track_state: HashMap<u32, (TrackDescriptor, idl::Trace)>,

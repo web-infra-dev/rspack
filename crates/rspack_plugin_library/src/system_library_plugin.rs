@@ -1,19 +1,19 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   LibraryName, LibraryNonUmdObject, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::{error_bail, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error_bail};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
 };
 
-use crate::utils::{external_module_names, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, external_module_names, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.SystemLibraryPlugin";
 

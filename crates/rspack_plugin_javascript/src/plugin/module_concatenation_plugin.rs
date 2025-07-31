@@ -1,7 +1,7 @@
 #![allow(clippy::only_used_in_recursion)]
 use std::{
   borrow::Cow,
-  collections::{hash_map::DefaultHasher, VecDeque},
+  collections::{VecDeque, hash_map::DefaultHasher},
   hash::Hasher,
   sync::Arc,
 };
@@ -9,16 +9,16 @@ use std::{
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  concatenated_module::{
-    is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
-  },
-  filter_runtime, get_cached_readable_identifier, get_target,
-  incremental::IncrementalPasses,
   ApplyContext, Compilation, CompilationOptimizeChunkModules, CompilerOptions, ExportProvided,
   ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
   ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, ProvidedExports,
   RuntimeCondition, RuntimeSpec, SourceType,
+  concatenated_module::{
+    ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
+  },
+  filter_runtime, get_cached_readable_identifier, get_target,
+  incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -316,11 +316,11 @@ impl ModuleConcatenationPlugin {
           chunks.sort_unstable();
 
           format!(
-          "Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",
-          module_readable_identifier,
-          missing_chunks_list.join(", "),
-          chunks.join(", ")
-        )
+            "Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",
+            module_readable_identifier,
+            missing_chunks_list.join(", "),
+            chunks.join(", ")
+          )
         };
 
         statistics.incorrect_chunks += 1;
@@ -678,7 +678,8 @@ impl ModuleConcatenationPlugin {
         let module = module_graph
           .module_by_identifier(id)
           .unwrap_or_else(|| panic!("should have module {id}"));
-        let inner_module = ConcatenatedInnerModule {
+
+        ConcatenatedInnerModule {
           id: *id,
           size: module.size(
             Some(&rspack_core::SourceType::JavaScript),
@@ -694,8 +695,7 @@ impl ModuleConcatenationPlugin {
             &compilation.module_static_cache_artifact,
             &compilation.options.context,
           ),
-        };
-        inner_module
+        }
       })
       .collect::<Vec<_>>();
     let mut new_module = ConcatenatedModule::create(
@@ -958,10 +958,13 @@ impl ModuleConcatenationPlugin {
 
     let module_graph = compilation.get_module_graph();
     logger.time_end(start);
+    let mut relevant_len_buffer = itoa::Buffer::new();
+    let relevant_len_str = relevant_len_buffer.format(relevant_modules.len());
+    let mut possible_len_buffer = itoa::Buffer::new();
+    let possible_len_str = possible_len_buffer.format(possible_inners.len());
     logger.debug(format!(
       "{} potential root modules, {} potential inner modules",
-      itoa!(relevant_modules.len()),
-      itoa!(possible_inners.len()),
+      relevant_len_str, possible_len_str,
     ));
 
     let start = logger.time("sort relevant modules");
@@ -1155,27 +1158,57 @@ impl ModuleConcatenationPlugin {
 
     logger.time_end(start);
     if !concat_configurations.is_empty() {
+      let mut concat_len_buffer = itoa::Buffer::new();
+      let concat_len_str = concat_len_buffer.format(concat_configurations.len());
+      let mut avg_size_buffer = itoa::Buffer::new();
+      let avg_size_str = avg_size_buffer.format(stats_size_sum / concat_configurations.len());
+      let mut empty_configs_buffer = itoa::Buffer::new();
+      let empty_configs_str = empty_configs_buffer.format(stats_empty_configurations);
       logger.debug(format!(
         "{} successful concat configurations (avg size: {}), {} bailed out completely",
-        itoa!(concat_configurations.len()),
-        itoa!(stats_size_sum / concat_configurations.len()),
-        itoa!(stats_empty_configurations)
+        concat_len_str, avg_size_str, empty_configs_str
       ));
     }
 
+    let mut candidates_buffer = itoa::Buffer::new();
+    let candidates_str = candidates_buffer.format(stats_candidates);
+    let mut cached_buffer = itoa::Buffer::new();
+    let cached_str = cached_buffer.format(statistics.cached);
+    let mut already_in_config_buffer = itoa::Buffer::new();
+    let already_in_config_str = already_in_config_buffer.format(statistics.already_in_config);
+    let mut invalid_module_buffer = itoa::Buffer::new();
+    let invalid_module_str = invalid_module_buffer.format(statistics.invalid_module);
+    let mut incorrect_chunks_buffer = itoa::Buffer::new();
+    let incorrect_chunks_str = incorrect_chunks_buffer.format(statistics.incorrect_chunks);
+    let mut incorrect_dependency_buffer = itoa::Buffer::new();
+    let incorrect_dependency_str =
+      incorrect_dependency_buffer.format(statistics.incorrect_dependency);
+    let mut incorrect_chunks_of_importer_buffer = itoa::Buffer::new();
+    let incorrect_chunks_of_importer_str =
+      incorrect_chunks_of_importer_buffer.format(statistics.incorrect_chunks_of_importer);
+    let mut incorrect_module_dependency_buffer = itoa::Buffer::new();
+    let incorrect_module_dependency_str =
+      incorrect_module_dependency_buffer.format(statistics.incorrect_module_dependency);
+    let mut incorrect_runtime_condition_buffer = itoa::Buffer::new();
+    let incorrect_runtime_condition_str =
+      incorrect_runtime_condition_buffer.format(statistics.incorrect_runtime_condition);
+    let mut importer_failed_buffer = itoa::Buffer::new();
+    let importer_failed_str = importer_failed_buffer.format(statistics.importer_failed);
+    let mut added_buffer = itoa::Buffer::new();
+    let added_str = added_buffer.format(statistics.added);
     logger.debug(format!(
         "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",
-        itoa!(stats_candidates),
-        itoa!(statistics.cached),
-        itoa!(statistics.already_in_config),
-        itoa!(statistics.invalid_module),
-        itoa!(statistics.incorrect_chunks),
-        itoa!(statistics.incorrect_dependency),
-        itoa!(statistics.incorrect_chunks_of_importer),
-        itoa!(statistics.incorrect_module_dependency),
-        itoa!(statistics.incorrect_runtime_condition),
-        itoa!(statistics.importer_failed),
-        itoa!(statistics.added)
+        candidates_str,
+        cached_str,
+        already_in_config_str,
+        invalid_module_str,
+        incorrect_chunks_str,
+        incorrect_dependency_str,
+        incorrect_chunks_of_importer_str,
+        incorrect_module_dependency_str,
+        incorrect_runtime_condition_str,
+        importer_failed_str,
+        added_str
     ));
 
     // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371

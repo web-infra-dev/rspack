@@ -1,20 +1,20 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  property_access,
+  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
+  ExportProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
+  PluginContext, PrefetchExportsInfoMode, UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext, PrefetchExportsInfoMode, UsedNameItem,
+  to_identifier,
 };
-use rspack_error::{error_bail, Result};
+use rspack_error::{Result, error_bail};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
 
-use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.ModuleLibraryPlugin";
 

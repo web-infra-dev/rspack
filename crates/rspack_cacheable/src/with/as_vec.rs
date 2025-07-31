@@ -1,14 +1,14 @@
 use std::marker::PhantomData;
 
 use rkyv::{
+  Archive, Place, Serialize,
   rancor::Fallible,
   ser::{Allocator, Writer},
   vec::{ArchivedVec, VecResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Place, Serialize,
 };
 
-use crate::{with::AsCacheable, DeserializeError};
+use crate::{DeserializeError, with::AsCacheable};
 
 struct RefWrapper<'o, A, O>(&'o O, PhantomData<A>);
 

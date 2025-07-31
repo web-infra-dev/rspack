@@ -12,8 +12,8 @@ use itertools::{
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -73,7 +73,7 @@ pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {
   "".to_string()
 }
 
-fn avoid_number(s: &str) -> Cow<str> {
+fn avoid_number(s: &str) -> Cow<'_, str> {
   if s.len() > 21 {
     return Cow::Borrowed(s);
   }
@@ -147,10 +147,12 @@ pub fn assign_deterministic_ids<T>(
   for item in items {
     let ident = get_name(&item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
+    let mut i_buffer = itoa::Buffer::new();
+    let mut id = get_number_hash(&format!("{ident}{}", i_buffer.format(i)), range);
     while !assign_id(&item, id) {
       i += 1;
-      id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
+      let mut i_buffer = itoa::Buffer::new();
+      id = get_number_hash(&format!("{ident}{}", i_buffer.format(i)), range);
     }
   }
 }

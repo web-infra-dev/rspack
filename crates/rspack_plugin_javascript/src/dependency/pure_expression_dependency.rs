@@ -1,11 +1,11 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  filter_runtime, runtime_condition_expression, AsContextDependency, AsModuleDependency,
-  Compilation, ConnectionState, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
+  AsContextDependency, AsModuleDependency, Compilation, ConnectionState, Dependency,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedByExports, filter_runtime, runtime_condition_expression,
 };
 use rspack_util::ext::DynHash;
 

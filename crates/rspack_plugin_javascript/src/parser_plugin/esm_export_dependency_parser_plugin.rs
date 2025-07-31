@@ -2,14 +2,14 @@ use itertools::Itertools;
 use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
 use swc_core::{
   atoms::Atom,
-  common::{comments::CommentKind, Span, Spanned},
+  common::{Span, Spanned, comments::CommentKind},
 };
 
 use super::{
-  esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
-  inline_const::{InlinableConstData, INLINABLE_CONST_TAG},
-  InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
-  JS_DEFAULT_KEYWORD,
+  DEFAULT_STAR_JS_WORD, InnerGraphMapUsage, InnerGraphPlugin, JS_DEFAULT_KEYWORD,
+  JavascriptParserPlugin,
+  esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
+  inline_const::{INLINABLE_CONST_TAG, InlinableConstData},
 };
 use crate::{
   dependency::{
@@ -19,8 +19,8 @@ use crate::{
   },
   utils::object_properties::get_attributes,
   visitors::{
-    create_traceable_error, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
-    ExportLocal, JavascriptParser, TagInfoData,
+    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
+    TagInfoData, create_traceable_error,
   },
 };
 

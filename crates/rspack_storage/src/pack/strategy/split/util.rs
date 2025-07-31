@@ -80,15 +80,15 @@ pub mod test_pack_utils {
 
   use super::flag_scope_wrote;
   use crate::{
+    BridgeFileSystem, FileSystem,
     error::Result,
     pack::{
-      data::{current_time, PackOptions, PackScope},
+      data::{PackOptions, PackScope, current_time},
       strategy::{
-        split::handle_file::prepare_scope, ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy,
-        WriteScopeResult,
+        ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult,
+        split::handle_file::prepare_scope,
       },
     },
-    BridgeFileSystem, FileSystem,
   };
 
   pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn FileSystem) -> Result<()> {

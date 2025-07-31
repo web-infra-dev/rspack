@@ -3,24 +3,24 @@ use std::{fmt::Debug, rc::Rc, sync::LazyLock};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  incremental::{self, IncrementalPasses, Mutation},
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
   DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
   SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
   SideEffectsOptimizeArtifact,
+  incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
 use swc_core::{
-  common::{comments, comments::Comments, Span, Spanned, SyntaxContext, GLOBALS},
+  common::{GLOBALS, Span, Spanned, SyntaxContext, comments, comments::Comments},
   ecma::{
     ast::*,
     utils::{ExprCtx, ExprExt},
-    visit::{noop_visit_type, Visit, VisitWith},
+    visit::{Visit, VisitWith, noop_visit_type},
   },
 };
 
@@ -475,7 +475,7 @@ pub fn is_pure_class_member<'a>(
         true
       }
     }
-    ClassMember::PrivateProp(ref prop) => {
+    ClassMember::PrivateProp(prop) => {
       if let Some(ref value) = prop.value {
         is_pure_expression(value, unresolved_ctxt, comments)
       } else {
@@ -516,17 +516,15 @@ pub fn is_pure_class(
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
 ) -> bool {
-  if let Some(ref super_class) = class.super_class {
-    if !is_pure_expression(super_class, unresolved_ctxt, comments) {
-      return false;
-    }
+  if let Some(ref super_class) = class.super_class
+    && !is_pure_expression(super_class, unresolved_ctxt, comments)
+  {
+    return false;
   }
   let is_pure_key = |key: &PropName| -> bool {
     match key {
       PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
-      PropName::Computed(ref computed) => {
-        is_pure_expression(&computed.expr, unresolved_ctxt, comments)
-      }
+      PropName::Computed(computed) => is_pure_expression(&computed.expr, unresolved_ctxt, comments),
     }
   };
 

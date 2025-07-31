@@ -3,9 +3,9 @@
 use std::{cell::Cell, ptr, rc::Rc};
 
 use napi::{
-  bindgen_prelude::{check_status, JsObjectValue, Object, ToNapiValue},
-  sys::{self, napi_env},
   Env, JsValue, Result,
+  bindgen_prelude::{JsObjectValue, Object, ToNapiValue, check_status},
+  sys::{self, napi_env},
 };
 
 pub struct WeakRef {

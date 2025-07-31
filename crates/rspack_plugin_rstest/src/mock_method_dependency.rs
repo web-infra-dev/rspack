@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  import_statement, AsContextDependency, AsModuleDependency, ConditionalInitFragment,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  NormalInitFragment, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, ConditionalInitFragment, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeCondition,
+  TemplateContext, TemplateReplaceSource, import_statement,
 };
 use swc_core::common::Span;
 
@@ -126,27 +126,27 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     );
     init_fragments.push(init.boxed());
 
-    if dep.method == MockMethod::Mock {
-      if let Some(module_dep_id) = dep.module_dep_id {
-        let content: (String, String) = import_statement(
-          *module,
-          compilation,
-          runtime_requirements,
-          &module_dep_id,
-          request,
-          false,
-        );
+    if dep.method == MockMethod::Mock
+      && let Some(module_dep_id) = dep.module_dep_id
+    {
+      let content: (String, String) = import_statement(
+        *module,
+        compilation,
+        runtime_requirements,
+        &module_dep_id,
+        request,
+        false,
+      );
 
-        // Redeclaration init fragment.
-        init_fragments.push(Box::new(ConditionalInitFragment::new(
-          format!("{}{}", content.0, content.1),
-          InitFragmentStage::StageAsyncESMImports,
-          i32::MAX,
-          InitFragmentKey::ESMImport(format!("{} {}", request, "mock")),
-          None,
-          RuntimeCondition::Boolean(true),
-        )));
-      }
+      // Redeclaration init fragment.
+      init_fragments.push(Box::new(ConditionalInitFragment::new(
+        format!("{}{}", content.0, content.1),
+        InitFragmentStage::StageAsyncESMImports,
+        i32::MAX,
+        InitFragmentKey::ESMImport(format!("{} {}", request, "mock")),
+        None,
+        RuntimeCondition::Boolean(true),
+      )));
     }
 
     // Start before hoist.

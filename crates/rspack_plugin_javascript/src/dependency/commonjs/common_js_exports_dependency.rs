@@ -3,12 +3,13 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access,
 };
 use swc_core::atoms::Atom;
 

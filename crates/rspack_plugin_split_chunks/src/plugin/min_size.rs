@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 
 use super::ModuleGroupMap;
 use crate::{
-  common::ModuleSizes, module_group::ModuleGroup, CacheGroup, SplitChunkSizes, SplitChunksPlugin,
+  CacheGroup, SplitChunkSizes, SplitChunksPlugin, common::ModuleSizes, module_group::ModuleGroup,
 };
 
 impl SplitChunksPlugin {

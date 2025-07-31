@@ -16,8 +16,8 @@ use crate::{
   dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency},
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    context_reg_exp, create_context_dependency, create_traceable_error, parse_order_string,
-    ContextModuleScanResult, JavascriptParser,
+    ContextModuleScanResult, JavascriptParser, context_reg_exp, create_context_dependency,
+    create_traceable_error, parse_order_string,
   },
   webpack_comment::try_extract_webpack_magic_comment,
 };

@@ -2,10 +2,10 @@ use std::{cmp::Ordering, sync::Arc};
 
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
-  chunk_graph_chunk::ChunkId,
-  rspack_sources::{ReplaceSource, Source},
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationAssets,
   CompilationProcessAssets, CrossOriginLoading,
+  chunk_graph_chunk::ChunkId,
+  rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::plugin_hook;
@@ -14,10 +14,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::RwLock;
 
 use crate::{
-  config::IntegrityHtmlPlugin,
-  integrity::{compute_integrity, SubresourceIntegrityHashFunction},
-  util::{make_placeholder, use_any_hash, PLACEHOLDER_PREFIX, PLACEHOLDER_REGEX},
   IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  config::IntegrityHtmlPlugin,
+  integrity::{SubresourceIntegrityHashFunction, compute_integrity},
+  util::{PLACEHOLDER_PREFIX, PLACEHOLDER_REGEX, make_placeholder, use_any_hash},
 };
 
 #[derive(Debug, Clone)]
@@ -119,8 +119,8 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
 
       let real_content_hash = compilation.options.optimization.real_content_hash;
 
-      if let Some(source) = result.source {
-        if let Some(error) = compilation
+      if let Some(source) = result.source
+        && let Some(error) = compilation
           .update_asset(&result.file, |_, info| {
             if use_any_hash(&info) && (info.content_hash.is_empty() || !real_content_hash) {
               should_warn_content_hash = true;
@@ -131,12 +131,11 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
             Ok((Arc::new(source), new_info))
           })
           .err()
-        {
-          compilation.push_diagnostic(Diagnostic::error(
-            "SubresourceIntegrity".to_string(),
-            format!("Failed to update asset '{}': {}", result.file, error),
-          ));
-        }
+      {
+        compilation.push_diagnostic(Diagnostic::error(
+          "SubresourceIntegrity".to_string(),
+          format!("Failed to update asset '{}': {}", result.file, error),
+        ));
       }
     }
     if should_warn_content_hash {
@@ -271,13 +270,12 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
   if matches!(
     self.options.html_plugin,
     IntegrityHtmlPlugin::JavaScriptPlugin
-  ) {
-    if let Some(integrity_callback) = &self.options.integrity_callback {
-      integrity_callback(IntegrityCallbackData {
-        integerities: compilation_integrities.read().await.clone(),
-      })
-      .await?;
-    }
+  ) && let Some(integrity_callback) = &self.options.integrity_callback
+  {
+    integrity_callback(IntegrityCallbackData {
+      integerities: compilation_integrities.read().await.clone(),
+    })
+    .await?;
   }
 
   Ok(())
@@ -288,10 +286,10 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   let mut contain_unresolved_files = vec![];
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
-      if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source()) {
-        if source.source().contains(PLACEHOLDER_PREFIX) {
-          contain_unresolved_files.push(file.to_string());
-        }
+      if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source())
+        && source.source().contains(PLACEHOLDER_PREFIX)
+      {
+        contain_unresolved_files.push(file.to_string());
       }
     }
   }

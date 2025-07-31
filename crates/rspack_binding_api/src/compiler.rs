@@ -2,8 +2,8 @@ use std::{
   marker::PhantomPinned,
   ops::{Deref, DerefMut},
   sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
   },
 };
 

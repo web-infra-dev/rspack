@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use rspack_storage::{Result, Storage};
 use rustc_hash::FxHashMap as HashMap;
-use tokio::sync::oneshot::{channel, Receiver};
+use tokio::sync::oneshot::{Receiver, channel};
 
 /// Memory Storage
 ///

@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, hash::Hash, sync::atomic::AtomicU32};
 
-use rspack_collections::{impl_item_ukey, Database, DatabaseItem, Ukey};
+use rspack_collections::{Database, DatabaseItem, Ukey, impl_item_ukey};
 use rspack_core::ChunkUkey;
 
 static NEXT_CHUNK_COMBINATION_UKEY: AtomicU32 = AtomicU32::new(0);

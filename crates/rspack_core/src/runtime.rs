@@ -244,7 +244,7 @@ pub fn merge_runtime_condition_non_false(
     (RuntimeCondition::Boolean(false), _) => unreachable!(),
     (_, RuntimeCondition::Boolean(false)) => unreachable!(),
     (RuntimeCondition::Spec(_), RuntimeCondition::Boolean(true)) => {
-      return RuntimeCondition::Boolean(true)
+      return RuntimeCondition::Boolean(true);
     }
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
   };
@@ -263,7 +263,7 @@ pub fn merge_runtime_condition(
     (RuntimeCondition::Boolean(false), _) => return b.clone(),
     (_, RuntimeCondition::Boolean(false)) => return a.clone(),
     (_, RuntimeCondition::Boolean(true)) | (RuntimeCondition::Boolean(true), _) => {
-      return RuntimeCondition::Boolean(true)
+      return RuntimeCondition::Boolean(true);
     }
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
   };
@@ -327,11 +327,7 @@ impl<T> RuntimeSpecMap<T> {
   pub fn size(&self) -> usize {
     let mode = self.mode as usize;
 
-    if mode <= 1 {
-      mode
-    } else {
-      self.map.len()
-    }
+    if mode <= 1 { mode } else { self.map.len() }
   }
 
   pub fn get(&self, runtime: &RuntimeSpec) -> Option<&T> {
@@ -406,7 +402,7 @@ impl<T> RuntimeSpecMap<T> {
     }
   }
 
-  pub fn values(&self) -> RuntimeSpecMapValues<T> {
+  pub fn values(&self) -> RuntimeSpecMapValues<'_, T> {
     match self.mode {
       RuntimeMode::Empty => RuntimeSpecMapValues::Empty,
       RuntimeMode::SingleEntry => RuntimeSpecMapValues::SingleEntry(self.single_value.iter()),
@@ -461,7 +457,7 @@ impl RuntimeSpecSet {
     self.map.contains_key(get_runtime_key(runtime))
   }
 
-  pub fn values(&self) -> hash_map::Values<RuntimeKey, RuntimeSpec> {
+  pub fn values(&self) -> hash_map::Values<'_, RuntimeKey, RuntimeSpec> {
     self.map.values()
   }
 

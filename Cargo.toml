@@ -7,7 +7,7 @@ authors = ["Rspack Teams"]
 # See https://crates.io/category_slugs for a list of supported slugs
 categories    = ["development-tools", "web-programming"]
 documentation = "https://rspack.rs/"
-edition       = "2021"
+edition       = "2024"
 homepage      = "https://rspack.rs/"
 license       = "MIT"
 repository    = "https://github.com/web-infra-dev/rspack"

@@ -27,12 +27,11 @@ impl FixBuildMeta {
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let mut module_graph = artifact.get_module_graph_mut();
     for (id, build_meta) in self.origin_module_build_meta {
-      if let Some(module) = module_graph.module_by_identifier_mut(&id) {
-        if let Some(module) = module.as_normal_module_mut() {
-          if module.first_error().is_some() {
-            *module.build_meta_mut() = build_meta;
-          }
-        }
+      if let Some(module) = module_graph.module_by_identifier_mut(&id)
+        && let Some(module) = module.as_normal_module_mut()
+        && module.first_error().is_some()
+      {
+        *module.build_meta_mut() = build_meta;
       }
     }
   }

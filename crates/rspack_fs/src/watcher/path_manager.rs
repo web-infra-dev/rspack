@@ -1,6 +1,7 @@
+#![allow(unused)]
 use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
-use dashmap::{setref::multiple::RefMulti, DashSet as HashSet};
+use dashmap::{DashSet as HashSet, setref::multiple::RefMulti};
 use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_paths::ArcPath;

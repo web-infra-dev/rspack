@@ -1,15 +1,15 @@
 use std::marker::PhantomData;
 
 use rkyv::{
+  Archive, Place, Serialize,
   collections::util::Entry as RkyvEntry,
   rancor::Fallible,
   ser::{Allocator, Writer},
   vec::{ArchivedVec, VecResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Place, Serialize,
 };
 
-use crate::{with::AsCacheable, DeserializeError};
+use crate::{DeserializeError, with::AsCacheable};
 
 pub struct AsMap<WK = AsCacheable, WV = AsCacheable> {
   _key: WK,

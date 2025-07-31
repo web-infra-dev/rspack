@@ -3,15 +3,15 @@ use std::{borrow::Cow, path::Path, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  impl_module_meta_info, module_namespace_promise, module_update_hash,
-  rspack_sources::{BoxSource, RawStringSource},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
   LibIdentOptions, Module, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, impl_module_meta_info,
+  module_namespace_promise, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource},
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
@@ -129,11 +129,11 @@ impl Module for LazyCompilationProxyModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> std::borrow::Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> std::borrow::Cow<'_, str> {
     std::borrow::Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
   }
 

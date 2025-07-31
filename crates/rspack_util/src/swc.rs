@@ -4,8 +4,8 @@ use swc_core::{
   atoms::Atom,
   base::config::JsMinifyCommentOption,
   common::{
-    comments::{Comment, CommentKind, Comments, SingleThreadedComments},
     BytePos,
+    comments::{Comment, CommentKind, Comments, SingleThreadedComments},
   },
 };
 

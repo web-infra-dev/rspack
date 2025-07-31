@@ -5,15 +5,15 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  rspack_sources::{BoxSource, ReplaceSource, SourceExt},
   ApplyContext, Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation,
   CompilerOptions, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
   Plugin, PluginContext,
+  rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
+  BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 
 use crate::{

@@ -1,6 +1,6 @@
 use napi::{
-  bindgen_prelude::{Buffer, Either3, FnArgs, Promise},
   Either,
+  bindgen_prelude::{Buffer, Either3, FnArgs, Promise},
 };
 use napi_derive::napi;
 use rspack_fs::FileMetadata;

@@ -1,10 +1,8 @@
-#![feature(let_chains)]
-
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
-  incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
-  ExportsInfo, ModuleGraph, Plugin, PluginContext, RuntimeSpec,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfo, ModuleGraph, Plugin,
+  PluginContext, RuntimeSpec, incremental::Mutation, is_runtime_equal,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

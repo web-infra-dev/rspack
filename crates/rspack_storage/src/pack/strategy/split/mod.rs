@@ -22,12 +22,12 @@ use util::get_name;
 
 use super::{RootStrategy, ScopeStrategy};
 use crate::{
+  FileSystem,
   error::{Result, ValidateResult},
   fs::{FSError, FSOperation},
   pack::data::{
-    current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions,
+    PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions, current_time,
   },
-  FileSystem,
 };
 
 #[derive(Debug, Clone)]

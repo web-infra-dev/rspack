@@ -5,7 +5,7 @@ use rspack_core::{
   OutputOptions, PathInfo, TrustedTypes, WasmLoading,
 };
 
-use crate::{library::JsLibraryOptions, JsCleanOptions, JsFilename, WithFalse};
+use crate::{JsCleanOptions, JsFilename, WithFalse, library::JsLibraryOptions};
 
 #[derive(Debug)]
 #[napi(object)]

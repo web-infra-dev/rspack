@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 mod catch_unwind;
@@ -96,7 +95,7 @@ impl<T: Sized + std::fmt::Debug> IntoTWithDiagnosticArray for T {
 pub mod __private {
   pub use core::result::Result::Err;
 
-  pub use miette::{miette, Severity};
+  pub use miette::{Severity, miette};
 
   pub use crate::{diagnostic::Severity as RspackSeverity, error, error::InternalError};
 }

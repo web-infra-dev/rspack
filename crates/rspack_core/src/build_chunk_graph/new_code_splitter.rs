@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
   iter::once,
-  sync::{atomic::AtomicU32, Arc},
+  sync::{Arc, atomic::AtomicU32},
 };
 
 use indexmap::IndexSet;
@@ -11,19 +11,19 @@ use rspack_collections::{
   DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
   IdentifierMap, IdentifierSet, Ukey, UkeyMap,
 };
-use rspack_error::{error, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tracing::instrument;
 
-use super::available_modules::{remove_available_modules, AvailableModules};
+use super::available_modules::{AvailableModules, remove_available_modules};
 use crate::{
-  assign_depths,
+  AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock, DependencyLocation,
+  EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  SyntheticDependencyLocation, assign_depths,
   incremental::{IncrementalPasses, Mutation},
-  merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind,
-  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
-  DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
-  RuntimeSpec, SyntheticDependencyLocation,
+  merge_runtime,
 };
 
 type ModuleDeps = HashMap<
@@ -1306,10 +1306,10 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
                 let module_graph = compilation.get_module_graph();
                 let dep = module_graph.dependency_by_id(dep_id);
                 let mut request = None;
-                if let Some(dep) = dep {
-                  if let Some(d) = dep.as_any().downcast_ref::<EntryDependency>() {
-                    request = Some(d.request().to_string());
-                  }
+                if let Some(dep) = dep
+                  && let Some(d) = dep.as_any().downcast_ref::<EntryDependency>()
+                {
+                  request = Some(d.request().to_string());
                 }
                 request
               })

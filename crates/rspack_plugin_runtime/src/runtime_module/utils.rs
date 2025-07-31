@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, get_undo_path, Chunk, ChunkLoading,
-  ChunkUkey, Compilation, PathData, SourceType,
+  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType, chunk_graph_chunk::ChunkId,
+  get_js_chunk_filename_template, get_undo_path,
 };
 use rspack_util::test::{
   HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
@@ -132,10 +132,11 @@ pub fn is_enabled_for_chunk(
 }
 
 pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
-  if let Some(chunk_id) = chunk_id {
-    if str.len() >= 5 && str == chunk_id.as_str() {
-      return "\" + chunkId + \"".to_string();
-    }
+  if let Some(chunk_id) = chunk_id
+    && str.len() >= 5
+    && str == chunk_id.as_str()
+  {
+    return "\" + chunkId + \"".to_string();
   }
   let result = serde_json::to_string(&str).expect("invalid json to_string");
   result[1..result.len() - 1].to_string()
@@ -156,20 +157,19 @@ where
   let mut entries = 0;
 
   for chunk_ukey in chunks.iter() {
-    if let Some(chunk) = chunk_map.get(chunk_ukey) {
-      if let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact) {
-        if let Some(value) = f(chunk) {
-          if value.as_str() == chunk_id.as_str() {
-            use_id = true;
-          } else {
-            result.insert(
-              chunk_id.as_str(),
-              serde_json::to_string(&value).expect("invalid json to_string"),
-            );
-            last_key = Some(chunk_id.as_str());
-            entries += 1;
-          }
-        }
+    if let Some(chunk) = chunk_map.get(chunk_ukey)
+      && let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact)
+      && let Some(value) = f(chunk)
+    {
+      if value.as_str() == chunk_id.as_str() {
+        use_id = true;
+      } else {
+        result.insert(
+          chunk_id.as_str(),
+          serde_json::to_string(&value).expect("invalid json to_string"),
+        );
+        last_key = Some(chunk_id.as_str());
+        entries += 1;
       }
     }
   }

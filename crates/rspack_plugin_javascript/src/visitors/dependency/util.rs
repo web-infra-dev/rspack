@@ -1,7 +1,7 @@
 use rspack_core::{ConstDependency, ErrorSpan};
 use rspack_error::{
-  miette::{diagnostic, Severity},
   DiagnosticKind, TraceableError,
+  miette::{Severity, diagnostic},
 };
 use rspack_regex::RspackRegex;
 use swc_core::{

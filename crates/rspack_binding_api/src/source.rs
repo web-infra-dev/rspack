@@ -74,11 +74,11 @@ impl From<JsCompatSourceOwned> for BoxSource {
 }
 
 pub trait ToJsCompatSource {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource>;
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>>;
 }
 
 impl ToJsCompatSource for RawSource {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>> {
     Ok(JsCompatSource {
       source: if self.is_buffer() {
         Either::B(BufferSlice::from_data(env, self.buffer())?)
@@ -91,7 +91,7 @@ impl ToJsCompatSource for RawSource {
 }
 
 impl ToJsCompatSource for RawBufferSource {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>> {
     Ok(JsCompatSource {
       source: Either::B(BufferSlice::from_data(env, self.buffer())?),
       map: to_webpack_map(self)?,
@@ -100,7 +100,7 @@ impl ToJsCompatSource for RawBufferSource {
 }
 
 impl ToJsCompatSource for RawStringSource {
-  fn to_js_compat_source(&self, _env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, _env: &Env) -> Result<JsCompatSource<'_>> {
     Ok(JsCompatSource {
       source: Either::A(self.source().to_string()),
       map: to_webpack_map(self)?,
@@ -109,7 +109,7 @@ impl ToJsCompatSource for RawStringSource {
 }
 
 impl<T: Source + Hash + PartialEq + Eq + 'static> ToJsCompatSource for ReplaceSource<T> {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>> {
     Ok(JsCompatSource {
       source: Either::B(BufferSlice::from_data(env, self.source().as_bytes())?),
       map: to_webpack_map(self)?,
@@ -118,19 +118,19 @@ impl<T: Source + Hash + PartialEq + Eq + 'static> ToJsCompatSource for ReplaceSo
 }
 
 impl<T: ToJsCompatSource> ToJsCompatSource for CachedSource<T> {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>> {
     self.original().to_js_compat_source(env)
   }
 }
 
 impl ToJsCompatSource for Arc<dyn Source> {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>> {
     (**self).to_js_compat_source(env)
   }
 }
 
 impl ToJsCompatSource for Box<dyn Source> {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>> {
     (**self).to_js_compat_source(env)
   }
 }
@@ -138,7 +138,7 @@ impl ToJsCompatSource for Box<dyn Source> {
 macro_rules! impl_default_to_compat_source {
   ($ident:ident) => {
     impl ToJsCompatSource for $ident {
-      fn to_js_compat_source(&self, _env: &Env) -> Result<JsCompatSource> {
+      fn to_js_compat_source(&self, _env: &Env) -> Result<JsCompatSource<'_>> {
         Ok(JsCompatSource {
           source: Either::A(self.source().to_string()),
           map: to_webpack_map(self)?,
@@ -153,7 +153,7 @@ impl_default_to_compat_source!(ConcatSource);
 impl_default_to_compat_source!(OriginalSource);
 
 impl ToJsCompatSource for dyn Source + '_ {
-  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource<'_>> {
     if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
       raw_source.to_js_compat_source(env)
     } else if let Some(raw_string) = self.as_any().downcast_ref::<RawStringSource>() {

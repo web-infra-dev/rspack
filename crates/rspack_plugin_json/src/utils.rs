@@ -9,7 +9,8 @@ pub fn escape_json(input: &str) -> Cow<'_, str> {
     .match_indices('\u{2028}')
     .chain(input.match_indices('\u{2029}'))
     .collect::<Vec<_>>();
-  let ret = if !vec.is_empty() {
+
+  if !vec.is_empty() {
     // The replace algorithm require our byte index is ordered,
     // which we could not ensure in the two chaining `match_indices`,
     // because `\u2028` and `\u2029` could place in any where in a string.
@@ -34,8 +35,7 @@ pub fn escape_json(input: &str) -> Cow<'_, str> {
     Cow::Owned(ret)
   } else {
     Cow::Borrowed(input)
-  };
-  ret
+  }
 }
 mod test {
   #[test]

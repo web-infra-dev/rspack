@@ -4,7 +4,7 @@ use std::fmt;
 
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
-use rspack_error::{miette, thiserror, Diagnostic, DiagnosticExt};
+use rspack_error::{Diagnostic, DiagnosticExt, miette, thiserror};
 
 pub const TRACING_TARGET: &str = "rspack_incremental";
 

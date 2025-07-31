@@ -14,14 +14,14 @@ use swc_core::{
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
-    local_module_dependency::LocalModuleDependency, CommonJsFullRequireDependency,
-    CommonJsRequireContextDependency, CommonJsRequireDependency, RequireHeaderDependency,
-    RequireResolveContextDependency, RequireResolveDependency, RequireResolveHeaderDependency,
+    CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
+    RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
+    RequireResolveHeaderDependency, local_module_dependency::LocalModuleDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    context_reg_exp, create_context_dependency, create_traceable_error, expr_matcher, expr_name,
-    extract_require_call_info, is_require_call_start, JavascriptParser,
+    JavascriptParser, context_reg_exp, create_context_dependency, create_traceable_error,
+    expr_matcher, expr_name, extract_require_call_info, is_require_call_start,
   },
 };
 

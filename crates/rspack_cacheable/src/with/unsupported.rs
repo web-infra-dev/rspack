@@ -1,7 +1,7 @@
 use rkyv::{
+  Place,
   rancor::Fallible,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Place,
 };
 
 use crate::{DeserializeError, SerializeError};

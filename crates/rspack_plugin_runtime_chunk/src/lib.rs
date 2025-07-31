@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 use std::fmt;
 
 use futures::future::BoxFuture;

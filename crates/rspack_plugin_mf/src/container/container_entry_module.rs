@@ -4,17 +4,17 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  basic_function, block_promise, impl_module_meta_info, impl_source_map_config, module_raw,
-  module_update_hash, returning_function,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
+  Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId,
+  FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, basic_function, block_promise, impl_module_meta_info, impl_source_map_config,
+  module_raw, module_update_hash, returning_function,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, Dependency, DependencyId, FactoryMeta, GroupOptions, LibIdentOptions, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType, StaticExportsDependency, StaticExportsSpec,
+  throw_missing_module_error_block,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
@@ -124,11 +124,11 @@ impl Module for ContainerEntryModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     "container entry".into()
   }
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(self.lib_ident.as_str().into())
   }
 

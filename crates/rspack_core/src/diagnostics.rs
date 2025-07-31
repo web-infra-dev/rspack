@@ -2,10 +2,9 @@ use std::{fmt::Display, path::PathBuf};
 
 use itertools::Itertools;
 use rspack_error::{
-  error, impl_diagnostic_transparent,
+  DiagnosticExt, Error, TraceableError, error, impl_diagnostic_transparent,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
-  DiagnosticExt, Error, TraceableError,
 };
 use rspack_util::ext::AsAny;
 use rustc_hash::FxHashSet;
@@ -125,7 +124,9 @@ impl ModuleParseError {
             format!("\n * {l}")
           })
           .join("");
-        help = format!("{help}\nFile was processed with these loaders:{s}\nYou may need an additional loader to handle the result of these loaders.");
+        help = format!(
+          "{help}\nFile was processed with these loaders:{s}\nYou may need an additional loader to handle the result of these loaders."
+        );
       }
     } else {
       title = "Module parse warning:"

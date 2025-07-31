@@ -1,8 +1,8 @@
 use rkyv::{
+  Archive, Archived, Deserialize, Place, Resolver, Serialize,
   rancor::Fallible,
   ser::{Allocator, Writer},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Archived, Deserialize, Place, Resolver, Serialize,
 };
 use rspack_macros::enable_cacheable as cacheable;
 use rspack_sources::{
@@ -70,17 +70,17 @@ where
     deserializer: &mut D,
   ) -> Result<BoxSource, DeserializeError> {
     let CacheableSource { buffer, map } = field.deserialize(deserializer)?;
-    if let Some(map) = &map {
-      if let Ok(source_map) = SourceMap::from_json(map) {
-        return Ok(
-          SourceMapSource::new(WithoutOriginalOptions {
-            value: String::from_utf8_lossy(&buffer),
-            name: "persistent-cache",
-            source_map,
-          })
-          .boxed(),
-        );
-      }
+    if let Some(map) = &map
+      && let Ok(source_map) = SourceMap::from_json(map)
+    {
+      return Ok(
+        SourceMapSource::new(WithoutOriginalOptions {
+          value: String::from_utf8_lossy(&buffer),
+          name: "persistent-cache",
+          source_map,
+        })
+        .boxed(),
+      );
     }
     Ok(RawBufferSource::from(buffer).boxed())
   }

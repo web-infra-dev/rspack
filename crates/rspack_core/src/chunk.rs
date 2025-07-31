@@ -12,10 +12,10 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, compare_chunk_group, sort_group_by_index, ChunkGraph,
-  ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkIdsArtifact,
-  ChunkUkey, Compilation, EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec,
-  SourceType,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact,
+  ChunkIdsArtifact, ChunkUkey, Compilation, EntryOptions, Filename, ModuleGraph,
+  RenderManifestEntry, RuntimeSpec, SourceType, chunk_graph_chunk::ChunkId, compare_chunk_group,
+  sort_group_by_index,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -291,10 +291,10 @@ impl Chunk {
     }
   }
 
-  pub fn get_sorted_groups_iter(
-    &self,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> impl Iterator<Item = &ChunkGroupUkey> {
+  pub fn get_sorted_groups_iter<'a>(
+    &'a self,
+    chunk_group_by_ukey: &'a ChunkGroupByUkey,
+  ) -> impl Iterator<Item = &'a ChunkGroupUkey> + use<'a> {
     self
       .groups
       .iter()
@@ -316,13 +316,16 @@ impl Chunk {
   }
 
   pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
-    self
-      .get_sorted_groups_iter(chunk_group_by_ukey)
-      .for_each(|group| {
-        let group = chunk_group_by_ukey.expect_get_mut(group);
-        group.insert_chunk(new_chunk.ukey, self.ukey);
-        new_chunk.add_group(group.ukey);
-      });
+    let group_keys: Vec<_> = {
+      let temp_ref = chunk_group_by_ukey as &ChunkGroupByUkey;
+      self.get_sorted_groups_iter(temp_ref).copied().collect()
+    };
+
+    for group_key in group_keys {
+      let group = chunk_group_by_ukey.expect_get_mut(&group_key);
+      group.insert_chunk(new_chunk.ukey, self.ukey);
+      new_chunk.add_group(group.ukey);
+    }
     new_chunk.id_name_hints.extend(self.id_name_hints.clone());
     new_chunk.runtime.extend(&self.runtime);
   }
@@ -736,10 +739,11 @@ impl Chunk {
     let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
     for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       let group = chunk_group_by_ukey.expect_get(group_ukey);
-      if let Some(last_chunk) = group.chunks.last() {
-        if is_self_last_chunk && !last_chunk.eq(&self.ukey) {
-          continue;
-        }
+      if let Some(last_chunk) = group.chunks.last()
+        && is_self_last_chunk
+        && !last_chunk.eq(&self.ukey)
+      {
+        continue;
       }
 
       for child_group_ukey in group

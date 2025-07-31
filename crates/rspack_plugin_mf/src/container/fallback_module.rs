@@ -4,14 +4,14 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{itoa, source_map::SourceMapKind};
 
@@ -36,12 +36,14 @@ pub struct FallbackModule {
 impl FallbackModule {
   pub fn new(requests: Vec<String>) -> Self {
     let identifier = format!("fallback {}", requests.join(" "));
+    let mut requests_len_buffer = itoa::Buffer::new();
+    let requests_len_minus_one = requests_len_buffer.format(requests.len() - 1);
     let lib_ident = format!(
       "webpack/container/fallback/{}/and {} more",
       requests
         .first()
         .expect("should have at one more requests in FallbackModule"),
-      itoa!(requests.len() - 1)
+      requests_len_minus_one
     );
     Self {
       blocks: Default::default(),
@@ -110,11 +112,11 @@ impl Module for FallbackModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     self.readable_identifier.as_str().into()
   }
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(self.lib_ident.as_str().into())
   }
 

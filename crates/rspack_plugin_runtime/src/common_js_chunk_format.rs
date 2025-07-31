@@ -1,17 +1,17 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, CompilerOptions, Plugin,
   PluginContext, RuntimeGlobals,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
-  JsPlugin, RenderSource,
+  JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::render_chunk_runtime_modules,
 };
 use rspack_util::json_stringify;
 

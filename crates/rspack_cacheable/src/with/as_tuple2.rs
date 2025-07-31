@@ -1,8 +1,8 @@
 use rkyv::{
+  Place,
   rancor::Fallible,
   tuple::ArchivedTuple2,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Place,
 };
 
 use crate::with::AsCacheable;

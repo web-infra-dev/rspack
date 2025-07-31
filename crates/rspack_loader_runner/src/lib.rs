@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 #![feature(round_char_boundary)]
 
 mod content;
@@ -10,10 +9,10 @@ mod scheme;
 
 pub use content::{AdditionalData, Content, DescriptionData, ParseMeta, ResourceData};
 pub use context::{LoaderContext, State};
-pub use loader::{parse_resource, DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData};
+pub use loader::{DisplayWithSuffix, Loader, LoaderItem, ResourceParsedData, parse_resource};
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::run_loaders;
-pub use scheme::{get_scheme, Scheme};
+pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";

@@ -5,20 +5,19 @@ use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  get_target,
+  ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  Compilation, CompilationParams, CompilerCompilation, CompilerOptions, ExportInfo, ExportProvided,
+  ExportsInfoGetter, Module, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
-  ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfo, ExportProvided, ExportsInfoGetter, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  UsageState,
+  to_comment_with_nl,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::{
-  plugin::{CssModulesRenderModulePackage, CssModulesRenderSource},
   CssPlugin,
+  plugin::{CssModulesRenderModulePackage, CssModulesRenderSource},
 };
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderModulePackage, JsPlugin, RenderSource,

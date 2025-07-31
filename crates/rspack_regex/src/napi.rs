@@ -1,8 +1,8 @@
 use napi::{
+  Env, JsValue, Unknown, ValueType,
   bindgen_prelude::{
     FromNapiValue, Function, JsObjectValue, ToNapiValue, TypeName, ValidateNapiValue,
   },
-  Env, JsValue, Unknown, ValueType,
 };
 
 use crate::RspackRegex;
@@ -24,7 +24,7 @@ impl FromNapiValue for RspackRegex {
     raw_env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let unknown = Unknown::from_raw_unchecked(raw_env, napi_val);
+    let unknown = unsafe { Unknown::from_raw_unchecked(raw_env, napi_val) };
 
     if unknown.get_type()? == ValueType::Object {
       let object = unknown.coerce_to_object()?;

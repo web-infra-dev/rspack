@@ -1,14 +1,14 @@
 use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
   LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
   PluginContext, RuntimeGlobals, SourceType,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::{error, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -444,16 +444,16 @@ fn accessor_access(base: Option<&str>, accessor: &[String]) -> String {
 }
 
 fn get_auxiliary_comment(t: &str, auxiliary_comment: Option<&LibraryAuxiliaryComment>) -> String {
-  if let Some(auxiliary_comment) = auxiliary_comment {
-    if let Some(value) = match t {
+  if let Some(auxiliary_comment) = auxiliary_comment
+    && let Some(value) = match t {
       "amd" => &auxiliary_comment.amd,
       "commonjs" => &auxiliary_comment.commonjs,
       "commonjs2" => &auxiliary_comment.commonjs2,
       "root" => &auxiliary_comment.root,
       _ => &None,
-    } {
-      return format!("\t// {value} \n");
     }
+  {
+    return format!("\t// {value} \n");
   }
   "".to_string()
 }

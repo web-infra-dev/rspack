@@ -1,10 +1,8 @@
-#![feature(let_chains)]
-
 use std::{
   collections::HashMap,
   hash::Hash,
   path::Path,
-  sync::{mpsc, LazyLock, Mutex},
+  sync::{LazyLock, Mutex, mpsc},
 };
 
 use cow_utils::CowUtils;
@@ -12,15 +10,15 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
+  CompilerCompilation, Plugin, PluginContext,
   diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
-  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin, PluginContext,
 };
-use rspack_error::{miette::IntoDiagnostic, Diagnostic, DiagnosticExt, Result};
+use rspack_error::{Diagnostic, DiagnosticExt, Result, miette::IntoDiagnostic};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -32,8 +30,8 @@ use swc_core::{
   common::comments::{CommentKind, SingleThreadedComments},
 };
 pub use swc_ecma_minifier::option::{
-  terser::{TerserCompressorOptions, TerserEcmaVersion},
   MangleOptions,
+  terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
@@ -370,22 +368,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.test
+    && !condition.try_match(str)
+  {
+    return false;
   } else if !JAVASCRIPT_ASSET_REGEXP.is_match(str) {
     return false;
   }
-  if let Some(condition) = &obj.include {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.include
+    && !condition.try_match(str)
+  {
+    return false;
   }
-  if let Some(condition) = &obj.exclude {
-    if condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.exclude
+    && condition.try_match(str)
+  {
+    return false;
   }
 
   true

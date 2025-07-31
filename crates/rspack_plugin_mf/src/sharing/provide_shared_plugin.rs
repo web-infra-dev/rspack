@@ -147,10 +147,21 @@ impl ProvideSharedPlugin {
           },
         );
       } else {
-        add_diagnostic(Diagnostic::warn(title.to_string(), format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display())));
+        add_diagnostic(Diagnostic::warn(
+          title.to_string(),
+          format!(
+            "{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}",
+            description.path().display()
+          ),
+        ));
       }
     } else {
-      add_diagnostic(Diagnostic::warn(title.to_string(), format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}")));
+      add_diagnostic(Diagnostic::warn(
+        title.to_string(),
+        format!(
+          "{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"
+        ),
+      ));
     }
   }
 }

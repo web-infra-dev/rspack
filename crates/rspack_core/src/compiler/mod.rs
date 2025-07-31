@@ -2,7 +2,7 @@ mod compilation;
 pub mod make;
 mod module_executor;
 mod rebuild;
-use std::sync::{atomic::AtomicU32, Arc};
+use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
@@ -11,7 +11,7 @@ use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, Wr
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
-use rspack_tasks::{within_compiler_context, CompilerContext};
+use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
@@ -22,12 +22,13 @@ pub use self::{
   rebuild::CompilationRecords,
 };
 use crate::{
-  cache::{new_cache, Cache},
+  BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
+  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  cache::{Cache, new_cache},
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
-  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
-  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  trim_dir,
 };
 
 // should be SyncHook, but rspack need call js hook
@@ -378,10 +379,11 @@ impl Compiler {
             new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
           }
 
-          if let Some(old_version) = self.emitted_asset_versions.get(filename) {
-            if old_version.as_str() == asset.info.version && !old_version.is_empty() {
-              return;
-            }
+          if let Some(old_version) = self.emitted_asset_versions.get(filename)
+            && old_version.as_str() == asset.info.version
+            && !old_version.is_empty()
+          {
+            return;
           }
 
           // SAFETY: await immediately and trust caller to poll future entirely
