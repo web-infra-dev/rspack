@@ -3,7 +3,7 @@ import { getRawResolve, type Resolve } from "./config";
 import { Resolver } from "./Resolver";
 
 type ResolveOptionsWithDependencyType = Resolve & {
-	dependencyCategory?: string;
+	dependencyType?: string;
 	resolveToContext?: boolean;
 };
 
@@ -40,12 +40,12 @@ export class ResolverFactory {
 		type: string,
 		resolveOptionsWithDepType: ResolveOptionsWithDependencyType
 	): Resolver {
-		const { dependencyCategory, resolveToContext, ...resolve } =
+		const { dependencyType, resolveToContext, ...resolve } =
 			resolveOptionsWithDepType;
 
 		const binding = this.#binding.get(type, {
 			...getRawResolve(resolve),
-			dependencyCategory,
+			dependencyType,
 			resolveToContext
 		});
 		return new Resolver(binding);

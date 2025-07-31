@@ -233,7 +233,7 @@ pub struct RawResolveOptionsWithDependencyType {
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
 
-  pub dependency_category: Option<String>,
+  pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
 }
@@ -309,7 +309,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         resolve_options: Some(Box::new(resolve_options)),
         resolve_to_context: raw.resolve_to_context.unwrap_or(default_resolve_to_context),
         dependency_category: raw
-          .dependency_category
+          .dependency_type
           .map(|c| DependencyCategory::from(c.as_str()))
           .unwrap_or(DependencyCategory::Unknown),
       })

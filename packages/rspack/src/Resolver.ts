@@ -5,7 +5,7 @@ import type { ResolveCallback } from "./config/adapterRuleUse";
 type ResolveContext = {};
 
 type ResolveOptionsWithDependencyType = Resolve & {
-	dependencyCategory?: string;
+	dependencyType?: string;
 	resolveToContext?: boolean;
 };
 
@@ -80,11 +80,11 @@ export class Resolver {
 			return cacheEntry;
 		}
 
-		const { dependencyCategory, resolveToContext, ...resolve } = options;
+		const { dependencyType, resolveToContext, ...resolve } = options;
 		const rawResolve = getRawResolve(resolve);
 
 		const binding = this.#binding.withOptions({
-			dependencyCategory,
+			dependencyType,
 			resolveToContext,
 			...rawResolve
 		});

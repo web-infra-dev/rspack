@@ -2483,7 +2483,7 @@ export interface RawResolveOptionsWithDependencyType {
   aliasFields?: Array<string>
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
-  dependencyCategory?: string
+  dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
 }
