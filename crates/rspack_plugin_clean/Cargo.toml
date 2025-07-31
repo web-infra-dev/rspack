@@ -1,0 +1,18 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_clean"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.4.10"
+
+[dependencies]
+futures      = { workspace = true }
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_fs    = { workspace = true }
+rspack_hook  = { workspace = true }
+rspack_paths = { workspace = true }
+rspack_regex = { workspace = true }
+rustc-hash   = { workspace = true }
+tokio        = { workspace = true, features = ["fs", "io-util"] }
+tracing      = { workspace = true }

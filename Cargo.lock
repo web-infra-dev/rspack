@@ -3926,6 +3926,7 @@ dependencies = [
  "rspack_plugin_asset",
  "rspack_plugin_banner",
  "rspack_plugin_circular_dependencies",
+ "rspack_plugin_clean",
  "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
@@ -4502,6 +4503,22 @@ dependencies = [
  "rspack_hook",
  "rspack_regex",
  "rustc-hash 2.1.1",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_clean"
+version = "0.4.10"
+dependencies = [
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_hook",
+ "rspack_paths",
+ "rspack_regex",
+ "rustc-hash 2.1.1",
+ "tokio",
  "tracing",
 ]
 

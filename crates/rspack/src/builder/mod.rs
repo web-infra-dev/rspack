@@ -2348,8 +2348,6 @@ impl OutputOptionsBuilder {
   }
 
   /// Before generating the products, whether delete all files in the output directory.
-  ///
-  /// Default set to `CleanOptions::CleanAll(false)`.
   pub fn clean(&mut self, clean: CleanOptions) -> &mut Self {
     self.clean = Some(clean);
     self
@@ -2666,7 +2664,7 @@ impl OutputOptionsBuilder {
       }
     });
 
-    let clean = d!(self.clean.take(), CleanOptions::CleanAll(false));
+    let clean = d!(self.clean.take(), CleanOptions::default());
 
     let public_path = f!(self.public_path.take(), || {
       if tp.is_some_and(|t| t.document() || t.import_scripts()) {

@@ -288,7 +288,7 @@ export type EnabledLibraryTypes = string[];
 /** Whether delete all files in the output directory. */
 export type Clean =
 	| boolean
-	| { keep?: string | RegExp | ((path: string) => boolean) };
+	| { keep?: string | RegExp | ((path: string) => boolean); dry?: boolean };
 
 /** Output JavaScript files as module type. */
 export type OutputModule = boolean;

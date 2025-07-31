@@ -36,7 +36,7 @@ mod build_info;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
-mod clean_options;
+
 mod codegen_result;
 mod compilation;
 mod compiler;
@@ -84,7 +84,6 @@ pub use build_info::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
-pub use clean_options::*;
 pub use codegen_result::*;
 pub use compilation::*;
 pub use context_module_factory::*;

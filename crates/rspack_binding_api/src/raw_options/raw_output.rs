@@ -1,11 +1,11 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  ChunkLoading, CleanOptions, CrossOriginLoading, Environment, OnPolicyCreationFailure,
-  OutputOptions, PathInfo, TrustedTypes, WasmLoading,
+  ChunkLoading, CrossOriginLoading, Environment, OnPolicyCreationFailure, OutputOptions, PathInfo,
+  TrustedTypes, WasmLoading,
 };
 
-use crate::{library::JsLibraryOptions, JsCleanOptions, JsFilename, WithFalse};
+use crate::{library::JsLibraryOptions, JsFilename, RawCleanPluginOptions, WithFalse};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -83,7 +83,7 @@ pub struct RawOutputOptions {
   pub path: String,
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
-  pub clean: Either<bool, JsCleanOptions>,
+  pub clean: RawCleanPluginOptions,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: JsFilename,
   pub asset_module_filename: JsFilename,
@@ -163,15 +163,10 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       Either::B(s) => PathInfo::String(s),
     };
 
-    let clean = match value.clean {
-      Either::A(b) => CleanOptions::CleanAll(b),
-      Either::B(cop) => cop.into(),
-    };
-
     Ok(OutputOptions {
       path: value.path.into(),
       pathinfo,
-      clean,
+      clean: value.clean.into(),
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
       wasm_loading: value.wasm_loading.into(),

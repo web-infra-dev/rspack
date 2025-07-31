@@ -6,6 +6,7 @@ import {
 	type RawAssetParserDataUrl,
 	type RawAssetParserOptions,
 	type RawAssetResourceGeneratorOptions,
+	type RawCleanPluginOptions,
 	type RawCssAutoGeneratorOptions,
 	type RawCssAutoParserOptions,
 	type RawCssGeneratorOptions,
@@ -53,6 +54,7 @@ import type {
 	AssetParserDataUrl,
 	AssetParserOptions,
 	AssetResourceGeneratorOptions,
+	Clean,
 	CssAutoGeneratorOptions,
 	CssGeneratorOptions,
 	CssParserOptions,
@@ -112,10 +114,37 @@ export const getRawOptions = (
 	};
 };
 
+function getRawClean(clean: Clean): boolean | RawCleanPluginOptions {
+	if (typeof clean === "boolean") {
+		return clean;
+	}
+
+	const result: RawCleanPluginOptions = {
+		dry: clean.dry ?? false
+	};
+
+	if (clean.keep) {
+		if (typeof clean.keep === "function") {
+			result.keep = clean.keep;
+		} else if (typeof clean.keep === "string") {
+			// Convert string pattern to function
+			const pattern = clean.keep;
+			result.keep = (path: string) => path.includes(pattern);
+		} else if (clean.keep instanceof RegExp) {
+			// Convert RegExp to function
+			const regex = clean.keep;
+			result.keep = (path: string) => regex.test(path);
+		}
+	}
+
+	return result;
+}
+
 function getRawOutput(output: Output): RawOutputOptions {
 	return {
 		...(output as Required<OutputNormalized>),
-		environment: getRawOutputEnvironment(output.environment)
+		environment: getRawOutputEnvironment(output.environment),
+		clean: output.clean ? getRawClean(output.clean) : false
 	};
 }
 

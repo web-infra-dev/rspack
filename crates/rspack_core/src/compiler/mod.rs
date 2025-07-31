@@ -4,7 +4,6 @@ mod module_executor;
 mod rebuild;
 use std::sync::{atomic::AtomicU32, Arc};
 
-use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -26,8 +25,8 @@ use crate::{
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
-  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
-  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  BoxPlugin, CompilerOptions, ContextModuleFactory, Logger, NormalModuleFactory, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
 };
 
 // should be SyncHook, but rspack need call js hook
@@ -367,8 +366,6 @@ impl Compiler {
 
   #[instrument("emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
-    self.run_clean_options().await?;
-
     self
       .plugin_driver
       .compiler_hooks
@@ -494,79 +491,6 @@ impl Compiler {
         .call(&self.compilation, filename, &info)
         .await?;
     }
-    Ok(())
-  }
-
-  async fn run_clean_options(&mut self) -> Result<()> {
-    let clean_options = &self.options.output.clean;
-
-    // keep all
-    if let CleanOptions::CleanAll(false) = clean_options {
-      return Ok(());
-    }
-
-    if self.emitted_asset_versions.is_empty() {
-      match clean_options {
-        CleanOptions::CleanAll(true) => {
-          self
-            .output_filesystem
-            .remove_dir_all(&self.options.output.path)
-            .await?;
-        }
-        CleanOptions::KeepPath(p) => {
-          let path = self.options.output.path.join(p);
-          trim_dir(
-            &*self.output_filesystem,
-            &self.options.output.path,
-            KeepPattern::Path(&path),
-          )
-          .await?;
-        }
-        CleanOptions::KeepRegex(r) => {
-          let keep_pattern = KeepPattern::Regex(r);
-          trim_dir(
-            &*self.output_filesystem,
-            &self.options.output.path,
-            keep_pattern,
-          )
-          .await?;
-        }
-        CleanOptions::KeepFunc(f) => {
-          let keep_pattern = KeepPattern::Func(f);
-          trim_dir(
-            &*self.output_filesystem,
-            &self.options.output.path,
-            keep_pattern,
-          )
-          .await?;
-        }
-        _ => {}
-      }
-
-      return Ok(());
-    }
-
-    let assets = self.compilation.assets();
-    join_all(
-      self
-        .emitted_asset_versions
-        .iter()
-        .filter_map(|(filename, _version)| {
-          if !assets.contains_key(filename) {
-            let filename = filename.to_owned();
-            Some(async {
-              if !clean_options.keep(&filename).await {
-                let filename = Utf8Path::new(&self.options.output.path).join(filename);
-                let _ = self.output_filesystem.remove_file(&filename).await;
-              }
-            })
-          } else {
-            None
-          }
-        }),
-    )
-    .await;
-
     Ok(())
   }
 

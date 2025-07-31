@@ -23,6 +23,7 @@ import {
 	AsyncWebAssemblyModulesPlugin,
 	BundlerInfoRspackPlugin,
 	ChunkPrefetchPreloadPlugin,
+	CleanPlugin,
 	CommonJsChunkFormatPlugin,
 	CssModulesPlugin,
 	DataUriPlugin,
@@ -130,6 +131,13 @@ export class RspackOptionsApply {
 		}
 
 		new ChunkPrefetchPreloadPlugin().apply(compiler);
+
+		// Apply CleanPlugin when output.clean is configured
+		if (options.output.clean) {
+			new CleanPlugin(
+				options.output.clean === true ? {} : options.output.clean
+			).apply(compiler);
+		}
 
 		if (options.output.pathinfo) {
 			new ModuleInfoHeaderPlugin(options.output.pathinfo === "verbose").apply(

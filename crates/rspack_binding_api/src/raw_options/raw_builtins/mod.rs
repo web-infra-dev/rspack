@@ -2,6 +2,7 @@ mod css_chunking;
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_circular_dependency;
+mod raw_clean;
 mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
@@ -40,6 +41,7 @@ use rspack_ids::{
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
+use rspack_plugin_clean::CleanPlugin;
 use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
@@ -104,6 +106,7 @@ pub use self::{
   css_chunking::CssChunkingPluginOptions,
   raw_banner::RawBannerPluginOptions,
   raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
+  raw_clean::RawCleanPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
@@ -136,6 +139,7 @@ pub enum BuiltinPluginName {
   DefinePlugin,
   ProvidePlugin,
   BannerPlugin,
+  CleanPlugin,
   IgnorePlugin,
   ProgressPlugin,
   EntryPlugin,
@@ -303,6 +307,15 @@ impl<'a> BuiltinPlugin<'a> {
             .map_err(|report: rspack_error::miette::Error| {
               napi::Error::from_reason(report.to_string())
             })?,
+        )
+        .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::CleanPlugin => {
+        let plugin = CleanPlugin::new(
+          downcast_into::<RawCleanPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
         )
         .boxed();
         plugins.push(plugin);

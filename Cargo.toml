@@ -169,6 +169,7 @@ rspack_paths                           = { version = "=0.4.10", path = "crates/r
 rspack_plugin_asset                    = { version = "=0.4.10", path = "crates/rspack_plugin_asset", default-features = false }
 rspack_plugin_banner                   = { version = "=0.4.10", path = "crates/rspack_plugin_banner", default-features = false }
 rspack_plugin_circular_dependencies    = { version = "=0.4.10", path = "crates/rspack_plugin_circular_dependencies", default-features = false }
+rspack_plugin_clean                    = { version = "=0.4.10", path = "crates/rspack_plugin_clean", default-features = false }
 rspack_plugin_context_replacement      = { version = "=0.4.10", path = "crates/rspack_plugin_context_replacement", default-features = false }
 rspack_plugin_copy                     = { version = "=0.4.10", path = "crates/rspack_plugin_copy", default-features = false }
 rspack_plugin_css                      = { version = "=0.4.10", path = "crates/rspack_plugin_css", default-features = false }

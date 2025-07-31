@@ -7,8 +7,7 @@ pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 
-use super::CleanOptions;
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, CleanOptions, Compilation, Filename};
 
 #[derive(Debug)]
 pub enum PathInfo {

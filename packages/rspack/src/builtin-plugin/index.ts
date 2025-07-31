@@ -7,6 +7,7 @@ export * from "./BundlerInfoRspackPlugin";
 export { createNativePlugin, RspackBuiltinPlugin } from "./base";
 export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./CircularDependencyRspackPlugin";
+export * from "./CleanPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./ContextReplacementPlugin";
 export * from "./CopyRspackPlugin";
