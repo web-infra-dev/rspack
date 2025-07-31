@@ -16,8 +16,16 @@ export class ResolverFactory {
 		return resolver_factory.#binding;
 	}
 
-	constructor(pnp: boolean) {
-		this.#binding = new binding.JsResolverFactory(pnp);
+	constructor(
+		pnp: boolean,
+		resolveOptons: Resolve,
+		loaderResolveOptions: Resolve
+	) {
+		this.#binding = new binding.JsResolverFactory(
+			pnp,
+			getRawResolve(resolveOptons),
+			getRawResolve(loaderResolveOptions)
+		);
 	}
 
 	get(

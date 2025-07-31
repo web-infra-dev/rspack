@@ -219,14 +219,13 @@ impl JsCompiler {
           })
         });
 
-      if let Some(fs) = &input_file_system {
-        resolver_factory_reference.input_filesystem = fs.clone();
-      }
-
-      let resolver_factory =
-        (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
-      let loader_resolver_factory = (*resolver_factory_reference)
-        .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
+      resolver_factory_reference.update_options(
+        input_file_system.clone(),
+        compiler_options.resolve.clone(),
+        compiler_options.resolve_loader.clone(),
+      );
+      let resolver_factory = resolver_factory_reference.get_resolver_factory();
+      let loader_resolver_factory = resolver_factory_reference.get_loader_resolver_factory();
 
       let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
         if let Some(fs) = intermediate_filesystem {
