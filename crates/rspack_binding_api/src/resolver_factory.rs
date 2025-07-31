@@ -115,19 +115,22 @@ impl JsResolverFactory {
         let resolver_factory = self.get_resolver_factory();
         let options =
           normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
-        Ok(JsResolver::new(resolver_factory, options))
+        let resolver = resolver_factory.get(options);
+        Ok(JsResolver::new(resolver))
       }
       "loader" => {
         let resolver_factory = self.get_loader_resolver_factory();
         let options =
           normalize_raw_resolve_options_with_dependency_type(raw, false).to_napi_result()?;
-        Ok(JsResolver::new(resolver_factory, options))
+        let resolver = resolver_factory.get(options);
+        Ok(JsResolver::new(resolver))
       }
       "context" => {
         let resolver_factory = self.get_resolver_factory();
         let options =
           normalize_raw_resolve_options_with_dependency_type(raw, true).to_napi_result()?;
-        Ok(JsResolver::new(resolver_factory, options))
+        let resolver = resolver_factory.get(options);
+        Ok(JsResolver::new(resolver))
       }
       _ => Err(napi::Error::from_reason(format!(
         "Invalid resolver type '{type}' specified. Rspack only supports 'normal', 'context', and 'loader' types."

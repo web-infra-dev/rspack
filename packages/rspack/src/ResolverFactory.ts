@@ -1,15 +1,24 @@
 import binding from "@rspack/binding";
 import { getRawResolve, type Resolve } from "./config";
 import { Resolver } from "./Resolver";
+import { cachedCleverMerge } from "./util/cleverMerge";
 
-type ResolveOptionsWithDependencyType = Resolve & {
+export type ResolveOptionsWithDependencyType = Resolve & {
 	dependencyType?: string;
 	resolveToContext?: boolean;
 };
 
+export type WithOptions = {
+	withOptions: (
+		options: ResolveOptionsWithDependencyType
+	) => ResolverWithOptions;
+};
+
+export type ResolverWithOptions = Resolver & WithOptions;
+
 type ResolverCache = {
-	direct: WeakMap<ResolveOptionsWithDependencyType, Resolver>;
-	stringified: Map<string, Resolver>;
+	direct: WeakMap<ResolveOptionsWithDependencyType, ResolverWithOptions>;
+	stringified: Map<string, ResolverWithOptions>;
 };
 
 const EMPTY_RESOLVE_OPTIONS: ResolveOptionsWithDependencyType = {};
@@ -39,7 +48,7 @@ export class ResolverFactory {
 	#create(
 		type: string,
 		resolveOptionsWithDepType: ResolveOptionsWithDependencyType
-	): Resolver {
+	): ResolverWithOptions {
 		const { dependencyType, resolveToContext, ...resolve } =
 			resolveOptionsWithDepType;
 
@@ -48,13 +57,29 @@ export class ResolverFactory {
 			dependencyType,
 			resolveToContext
 		});
-		return new Resolver(binding);
+		const resolver = new Resolver(binding) as ResolverWithOptions;
+		const childCache = new WeakMap<
+			ResolveOptionsWithDependencyType,
+			ResolverWithOptions
+		>();
+		resolver.withOptions = (options: ResolveOptionsWithDependencyType) => {
+			const cacheEntry = childCache.get(options);
+			if (cacheEntry !== undefined) return cacheEntry;
+			const mergedOptions = cachedCleverMerge(
+				resolveOptionsWithDepType,
+				options
+			);
+			const resolver = this.get(type, mergedOptions);
+			childCache.set(options, resolver);
+			return resolver;
+		};
+		return resolver;
 	}
 
 	get(
 		type: string,
 		resolveOptions: ResolveOptionsWithDependencyType = EMPTY_RESOLVE_OPTIONS
-	): Resolver {
+	): ResolverWithOptions {
 		let typedCaches = this.#cache.get(type);
 		if (!typedCaches) {
 			typedCaches = {
