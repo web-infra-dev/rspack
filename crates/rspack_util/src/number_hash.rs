@@ -63,13 +63,21 @@ fn test_number_hash() {
   let test_cases = [
     // range = 100
     ("Hello, world!", 100usize, 16usize),
-    ("You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.", 100usize, 73usize),
+    (
+      "You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.",
+      100usize,
+      73usize,
+    ),
     ("我能吞下玻璃而不伤身体", 100usize, 97usize),
     ("君が笑ってると、僕もうれしくなるんだ。", 100usize, 1usize),
     ("🤣👉🤡", 100usize, 53usize),
     // range = 10 * (1 << 24)
     ("Hello, world!", 167772160usize, 77102068usize),
-    ("You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.", 167772160usize, 42705789usize),
+    (
+      "You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.",
+      167772160usize,
+      42705789usize,
+    ),
     ("我能吞下玻璃而不伤身体", 167772160usize, 63515641usize),
     (
       "君が笑ってると、僕もうれしくなるんだ。",
