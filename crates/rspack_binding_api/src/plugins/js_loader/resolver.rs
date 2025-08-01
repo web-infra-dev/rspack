@@ -1,23 +1,14 @@
-use std::{
-  borrow::Cow,
-  sync::{Arc, LazyLock},
-};
+use std::sync::Arc;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  BUILTIN_LOADER_PREFIX, BoxLoader, Context, Loader, ModuleRuleUseLoader,
-  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
+  BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
+  Resolver, Resource, RunnerContext,
 };
-use rspack_error::{Result, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt, error};
+use rspack_error::Result;
 use rspack_hook::plugin_hook;
-use rspack_loader_lightningcss::{LIGHTNINGCSS_LOADER_IDENTIFIER, config::Config};
-use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
-use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
-use rspack_loader_swc::{SWC_LOADER_IDENTIFIER, SwcLoader};
 use rspack_paths::Utf8Path;
-use rustc_hash::FxHashMap;
-use tokio::sync::RwLock;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
@@ -34,60 +25,8 @@ impl Identifiable for JsLoader {
   }
 }
 
-type SwcLoaderCache<'a> = LazyLock<RwLock<FxHashMap<(Cow<'a, str>, Arc<str>), Arc<SwcLoader>>>>;
-static SWC_LOADER_CACHE: SwcLoaderCache = LazyLock::new(|| RwLock::new(FxHashMap::default()));
-
-pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
-  let options: Arc<str> = options.unwrap_or("{}").into();
-  if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    if let Some(loader) = SWC_LOADER_CACHE
-      .read()
-      .await
-      .get(&(Cow::Borrowed(builtin), options.clone()))
-    {
-      return Ok(loader.clone());
-    }
-
-    let loader = Arc::new(
-      rspack_loader_swc::SwcLoader::new(options.as_ref())
-        .to_rspack_result_with_detail(
-          options.as_ref(),
-          "failed to parse builtin:swc-loader options",
-        )?
-        .with_identifier(builtin.into()),
-    );
-
-    SWC_LOADER_CACHE.write().await.insert(
-      (Cow::Owned(builtin.to_owned()), options.clone()),
-      loader.clone(),
-    );
-    return Ok(loader);
-  }
-
-  if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
-    let config: rspack_loader_lightningcss::config::RawConfig =
-      serde_json::from_str(options.as_ref()).to_rspack_result_with_detail(
-        options.as_ref(),
-        "Could not parse builtin:lightningcss-loader options",
-      )?;
-    // TODO: builtin-loader supports function
-    return Ok(Arc::new(
-      rspack_loader_lightningcss::LightningCssLoader::new(None, Config::try_from(config)?, builtin),
-    ));
-  }
-
-  if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(
-      rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
-    ));
-  }
-  if builtin.starts_with(PREACT_REFRESH_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(
-      rspack_loader_preact_refresh::PreactRefreshLoader::default().with_identifier(builtin.into()),
-    ));
-  }
-
-  // TODO: should be compiled with a different cfg
+// TODO: should be compiled with a different cfg
+pub fn get_builtin_test_loader(builtin: &str) -> Result<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
     return Ok(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
   }
@@ -103,7 +42,7 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
   if builtin.starts_with(rspack_loader_testing::NO_PASS_THROUGH_LOADER_IDENTIFIER) {
     return Ok(Arc::new(rspack_loader_testing::NoPassthroughLoader));
   }
-  unreachable!("Unexpected builtin loader: {builtin}")
+  unreachable!("Unexpected builtin test loader: {builtin}")
 }
 
 #[plugin_hook(NormalModuleFactoryResolveLoader for JsLoaderRspackPlugin,tracing=false)]
@@ -115,7 +54,6 @@ pub(crate) async fn resolve_loader(
 ) -> Result<Option<BoxLoader>> {
   let context = context.as_path();
   let loader_request = &l.loader;
-  let loader_options = l.options.as_deref();
   let mut rest = None;
   let prev = if let Some(index) = loader_request.find('?') {
     rest = Some(&loader_request[index..]);
@@ -124,19 +62,17 @@ pub(crate) async fn resolve_loader(
     Utf8Path::new(loader_request)
   };
 
-  // FIXME: not belong to napi
-  if loader_request.starts_with(BUILTIN_LOADER_PREFIX) {
-    return get_builtin_loader(loader_request, loader_options)
-      .await
-      .map(Some);
+  if loader_request.starts_with("builtin:test") {
+    return Ok(get_builtin_test_loader(loader_request).ok());
   }
 
-  let resolve_result = resolver
+  let Some(resolve_result) = resolver
     .resolve(context.as_std_path(), prev.as_str())
     .await
-    .to_rspack_result_with_message(|e| {
-      format!("Failed to resolve loader: {prev} in {context}, error: {e}")
-    })?;
+    .ok()
+  else {
+    return Ok(None);
+  };
 
   match resolve_result {
     ResolveResult::Resource(resource) => {
@@ -175,8 +111,6 @@ pub(crate) async fn resolve_loader(
       };
       Ok(Some(Arc::new(JsLoader(ident.into()))))
     }
-    ResolveResult::Ignored => Err(error!(
-      "Failed to resolve loader: loader_request={prev}, context={context}"
-    )),
+    ResolveResult::Ignored => Ok(None),
   }
 }
