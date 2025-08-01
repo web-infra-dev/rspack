@@ -26,23 +26,23 @@ impl Identifiable for JsLoader {
 }
 
 // TODO: should be compiled with a different cfg
-pub fn get_builtin_test_loader(builtin: &str) -> Result<BoxLoader> {
+pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
+    return Some(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
   }
   if builtin.starts_with(rspack_loader_testing::SIMPLE_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(rspack_loader_testing::SimpleLoader));
+    return Some(Arc::new(rspack_loader_testing::SimpleLoader));
   }
   if builtin.starts_with(rspack_loader_testing::PITCHING_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(rspack_loader_testing::PitchingLoader));
+    return Some(Arc::new(rspack_loader_testing::PitchingLoader));
   }
   if builtin.starts_with(rspack_loader_testing::PASS_THROUGH_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(rspack_loader_testing::PassthroughLoader));
+    return Some(Arc::new(rspack_loader_testing::PassthroughLoader));
   }
   if builtin.starts_with(rspack_loader_testing::NO_PASS_THROUGH_LOADER_IDENTIFIER) {
-    return Ok(Arc::new(rspack_loader_testing::NoPassthroughLoader));
+    return Some(Arc::new(rspack_loader_testing::NoPassthroughLoader));
   }
-  unreachable!("Unexpected builtin test loader: {builtin}")
+  None
 }
 
 #[plugin_hook(NormalModuleFactoryResolveLoader for JsLoaderRspackPlugin,tracing=false)]
@@ -63,7 +63,7 @@ pub(crate) async fn resolve_loader(
   };
 
   if loader_request.starts_with("builtin:test") {
-    return Ok(get_builtin_test_loader(loader_request).ok());
+    return Ok(get_builtin_test_loader(loader_request));
   }
 
   let Some(resolve_result) = resolver
