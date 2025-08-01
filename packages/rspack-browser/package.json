@@ -7,6 +7,10 @@
   "type": "module",
   "main": "./dist/index.mjs",
   "types": "./dist/browser/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "exports": {
     ".": {
       "types": "./dist/browser/index.d.ts",
