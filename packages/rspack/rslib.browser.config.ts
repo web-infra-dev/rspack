@@ -45,6 +45,14 @@ export default defineConfig({
 					from: path.resolve(bindingDir, "rspack.browser.wasm"),
 					to: "rspack.wasm32-wasi.wasm",
 					noErrorOnMissing: true
+				},
+				// For CI
+				{
+					from: path.resolve(
+						"../../artifacts/bindings-wasm32-wasip1-threads/rspack.browser.wasm"
+					),
+					to: "rspack.wasm32-wasi.wasm",
+					noErrorOnMissing: true
 				}
 			]
 		}
