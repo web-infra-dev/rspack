@@ -4,7 +4,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject,
+  AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
@@ -139,6 +139,20 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     return;
   }
 
+  let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
+  if module_dependency.weak() {
+    // lazy
+    if ref_module.is_none() {
+      return;
+    }
+    // weak
+    if let Some(ref_module) = ref_module
+      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, *ref_module).is_none()
+    {
+      return;
+    }
+  }
+
   let runtime_condition = if module_dependency.weak() {
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
@@ -164,7 +178,6 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     module,
     ..
   } = code_generatable_context;
-  let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
   let import_var = compilation.get_import_var(module_dependency.id());
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
