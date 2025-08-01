@@ -16,14 +16,14 @@ use rspack_core::{
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
-  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
-  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
-  property_name, to_normal_comment,
+  ForwardId, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
+  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
+  get_terminal_binding, property_access, property_name, to_normal_comment,
 };
 use rspack_error::{
   Diagnostic, DiagnosticExt, TraceableError,
@@ -60,6 +60,7 @@ pub struct ESMExportImportedSpecifierDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
+  lazy_make: bool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -90,7 +91,12 @@ impl ESMExportImportedSpecifierDependency {
       attributes,
       source_map,
       factorize_info: Default::default(),
+      lazy_make: false,
     }
+  }
+
+  pub fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -149,12 +155,14 @@ impl ESMExportImportedSpecifierDependency {
   ) -> ExportMode {
     let id = &self.id;
     let name = self.name.clone();
-    let imported_module_identifier = if let Some(imported_module_identifier) =
-      module_graph.module_identifier_by_dependency_id(id)
-    {
-      imported_module_identifier
-    } else {
-      return ExportMode::Missing;
+    let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
+    else {
+      // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
+      return if self.lazy_make {
+        ExportMode::LazyMake
+      } else {
+        ExportMode::Missing
+      };
     };
 
     let parent_module = module_graph
@@ -502,7 +510,7 @@ impl ESMExportImportedSpecifierDependency {
     let module_identifier = module.identifier();
     let import_var = compilation.get_import_var(&self.id);
     match mode {
-      ExportMode::Missing | ExportMode::EmptyStar(_) => {
+      ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         fragments.push(
           NormalInitFragment::new(
             "/* empty/unused ESM star reexport */\n".to_string(),
@@ -1092,7 +1100,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   ) -> Option<ExportsSpec> {
     let mode = self.get_mode(mg, None, module_graph_cache);
     match mode {
-      ExportMode::Missing => None,
+      ExportMode::Missing | ExportMode::LazyMake => None,
       ExportMode::Unused(_) => {
         // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L630-L742
         unreachable!()
@@ -1233,10 +1241,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     ConnectionState::Active(false)
   }
 
-  fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    self.get_ids(mg)
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
@@ -1295,6 +1299,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     let mode = self.get_mode(module_graph, runtime, module_graph_cache);
     match mode {
       ExportMode::Missing
+      | ExportMode::LazyMake
       | ExportMode::Unused(_)
       | ExportMode::EmptyStar(_)
       | ExportMode::ReexportUndefined(_) => create_no_exports_referenced(),
@@ -1354,6 +1359,33 @@ impl Dependency for ESMExportImportedSpecifierDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::Transitive
+  }
+
+  fn forward_id(&self) -> ForwardId {
+    let is_star_export = self.name.is_none();
+    if is_star_export {
+      ForwardId::All
+    } else if let Some(id) = self.ids.first() {
+      ForwardId::Id(id.clone())
+    } else {
+      ForwardId::All
+    }
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    self.lazy_make.then(|| {
+      if let Some(name) = &self.name {
+        LazyUntil::Id(name.clone())
+      } else {
+        LazyUntil::Fallback
+      }
+    })
+  }
+
+  fn unset_lazy(&mut self) -> bool {
+    let changed = self.lazy_make;
+    self.lazy_make = false;
+    changed
   }
 }
 
@@ -1521,7 +1553,10 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       return;
     }
 
-    if !matches!(mode, ExportMode::Unused(_) | ExportMode::EmptyStar(_)) {
+    if !matches!(
+      mode,
+      ExportMode::LazyMake | ExportMode::Unused(_) | ExportMode::EmptyStar(_)
+    ) {
       esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
       dep.add_export_fragments(code_generatable_context, mode);
     }

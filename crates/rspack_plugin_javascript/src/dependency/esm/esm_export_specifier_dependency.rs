@@ -8,7 +8,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
-  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
+  GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
   SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
@@ -113,6 +113,10 @@ impl Dependency for ESMExportSpecifierDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    Some(LazyUntil::Local(self.name.clone()))
   }
 }
 

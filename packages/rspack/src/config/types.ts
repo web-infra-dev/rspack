@@ -2712,16 +2712,15 @@ export type Experiments = {
 	 */
 	useInputFileSystem?: UseInputFileSystem;
 	/**
-	 * Enable inline const feature
-	 * @default false
-	 */
-	inlineConst?: boolean;
-
-	/**
 	 * Enable native watcher
 	 * @default false
 	 */
 	nativeWatcher?: boolean;
+	/**
+	 * Enable inline const feature
+	 * @default false
+	 */
+	inlineConst?: boolean;
 	/**
 	 * Enable inline enum feature
 	 * @default false
@@ -2732,6 +2731,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	typeReexportsPresence?: boolean;
+	/**
+	 * Enable lazy make side effects free barrel file
+	 * @default false
+	 */
+	lazyBarrel?: boolean;
 };
 //#endregion
 

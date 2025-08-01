@@ -265,6 +265,9 @@ const applyExperimentsDefaults = (
 
 	// IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
 	D(experiments, "typeReexportsPresence", false);
+
+	// IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
+	D(experiments, "lazyBarrel", false);
 };
 
 const applybundlerInfoDefaults = (

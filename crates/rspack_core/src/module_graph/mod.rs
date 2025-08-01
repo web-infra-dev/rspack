@@ -657,6 +657,22 @@ impl<'a> ModuleGraph<'a> {
       .as_ref()
   }
 
+  pub fn dependency_by_id_mut(
+    &mut self,
+    dependency_id: &DependencyId,
+  ) -> Option<&mut BoxDependency> {
+    self
+      .loop_partials_mut(
+        |p| p.dependencies.contains_key(dependency_id),
+        |p, search_result| {
+          p.dependencies.insert(*dependency_id, search_result);
+        },
+        |p| p.dependencies.get(dependency_id).cloned(),
+        |p| p.dependencies.get_mut(dependency_id),
+      )?
+      .as_mut()
+  }
+
   /// Uniquely identify a module by its dependency
   pub fn module_graph_module_by_dependency_id(
     &self,

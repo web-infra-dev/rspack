@@ -572,6 +572,7 @@ impl Module for NormalModule {
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
+        factory_meta: self.factory_meta.as_ref(),
         build_info: &mut self.build_info,
         build_meta: &mut self.build_meta,
         parse_meta: loader_result.parse_meta,
