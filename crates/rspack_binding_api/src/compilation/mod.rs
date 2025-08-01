@@ -23,13 +23,22 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;
 
-use super::PathWithInfo;
 use crate::{
-  AssetInfo, COMPILER_REFERENCES, Chunk, ChunkGraph, ChunkGroupWrapper, ChunkWrapper,
-  EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset, JsCompatSource, JsFilename,
-  JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats, JsStatsOptimizationBailout, ModuleObject,
-  RspackError, RspackResultToNapiResultExt, ToJsCompatSource, create_stats_warnings,
-  entry::JsEntryOptions, utils::callbackify,
+  COMPILER_REFERENCES,
+  asset::{AssetInfo, JsAsset},
+  chunk::{Chunk, ChunkWrapper},
+  chunk_graph::ChunkGraph,
+  chunk_group::ChunkGroupWrapper,
+  dependencies::EntryDependency,
+  error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
+  filename::JsFilename,
+  module::{JsAddingRuntimeModule, ModuleObject},
+  module_graph::JsModuleGraph,
+  options::entry::JsEntryOptions,
+  path_data::{JsPathData, PathWithInfo},
+  source::{JsCompatSource, ToJsCompatSource},
+  stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
+  utils::callbackify,
 };
 
 #[napi]

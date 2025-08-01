@@ -8,7 +8,7 @@ use napi::{
 use rspack_core::{Filename, FilenameFn, LocalFilenameFn, PathData, PublicPath};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
-use crate::{AssetInfo, JsPathData};
+use crate::{asset::AssetInfo, path_data::JsPathData};
 
 type FilenameValue =
   Either<String, ThreadsafeFunction<FnArgs<(JsPathData, Option<AssetInfo>)>, String>>;

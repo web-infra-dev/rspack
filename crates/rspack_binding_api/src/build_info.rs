@@ -10,7 +10,7 @@ use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{Module, define_symbols};
+use crate::{define_symbols, module::Module};
 
 define_symbols! {
   BUILD_INFO_ASSETS_SYMBOL => "BUILD_INFO_ASSETS_SYMBOL",

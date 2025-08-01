@@ -9,7 +9,7 @@ use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
-use crate::{ChunkGroupWrapper, compilation::entries::EntryOptionsDTO};
+use crate::{chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO};
 
 #[napi]
 pub struct Chunk {

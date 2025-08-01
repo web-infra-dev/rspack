@@ -8,7 +8,7 @@ use rspack_core::rspack_sources::{
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
-use crate::RspackResultToNapiResultExt;
+use crate::error::RspackResultToNapiResultExt;
 
 /// Zero copy `JsCompatSource` slice shared between Rust and Node.js if buffer is used.
 ///
