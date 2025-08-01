@@ -2,6 +2,7 @@
 process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 const path = require("path");
 const { describeByWalk, createNativeWatcher } = require("@rspack/test-tools");
+const tempDir = path.resolve(__dirname, `./js/temp`);
 
 function v(name) {
 	return path.join(__dirname, `native_watcher ${name}`);
@@ -10,10 +11,6 @@ function v(name) {
 describeByWalk(
 	v("(webpack-test)"),
 	(name, src, dist) => {
-		const tempDir = path.resolve(
-			__dirname,
-			`./js/incremental/webpack-test/temp`
-		);
 		createNativeWatcher(name, src, dist, path.join(tempDir, name));
 	},
 	{
