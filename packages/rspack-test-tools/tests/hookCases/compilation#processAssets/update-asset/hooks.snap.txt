@@ -5,9 +5,9 @@
 ```javascript
 Array [
   Object {
-    "main.aa6afac1fee0ff8f.js": (() => { // webpackBootstrap
+    "main.750309c41670b1a6.js": (() => { // webpackBootstrap
 var __webpack_modules__ = ({
-600: (function (module) {
+402: (function (module) {
 module.exports = "This is hook"
 
 
@@ -42,7 +42,7 @@ return module.exports;
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
-var __webpack_exports__ = __webpack_require__(600);
+var __webpack_exports__ = __webpack_require__(402);
 })()
 ;,
   },
@@ -62,10 +62,10 @@ undefined
 ```javascript
 Array [
   Object {
-    "main.1a883b659dd9ba2b.js": // UPDATED
+    "main.ed2c875d512c4424.js": // UPDATED
 (() => { // webpackBootstrap
 var __webpack_modules__ = ({
-600: (function (module) {
+402: (function (module) {
 module.exports = "This is hook"
 
 
@@ -100,7 +100,7 @@ return module.exports;
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
-var __webpack_exports__ = __webpack_require__(600);
+var __webpack_exports__ = __webpack_require__(402);
 })()
 ;,
   },
