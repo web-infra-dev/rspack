@@ -25,6 +25,7 @@ export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
+	nativeWatcher?: boolean;
 }
 
 export class WatchProcessor<
@@ -249,7 +250,8 @@ export class WatchProcessor<
 	}
 
 	static overrideOptions<T extends ECompilerType>({
-		tempDir
+		tempDir,
+		nativeWatcher
 	}: IWatchProcessorOptions<T>) {
 		return (
 			index: number,
@@ -274,6 +276,12 @@ export class WatchProcessor<
 			options.optimization ??= {};
 			options.experiments ??= {};
 			options.experiments.css ??= true;
+
+			if (nativeWatcher) {
+				(
+					options as TCompilerOptions<ECompilerType.Rspack>
+				).experiments!.nativeWatcher ??= true;
+			}
 
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
@@ -341,7 +349,18 @@ export class WatchStepProcessor<
 			});
 		});
 		// wait compiler to ready watch the files and diretories
-		await new Promise(resolve => setTimeout(resolve, 100));
+
+		// Native Watcher using notify to watch files.
+		// After tests, notify.win will cost many milliseconds to watch.
+		// I don't know why it happens.
+		// So we need to wait a while to ensure the watcher is ready.
+		// If we don't wait, copyDiff will happen before the watcher is ready,
+		// which will cause the watcher to not watch the files and directories.
+		const timeout =
+			this._watchOptions.nativeWatcher && process.platform === "win32"
+				? 400
+				: 100;
+		await new Promise(resolve => setTimeout(resolve, timeout));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
 			this._watchOptions.tempDir,

@@ -35,13 +35,7 @@ const creator = new BasicCaseCreator({
 							runable: true,
 							compilerType: ECompilerType.Rspack,
 							configFiles: ["rspack.config.js", "webpack.config.js"],
-							defaultOptions(index, context) {
-								return {
-									experiments: {
-										nativeWatcher: true // Enable native watcher by default
-									}
-								};
-							}
+							nativeWatcher: true
 						},
 						watchState
 					)
