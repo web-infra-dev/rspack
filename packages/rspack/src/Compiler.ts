@@ -243,7 +243,9 @@ class Compiler {
 		// this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
 		// we need to call pnp defaultValue early here
 		this.resolverFactory = new ResolverFactory(
-			options.resolve.pnp ?? getPnpDefault()
+			options.resolve.pnp ?? getPnpDefault(),
+			options.resolve,
+			options.resolveLoader
 		);
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);

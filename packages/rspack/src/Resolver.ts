@@ -1,13 +1,7 @@
 import type binding from "@rspack/binding";
-import { getRawResolve, type Resolve } from "./config";
 import type { ResolveCallback } from "./config/adapterRuleUse";
 
 type ResolveContext = {};
-
-type ResolveOptionsWithDependencyType = Resolve & {
-	dependencyCategory?: string;
-	resolveToContext?: boolean;
-};
 
 export type ResourceData = binding.JsResourceData;
 
@@ -40,8 +34,6 @@ export interface ResolveRequest {
 
 export class Resolver {
 	#binding: binding.JsResolver;
-	#childCache: WeakMap<Partial<ResolveOptionsWithDependencyType>, Resolver> =
-		new WeakMap();
 
 	constructor(binding: binding.JsResolver) {
 		this.#binding = binding;
@@ -72,24 +64,5 @@ export class Resolver {
 				req
 			);
 		});
-	}
-
-	withOptions(options: ResolveOptionsWithDependencyType): Resolver {
-		const cacheEntry = this.#childCache.get(options);
-		if (cacheEntry !== undefined) {
-			return cacheEntry;
-		}
-
-		const { dependencyCategory, resolveToContext, ...resolve } = options;
-		const rawResolve = getRawResolve(resolve);
-
-		const binding = this.#binding.withOptions({
-			dependencyCategory,
-			resolveToContext,
-			...rawResolve
-		});
-		const resolver = new Resolver(binding);
-		this.#childCache.set(options, resolver);
-		return resolver;
 	}
 }
