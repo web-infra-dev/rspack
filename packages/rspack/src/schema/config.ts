@@ -1408,7 +1408,6 @@ export const getRspackOptionsSchema = memoize(() => {
 			lazyCompilation: z.boolean().or(lazyCompilationOptions),
 			asyncWebAssembly: z.boolean(),
 			outputModule: z.boolean(),
-			topLevelAwait: z.boolean(),
 			css: z.boolean(),
 			layers: z.boolean(),
 			incremental: z

@@ -2657,11 +2657,6 @@ export type Experiments = {
 	 */
 	outputModule?: boolean;
 	/**
-	 * Enable top-level await.
-	 * @default true
-	 */
-	topLevelAwait?: boolean;
-	/**
 	 * Enable CSS support.
 	 *
 	 * @description

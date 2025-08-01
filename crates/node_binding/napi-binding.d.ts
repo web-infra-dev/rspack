@@ -2103,7 +2103,6 @@ export interface RawExperimentCacheOptionsPersistent {
 
 export interface RawExperiments {
   layers: boolean
-  topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture

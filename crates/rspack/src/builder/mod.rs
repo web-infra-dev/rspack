@@ -3645,8 +3645,6 @@ pub struct ExperimentsBuilder {
   layers: Option<bool>,
   /// Incremental passes.
   incremental: Option<IncrementalOptions>,
-  /// Whether to enable top level await.
-  top_level_await: Option<bool>,
   /// Rspack future.
   rspack_future: Option<RspackFuture>,
   /// Cache options.
@@ -3669,7 +3667,6 @@ impl From<Experiments> for ExperimentsBuilder {
     ExperimentsBuilder {
       layers: Some(value.layers),
       incremental: Some(value.incremental),
-      top_level_await: Some(value.top_level_await),
       rspack_future: Some(value.rspack_future),
       cache: Some(value.cache),
       parallel_code_splitting: Some(value.parallel_code_splitting),
@@ -3686,7 +3683,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
     ExperimentsBuilder {
       layers: value.layers.take(),
       incremental: value.incremental.take(),
-      top_level_await: value.top_level_await.take(),
       rspack_future: value.rspack_future.take(),
       cache: value.cache.take(),
       output_module: value.output_module.take(),
@@ -3708,12 +3704,6 @@ impl ExperimentsBuilder {
   /// Set the incremental passes.
   pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
     self.incremental = Some(incremental);
-    self
-  }
-
-  /// Set whether to enable top level await.
-  pub fn top_level_await(&mut self, top_level_await: bool) -> &mut Self {
-    self.top_level_await = Some(top_level_await);
     self
   }
 
@@ -3768,7 +3758,6 @@ impl ExperimentsBuilder {
         passes,
       }
     });
-    let top_level_await = d!(self.top_level_await, true);
     let cache = f!(self.cache.take(), || {
       if development {
         ExperimentCacheOptions::Memory
@@ -3789,7 +3778,6 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       layers,
       incremental,
-      top_level_await,
       rspack_future,
       parallel_code_splitting,
       cache,

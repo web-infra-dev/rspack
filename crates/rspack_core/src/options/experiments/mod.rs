@@ -12,7 +12,6 @@ pub struct Experiments {
   pub layers: bool,
   pub incremental: IncrementalOptions,
   pub parallel_code_splitting: bool,
-  pub top_level_await: bool,
   pub rspack_future: RspackFuture,
   pub cache: ExperimentCacheOptions,
   pub inline_const: bool,

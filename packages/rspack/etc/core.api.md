@@ -2367,7 +2367,6 @@ export type Experiments = {
     lazyCompilation?: boolean | LazyCompilationOptions;
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
-    topLevelAwait?: boolean;
     css?: boolean;
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;

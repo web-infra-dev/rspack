@@ -215,7 +215,6 @@ const applyExperimentsDefaults = (
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);
-	D(experiments, "topLevelAwait", true);
 
 	D(experiments, "buildHttp", undefined);
 	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
