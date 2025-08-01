@@ -190,9 +190,9 @@ jobs:
           pnpm --filter @rspack/binding build:release:wasm
 
           npm install -g binaryen
-          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
+          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm & wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm &
+          wait
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
-          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Diff artifact
