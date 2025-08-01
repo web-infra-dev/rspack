@@ -414,13 +414,15 @@ fn compare_chunks_by_groups(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let a_groups = a
+  let a_groups: Vec<_> = a
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index);
-  let b_groups = b
+    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .collect();
+  let b_groups: Vec<_> = b
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index);
-  a_groups.cmp_by(b_groups, |a, b| a.cmp(&b))
+    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .collect();
+  a_groups.cmp(&b_groups)
 }
 
 pub fn compare_chunks_natural<'a>(

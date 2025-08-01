@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.4.10",
+  "version": "1.4.11",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -22,6 +22,8 @@
     "build:release": "node scripts/build.js --profile release",
     "build:dev:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
     "build:release:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js --profile release-wasi",
+    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 node scripts/build.js",
+    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 node scripts/build.js --profile release-wasi",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },

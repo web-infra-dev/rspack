@@ -1,30 +1,20 @@
-pub mod add;
-pub mod build;
-pub mod factorize;
-pub mod lazy;
-pub mod process_dependencies;
-
 use std::sync::Arc;
 
-use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::MakeArtifact;
 use crate::{
-  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleFactory, ModuleProfile, ResolverFactory,
-  SharedPluginDriver,
+  Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, SharedPluginDriver,
   incremental::Incremental,
-  make::repair::lazy::HasLazyDependencies,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
-  utils::task_loop::{Task, run_task_loop},
 };
 
 #[derive(Debug)]
-pub struct MakeTaskContext {
+pub struct TaskContext {
   pub compiler_id: CompilerId,
   // compilation info
   pub compilation_id: CompilationId,
@@ -43,7 +33,7 @@ pub struct MakeTaskContext {
   pub artifact: MakeArtifact,
 }
 
-impl MakeTaskContext {
+impl TaskContext {
   pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
@@ -100,62 +90,4 @@ impl MakeTaskContext {
   pub fn recovery_from_temp_compilation(&mut self, mut compilation: Compilation) {
     compilation.swap_make_artifact(&mut self.artifact);
   }
-}
-
-pub async fn repair(
-  compilation: &Compilation,
-  mut artifact: MakeArtifact,
-  build_dependencies: HashSet<BuildDependency>,
-) -> Result<MakeArtifact> {
-  let module_graph = artifact.get_module_graph_mut();
-  let mut grouped_deps = HashMap::default();
-  for (dep_id, parent_module_identifier) in build_dependencies {
-    grouped_deps
-      .entry(parent_module_identifier)
-      .or_insert(vec![])
-      .push(dep_id);
-  }
-  let init_tasks = grouped_deps
-    .into_iter()
-    .flat_map(|(parent_module_identifier, dependencies)| {
-      if let Some(original_module_identifier) = parent_module_identifier {
-        return vec![Box::new(process_dependencies::ProcessDependenciesTask {
-          original_module_identifier,
-          dependencies,
-        }) as Box<dyn Task<MakeTaskContext>>];
-      }
-      // entry dependencies
-      dependencies
-        .into_iter()
-        .map(|dep_id| {
-          let dependency = module_graph
-            .dependency_by_id(&dep_id)
-            .expect("dependency not found");
-          let current_profile = compilation
-            .options
-            .profile
-            .then(Box::<ModuleProfile>::default);
-          Box::new(factorize::FactorizeTask {
-            compiler_id: compilation.compiler_id(),
-            compilation_id: compilation.id(),
-            module_factory: compilation.get_dependency_factory(dependency),
-            original_module_identifier: None,
-            original_module_source: None,
-            issuer: None,
-            issuer_layer: None,
-            original_module_context: None,
-            dependencies: vec![dependency.clone()],
-            resolve_options: None,
-            options: compilation.options.clone(),
-            current_profile,
-            resolver_factory: compilation.resolver_factory.clone(),
-          }) as Box<dyn Task<MakeTaskContext>>
-        })
-        .collect::<Vec<_>>()
-    })
-    .collect::<Vec<_>>();
-
-  let mut ctx = MakeTaskContext::new(compilation, artifact);
-  run_task_loop(&mut ctx, init_tasks).await?;
-  Ok(ctx.artifact)
 }

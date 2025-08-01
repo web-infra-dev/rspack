@@ -4,8 +4,10 @@ description       = "rspack macros test"
 edition.workspace = true
 license           = "MIT"
 name              = "rspack_macros_test"
+publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
+
 [dev-dependencies]
 async-trait        = { workspace = true }
 rspack_cacheable   = { workspace = true }

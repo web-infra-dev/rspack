@@ -9,6 +9,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use futures::future::BoxFuture;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -33,12 +34,7 @@ use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
-use super::{
-  CompilerId,
-  make::{MakeArtifact, MakeParam, make_module_graph, update_module_graph},
-  module_executor::ModuleExecutor,
-  rebuild::CompilationRecords,
-};
+use super::{CompilerId, rebuild::CompilationRecords};
 use crate::{
   AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
   CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
@@ -47,12 +43,16 @@ use crate::{
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, Logger,
-  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial,
-  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory,
-  RuntimeGlobals, RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  EntryOptions, EntryRuntime, Entrypoint, Filename, ImportVarMap, Logger, MemoryGCStorage,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
+  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SourceType, Stats,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
+  compilation::make::{
+    ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
+    update_module_graph,
+  },
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
@@ -160,12 +160,12 @@ macro_rules! process_runtime_requirement_hook_macro {
     async fn $name(
       self: $s,
       requirements: &mut RuntimeGlobals,
-      call_hook: impl async Fn(
+      call_hook: impl for<'a> Fn(
         $c,
-        &RuntimeGlobals,
-        &RuntimeGlobals,
-        &mut RuntimeGlobals,
-      ) -> Result<()>,
+        &'a RuntimeGlobals,
+        &'a RuntimeGlobals,
+        &'a mut RuntimeGlobals,
+      ) -> BoxFuture<'a, Result<()>>,
     ) -> Result<()> {
       let mut runtime_requirements_mut = *requirements;
       let mut runtime_requirements;
@@ -283,6 +283,7 @@ pub struct Compilation {
 
   import_var_map: IdentifierDashMap<ImportVarMap>,
 
+  // TODO move to MakeArtifact
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
 
@@ -658,7 +659,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntry(
+      vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -709,7 +710,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntry(
+      vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -932,7 +933,6 @@ impl Compilation {
 
   #[instrument("Compilation:make",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn make(&mut self) -> Result<()> {
-    self.make_artifact.reset_dependencies_incremental_info();
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -941,7 +941,7 @@ impl Compilation {
     }
 
     let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = make_module_graph(self, artifact).await?;
+    self.make_artifact = make(self, artifact).await?;
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -961,7 +961,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       artifact,
-      vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
+      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
 
@@ -1345,26 +1345,21 @@ impl Compilation {
 
   #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
     let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    self.make_artifact = finish_make(self, make_artifact).await?;
 
     let logger = self.get_logger("rspack.Compilation");
 
-    self.in_finish_make.store(false, Ordering::Release);
+    // sync assets to module graph from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await?;
+      self.module_executor = Some(module_executor);
+    }
+
+    // make finished, make artifact should be readonly thereafter.
 
     // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
@@ -1402,13 +1397,6 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
-
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await?;
-      self.module_executor = Some(module_executor);
-    }
 
     logger.time_end(start);
 
@@ -1992,11 +1980,14 @@ impl Compilation {
                   compilation
                     .process_runtime_requirement_hook(&mut runtime_requirements, {
                       let plugin_driver = plugin_driver.clone();
-                      async move |compilation,
+                      move |compilation,
                                   all_runtime_requirements,
                                   runtime_requirements,
                                   runtime_requirements_mut| {
-                        plugin_driver
+                        Box::pin({
+                          let plugin_driver = plugin_driver.clone();
+                          async move {
+                          plugin_driver
                           .compilation_hooks
                           .runtime_requirement_in_module
                           .call(
@@ -2007,8 +1998,9 @@ impl Compilation {
                             runtime_requirements_mut,
                           )
                           .await
-                          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInModule"))?;
-                        Ok(())
+                            .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInModule"))?;
+                          Ok(())
+                        }})
                       }
                     })
                     .await?;
@@ -2072,25 +2064,30 @@ impl Compilation {
       self
         .process_runtime_requirement_hook_mut(&mut set, {
           let plugin_driver = plugin_driver.clone();
-          async move |compilation,
-                      all_runtime_requirements,
-                      runtime_requirements,
-                      runtime_requirements_mut| {
-            plugin_driver
-              .compilation_hooks
-              .runtime_requirement_in_chunk
-              .call(
-                compilation,
-                &chunk_ukey,
+          move |compilation,
                 all_runtime_requirements,
                 runtime_requirements,
-                runtime_requirements_mut,
-              )
-              .await
-              .map_err(|e| {
-                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
-              })?;
-            Ok(())
+                runtime_requirements_mut| {
+            Box::pin({
+              let plugin_driver = plugin_driver.clone();
+              async move {
+                plugin_driver
+                  .compilation_hooks
+                  .runtime_requirement_in_chunk
+                  .call(
+                    compilation,
+                    &chunk_ukey,
+                    all_runtime_requirements,
+                    runtime_requirements,
+                    runtime_requirements_mut,
+                  )
+                  .await
+                  .map_err(|e| {
+                    e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
+                  })?;
+                Ok(())
+              }
+            })
           }
         })
         .await?;
@@ -2123,25 +2120,30 @@ impl Compilation {
       self
         .process_runtime_requirement_hook_mut(&mut set, {
           let plugin_driver = plugin_driver.clone();
-          async move |compilation,
-                      all_runtime_requirements,
-                      runtime_requirements,
-                      runtime_requirements_mut| {
-            plugin_driver
-              .compilation_hooks
-              .runtime_requirement_in_tree
-              .call(
-                compilation,
-                &entry_ukey,
+          move |compilation,
                 all_runtime_requirements,
                 runtime_requirements,
-                runtime_requirements_mut,
-              )
-              .await
-              .map_err(|e| {
-                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
-              })?;
-            Ok(())
+                runtime_requirements_mut| {
+            Box::pin({
+              let plugin_driver = plugin_driver.clone();
+              async move {
+                plugin_driver
+                  .compilation_hooks
+                  .runtime_requirement_in_tree
+                  .call(
+                    compilation,
+                    &entry_ukey,
+                    all_runtime_requirements,
+                    runtime_requirements,
+                    runtime_requirements_mut,
+                  )
+                  .await
+                  .map_err(|e| {
+                    e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
+                  })?;
+                Ok(())
+              }
+            })
           }
         })
         .await?;
@@ -2175,12 +2177,12 @@ impl Compilation {
   process_runtime_requirement_hook_macro!(
     process_runtime_requirement_hook,
     &Compilation,
-    &Compilation
+    &'a Compilation
   );
   process_runtime_requirement_hook_macro!(
     process_runtime_requirement_hook_mut,
     &mut Compilation,
-    &mut Compilation
+    &'a mut Compilation
   );
 
   #[instrument(name = "Compilation:create_hash",target=TRACING_BENCH_TARGET, skip_all)]
@@ -2979,9 +2981,9 @@ impl AssetInfoRelated {
 
 /// level order, the impl is different from webpack, since we can't iterate a set and mutate it at
 /// the same time.
-pub fn assign_depths(
+pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
-  modules: impl Iterator<Item = &ModuleIdentifier>,
+  modules: impl Iterator<Item = &'a ModuleIdentifier>,
   outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720

@@ -1,0 +1,7 @@
+[package]
+description       = "rspack_browser"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_browser"
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true

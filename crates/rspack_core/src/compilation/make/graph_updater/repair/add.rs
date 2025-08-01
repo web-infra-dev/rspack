@@ -1,9 +1,9 @@
 use rspack_error::Result;
 
-use super::{MakeTaskContext, build::BuildTask};
+use super::{TaskContext, build::BuildTask, lazy::ProcessUnlazyDependenciesTask};
 use crate::{
   BoxDependency, Module, ModuleIdentifier, ModuleProfile,
-  make::repair::lazy::{ForwardedIdSet, ProcessUnlazyDependenciesTask},
+  compilation::make::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -18,14 +18,14 @@ pub struct AddTask {
 }
 
 #[async_trait::async_trait]
-impl Task<MakeTaskContext> for AddTask {
+impl Task<TaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Main
   }
-  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let module_identifier = self.module.identifier();
     let module_graph =
-      &mut MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
+      &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     // reuse module for self referenced module
     if self.module.as_self_module().is_some() {

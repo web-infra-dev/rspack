@@ -1,15 +1,11 @@
-#![feature(if_let_guard)]
-#![feature(iter_intersperse)]
-#![feature(box_patterns)]
-#![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(async_trait_bounds)]
-#![feature(ptr_as_ref_unchecked)]
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
+mod compilation;
 mod exports;
 pub use artifacts::*;
 pub use binding::*;
+pub use compilation::make::{ExecuteModuleId, ForwardId, LazyUntil};
 pub use exports::*;
 mod dependencies_block;
 pub mod diagnostics;

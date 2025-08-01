@@ -7,7 +7,9 @@ use std::{fmt::Debug, sync::Arc};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
 use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
-use crate::{Compilation, CompilerOptions, ExperimentCacheOptions, make::MakeArtifact};
+use crate::{
+  Compilation, CompilerOptions, ExperimentCacheOptions, compilation::make::MakeArtifact,
+};
 
 /// Cache trait
 ///

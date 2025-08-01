@@ -1,6 +1,3 @@
-#![feature(iter_intersperse)]
-#![feature(iter_order_by)]
-
 mod deterministic_module_ids_plugin;
 pub use deterministic_module_ids_plugin::*;
 mod named_module_ids_plugin;

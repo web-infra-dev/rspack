@@ -3,6 +3,7 @@ description       = "rspack_cacheable_test"
 edition.workspace = true
 license           = "MIT"
 name              = "rspack_cacheable_test"
+publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 

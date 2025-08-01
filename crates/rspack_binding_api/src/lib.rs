@@ -1,5 +1,4 @@
 #![recursion_limit = "256"]
-#![feature(try_blocks)]
 #![allow(deprecated)]
 
 #[macro_use]
@@ -67,6 +66,7 @@ mod resolver_factory;
 mod resource_data;
 mod rsdoctor;
 mod rslib;
+mod rspack_resolver;
 mod rstest;
 mod runtime;
 mod source;
@@ -111,6 +111,7 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 pub use rslib::*;
+pub use rspack_resolver::*;
 use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
 pub use rstest::*;
 pub use runtime::*;
@@ -434,6 +435,9 @@ const _: () = {
   static __CTOR: unsafe extern "C" fn() = init;
 
   unsafe extern "C" fn init() {
+    #[cfg(feature = "browser")]
+    rspack_browser::panic::install_panic_handler();
+    #[cfg(not(feature = "browser"))]
     panic::install_panic_handler();
     let rt = tokio::runtime::Builder::new_multi_thread()
       .max_blocking_threads(1)

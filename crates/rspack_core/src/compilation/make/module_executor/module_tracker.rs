@@ -3,10 +3,8 @@ use std::collections::{VecDeque, hash_map::Entry};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
 
-use super::context::ExecutorTaskContext;
-use crate::{
-  DependencyId, ModuleIdentifier, ModuleIssuer, make::repair::MakeTaskContext, task_loop::Task,
-};
+use super::{super::graph_updater::repair::context::TaskContext, context::ExecutorTaskContext};
+use crate::{DependencyId, ModuleIdentifier, ModuleIssuer, task_loop::Task};
 
 type BoxTask = Box<dyn Task<ExecutorTaskContext>>;
 
@@ -59,11 +57,7 @@ impl ModuleTracker {
   /// This method removes the module from the tracker and
   /// recursively checks the status of all unfinished parent modules of this module.
   /// Call this method when a module and its submodules are built.
-  fn finish_module(
-    &mut self,
-    context: &mut MakeTaskContext,
-    mid: ModuleIdentifier,
-  ) -> Vec<BoxTask> {
+  fn finish_module(&mut self, context: &mut TaskContext, mid: ModuleIdentifier) -> Vec<BoxTask> {
     let mut queue = VecDeque::from(vec![mid]);
     let mut ready_tasks = vec![];
     let module_graph = context.artifact.get_module_graph();
@@ -115,7 +109,7 @@ impl ModuleTracker {
   /// Call this method when a dependency processing is complete.
   fn finish_dep(
     &mut self,
-    context: &mut MakeTaskContext,
+    context: &mut TaskContext,
     origin_mid: Option<ModuleIdentifier>,
     dep_id: DependencyId,
   ) -> Vec<BoxTask> {
@@ -141,7 +135,7 @@ impl ModuleTracker {
   /// Handle factorize task failed.
   pub fn on_factorize_failed(
     &mut self,
-    context: &mut MakeTaskContext,
+    context: &mut TaskContext,
     origin_mid: Option<ModuleIdentifier>,
     dep_id: DependencyId,
   ) -> Vec<BoxTask> {
@@ -151,7 +145,7 @@ impl ModuleTracker {
   /// Handle add task with resolved module.
   pub fn on_add_resolved_module(
     &mut self,
-    context: &mut MakeTaskContext,
+    context: &mut TaskContext,
     origin_mid: Option<ModuleIdentifier>,
     dep_id: DependencyId,
     mid: ModuleIdentifier,
@@ -171,7 +165,7 @@ impl ModuleTracker {
   /// Handle process dependencies task.
   pub fn on_process_dependencies(
     &mut self,
-    context: &mut MakeTaskContext,
+    context: &mut TaskContext,
     mid: ModuleIdentifier,
     child_count: usize,
   ) -> Vec<BoxTask> {

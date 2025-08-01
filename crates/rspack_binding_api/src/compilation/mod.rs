@@ -74,7 +74,7 @@ impl JsCompilation {
 
     compilation
       .update_asset(&filename, |original_source, mut original_info| {
-        let new_source: napi::Result<BoxSource> = try {
+        let new_source: napi::Result<BoxSource> = (|| -> napi::Result<BoxSource> {
           let new_source = match new_source_or_function {
             Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
@@ -83,8 +83,8 @@ impl JsCompilation {
               js_compat_source.into()
             }
           };
-          new_source
-        };
+          Ok(new_source)
+        })();
         let new_source = new_source.to_rspack_result()?;
 
         let new_info: Option<rspack_core::AssetInfo> = match asset_info_update_or_function {

@@ -5,10 +5,6 @@ mod execute;
 mod module_tracker;
 mod overwrite;
 
-use context::{ExecutorTaskContext, ImportModuleMeta};
-use entry::EntryTask;
-use execute::ExecuteTask;
-pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -20,11 +16,17 @@ use tokio::{
   task,
 };
 
+pub use self::execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use self::{
+  context::{ExecutorTaskContext, ImportModuleMeta},
   ctrl::{CtrlTask, Event},
-  execute::ExecuteModuleResult,
+  entry::EntryTask,
+  execute::{ExecuteModuleResult, ExecuteTask},
 };
-use super::make::{MakeArtifact, MakeParam, repair::MakeTaskContext, update_module_graph};
+use super::{
+  MakeArtifact,
+  graph_updater::{UpdateParam, repair::context::TaskContext, update_module_graph},
+};
 use crate::{
   Compilation, CompilationAsset, Context, DependencyId, PublicPath, task_loop::run_task_loop,
 };
@@ -47,12 +49,14 @@ impl ModuleExecutor {
   pub async fn hook_before_make(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
     let mut params = Vec::with_capacity(5);
-    params.push(MakeParam::CheckNeedBuild);
+    params.push(UpdateParam::CheckNeedBuild);
     if !compilation.modified_files.is_empty() {
-      params.push(MakeParam::ModifiedFiles(compilation.modified_files.clone()));
+      params.push(UpdateParam::ModifiedFiles(
+        compilation.modified_files.clone(),
+      ));
     }
     if !compilation.removed_files.is_empty() {
-      params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
+      params.push(UpdateParam::RemovedFiles(compilation.removed_files.clone()));
     }
     make_artifact.reset_temporary_data();
 
@@ -60,7 +64,7 @@ impl ModuleExecutor {
     make_artifact = update_module_graph(compilation, make_artifact, params).await?;
 
     let mut ctx = ExecutorTaskContext {
-      origin_context: MakeTaskContext::new(compilation, make_artifact),
+      origin_context: TaskContext::new(compilation, make_artifact),
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
       executed_entry_deps: Default::default(),
@@ -108,7 +112,7 @@ impl ModuleExecutor {
     self.make_artifact = update_module_graph(
       compilation,
       std::mem::take(&mut self.make_artifact),
-      vec![MakeParam::BuildEntryAndClean(
+      vec![UpdateParam::BuildEntryAndClean(
         self.entries.values().copied().collect(),
       )],
     )
@@ -130,9 +134,6 @@ impl ModuleExecutor {
     for id in code_generated_modules {
       compilation.code_generated_modules.insert(id);
     }
-
-    // remove useless *_dependencies incremental info
-    self.make_artifact.reset_dependencies_incremental_info();
     Ok(())
   }
 

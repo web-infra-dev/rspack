@@ -1,5 +1,3 @@
-#![feature(array_windows)]
-
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
@@ -270,7 +268,8 @@ impl CircularDependencyRspackPlugin {
     cycle: &[ModuleIdentifier],
     compilation: &Compilation,
   ) -> bool {
-    for [module_id, target_id] in cycle.array_windows::<2>() {
+    for window in cycle.windows(2) {
+      let [module_id, target_id] = [&window[0], &window[1]];
       // If any dependency in the cycle is purely asynchronous, then it does not count as a runtime
       // circular dependency, since execution order will be guaranteed.
       if module_map[module_id].dependencies[target_id].is_asynchronous_only() {
