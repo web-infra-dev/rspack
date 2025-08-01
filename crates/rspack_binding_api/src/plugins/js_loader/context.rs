@@ -3,10 +3,11 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{LoaderContext, Module, RunnerContext};
-use rspack_error::ToStringResultToRspackResultExt;
+use rspack_error::{miette::IntoDiagnostic, ToStringResultToRspackResultExt};
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
+use serde::Serialize;
 
 use crate::{ModuleObject, RspackError};
 
@@ -70,6 +71,7 @@ where
 }
 
 #[napi(string_enum)]
+#[derive(Serialize)]
 pub enum JsLoaderState {
   Pitching,
   Normal,
@@ -182,6 +184,132 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_state: cx.state().into(),
       error: None,
       utf8_hint: None,
+    })
+  }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoaderItemToJs<'a> {
+  pub loader: &'a str,
+  pub r#type: &'a str,
+
+  // data
+  pub data: &'a serde_json::Value,
+
+  // status
+  pub normal_executed: bool,
+  pub pitch_executed: bool,
+
+  pub no_pitch: bool,
+}
+
+impl<'a> From<&'a rspack_loader_runner::LoaderItem<RunnerContext>> for LoaderItemToJs<'a> {
+  fn from(value: &'a rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
+    LoaderItemToJs {
+      loader: value.request().as_str(),
+      r#type: value.r#type(),
+
+      data: value.data(),
+      normal_executed: value.normal_executed(),
+      pitch_executed: value.pitch_executed(),
+
+      no_pitch: false,
+    }
+  }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoaderContextSerializableData<'a> {
+  pub resource: &'a str,
+  pub hot: bool,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub source_map: Option<&'a rspack_core::rspack_sources::SourceMap>,
+  pub cacheable: bool,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+  pub loader_items: Vec<LoaderItemToJs<'a>>,
+  pub loader_index: i32,
+  pub loader_state: JsLoaderState,
+  #[serde(rename = "__internal__parseMeta")]
+  pub parse_meta: HashMap<String, String>,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct LoaderContextToJs {
+  #[napi(js_name = "_module", ts_type = "Module")]
+  pub module: ModuleObject,
+
+  /// Content maybe empty in pitching stage
+  pub content: Either3<String, Buffer, Null>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+
+  pub serialized_data: String,
+}
+
+impl TryFrom<&mut LoaderContext<RunnerContext>> for LoaderContextToJs {
+  type Error = rspack_error::Error;
+
+  fn try_from(
+    cx: &mut rspack_core::LoaderContext<RunnerContext>,
+  ) -> std::result::Result<Self, Self::Error> {
+    let module = unsafe { cx.context.module.as_ref() };
+
+    let serialized_data = LoaderContextSerializableData {
+      resource: &cx.resource_data.resource,
+      hot: cx.hot,
+      source_map: cx.source_map(),
+      cacheable: cx.cacheable,
+      file_dependencies: cx
+        .file_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
+      context_dependencies: cx
+        .context_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
+      missing_dependencies: cx
+        .missing_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
+      build_dependencies: cx
+        .build_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
+
+      loader_items: cx.loader_items.iter().map(Into::into).collect(),
+      loader_index: cx.loader_index,
+      loader_state: cx.state().into(),
+
+      parse_meta: Default::default(),
+    };
+
+    #[allow(clippy::unwrap_used)]
+    Ok(LoaderContextToJs {
+      module: ModuleObject::with_ptr(
+        NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
+        cx.context.compiler_id,
+      ),
+      content: match cx.content() {
+        Some(c) => match c {
+          rspack_core::Content::String(s) => Either3::A(s.to_string()),
+          rspack_core::Content::Buffer(buffer) => Either3::B(buffer.to_vec().into()),
+        },
+        None => Either3::C(Null),
+      },
+      additional_data: cx
+        .additional_data()
+        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
+        .cloned(),
+      serialized_data: serde_json::to_string(&serialized_data).into_diagnostic()?,
     })
   }
 }

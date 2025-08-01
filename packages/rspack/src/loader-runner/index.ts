@@ -16,7 +16,8 @@ import {
 	type JsLoaderContext,
 	type JsLoaderItem,
 	JsLoaderState,
-	JsRspackSeverity
+	JsRspackSeverity,
+	LoaderContextToJs
 } from "@rspack/binding";
 import {
 	OriginalSource,
@@ -260,8 +261,14 @@ function getCurrentLoader(
 
 export async function runLoaders(
 	compiler: Compiler,
-	context: JsLoaderContext
+	contextToJs: LoaderContextToJs
 ): Promise<JsLoaderContext> {
+	const { serializedData, ...rest } = contextToJs;
+	const context = {
+		...rest,
+		...JSON.parse(serializedData)
+	} as JsLoaderContext;
+
 	const loaderState = context.loaderState;
 	const pitch = loaderState === JsLoaderState.Pitching;
 

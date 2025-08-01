@@ -1491,6 +1491,14 @@ export interface KnownAssetInfo {
 
 export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
 
+export interface LoaderContextToJs {
+  _module: Module
+  /** Content maybe empty in pitching stage */
+  content: string | Buffer | null
+  additionalData?: any
+  serializedData: string
+}
+
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
 export declare function minifySync(source: string, options: string): TransformOutput

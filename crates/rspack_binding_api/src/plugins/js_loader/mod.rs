@@ -24,12 +24,14 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 use tokio::sync::{OnceCell, RwLock};
 
-use crate::{RspackResultToNapiResultExt, COMPILER_REFERENCES};
+use crate::{
+  plugins::js_loader::context::LoaderContextToJs, RspackResultToNapiResultExt, COMPILER_REFERENCES,
+};
 
 pub type JsLoaderRunner = ThreadsafeFunction<
-  JsLoaderContext,
+  LoaderContextToJs,
   Promise<JsLoaderContext>,
-  JsLoaderContext,
+  LoaderContextToJs,
   Status,
   false,
   true,
@@ -62,9 +64,11 @@ extern "C" fn napi_js_callback(
         Object::from_napi_value(env, napi_value)?
       };
       let run_loader = compiler_object
-        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
+        .get_named_property::<Function<LoaderContextToJs, Promise<JsLoaderContext>>>(
+          "_runLoader",
+        )?;
       let ts_fn: JsLoaderRunner = run_loader
-        .build_threadsafe_function::<JsLoaderContext>()
+        .build_threadsafe_function::<LoaderContextToJs>()
         .weak::<true>()
         .callee_handled::<false>()
         .max_queue_size::<0>()
