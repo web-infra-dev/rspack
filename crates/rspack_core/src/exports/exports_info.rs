@@ -1,12 +1,12 @@
 use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
-use rspack_collections::{impl_item_ukey, Ukey};
+use rspack_collections::{Ukey, impl_item_ukey};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use super::{ExportInfo, ExportInfoData, ExportProvided, UsageState, NEXT_EXPORTS_INFO_UKEY};
+use super::{ExportInfo, ExportInfoData, ExportProvided, NEXT_EXPORTS_INFO_UKEY, UsageState};
 use crate::{DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
 #[cacheable]
@@ -95,12 +95,11 @@ impl ExportsInfo {
         export_info.set_can_mangle_provide(Some(false));
         changed = true;
       }
-      if let Some(exclude_exports) = &exclude_exports {
-        if let Some(export_name) = export_info.name()
-          && exclude_exports.contains(export_name)
-        {
-          continue;
-        }
+      if let Some(exclude_exports) = &exclude_exports
+        && let Some(export_name) = export_info.name()
+        && exclude_exports.contains(export_name)
+      {
+        continue;
       }
       if !matches!(
         export_info.provided(),

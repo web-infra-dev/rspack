@@ -7,35 +7,35 @@ use swc_core::{
 use super::BasicEvaluatedExpression;
 
 #[inline]
-fn eval_str(str: &Str) -> BasicEvaluatedExpression {
+fn eval_str(str: &Str) -> BasicEvaluatedExpression<'_> {
   let mut res = BasicEvaluatedExpression::with_range(str.span().real_lo(), str.span_hi().0);
   res.set_string(str.value.to_string());
   res
 }
 
 #[inline]
-fn eval_number(num: &swc_core::ecma::ast::Number) -> BasicEvaluatedExpression {
+fn eval_number(num: &swc_core::ecma::ast::Number) -> BasicEvaluatedExpression<'_> {
   let mut res = BasicEvaluatedExpression::with_range(num.span().real_lo(), num.span_hi().0);
   res.set_number(num.value);
   res
 }
 
 #[inline]
-fn eval_bool(bool: &swc_core::ecma::ast::Bool) -> BasicEvaluatedExpression {
+fn eval_bool(bool: &swc_core::ecma::ast::Bool) -> BasicEvaluatedExpression<'_> {
   let mut res = BasicEvaluatedExpression::with_range(bool.span().real_lo(), bool.span_hi().0);
   res.set_bool(bool.value);
   res
 }
 
 #[inline]
-fn eval_bigint(bigint: &swc_core::ecma::ast::BigInt) -> BasicEvaluatedExpression {
+fn eval_bigint(bigint: &swc_core::ecma::ast::BigInt) -> BasicEvaluatedExpression<'_> {
   let mut res = BasicEvaluatedExpression::with_range(bigint.span().real_lo(), bigint.span_hi().0);
   res.set_bigint((*bigint.value).clone());
   res
 }
 
 #[inline]
-pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
+pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression<'_>> {
   match expr {
     Lit::Str(str) => Some(eval_str(str)),
     Lit::Regex(regexp) => {
@@ -57,7 +57,7 @@ pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
 }
 
 #[inline]
-pub fn eval_prop_name(prop_name: &PropName) -> Option<BasicEvaluatedExpression> {
+pub fn eval_prop_name(prop_name: &PropName) -> Option<BasicEvaluatedExpression<'_>> {
   match prop_name {
     PropName::Str(str) => Some(eval_str(str)),
     PropName::Num(num) => Some(eval_number(num)),

@@ -7,8 +7,8 @@
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, module_raw, ChunkUkey, Compilation, DependencyId, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleStage,
+  ChunkUkey, Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  impl_runtime_module, module_raw,
 };
 use rspack_error::Result;
 

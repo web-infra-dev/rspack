@@ -12,6 +12,7 @@ mod as_vec;
 mod inline;
 mod unsupported;
 
+pub use r#as::{As, AsConverter};
 pub use as_cacheable::AsCacheable;
 pub use as_inner::{AsInner, AsInnerConverter};
 pub use as_map::{AsMap, AsMapConverter};
@@ -23,6 +24,5 @@ pub use as_tuple2::AsTuple2;
 pub use as_tuple3::AsTuple3;
 pub use as_vec::{AsVec, AsVecConverter};
 pub use inline::Inline;
-pub use r#as::{As, AsConverter};
 pub use rkyv::with::{Map as AsOption, Skip};
 pub use unsupported::Unsupported;

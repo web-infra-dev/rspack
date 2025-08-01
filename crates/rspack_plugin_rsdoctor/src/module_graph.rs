@@ -1,10 +1,10 @@
-use std::sync::{atomic::AtomicI32, Arc};
+use std::sync::{Arc, atomic::AtomicI32};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  rspack_sources::MapOptions, BoxModule, ChunkGraph, Compilation, Context, DependencyId,
-  DependencyType, Module, ModuleGraph, ModuleIdsArtifact,
+  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
+  ModuleIdsArtifact, rspack_sources::MapOptions,
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_util::fx_hash::FxDashMap;

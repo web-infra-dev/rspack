@@ -3,10 +3,10 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  module_namespace_promise, AsContextDependency, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ImportAttributes, ModuleDependency,
-  ModuleGraphCacheArtifact, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
+  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, TemplateContext,
+  TemplateReplaceSource, module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;
 

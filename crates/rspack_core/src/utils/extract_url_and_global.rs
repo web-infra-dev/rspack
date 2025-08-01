@@ -1,4 +1,4 @@
-use rspack_error::{error_bail, Result};
+use rspack_error::{Result, error_bail};
 
 #[derive(Debug)]
 pub struct UrlAndGlobal<'a> {
@@ -6,7 +6,7 @@ pub struct UrlAndGlobal<'a> {
   pub global: &'a str,
 }
 
-pub fn extract_url_and_global(value: &str) -> Result<UrlAndGlobal> {
+pub fn extract_url_and_global(value: &str) -> Result<UrlAndGlobal<'_>> {
   let index = value.find('@');
   if let Some(index) = index
     && index != 0

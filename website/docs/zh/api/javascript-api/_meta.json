@@ -6,5 +6,6 @@
   "stats-json",
   "logger",
   "cache",
-  "swc"
+  "swc",
+  "resolver"
 ]

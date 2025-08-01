@@ -704,7 +704,10 @@ export type ResolveOptions = {
 	/** Path alias */
 	alias?: ResolveAlias;
 
-	/** Same as node's [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) for the exports and imports fields in package.json. */
+	/**
+	 * Specifies the condition names used to match entry points in the `exports` field of a package.
+	 * @link https://nodejs.org/api/packages.html#packages_exports
+	 */
 	conditionNames?: string[];
 
 	/**
@@ -2709,16 +2712,15 @@ export type Experiments = {
 	 */
 	useInputFileSystem?: UseInputFileSystem;
 	/**
-	 * Enable inline const feature
-	 * @default false
-	 */
-	inlineConst?: boolean;
-
-	/**
 	 * Enable native watcher
 	 * @default false
 	 */
 	nativeWatcher?: boolean;
+	/**
+	 * Enable inline const feature
+	 * @default false
+	 */
+	inlineConst?: boolean;
 	/**
 	 * Enable inline enum feature
 	 * @default false
@@ -2729,6 +2731,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	typeReexportsPresence?: boolean;
+	/**
+	 * Enable lazy make side effects free barrel file
+	 * @default false
+	 */
+	lazyBarrel?: boolean;
 };
 //#endregion
 

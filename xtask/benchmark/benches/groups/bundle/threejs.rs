@@ -1,6 +1,6 @@
 use rspack::builder::CompilerBuilder;
 
-use crate::groups::bundle::util::{basic_compiler_builder, BuilderOptions};
+use crate::groups::bundle::util::{BuilderOptions, basic_compiler_builder};
 
 pub fn compiler() -> CompilerBuilder {
   basic_compiler_builder(BuilderOptions {

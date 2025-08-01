@@ -1,6 +1,6 @@
 use futures::Future;
 use rspack_napi::napi::{
-  bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode, Result,
+  Result, bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode,
 };
 
 use crate::ErrorCode;

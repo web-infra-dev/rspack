@@ -7,7 +7,7 @@ use swc_core::{
 };
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{create_traceable_error, JavascriptParser};
+use crate::visitors::{JavascriptParser, create_traceable_error};
 
 static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
   [

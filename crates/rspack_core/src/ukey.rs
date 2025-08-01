@@ -1,6 +1,6 @@
 use std::sync::atomic::AtomicU32;
 
-use rspack_collections::{impl_item_ukey, Ukey};
+use rspack_collections::{Ukey, impl_item_ukey};
 
 use crate::{Chunk, ChunkGroup};
 

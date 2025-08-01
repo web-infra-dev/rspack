@@ -1,6 +1,6 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
-use rspack_core::{impl_runtime_module, Compilation, RuntimeModule};
+use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
 use rspack_util::test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE};
 
 #[impl_runtime_module]

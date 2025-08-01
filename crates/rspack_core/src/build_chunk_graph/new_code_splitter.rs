@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
   iter::once,
-  sync::{atomic::AtomicU32, Arc},
+  sync::{Arc, atomic::AtomicU32},
 };
 
 use indexmap::IndexSet;
@@ -11,19 +11,19 @@ use rspack_collections::{
   DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
   IdentifierMap, IdentifierSet, Ukey, UkeyMap,
 };
-use rspack_error::{error, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tracing::instrument;
 
-use super::available_modules::{remove_available_modules, AvailableModules};
+use super::available_modules::{AvailableModules, remove_available_modules};
 use crate::{
-  assign_depths,
+  AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock, DependencyLocation,
+  EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  SyntheticDependencyLocation, assign_depths,
   incremental::{IncrementalPasses, Mutation},
-  merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind,
-  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
-  DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
-  RuntimeSpec, SyntheticDependencyLocation,
+  merge_runtime,
 };
 
 type ModuleDeps = HashMap<
@@ -1054,7 +1054,11 @@ impl CodeSplitter {
     ukey
   }
 
-  fn create_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
+  fn create_chunks(
+    &mut self,
+    compilation: &mut Compilation,
+    outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  ) -> Result<()> {
     let mut errors = vec![];
 
     let mut roots = self.analyze_module_graph(compilation)?;
@@ -1132,11 +1136,7 @@ impl CodeSplitter {
         ChunkDesc::Entry(entry_desc) => {
           let entry_modules = &entry_desc.entry_modules;
           let mut assign_depths_map = IdentifierMap::default();
-          assign_depths(
-            &mut assign_depths_map,
-            &compilation.get_module_graph(),
-            entry_modules.iter(),
-          );
+          assign_depths(&mut assign_depths_map, entry_modules.iter(), outgoings);
           Some((idx, assign_depths_map))
         }
         _ => None,
@@ -1159,7 +1159,7 @@ impl CodeSplitter {
 
       match chunk_desc {
         ChunkDesc::Entry(entry_desc) => {
-          let box EntryChunkDesc {
+          let EntryChunkDesc {
             entry,
             entry_modules,
             chunk_modules,
@@ -1171,7 +1171,7 @@ impl CodeSplitter {
             post_order_indices,
             runtime,
             ..
-          } = entry_desc;
+          } = *entry_desc;
 
           let entry_chunk_ukey =
             if reuse && let Some(chunk) = self.cache_chunks.remove(&cache.cache_ukey) {
@@ -1306,10 +1306,10 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
                 let module_graph = compilation.get_module_graph();
                 let dep = module_graph.dependency_by_id(dep_id);
                 let mut request = None;
-                if let Some(dep) = dep {
-                  if let Some(d) = dep.as_any().downcast_ref::<EntryDependency>() {
-                    request = Some(d.request().to_string());
-                  }
+                if let Some(dep) = dep
+                  && let Some(d) = dep.as_any().downcast_ref::<EntryDependency>()
+                {
+                  request = Some(d.request().to_string());
                 }
                 request
               })
@@ -1378,7 +1378,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           }
         }
         ChunkDesc::Chunk(chunk_desc) => {
-          let box NormalChunkDesc {
+          let NormalChunkDesc {
             options,
             chunk_modules,
             pre_order_indices,
@@ -1386,7 +1386,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
             incoming_blocks,
             runtime,
             ..
-          } = chunk_desc;
+          } = *chunk_desc;
 
           let modules = chunk_modules;
 
@@ -1785,6 +1785,23 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     compilation.chunk_graph.add_module(m);
   }
 
+  let outgoings = compilation
+    .get_module_graph()
+    .modules()
+    .keys()
+    .par_bridge()
+    .map(|m| {
+      (
+        *m,
+        compilation
+          .get_module_graph()
+          .get_outgoing_connections(m)
+          .map(|con| *con.module_identifier())
+          .collect::<Vec<_>>(),
+      )
+    })
+    .collect::<IdentifierMap<_>>();
+
   let mutations = compilation
     .incremental
     .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
@@ -1814,7 +1831,7 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
   };
 
   // fill chunks with its modules
-  splitter.create_chunks(compilation)?;
+  splitter.create_chunks(compilation, &outgoings)?;
 
   compilation.code_splitting_cache.new_code_splitter = splitter;
 

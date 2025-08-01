@@ -2,17 +2,17 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
-  JsPlugin, RenderSource,
+  JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::render_chunk_runtime_modules,
 };
 use rspack_util::{itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
@@ -214,15 +214,19 @@ async fn render_chunk(
         let index = loaded_chunks.len();
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
         let other_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
+        let mut index_buffer = itoa::Buffer::new();
+        let index_str = index_buffer.format(index);
         startup_source.push(format!(
           "import * as __webpack_chunk_${}__ from '{}';",
-          itoa!(index),
+          index_str,
           get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
         ));
+        let mut index_buffer2 = itoa::Buffer::new();
+        let index_str2 = index_buffer2.format(index);
         startup_source.push(format!(
           "{}(__webpack_chunk_${}__);",
           RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
-          itoa!(index)
+          index_str2
         ));
       }
 

@@ -7,8 +7,8 @@ use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  loader::LoaderItemList, AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta,
-  ResourceData,
+  AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
+  loader::LoaderItemList,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -62,22 +62,22 @@ pub struct LoaderContext<Context> {
 }
 
 impl<Context> LoaderContext<Context> {
-  pub fn remaining_request(&self) -> LoaderItemList<Context> {
+  pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
     if self.loader_index >= self.loader_items.len() as i32 - 1 {
       return Default::default();
     }
     LoaderItemList(&self.loader_items[self.loader_index as usize + 1..])
   }
 
-  pub fn current_request(&self) -> LoaderItemList<Context> {
+  pub fn current_request(&self) -> LoaderItemList<'_, Context> {
     LoaderItemList(&self.loader_items[self.loader_index as usize..])
   }
 
-  pub fn previous_request(&self) -> LoaderItemList<Context> {
+  pub fn previous_request(&self) -> LoaderItemList<'_, Context> {
     LoaderItemList(&self.loader_items[..self.loader_index as usize])
   }
 
-  pub fn request(&self) -> LoaderItemList<Context> {
+  pub fn request(&self) -> LoaderItemList<'_, Context> {
     LoaderItemList(&self.loader_items[..])
   }
 

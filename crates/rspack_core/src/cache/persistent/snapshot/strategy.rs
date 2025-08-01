@@ -85,20 +85,18 @@ impl StrategyHelper {
     }
 
     let mut res = None;
-    if let Ok(content) = self.fs.read(&path.join("package.json").assert_utf8()).await {
-      if let Ok(mut package_json) =
+    if let Ok(content) = self.fs.read(&path.join("package.json").assert_utf8()).await
+      && let Ok(mut package_json) =
         serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(&content)
-      {
-        if let Some(serde_json::Value::String(version)) = package_json.remove("version") {
-          res = Some(version);
-        }
-      }
+      && let Some(serde_json::Value::String(version)) = package_json.remove("version")
+    {
+      res = Some(version);
     }
 
-    if res.is_none() {
-      if let Some(p) = path.parent() {
-        res = self.package_version_with_cache(p).await;
-      }
+    if res.is_none()
+      && let Some(p) = path.parent()
+    {
+      res = self.package_version_with_cache(p).await;
     }
 
     self.package_version_cache.insert(path.into(), res.clone());

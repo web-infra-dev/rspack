@@ -2,7 +2,7 @@ use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency
 use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{expr_matcher, JavascriptParser};
+use crate::visitors::{JavascriptParser, expr_matcher};
 
 pub struct CommonJsPlugin;
 

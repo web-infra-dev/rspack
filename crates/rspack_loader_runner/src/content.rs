@@ -14,7 +14,7 @@ use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 
-use crate::{get_scheme, Scheme};
+use crate::{Scheme, get_scheme};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Content {
@@ -100,12 +100,19 @@ impl Debug for Content {
       Self::Buffer(_) => "Buffer",
     };
 
-    content
-      .field(
-        ty,
-        &s[0..usize::min(s.len(), s.ceil_char_boundary(20))].to_owned(),
-      )
-      .finish()
+    // Safe string truncation to approximately 20 characters
+    let truncated = if s.len() <= 20 {
+      s.as_str()
+    } else {
+      // Find the last character boundary at or before position 20
+      let mut end = 20;
+      while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+      }
+      &s[0..end]
+    };
+
+    content.field(ty, &truncated.to_owned()).finish()
   }
 }
 

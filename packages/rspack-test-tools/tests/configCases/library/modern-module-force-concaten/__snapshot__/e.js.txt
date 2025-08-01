@@ -1,5 +1,5 @@
 var __webpack_modules__ = ({
-997: (function (module) {
+976: (function (module) {
 module.exports = 'bar'
 
 }),
@@ -62,7 +62,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 const foo = 'foo'
 
 // EXTERNAL MODULE: ./e/bar.cjs
-var bar = __webpack_require__(997);
+var bar = __webpack_require__(976);
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 ;// CONCATENATED MODULE: ./e/index.js
 

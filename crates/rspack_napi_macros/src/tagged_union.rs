@@ -31,7 +31,7 @@ pub fn expand(tokens: TokenStream) -> TokenStream {
           let field = match field.unnamed.iter().next() {
             Some(f) => f,
             None => {
-              return syn::Error::new(ident.span(), "Should have one field").into_compile_error()
+              return syn::Error::new(ident.span(), "Should have one field").into_compile_error();
             }
           };
           let ty = &field.ty;

@@ -1,16 +1,11 @@
-#![feature(let_chains)]
-#![feature(if_let_guard)]
-#![feature(iter_intersperse)]
-#![feature(box_patterns)]
-#![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(async_trait_bounds)]
-#![feature(ptr_as_ref_unchecked)]
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
+mod compilation;
 mod exports;
 pub use artifacts::*;
 pub use binding::*;
+pub use compilation::make::{ExecuteModuleId, ForwardId, LazyUntil};
 pub use exports::*;
 mod dependencies_block;
 pub mod diagnostics;
@@ -102,8 +97,8 @@ pub mod reserved_names;
 
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
-  get_scheme, parse_resource, AdditionalData, ParseMeta, ResourceData, ResourceParsedData, Scheme,
-  BUILTIN_LOADER_PREFIX,
+  AdditionalData, BUILTIN_LOADER_PREFIX, ParseMeta, ResourceData, ResourceParsedData, Scheme,
+  get_scheme, parse_resource,
 };
 pub use rspack_macros::{impl_runtime_module, impl_source_map_config};
 pub use rspack_sources;
@@ -356,7 +351,10 @@ impl ChunkByUkey {
     self.inner.remove(ukey)
   }
 
-  pub fn entry(&mut self, ukey: ChunkUkey) -> std::collections::hash_map::Entry<ChunkUkey, Chunk> {
+  pub fn entry(
+    &mut self,
+    ukey: ChunkUkey,
+  ) -> std::collections::hash_map::Entry<'_, ChunkUkey, Chunk> {
     self.inner.entry(ukey)
   }
 
@@ -437,7 +435,7 @@ impl ChunkGroupByUkey {
   pub fn entry(
     &mut self,
     ukey: ChunkGroupUkey,
-  ) -> std::collections::hash_map::Entry<ChunkGroupUkey, ChunkGroup> {
+  ) -> std::collections::hash_map::Entry<'_, ChunkGroupUkey, ChunkGroup> {
     self.inner.entry(ukey)
   }
 

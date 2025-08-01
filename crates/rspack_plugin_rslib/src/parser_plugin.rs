@@ -1,4 +1,4 @@
-use rspack_plugin_javascript::{visitors::JavascriptParser, JavascriptParserPlugin};
+use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 
 #[derive(PartialEq, Debug, Default)]
 pub struct RslibParserPlugin {
@@ -21,14 +21,15 @@ impl JavascriptParserPlugin for RslibParserPlugin {
     _name: &str,
   ) -> Option<bool> {
     // Intercept `require.cache` of APIPlugin.
-    if self.intercept_api_plugin {
-      if let swc_core::ecma::ast::Expr::Ident(ident) = &*member_expr.obj {
-        let prop = &member_expr.prop;
-        if let swc_core::ecma::ast::MemberProp::Ident(id) = prop {
-          if ident.sym == "require" && id.sym == "cache" {
-            return Some(true);
-          }
-        }
+    if self.intercept_api_plugin
+      && let swc_core::ecma::ast::Expr::Ident(ident) = &*member_expr.obj
+    {
+      let prop = &member_expr.prop;
+      if let swc_core::ecma::ast::MemberProp::Ident(id) = prop
+        && ident.sym == "require"
+        && id.sym == "cache"
+      {
+        return Some(true);
       }
     }
 

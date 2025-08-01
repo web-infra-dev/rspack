@@ -8,9 +8,9 @@ use std::{
 };
 
 use napi::{
-  bindgen_prelude::{check_status, FromNapiValue, ToNapiValue},
-  sys::{self, napi_call_threadsafe_function, napi_env, napi_ref, napi_threadsafe_function__},
   Env, Result,
+  bindgen_prelude::{FromNapiValue, ToNapiValue, check_status},
+  sys::{self, napi_call_threadsafe_function, napi_env, napi_ref, napi_threadsafe_function__},
 };
 
 use crate::{CLEANUP_ENV_HOOK, GLOBAL_CLEANUP_FLAG};

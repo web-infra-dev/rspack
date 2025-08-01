@@ -61,6 +61,10 @@ export declare namespace RsdoctorPluginData {
 export type RsdoctorPluginOptions = {
 	moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
 	chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+	sourceMapFeatures?: {
+		module?: boolean;
+		cheap?: boolean;
+	};
 };
 
 const RsdoctorPluginImpl = create(
@@ -75,7 +79,8 @@ const RsdoctorPluginImpl = create(
 		validate(c, getRsdoctorPluginSchema);
 		return {
 			moduleGraphFeatures: c.moduleGraphFeatures ?? true,
-			chunkGraphFeatures: c.chunkGraphFeatures ?? true
+			chunkGraphFeatures: c.chunkGraphFeatures ?? true,
+			sourceMapFeatures: c.sourceMapFeatures
 		};
 	}
 );

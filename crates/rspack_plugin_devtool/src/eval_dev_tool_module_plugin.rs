@@ -4,10 +4,10 @@ use cow_utils::CowUtils;
 use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Filename, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals,
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -18,7 +18,7 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
-  module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplate, ModuleOrSource,
+  ModuleFilenameTemplate, ModuleOrSource, module_filename_helpers::ModuleFilenameHelpers,
 };
 
 #[derive(Clone, Debug)]
@@ -252,7 +252,7 @@ const fn is_unescape(c: u8) -> bool {
 }
 
 // https://tc39.es/ecma262/#sec-encode
-fn encode_uri(string: &str) -> Cow<str> {
+fn encode_uri(string: &str) -> Cow<'_, str> {
   use std::fmt::Write;
 
   // Let R be the empty String.

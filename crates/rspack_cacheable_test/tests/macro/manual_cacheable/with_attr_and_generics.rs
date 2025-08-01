@@ -26,9 +26,9 @@ impl<T: Default> AsRefStrConverter for Person<T> {
 #[allow(non_upper_case_globals)]
 const _: () = {
   use rkyv::{
+    Archive, Deserialize, Place, Serialize,
     rancor::Fallible,
     with::{ArchiveWith, DeserializeWith, SerializeWith},
-    Archive, Deserialize, Place, Serialize,
   };
   use rspack_cacheable::__private::rkyv;
   impl<T: Default> Archive for Person<T> {

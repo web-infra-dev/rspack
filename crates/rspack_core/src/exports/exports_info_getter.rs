@@ -356,7 +356,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   pub fn get_export_info_without_mut_module_graph(
     &self,
     name: &Atom,
-  ) -> MaybeDynamicTargetExportInfo {
+  ) -> MaybeDynamicTargetExportInfo<'_> {
     self.get_export_info_without_mut_module_graph_impl(&self.entry, name)
   }
 
@@ -364,7 +364,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     &self,
     exports_info: &ExportsInfo,
     name: &Atom,
-  ) -> MaybeDynamicTargetExportInfo {
+  ) -> MaybeDynamicTargetExportInfo<'_> {
     if let Some(export_info) = self.get_named_export_in_exports_info(exports_info, name) {
       return MaybeDynamicTargetExportInfo::Static(export_info);
     }
@@ -577,13 +577,13 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::Default => {}
         PrefetchExportsInfoMode::Nested(names) => {
           for (key, export_info) in exports_info.exports().iter() {
-            if names.first().is_some_and(|name| name == key) {
-              if let Some(nested_exports_info) = export_info.exports_info() {
-                nested_exports.push((
-                  nested_exports_info,
-                  PrefetchExportsInfoMode::Nested(&names[1..]),
-                ));
-              }
+            if names.first().is_some_and(|name| name == key)
+              && let Some(nested_exports_info) = export_info.exports_info()
+            {
+              nested_exports.push((
+                nested_exports_info,
+                PrefetchExportsInfoMode::Nested(&names[1..]),
+              ));
             }
           }
         }

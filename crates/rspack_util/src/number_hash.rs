@@ -5,34 +5,45 @@
 
 // Port from https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/util/numberHash.js
 
-const SAFE_LIMIT: usize = 0x80000000usize;
-const SAFE_PART: usize = SAFE_LIMIT - 1;
-const COUNT: usize = 4;
+const FNV_64_THRESHOLD: usize = 1 << 24;
 
-pub fn get_number_hash(str: &str, range: usize) -> usize {
-  let mut arr = [0u64; COUNT];
-  let primes = [3u64, 7u64, 17u64, 19u64];
+const FNV_OFFSET_32: u32 = 2166136261;
 
-  for i in 0..str.len() {
-    let c = str.as_bytes()[i] as u64;
-    arr[0] = (arr[0] + c * primes[0] + arr[3]) & SAFE_PART as u64;
-    arr[1] = (arr[1] + c * primes[1] + arr[0]) & SAFE_PART as u64;
-    arr[2] = (arr[2] + c * primes[2] + arr[1]) & SAFE_PART as u64;
-    arr[3] = (arr[3] + c * primes[3] + arr[2]) & SAFE_PART as u64;
+const FNV_PRIME_32: u32 = 16777619;
 
-    arr[0] ^= arr[(arr[0] % COUNT as u64) as usize] >> 1;
-    arr[1] ^= arr[(arr[1] % COUNT as u64) as usize] >> 1;
-    arr[2] ^= arr[(arr[2] % COUNT as u64) as usize] >> 1;
-    arr[3] ^= arr[(arr[3] % COUNT as u64) as usize] >> 1;
+const MASK_31: u32 = 0x7fffffff;
+
+const FNV_OFFSET_64: u64 = 0xCBF29CE484222325;
+
+const FNV_PRIME_64: u64 = 0x100000001B3;
+
+fn fnv1a32(s: &str) -> u32 {
+  let mut hash = FNV_OFFSET_32;
+
+  for code_unit in s.encode_utf16() {
+    hash ^= code_unit as u32;
+    hash = hash.wrapping_mul(FNV_PRIME_32);
   }
 
-  if range <= SAFE_PART {
-    ((arr[0] + arr[1] + arr[2] + arr[3]) % range as u64) as usize
+  hash & MASK_31
+}
+
+fn fnv1a64(s: &str) -> u64 {
+  let mut hash = FNV_OFFSET_64;
+
+  for code_unit in s.encode_utf16() {
+    hash ^= code_unit as u64;
+    hash = hash.wrapping_mul(FNV_PRIME_64);
+  }
+
+  hash
+}
+
+pub fn get_number_hash(s: &str, range: usize) -> usize {
+  if range < FNV_64_THRESHOLD {
+    (fnv1a32(s) as usize) % range
   } else {
-    let range_ext = range / SAFE_LIMIT;
-    let sum1 = (arr[0] + arr[2]) & SAFE_PART as u64;
-    let sum2 = (arr[0] + arr[2]) % range_ext as u64;
-    ((sum2 * SAFE_LIMIT as u64 + sum1) % range as u64) as usize
+    (fnv1a64(s) % (range as u64)) as usize
   }
 }
 
@@ -47,5 +58,36 @@ fn test_number_hash() {
       }
     }
     assert_eq!(set.len(), (*n - 1));
+  }
+
+  let test_cases = [
+    // range = 100
+    ("Hello, world!", 100usize, 16usize),
+    (
+      "You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.",
+      100usize,
+      73usize,
+    ),
+    ("我能吞下玻璃而不伤身体", 100usize, 97usize),
+    ("君が笑ってると、僕もうれしくなるんだ。", 100usize, 1usize),
+    ("🤣👉🤡", 100usize, 53usize),
+    // range = 10 * (1 << 24)
+    ("Hello, world!", 167772160usize, 77102068usize),
+    (
+      "You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.",
+      167772160usize,
+      42705789usize,
+    ),
+    ("我能吞下玻璃而不伤身体", 167772160usize, 63515641usize),
+    (
+      "君が笑ってると、僕もうれしくなるんだ。",
+      167772160usize,
+      111837237usize,
+    ),
+    ("🤣👉🤡", 167772160usize, 93616649usize),
+  ];
+
+  for (s, range, hash) in test_cases.iter() {
+    assert_eq!(get_number_hash(s, *range), *hash);
   }
 }

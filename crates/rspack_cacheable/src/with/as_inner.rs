@@ -1,10 +1,10 @@
 use rkyv::{
+  Place,
   munge::munge,
   option::ArchivedOption,
   rancor::Fallible,
   traits::NoUndef,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Place,
 };
 
 use crate::with::AsCacheable;

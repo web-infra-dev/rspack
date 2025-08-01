@@ -14,7 +14,7 @@ use rustc_hash::FxHashMap as HashMap;
 use strategy::{ScopeUpdate, SplitPackStrategy};
 use tokio::sync::oneshot::Receiver;
 
-use crate::{error::Result, FileSystem, ItemKey, ItemPairs, ItemValue, Storage};
+use crate::{FileSystem, ItemKey, ItemPairs, ItemValue, Storage, error::Result};
 
 pub type ScopeUpdates = HashMap<&'static str, ScopeUpdate>;
 #[derive(Debug)]

@@ -5,12 +5,11 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  build_chunk_graph, fast_set,
+  Compilation, Compiler, Experiments, Optimization, build_chunk_graph, fast_set,
   incremental::{Incremental, IncrementalOptions},
-  Compilation, Compiler, Experiments, Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-use rspack_tasks::{within_compiler_context_for_testing_sync, CURRENT_COMPILER_CONTEXT};
+use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
 use tokio::runtime::Builder;
 
 static NUM_MODULES: usize = 10000;

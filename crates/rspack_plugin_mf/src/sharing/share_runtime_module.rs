@@ -2,12 +2,12 @@ use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType, impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{utils::json_stringify, ConsumeVersion};
+use crate::{ConsumeVersion, utils::json_stringify};
 
 #[impl_runtime_module]
 #[derive(Debug)]

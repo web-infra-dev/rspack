@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use notify::{event::ModifyKind, Event, EventKind, RecommendedWatcher, Watcher};
+use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use crate::watcher::{trigger, FsEventKind, WatchPattern};
+use crate::watcher::{FsEventKind, WatchPattern, trigger};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.

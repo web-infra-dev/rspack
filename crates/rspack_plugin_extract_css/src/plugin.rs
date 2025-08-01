@@ -9,23 +9,22 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
-  get_undo_path,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
-    WithoutOriginalOptions,
-  },
   ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
   Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, SourceType, get_undo_path,
+  rspack_sources::{
+    BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    WithoutOriginalOptions,
+  },
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
+  BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
 use rustc_hash::FxHashMap;

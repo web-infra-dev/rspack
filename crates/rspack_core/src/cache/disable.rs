@@ -1,5 +1,5 @@
 use super::Cache;
-use crate::make::MakeArtifact;
+use crate::compilation::make::MakeArtifact;
 
 /// Disable cache implementation
 ///

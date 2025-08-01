@@ -1,9 +1,9 @@
 use rkyv::{
+  Place,
   rancor::{Fallible, Source},
   ser::Writer,
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Place,
 };
 use smol_str::SmolStr;
 

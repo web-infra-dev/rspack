@@ -5,12 +5,14 @@ use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{
     BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl,
-    DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr,
-    ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function, Ident, IfStmt, LabeledStmt,
-    NamedExport, ObjectLit, ReturnStmt, Stmt, SwitchStmt, ThrowStmt, TryStmt, UsingDecl, VarDecl,
-    WhileStmt, WithStmt,
+    DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
+    ExportSpecifier, Expr, ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function,
+    Ident, IfStmt, LabeledStmt, NamedExport, ObjectLit, ReturnStmt, Stmt, SwitchStmt, ThrowStmt,
+    TryStmt, UsingDecl, VarDecl, WhileStmt, WithStmt,
   },
 };
+
+use crate::JS_DEFAULT_KEYWORD;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ClassDeclOrExpr<'ast> {
@@ -158,6 +160,23 @@ impl ExportNamedDeclaration<'_> {
       ExportNamedDeclaration::Specifiers(e) => e.with.as_deref(),
     }
   }
+
+  pub fn named_export_specifiers(
+    named: &NamedExport,
+  ) -> impl Iterator<Item = (Atom, Atom, Span)> + use<'_> {
+    named.specifiers.iter().map(|spec| {
+      match spec {
+        ExportSpecifier::Namespace(_) => unreachable!("should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"),
+        ExportSpecifier::Default(s) => {
+          (JS_DEFAULT_KEYWORD.clone(), s.exported.sym.clone(), s.exported.span())
+        },
+        ExportSpecifier::Named(n) => {
+          let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
+          (n.orig.atom().clone(), exported_name.atom().clone(), exported_name.span())
+        },
+      }
+    })
+  }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -260,6 +279,10 @@ impl ExportImport<'_> {
       ExportImport::All(e) => e.get_with_obj(),
       ExportImport::Named(e) => e.get_with_obj(),
     }
+  }
+
+  pub fn is_star_export(&self) -> bool {
+    matches!(self, ExportImport::All(ExportAllDeclaration::All(_)))
   }
 }
 

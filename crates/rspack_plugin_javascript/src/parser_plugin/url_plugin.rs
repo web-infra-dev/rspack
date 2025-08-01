@@ -30,8 +30,9 @@ pub fn get_url_request(
     }) = args.first()
     && let Some(ExprOrSpread {
       spread: None,
-      expr: box Expr::Member(arg2),
+      expr: arg2_expr,
     }) = args.get(1)
+    && let Expr::Member(arg2) = &**arg2_expr
     && is_meta_url(parser, arg2)
   {
     return parser
@@ -80,8 +81,9 @@ impl JavascriptParserPlugin for URLPlugin {
       let arg2 = args.get(1)?;
       if let ExprOrSpread {
         spread: None,
-        expr: box Expr::Member(arg2),
+        expr: arg2_expr,
       } = arg2
+        && let Expr::Member(arg2) = &**arg2_expr
         && !is_meta_url(parser, arg2)
       {
         return None;

@@ -5,16 +5,17 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_plugin_html::{
-  tag::{HtmlPluginAttribute, HtmlPluginTag},
   AlterAssetTagGroupsData, BeforeAssetTagGenerationData, HtmlPluginAlterAssetTagGroups,
   HtmlPluginBeforeAssetTagGeneration,
+  tag::{HtmlPluginAttribute, HtmlPluginTag},
 };
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 
 use crate::{
-  config::ArcFs, integrity::compute_integrity, util::normalize_path, SRICompilationContext,
-  SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  SRICompilationContext, SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin,
+  SubresourceIntegrityPluginInner, config::ArcFs, integrity::compute_integrity,
+  util::normalize_path,
 };
 
 async fn handle_html_plugin_assets(

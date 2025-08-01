@@ -3,10 +3,10 @@ mod raw_incremental;
 mod raw_rspack_future;
 
 use napi_derive::napi;
-use raw_cache::{normalize_raw_experiment_cache_options, RawExperimentCacheOptions};
+use raw_cache::{RawExperimentCacheOptions, normalize_raw_experiment_cache_options};
 use raw_incremental::RawIncremental;
 use raw_rspack_future::RawRspackFuture;
-use rspack_core::{incremental::IncrementalOptions, Experiments};
+use rspack_core::{Experiments, incremental::IncrementalOptions};
 use rspack_regex::RspackRegex;
 
 use super::WithFalse;
@@ -29,6 +29,7 @@ pub struct RawExperiments {
   pub inline_const: bool,
   pub inline_enum: bool,
   pub type_reexports_presence: bool,
+  pub lazy_barrel: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -49,6 +50,7 @@ impl From<RawExperiments> for Experiments {
       inline_const: value.inline_const,
       inline_enum: value.inline_enum,
       type_reexports_presence: value.type_reexports_presence,
+      lazy_barrel: value.lazy_barrel,
     }
   }
 }

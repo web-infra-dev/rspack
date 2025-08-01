@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{get_runtime_key, CodeGenerationResult, CodeGenerationResults};
+use rspack_core::{CodeGenerationResult, CodeGenerationResults, get_runtime_key};
 use rustc_hash::FxHashMap as HashMap;
 
 #[napi(object)]

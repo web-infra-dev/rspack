@@ -22,9 +22,8 @@ pub trait ModuleDependency: Dependency {
       .map(|range| ErrorSpan::new(range.start, range.end))
   }
 
-  // TODO: move to ModuleGraphConnection
   fn weak(&self) -> bool {
-    false
+    self.lazy().is_some()
   }
 
   fn get_optional(&self) -> bool {

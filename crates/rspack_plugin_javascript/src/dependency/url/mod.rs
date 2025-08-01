@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, FactorizeInfo, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, UsedByExports,
+  TemplateReplaceSource, UsedByExports, module_id,
 };
 use swc_core::ecma::atoms::Atom;
 

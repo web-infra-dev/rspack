@@ -8,8 +8,8 @@ use super::{
   ResolvedExportInfoTargetWithCircular, UsageState,
 };
 use crate::{
-  find_target_from_export_info, get_target_from_maybe_export_info, get_target_with_filter,
   DependencyId, FindTargetResult, ModuleGraph, ModuleIdentifier, ResolveFilterFnTy,
+  find_target_from_export_info, get_target_from_maybe_export_info, get_target_with_filter,
 };
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -28,26 +28,26 @@ pub struct ExportInfo {
 impl ExportInfo {
   pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
     let exports_info = self.exports_info.as_data(mg);
-    let export_info = match &self.export_name {
+
+    (match &self.export_name {
       ExportName::Other => exports_info.other_exports_info(),
       ExportName::SideEffects => exports_info.side_effects_only_info(),
       ExportName::Named(name) => exports_info
         .named_exports(name)
         .expect("should have named export"),
-    };
-    export_info
+    }) as _
   }
 
   pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
     let exports_info = self.exports_info.as_data_mut(mg);
-    let export_info = match &self.export_name {
+
+    (match &self.export_name {
       ExportName::Other => exports_info.other_exports_info_mut(),
       ExportName::SideEffects => exports_info.side_effects_only_info_mut(),
       ExportName::Named(name) => exports_info
         .named_exports_mut(name)
         .expect("should have named export"),
-    };
-    export_info
+    }) as _
   }
 }
 
@@ -106,9 +106,11 @@ impl ExportInfoData {
                     dependency: v.dependency,
                     export: match v.export {
                       Some(vec) => Some(vec),
-                      None => Some(vec![name
-                        .clone()
-                        .expect("name should not be empty if target is set")]),
+                      None => Some(vec![
+                        name
+                          .clone()
+                          .expect("name should not be empty if target is set"),
+                      ]),
                     },
                     priority: v.priority,
                   },
@@ -324,7 +326,7 @@ impl<'a> MaybeDynamicTargetExportInfo<'a> {
     self.to_data().provided()
   }
 
-  fn get_max_target(&self) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+  fn get_max_target(&self) -> Cow<'_, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
     self.to_data().get_max_target()
   }
 

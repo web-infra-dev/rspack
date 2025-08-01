@@ -163,10 +163,10 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
     if source_maps.is_none() && source_map.is_some() {
       source_maps = source_map
     }
-    if let Some(SourceMapsConfig::Str(str)) = &source_maps {
-      if str == SOURCE_MAP_INLINE {
-        source_maps = Some(SourceMapsConfig::Bool(true))
-      }
+    if let Some(SourceMapsConfig::Str(str)) = &source_maps
+      && str == SOURCE_MAP_INLINE
+    {
+      source_maps = Some(SourceMapsConfig::Bool(true))
     }
     Ok(SwcCompilerOptionsWithAdditional {
       raw_options: value.into(),

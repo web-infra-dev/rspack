@@ -2,8 +2,8 @@ use std::{
   fmt::Display,
   ops::Deref,
   sync::{
-    atomic::{AtomicBool, Ordering},
     Arc, LazyLock,
+    atomic::{AtomicBool, Ordering},
   },
 };
 

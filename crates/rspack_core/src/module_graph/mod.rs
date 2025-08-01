@@ -245,32 +245,32 @@ impl<'a> ModuleGraph<'a> {
         .dependency_id_to_parents
         .insert(*dep_id, None);
       active_partial.connection_to_condition.remove(dep_id);
-      if let Some(m_id) = original_module_identifier {
-        if let Some(Some(module)) = active_partial.modules.get_mut(&m_id) {
-          module.remove_dependency_id(*dep_id);
-        }
+      if let Some(m_id) = original_module_identifier
+        && let Some(Some(module)) = active_partial.modules.get_mut(&m_id)
+      {
+        module.remove_dependency_id(*dep_id);
       }
-      if let Some(b_id) = parent_block {
-        if let Some(Some(block)) = active_partial.blocks.get_mut(&b_id) {
-          block.remove_dependency_id(*dep_id);
-        }
+      if let Some(b_id) = parent_block
+        && let Some(Some(block)) = active_partial.blocks.get_mut(&b_id)
+      {
+        block.remove_dependency_id(*dep_id);
       }
     }
 
     // remove outgoing from original module graph module
-    if let Some(original_module_identifier) = &original_module_identifier {
-      if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
-        mgm.remove_outgoing_connection(dep_id);
-        if force {
-          mgm.all_dependencies.retain(|id| id != dep_id);
-        }
+    if let Some(original_module_identifier) = &original_module_identifier
+      && let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier)
+    {
+      mgm.remove_outgoing_connection(dep_id);
+      if force {
+        mgm.all_dependencies.retain(|id| id != dep_id);
       }
     }
     // remove incoming from module graph module
-    if let Some(module_identifier) = &module_identifier {
-      if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier) {
-        mgm.remove_incoming_connection(dep_id);
-      }
+    if let Some(module_identifier) = &module_identifier
+      && let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier)
+    {
+      mgm.remove_incoming_connection(dep_id);
     }
 
     Some((*dep_id, original_module_identifier))
@@ -655,6 +655,22 @@ impl<'a> ModuleGraph<'a> {
     self
       .loop_partials(|p| p.dependencies.get(dependency_id))?
       .as_ref()
+  }
+
+  pub fn dependency_by_id_mut(
+    &mut self,
+    dependency_id: &DependencyId,
+  ) -> Option<&mut BoxDependency> {
+    self
+      .loop_partials_mut(
+        |p| p.dependencies.contains_key(dependency_id),
+        |p, search_result| {
+          p.dependencies.insert(*dependency_id, search_result);
+        },
+        |p| p.dependencies.get(dependency_id).cloned(),
+        |p| p.dependencies.get_mut(dependency_id),
+      )?
+      .as_mut()
   }
 
   /// Uniquely identify a module by its dependency

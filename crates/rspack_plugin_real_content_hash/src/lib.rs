@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod drive;
 
 use std::{
@@ -15,9 +13,9 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   PluginContext,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -224,8 +222,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                   hasher.write(&asset_content.buffer());
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
-                let new_hash = new_hash.rendered(old_hash.len()).to_string();
-                new_hash
+
+                new_hash.rendered(old_hash.len()).to_string()
               };
 
               Ok((old_hash.to_string(), new_hash))

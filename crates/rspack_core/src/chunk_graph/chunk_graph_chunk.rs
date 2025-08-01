@@ -11,9 +11,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 
 use crate::{
-  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
+  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -124,9 +124,11 @@ impl ChunkGraph {
   }
 
   pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
-    debug_assert!(!self
-      .chunk_graph_chunk_by_chunk_ukey
-      .contains_key(&chunk_ukey));
+    debug_assert!(
+      !self
+        .chunk_graph_chunk_by_chunk_ukey
+        .contains_key(&chunk_ukey)
+    );
     self.chunk_graph_chunk_by_chunk_ukey.insert(chunk_ukey, cgc);
   }
 
@@ -397,7 +399,7 @@ impl ChunkGraph {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let source_types = &chunk_graph_chunk.source_types_by_module;
 
-    let modules = chunk_graph_chunk
+    chunk_graph_chunk
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_identifier(uri))
@@ -410,8 +412,7 @@ impl ChunkGraph {
           module.source_types(module_graph).contains(&source_type)
         }
       })
-      .collect::<Vec<_>>();
-    modules
+      .collect::<Vec<_>>()
   }
 
   pub fn get_chunk_modules_iterable_by_source_type<'module_graph: 'me, 'me>(

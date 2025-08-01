@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-use napi::{bindgen_prelude::Array, Either, Env, JsString};
+use napi::{Either, Env, JsString, bindgen_prelude::Array};
 use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
 

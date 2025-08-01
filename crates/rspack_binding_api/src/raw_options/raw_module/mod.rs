@@ -2,8 +2,8 @@ use std::{fmt::Formatter, ptr::NonNull, sync::Arc};
 
 use derive_more::with_trait::Debug;
 use napi::{
-  bindgen_prelude::{Buffer, Either3, FnArgs},
   Either,
+  bindgen_prelude::{Buffer, Either3, FnArgs},
 };
 use napi_derive::napi;
 use rspack_core::{

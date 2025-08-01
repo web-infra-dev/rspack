@@ -1,5 +1,3 @@
-#![feature(int_roundings)]
-
 mod merge;
 
 pub mod asset_condition;
@@ -25,7 +23,7 @@ pub mod tracing_preset;
 
 use std::future::Future;
 
-pub use merge::{merge_from_optional_with, MergeFrom};
+pub use merge::{MergeFrom, merge_from_optional_with};
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
 where

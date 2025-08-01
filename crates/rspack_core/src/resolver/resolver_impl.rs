@@ -5,8 +5,8 @@ use std::{
 };
 
 use rspack_error::{
-  miette::{diagnostic, Diagnostic},
   DiagnosticExt, Severity, TraceableError,
+  miette::{Diagnostic, diagnostic},
 };
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
@@ -14,7 +14,7 @@ use rspack_paths::AssertUtf8;
 use rspack_util::location::try_line_column_length_to_offset_length;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::{boxfs::BoxFS, ResolveResult, Resource};
+use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
 };

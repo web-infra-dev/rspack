@@ -1,6 +1,4 @@
 #![recursion_limit = "256"]
-#![feature(let_chains)]
-#![feature(try_blocks)]
 #![allow(deprecated)]
 
 #[macro_use]
@@ -10,14 +8,14 @@ use std::{cell::RefCell, sync::Arc};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use fs_node::HybridFileSystem;
-use napi::{bindgen_prelude::*, CallContext};
+use napi::{CallContext, bindgen_prelude::*};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
-use rspack_tasks::{within_compiler_context_sync, CompilerContext, CURRENT_COMPILER_CONTEXT};
+use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rspack_util::tracing_preset::{
   TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
 };
@@ -68,6 +66,7 @@ mod resolver_factory;
 mod resource_data;
 mod rsdoctor;
 mod rslib;
+mod rspack_resolver;
 mod rstest;
 mod runtime;
 mod source;
@@ -112,6 +111,7 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 pub use rslib::*;
+pub use rspack_resolver::*;
 use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
 pub use rstest::*;
 pub use runtime::*;
@@ -122,7 +122,7 @@ pub use swc::*;
 use swc_core::common::util::take::Take;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
-  layer::SubscriberExt, reload, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+  EnvFilter, Layer, Registry, layer::SubscriberExt, reload, util::SubscriberInitExt,
 };
 pub use utils::*;
 
@@ -220,14 +220,13 @@ impl JsCompiler {
           })
         });
 
-      if let Some(fs) = &input_file_system {
-        resolver_factory_reference.input_filesystem = fs.clone();
-      }
-
-      let resolver_factory =
-        (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
-      let loader_resolver_factory = (*resolver_factory_reference)
-        .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
+      resolver_factory_reference.update_options(
+        input_file_system.clone(),
+        compiler_options.resolve.clone(),
+        compiler_options.resolve_loader.clone(),
+      );
+      let resolver_factory = resolver_factory_reference.get_resolver_factory();
+      let loader_resolver_factory = resolver_factory_reference.get_loader_resolver_factory();
 
       let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
         if let Some(fs) = intermediate_filesystem {
@@ -431,10 +430,13 @@ enum TraceState {
 #[cfg(target_family = "wasm")]
 const _: () = {
   #[used]
-  #[link_section = ".init_array"]
+  #[unsafe(link_section = ".init_array")]
   static __CTOR: unsafe extern "C" fn() = init;
 
   unsafe extern "C" fn init() {
+    #[cfg(feature = "browser")]
+    rspack_browser::panic::install_panic_handler();
+    #[cfg(not(feature = "browser"))]
     panic::install_panic_handler();
     let rt = tokio::runtime::Builder::new_multi_thread()
       .max_blocking_threads(1)

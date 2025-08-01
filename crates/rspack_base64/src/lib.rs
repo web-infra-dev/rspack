@@ -42,7 +42,7 @@ pub mod base64 {
   // modified from https://github.com/feross/buffer/blob/795bbb5bda1b39f1370ebd784bea6107b087e3a7/index.js#L1942
   // Buffer.from in nodejs will clean base64 first, which causes some inconsistent behavior with base64_simd
   // e.g. Buffer.from("abcd?#iefix", "base64").toString("base64")
-  pub fn clean_base64(value: &str) -> Option<Cow<str>> {
+  pub fn clean_base64(value: &str) -> Option<Cow<'_, str>> {
     let value = value.split('=').next()?;
     let value = value.trim();
     let value = INVALID_BASE64_RE.replace_all(value, "");

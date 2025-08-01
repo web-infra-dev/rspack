@@ -4,9 +4,9 @@ use std::{
   task::{Context, Poll},
 };
 
-use futures::{future::BoxFuture, FutureExt};
+use futures::{FutureExt, future::BoxFuture};
 
-use super::{error, Result};
+use super::{Result, error};
 
 const GENERIC_FATAL_MESSAGE: &str =
   "This is not expected, please file an issue at https://github.com/web-infra-dev/rspack/issues.";

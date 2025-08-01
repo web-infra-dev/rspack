@@ -10,16 +10,16 @@ use async_trait::async_trait;
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
-  get_css_chunk_filename_template,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
-    SourceExt,
-  },
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
   Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
   RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  get_css_chunk_filename_template,
+  rspack_sources::{
+    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
+    SourceExt,
+  },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -29,6 +29,7 @@ use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
+  CssPlugin,
   dependency::{
     CssImportDependencyTemplate, CssLayer, CssLocalIdentDependencyTemplate, CssMedia,
     CssSelfReferenceLocalIdentDependencyTemplate, CssSupports, CssUrlDependencyTemplate,
@@ -37,7 +38,6 @@ use crate::{
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
-  CssPlugin,
 };
 
 /// Safety with [atomic_refcell::AtomicRefCell]:

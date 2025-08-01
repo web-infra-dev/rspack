@@ -11,8 +11,8 @@ use swc_core::{
 };
 
 use super::{
-  estree::{MaybeNamedFunctionDecl, Statement},
   DestructuringAssignmentProperty, JavascriptParser,
+  estree::{MaybeNamedFunctionDecl, Statement},
 };
 use crate::{parser_plugin::JavascriptParserPlugin, utils::eval};
 

@@ -18,6 +18,7 @@ pub struct Experiments {
   pub inline_const: bool,
   pub inline_enum: bool,
   pub type_reexports_presence: bool,
+  pub lazy_barrel: bool,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]

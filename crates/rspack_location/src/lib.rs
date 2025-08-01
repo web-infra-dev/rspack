@@ -4,13 +4,6 @@ pub use itoa::Buffer;
 use rspack_cacheable::cacheable;
 use swc_core::common::{SourceMap, Span};
 
-#[macro_export]
-macro_rules! itoa {
-  ($i:expr) => {{
-    itoa::Buffer::new().format($i)
-  }};
-}
-
 /// Represents a position in the source file, including the line number and column number.
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
@@ -61,28 +54,29 @@ impl RealDependencyLocation {
 impl fmt::Display for RealDependencyLocation {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if let Some(end) = self.end {
+      let mut start_line_buffer = itoa::Buffer::new();
+      let start_line = start_line_buffer.format(self.start.line);
+      let mut start_col_buffer = itoa::Buffer::new();
+      let start_col = start_col_buffer.format(self.start.column);
       if self.start.line == end.line && self.start.column == end.column {
-        write!(f, "{}:{}", itoa!(self.start.line), itoa!(self.start.column))
+        write!(f, "{}:{}", start_line, start_col)
       } else if self.start.line == end.line {
-        write!(
-          f,
-          "{}:{}-{}",
-          itoa!(self.start.line),
-          itoa!(self.start.column),
-          itoa!(end.column)
-        )
+        let mut end_col_buffer = itoa::Buffer::new();
+        let end_col = end_col_buffer.format(end.column);
+        write!(f, "{}:{}-{}", start_line, start_col, end_col)
       } else {
-        write!(
-          f,
-          "{}:{}-{}:{}",
-          itoa!(self.start.line),
-          itoa!(self.start.column),
-          itoa!(end.line),
-          itoa!(end.column)
-        )
+        let mut end_line_buffer = itoa::Buffer::new();
+        let end_line = end_line_buffer.format(end.line);
+        let mut end_col_buffer = itoa::Buffer::new();
+        let end_col = end_col_buffer.format(end.column);
+        write!(f, "{}:{}-{}:{}", start_line, start_col, end_line, end_col)
       }
     } else {
-      write!(f, "{}:{}", itoa!(self.start.line), itoa!(self.start.column))
+      let mut start_line_buffer = itoa::Buffer::new();
+      let start_line = start_line_buffer.format(self.start.line);
+      let mut start_col_buffer = itoa::Buffer::new();
+      let start_col = start_col_buffer.format(self.start.column);
+      write!(f, "{}:{}", start_line, start_col)
     }
   }
 }

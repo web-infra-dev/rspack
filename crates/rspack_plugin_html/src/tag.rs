@@ -3,9 +3,9 @@ use core::fmt;
 use itertools::Itertools;
 use rspack_util::fx_hash::FxHashMap;
 use serde::{
+  Deserialize, Deserializer, Serialize, Serializer,
   de::{MapAccess, Visitor},
   ser::SerializeMap,
-  Deserialize, Deserializer, Serialize, Serializer,
 };
 use swc_core::{atoms::Atom, common::DUMMY_SP};
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};

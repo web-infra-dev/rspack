@@ -3,7 +3,7 @@
 
 use tracing::instrument;
 
-use crate::{incremental::IncrementalPasses, Compilation};
+use crate::{Compilation, incremental::IncrementalPasses};
 
 mod available_modules;
 pub(crate) mod code_splitter;

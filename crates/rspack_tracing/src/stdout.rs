@@ -1,8 +1,8 @@
 use tracing_subscriber::fmt::format::FmtSpan;
 
 use crate::{
-  tracer::{Layered, Tracer},
   TraceWriter,
+  tracer::{Layered, Tracer},
 };
 
 pub struct StdoutTracer;

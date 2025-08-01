@@ -19,15 +19,16 @@ impl Visit for DependencyVisitor {
   fn visit_call_expr(&mut self, node: &CallExpr) {
     let is_match_ident = match &node.callee {
       Callee::Import(_) => true,
-      Callee::Expr(box Expr::Ident(ident)) => ident.sym == "require",
+      Callee::Expr(expr) if matches!(expr.as_ref(), Expr::Ident(ident) if ident.sym == "require") => {
+        true
+      }
       _ => false,
     };
-    if is_match_ident {
-      if let Some(args) = node.args.first() {
-        if let box Expr::Lit(Lit::Str(s)) = &args.expr {
-          self.requests.push(s.value.to_string());
-        }
-      }
+    if is_match_ident
+      && let Some(args) = node.args.first()
+      && let Expr::Lit(Lit::Str(s)) = args.expr.as_ref()
+    {
+      self.requests.push(s.value.to_string());
     }
   }
 
@@ -89,7 +90,9 @@ export { h as default } from "./h";
     visitor.requests.sort();
     assert_eq!(
       visitor.requests,
-      vec!["./a", "./a", "./b", "./b", "./c", "./d", "./e", "./f", "./g", "./h"]
+      vec![
+        "./a", "./a", "./b", "./b", "./c", "./d", "./e", "./f", "./g", "./h"
+      ]
     );
   }
 }

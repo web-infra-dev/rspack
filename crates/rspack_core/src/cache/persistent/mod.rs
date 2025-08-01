@@ -19,12 +19,12 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   occasion::{MakeOccasion, MetaOccasion},
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{create_storage, Storage, StorageOptions},
+  storage::{Storage, StorageOptions, create_storage},
 };
 use super::Cache;
 use crate::{
-  make::{MakeArtifact, MakeArtifactState},
   Compilation, CompilerOptions, Logger,
+  compilation::make::{MakeArtifact, MakeArtifactState},
 };
 
 #[derive(Debug, Clone, Hash)]

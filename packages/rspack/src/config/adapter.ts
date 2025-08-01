@@ -142,13 +142,16 @@ function getRawOutputEnvironment(
 function getRawExtensionAlias(
 	alias: Resolve["extensionAlias"] = {}
 ): RawOptions["resolve"]["extensionAlias"] {
-	const entries = Object.entries(alias).map(([key, value]) => {
-		if (Array.isArray(value)) {
-			return [key, value];
-		}
-		return [key, [value]];
-	});
-	return Object.fromEntries(entries);
+	if (typeof alias === "object" && alias !== null) {
+		const entries = Object.entries(alias).map(([key, value]) => {
+			if (Array.isArray(value)) {
+				return [key, value];
+			}
+			return [key, [value]];
+		});
+		return Object.fromEntries(entries);
+	}
+	return;
 }
 
 function getRawAlias(

@@ -234,10 +234,12 @@ which tries to resolve these kind of requests in the current directory too.",
     {
       // read the files in the parent directory
       if let Ok(files) = fs.read_dir(&parent_path).await {
-        let mut requested_names = vec![file_name
-          .to_str()
-          .map(|f| f.to_string())
-          .unwrap_or_default()];
+        let mut requested_names = vec![
+          file_name
+            .to_str()
+            .map(|f| f.to_string())
+            .unwrap_or_default(),
+        ];
         if is_resolving_dir {
           // The request maybe is like `./` or `./dir` to resolve the main file (e.g.: index) in directory
           // So we need to check them.

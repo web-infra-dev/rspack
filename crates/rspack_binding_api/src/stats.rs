@@ -1,27 +1,27 @@
 use std::{borrow::Cow, cell::RefCell};
 
 use napi::{
+  Env,
   bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object},
   sys::napi_value,
-  Env,
 };
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  rspack_sources::{RawBufferSource, RawSource, Source},
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
+  rspack_sources::{RawBufferSource, RawSource, Source},
 };
 use rspack_error::RspackSeverity;
 use rspack_napi::napi::{
-  bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
   Either,
+  bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
 };
 use rspack_util::{atom::Atom, itoa};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  identifier::JsIdentifier, to_js_module_id, JsCompilation, JsModuleId, RspackError,
-  RspackResultToNapiResultExt,
+  JsCompilation, JsModuleId, RspackError, RspackResultToNapiResultExt, identifier::JsIdentifier,
+  to_js_module_id,
 };
 
 // These handles are only used during the `to_json` call,
@@ -41,7 +41,7 @@ impl<'a> CowStrWrapper<'a> {
 
 impl<'a> ToNapiValue for CowStrWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    ToNapiValue::to_napi_value(env, val.0.as_ref())
+    unsafe { ToNapiValue::to_napi_value(env, val.0.as_ref()) }
   }
 }
 
@@ -55,13 +55,15 @@ impl<'a> StringSliceWrapper<'a> {
 
 impl<'a> ToNapiValue for StringSliceWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    let env_wrapper = Env::from_raw(env);
-    let mut array = env_wrapper.create_array(val.0.len() as u32)?;
-    for (i, item) in val.0.iter().enumerate() {
-      let s = env_wrapper.create_string(item)?;
-      array.set(i as u32, s)?;
+    unsafe {
+      let env_wrapper = Env::from_raw(env);
+      let mut array = env_wrapper.create_array(val.0.len() as u32)?;
+      for (i, item) in val.0.iter().enumerate() {
+        let s = env_wrapper.create_string(item)?;
+        array.set(i as u32, s)?;
+      }
+      ToNapiValue::to_napi_value(env, array)
     }
-    ToNapiValue::to_napi_value(env, array)
   }
 }
 
@@ -75,7 +77,7 @@ impl AtomWrapper {
 
 impl ToNapiValue for AtomWrapper {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    ToNapiValue::to_napi_value(env, val.0.as_str())
+    unsafe { ToNapiValue::to_napi_value(env, val.0.as_str()) }
   }
 }
 
@@ -89,13 +91,15 @@ impl AtomVecWrapper {
 
 impl ToNapiValue for AtomVecWrapper {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    let env_wrapper = Env::from_raw(env);
-    let mut array = env_wrapper.create_array(val.0.len() as u32)?;
-    for (i, item) in val.0.iter().enumerate() {
-      let s = env_wrapper.create_string(item.as_str())?;
-      array.set(i as u32, s)?;
+    unsafe {
+      let env_wrapper = Env::from_raw(env);
+      let mut array = env_wrapper.create_array(val.0.len() as u32)?;
+      for (i, item) in val.0.iter().enumerate() {
+        let s = env_wrapper.create_string(item.as_str())?;
+        array.set(i as u32, s)?;
+      }
+      ToNapiValue::to_napi_value(env, array)
     }
-    ToNapiValue::to_napi_value(env, array)
   }
 }
 
@@ -112,7 +116,7 @@ pub struct JsModuleDescriptor<'a> {
 pub struct JsModuleDescriptorWrapper<'a>(JsModuleDescriptor<'a>);
 
 impl<'a> JsModuleDescriptorWrapper<'a> {
-  pub fn raw(&self) -> &JsModuleDescriptor {
+  pub fn raw(&self) -> &JsModuleDescriptor<'_> {
     &self.0
   }
 }
@@ -318,16 +322,16 @@ impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
         label,
         secs,
         subsec_nanos,
-      } => Self {
-        name: value.0,
-        r#type: "time",
-        args: Some(vec![format!(
-          "{}: {} ms",
-          label,
-          itoa!(secs * 1000 + subsec_nanos as u64 / 1000000)
-        )]),
-        trace: None,
-      },
+      } => {
+        let mut time_buffer = itoa::Buffer::new();
+        let time_str = time_buffer.format(secs * 1000 + subsec_nanos as u64 / 1000000);
+        Self {
+          name: value.0,
+          r#type: "time",
+          args: Some(vec![format!("{}: {} ms", label, time_str)]),
+          trace: None,
+        }
+      }
       rspack_core::LogType::Clear => Self {
         name: value.0,
         r#type: "clear",
@@ -340,22 +344,28 @@ impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
         args: Some(vec![message]),
         trace: None,
       },
-      rspack_core::LogType::Cache { label, hit, total } => Self {
-        name: value.0,
-        r#type: "cache",
-        args: Some(vec![format!(
-          "{}: {:.1}% ({}/{})",
-          label,
-          if total == 0 {
-            0 as f32
-          } else {
-            hit as f32 / total as f32 * 100_f32
-          },
-          itoa!(hit),
-          itoa!(total),
-        )]),
-        trace: None,
-      },
+      rspack_core::LogType::Cache { label, hit, total } => {
+        let mut hit_buffer = itoa::Buffer::new();
+        let hit_str = hit_buffer.format(hit);
+        let mut total_buffer = itoa::Buffer::new();
+        let total_str = total_buffer.format(total);
+        Self {
+          name: value.0,
+          r#type: "cache",
+          args: Some(vec![format!(
+            "{}: {:.1}% ({}/{})",
+            label,
+            if total == 0 {
+              0 as f32
+            } else {
+              hit as f32 / total as f32 * 100_f32
+            },
+            hit_str,
+            total_str,
+          )]),
+          trace: None,
+        }
+      }
     }
   }
 }
@@ -512,29 +522,31 @@ impl<'a> From<JsStatsModuleCommonAttributes<'a>> for JsStatsModuleCommonAttribut
 
 impl<'a> ToNapiValue for JsStatsModuleCommonAttributesWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    MODULE_COMMON_ATTRIBUTES_REFS.with(|ref_cell| {
-      match val
-        .0
-        .module_descriptor
-        .as_ref()
-        .map(|d| d.raw().identifier.raw())
-        .as_ref()
-      {
-        Some(id) => {
-          {
-            if let Some(raw_value) = ref_cell.borrow().get(id) {
-              return ToNapiValue::to_napi_value(env, *raw_value);
+    unsafe {
+      MODULE_COMMON_ATTRIBUTES_REFS.with(|ref_cell| {
+        match val
+          .0
+          .module_descriptor
+          .as_ref()
+          .map(|d| d.raw().identifier.raw())
+          .as_ref()
+        {
+          Some(id) => {
+            {
+              if let Some(raw_value) = ref_cell.borrow().get(id) {
+                return ToNapiValue::to_napi_value(env, *raw_value);
+              }
             }
+            let raw_value = ToNapiValue::to_napi_value(env, val.0)?;
+            {
+              ref_cell.borrow_mut().insert(*id, raw_value);
+            }
+            Ok(raw_value)
           }
-          let raw_value = unsafe { ToNapiValue::to_napi_value(env, val.0)? };
-          {
-            ref_cell.borrow_mut().insert(*id, raw_value);
-          }
-          Ok(raw_value)
+          None => ToNapiValue::to_napi_value(env, val.0),
         }
-        None => ToNapiValue::to_napi_value(env, val.0),
-      }
-    })
+      })
+    }
   }
 }
 
@@ -559,10 +571,10 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
       if let Some(raw_source) = source.as_any().downcast_ref::<RawBufferSource>() {
         return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
       }
-      if let Some(raw_source) = source.as_any().downcast_ref::<RawSource>() {
-        if raw_source.is_buffer() {
-          return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
-        }
+      if let Some(raw_source) = source.as_any().downcast_ref::<RawSource>()
+        && raw_source.is_buffer()
+      {
+        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
       }
       JsStatsModuleSource::A(CowStrWrapper::new(source.source()))
     });
@@ -1047,19 +1059,21 @@ pub struct JsStatsCompilationWrapper<'a>(JsStatsCompilation<'a>);
 
 impl<'a> ToNapiValue for JsStatsCompilationWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
-    let napi_value = ToNapiValue::to_napi_value(env, val.0);
+    unsafe {
+      let napi_value = ToNapiValue::to_napi_value(env, val.0);
 
-    MODULE_DESCRIPTOR_REFS.with(|refs| {
-      let mut refs = refs.borrow_mut();
-      refs.drain();
-    });
+      MODULE_DESCRIPTOR_REFS.with(|refs| {
+        let mut refs = refs.borrow_mut();
+        refs.drain();
+      });
 
-    MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
-      let mut refs = refs.borrow_mut();
-      refs.drain();
-    });
+      MODULE_COMMON_ATTRIBUTES_REFS.with(|refs| {
+        let mut refs = refs.borrow_mut();
+        refs.drain();
+      });
 
-    napi_value
+      napi_value
+    }
   }
 }
 
@@ -1081,7 +1095,7 @@ impl JsStats {
     &self,
     env: &Env,
     js_options: JsStatsOptions,
-  ) -> Result<JsStatsCompilationWrapper> {
+  ) -> Result<JsStatsCompilationWrapper<'_>> {
     let options = ExtendedStatsOptions::from(js_options);
 
     let hash = options.hash.then(|| self.hash()).flatten();
@@ -1135,7 +1149,7 @@ impl JsStats {
     }))
   }
 
-  fn assets(&self) -> JsStatsGetAssets {
+  fn assets(&self) -> JsStatsGetAssets<'_> {
     let (assets, assets_by_chunk_name) = self.inner.get_assets();
     let assets = assets.into_iter().map(Into::into).collect();
     let assets_by_chunk_name = assets_by_chunk_name.into_iter().map(Into::into).collect();
@@ -1175,7 +1189,7 @@ impl JsStats {
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
-  ) -> Vec<JsStatsChunkGroup> {
+  ) -> Vec<JsStatsChunkGroup<'_>> {
     self
       .inner
       .get_entrypoints(chunk_group_auxiliary, chunk_group_children)
@@ -1188,7 +1202,7 @@ impl JsStats {
     &self,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
-  ) -> Vec<JsStatsChunkGroup> {
+  ) -> Vec<JsStatsChunkGroup<'_>> {
     self
       .inner
       .get_named_chunk_groups(chunk_group_auxiliary, chunk_group_children)
@@ -1218,7 +1232,7 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_logging(&self, accepted_types: u32) -> Vec<JsStatsLogging> {
+  pub fn get_logging(&self, accepted_types: u32) -> Vec<JsStatsLogging<'_>> {
     self
       .inner
       .get_logging()

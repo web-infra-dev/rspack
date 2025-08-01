@@ -4,15 +4,15 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
   impl_module_meta_info, impl_source_map_config, module_raw, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
-  throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
-  Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
-  ModuleGraph, ModuleId, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec,
+  throw_missing_module_error_block,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
 
@@ -71,7 +71,7 @@ impl Module for DelegatedModule {
     &[SourceType::JavaScript]
   }
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     self.original_request.as_ref().map(|request| request.into())
   }
 
@@ -79,7 +79,7 @@ impl Module for DelegatedModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     format!(
       "delegated {} from {}",
       self.user_request, self.source_request

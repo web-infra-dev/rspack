@@ -1,4 +1,4 @@
-use miette::{miette, LabeledSpan, SourceOffset};
+use miette::{LabeledSpan, SourceOffset, miette};
 
 use crate::{AnyhowError, Result};
 

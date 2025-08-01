@@ -9,17 +9,17 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, string::JsStringExt, threadsafe_function::ThreadsafeFunction,
-  OneShotInstanceRef, WeakRef,
+  OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
+  threadsafe_function::ThreadsafeFunction,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  define_symbols, AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, ChunkWrapper,
+  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, COMPILER_REFERENCES, ChunkWrapper,
   ConcatenatedModule, ContextModule, DependencyWrapper, ExternalModule, JsCodegenerationResults,
-  JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
+  JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, define_symbols,
 };
 
 define_symbols! {
@@ -74,7 +74,7 @@ pub struct Module {
 }
 
 impl Module {
-  pub(crate) fn custom_into_instance(self, env: &Env) -> napi::Result<ClassInstance<Self>> {
+  pub(crate) fn custom_into_instance(self, env: &Env) -> napi::Result<ClassInstance<'_, Self>> {
     let mut instance = self.into_instance(env)?;
     let mut object = instance.as_object(env);
     let (_, module) = (*instance).as_ref()?;
@@ -91,7 +91,7 @@ impl Module {
     }
 
     #[js_function]
-    fn layer_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
+    fn layer_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
       let this = ctx.this_unchecked::<JsObject>();
       let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
       let (_, module) = wrapped_value.as_ref()?;
@@ -334,7 +334,7 @@ impl Module {
   }
 
   #[napi(js_name = "_originalSource", enumerable = false)]
-  pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsCompatSource, ()>> {
+  pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsCompatSource<'_>, ()>> {
     let (_, module) = self.as_ref()?;
 
     Ok(match module.source() {
@@ -540,15 +540,15 @@ impl ModuleObject {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       for module_identifier in revoked_modules {
-        if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
-          if let Some(r) = refs.remove(module_identifier) {
-            match r {
-              Either5::A(mut normal_module) => normal_module.module.ptr = None,
-              Either5::B(mut concatenated_module) => concatenated_module.module.ptr = None,
-              Either5::C(mut context_module) => context_module.module.ptr = None,
-              Either5::D(mut external_module) => external_module.module.ptr = None,
-              Either5::E(mut module) => module.ptr = None,
-            }
+        if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id)
+          && let Some(r) = refs.remove(module_identifier)
+        {
+          match r {
+            Either5::A(mut normal_module) => normal_module.module.ptr = None,
+            Either5::B(mut concatenated_module) => concatenated_module.module.ptr = None,
+            Either5::C(mut context_module) => context_module.module.ptr = None,
+            Either5::D(mut external_module) => external_module.module.ptr = None,
+            Either5::E(mut module) => module.ptr = None,
           }
         }
       }
@@ -562,7 +562,8 @@ impl ModuleObject {
 
 impl ToNapiValue for ModuleObject {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-    MODULE_INSTANCE_REFS.with(|refs| {
+    unsafe {
+      MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       let entry = refs_by_compiler_id.entry(val.compiler_id);
       let refs = match entry {
@@ -641,45 +642,48 @@ impl ToNapiValue for ModuleObject {
         }
       }
     })
+    }
   }
 }
 
 impl FromNapiValue for ModuleObject {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let instance: ModuleInstanceMutRef = FromNapiValue::from_napi_value(env, napi_val)?;
+    unsafe {
+      let instance: ModuleInstanceMutRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
-    Ok(match instance {
-      Either5::A(normal_module) => Self {
-        type_id: TypeId::of::<rspack_core::NormalModule>(),
-        identifier: normal_module.module.identifier,
-        ptr: normal_module.module.ptr,
-        compiler_id: normal_module.module.compiler_id,
-      },
-      Either5::B(concatenated_module) => Self {
-        type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
-        identifier: concatenated_module.module.identifier,
-        ptr: concatenated_module.module.ptr,
-        compiler_id: concatenated_module.module.compiler_id,
-      },
-      Either5::C(context_module) => Self {
-        type_id: TypeId::of::<rspack_core::ContextModule>(),
-        identifier: context_module.module.identifier,
-        ptr: context_module.module.ptr,
-        compiler_id: context_module.module.compiler_id,
-      },
-      Either5::D(external_module) => Self {
-        type_id: TypeId::of::<rspack_core::ExternalModule>(),
-        identifier: external_module.module.identifier,
-        ptr: external_module.module.ptr,
-        compiler_id: external_module.module.compiler_id,
-      },
-      Either5::E(module) => Self {
-        type_id: TypeId::of::<dyn rspack_core::Module>(),
-        identifier: module.identifier,
-        ptr: module.ptr,
-        compiler_id: module.compiler_id,
-      },
-    })
+      Ok(match instance {
+        Either5::A(normal_module) => Self {
+          type_id: TypeId::of::<rspack_core::NormalModule>(),
+          identifier: normal_module.module.identifier,
+          ptr: normal_module.module.ptr,
+          compiler_id: normal_module.module.compiler_id,
+        },
+        Either5::B(concatenated_module) => Self {
+          type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
+          identifier: concatenated_module.module.identifier,
+          ptr: concatenated_module.module.ptr,
+          compiler_id: concatenated_module.module.compiler_id,
+        },
+        Either5::C(context_module) => Self {
+          type_id: TypeId::of::<rspack_core::ContextModule>(),
+          identifier: context_module.module.identifier,
+          ptr: context_module.module.ptr,
+          compiler_id: context_module.module.compiler_id,
+        },
+        Either5::D(external_module) => Self {
+          type_id: TypeId::of::<rspack_core::ExternalModule>(),
+          identifier: external_module.module.identifier,
+          ptr: external_module.module.ptr,
+          compiler_id: external_module.module.compiler_id,
+        },
+        Either5::E(module) => Self {
+          type_id: TypeId::of::<dyn rspack_core::Module>(),
+          identifier: module.identifier,
+          ptr: module.ptr,
+          compiler_id: module.compiler_id,
+        },
+      })
+    }
   }
 }
 
@@ -689,25 +693,27 @@ pub struct ModuleObjectRef {
 
 impl FromNapiValue for ModuleObjectRef {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let instance: ModuleInstanceRef = FromNapiValue::from_napi_value(env, napi_val)?;
+    unsafe {
+      let instance: ModuleInstanceRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
-    Ok(match instance {
-      Either5::A(normal_module) => Self {
-        identifier: normal_module.module.identifier,
-      },
-      Either5::B(concatenated_module) => Self {
-        identifier: concatenated_module.module.identifier,
-      },
-      Either5::C(context_module) => Self {
-        identifier: context_module.module.identifier,
-      },
-      Either5::D(external_module) => Self {
-        identifier: external_module.module.identifier,
-      },
-      Either5::E(module) => Self {
-        identifier: module.identifier,
-      },
-    })
+      Ok(match instance {
+        Either5::A(normal_module) => Self {
+          identifier: normal_module.module.identifier,
+        },
+        Either5::B(concatenated_module) => Self {
+          identifier: concatenated_module.module.identifier,
+        },
+        Either5::C(context_module) => Self {
+          identifier: context_module.module.identifier,
+        },
+        Either5::D(external_module) => Self {
+          identifier: external_module.module.identifier,
+        },
+        Either5::E(module) => Self {
+          identifier: module.identifier,
+        },
+      })
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 use napi::bindgen_prelude::*;
 use rspack_error::{
-  miette::{self, LabeledSpan, MietteDiagnostic, Severity},
   Diagnostic,
+  miette::{self, LabeledSpan, MietteDiagnostic, Severity},
 };
 use rspack_util::location::{
   try_line_column_length_to_location, try_line_column_length_to_offset_length,

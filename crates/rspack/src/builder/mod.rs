@@ -12,21 +12,15 @@ use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 pub use target::Targets;
 
 macro_rules! d {
-  ($o:expr, $v:expr) => {{
-    $o.unwrap_or($v)
-  }};
+  ($o:expr, $v:expr) => {{ $o.unwrap_or($v) }};
 }
 
 macro_rules! w {
-  ($o:expr, $v:expr) => {{
-    $o.get_or_insert($v)
-  }};
+  ($o:expr, $v:expr) => {{ $o.get_or_insert($v) }};
 }
 
 macro_rules! f {
-  ($o:expr, $v:expr) => {{
-    $o.unwrap_or_else($v)
-  }};
+  ($o:expr, $v:expr) => {{ $o.unwrap_or_else($v) }};
 }
 
 macro_rules! expect {
@@ -42,7 +36,6 @@ use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
 use rspack_core::{
-  incremental::{IncrementalOptions, IncrementalPasses},
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
   CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
@@ -56,11 +49,12 @@ use rspack_core::{
   NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
   PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
   StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::{IncrementalOptions, IncrementalPasses},
 };
 use rspack_error::{
+  Result,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
-  Result,
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
@@ -68,7 +62,7 @@ use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
-use target::{get_targets_properties, TargetProperties};
+use target::{TargetProperties, get_targets_properties};
 
 /// Error type for builder
 #[derive(Debug, Clone, Error, Diagnostic)]
@@ -388,7 +382,7 @@ impl CompilerBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{incremental::IncrementalOptions, Compiler, Experiments};
+  /// use rspack_core::{Compiler, Experiments, incremental::IncrementalOptions};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
@@ -860,7 +854,7 @@ impl CompilerOptionsBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{incremental::IncrementalOptions, Compiler, Experiments};
+  /// use rspack_core::{Compiler, Experiments, incremental::IncrementalOptions};
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
@@ -2756,55 +2750,52 @@ impl OutputOptionsBuilder {
 
     // Generate unique name from library name or package.json
     let unique_name = f!(self.unique_name.take(), || {
-      if let Some(library) = &self.library {
-        if let Some(name) = &library.name {
-          let library_name = match name {
-            LibraryName::NonUmdObject(LibraryNonUmdObject::String(s)) => s.clone(),
-            LibraryName::NonUmdObject(LibraryNonUmdObject::Array(arr)) => arr.join("."),
-            LibraryName::UmdObject(obj) => {
-              obj.root.as_ref().map(|r| r.join(".")).unwrap_or_default()
-            }
-          };
+      if let Some(library) = &self.library
+        && let Some(name) = &library.name
+      {
+        let library_name = match name {
+          LibraryName::NonUmdObject(LibraryNonUmdObject::String(s)) => s.clone(),
+          LibraryName::NonUmdObject(LibraryNonUmdObject::Array(arr)) => arr.join("."),
+          LibraryName::UmdObject(obj) => obj.root.as_ref().map(|r| r.join(".")).unwrap_or_default(),
+        };
 
-          // Clean up library name using regex
-          let re = regex::Regex::new(
-            r"^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](\.|\z)|\[(\\*[\w:]+\\*)\]",
-          )
-          .expect("failed to create regex");
+        // Clean up library name using regex
+        let re = regex::Regex::new(
+          r"^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](\.|\z)|\[(\\*[\w:]+\\*)\]",
+        )
+        .expect("failed to create regex");
 
-          let cleaned_name = re.replace_all(&library_name, |caps: &regex::Captures| {
-            let content = caps
-              .get(1)
-              .or_else(|| caps.get(4))
-              .or_else(|| caps.get(6))
-              .map_or("", |m| m.as_str());
+        let cleaned_name = re.replace_all(&library_name, |caps: &regex::Captures| {
+          let content = caps
+            .get(1)
+            .or_else(|| caps.get(4))
+            .or_else(|| caps.get(6))
+            .map_or("", |m| m.as_str());
 
-            if content.starts_with('\\') && content.ends_with('\\') {
-              format!(
-                "{}{}{}",
-                caps.get(3).map_or("", |_| "."),
-                format_args!("[{}]", &content[1..content.len() - 1]),
-                caps.get(2).map_or("", |_| ".")
-              )
-            } else {
-              String::new()
-            }
-          });
-
-          if !cleaned_name.is_empty() {
-            return cleaned_name.into_owned();
+          if content.starts_with('\\') && content.ends_with('\\') {
+            format!(
+              "{}{}{}",
+              caps.get(3).map_or("", |_| "."),
+              format_args!("[{}]", &content[1..content.len() - 1]),
+              caps.get(2).map_or("", |_| ".")
+            )
+          } else {
+            String::new()
           }
+        });
+
+        if !cleaned_name.is_empty() {
+          return cleaned_name.into_owned();
         }
       }
 
       // Try reading from package.json
       let pkg_path = path.join("package.json");
-      if let Ok(pkg_content) = std::fs::read_to_string(pkg_path) {
-        if let Ok(pkg_json) = serde_json::from_str::<serde_json::Value>(&pkg_content) {
-          if let Some(name) = pkg_json.get("name").and_then(|n| n.as_str()) {
-            return name.to_string();
-          }
-        }
+      if let Ok(pkg_content) = std::fs::read_to_string(pkg_path)
+        && let Ok(pkg_json) = serde_json::from_str::<serde_json::Value>(&pkg_content)
+        && let Some(name) = pkg_json.get("name").and_then(|n| n.as_str())
+      {
+        return name.to_string();
       }
       String::new()
     });
@@ -3805,6 +3796,7 @@ impl ExperimentsBuilder {
       inline_const: false,
       inline_enum: false,
       type_reexports_presence: false,
+      lazy_barrel: false,
     })
   }
 }

@@ -18,12 +18,12 @@
  */
 use swc_core::{
   common::{
+    BytePos, DUMMY_SP, Span,
     comments::{Comment, Comments},
-    BytePos, Span, DUMMY_SP,
   },
   ecma::{
     ast::{Module, Script},
-    visit::{noop_visit_mut_type, visit_mut_pass, VisitMut, VisitMutWith},
+    visit::{VisitMut, VisitMutWith, noop_visit_mut_type, visit_mut_pass},
   },
 };
 use swc_node_comments::SwcComments;

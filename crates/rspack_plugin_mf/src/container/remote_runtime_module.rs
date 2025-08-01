@@ -1,7 +1,7 @@
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_runtime_module, ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId,
-  RuntimeModule, RuntimeModuleStage, SourceType,
+  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeModule,
+  RuntimeModuleStage, SourceType, impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
 use serde::Serialize;

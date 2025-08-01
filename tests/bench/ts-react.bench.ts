@@ -1,5 +1,5 @@
 import * as path from "path";
-import { type Chunk, type ChunkGroup, type Compilation, Module, ModuleGraph, NormalModule, rspack } from "@rspack/core";
+import { type Chunk, type ChunkGroup, type Compilation, ExternalItemFunctionData, Module, ModuleGraph, NormalModule, rspack } from "@rspack/core";
 import { beforeAll, bench as vitestBench, describe, type BenchmarkAPI } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
@@ -7,6 +7,7 @@ const BARREL_OPTIMIZATION_PREFIX = '__barrel_optimize__';
 
 let context: string;
 let theCompilation: Compilation;
+let externalContexts: ExternalItemFunctionData[] = [];
 
 // Mark benchmarks on JavaScript files with `js@` prefix
 const bench = ((name, ...args) => vitestBench(typeof name === "function" ? name : `js@${name}`, ...args)) as BenchmarkAPI;
@@ -18,6 +19,7 @@ bench.skipIf = vitestBench.skipIf;
 bench.runIf = vitestBench.runIf;
 
 beforeAll(() => {
+	externalContexts = [];
 	return new Promise((resolve, reject) =>
 		rspack(
 			{
@@ -31,6 +33,12 @@ beforeAll(() => {
 						compiler.hooks.compilation.tap("PLUGIN", compilation => {
 							theCompilation = compilation;
 						});
+					}
+				],
+				externals: [
+					(context, callback) => {
+						externalContexts.push(context);
+						callback();
 					}
 				]
 			},
@@ -234,5 +242,15 @@ describe("TypeScript React project", () => {
 				recordChunkGroup(child)
 			}
 		}
+	});
+
+	bench("external getResolve", async () => {
+		const values: Promise<string>[] = [];
+		for (const { context, request, getResolve } of externalContexts) {
+			const resolve = getResolve!() as ((context: string, request: string) => Promise<string>);
+			const result = resolve(context!, request!);
+			values.push(result);
+		}
+		await Promise.all(values);
 	});
 });

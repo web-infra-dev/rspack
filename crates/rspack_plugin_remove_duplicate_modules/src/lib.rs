@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  incremental::Mutation, ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier,
-  Plugin,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
+  incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

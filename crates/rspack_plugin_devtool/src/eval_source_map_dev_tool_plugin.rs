@@ -4,10 +4,10 @@ use dashmap::DashMap;
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
-  rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Filename, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals,
+  rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -19,8 +19,8 @@ use rspack_plugin_javascript::{
 use rspack_util::identifier::make_paths_absolute;
 
 use crate::{
-  generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
   ModuleFilenameTemplate, ModuleOrSource, SourceMapDevToolPluginOptions,
+  generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
 };
 
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
@@ -203,8 +203,9 @@ async fn eval_source_map_devtool_plugin_render_module_content(
         .to_writer(&mut map_buffer)
         .unwrap_or_else(|e| panic!("{}", e.to_string()));
       let base64 = rspack_base64::encode_to_string(&map_buffer);
-      let footer =
-        format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}\n//# sourceURL=webpack-internal:///{module_id}\n");
+      let footer = format!(
+        "\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}\n//# sourceURL=webpack-internal:///{module_id}\n"
+      );
       let module_content =
         simd_json::to_string(&format!("{source}{footer}")).expect("should convert to string");
       RawStringSource::from(format!(
