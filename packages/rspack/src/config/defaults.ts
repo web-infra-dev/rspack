@@ -195,7 +195,7 @@ const applyInfrastructureLoggingDefaults = (
 ) => {
 	F(infrastructureLogging, "stream", () => process.stderr);
 	const tty =
-		(infrastructureLogging as any).stream.isTTY && process.env.TERM !== "dumb";
+		(infrastructureLogging as any).stream?.isTTY && process.env.TERM !== "dumb";
 	D(infrastructureLogging, "level", "info");
 	D(infrastructureLogging, "debug", false);
 	D(infrastructureLogging, "colors", tty);
