@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
-use rspack_collections::DatabaseItem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
 
@@ -32,7 +31,7 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
       chunks: value
         .chunks
         .iter()
-        .map(|chunk| ChunkWrapper::new(chunk.ukey(), value.compilation))
+        .map(|chunk| ChunkWrapper::new(*chunk, value.compilation))
         .collect(),
       cache_group_key: value.cache_group_key.to_string(),
     }

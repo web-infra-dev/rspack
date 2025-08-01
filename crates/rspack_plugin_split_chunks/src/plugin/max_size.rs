@@ -515,7 +515,7 @@ impl SplitChunksPlugin {
             );
 
             if max_size_setting.is_none()
-              && !(fallback_cache_group.chunks_filter)(chunk, compilation).await?
+              && !(fallback_cache_group.chunks_filter)(&chunk.ukey(), compilation).await?
             {
               tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
               return Ok(None);

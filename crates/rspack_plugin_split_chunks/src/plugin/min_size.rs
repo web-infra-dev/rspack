@@ -1,6 +1,6 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
-use rspack_core::{Compilation, SourceType};
+use rspack_core::{Compilation, ModuleIdentifier, SourceType};
 use rustc_hash::FxHashMap;
 
 use super::ModuleGroupMap;
@@ -67,24 +67,13 @@ impl SplitChunksPlugin {
     })
     .collect::<Box<[_]>>();
 
+    if violating_source_types.is_empty() {
+      return module_group.modules.is_empty();
+    }
+
     // Remove modules having violating SourceType
-    let violating_modules = module_group
-      .modules
-      .iter()
-      .filter_map(|module_id| {
-        let sizes = module_sizes
-          .get(module_id)
-          .expect("should have module size");
-        let having_violating_source_type = violating_source_types
-          .iter()
-          .any(|ty: &SourceType| sizes.contains_key(ty));
-        if having_violating_source_type {
-          Some(*module_id)
-        } else {
-          None
-        }
-      })
-      .collect::<Vec<_>>();
+    let violating_modules =
+      module_group.get_source_types_modules(&violating_source_types, module_sizes);
 
     // question: After removing violating modules, the size of other `SourceType`s of this `ModuleGroup`
     // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
@@ -142,13 +131,17 @@ impl SplitChunksPlugin {
     });
   }
 
-  pub(crate) fn get_module_sizes(compilation: &Compilation) -> ModuleSizes {
+  pub(crate) fn get_module_sizes(
+    all_modules: &[ModuleIdentifier],
+    compilation: &Compilation,
+  ) -> ModuleSizes {
     let module_graph = compilation.get_module_graph();
-    module_graph
-      .modules()
-      .values()
-      .par_bridge()
+    all_modules
+      .par_iter()
       .map(|module| {
+        let module = module_graph
+          .module_by_identifier(module)
+          .expect("should have module");
         let sizes = module
           .source_types(&module_graph)
           .iter()
