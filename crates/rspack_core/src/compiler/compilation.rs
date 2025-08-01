@@ -260,7 +260,7 @@ pub struct Compilation {
   pub chunk_render_artifact: ChunkRenderArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
-  // artiface for caching module static info
+  // artifact for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
   // artifact for chunk render cache
