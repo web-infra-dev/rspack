@@ -919,31 +919,6 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
-export interface JsLoaderContext {
-  resource: string
-  _module: Module
-  hot: Readonly<boolean>
-  /** Content maybe empty in pitching stage */
-  content: null | Buffer
-  additionalData?: any
-  __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
-  cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  loaderItems: Array<JsLoaderItem>
-  loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
-  __internal__error?: RspackError
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
-}
-
 export interface JsLoaderItem {
   loader: string
   type: string
@@ -1491,12 +1466,33 @@ export interface KnownAssetInfo {
 
 export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
 
+export interface LoaderContextFromJs {
+  /** Content maybe empty in pitching stage */
+  content: null | Buffer
+  additionalData?: any
+  __internal__parseMeta: Record<string, string>
+  sourceMap?: Buffer
+  cacheable: boolean
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  loaderItems: Array<JsLoaderItem>
+  loaderIndex: number
+  __internal__error?: RspackError
+  /**
+   * UTF-8 hint for `content`
+   * - Some(true): `content` is a `UTF-8` encoded sequence
+   */
+  __internal__utf8Hint?: boolean
+}
+
 export interface LoaderContextToJs {
   _module: Module
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
   additionalData?: any
-  serializedData: string
+  serializedPart: string
 }
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>

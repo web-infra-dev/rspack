@@ -9,7 +9,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-pub use context::{JsLoaderContext, JsLoaderItem};
+pub use context::{JsLoaderItem, LoaderContextFromJs};
 use napi::{
   bindgen_prelude::*,
   sys::{napi_call_threadsafe_function, napi_threadsafe_function},
@@ -30,7 +30,7 @@ use crate::{
 
 pub type JsLoaderRunner = ThreadsafeFunction<
   LoaderContextToJs,
-  Promise<JsLoaderContext>,
+  Promise<LoaderContextFromJs>,
   LoaderContextToJs,
   Status,
   false,
@@ -64,7 +64,7 @@ extern "C" fn napi_js_callback(
         Object::from_napi_value(env, napi_value)?
       };
       let run_loader = compiler_object
-        .get_named_property::<Function<LoaderContextToJs, Promise<JsLoaderContext>>>(
+        .get_named_property::<Function<LoaderContextToJs, Promise<LoaderContextFromJs>>>(
           "_runLoader",
         )?;
       let ts_fn: JsLoaderRunner = run_loader

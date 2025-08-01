@@ -13,7 +13,7 @@ import assert from "node:assert";
 import querystring from "node:querystring";
 import {
 	formatDiagnostic,
-	type JsLoaderContext,
+	type LoaderContextFromJs,
 	type JsLoaderItem,
 	JsLoaderState,
 	JsRspackSeverity,
@@ -262,17 +262,17 @@ function getCurrentLoader(
 export async function runLoaders(
 	compiler: Compiler,
 	contextToJs: LoaderContextToJs
-): Promise<JsLoaderContext> {
-	const { serializedData, ...rest } = contextToJs;
+): Promise<LoaderContextFromJs> {
+	const { _module, serializedPart, ...contextToJsRest } = contextToJs;
+	const { loaderState, resource, hot, ...serializedPartRest } =
+		JSON.parse(serializedPart);
 	const context = {
-		...rest,
-		...JSON.parse(serializedData)
-	} as JsLoaderContext;
+		...contextToJsRest,
+		...serializedPartRest
+	} as LoaderContextFromJs;
 
-	const loaderState = context.loaderState;
 	const pitch = loaderState === JsLoaderState.Pitching;
 
-	const { resource } = context;
 	const uuid = JavaScriptTracer.uuid();
 
 	JavaScriptTracer.startAsync({
@@ -306,7 +306,7 @@ export async function runLoaders(
 		return LoaderObject.__from_binding(item, compiler);
 	});
 
-	loaderContext.hot = context.hot;
+	loaderContext.hot = hot;
 	loaderContext.context = contextDirectory;
 	loaderContext.resourcePath = resourcePath!;
 	loaderContext.resourceQuery = resourceQuery!;
@@ -418,7 +418,7 @@ export async function runLoaders(
 						options.layer,
 						options.publicPath,
 						options.baseUri,
-						context._module.identifier(),
+						_module.identifier(),
 						loaderContext.context,
 						finalCallback(reject, resolve)
 					);
@@ -429,7 +429,7 @@ export async function runLoaders(
 			options.layer,
 			options.publicPath,
 			options.baseUri,
-			context._module.identifier(),
+			_module.identifier(),
 			loaderContext.context,
 			finalCallback(
 				err => callback(err),
@@ -512,7 +512,7 @@ export async function runLoaders(
 	loaderContext.version = 2;
 	loaderContext.sourceMap = compiler.options.devtool
 		? isUseSourceMap(compiler.options.devtool)
-		: (context._module.useSourceMap ?? false);
+		: (_module.useSourceMap ?? false);
 	loaderContext.mode = compiler.options.mode;
 	Object.assign(loaderContext, compiler.options.loader);
 
@@ -646,7 +646,7 @@ export async function runLoaders(
 					diagnostic.severity === "warning"
 						? `ModuleWarning: ${diagnostic.message}`
 						: `ModuleError: ${diagnostic.message}`,
-				moduleIdentifier: context._module.identifier()
+				moduleIdentifier: _module.identifier()
 			});
 			compiler._lastCompilation!.__internal__pushDiagnostic(
 				formatDiagnostic(d)
@@ -683,7 +683,7 @@ export async function runLoaders(
 
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler._lastCompilation!;
-	loaderContext._module = context._module;
+	loaderContext._module = _module;
 
 	loaderContext.getOptions = () => {
 		const loader = getCurrentLoader(loaderContext);
@@ -1126,7 +1126,7 @@ export async function runLoaders(
 	});
 
 	if (compiler.options.experiments.cache && compiler.options?.cache) {
-		commitCustomFieldsToRust(context._module.buildInfo);
+		commitCustomFieldsToRust(_module.buildInfo);
 	}
 
 	return context;

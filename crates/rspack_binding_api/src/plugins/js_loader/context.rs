@@ -3,7 +3,7 @@ use std::{ptr::NonNull, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{LoaderContext, Module, RunnerContext};
-use rspack_error::{miette::IntoDiagnostic, ToStringResultToRspackResultExt};
+use rspack_error::miette::IntoDiagnostic;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
@@ -89,14 +89,8 @@ impl From<LoaderState> for JsLoaderState {
   }
 }
 
-#[napi(object)]
-pub struct JsLoaderContext {
-  pub resource: String,
-  #[napi(js_name = "_module", ts_type = "Module")]
-  pub module: ModuleObject,
-  #[napi(ts_type = "Readonly<boolean>")]
-  pub hot: bool,
-
+#[napi(object, object_to_js = false)]
+pub struct LoaderContextFromJs {
   /// Content maybe empty in pitching stage
   pub content: Either<Null, Buffer>,
   #[napi(ts_type = "any")]
@@ -112,8 +106,6 @@ pub struct JsLoaderContext {
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
-  #[napi(ts_type = "Readonly<JsLoaderState>")]
-  pub loader_state: JsLoaderState,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
 
@@ -121,71 +113,6 @@ pub struct JsLoaderContext {
   /// - Some(true): `content` is a `UTF-8` encoded sequence
   #[napi(js_name = "__internal__utf8Hint")]
   pub utf8_hint: Option<bool>,
-}
-
-impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
-  type Error = rspack_error::Error;
-
-  fn try_from(
-    cx: &mut rspack_core::LoaderContext<RunnerContext>,
-  ) -> std::result::Result<Self, Self::Error> {
-    let module = unsafe { cx.context.module.as_ref() };
-
-    #[allow(clippy::unwrap_used)]
-    Ok(JsLoaderContext {
-      resource: cx.resource_data.resource.clone(),
-      module: ModuleObject::with_ptr(
-        NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
-        cx.context.compiler_id,
-      ),
-      hot: cx.hot,
-      content: match cx.content() {
-        Some(c) => Either::B(c.to_owned().into_bytes().into()),
-        None => Either::A(Null),
-      },
-      // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
-      // set values from js side to rust side.
-      parse_meta: Default::default(),
-      additional_data: cx
-        .additional_data()
-        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
-        .cloned(),
-      source_map: cx
-        .source_map()
-        .cloned()
-        .map(|v| v.to_json())
-        .transpose()
-        .to_rspack_result()?
-        .map(|v| v.into_bytes().into()),
-      cacheable: cx.cacheable,
-      file_dependencies: cx
-        .file_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      context_dependencies: cx
-        .context_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      missing_dependencies: cx
-        .missing_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      build_dependencies: cx
-        .build_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-
-      loader_items: cx.loader_items.iter().map(Into::into).collect(),
-      loader_index: cx.loader_index,
-      loader_state: cx.state().into(),
-      error: None,
-      utf8_hint: None,
-    })
-  }
 }
 
 #[derive(Serialize)]
@@ -221,7 +148,7 @@ impl<'a> From<&'a rspack_loader_runner::LoaderItem<RunnerContext>> for LoaderIte
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LoaderContextSerializableData<'a> {
+pub struct LoaderContextSerializablePart<'a> {
   pub resource: &'a str,
   pub hot: bool,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -248,7 +175,7 @@ pub struct LoaderContextToJs {
   #[napi(ts_type = "any")]
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
 
-  pub serialized_data: String,
+  pub serialized_part: String,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for LoaderContextToJs {
@@ -259,7 +186,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for LoaderContextToJs {
   ) -> std::result::Result<Self, Self::Error> {
     let module = unsafe { cx.context.module.as_ref() };
 
-    let serialized_data = LoaderContextSerializableData {
+    let serialized_part = LoaderContextSerializablePart {
       resource: &cx.resource_data.resource,
       hot: cx.hot,
       source_map: cx.source_map(),
@@ -309,7 +236,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for LoaderContextToJs {
         .additional_data()
         .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
         .cloned(),
-      serialized_data: serde_json::to_string(&serialized_data).into_diagnostic()?,
+      serialized_part: serde_json::to_string(&serialized_part).into_diagnostic()?,
     })
   }
 }
