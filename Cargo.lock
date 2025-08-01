@@ -3890,7 +3890,6 @@ version = "0.4.11"
 dependencies = [
  "anyhow",
  "async-trait",
- "browserslist-rs",
  "color-backtrace",
  "cow-utils",
  "derive_more 2.0.1",

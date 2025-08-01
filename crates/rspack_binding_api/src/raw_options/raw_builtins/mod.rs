@@ -231,6 +231,7 @@ pub enum BuiltinPluginName {
   CssChunkingPlugin,
 }
 
+#[doc(hidden)]
 pub type CustomPluginBuilder =
   for<'a> fn(env: Env, options: Unknown<'a>) -> napi::Result<BoxPlugin>;
 

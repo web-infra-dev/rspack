@@ -23,7 +23,6 @@ Shared binding API for Rspack, providing bridge interfaces between Rspack core f
 - Any version update may contain breaking changes
 - It is recommended to lock specific version numbers in production environments
 - Please thoroughly test all functionality before upgrading
-- Check [CHANGELOG](../CHANGELOG.md) for specific changes
 
 ## API Usage Warning
 
