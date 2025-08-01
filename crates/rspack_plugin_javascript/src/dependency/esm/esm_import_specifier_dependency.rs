@@ -7,7 +7,7 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ImportAttributes,
+  ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes,
   JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
@@ -184,10 +184,6 @@ impl Dependency for ESMImportSpecifierDependency {
     ConnectionState::Active(false)
   }
 
-  fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    self.get_ids(mg)
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
@@ -266,6 +262,14 @@ impl Dependency for ESMImportSpecifierDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
+  }
+
+  fn forward_id(&self) -> ForwardId {
+    if let Some(id) = self.ids.first() {
+      ForwardId::Id(id.clone())
+    } else {
+      ForwardId::All
+    }
   }
 }
 

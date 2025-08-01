@@ -11,8 +11,9 @@ pub use call_hooks_name::CallHooksName;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier,
-  ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt, TypeReexportPresenceMode,
+  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt,
+  TypeReexportPresenceMode,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -228,6 +229,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) source_file: &'parser SourceFile,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
+  pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
@@ -272,6 +274,7 @@ impl<'parser> JavascriptParser<'parser> {
     module_type: &'parser ModuleType,
     module_layer: Option<&'parser ModuleLayer>,
     resource_data: &'parser ResourceData,
+    factory_meta: Option<&'parser FactoryMeta>,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
@@ -405,6 +408,7 @@ impl<'parser> JavascriptParser<'parser> {
       definitions_db: db,
       plugin_drive,
       resource_data,
+      factory_meta,
       build_meta,
       build_info,
       compiler_options,

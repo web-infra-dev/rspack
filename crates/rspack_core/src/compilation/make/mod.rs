@@ -1,5 +1,6 @@
 mod artifact;
 mod graph_updater;
+mod lazy_barrel_artifact;
 mod module_executor;
 
 use rspack_error::Result;
@@ -7,6 +8,9 @@ use rspack_error::Result;
 pub use self::{
   artifact::{MakeArtifact, MakeArtifactState},
   graph_updater::{UpdateParam, update_module_graph},
+  lazy_barrel_artifact::{
+    ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
+  },
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
 use crate::Compilation;

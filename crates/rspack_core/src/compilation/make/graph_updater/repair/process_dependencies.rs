@@ -13,6 +13,7 @@ pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<DependencyId>,
 }
+
 #[async_trait::async_trait]
 impl Task<TaskContext> for ProcessDependenciesTask {
   fn get_task_type(&self) -> TaskType {

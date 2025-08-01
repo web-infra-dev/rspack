@@ -2376,10 +2376,11 @@ export type Experiments = {
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
-    inlineConst?: boolean;
     nativeWatcher?: boolean;
+    inlineConst?: boolean;
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
+    lazyBarrel?: boolean;
 };
 
 // @public (undocumented)
@@ -2444,6 +2445,8 @@ export interface ExperimentsNormalized {
     inlineEnum?: boolean;
     // (undocumented)
     layers?: boolean;
+    // (undocumented)
+    lazyBarrel?: boolean;
     // (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)

@@ -5,7 +5,7 @@ mod compilation;
 mod exports;
 pub use artifacts::*;
 pub use binding::*;
-pub use compilation::make::ExecuteModuleId;
+pub use compilation::make::{ExecuteModuleId, ForwardId, LazyUntil};
 pub use exports::*;
 mod dependencies_block;
 pub mod diagnostics;

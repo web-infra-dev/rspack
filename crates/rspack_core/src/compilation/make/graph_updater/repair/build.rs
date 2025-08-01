@@ -1,11 +1,15 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rustc_hash::FxHashSet;
 
-use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
+use super::{
+  TaskContext, lazy::ProcessUnlazyDependenciesTask, process_dependencies::ProcessDependenciesTask,
+};
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  compilation::make::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -19,6 +23,7 @@ pub struct BuildTask {
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub forwarded_ids: ForwardedIdSet,
 }
 
 #[async_trait::async_trait]
@@ -36,6 +41,7 @@ impl Task<TaskContext> for BuildTask {
       current_profile,
       mut module,
       fs,
+      forwarded_ids,
     } = *self;
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_start();
@@ -71,6 +77,7 @@ impl Task<TaskContext> for BuildTask {
         build_result: Box::new(build_result),
         plugin_driver,
         current_profile,
+        forwarded_ids,
       })]
     })
   }
@@ -82,7 +89,9 @@ struct BuildResultTask {
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub forwarded_ids: ForwardedIdSet,
 }
+
 #[async_trait::async_trait]
 impl Task<TaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
@@ -94,6 +103,7 @@ impl Task<TaskContext> for BuildResultTask {
       build_result,
       current_profile,
       plugin_driver,
+      mut forwarded_ids,
     } = *self;
 
     plugin_driver
@@ -128,6 +138,7 @@ impl Task<TaskContext> for BuildResultTask {
       .build_dependencies
       .add_batch_file(&build_info.build_dependencies);
 
+    let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
@@ -136,6 +147,11 @@ impl Task<TaskContext> for BuildResultTask {
      -> Vec<Box<AsyncDependenciesBlock>> {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
+        if context.compiler_options.experiments.lazy_barrel
+          && let Some(until) = dependency.lazy()
+        {
+          lazy_dependencies.insert(&dependency, until);
+        }
         if current_block.is_none() {
           module.add_dependency_id(dependency_id);
         }
@@ -179,9 +195,42 @@ impl Task<TaskContext> for BuildResultTask {
 
     module_graph.add_module(module);
 
-    Ok(vec![Box::new(ProcessDependenciesTask {
-      dependencies: all_dependencies,
+    let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
+
+    let dependencies_to_process = if !lazy_dependencies.is_empty() {
+      let lazy_dependency_ids = lazy_dependencies
+        .all_lazy_dependencies()
+        .collect::<FxHashSet<_>>();
+      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
+
+      if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
+        .artifact
+        .module_to_lazy_make
+        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies))
+      {
+        forwarded_ids.append(pending_forwarded_ids);
+      }
+      if !forwarded_ids.is_empty() {
+        tasks.push(Box::new(ProcessUnlazyDependenciesTask {
+          forwarded_ids,
+          original_module_identifier: module_identifier,
+        }));
+      }
+
+      all_dependencies
+    } else {
+      context
+        .artifact
+        .module_to_lazy_make
+        .update_module_lazy_dependencies(module_identifier, None);
+      all_dependencies
+    };
+
+    tasks.push(Box::new(ProcessDependenciesTask {
+      dependencies: dependencies_to_process,
       original_module_identifier: module_identifier,
-    })])
+    }));
+
+    Ok(tasks)
   }
 }

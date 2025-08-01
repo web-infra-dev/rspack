@@ -14,6 +14,7 @@
     "build:js:canary": "pnpm --filter \"@rspack-canary/core\" build && pnpm --parallel --filter \"@rspack-canary/*\" --filter \"create-rspack-canary\" --filter \"!@rspack-canary/core\" build",
     "build:cli:dev": "npm run build:binding:dev && npm run build:js",
     "build:cli:dev:wasm": "pnpm --filter @rspack/binding build:dev:wasm && npm run build:js",
+    "build:cli:dev:browser": "pnpm --filter @rspack/binding build:dev:browser && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
     "build:cli:release:arm64": "pnpm --filter @rspack/binding build:release:arm64 && npm run build:js",
@@ -21,6 +22,7 @@
     "build:cli:release:linux": "pnpm --filter @rspack/binding build:release:linux && npm run build:js",
     "build:cli:release:win": "pnpm --filter @rspack/binding build:release:win && npm run build:js",
     "build:cli:release:wasm": "pnpm --filter @rspack/binding build:release:wasm && npm run build:js",
+    "build:cli:release:browser": "pnpm --filter @rspack/binding build:release:browser && npm run build:js",
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
     "format:js": "pnpm run format-ci:js --write",
@@ -30,7 +32,7 @@
     "lint:js": "pnpm run lint-ci:js --write",
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
-    "lint:type": "rslint --config rslint.json",
+    "lint:type": "rslint --config rslint.json --max-warnings=1974",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:ci": "pnpm --filter @rspack/binding run build:ci",
@@ -84,7 +86,7 @@
     "typescript": "^5.8.3",
     "webpack": "5.99.9",
     "zx": "8.7.1",
-    "@rslint/core": "0.0.15"
+    "@rslint/core": "0.1.0"
   },
   "packageManager": "pnpm@10.10.0",
   "pnpm": {

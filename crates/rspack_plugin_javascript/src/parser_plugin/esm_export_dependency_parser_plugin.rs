@@ -47,7 +47,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let span = statement.span();
     let clean_dep = ConstDependency::new(span.into(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
-    let side_effect_dep = ESMImportSideEffectDependency::new(
+    let mut side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       span.into(),
@@ -55,7 +55,16 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       DependencyType::EsmExport,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
+      statement.is_star_export(),
     );
+    if parser.compiler_options.experiments.lazy_barrel
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
+    {
+      side_effect_dep.set_lazy();
+    }
     parser.dependencies.push(Box::new(side_effect_dep));
     Some(true)
   }
@@ -156,7 +165,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
-    let dep = ESMExportImportedSpecifierDependency::new(
+    let mut dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
@@ -173,6 +182,14 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let is_asi_safe = !parser.is_asi_position(statement.span_lo());
     if !is_asi_safe {
       parser.set_asi_position(statement.span_hi());
+    }
+    if parser.compiler_options.experiments.lazy_barrel
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
+    {
+      dep.set_lazy();
     }
     parser.dependencies.push(Box::new(dep));
     Some(true)

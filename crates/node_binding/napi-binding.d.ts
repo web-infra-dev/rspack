@@ -2111,6 +2111,7 @@ useInputFileSystem?: false | Array<RegExp>
 inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
+lazyBarrel: boolean
 }
 
 export interface RawExperimentSnapshotOptions {

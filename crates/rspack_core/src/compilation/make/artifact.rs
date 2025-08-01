@@ -4,7 +4,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  utils::FileCounter,
+  compilation::make::ModuleToLazyMake, utils::FileCounter,
 };
 
 /// Enum used to mark whether module graph has been built.
@@ -53,7 +53,7 @@ pub struct MakeArtifact {
   pub state: MakeArtifactState,
   /// Module graph data
   pub module_graph_partial: ModuleGraphPartial,
-
+  pub module_to_lazy_make: ModuleToLazyMake,
   // statistical data, which can be regenerated from module_graph_partial and used as index.
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,

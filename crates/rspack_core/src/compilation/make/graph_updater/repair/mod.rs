@@ -2,6 +2,7 @@ pub mod add;
 pub mod build;
 pub mod context;
 pub mod factorize;
+pub mod lazy;
 pub mod process_dependencies;
 
 use rspack_error::Result;

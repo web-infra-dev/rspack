@@ -105,25 +105,6 @@ pub struct RawExternalItemFnCtxData<'a> {
   pub context_info: &'a ContextInfo,
 }
 
-#[derive(Debug, Clone)]
-struct ResolveClosureContextInner {
-  first: Arc<ResolveOptionsWithDependencyType>,
-  second: Arc<ResolveOptionsWithDependencyType>,
-  resolver_factory: Arc<ResolverFactory>,
-}
-
-#[derive(Debug, Clone)]
-struct ResolveClosureContext {
-  i: Option<ResolveClosureContextInner>,
-}
-
-impl Drop for ResolveClosureContext {
-  fn drop(&mut self) {
-    let inner = self.i.take();
-    rayon::spawn(move || drop(inner));
-  }
-}
-
 #[derive(Debug)]
 struct RawExternalItemFnCtxInner {
   request: String,
@@ -177,13 +158,6 @@ impl RawExternalItemFnCtx {
         .map_err(|e| napi::Error::from_reason(e.to_string()))?,
     );
     let resolver_factory = inner.resolver_factory.clone();
-    let resolve_closure_context = ResolveClosureContext {
-      i: Some(ResolveClosureContextInner {
-        first,
-        second,
-        resolver_factory,
-      }),
-    };
 
     let f: Function<(String, String, Function<'static>), ()> =
       env.create_function_from_closure("resolve", move |ctx: FunctionCallContext| {
@@ -191,18 +165,13 @@ impl RawExternalItemFnCtx {
         let request = ctx.get::<String>(1)?;
         let callback = ctx.get::<Function<'static>>(2)?;
 
-        let resolve_closure_context = resolve_closure_context.clone();
+        let first = first.clone();
+        let second = second.clone();
+        let resolver_factory = resolver_factory.clone();
 
         callbackify(
           callback,
           async move {
-            #[allow(clippy::unwrap_used)]
-            let ResolveClosureContextInner {
-              first,
-              second,
-              resolver_factory,
-            } = resolve_closure_context.i.as_ref().unwrap();
-
             let merged_resolve_options = match second.resolve_options.as_ref() {
               Some(second_resolve_options) => match first.resolve_options.as_ref() {
                 Some(first_resolve_options) => Some(Box::new(
