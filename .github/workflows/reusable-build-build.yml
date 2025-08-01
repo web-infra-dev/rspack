@@ -188,6 +188,15 @@ jobs:
           wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
 
+      # Browser Release (use profile = release-wasi) + wasm-opt
+      - name: Build Browser wasm32-wasip1-threads(release-wasi) with linux in Docker
+        if: ${{ inputs.target == 'browser' && inputs.profile == 'release' }}
+        run: |
+          pnpm --filter @rspack/binding build:release:browser
+          npm install -g binaryen
+          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
+          mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
+
       - name: Diff artifact
         run: |
           export EXCLUDE=":(exclude).cargo/config.toml" 
@@ -201,3 +210,4 @@ jobs:
             crates/node_binding/*.node
             crates/node_binding/*.d.ts
             crates/node_binding/rspack.wasm32-wasi.wasm
+            crates/node_binding/rspack.browser.wasm
