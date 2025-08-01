@@ -32,8 +32,8 @@ importers:
         specifier: 7.30.7
         version: 7.30.7(@types/node@20.19.9)
       '@rslint/core':
-        specifier: 0.0.15
-        version: 0.0.15
+        specifier: 0.1.0
+        version: 0.1.0
       '@rspack/cli':
         specifier: workspace:*
         version: link:packages/rspack-cli
@@ -2675,37 +2675,37 @@ packages:
       typescript:
         optional: true
 
-  '@rslint/core@0.0.15':
-    resolution: {integrity: sha512-U6NBznW5Ycy8Q9zzzdj+DZW+gXiZ7BLtYwzzYybgchn5xIV7JcKC/wVHmE64mXAq5AdcN9NYcLBK6mkb8bXHCQ==}
+  '@rslint/core@0.1.0':
+    resolution: {integrity: sha512-B+Zybh0unMFl8JtlPeRbA9rdenE7EHCvliumA/V5HNAj2BHutRTEpUIyBIlpVTv+whCJ+7I+IHuIfuseHulncw==}
     hasBin: true
 
-  '@rslint/darwin-arm64@0.0.15':
-    resolution: {integrity: sha512-eBn9Fi52YHYyaTGwxN+CS+vX4K5CzoMRFeXCz/xplV67/k9s1QPtlWPJh9hK9Zu3/ijqMC7c5oE0/mhJn965ig==}
+  '@rslint/darwin-arm64@0.1.0':
+    resolution: {integrity: sha512-Os4i54CAtri0CngBDFsakkIiDtnfXHtjjn8dry8+k/rA+5mqIpsH6v1a3YbvrsmR/PfQHTJvCDRq9uelwiOb3w==}
     cpu: [arm64]
     os: [darwin]
 
-  '@rslint/darwin-x64@0.0.15':
-    resolution: {integrity: sha512-PxRu09Q3b3iyTLa47bMsixp5ms3KGRzRfjezeCx/LgWWBYXoNCJmUcDRpuDzAhVf3huxe1f2haVuYkkLYsTm/Q==}
+  '@rslint/darwin-x64@0.1.0':
+    resolution: {integrity: sha512-891xIpAoTewWZOiZ/xS94//Ck92HWHfx4BunyxklKqnVOQbp3W0PFv+rcnn1CKwMpEEzQ0PuO0v7zVGsZrmb0Q==}
     cpu: [x64]
     os: [darwin]
 
-  '@rslint/linux-arm64@0.0.15':
-    resolution: {integrity: sha512-GiEaFJInBvm6KPDZaXBmYbQ9qkbW6Yrwj8/5lMus77Rav1uHvrF/aCK6DV6vOW3aoLyyNPutGgHy9dwKsNJmjQ==}
+  '@rslint/linux-arm64@0.1.0':
+    resolution: {integrity: sha512-Ixvu7Wg3XEdzyUVTEF4GmSeA9g2IkWBAu64jgwE8dFnt+u/efB1mBR9jGg1DR8a4zGg+OfLqJ9BtsHAdIEUl0A==}
     cpu: [arm64]
     os: [linux]
 
-  '@rslint/linux-x64@0.0.15':
-    resolution: {integrity: sha512-NuSrJpyXkT/n+tL/jBcfvAgr3NmasGkLQfky2eECP9f6xPbMiyEbrJuKzecX8XaRpY1R/prW1sx1YXUMx6OKlg==}
+  '@rslint/linux-x64@0.1.0':
+    resolution: {integrity: sha512-M2hL3/3/lI4BeVY/Tu4N/SOKFHVJ1JMVyjcPH0xUVJAsvht8XnTxeC+wZioupRLUolzaSXaVtHsTtGJZ0sqK8Q==}
     cpu: [x64]
     os: [linux]
 
-  '@rslint/win32-arm64@0.0.15':
-    resolution: {integrity: sha512-N63m6/R0Auaqkf0HUtNmIFL37eEi/PtAP7JqXjTGOJv/2/ChRcYvh+L5T2bzhnh8swBnFD5gNV9GtfbnADPw2g==}
+  '@rslint/win32-arm64@0.1.0':
+    resolution: {integrity: sha512-227HHJvY50nylYLebpUvLwJ1a/s8v8tNHWlwgofpWJP68ZeCL8e34MIJqNSCUNgY4kmlrNFk8IMkP3VRrafR/g==}
     cpu: [arm64]
     os: [win32]
 
-  '@rslint/win32-x64@0.0.15':
-    resolution: {integrity: sha512-+gvPNDo6UgcMyP6R0+S7HhDdrSIVyUH4UgVGhqzgsJHJ9W9ubLHFupo77IpuF0Ke79Ak8MMOXKyk+0Mx6ambsQ==}
+  '@rslint/win32-x64@0.1.0':
+    resolution: {integrity: sha512-HUJaeyYu6UZ75WkiXMoYefPtyPz63WitvdWnu/B8dOiofqcVfqnh1RMPImujROYy7qfhbfR0PuwxoO4jT6zqoA==}
     cpu: [x64]
     os: [win32]
 
@@ -10180,31 +10180,31 @@ snapshots:
       '@microsoft/api-extractor': 7.52.9(@types/node@24.1.0)
       typescript: 5.8.3
 
-  '@rslint/core@0.0.15':
+  '@rslint/core@0.1.0':
     optionalDependencies:
-      '@rslint/darwin-arm64': 0.0.15
-      '@rslint/darwin-x64': 0.0.15
-      '@rslint/linux-arm64': 0.0.15
-      '@rslint/linux-x64': 0.0.15
-      '@rslint/win32-arm64': 0.0.15
-      '@rslint/win32-x64': 0.0.15
+      '@rslint/darwin-arm64': 0.1.0
+      '@rslint/darwin-x64': 0.1.0
+      '@rslint/linux-arm64': 0.1.0
+      '@rslint/linux-x64': 0.1.0
+      '@rslint/win32-arm64': 0.1.0
+      '@rslint/win32-x64': 0.1.0
 
-  '@rslint/darwin-arm64@0.0.15':
+  '@rslint/darwin-arm64@0.1.0':
     optional: true
 
-  '@rslint/darwin-x64@0.0.15':
+  '@rslint/darwin-x64@0.1.0':
     optional: true
 
-  '@rslint/linux-arm64@0.0.15':
+  '@rslint/linux-arm64@0.1.0':
     optional: true
 
-  '@rslint/linux-x64@0.0.15':
+  '@rslint/linux-x64@0.1.0':
     optional: true
 
-  '@rslint/win32-arm64@0.0.15':
+  '@rslint/win32-arm64@0.1.0':
     optional: true
 
-  '@rslint/win32-x64@0.0.15':
+  '@rslint/win32-x64@0.1.0':
     optional: true
 
   '@rspack/binding-darwin-arm64@1.4.10':
