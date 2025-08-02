@@ -2,10 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use rspack_core::{
-  rspack_sources::{RawSource, SourceExt},
   ApplyContext, AssetInfo, ChunkGraph, Compilation, CompilationAfterProcessAssets,
   CompilationAsset, CompilerOptions, DependenciesBlock, DependencyType, ExtendedReferencedExport,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin, PluginContext,
+  rspack_sources::{RawSource, SourceExt},
 };
 use rspack_error::{Error, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -73,54 +73,53 @@ impl ShareUsagePlugin {
     let module_graph = compilation.get_module_graph();
 
     for module_id in module_graph.modules().keys() {
-      if let Some(module) = module_graph.module_by_identifier(module_id) {
-        if module.module_type() == &ModuleType::ConsumeShared {
-          if let Some(share_key) = module.get_consume_shared_key() {
-            let result =
-              if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
-                let (used_exports, provided_exports) =
-                  self.analyze_module_usage(&module_graph, &fallback_id, module_id);
+      if let Some(module) = module_graph.module_by_identifier(module_id)
+        && module.module_type() == &ModuleType::ConsumeShared
+        && let Some(share_key) = module.get_consume_shared_key()
+      {
+        let result =
+          if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
+            let (used_exports, provided_exports) =
+              self.analyze_module_usage(&module_graph, &fallback_id, module_id);
 
-                let entry_module_id =
-                  ChunkGraph::get_module_id(&compilation.module_ids_artifact, fallback_id)
-                    .map(|id| id.to_string());
+            let entry_module_id =
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, fallback_id)
+                .map(|id| id.to_string());
 
-                let (usage, chunk_characteristics) = self.get_single_chunk_characteristics(
-                  compilation,
-                  &fallback_id,
-                  entry_module_id,
-                  used_exports,
-                  provided_exports,
-                );
+            let (usage, chunk_characteristics) = self.get_single_chunk_characteristics(
+              compilation,
+              &fallback_id,
+              entry_module_id,
+              used_exports,
+              provided_exports,
+            );
 
-                ModuleExportUsage {
-                  exports: usage,
-                  chunk_characteristics,
-                }
-              } else {
-                ModuleExportUsage {
-                  exports: HashMap::new(),
-                  chunk_characteristics: ChunkCharacteristics {
-                    entry_module_id: None,
-                    is_runtime_chunk: false,
-                    has_runtime: false,
-                    is_entrypoint: false,
-                    can_be_initial: false,
-                    is_only_initial: false,
-                    chunk_format: None,
-                    chunk_loading_type: None,
-                    runtime_names: Vec::new(),
-                    entry_name: None,
-                    has_async_chunks: false,
-                    chunk_files: Vec::new(),
-                    shared_modules: Vec::new(),
-                  },
-                }
-              };
+            ModuleExportUsage {
+              exports: usage,
+              chunk_characteristics,
+            }
+          } else {
+            ModuleExportUsage {
+              exports: HashMap::new(),
+              chunk_characteristics: ChunkCharacteristics {
+                entry_module_id: None,
+                is_runtime_chunk: false,
+                has_runtime: false,
+                is_entrypoint: false,
+                can_be_initial: false,
+                is_only_initial: false,
+                chunk_format: None,
+                chunk_loading_type: None,
+                runtime_names: Vec::new(),
+                entry_name: None,
+                has_async_chunks: false,
+                chunk_files: Vec::new(),
+                shared_modules: Vec::new(),
+              },
+            }
+          };
 
-            usage_map.insert(share_key, result);
-          }
-        }
+        usage_map.insert(share_key, result);
       }
     }
 
@@ -247,24 +246,22 @@ impl ShareUsagePlugin {
   ) -> Option<ModuleIdentifier> {
     if let Some(module) = module_graph.module_by_identifier(consume_shared_id) {
       for dep_id in module.get_dependencies() {
-        if let Some(dep) = module_graph.dependency_by_id(dep_id) {
-          if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
-            if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-              return Some(*fallback_id);
-            }
-          }
+        if let Some(dep) = module_graph.dependency_by_id(dep_id)
+          && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+          && let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id)
+        {
+          return Some(*fallback_id);
         }
       }
 
       for block_id in module.get_blocks() {
         if let Some(block) = module_graph.block_by_id(block_id) {
           for dep_id in block.get_dependencies() {
-            if let Some(dep) = module_graph.dependency_by_id(dep_id) {
-              if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
-                if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-                  return Some(*fallback_id);
-                }
-              }
+            if let Some(dep) = module_graph.dependency_by_id(dep_id)
+              && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+              && let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id)
+            {
+              return Some(*fallback_id);
             }
           }
         }
@@ -294,37 +291,36 @@ impl ShareUsagePlugin {
     }
 
     // If we have chunks, use the first one for characteristics
-    if let Some(&chunk_ukey) = chunks.iter().next() {
-      if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
-        let chunk_groups: Vec<rspack_core::ChunkGroupUkey> =
-          chunk.groups().iter().copied().collect();
+    if let Some(&chunk_ukey) = chunks.iter().next()
+      && let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey)
+    {
+      let chunk_groups: Vec<rspack_core::ChunkGroupUkey> = chunk.groups().iter().copied().collect();
 
-        let (_, shared_modules) = self.analyze_shared_chunk(compilation, &chunk_ukey);
+      let (_, shared_modules) = self.analyze_shared_chunk(compilation, &chunk_ukey);
 
-        return (
-          usage,
-          ChunkCharacteristics {
-            entry_module_id,
-            is_runtime_chunk: chunk.has_runtime(&compilation.chunk_group_by_ukey),
-            has_runtime: chunk.has_runtime(&compilation.chunk_group_by_ukey),
-            is_entrypoint: chunk_groups.iter().any(|&group_ukey| {
-              compilation
-                .chunk_group_by_ukey
-                .get(&group_ukey)
-                .is_some_and(|group| group.kind.is_entrypoint())
-            }),
-            can_be_initial: chunk.can_be_initial(&compilation.chunk_group_by_ukey),
-            is_only_initial: chunk.is_only_initial(&compilation.chunk_group_by_ukey),
-            chunk_format: self.determine_chunk_format(compilation, &chunk_ukey),
-            chunk_loading_type: self.get_chunk_loading_type(compilation, &chunk_groups),
-            runtime_names: chunk.runtime().iter().map(|s| s.to_string()).collect(),
-            entry_name: self.get_entry_name(compilation, &chunk_groups),
-            has_async_chunks: chunk.has_async_chunks(&compilation.chunk_group_by_ukey),
-            chunk_files: chunk.files().iter().map(|s| s.to_string()).collect(),
-            shared_modules,
-          },
-        );
-      }
+      return (
+        usage,
+        ChunkCharacteristics {
+          entry_module_id,
+          is_runtime_chunk: chunk.has_runtime(&compilation.chunk_group_by_ukey),
+          has_runtime: chunk.has_runtime(&compilation.chunk_group_by_ukey),
+          is_entrypoint: chunk_groups.iter().any(|&group_ukey| {
+            compilation
+              .chunk_group_by_ukey
+              .get(&group_ukey)
+              .is_some_and(|group| group.kind.is_entrypoint())
+          }),
+          can_be_initial: chunk.can_be_initial(&compilation.chunk_group_by_ukey),
+          is_only_initial: chunk.is_only_initial(&compilation.chunk_group_by_ukey),
+          chunk_format: self.determine_chunk_format(compilation, &chunk_ukey),
+          chunk_loading_type: self.get_chunk_loading_type(compilation, &chunk_groups),
+          runtime_names: chunk.runtime().iter().map(|s| s.to_string()).collect(),
+          entry_name: self.get_entry_name(compilation, &chunk_groups),
+          has_async_chunks: chunk.has_async_chunks(&compilation.chunk_group_by_ukey),
+          chunk_files: chunk.files().iter().map(|s| s.to_string()).collect(),
+          shared_modules,
+        },
+      );
     }
 
     // Fallback if no chunks found
@@ -392,12 +388,11 @@ impl ShareUsagePlugin {
     if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
       // Check chunk groups to find entry options with chunk loading configuration
       for &group_ukey in chunk.groups().iter() {
-        if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey) {
-          if let Some(entry_options) = group.kind.get_entry_options() {
-            if let Some(chunk_loading) = &entry_options.chunk_loading {
-              return Some(self.chunk_loading_to_format(chunk_loading));
-            }
-          }
+        if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey)
+          && let Some(entry_options) = group.kind.get_entry_options()
+          && let Some(chunk_loading) = &entry_options.chunk_loading
+        {
+          return Some(self.chunk_loading_to_format(chunk_loading));
         }
       }
 
@@ -439,12 +434,11 @@ impl ShareUsagePlugin {
   ) -> Option<String> {
     // Extract chunk loading type from entry options
     for &group_ukey in chunk_groups {
-      if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey) {
-        if let Some(entry_options) = group.kind.get_entry_options() {
-          if let Some(chunk_loading) = &entry_options.chunk_loading {
-            return Some(String::from(chunk_loading.clone()));
-          }
-        }
+      if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey)
+        && let Some(entry_options) = group.kind.get_entry_options()
+        && let Some(chunk_loading) = &entry_options.chunk_loading
+      {
+        return Some(String::from(chunk_loading.clone()));
       }
     }
     None
@@ -456,10 +450,10 @@ impl ShareUsagePlugin {
     chunk_groups: &[rspack_core::ChunkGroupUkey],
   ) -> Option<String> {
     for &group_ukey in chunk_groups {
-      if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey) {
-        if let Some(entry_options) = group.kind.get_entry_options() {
-          return entry_options.name.clone();
-        }
+      if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey)
+        && let Some(entry_options) = group.kind.get_entry_options()
+      {
+        return entry_options.name.clone();
       }
     }
     None
