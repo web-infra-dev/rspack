@@ -25,7 +25,6 @@ pub struct ChunkCharacteristics {
   pub entry_name: Option<String>,
   pub has_async_chunks: bool,
   pub chunk_files: Vec<String>,
-  pub is_shared_chunk: bool,
   pub shared_modules: Vec<String>,
 }
 
@@ -114,7 +113,6 @@ impl ShareUsagePlugin {
                     entry_name: None,
                     has_async_chunks: false,
                     chunk_files: Vec::new(),
-                    is_shared_chunk: false,
                     shared_modules: Vec::new(),
                   },
                 }
@@ -301,7 +299,7 @@ impl ShareUsagePlugin {
         let chunk_groups: Vec<rspack_core::ChunkGroupUkey> =
           chunk.groups().iter().copied().collect();
 
-        let (is_shared_chunk, shared_modules) = self.analyze_shared_chunk(compilation, &chunk_ukey);
+        let (_, shared_modules) = self.analyze_shared_chunk(compilation, &chunk_ukey);
 
         return (
           usage,
@@ -323,7 +321,6 @@ impl ShareUsagePlugin {
             entry_name: self.get_entry_name(compilation, &chunk_groups),
             has_async_chunks: chunk.has_async_chunks(&compilation.chunk_group_by_ukey),
             chunk_files: chunk.files().iter().map(|s| s.to_string()).collect(),
-            is_shared_chunk,
             shared_modules,
           },
         );
@@ -346,7 +343,6 @@ impl ShareUsagePlugin {
         entry_name: None,
         has_async_chunks: false,
         chunk_files: Vec::new(),
-        is_shared_chunk: false,
         shared_modules: Vec::new(),
       },
     )
