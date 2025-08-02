@@ -1,8 +1,8 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
 use napi::{
-  bindgen_prelude::{Either4, Function, FunctionCallContext, Promise},
   Either, Env,
+  bindgen_prelude::{Either4, Function, FunctionCallContext, Object, Promise, ToNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{
@@ -14,8 +14,8 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  callbackify, normalize_raw_resolve_options_with_dependency_type, ErrorCode,
-  RawResolveOptionsWithDependencyType, ResolveRequest,
+  ErrorCode, RawResolveOptionsWithDependencyType, ResolveRequest, callbackify,
+  normalize_raw_resolve_options_with_dependency_type,
 };
 
 #[napi(object)]
@@ -79,35 +79,66 @@ pub struct ContextInfo {
   pub issuer_layer: Option<String>,
 }
 
+impl ToNapiValue for &ContextInfo {
+  unsafe fn to_napi_value(
+    env: napi::sys::napi_env,
+    val: Self,
+  ) -> napi::Result<napi::sys::napi_value> {
+    unsafe {
+      let env_wrapper = Env::from(env);
+      let mut obj = Object::new(&env_wrapper)?;
+      obj.set("issuer", &val.issuer)?;
+      if let Some(issuer_layer) = &val.issuer_layer {
+        obj.set("issuerLayer", issuer_layer)?;
+      }
+      ToNapiValue::to_napi_value(env, obj)
+    }
+  }
+}
+
 #[derive(Debug)]
-#[napi]
-pub struct RawExternalItemFnCtx {
+#[napi(object, object_from_js = false)]
+pub struct RawExternalItemFnCtxData<'a> {
+  pub request: &'a str,
+  pub context: &'a str,
+  pub dependency_type: &'a str,
+  pub context_info: &'a ContextInfo,
+}
+
+#[derive(Debug)]
+struct RawExternalItemFnCtxInner {
   request: String,
   context: String,
   dependency_type: String,
   context_info: ContextInfo,
-  resolve_options_with_dependency_type: ResolveOptionsWithDependencyType,
+  resolve_options_with_dependency_type: Arc<ResolveOptionsWithDependencyType>,
   resolver_factory: Arc<ResolverFactory>,
 }
 
 #[derive(Debug)]
-#[napi(object)]
-pub struct RawExternalItemFnCtxData {
-  pub request: String,
-  pub context: String,
-  pub dependency_type: String,
-  pub context_info: ContextInfo,
+#[napi]
+pub struct RawExternalItemFnCtx {
+  i: Option<RawExternalItemFnCtxInner>,
+}
+
+impl Drop for RawExternalItemFnCtx {
+  fn drop(&mut self) {
+    let inner = self.i.take();
+    rayon::spawn(move || drop(inner));
+  }
 }
 
 #[napi]
 impl RawExternalItemFnCtx {
   #[napi]
-  pub fn data(&self) -> RawExternalItemFnCtxData {
+  pub fn data(&self) -> RawExternalItemFnCtxData<'_> {
+    #[allow(clippy::unwrap_used)]
+    let inner = self.i.as_ref().unwrap();
     RawExternalItemFnCtxData {
-      request: self.request.clone(),
-      context: self.context.clone(),
-      dependency_type: self.dependency_type.clone(),
-      context_info: self.context_info.clone(),
+      request: inner.request.as_str(),
+      context: inner.context.as_str(),
+      dependency_type: inner.dependency_type.as_str(),
+      context_info: &inner.context_info,
     }
   }
 
@@ -119,12 +150,14 @@ impl RawExternalItemFnCtx {
     env: &'a Env,
     options: Option<RawResolveOptionsWithDependencyType>,
   ) -> napi::Result<Function<'a, (String, String, Function<'static>), ()>> {
-    let first = Arc::new(self.resolve_options_with_dependency_type.clone());
+    #[allow(clippy::unwrap_used)]
+    let inner = self.i.as_ref().unwrap();
+    let first = inner.resolve_options_with_dependency_type.clone();
     let second = Arc::new(
       normalize_raw_resolve_options_with_dependency_type(options, first.resolve_to_context)
         .map_err(|e| napi::Error::from_reason(e.to_string()))?,
     );
-    let resolver_factory = self.resolver_factory.clone();
+    let resolver_factory = inner.resolver_factory.clone();
 
     let f: Function<(String, String, Function<'static>), ()> =
       env.create_function_from_closure("resolve", move |ctx: FunctionCallContext| {
@@ -132,29 +165,29 @@ impl RawExternalItemFnCtx {
         let request = ctx.get::<String>(1)?;
         let callback = ctx.get::<Function<'static>>(2)?;
 
-        let first_clone = first.clone();
-        let second_clone = second.clone();
+        let first = first.clone();
+        let second = second.clone();
         let resolver_factory = resolver_factory.clone();
 
         callbackify(
           callback,
           async move {
-            let merged_resolve_options = match second_clone.resolve_options.as_ref() {
-              Some(second_resolve_options) => match first_clone.resolve_options.as_ref() {
-                Some(resolve_options) => Some(Box::new(
-                  resolve_options
+            let merged_resolve_options = match second.resolve_options.as_ref() {
+              Some(second_resolve_options) => match first.resolve_options.as_ref() {
+                Some(first_resolve_options) => Some(Box::new(
+                  first_resolve_options
                     .clone()
                     .merge(*second_resolve_options.clone()),
                 )),
                 None => Some(second_resolve_options.clone()),
               },
-              None => first_clone.resolve_options.clone(),
+              None => first.as_ref().resolve_options.clone(),
             };
 
             let merged_options = ResolveOptionsWithDependencyType {
               resolve_options: merged_resolve_options,
-              resolve_to_context: first_clone.resolve_to_context,
-              dependency_category: first_clone.dependency_category,
+              resolve_to_context: first.resolve_to_context,
+              dependency_category: first.dependency_category,
             };
             let resolver = resolver_factory.get(merged_options);
 
@@ -185,15 +218,17 @@ impl RawExternalItemFnCtx {
 impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
   fn from(value: ExternalItemFnCtx) -> Self {
     Self {
-      request: value.request,
-      dependency_type: value.dependency_type,
-      context: value.context,
-      context_info: ContextInfo {
-        issuer: value.context_info.issuer,
-        issuer_layer: value.context_info.issuer_layer,
-      },
-      resolve_options_with_dependency_type: value.resolve_options_with_dependency_type,
-      resolver_factory: value.resolver_factory,
+      i: Some(RawExternalItemFnCtxInner {
+        request: value.request,
+        dependency_type: value.dependency_type,
+        context: value.context,
+        context_info: ContextInfo {
+          issuer: value.context_info.issuer,
+          issuer_layer: value.context_info.issuer_layer,
+        },
+        resolve_options_with_dependency_type: Arc::new(value.resolve_options_with_dependency_type),
+        resolver_factory: value.resolver_factory,
+      }),
     }
   }
 }

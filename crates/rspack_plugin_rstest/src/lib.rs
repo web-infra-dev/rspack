@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 mod import_dependency;
 mod mock_method_dependency;
 mod mock_module_id_dependency;

@@ -5,17 +5,17 @@ use rspack_error::{
   DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
   ToStringResultToRspackResultExt,
 };
-use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceFile, SourceMap, GLOBALS};
+use swc_core::common::{FileName, FilePathMapping, GLOBALS, SourceFile, SourceMap, sync::Lrc};
 use swc_html::{
   ast::Document,
   codegen::{
-    writer::basic::{BasicHtmlWriter, BasicHtmlWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
+    writer::basic::{BasicHtmlWriter, BasicHtmlWriterConfig},
   },
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
 use swc_html_minifier::{
-  minify_document_with_custom_css_minifier, option::MinifyOptions, MinifyCss,
+  MinifyCss, minify_document_with_custom_css_minifier, option::MinifyOptions,
 };
 
 use crate::config::HtmlRspackPluginOptions;
@@ -69,9 +69,9 @@ impl<'a> HtmlCompiler<'a> {
 
     let mut output = String::new();
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
-    let mut gen = CodeGenerator::new(wr, codegen_config);
+    let mut r#gen = CodeGenerator::new(wr, codegen_config);
 
-    gen.emit(ast).to_rspack_result()?;
+    r#gen.emit(ast).to_rspack_result()?;
     Ok(output)
   }
 }

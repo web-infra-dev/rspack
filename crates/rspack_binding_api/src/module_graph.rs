@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-use napi::{Either, Env, JsString};
+use napi::{Either, Env, JsString, bindgen_prelude::Array};
 use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
 
@@ -11,6 +11,7 @@ use crate::{
 #[napi]
 pub struct JsModuleGraph {
   compilation: NonNull<Compilation>,
+  connection_vec_buffer: Vec<ModuleGraphConnectionWrapper>,
 }
 
 impl JsModuleGraph {
@@ -18,6 +19,7 @@ impl JsModuleGraph {
     #[allow(clippy::unwrap_used)]
     Self {
       compilation: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+      connection_vec_buffer: Vec::new(),
     }
   }
 
@@ -143,51 +145,74 @@ impl JsModuleGraph {
     ts_args_type = "module: Module",
     ts_return_type = "ModuleGraphConnection[]"
   )]
-  pub fn get_outgoing_connections(
-    &self,
+  pub fn get_outgoing_connections<'a>(
+    &'a mut self,
+    env: &'a Env,
     module: ModuleObjectRef,
-  ) -> napi::Result<Vec<ModuleGraphConnectionWrapper>> {
+  ) -> napi::Result<Array<'a>> {
     let (compilation, module_graph) = self.as_ref()?;
-    Ok(
-      module_graph
-        .get_outgoing_connections(&module.identifier)
-        .map(|connection| ModuleGraphConnectionWrapper::new(connection.dependency_id, compilation))
-        .collect::<Vec<_>>(),
-    )
+    let vec = &mut self.connection_vec_buffer;
+    for connection in module_graph.get_outgoing_connections(&module.identifier) {
+      vec.push(ModuleGraphConnectionWrapper::new(
+        connection.dependency_id,
+        compilation,
+      ));
+    }
+    let mut arr = env.create_array(vec.len() as u32)?;
+    for (i, v) in vec.drain(..).enumerate() {
+      arr.set(i as u32, v)?;
+    }
+    Ok(arr)
   }
 
   #[napi(
     ts_args_type = "module: Module",
     ts_return_type = "ModuleGraphConnection[]"
   )]
-  pub fn get_outgoing_connections_in_order(
-    &self,
+  pub fn get_outgoing_connections_in_order<'a>(
+    &'a mut self,
+    env: &'a Env,
     module: ModuleObjectRef,
-  ) -> napi::Result<Vec<ModuleGraphConnectionWrapper>> {
+  ) -> napi::Result<Array<'a>> {
     let (compilation, module_graph) = self.as_ref()?;
-    Ok(
-      module_graph
-        .get_outgoing_deps_in_order(&module.identifier)
-        .map(|dependency_id| ModuleGraphConnectionWrapper::new(*dependency_id, compilation))
-        .collect::<Vec<_>>(),
-    )
+
+    let vec = &mut self.connection_vec_buffer;
+    for dependency_id in module_graph.get_outgoing_deps_in_order(&module.identifier) {
+      vec.push(ModuleGraphConnectionWrapper::new(
+        *dependency_id,
+        compilation,
+      ));
+    }
+    let mut arr = env.create_array(vec.len() as u32)?;
+    for (i, v) in vec.drain(..).enumerate() {
+      arr.set(i as u32, v)?;
+    }
+    Ok(arr)
   }
 
   #[napi(
     ts_args_type = "module: Module",
     ts_return_type = "ModuleGraphConnection[]"
   )]
-  pub fn get_incoming_connections(
-    &self,
+  pub fn get_incoming_connections<'a>(
+    &'a mut self,
+    env: &'a Env,
     module: ModuleObjectRef,
-  ) -> napi::Result<Vec<ModuleGraphConnectionWrapper>> {
+  ) -> napi::Result<Array<'a>> {
     let (compilation, module_graph) = self.as_ref()?;
-    Ok(
-      module_graph
-        .get_incoming_connections(&module.identifier)
-        .map(|connection| ModuleGraphConnectionWrapper::new(connection.dependency_id, compilation))
-        .collect::<Vec<_>>(),
-    )
+
+    let vec = &mut self.connection_vec_buffer;
+    for connection in module_graph.get_incoming_connections(&module.identifier) {
+      vec.push(ModuleGraphConnectionWrapper::new(
+        connection.dependency_id,
+        compilation,
+      ));
+    }
+    let mut arr = env.create_array(vec.len() as u32)?;
+    for (i, v) in vec.drain(..).enumerate() {
+      arr.set(i as u32, v)?;
+    }
+    Ok(arr)
   }
 
   #[napi(

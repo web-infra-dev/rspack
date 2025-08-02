@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_raw, AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_raw,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;

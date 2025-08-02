@@ -3,12 +3,12 @@ use std::{
   os::raw::c_void,
   ptr,
   sync::{
-    atomic::{AtomicBool, AtomicPtr, Ordering},
     Arc,
+    atomic::{AtomicBool, AtomicPtr, Ordering},
   },
 };
 
-use napi::{check_status, sys, Env, Result};
+use napi::{Env, Result, check_status, sys};
 
 struct DeferredData<Resolver: FnOnce(Env)> {
   resolver: Resolver,

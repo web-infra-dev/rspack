@@ -1,5 +1,3 @@
-#![feature(box_patterns)]
-
 macro_rules! regex {
   // `()` indicates that the macro takes no argument.
   ($pat:literal) => {

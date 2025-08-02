@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod drive;
 
 use std::{
@@ -8,38 +6,42 @@ use std::{
 };
 
 use aho_corasick::{AhoCorasick, MatchKind};
+use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 pub use drive::*;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   PluginContext,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use tokio::sync::RwLock;
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
 pub static QUOTE_META: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
-static COMPILATION_HOOKS_MAP: LazyLock<
-  FxDashMap<CompilationId, Arc<RwLock<RealContentHashPluginHooks>>>,
-> = LazyLock::new(Default::default);
+/// Safety with [atomic_refcell::AtomicRefCell]:
+///
+/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RealContentHashPlugin::get_compilation_hooks_mut]
+type ArcReadContentHashPluginHooks = Arc<AtomicRefCell<RealContentHashPluginHooks>>;
+
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcReadContentHashPluginHooks>> =
+  LazyLock::new(Default::default);
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct RealContentHashPlugin;
 
 impl RealContentHashPlugin {
-  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<RealContentHashPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> ArcReadContentHashPluginHooks {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -49,7 +51,7 @@ impl RealContentHashPlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<RealContentHashPluginHooks>> {
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> ArcReadContentHashPluginHooks {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
@@ -207,8 +209,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .collect::<Vec<_>>();
               asset_contents.dedup();
               let updated_hash = hooks
-                .read()
-                .await
+                .borrow()
                 .update_hash
                 .call(compilation, &asset_contents, &old_hash)
                 .await?;
@@ -221,8 +222,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                   hasher.write(&asset_content.buffer());
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
-                let new_hash = new_hash.rendered(old_hash.len()).to_string();
-                new_hash
+
+                new_hash.rendered(old_hash.len()).to_string()
               };
 
               Ok((old_hash.to_string(), new_hash))

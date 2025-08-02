@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_quote, spanned::Spanned, GenericParam, Ident, ItemImpl, ItemTrait, Type};
+use syn::{GenericParam, Ident, ItemImpl, ItemTrait, Type, parse_quote, spanned::Spanned};
 
 /// For trait definition: `pub trait Iterator { ... }`
 pub fn impl_trait(mut input: ItemTrait) -> TokenStream {

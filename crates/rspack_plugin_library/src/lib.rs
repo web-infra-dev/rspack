@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod amd_library_plugin;
 mod assign_library_plugin;
 mod export_property_library_plugin;

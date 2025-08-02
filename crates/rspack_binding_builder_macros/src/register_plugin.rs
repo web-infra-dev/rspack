@@ -1,8 +1,8 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-  parse::{Parse, ParseStream},
   Expr, LitStr, Token,
+  parse::{Parse, ParseStream},
 };
 
 pub struct RegisterPluginInput {
@@ -28,11 +28,11 @@ impl RegisterPluginInput {
 
     let expanded = quote! {
         #[napi]
-        fn #plugin_register_ident() -> napi::Result<()> {
+        pub fn #plugin_register_ident() -> napi::bindgen_prelude::Result<()> {
             fn register<'a>(
-                env: Env,
-                options: Unknown<'a>,
-            ) -> Result<rspack_core::BoxPlugin> {
+                env: napi::bindgen_prelude::Env,
+                options: napi::bindgen_prelude::Unknown<'a>,
+            ) -> napi::bindgen_prelude::Result<rspack_core::BoxPlugin> {
               (#plugin)(env, options)
             }
             let name = #name.to_string();

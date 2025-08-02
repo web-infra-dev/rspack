@@ -1,8 +1,8 @@
 use rspack_error::Result;
 
 use crate::{
-  content::{Content, ResourceData},
   LoaderContext,
+  content::{Content, ResourceData},
 };
 
 #[async_trait::async_trait]

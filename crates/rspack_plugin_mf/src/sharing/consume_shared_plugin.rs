@@ -17,7 +17,7 @@ use rspack_core::{
   PluginContext, PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType,
   ResolveResult, Resolver, RuntimeGlobals,
 };
-use rspack_error::{error, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
@@ -232,7 +232,12 @@ impl ConsumeSharedPlugin {
     add_diagnostic: &mut impl FnMut(Diagnostic),
   ) -> Option<ConsumeVersion> {
     let mut required_version_warning = |details: &str| {
-      add_diagnostic(Diagnostic::warn(self.name().into(), format!("No required version specified and unable to automatically determine one. {details} file: shared module {request}")))
+      add_diagnostic(Diagnostic::warn(
+        self.name().into(),
+        format!(
+          "No required version specified and unable to automatically determine one. {details} file: shared module {request}"
+        ),
+      ))
     };
     if let Some(version) = config.required_version.as_ref() {
       Some(version.clone())

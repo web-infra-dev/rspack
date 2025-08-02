@@ -3,15 +3,15 @@ use std::{
   collections::VecDeque,
   fmt::Debug,
   sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
   },
 };
 
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
 use tokio::{
-  sync::mpsc::{self, error::TryRecvError, UnboundedReceiver, UnboundedSender},
+  sync::mpsc::{self, UnboundedReceiver, UnboundedSender, error::TryRecvError},
   task,
 };
 use tracing::Instrument;

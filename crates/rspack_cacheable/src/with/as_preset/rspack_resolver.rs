@@ -1,10 +1,10 @@
 use rkyv::{
+  Archive, Deserialize, Place, Portable,
   bytecheck::{CheckBytes, StructCheckContext},
   rancor::{Fallible, Source, Trace},
   ser::Writer,
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Deserialize, Place, Portable,
 };
 use rspack_resolver::AliasValue;
 
@@ -68,24 +68,28 @@ where
   bool: CheckBytes<C>,
 {
   unsafe fn check_bytes(value: *const Self, context: &mut C) -> Result<(), C::Error> {
-    bool::check_bytes(core::ptr::addr_of!((*value).is_ignore), context).map_err(|e| {
-      <C::Error as Trace>::trace(
-        e,
-        StructCheckContext {
-          struct_name: "ArchivedAliasValue",
-          field_name: "is_ignore",
-        },
-      )
-    })?;
-    ArchivedString::check_bytes(core::ptr::addr_of!((*value).path), context).map_err(|e| {
-      <C::Error as Trace>::trace(
-        e,
-        StructCheckContext {
-          struct_name: "ArchivedAliasValue",
-          field_name: "path",
-        },
-      )
-    })?;
+    unsafe {
+      bool::check_bytes(core::ptr::addr_of!((*value).is_ignore), context).map_err(|e| {
+        <C::Error as Trace>::trace(
+          e,
+          StructCheckContext {
+            struct_name: "ArchivedAliasValue",
+            field_name: "is_ignore",
+          },
+        )
+      })?;
+    }
+    unsafe {
+      ArchivedString::check_bytes(core::ptr::addr_of!((*value).path), context).map_err(|e| {
+        <C::Error as Trace>::trace(
+          e,
+          StructCheckContext {
+            struct_name: "ArchivedAliasValue",
+            field_name: "path",
+          },
+        )
+      })?;
+    }
     Ok(())
   }
 }

@@ -2,14 +2,14 @@ use itertools::Itertools;
 use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
 use swc_core::{
   atoms::Atom,
-  common::{comments::CommentKind, Span, Spanned},
+  common::{Span, Spanned, comments::CommentKind},
 };
 
 use super::{
-  esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
-  inline_const::{InlinableConstData, INLINABLE_CONST_TAG},
-  InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
-  JS_DEFAULT_KEYWORD,
+  DEFAULT_STAR_JS_WORD, InnerGraphMapUsage, InnerGraphPlugin, JS_DEFAULT_KEYWORD,
+  JavascriptParserPlugin,
+  esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
+  inline_const::{INLINABLE_CONST_TAG, InlinableConstData},
 };
 use crate::{
   dependency::{
@@ -19,8 +19,8 @@ use crate::{
   },
   utils::object_properties::get_attributes,
   visitors::{
-    create_traceable_error, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
-    ExportLocal, JavascriptParser, TagInfoData,
+    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
+    TagInfoData, create_traceable_error,
   },
 };
 
@@ -47,7 +47,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let span = statement.span();
     let clean_dep = ConstDependency::new(span.into(), "".into(), None);
     parser.presentational_dependencies.push(Box::new(clean_dep));
-    let side_effect_dep = ESMImportSideEffectDependency::new(
+    let mut side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       span.into(),
@@ -55,7 +55,16 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       DependencyType::EsmExport,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
+      statement.is_star_export(),
     );
+    if parser.compiler_options.experiments.lazy_barrel
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
+    {
+      side_effect_dep.set_lazy();
+    }
     parser.dependencies.push(Box::new(side_effect_dep));
     Some(true)
   }
@@ -156,7 +165,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
-    let dep = ESMExportImportedSpecifierDependency::new(
+    let mut dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
@@ -173,6 +182,14 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let is_asi_safe = !parser.is_asi_position(statement.span_lo());
     if !is_asi_safe {
       parser.set_asi_position(statement.span_hi());
+    }
+    if parser.compiler_options.experiments.lazy_barrel
+      && parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
+    {
+      dep.set_lazy();
     }
     parser.dependencies.push(Box::new(dep));
     Some(true)

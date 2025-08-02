@@ -1,8 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
-  RuntimeModule, RuntimeModuleStage,
+  ChunkUkey, Compilation, PathData, RuntimeModule, RuntimeModuleStage,
+  get_filename_without_hash_length, impl_runtime_module,
 };
 use rspack_util::itoa;
 
@@ -44,7 +44,11 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       .get("[contenthash]")
       .or(hash_len_map.get("[hash]"))
     {
-      Some(hash_len) => format!("\" + wasmModuleHash.slice(0, {}) + \"", itoa!(*hash_len)),
+      Some(hash_len) => {
+        let mut hash_len_buffer = itoa::Buffer::new();
+        let hash_len_str = hash_len_buffer.format(*hash_len);
+        format!("\" + wasmModuleHash.slice(0, {}) + \"", hash_len_str)
+      }
       None => "\" + wasmModuleHash + \"".to_string(),
     };
 

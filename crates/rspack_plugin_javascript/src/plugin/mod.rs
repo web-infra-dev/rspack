@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  collections::{hash_map::Entry, HashMap, HashSet},
+  collections::{HashMap, HashSet, hash_map::Entry},
   hash::Hash,
   ops::Deref,
   sync::{Arc, LazyLock},
@@ -25,15 +25,14 @@ pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
-  basic_function,
+  BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt, basic_function,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  split_readable_identifier, BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments,
-  ChunkRenderContext, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
-  CompilationId, ConcatenatedModuleIdent, ExportsArgument, IdentCollector, Module, RuntimeGlobals,
-  SourceType, SpanExt,
+  split_readable_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -123,7 +122,11 @@ impl JsPlugin {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 
-  pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
+  pub fn render_require(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+  ) -> Vec<Cow<'_, str>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
@@ -202,7 +205,7 @@ impl JsPlugin {
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
-  ) -> Result<RenderBootstrapResult> {
+  ) -> Result<RenderBootstrapResult<'_>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
@@ -673,13 +676,12 @@ impl JsPlugin {
           continue;
         };
 
-        if let Some(renamed_inline_modules) = &renamed_inline_modules {
-          if renamed_inline_modules.contains_key(m_identifier) {
-            if let Some(source) = renamed_inline_modules.get(m_identifier) {
-              rendered_module = source.clone();
-            };
-          }
-        }
+        if let Some(renamed_inline_modules) = &renamed_inline_modules
+          && renamed_inline_modules.contains_key(m_identifier)
+          && let Some(source) = renamed_inline_modules.get(m_identifier)
+        {
+          rendered_module = source.clone();
+        };
 
         chunk_init_fragments.extend(fragments);
         chunk_init_fragments.extend(additional_fragments);
@@ -902,35 +904,30 @@ impl JsPlugin {
             if is_inlined_module {
               if let Some(ident_info_with_hash) =
                 self.rename_module_cache.get_inlined_info(&m.identifier())
-              {
-                if let (Some(hash_current), Some(hash_cache)) = (
+                && let (Some(hash_current), Some(hash_cache)) = (
                   m.build_info().hash.as_ref(),
                   ident_info_with_hash.hash.as_ref(),
-                ) {
-                  if *hash_current == *hash_cache {
-                    let WithHash { value, .. } = (*ident_info_with_hash).clone();
-                    acc.inlined_modules_to_info.insert(m.identifier(), value);
-                    use_cache = true;
-                  }
-                }
+                )
+                && *hash_current == *hash_cache
+              {
+                let WithHash { value, .. } = (*ident_info_with_hash).clone();
+                acc.inlined_modules_to_info.insert(m.identifier(), value);
+                use_cache = true;
               }
             } else if let Some(idents_with_hash) = self
               .rename_module_cache
               .get_non_inlined_idents(&m.identifier())
-            {
-              if let (Some(hash_current), Some(hash_cache)) =
+              && let (Some(hash_current), Some(hash_cache)) =
                 (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
-              {
-                if *hash_current == *hash_cache {
-                  acc
-                    .all_used_names
-                    .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
-                  acc
-                    .non_inlined_module_through_idents
-                    .extend(idents_with_hash.value.clone());
-                  use_cache = true;
-                }
-              }
+              && *hash_current == *hash_cache
+            {
+              acc
+                .all_used_names
+                .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
+              acc
+                .non_inlined_module_through_idents
+                .extend(idents_with_hash.value.clone());
+              use_cache = true;
             }
 
             if !use_cache {

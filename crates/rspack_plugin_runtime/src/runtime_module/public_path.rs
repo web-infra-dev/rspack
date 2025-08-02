@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  has_hash_placeholder, impl_runtime_module, Compilation, Filename, PublicPath, RuntimeGlobals,
-  RuntimeModule,
+  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule, has_hash_placeholder,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]

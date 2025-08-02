@@ -69,7 +69,7 @@ impl EvaluatedInlinableValue {
     Self(EvaluatedInlinableValueInner::String(v))
   }
 
-  pub fn render(&self) -> Cow<str> {
+  pub fn render(&self) -> Cow<'_, str> {
     match &self.0 {
       EvaluatedInlinableValueInner::Null => "null".into(),
       EvaluatedInlinableValueInner::Undefined => "undefined".into(),

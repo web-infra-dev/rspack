@@ -1,8 +1,8 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  get_js_chunk_filename_template, get_undo_path, impl_runtime_module, ChunkUkey, Compilation,
-  OutputOptions, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
-  SourceType,
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]

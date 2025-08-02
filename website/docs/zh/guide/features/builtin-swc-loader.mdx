@@ -472,7 +472,7 @@ import 'antd/es/button/style';
 - **类型：** `boolean`
 - **默认值：** `false`
 
-是否收集类型导出，提供给 [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 使用，用于 `'tolerant'` 模式下检查子模块的类型导出。
+是否收集类型导出信息，提供给 [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 使用，用于 `'tolerant'` 模式下检查子模块的类型导出。
 
 #### rspackExperiments.collectTypeScriptInfo.exportedEnum
 
@@ -481,7 +481,11 @@ import 'antd/es/button/style';
 - **类型：** `boolean | 'const-only'`
 - **默认值：** `false`
 
-是否收集导出的 `enum`，使用 `'const-only'` 则仅收集导出的 `const enum`，提供给 Rspack 对收集到的 enum 进行跨模块的 inline 优化。
+是否收集导出的 `enum` 信息。
+
+- `true` 将收集所有 `enum` 信息，包括 `const enum` 和普通 `enum`。
+- `false` 不收集任何 `enum` 信息。
+- `'const-only'` 仅收集 `const enum` 信息，使 Rspack 能够对其进行跨模块内联优化。
 
 ```js title="rspack.config.mjs"
 export default {

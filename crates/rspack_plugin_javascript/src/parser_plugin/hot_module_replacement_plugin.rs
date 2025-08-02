@@ -6,13 +6,13 @@ use swc_core::{
 
 use crate::{
   dependency::{
-    import_emitted_runtime, ESMAcceptDependency, ImportMetaHotAcceptDependency,
-    ImportMetaHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
-    ModuleHotDeclineDependency,
+    ESMAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
+    ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
+    import_emitted_runtime,
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
-  visitors::{expr_name, JavascriptParser},
+  visitors::{JavascriptParser, expr_name},
 };
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;

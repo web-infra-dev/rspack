@@ -1,7 +1,7 @@
 import { Table } from '@builtIns/Table';
+import { useLang } from '@rspress/core/runtime';
 import Markdown from 'markdown-to-jsx';
 import type React from 'react';
-import { useLang } from 'rspress/runtime';
 import * as i18n from './i18n';
 import S from './PluginSupportStatusTable.module.scss';
 

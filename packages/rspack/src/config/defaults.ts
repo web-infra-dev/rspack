@@ -195,7 +195,7 @@ const applyInfrastructureLoggingDefaults = (
 ) => {
 	F(infrastructureLogging, "stream", () => process.stderr);
 	const tty =
-		(infrastructureLogging as any).stream.isTTY && process.env.TERM !== "dumb";
+		(infrastructureLogging as any).stream?.isTTY && process.env.TERM !== "dumb";
 	D(infrastructureLogging, "level", "info");
 	D(infrastructureLogging, "debug", false);
 	D(infrastructureLogging, "colors", tty);
@@ -265,6 +265,9 @@ const applyExperimentsDefaults = (
 
 	// IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
 	D(experiments, "typeReexportsPresence", false);
+
+	// IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
+	D(experiments, "lazyBarrel", false);
 };
 
 const applybundlerInfoDefaults = (

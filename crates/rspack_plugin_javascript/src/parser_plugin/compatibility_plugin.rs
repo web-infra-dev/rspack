@@ -5,7 +5,7 @@ use swc_core::{common::Spanned, ecma::ast::CallExpr};
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::CommonJsRequireContextDependency,
-  visitors::{expr_name, JavascriptParser, Statement, TagInfoData},
+  visitors::{JavascriptParser, Statement, TagInfoData, expr_name},
 };
 
 const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
@@ -108,7 +108,13 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       self.tag_nested_require_data(
         parser,
         ident.sym.to_string(),
-        format!("__nested_webpack_require_{}_{}__", itoa!(start), itoa!(end),),
+        {
+          let mut start_buffer = itoa::Buffer::new();
+          let start_str = start_buffer.format(start);
+          let mut end_buffer = itoa::Buffer::new();
+          let end_str = end_buffer.format(end);
+          format!("__nested_webpack_require_{}_{}__", start_str, end_str)
+        },
         parser.in_short_hand,
         start,
         end,
@@ -151,7 +157,13 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       self.tag_nested_require_data(
         parser,
         ident.sym.to_string(),
-        format!("__nested_webpack_require_{}_{}__", itoa!(start), itoa!(end),),
+        {
+          let mut start_buffer = itoa::Buffer::new();
+          let start_str = start_buffer.format(start);
+          let mut end_buffer = itoa::Buffer::new();
+          let end_str = end_buffer.format(end);
+          format!("__nested_webpack_require_{}_{}__", start_str, end_str)
+        },
         parser.in_short_hand,
         start,
         end,
@@ -171,10 +183,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       self.tag_nested_require_data(
         parser,
         name.to_string(),
-        format!(
-          "__nested_webpack_require_{}__",
-          itoa!(fn_decl.span().real_lo())
-        ),
+        {
+          let mut lo_buffer = itoa::Buffer::new();
+          let lo_str = lo_buffer.format(fn_decl.span().real_lo());
+          format!("__nested_webpack_require_{}__", lo_str)
+        },
         parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.4.10",
+  "version": "1.4.11",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -23,17 +23,13 @@
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
+    "build:browser": "rslib build -c rslib.browser.config.ts",
     "dev": "rslib build --watch",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": [
-    "dist",
-    "hot",
-    "compiled",
-    "module.d.ts"
-  ],
+  "files": ["dist", "hot", "compiled", "module.d.ts"],
   "engines": {
     "node": ">=16.0.0"
   },
@@ -46,14 +42,16 @@
   },
   "devDependencies": {
     "@ast-grep/napi": "^0.39.1",
-    "@rsbuild/core": "^1.4.6",
-    "@rslib/core": "0.10.5",
+    "@rsbuild/core": "^1.4.10",
+    "@rslib/core": "0.11.0",
     "@swc/types": "0.1.23",
+    "@rsbuild/plugin-node-polyfill": "^1.3.0",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
     "browserslist-load-config": "^1.0.0",
     "enhanced-resolve": "5.18.2",
     "graceful-fs": "^4.2.11",
+    "memfs": "4.20.0",
     "prebundle": "^1.3.4",
     "tinypool": "^1.1.1",
     "tsx": "^4.20.3",
@@ -65,7 +63,7 @@
     "zod-validation-error": "3.5.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.17.0",
+    "@module-federation/runtime-tools": "0.17.1",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1"
   },

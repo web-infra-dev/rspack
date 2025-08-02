@@ -13,22 +13,20 @@ impl EntryDependency {
     layer: Option<String>,
   ) -> napi::Result<Box<dyn rspack_core::Dependency>> {
     match &self.dependency_id {
-        Some(dependency_id) => {
-          Err(napi::Error::from_reason(format!(
-            "Dependency with id = {dependency_id:?} has already been resolved. Reusing EntryDependency is not allowed because Rust requires its ownership."
-        )))
-        }
-        None => {
-          let dependency = Box::new(rspack_core::EntryDependency::new(
-            self.request.to_string(),
-            context,
-            layer,
-            false,
-          )) as rspack_core::BoxDependency;
-          self.dependency_id = Some(*dependency.id());
-          Ok(dependency)
-        }
+      Some(dependency_id) => Err(napi::Error::from_reason(format!(
+        "Dependency with id = {dependency_id:?} has already been resolved. Reusing EntryDependency is not allowed because Rust requires its ownership."
+      ))),
+      None => {
+        let dependency = Box::new(rspack_core::EntryDependency::new(
+          self.request.to_string(),
+          context,
+          layer,
+          false,
+        )) as rspack_core::BoxDependency;
+        self.dependency_id = Some(*dependency.id());
+        Ok(dependency)
       }
+    }
   }
 }
 

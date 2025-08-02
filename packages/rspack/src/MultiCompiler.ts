@@ -492,7 +492,7 @@ export class MultiCompiler {
 	 * @returns a compiler watcher
 	 */
 	watch(
-		watchOptions: WatchOptions,
+		watchOptions: WatchOptions | WatchOptions[],
 		handler: liteTapable.Callback<Error, MultiStats>
 	): MultiWatching {
 		if (this.running) {

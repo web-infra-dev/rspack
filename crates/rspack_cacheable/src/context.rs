@@ -2,7 +2,7 @@ use std::{any::Any, ptr::NonNull};
 
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
-  ser::{sharing::SharingState, Sharing},
+  ser::{Sharing, sharing::SharingState},
 };
 
 use crate::{DeserializeError, SerializeError};

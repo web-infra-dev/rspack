@@ -3,17 +3,17 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::RspackHashDigest;
 use rspack_macros::impl_source_map_config;
 use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec,
-  SourceType,
+  AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey, CodeGenerationResult,
+  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta,
+  LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -97,11 +97,11 @@ impl Module for SelfModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     self.readable_identifier.as_str().into()
   }
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     None
   }
 

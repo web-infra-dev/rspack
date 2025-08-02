@@ -7,13 +7,13 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
+  ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Logger,
+  ModuleIdentifier,
   build_chunk_graph::{
     code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
     new_code_splitter::CodeSplitter as NewCodeSplitter,
   },
   incremental::{IncrementalPasses, Mutation},
-  ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Logger,
-  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -132,17 +132,17 @@ impl CodeSplittingCache {
         };
         miss_in_previous = false;
 
-        for (outgoing, state, _) in outgoings {
+        for (outgoing, state, _) in outgoings.iter() {
           // we must insert module even if state is false
           // because we need to keep the import order
           previous_modules
             .entry(*outgoing)
             .and_modify(|v| {
               if state.is_not_false() {
-                *v = state;
+                *v = *state;
               }
             })
-            .or_insert(state);
+            .or_insert(*state);
         }
       });
 

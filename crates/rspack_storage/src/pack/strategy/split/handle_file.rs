@@ -6,9 +6,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::JoinError;
 
 use crate::{
-  fs::{BatchFSError, BatchFSResult, FSError, FSOperation},
-  pack::data::{current_time, PackScope, RootMeta, RootOptions, ScopeMeta},
   FSResult, FileSystem,
+  fs::{BatchFSError, BatchFSResult, FSError, FSOperation},
+  pack::data::{PackScope, RootMeta, RootOptions, ScopeMeta, current_time},
 };
 
 pub async fn prepare_scope(

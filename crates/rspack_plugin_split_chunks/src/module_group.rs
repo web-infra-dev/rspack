@@ -1,8 +1,12 @@
 use derive_more::Debug;
 use rspack_collections::{IdentifierSet, UkeySet};
-use rspack_core::{ChunkUkey, Compilation, Module};
+use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
+use rustc_hash::FxHashMap;
 
-use crate::{common::SplitChunkSizes, CacheGroup};
+use crate::{
+  CacheGroup,
+  common::{ModuleSizes, SplitChunkSizes},
+};
 
 /// `ModuleGroup` is a abstraction of middle step for splitting chunks.
 ///
@@ -25,6 +29,7 @@ pub(crate) struct ModuleGroup {
   /// A module
   pub chunk_name: Option<String>,
   pub sizes: SplitChunkSizes,
+  pub source_types_modules: FxHashMap<SourceType, IdentifierSet>,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
   pub chunks: UkeySet<ChunkUkey>,
@@ -44,35 +49,69 @@ impl ModuleGroup {
       cache_group_priority: cache_group.priority,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
       sizes: Default::default(),
+      source_types_modules: Default::default(),
       chunks: Default::default(),
       chunk_name,
     }
   }
 
-  pub fn add_module(&mut self, module: &dyn Module, compilation: &Compilation) {
-    let old_len = self.modules.len();
-    let module_graph = compilation.get_module_graph();
-    self.modules.insert(module.identifier());
-
-    if self.modules.len() != old_len {
-      module.source_types(&module_graph).iter().for_each(|ty| {
-        let size = self.sizes.entry(*ty).or_default();
-        *size += module.size(Some(ty), Some(compilation));
-      });
+  pub fn get_source_types_modules(
+    &self,
+    ty: &[SourceType],
+    module_sizes: &ModuleSizes,
+  ) -> IdentifierSet {
+    // if there is only one source type, we can just use the `source_types_modules` directly
+    // instead of iterating over all modules
+    if ty.len() == 1 {
+      self
+        .source_types_modules
+        .get(ty.first().expect("should have at least one source type"))
+        .cloned()
+        .unwrap_or_default()
+    } else {
+      self
+        .modules
+        .iter()
+        .filter_map(|module| {
+          let sizes = module_sizes.get(module).expect("should have module size");
+          if ty.iter().any(|ty| sizes.contains_key(ty)) {
+            Some(*module)
+          } else {
+            None
+          }
+        })
+        .collect()
     }
   }
 
-  pub fn remove_module(&mut self, module: &dyn Module, compilation: &Compilation) {
-    let old_len = self.modules.len();
-    self.modules.remove(&module.identifier());
-
-    let module_graph = compilation.get_module_graph();
-    if self.modules.len() != old_len {
-      module.source_types(&module_graph).iter().for_each(|ty| {
+  pub fn add_module(&mut self, module: ModuleIdentifier, module_sizes: &ModuleSizes) {
+    if self.modules.insert(module) {
+      let module_sizes = module_sizes.get(&module).expect("should have module size");
+      for (ty, s) in module_sizes.iter() {
         let size = self.sizes.entry(*ty).or_default();
-        *size -= module.size(Some(ty), Some(compilation));
-        *size = size.max(0.0)
-      });
+        *size += s;
+        self
+          .source_types_modules
+          .entry(*ty)
+          .or_default()
+          .insert(module);
+      }
+    }
+  }
+
+  pub fn remove_module(&mut self, module: ModuleIdentifier, module_sizes: &ModuleSizes) {
+    if self.modules.remove(&module) {
+      let module_sizes = module_sizes.get(&module).expect("should have module size");
+      for (ty, s) in module_sizes.iter() {
+        let size = self.sizes.entry(*ty).or_default();
+        *size -= s;
+        *size = size.max(0.0);
+        self
+          .source_types_modules
+          .entry(*ty)
+          .or_default()
+          .remove(&module);
+      }
     }
   }
 

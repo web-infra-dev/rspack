@@ -43,7 +43,7 @@ impl Diagnosable for ProvideSharedModuleFactory {
     self.diagnostics.append(&mut diagnostics);
   }
 
-  fn diagnostics(&self) -> Cow<[Diagnostic]> {
+  fn diagnostics(&self) -> Cow<'_, [Diagnostic]> {
     Cow::Borrowed(&self.diagnostics)
   }
 }

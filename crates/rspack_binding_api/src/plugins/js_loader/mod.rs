@@ -24,7 +24,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 use tokio::sync::{OnceCell, RwLock};
 
-use crate::{RspackResultToNapiResultExt, COMPILER_REFERENCES};
+use crate::{COMPILER_REFERENCES, RspackResultToNapiResultExt};
 
 pub type JsLoaderRunner = ThreadsafeFunction<
   JsLoaderContext,

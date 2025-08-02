@@ -1,6 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType, impl_runtime_module,
 };
 
 // TODO workaround for get_chunk_update_filename

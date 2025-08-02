@@ -3,15 +3,15 @@ use std::ptr::NonNull;
 use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkGroupOrderKey,
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::generate_javascript_hmr_runtime;
 use crate::{
+  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   get_chunk_runtime_requirements,
   runtime_module::utils::{chunk_has_js, get_initial_chunk_ids, stringify_chunks},
-  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
 };
 
 #[impl_runtime_module]
@@ -240,8 +240,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks
-        .read()
-        .await
+        .borrow()
         .link_prefetch
         .call(LinkPrefetchData {
           code: link_prefetch_code,
@@ -324,8 +323,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks
-        .read()
-        .await
+        .borrow()
         .link_preload
         .call(LinkPreloadData {
           code: link_preload_code,

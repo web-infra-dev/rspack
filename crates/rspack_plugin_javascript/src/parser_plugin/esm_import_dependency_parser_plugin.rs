@@ -32,7 +32,13 @@ fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) -> &
     } else if let Expr::OptChain(opt_chain) = expr {
       expr = match &*opt_chain.base {
         OptChainBase::Member(member) => &*member.obj,
-        OptChainBase::Call(call) if let Some(member) = call.callee.as_member() => &*member.obj,
+        OptChainBase::Call(call) if call.callee.as_member().is_some() => {
+          let member = call
+            .callee
+            .as_member()
+            .expect("`call.callee` is `MemberExpr` in `if_guard`");
+          &*member.obj
+        }
         _ => unreachable!(),
       };
       count -= 1;
@@ -78,6 +84,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       DependencyType::EsmImport,
       attributes,
       Some(parser.source_map.clone()),
+      false,
     );
     parser.dependencies.push(Box::new(dependency));
 

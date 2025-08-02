@@ -1,4 +1,4 @@
-use crate::{impl_module_methods, Module};
+use crate::{MODULE_PROPERTIES_BUFFER, Module, impl_module_methods};
 
 #[napi]
 #[repr(C)]
@@ -10,14 +10,21 @@ impl ExternalModule {
   pub(crate) fn custom_into_instance(
     mut self,
     env: &napi::Env,
-  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
     let (_, module) = self.as_ref()?;
     let user_request = env.create_string(module.user_request())?;
 
-    let properties = vec![napi::Property::new()
-      .with_utf8_name("userRequest")?
-      .with_value(&user_request)];
-    Self::new_inherited(self, env, properties)
+    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
+      let mut properties = ref_cell.borrow_mut();
+      properties.clear();
+
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("userRequest")?
+          .with_value(&user_request),
+      );
+      Self::new_inherited(self, env, &mut properties)
+    })
   }
 
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ExternalModule)> {

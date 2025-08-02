@@ -1,5 +1,5 @@
 use rspack_core::{BoxDependency, DependencyRange};
-use rspack_plugin_javascript::{visitors::JavascriptParser, JavascriptParserPlugin};
+use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 use rspack_util::fx_hash::FxDashMap;
 use serde::Deserialize;
 
@@ -52,6 +52,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
             )| {
               Box::new(CssDependency::new(
                 identifier.into(),
+                parser.get_module_layer().cloned(),
                 layer.clone(),
                 content.clone(),
                 context.clone(),

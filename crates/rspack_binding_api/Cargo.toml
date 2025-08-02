@@ -11,6 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
+browser         = ["dep:rspack_browser", "rspack_napi/browser"]
 color-backtrace = ["dep:color-backtrace"]
 debug_tool      = ["rspack_core/debug_tool"]
 plugin          = ["rspack_loader_swc/plugin"]
@@ -57,6 +58,9 @@ futures                                = { workspace = true }
 glob                                   = { workspace = true }
 heck                                   = { workspace = true }
 once_cell                              = { workspace = true }
+rayon                                  = { workspace = true }
+regex                                  = { workspace = true }
+rspack_browser                         = { workspace = true, optional = true }
 rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
 rspack_javascript_compiler             = { workspace = true }
@@ -107,6 +111,7 @@ rspack_plugin_wasm                     = { workspace = true }
 rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 rspack_regex                           = { workspace = true }
+rspack_resolver                        = { workspace = true }
 rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true }
 serde_json                             = { workspace = true }

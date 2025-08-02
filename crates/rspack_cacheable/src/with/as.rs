@@ -1,14 +1,14 @@
 use std::any::Any;
 
 use rkyv::{
+  Archive, Archived, Deserialize, Place, Resolver, Serialize,
   de::Pooling,
   rancor::Fallible,
   ser::Sharing,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Archived, Deserialize, Place, Resolver, Serialize,
 };
 
-use crate::{context::ContextGuard, DeserializeError, SerializeError};
+use crate::{DeserializeError, SerializeError, context::ContextGuard};
 
 pub trait AsConverter<T> {
   fn serialize(data: &T, ctx: &dyn Any) -> Result<Self, SerializeError>

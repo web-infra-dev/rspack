@@ -470,7 +470,7 @@ Please refer to this [example](https://github.com/rspack-contrib/rstack-examples
 - **Type:** `boolean`
 - **Default:** `false`
 
-Whether to collect type exports for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence), used to check type exports of submodules in `'tolerant'` mode.
+Whether to collect type exports information for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). This is used to check type exports of submodules when running in `'tolerant'` mode.
 
 #### rspackExperiments.collectTypeScriptInfo.exportedEnum
 
@@ -479,7 +479,11 @@ Whether to collect type exports for [`typeReexportsPresence`](/config/module#mod
 - **Type:** `boolean | 'const-only'`
 - **Default:** `false`
 
-Whether to collect exported `enum`s. Using `'const-only'` will only collect exported `const enum`s, enabling Rspack to perform cross-module inline optimizations on the collected enums.
+Whether to collect information about exported `enum`s.
+
+- `true` will collect all `enum` information, including `const enum`s and regular `enum`s.
+- `false` will not collect any `enum` information.
+- `'const-only'` will gather only `const enum`s, enabling Rspack to perform cross-module inlining optimizations for them.
 
 ```js title="rspack.config.mjs"
 export default {

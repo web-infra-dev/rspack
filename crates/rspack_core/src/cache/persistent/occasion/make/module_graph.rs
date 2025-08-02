@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use rayon::prelude::*;
 use rspack_cacheable::{
-  cacheable, from_bytes, to_bytes,
+  SerializeError, cacheable, from_bytes, to_bytes,
   utils::OwnedOrRef,
   with::{AsOption, AsOwned, AsTuple2, AsVec},
-  SerializeError,
 };
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
@@ -13,10 +12,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::Storage;
 use crate::{
-  cache::persistent::cacheable_context::CacheableContext, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, DependencyId, DependencyParents,
-  ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleGraphPartial,
-  RayonConsumer,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, DependencyId,
+  DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  ModuleGraphPartial, RayonConsumer, cache::persistent::cacheable_context::CacheableContext,
 };
 
 const SCOPE: &str = "occasion_make_module_graph";
@@ -62,6 +60,10 @@ pub fn save_module_graph(
       let module = mg
         .module_by_identifier(identifier)
         .expect("should have module");
+      // TODO remove after diagnostic cacheable
+      if !module.diagnostics().is_empty() {
+        return None;
+      }
       let blocks = module
         .get_blocks()
         .par_iter()

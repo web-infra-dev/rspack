@@ -3,13 +3,13 @@ use std::hash::Hash;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
   DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleGraph, RuntimeSpec, SourceType,
+  ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
+  module_update_hash, rspack_sources::BoxSource,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{ext::DynHash, itoa};
 
@@ -25,10 +25,11 @@ pub(crate) struct CssModule {
   pub(crate) identifier: String,
   pub(crate) content: String,
   pub(crate) _context: String,
+  pub(crate) module_layer: Option<ModuleLayer>,
   pub(crate) media: Option<String>,
   pub(crate) supports: Option<String>,
   pub(crate) source_map: Option<String>,
-  pub(crate) layer: Option<String>,
+  pub(crate) css_layer: Option<String>,
   pub(crate) identifier_index: u32,
 
   factory_meta: Option<FactoryMeta>,
@@ -43,11 +44,13 @@ pub(crate) struct CssModule {
 
 impl CssModule {
   pub fn new(dep: CssDependency) -> Self {
+    let mut identifier_index_buffer = itoa::Buffer::new();
+    let identifier_index_str = identifier_index_buffer.format(dep.identifier_index);
     let identifier__ = format!(
       "css|{}|{}|{}|{}|{}}}",
       dep.identifier,
-      itoa!(dep.identifier_index),
-      dep.layer.as_deref().unwrap_or_default(),
+      identifier_index_str,
+      dep.css_layer.as_deref().unwrap_or_default(),
       dep.supports.as_deref().unwrap_or_default(),
       dep.media.as_deref().unwrap_or_default(),
     )
@@ -56,7 +59,8 @@ impl CssModule {
     Self {
       identifier: dep.identifier,
       content: dep.content,
-      layer: dep.layer.clone(),
+      module_layer: dep.module_layer.clone(),
+      css_layer: dep.css_layer.clone(),
       _context: dep.context,
       media: dep.media,
       supports: dep.supports,
@@ -84,7 +88,7 @@ impl CssModule {
     let mut hasher = RspackHash::from(&options.output);
 
     self.content.hash(&mut hasher);
-    if let Some(layer) = &self.layer {
+    if let Some(layer) = &self.css_layer {
       layer.hash(&mut hasher);
     }
     self.supports.hash(&mut hasher);
@@ -100,16 +104,19 @@ impl CssModule {
 impl Module for CssModule {
   impl_module_meta_info!();
 
-  fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<str> {
+  fn readable_identifier(&self, context: &rspack_core::Context) -> std::borrow::Cow<'_, str> {
+    let index_suffix = if self.identifier_index > 0 {
+      let mut index_buffer = itoa::Buffer::new();
+      let index_str = index_buffer.format(self.identifier_index);
+      format!("({})", index_str)
+    } else {
+      "".into()
+    };
     std::borrow::Cow::Owned(format!(
       "css {}{}{}{}{}",
       context.shorten(&self.identifier),
-      if self.identifier_index > 0 {
-        format!("({})", itoa!(self.identifier_index))
-      } else {
-        "".into()
-      },
-      if let Some(layer) = &self.layer {
+      index_suffix,
+      if let Some(layer) = &self.css_layer {
         format!(" (layer {layer})")
       } else {
         "".into()
@@ -187,6 +194,10 @@ impl Module for CssModule {
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.build_info.hash.dyn_hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.module_layer.as_ref()
   }
 }
 

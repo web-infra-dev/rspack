@@ -48,7 +48,7 @@ mod test {
   use std::time::SystemTime;
 
   use futures::future::join_all;
-  use tokio::time::{sleep, Duration};
+  use tokio::time::{Duration, sleep};
 
   use super::FutureConsumer;
 

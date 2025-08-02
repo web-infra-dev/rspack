@@ -4,19 +4,20 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  filter_runtime, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
-  BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
+  AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
+  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, TypeReexportPresenceMode,
+  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
+  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
+  import_statement,
 };
 use rspack_error::{
-  miette::{MietteDiagnostic, Severity},
   Diagnostic, DiagnosticExt, TraceableError,
+  miette::{MietteDiagnostic, Severity},
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -73,6 +74,8 @@ pub struct ESMImportSideEffectDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   factorize_info: FactorizeInfo,
+  lazy_make: bool,
+  star_export: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -85,6 +88,7 @@ impl ESMImportSideEffectDependency {
     dependency_type: DependencyType,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
+    star_export: bool,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
@@ -99,7 +103,13 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       source_map,
       factorize_info: Default::default(),
+      lazy_make: false,
+      star_export,
     }
+  }
+
+  pub fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 }
 
@@ -129,6 +139,20 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     return;
   }
 
+  let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
+  if module_dependency.weak() {
+    // lazy
+    if ref_module.is_none() {
+      return;
+    }
+    // weak
+    if let Some(ref_module) = ref_module
+      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, *ref_module).is_none()
+    {
+      return;
+    }
+  }
+
   let runtime_condition = if module_dependency.weak() {
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
@@ -154,7 +178,6 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     module,
     ..
   } = code_generatable_context;
-  let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
   let import_var = compilation.get_import_var(module_dependency.id());
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
@@ -164,32 +187,32 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let key = format!("ESM import {module_key}");
 
   // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
-  if let Some(import_emitted_map) = import_emitted_runtime::get_map() {
-    if let Some(ref_module) = ref_module {
-      let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
+  if let Some(import_emitted_map) = import_emitted_runtime::get_map()
+    && let Some(ref_module) = ref_module
+  {
+    let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
 
-      let old_runtime_condition = match emitted_modules.get(ref_module) {
-        Some(v) => v.to_owned(),
-        None => RuntimeCondition::Boolean(false),
-      };
+    let old_runtime_condition = match emitted_modules.get(ref_module) {
+      Some(v) => v.to_owned(),
+      None => RuntimeCondition::Boolean(false),
+    };
 
-      let mut merged_runtime_condition = runtime_condition.clone();
-      if !matches!(old_runtime_condition, RuntimeCondition::Boolean(false))
-        && !matches!(merged_runtime_condition, RuntimeCondition::Boolean(true))
+    let mut merged_runtime_condition = runtime_condition.clone();
+    if !matches!(old_runtime_condition, RuntimeCondition::Boolean(false))
+      && !matches!(merged_runtime_condition, RuntimeCondition::Boolean(true))
+    {
+      if matches!(merged_runtime_condition, RuntimeCondition::Boolean(false))
+        || matches!(old_runtime_condition, RuntimeCondition::Boolean(true))
       {
-        if matches!(merged_runtime_condition, RuntimeCondition::Boolean(false))
-          || matches!(old_runtime_condition, RuntimeCondition::Boolean(true))
-        {
-          merged_runtime_condition = old_runtime_condition;
-        } else {
-          merged_runtime_condition
-            .as_spec_mut()
-            .expect("should be spec")
-            .extend(old_runtime_condition.as_spec().expect("should be spec"));
-        }
+        merged_runtime_condition = old_runtime_condition;
+      } else {
+        merged_runtime_condition
+          .as_spec_mut()
+          .expect("should be spec")
+          .extend(old_runtime_condition.as_spec().expect("should be spec"));
       }
-      emitted_modules.insert(*ref_module, merged_runtime_condition);
     }
+    emitted_modules.insert(*ref_module, merged_runtime_condition);
   }
 
   let is_async_module =
@@ -554,6 +577,26 @@ impl Dependency for ESMImportSideEffectDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
+  }
+
+  fn forward_id(&self) -> ForwardId {
+    ForwardId::Empty
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    self.lazy_make.then(|| {
+      if self.star_export {
+        LazyUntil::Fallback
+      } else {
+        LazyUntil::NoUntil
+      }
+    })
+  }
+
+  fn unset_lazy(&mut self) -> bool {
+    let changed = self.lazy_make;
+    self.lazy_make = false;
+    changed
   }
 }
 

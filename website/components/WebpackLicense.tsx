@@ -1,5 +1,5 @@
+import { useLang } from '@rspress/core/runtime';
 import type { FC } from 'react';
-import { useLang } from 'rspress/runtime';
 
 const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
   const links = Array.isArray(from) ? from : [from];

@@ -2,7 +2,10 @@ import type binding from "@rspack/binding";
 
 import * as liteTapable from "@rspack/lite-tapable";
 import type { ResolveData, ResourceDataWithData } from "./Module";
-import type { ResolverFactory } from "./ResolverFactory";
+import type {
+	ResolveOptionsWithDependencyType,
+	ResolverFactory
+} from "./ResolverFactory";
 
 export type NormalModuleCreateData =
 	binding.JsNormalModuleFactoryCreateModuleArgs & {
@@ -44,10 +47,7 @@ export class NormalModuleFactory {
 		this.resolverFactory = resolverFactory;
 	}
 
-	getResolver(
-		type: string,
-		resolveOptions: Parameters<ResolverFactory["get"]>[1]
-	) {
+	getResolver(type: string, resolveOptions: ResolveOptionsWithDependencyType) {
 		return this.resolverFactory.get(type, resolveOptions);
 	}
 }

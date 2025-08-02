@@ -6,7 +6,7 @@ use std::{
 
 use cow_utils::CowUtils;
 use regex::{Captures, Regex};
-use rspack_core::{contextify, ChunkGraph, Compilation, OutputOptions};
+use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rustc_hash::FxHashMap as HashMap;

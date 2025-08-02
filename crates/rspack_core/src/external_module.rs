@@ -2,7 +2,7 @@ use std::{borrow::Cow, hash::Hash, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{impl_empty_diagnosable_trait, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
@@ -10,15 +10,16 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType,
+  BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  LibIdentOptions, Module, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, UsedExports, extract_url_and_global, impl_module_meta_info,
+  module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  throw_missing_module_error_block, to_identifier, AsyncDependenciesBlockIdentifier, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
-  ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsedExports, NAMESPACE_OBJECT_EXPORT,
+  throw_missing_module_error_block, to_identifier,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -83,7 +84,7 @@ impl ExternalRequestValue {
 fn get_namespace_object_export(
   concatenation_scope: Option<&mut ConcatenationScope>,
   supports_const: bool,
-) -> Cow<str> {
+) -> Cow<'_, str> {
   if let Some(concatenation_scope) = concatenation_scope {
     concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
     format!(
@@ -547,7 +548,8 @@ impl ExternalModule {
           )
         }
       }
-      "script" if let Some(request) = request => {
+      "script" if request.is_some() => {
+        let request = request.expect("request should be some");
         let url_and_global = extract_url_and_global(request.primary())?;
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
@@ -687,7 +689,7 @@ impl Module for ExternalModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     Cow::Owned(format!(
       "external {}",
       serde_json::to_string(&self.request).expect("invalid json to_string")
@@ -766,7 +768,8 @@ impl Module for ExternalModule {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
-      "asset" if let Some(request) = request => {
+      "asset" if request.is_some() => {
+        let request = request.expect("request should be some");
         cgr.add(
           SourceType::JavaScript,
           RawStringSource::from(format!(
@@ -779,7 +782,8 @@ impl Module for ExternalModule {
           .data
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
       }
-      "css-import" if let Some(request) = request => {
+      "css-import" if request.is_some() => {
+        let request = request.expect("request should be some");
         cgr.add(
           SourceType::Css,
           RawStringSource::from(format!(
@@ -809,7 +813,7 @@ impl Module for ExternalModule {
     Ok(cgr)
   }
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(Cow::Borrowed(self.user_request.as_str()))
   }
 

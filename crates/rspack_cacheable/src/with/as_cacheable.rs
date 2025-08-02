@@ -1,7 +1,7 @@
 use rkyv::{
+  Archive, Archived, Deserialize, Place, Resolver, Serialize,
   rancor::Fallible,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Archive, Archived, Deserialize, Place, Resolver, Serialize,
 };
 
 // reference: rkyv::with::Identity

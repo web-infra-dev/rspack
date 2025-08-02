@@ -1,10 +1,13 @@
 use napi::{
-  bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
   CallContext, Either, JsObject, NapiRaw,
+  bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
 };
-use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
+use rspack_core::{ResourceData, ResourceParsedData, parse_resource};
 
-use crate::{impl_module_methods, plugins::JsLoaderItem, Module, ReadonlyResourceDataWrapper};
+use crate::{
+  MODULE_PROPERTIES_BUFFER, Module, ReadonlyResourceDataWrapper, impl_module_methods,
+  plugins::JsLoaderItem,
+};
 
 #[napi]
 #[repr(C)]
@@ -20,7 +23,7 @@ impl NormalModule {
   pub(crate) fn custom_into_instance(
     mut self,
     env: &napi::Env,
-  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
     let (_, module) = self.as_ref()?;
 
     let resource_resolved_data = module.resource_resolved_data();
@@ -46,7 +49,7 @@ impl NormalModule {
     });
 
     #[js_function]
-    pub fn match_resource_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
+    pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
       let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
@@ -85,31 +88,48 @@ impl NormalModule {
       Ok(())
     }
 
-    let properties = vec![
-      napi::Property::new()
-        .with_utf8_name("resource")?
-        .with_value(&resource),
-      napi::Property::new()
-        .with_utf8_name("request")?
-        .with_value(&request),
-      napi::Property::new()
-        .with_utf8_name("userRequest")?
-        .with_value(&user_request),
-      napi::Property::new()
-        .with_utf8_name("rawRequest")?
-        .with_value(&raw_request),
-      napi::Property::new()
-        .with_utf8_name("resourceResolveData")?
-        .with_value(&resource_resolve_data),
-      napi::Property::new()
-        .with_utf8_name("loaders")?
-        .with_value(&loaders),
-      napi::Property::new()
-        .with_utf8_name("matchResource")?
-        .with_getter(match_resource_getter)
-        .with_setter(match_resource_setter),
-    ];
-    Self::new_inherited(self, env, properties)
+    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
+      let mut properties = ref_cell.borrow_mut();
+      properties.clear();
+
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("resource")?
+          .with_value(&resource),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("request")?
+          .with_value(&request),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("userRequest")?
+          .with_value(&user_request),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("rawRequest")?
+          .with_value(&raw_request),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("resourceResolveData")?
+          .with_value(&resource_resolve_data),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("loaders")?
+          .with_value(&loaders),
+      );
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("matchResource")?
+          .with_getter(match_resource_getter)
+          .with_setter(match_resource_setter),
+      );
+      Self::new_inherited(self, env, &mut properties)
+    })
   }
 
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::NormalModule)> {

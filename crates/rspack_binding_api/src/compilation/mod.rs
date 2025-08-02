@@ -14,8 +14,8 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  rspack_sources::BoxSource, BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions,
-  FactorizeInfo, ModuleIdentifier, Reflector,
+  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, FactorizeInfo,
+  ModuleIdentifier, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, RspackSeverity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -25,11 +25,11 @@ use rustc_hash::FxHashMap;
 
 use super::PathWithInfo;
 use crate::{
-  create_stats_warnings, entry::JsEntryOptions, utils::callbackify, AssetInfo, Chunk, ChunkGraph,
-  ChunkGroupWrapper, ChunkWrapper, EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset,
-  JsCompatSource, JsFilename, JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats,
-  JsStatsOptimizationBailout, ModuleObject, RspackError, RspackResultToNapiResultExt,
-  ToJsCompatSource, COMPILER_REFERENCES,
+  AssetInfo, COMPILER_REFERENCES, Chunk, ChunkGraph, ChunkGroupWrapper, ChunkWrapper,
+  EntryDependency, ErrorCode, JsAddingRuntimeModule, JsAsset, JsCompatSource, JsFilename,
+  JsModuleGraph, JsPathData, JsRspackDiagnostic, JsStats, JsStatsOptimizationBailout, ModuleObject,
+  RspackError, RspackResultToNapiResultExt, ToJsCompatSource, create_stats_warnings,
+  entry::JsEntryOptions, utils::callbackify,
 };
 
 #[napi]
@@ -74,7 +74,7 @@ impl JsCompilation {
 
     compilation
       .update_asset(&filename, |original_source, mut original_info| {
-        let new_source: napi::Result<BoxSource> = try {
+        let new_source: napi::Result<BoxSource> = (|| -> napi::Result<BoxSource> {
           let new_source = match new_source_or_function {
             Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
@@ -83,8 +83,8 @@ impl JsCompilation {
               js_compat_source.into()
             }
           };
-          new_source
-        };
+          Ok(new_source)
+        })();
         let new_source = new_source.to_rspack_result()?;
 
         let new_info: Option<rspack_core::AssetInfo> = match asset_info_update_or_function {
@@ -163,21 +163,20 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn modules(&self) -> Result<Vec<ModuleObject>> {
+  pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
     let compilation = self.as_ref()?;
-
-    Ok(
-      compilation
-        .get_module_graph()
-        .modules()
-        .keys()
-        .filter_map(|module_id| {
-          compilation
-            .module_by_identifier(module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
-        })
-        .collect::<Vec<_>>(),
-    )
+    let module_graph = compilation.get_module_graph();
+    let modules = module_graph.modules();
+    let mut arr = env.create_array(modules.len() as u32)?;
+    for (i, identifier) in modules.keys().enumerate() {
+      arr.set(
+        i as u32,
+        compilation
+          .module_by_identifier(identifier)
+          .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
+      )?;
+    }
+    Ok(arr)
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
@@ -777,12 +776,11 @@ impl JsCompilation {
           let results = dependency_ids
             .into_iter()
             .map(|dependency_id| {
-              if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
-                if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
-                  if let Some(diagnostic) = factorize_info.diagnostics().first() {
-                    return Either::A(diagnostic.to_string());
-                  }
-                }
+              if let Some(dependency) = module_graph.dependency_by_id(&dependency_id)
+                && let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+                && let Some(diagnostic) = factorize_info.diagnostics().first()
+              {
+                return Either::A(diagnostic.to_string());
               }
 
               match module_graph.get_module_by_dependency_id(&dependency_id) {
@@ -882,12 +880,11 @@ impl JsCompilation {
           let results = dependency_ids
             .into_iter()
             .map(|dependency_id| {
-              if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
-                if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
-                  if let Some(diagnostic) = factorize_info.diagnostics().first() {
-                    return Either::A(diagnostic.to_string());
-                  }
-                }
+              if let Some(dependency) = module_graph.dependency_by_id(&dependency_id)
+                && let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+                && let Some(diagnostic) = factorize_info.diagnostics().first()
+              {
+                return Either::A(diagnostic.to_string());
               }
 
               match module_graph.get_module_by_dependency_id(&dependency_id) {
@@ -933,24 +930,26 @@ pub struct JsAddEntryItemCallbackArgs(Vec<Either<String, ModuleObject>>);
 
 impl ToNapiValue for JsAddEntryItemCallbackArgs {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-    let env_wrapper = Env::from_raw(env);
-    let mut js_array = env_wrapper.create_array(0)?;
+    unsafe {
+      let env_wrapper = Env::from_raw(env);
+      let mut js_array = env_wrapper.create_array(0)?;
 
-    let raw_undefined = Undefined::to_napi_value(env, ())?;
-    let undefined = Unknown::from_napi_value(env, raw_undefined)?;
-    for result in val.0 {
-      let js_result = match result {
-        Either::A(msg) => vec![env_wrapper.create_string(&msg)?.to_unknown(), undefined],
-        Either::B(module) => {
-          let napi_val = ToNapiValue::to_napi_value(env, module)?;
-          let js_module = Unknown::from_napi_value(env, napi_val)?;
-          vec![undefined, js_module]
-        }
-      };
-      js_array.insert(js_result)?;
+      let raw_undefined = Undefined::to_napi_value(env, ())?;
+      let undefined = Unknown::from_napi_value(env, raw_undefined)?;
+      for result in val.0 {
+        let js_result = match result {
+          Either::A(msg) => vec![env_wrapper.create_string(&msg)?.to_unknown(), undefined],
+          Either::B(module) => {
+            let napi_val = ToNapiValue::to_napi_value(env, module)?;
+            let js_module = Unknown::from_napi_value(env, napi_val)?;
+            vec![undefined, js_module]
+          }
+        };
+        js_array.insert(js_result)?;
+      }
+
+      ToNapiValue::to_napi_value(env, js_array)
     }
-
-    ToNapiValue::to_napi_value(env, js_array)
   }
 }
 
@@ -995,23 +994,25 @@ impl JsCompilationWrapper {
 
 impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-      let mut refs = ref_cell.borrow_mut();
+    unsafe {
+      COMPILATION_INSTANCE_REFS.with(|ref_cell| {
+        let mut refs = ref_cell.borrow_mut();
 
-      match refs.entry(val.id) {
-        std::collections::hash_map::Entry::Occupied(entry) => {
-          let r = entry.get();
-          ToNapiValue::to_napi_value(env, r.clone())
+        match refs.entry(val.id) {
+          std::collections::hash_map::Entry::Occupied(entry) => {
+            let r = entry.get();
+            ToNapiValue::to_napi_value(env, r.clone())
+          }
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let js_compilation = JsCompilation::new(val.id, val.inner);
+            let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
+            let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
+            let weak_reference = entry.insert(reference.downgrade());
+            ToNapiValue::to_napi_value(env, weak_reference.clone())
+          }
         }
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_compilation = JsCompilation::new(val.id, val.inner);
-          let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
-          let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
-          let weak_reference = entry.insert(reference.downgrade());
-          ToNapiValue::to_napi_value(env, weak_reference.clone())
-        }
-      }
-    })
+      })
+    }
   }
 }
 

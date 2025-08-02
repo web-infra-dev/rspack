@@ -17,7 +17,7 @@ pub unsafe fn default_check_bytes_dyn<T>(
 where
   T: for<'a> CheckBytes<Validator<'a>>,
 {
-  T::check_bytes(bytes.cast(), context)
+  unsafe { T::check_bytes(bytes.cast(), context) }
 }
 
 pub struct CheckBytesEntry {
@@ -43,7 +43,9 @@ pub static CHECK_BYTES_REGISTRY: std::sync::LazyLock<HashMap<VTablePtr, CheckByt
     for entry in inventory::iter::<CheckBytesEntry> {
       let old_value = result.insert(entry.vtable, entry.check_bytes_dyn);
       if old_value.is_some() {
-        panic!("vtable conflict, a trait implementation was likely added twice (but it's possible there was a hash collision)")
+        panic!(
+          "vtable conflict, a trait implementation was likely added twice (but it's possible there was a hash collision)"
+        )
       }
     }
     result.shrink_to_fit();

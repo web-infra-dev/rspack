@@ -7,18 +7,19 @@ use std::{
 };
 
 use async_trait::async_trait;
+use atomic_refcell::AtomicRefCell;
 use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
-  get_css_chunk_filename_template,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
-    SourceExt,
-  },
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
   Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
   RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  get_css_chunk_filename_template,
+  rspack_sources::{
+    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
+    SourceExt,
+  },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -26,9 +27,9 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::RwLock;
 
 use crate::{
+  CssPlugin,
   dependency::{
     CssImportDependencyTemplate, CssLayer, CssLocalIdentDependencyTemplate, CssMedia,
     CssSelfReferenceLocalIdentDependencyTemplate, CssSupports, CssUrlDependencyTemplate,
@@ -37,19 +38,22 @@ use crate::{
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
-  CssPlugin,
 };
 
-static COMPILATION_HOOKS_MAP: LazyLock<
-  FxDashMap<CompilationId, Arc<RwLock<CssModulesPluginHooks>>>,
-> = LazyLock::new(Default::default);
+/// Safety with [atomic_refcell::AtomicRefCell]:
+///
+/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [CssPlugin::get_compilation_hooks_mut]
+type ArcCssModulesPluginHooks = Arc<AtomicRefCell<CssModulesPluginHooks>>;
+
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcCssModulesPluginHooks>> =
+  LazyLock::new(Default::default);
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
 }
 
 impl CssPlugin {
-  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<CssModulesPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> ArcCssModulesPluginHooks {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -59,7 +63,7 @@ impl CssPlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<CssModulesPluginHooks>> {
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> ArcCssModulesPluginHooks {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 
@@ -219,8 +223,7 @@ impl CssPlugin {
 
               let chunk_ukey = chunk.ukey().as_u32().into();
               hooks
-                .read()
-                .await
+                .borrow()
                 .render_module_package
                 .call(
                   compilation,

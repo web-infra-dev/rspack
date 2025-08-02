@@ -9,7 +9,7 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset, AsVec, Unsupported},
 };
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
@@ -24,15 +24,15 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
 use crate::{
-  block_promise, contextify, get_exports_type_with_strict, impl_module_meta_info,
-  module_update_hash, returning_function, to_path, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
-  CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer,
-  ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
+  ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
+  ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
+  DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId,
+  ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals,
+  RuntimeSpec, SourceType, block_promise, contextify, get_exports_type_with_strict,
+  impl_module_meta_info, module_update_hash, returning_function, to_path,
 };
 
 static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -208,9 +208,9 @@ impl ContextModule {
     &self.options.context_options
   }
 
-  fn get_fake_map(
+  fn get_fake_map<'a>(
     &self,
-    dependencies: impl IntoIterator<Item = &DependencyId>,
+    dependencies: impl IntoIterator<Item = &'a DependencyId>,
     compilation: &Compilation,
   ) -> FakeMapValue {
     let dependencies = dependencies.into_iter();
@@ -306,9 +306,9 @@ impl ContextModule {
     )
   }
 
-  fn get_user_request_map(
+  fn get_user_request_map<'a>(
     &self,
-    dependencies: impl IntoIterator<Item = &DependencyId>,
+    dependencies: impl IntoIterator<Item = &'a DependencyId>,
     compilation: &Compilation,
   ) -> FxIndexMap<String, Option<String>> {
     let module_graph = compilation.get_module_graph();
@@ -512,10 +512,12 @@ impl ContextModule {
         RuntimeGlobals::ENSURE_CHUNK
       )
     } else {
+      let mut chunks_start_position_buffer = itoa::Buffer::new();
+      let chunks_start_position_str = chunks_start_position_buffer.format(chunks_start_position);
       format!(
         "{}(ids[{}])",
         RuntimeGlobals::ENSURE_CHUNK,
-        itoa!(chunks_start_position)
+        chunks_start_position_str
       )
     };
     let return_module_object = self.get_return_module_object_source(
@@ -866,7 +868,7 @@ impl Module for ContextModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &crate::Context) -> std::borrow::Cow<str> {
+  fn readable_identifier(&self, _context: &crate::Context) -> std::borrow::Cow<'_, str> {
     self.identifier.as_str().into()
   }
 
@@ -878,7 +880,7 @@ impl Module for ContextModule {
     160.0
   }
 
-  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<'_, str>> {
     let mut id = String::new();
     if let Some(layer) = &self.options.layer {
       id += "(";

@@ -12,8 +12,8 @@ use itertools::{
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -73,7 +73,7 @@ pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {
   "".to_string()
 }
 
-fn avoid_number(s: &str) -> Cow<str> {
+fn avoid_number(s: &str) -> Cow<'_, str> {
   if s.len() > 21 {
     return Cow::Borrowed(s);
   }
@@ -147,10 +147,12 @@ pub fn assign_deterministic_ids<T>(
   for item in items {
     let ident = get_name(&item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
+    let mut i_buffer = itoa::Buffer::new();
+    let mut id = get_number_hash(&format!("{ident}{}", i_buffer.format(i)), range);
     while !assign_id(&item, id) {
       i += 1;
-      id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
+      let mut i_buffer = itoa::Buffer::new();
+      id = get_number_hash(&format!("{ident}{}", i_buffer.format(i)), range);
     }
   }
 }
@@ -298,7 +300,11 @@ pub fn get_full_chunk_name(
   let full_module_names = chunk_graph
     .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
-    .filter_map(|id| module_graph.module_by_identifier(id))
+    .map(|id| {
+      module_graph
+        .module_by_identifier(id)
+        .expect("Module not found")
+    })
     .map(|module| get_full_module_name(module, context))
     .collect::<Vec<_>>();
 
@@ -408,13 +414,15 @@ fn compare_chunks_by_groups(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let a_groups = a
+  let a_groups: Vec<_> = a
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index);
-  let b_groups = b
+    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .collect();
+  let b_groups: Vec<_> = b
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index);
-  a_groups.cmp_by(b_groups, |a, b| a.cmp(&b))
+    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .collect();
+  a_groups.cmp(&b_groups)
 }
 
 pub fn compare_chunks_natural<'a>(

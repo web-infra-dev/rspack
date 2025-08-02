@@ -73,15 +73,32 @@ class FakeElement {
 		this.sheet = type === "link" ? new FakeSheet(this, basePath) : undefined;
 	}
 
-	appendChild(node) {
+	_attach(node) {
 		this._document._onElementAttached(node);
 		this._children.push(node);
 		node.parentNode = this;
+	}
+
+	_load(node) {
 		if (node._type === "link") {
 			setTimeout(() => {
 				if (node.onload) node.onload({ type: "load", target: node });
 			}, 100);
+		} else if (node._type === "script" && this._document.onScript) {
+			Promise.resolve().then(() => {
+				this._document.onScript(node.src);
+			});
 		}
+	}
+
+	insertBefore(node) {
+		this._attach(node);
+		this._load(node);
+	}
+
+	appendChild(node) {
+		this._attach(node);
+		this._load(node);
 	}
 
 	removeChild(node) {
@@ -205,12 +222,12 @@ class FakeSheet {
 		const filepath = /file:\/\//.test(this._element.href)
 			? new URL(this._element.href)
 			: path.resolve(
-					this._basePath,
-					this._element.href
-						.replace(/^https:\/\/test\.cases\/path\//, "")
-						.replace(/^https:\/\/example\.com\/public\/path\//, "")
-						.replace(/^https:\/\/example\.com\//, "")
-				);
+				this._basePath,
+				this._element.href
+					.replace(/^https:\/\/test\.cases\/path\//, "")
+					.replace(/^https:\/\/example\.com\/public\/path\//, "")
+					.replace(/^https:\/\/example\.com\//, "")
+			);
 		let css = fs.readFileSync(filepath, "utf-8");
 		css = css
 			// Remove comments

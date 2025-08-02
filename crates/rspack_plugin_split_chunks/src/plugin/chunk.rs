@@ -1,7 +1,7 @@
 use rspack_collections::{DatabaseItem, UkeySet};
-use rspack_core::{incremental::Mutation, Chunk, ChunkUkey, Compilation};
+use rspack_core::{Chunk, ChunkUkey, Compilation, incremental::Mutation};
 
-use crate::{module_group::ModuleGroup, SplitChunksPlugin};
+use crate::{SplitChunksPlugin, module_group::ModuleGroup};
 
 fn put_split_chunk_reason(
   chunk_reason: &mut Option<String>,
@@ -165,13 +165,12 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
   ) {
     for module_identifier in &item.modules {
-      if let Some(module) = compilation.module_by_identifier(module_identifier) {
-        if module
+      if let Some(module) = compilation.module_by_identifier(module_identifier)
+        && module
           .chunk_condition(&new_chunk, compilation)
           .is_some_and(|condition| !condition)
-        {
-          continue;
-        }
+      {
+        continue;
       }
 
       // First, we remove modules from old chunks

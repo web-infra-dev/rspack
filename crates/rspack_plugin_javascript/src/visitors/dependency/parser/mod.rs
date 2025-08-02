@@ -11,15 +11,16 @@ pub use call_hooks_name::CallHooksName;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier,
-  ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt, TypeReexportPresenceMode,
+  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt,
+  TypeReexportPresenceMode,
 };
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   common::{
-    comments::Comments, util::take::Take, BytePos, Mark, SourceFile, SourceMap, Span, Spanned,
+    BytePos, Mark, SourceFile, SourceMap, Span, Spanned, comments::Comments, util::take::Take,
   },
   ecma::{
     ast::{
@@ -32,13 +33,13 @@ use swc_core::{
 };
 
 use crate::{
+  BoxJavascriptParserPlugin,
   dependency::local_module::LocalModule,
   parser_plugin::{self, InnerGraphState, JavaScriptParserPluginDrive, JavascriptParserPlugin},
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::scope_info::{
     FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
   },
-  BoxJavascriptParserPlugin,
 };
 
 pub trait TagInfoData: Clone + Sized + 'static {
@@ -227,7 +228,8 @@ pub struct JavascriptParser<'parser> {
   pub source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
   pub parse_meta: ParseMeta,
-  pub(crate) comments: Option<&'parser dyn Comments>,
+  pub comments: Option<&'parser dyn Comments>,
+  pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
   pub resource_data: &'parser ResourceData,
@@ -272,6 +274,7 @@ impl<'parser> JavascriptParser<'parser> {
     module_type: &'parser ModuleType,
     module_layer: Option<&'parser ModuleLayer>,
     resource_data: &'parser ResourceData,
+    factory_meta: Option<&'parser FactoryMeta>,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
@@ -407,6 +410,7 @@ impl<'parser> JavascriptParser<'parser> {
       definitions_db: db,
       plugin_drive,
       resource_data,
+      factory_meta,
       build_meta,
       build_info,
       compiler_options,
@@ -474,6 +478,10 @@ impl<'parser> JavascriptParser<'parser> {
       return false;
     };
     curr_path.span() == expr_span
+  }
+
+  pub fn get_module_layer(&self) -> Option<&ModuleLayer> {
+    self.module_layer
   }
 
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {

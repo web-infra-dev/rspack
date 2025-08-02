@@ -7,18 +7,18 @@ use std::{
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::{
-  bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
   Env, JsValue,
+  bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, rspack_sources::RawStringSource, AfterResolveResult, AssetEmittedInfo,
-  BeforeResolveResult, BindingCell, BoxModule, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
-  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
-  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
-  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BindingCell, BoxModule, ChunkUkey,
+  Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
+  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
+  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
+  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
+  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -41,7 +41,7 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme,
+  Scheme, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -126,8 +126,10 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let t = JsTap::from_napi_value(env, napi_val)?;
-    ThreadsafeJsTap::from_js_tap(t, Env::from_raw(env))
+    unsafe {
+      let t = JsTap::from_napi_value(env, napi_val)?;
+      ThreadsafeJsTap::from_js_tap(t, Env::from_raw(env))
+    }
   }
 }
 
@@ -503,10 +505,10 @@ pub struct RegisterJsTaps {
   pub register_normal_module_factory_resolve_for_scheme_taps:
     RegisterFunction<JsResolveForSchemeArgs, Promise<JsResolveForSchemeOutput>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAfterResolveData) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: string) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>"
   )]
   pub register_normal_module_factory_after_resolve_taps:
-    RegisterFunction<JsAfterResolveData, Promise<JsAfterResolveOutput>>,
+    RegisterFunction<String, Promise<JsAfterResolveOutput>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>"
   )]
@@ -822,7 +824,7 @@ define_register!(
 );
 define_register!(
   RegisterNormalModuleFactoryAfterResolveTaps,
-  tap = NormalModuleFactoryAfterResolveTap<JsAfterResolveData, Promise<JsAfterResolveOutput>> @ NormalModuleFactoryAfterResolveHook,
+  tap = NormalModuleFactoryAfterResolveTap<String, Promise<JsAfterResolveOutput>> @ NormalModuleFactoryAfterResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryAfterResolve,
   skip = true,
@@ -1571,43 +1573,42 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
     data: &mut ModuleFactoryCreateData,
     create_data: &mut NormalModuleCreateData,
   ) -> rspack_error::Result<Option<bool>> {
-    match self
-      .function
-      .call_with_promise(JsAfterResolveData {
-        request: create_data.raw_request.to_string(),
-        context: data.context.to_string(),
-        issuer: data
-          .issuer
-          .as_ref()
-          .map(|issuer| issuer.to_string())
-          .unwrap_or_default(),
-        issuer_layer: data.issuer_layer.clone(),
-        file_dependencies: data
-          .file_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        context_dependencies: data
-          .context_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        missing_dependencies: data
-          .missing_dependencies
-          .clone()
-          .into_iter()
-          .map(|item| item.to_string_lossy().to_string())
-          .collect::<Vec<_>>(),
-        create_data: Some(JsCreateData {
-          request: create_data.request.to_owned(),
-          user_request: create_data.user_request.to_owned(),
-          resource: create_data.resource_resolve_data.resource.to_owned(),
-        }),
-      })
-      .await
-    {
+    let data = JsAfterResolveData {
+      request: create_data.raw_request.to_string(),
+      context: data.context.to_string(),
+      issuer: data
+        .issuer
+        .as_ref()
+        .map(|issuer| issuer.to_string())
+        .unwrap_or_default(),
+      issuer_layer: data.issuer_layer.clone(),
+      file_dependencies: data
+        .file_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
+      context_dependencies: data
+        .context_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
+      missing_dependencies: data
+        .missing_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
+      create_data: Some(JsCreateData {
+        request: create_data.request.to_owned(),
+        user_request: create_data.user_request.to_owned(),
+        resource: create_data.resource_resolve_data.resource.to_owned(),
+      }),
+    };
+    let json = serde_json::to_string(&data).map_err(|e| rspack_error::error!(e.to_string()))?;
+
+    match self.function.call_with_promise(json).await {
       Ok((ret, resolve_data)) => {
         if let Some(resolve_data) = resolve_data {
           fn update_resource_data(old_resource_data: &mut ResourceData, new_resource: String) {

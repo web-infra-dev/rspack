@@ -12,7 +12,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
-use crate::{SwcLoader, SWC_LOADER_IDENTIFIER};
+use crate::{SWC_LOADER_IDENTIFIER, SwcLoader};
 
 #[plugin]
 #[derive(Debug)]

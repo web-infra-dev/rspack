@@ -3,12 +3,13 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  property_access, rspack_sources::Source, AsContextDependency, AsModuleDependency, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access,
 };
 use swc_core::atoms::Atom;
 
@@ -163,19 +164,9 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     } = code_generatable_context;
 
     let module_graph = compilation.get_module_graph();
-    let module_identifier = module.identifier();
     let module = module_graph
-      .module_by_identifier(&module_identifier)
+      .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-
-    // ConsumeShared tree-shaking macro support
-    let consume_shared_info: Option<String> = module.get_consume_shared_key().or_else(|| {
-      let shared_key = module.build_meta().shared_key.clone();
-      // eprintln!("DEBUG CommonJsExportsDependency: module identifier = {}", module.identifier());
-      // eprintln!("DEBUG CommonJsExportsDependency: module.build_meta().shared_key = {:?}", shared_key);
-      // eprintln!("DEBUG CommonJsExportsDependency: module.get_consume_shared_key() = {:?}", module.get_consume_shared_key());
-      shared_key
-    });
 
     let used = if dep.names.is_empty() {
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
@@ -219,45 +210,12 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
 
     if dep.base.is_expression() {
       if let Some(UsedName::Normal(used)) = used {
-        let export_assignment = format!("{}{}", base, property_access(&used, 0));
-        let export_name = used
-          .iter()
-          .map(|a| a.as_str())
-          .collect::<Vec<_>>()
-          .join(".");
-
-        // ConsumeShared tree-shaking macro support
-        if let Some(shared_key) = &consume_shared_info {
-          // Get the source content to check if this includes an assignment
-          let source_str = source.source();
-          let start = dep.range.start as usize;
-          let end = dep.range.end as usize;
-
-          // Check if the range is valid and contains an assignment
-          let is_assignment = if start < source_str.len() && end <= source_str.len() {
-            let content = &source_str[start..end];
-            content.contains("=")
-          } else {
-            false
-          };
-
-          if is_assignment {
-            // This is a full assignment statement - wrap the entire thing
-            let assignment_content = &source_str[start..end];
-            let wrapped = format!(
-              "/* @common:if [condition=\"treeShake.{shared_key}.{export_name}\"] */ {assignment_content} /* @common:endif */"
-            );
-            source.replace(dep.range.start, dep.range.end, &wrapped, None);
-          } else {
-            // Just property access - wrap only that
-            let wrapped = format!(
-              "/* @common:if [condition=\"treeShake.{shared_key}.{export_name}\"] */ {export_assignment} /* @common:endif */"
-            );
-            source.replace(dep.range.start, dep.range.end, &wrapped, None);
-          }
-        } else {
-          source.replace(dep.range.start, dep.range.end, &export_assignment, None);
-        }
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          &format!("{}{}", base, property_access(used, 0)),
+          None,
+        );
       } else {
         // Export a inlinable const from cjs is not possible for now but we compat it here
         let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
@@ -281,29 +239,19 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       if let Some(value_range) = &dep.value_range {
         if let Some(UsedName::Normal(used)) = used {
           if !used.is_empty() {
-            let _export_name = used.last().expect("used should have at least one element");
-
-            // NOTE: Tree-shaking macros are temporarily disabled for Object.defineProperty
-            // to avoid syntax errors with swc-generated code that has extra parentheses.
-            // The swc loader generates: Object.defineProperty(exports, "a", ({...}))
-            // which conflicts with macro wrapping.
-            let (define_property_start, define_property_end) = (
-              format!(
+            source.replace(
+              dep.range.start,
+              value_range.start,
+              &format!(
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
                 serde_json::to_string(&used.last())
                   .expect("Unexpected render define property base")
               ),
-              "))",
-            );
-            source.replace(
-              dep.range.start,
-              value_range.start,
-              &define_property_start,
               None,
             );
-            source.replace(value_range.end, dep.range.end, define_property_end, None);
+            source.replace(value_range.end, dep.range.end, "))", None);
           } else {
             panic!("Unexpected base type");
           }

@@ -1,16 +1,16 @@
-use std::sync::LazyLock;
+use std::{cell::RefCell, sync::LazyLock};
 
 use napi::{
+  Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
   bindgen_prelude::{
     Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, WeakReference,
   },
-  Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
 };
 use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{define_symbols, Module};
+use crate::{Module, define_symbols};
 
 define_symbols! {
   BUILD_INFO_ASSETS_SYMBOL => "BUILD_INFO_ASSETS_SYMBOL",
@@ -78,7 +78,7 @@ impl KnownBuildInfo {
     Self { module_reference }
   }
 
-  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object> {
+  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
     let raw_env = env.raw();
     let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
     Ok(Object::from_raw(raw_env, napi_val))
@@ -127,7 +127,7 @@ impl BuildInfo {
     Self { module_reference }
   }
 
-  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object> {
+  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
     let raw_env = env.raw();
     let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
     Ok(Object::from_raw(raw_env, napi_val))
@@ -150,9 +150,7 @@ impl BuildInfo {
   }
 }
 
-fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
-  let mut properties = vec![];
-
+fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) -> napi::Result<()> {
   BUILD_INFO_ASSETS_SYMBOL.with(|once_cell| {
     #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
@@ -264,7 +262,11 @@ fn create_known_private_properties(env: &Env) -> napi::Result<Vec<Property>> {
     Ok::<(), napi::Error>(())
   })?;
 
-  Ok(properties)
+  Ok(())
+}
+
+thread_local! {
+  static BUILD_INFO_PROPERTIES_BUFFER: RefCell<Vec<Property>> = const { RefCell::new(Vec::new()) };
 }
 
 impl ToNapiValue for BuildInfo {
@@ -272,66 +274,73 @@ impl ToNapiValue for BuildInfo {
     env: napi::sys::napi_env,
     mut val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    let env_wrapper = Env::from_raw(env);
-    let module_reference = val.module_reference.clone();
-    let known = KnownBuildInfo::new(module_reference.clone());
-    let napi_val = ToNapiValue::to_napi_value(env, known)?;
-    let mut object = Object::from_raw(env, napi_val);
+    unsafe {
+      let env_wrapper = Env::from_raw(env);
+      let module_reference = val.module_reference.clone();
+      let known = KnownBuildInfo::new(module_reference.clone());
+      let napi_val = ToNapiValue::to_napi_value(env, known)?;
+      let mut object = Object::from_raw(env, napi_val);
 
-    let mut properties = create_known_private_properties(&env_wrapper)?;
+      BUILD_INFO_PROPERTIES_BUFFER.with(|ref_cell| {
+        let mut properties = ref_cell.borrow_mut();
+        properties.clear();
+        create_known_private_properties(&env_wrapper, &mut properties)?;
 
-    let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
-      .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
-        let object = ctx.this::<Object>()?;
-        let env = ctx.env;
-        let this: &mut KnownBuildInfo = FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
+        let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
+          .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
+            let object = ctx.this::<Object>()?;
+            let env = ctx.env;
+            let this: &mut KnownBuildInfo =
+              FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
 
-        this.with_mut(|module| {
-          let mut extras = serde_json::Map::new();
-          let names = Array::from_unknown(object.get_property_names()?.to_unknown())?;
-          for index in 0..names.len() {
-            if let Some(name) = names.get::<String>(index)? {
-              if !KNOWN_BUILD_INFO_FIELD_NAMES.contains(name.as_str()) {
-                let value = object.get_named_property::<Unknown>(&name)?;
-                if let Some(json_value) = unknown_to_json_value(value)? {
-                  extras.insert(name, json_value);
+            this.with_mut(|module| {
+              let mut extras = serde_json::Map::new();
+              let names = Array::from_unknown(object.get_property_names()?.to_unknown())?;
+              for index in 0..names.len() {
+                if let Some(name) = names.get::<String>(index)?
+                  && !KNOWN_BUILD_INFO_FIELD_NAMES.contains(name.as_str())
+                {
+                  let value = object.get_named_property::<Unknown>(&name)?;
+                  if let Some(json_value) = unknown_to_json_value(value)? {
+                    extras.insert(name, json_value);
+                  }
                 }
               }
-            }
+
+              module.build_info_mut().extras = extras;
+
+              Ok(())
+            })
+          })?;
+
+        val.with_ref(|module| {
+          let extras = &module.build_info().extras;
+          properties.reserve(extras.len() + 1);
+          for (key, value) in extras {
+            let napi_val = ToNapiValue::to_napi_value(env, value)?;
+            properties.push(
+              Property::new()
+                .with_utf8_name(key)?
+                .with_value(&Object::from_raw(env, napi_val)),
+            );
           }
-
-          module.build_info_mut().extras = extras;
-
           Ok(())
-        })
+        })?;
+        COMMIT_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
+          #[allow(clippy::unwrap_used)]
+          let symbol = once_cell.get().unwrap();
+          properties.push(
+            Property::new()
+              .with_name(&env_wrapper, symbol)?
+              .with_value(&commit_custom_fields_fn)
+              .with_property_attributes(PropertyAttributes::Configurable),
+          );
+          Ok::<(), napi::Error>(())
+        })?;
+        object.define_properties(&properties)
       })?;
 
-    val.with_ref(|module| {
-      let extras = &module.build_info().extras;
-      properties.reserve(extras.len() + 1);
-      for (key, value) in extras {
-        let napi_val = ToNapiValue::to_napi_value(env, value)?;
-        properties.push(
-          Property::new()
-            .with_utf8_name(key)?
-            .with_value(&Object::from_raw(env, napi_val)),
-        );
-      }
-      Ok(())
-    })?;
-    COMMIT_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
-      #[allow(clippy::unwrap_used)]
-      let symbol = once_cell.get().unwrap();
-      properties.push(
-        Property::new()
-          .with_name(&env_wrapper, symbol)?
-          .with_value(&commit_custom_fields_fn)
-          .with_property_attributes(PropertyAttributes::Configurable),
-      );
-      Ok::<(), napi::Error>(())
-    })?;
-    object.define_properties(&properties)?;
-
-    Ok(napi_val)
+      Ok(napi_val)
+    }
   }
 }

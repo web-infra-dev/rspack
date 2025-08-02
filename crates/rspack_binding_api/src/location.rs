@@ -112,12 +112,14 @@ impl ToNapiValue for DependencyLocation {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    match val {
-      DependencyLocation::Real(real_dependency_location) => {
-        ToNapiValue::to_napi_value(env, real_dependency_location)
-      }
-      DependencyLocation::Synthetic(synthetic_dependency_location) => {
-        ToNapiValue::to_napi_value(env, synthetic_dependency_location)
+    unsafe {
+      match val {
+        DependencyLocation::Real(real_dependency_location) => {
+          ToNapiValue::to_napi_value(env, real_dependency_location)
+        }
+        DependencyLocation::Synthetic(synthetic_dependency_location) => {
+          ToNapiValue::to_napi_value(env, synthetic_dependency_location)
+        }
       }
     }
   }
@@ -128,15 +130,17 @@ impl FromNapiValue for DependencyLocation {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let obj = napi::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
-    if let Ok(Some(name)) = obj.get::<String>("name") {
-      return Ok(DependencyLocation::Synthetic(SyntheticDependencyLocation {
-        name,
-      }));
-    };
-    let real_dependency_location: RealDependencyLocation =
-      FromNapiValue::from_napi_value(env, napi_val)?;
-    Ok(DependencyLocation::Real(real_dependency_location))
+    unsafe {
+      let obj = napi::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
+      if let Ok(Some(name)) = obj.get::<String>("name") {
+        return Ok(DependencyLocation::Synthetic(SyntheticDependencyLocation {
+          name,
+        }));
+      };
+      let real_dependency_location: RealDependencyLocation =
+        FromNapiValue::from_napi_value(env, napi_val)?;
+      Ok(DependencyLocation::Real(real_dependency_location))
+    }
   }
 }
 

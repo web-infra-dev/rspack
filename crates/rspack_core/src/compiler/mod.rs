@@ -1,8 +1,6 @@
 mod compilation;
-pub mod make;
-mod module_executor;
 mod rebuild;
-use std::sync::{atomic::AtomicU32, Arc};
+use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
@@ -11,23 +9,21 @@ use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, Wr
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
-use rspack_tasks::{within_compiler_context, CompilerContext};
+use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-pub use self::{
-  compilation::*,
-  module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
-  rebuild::CompilationRecords,
-};
+pub use self::{compilation::*, rebuild::CompilationRecords};
 use crate::{
-  cache::{new_cache, Cache},
+  BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
+  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  cache::{Cache, new_cache},
+  compilation::make::ModuleExecutor,
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
-  trim_dir, BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
-  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  trim_dir,
 };
 
 // should be SyncHook, but rspack need call js hook
@@ -242,23 +238,17 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    match self.cache.before_compile(&mut self.compilation).await {
-      Ok(_is_hot) => {
-        // TODO: disable it for now, enable it once persistent cache is added to all artifacts
-        // if is_hot {
-        //   // If it's a hot start, we can use incremental
-        //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
-        // }
-      }
-      Err(err) => self.compilation.push_diagnostic(err.into()),
-    }
+    let _is_hot = self.cache.before_compile(&mut self.compilation).await;
+    // TODO: disable it for now, enable it once persistent cache is added to all artifacts
+    // if is_hot {
+    //   // If it's a hot start, we can use incremental
+    //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+    // }
 
     self.compile().await?;
     self.old_cache.begin_idle();
     self.compile_done().await?;
-    if let Err(err) = self.cache.after_compile(&self.compilation).await {
-      self.compilation.push_diagnostic(err.into());
-    }
+    self.cache.after_compile(&self.compilation).await;
     Ok(())
   }
 
@@ -286,24 +276,17 @@ impl Compiler {
     let logger = self.compilation.get_logger("rspack.Compiler");
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
-    if let Err(err) = self
+    self
       .cache
       .before_make(&mut self.compilation.make_artifact)
-      .await
-    {
-      self.compilation.push_diagnostic(err.into());
-    }
+      .await;
 
-    if let Some(e) = self
+    self
       .plugin_driver
       .compiler_hooks
       .make
       .call(&mut self.compilation)
-      .await
-      .err()
-    {
-      self.compilation.push_diagnostic(e.into());
-    }
+      .await?;
     logger.time_end(make_hook_start);
     self.compilation.make().await?;
     logger.time_end(make_start);
@@ -319,9 +302,7 @@ impl Compiler {
 
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
-    if let Err(err) = self.cache.after_make(&self.compilation.make_artifact).await {
-      self.compilation.push_diagnostic(err.into());
-    }
+    self.cache.after_make(&self.compilation.make_artifact).await;
     logger.time_end(start);
     let start = logger.time("seal compilation");
     #[cfg(feature = "debug_tool")]
@@ -393,10 +374,11 @@ impl Compiler {
             new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
           }
 
-          if let Some(old_version) = self.emitted_asset_versions.get(filename) {
-            if old_version.as_str() == asset.info.version && !old_version.is_empty() {
-              return;
-            }
+          if let Some(old_version) = self.emitted_asset_versions.get(filename)
+            && old_version.as_str() == asset.info.version
+            && !old_version.is_empty()
+          {
+            return;
           }
 
           // SAFETY: await immediately and trust caller to poll future entirely

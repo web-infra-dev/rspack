@@ -4,26 +4,31 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use atomic_refcell::AtomicRefCell;
 use cow_utils::CowUtils;
 use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
-use rspack_error::{miette, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, miette};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
-use tokio::sync::RwLock;
 
 use crate::{
-  asset::{create_favicon_asset, create_html_asset, HtmlPluginAssetTags, HtmlPluginAssets},
+  AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
+  BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
+  asset::{HtmlPluginAssetTags, HtmlPluginAssets, create_favicon_asset, create_html_asset},
   config::{HtmlInject, HtmlRspackPluginOptions},
   injector::AssetInjector,
   parser::HtmlCompiler,
   template::HtmlTemplate,
-  AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
-  BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
 };
 
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Arc<RwLock<HtmlPluginHooks>>>> =
+/// Safety with [atomic_refcell::AtomicRefCell]:
+///
+/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [HtmlRspackPlugin::get_compilation_hooks_mut]
+type ArcHtmlPluginHooks = Arc<AtomicRefCell<HtmlPluginHooks>>;
+
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcHtmlPluginHooks>> =
   LazyLock::new(Default::default);
 
 #[plugin]
@@ -37,7 +42,7 @@ impl HtmlRspackPlugin {
     Self::new_inner(config)
   }
 
-  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<HtmlPluginHooks>> {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<AtomicRefCell<HtmlPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -47,7 +52,7 @@ impl HtmlRspackPlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<HtmlPluginHooks>> {
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> ArcHtmlPluginHooks {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
@@ -57,7 +62,7 @@ async fn generate_html(
   html_file_name: &Filename,
   config: &HtmlRspackPluginOptions,
   compilation: &mut Compilation,
-  hooks: Arc<RwLock<HtmlPluginHooks>>,
+  hooks: ArcHtmlPluginHooks,
 ) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
   let public_path = config.get_public_path(compilation, filename).await;
 
@@ -79,8 +84,7 @@ async fn generate_html(
   .await?;
 
   let before_generation_data = hooks
-    .read()
-    .await
+    .borrow()
     .before_asset_tag_generation
     .call(BeforeAssetTagGenerationData {
       assets: assets_info.0,
@@ -94,8 +98,7 @@ async fn generate_html(
     HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets, &assets_info.1);
 
   let alter_asset_tags_data = hooks
-    .read()
-    .await
+    .borrow()
     .alter_asset_tags
     .call(AlterAssetTagsData {
       asset_tags,
@@ -110,8 +113,7 @@ async fn generate_html(
     HtmlPluginAssetTags::to_groups(config, alter_asset_tags_data.asset_tags);
 
   let alter_asset_tag_groups_data = hooks
-    .read()
-    .await
+    .borrow()
     .alter_asset_tag_groups
     .call(AlterAssetTagGroupsData {
       head_tags,
@@ -137,8 +139,7 @@ async fn generate_html(
   let template_execution_result = template.render(config).await?;
 
   let mut after_template_execution_data = hooks
-    .read()
-    .await
+    .borrow()
     .after_template_execution
     .call(AfterTemplateExecutionData {
       html: template_execution_result,
@@ -242,8 +243,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     };
 
     let mut before_emit_data = hooks
-      .read()
-      .await
+      .borrow()
       .before_emit
       .call(BeforeEmitData {
         html,
@@ -275,8 +275,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     compilation.emit_asset(html_asset.0.clone(), html_asset.1);
 
     let _ = hooks
-      .read()
-      .await
+      .borrow()
       .after_emit
       .call(AfterEmitData {
         output_name: html_asset.0.to_string(),

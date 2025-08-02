@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
 use rkyv::{
+  Place,
   rancor::Fallible,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
-  Place,
 };
 
 use crate::{utils::OwnedOrRef, with::AsCacheable};

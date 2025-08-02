@@ -2,7 +2,7 @@ use swc_core::{
   common::Mark,
   ecma::{
     ast::Pass,
-    transforms::base::hygiene::{hygiene_with_config, Config},
+    transforms::base::hygiene::{Config, hygiene_with_config},
     visit::VisitMut,
   },
 };

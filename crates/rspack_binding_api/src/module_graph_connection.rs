@@ -127,31 +127,33 @@ impl ToNapiValue for ModuleGraphConnectionWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    MODULE_GRAPH_CONNECTION_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(val.compilation_id);
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = UkeyMap::default();
-          entry.insert(refs)
-        }
-      };
+    unsafe {
+      MODULE_GRAPH_CONNECTION_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compilation_id = refs.borrow_mut();
+        let entry = refs_by_compilation_id.entry(val.compilation_id);
+        let refs = match entry {
+          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let refs = UkeyMap::default();
+            entry.insert(refs)
+          }
+        };
 
-      match refs.entry(val.dependency_id) {
-        std::collections::hash_map::Entry::Occupied(occupied_entry) => {
-          let r = occupied_entry.get();
-          ToNapiValue::to_napi_value(env, r)
+        match refs.entry(val.dependency_id) {
+          std::collections::hash_map::Entry::Occupied(occupied_entry) => {
+            let r = occupied_entry.get();
+            ToNapiValue::to_napi_value(env, r)
+          }
+          std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+            let js_dependency = ModuleGraphConnection {
+              compilation: val.compilation,
+              dependency_id: val.dependency_id,
+            };
+            let r = vacant_entry.insert(OneShotRef::new(env, js_dependency)?);
+            ToNapiValue::to_napi_value(env, r)
+          }
         }
-        std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let js_dependency = ModuleGraphConnection {
-            compilation: val.compilation,
-            dependency_id: val.dependency_id,
-          };
-          let r = vacant_entry.insert(OneShotRef::new(env, js_dependency)?);
-          ToNapiValue::to_napi_value(env, r)
-        }
-      }
-    })
+      })
+    }
   }
 }

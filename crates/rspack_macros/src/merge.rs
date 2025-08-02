@@ -1,29 +1,35 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-  parse_quote, spanned::Spanned, Attribute, Data, DeriveInput, Error, Fields, Generics, Ident,
-  Index, Meta, Result,
+  Attribute, Data, DeriveInput, Error, Fields, Generics, Ident, Index, Meta, Result, parse_quote,
+  spanned::Spanned,
 };
 
 pub fn expand_merge_from_derive(input: DeriveInput) -> Result<TokenStream> {
   let name = input.ident;
   let generics = add_trait_bounds(input.generics);
-  let chose_base = input.attrs.iter().try_find(|a| -> Result<bool> {
-    match &a.meta {
+  let mut chose_base = None;
+  for a in &input.attrs {
+    let is_match = match &a.meta {
       Meta::List(list) => {
         if !list.path.is_ident("merge_from") {
-          return Ok(false);
+          false
+        } else {
+          let mut has_enum_base = false;
+          list.parse_nested_meta(|meta| {
+            has_enum_base = meta.path.is_ident("enum_base");
+            Ok(())
+          })?;
+          has_enum_base
         }
-        let mut chose_base = false;
-        list.parse_nested_meta(|meta| {
-          chose_base = meta.path.is_ident("enum_base");
-          Ok(())
-        })?;
-        Ok(chose_base)
       }
-      _ => Ok(false),
+      _ => false,
+    };
+    if is_match {
+      chose_base = Some(a);
+      break;
     }
-  })?;
+  }
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
   let body = body(input.data, chose_base)?;
   Ok(quote! {

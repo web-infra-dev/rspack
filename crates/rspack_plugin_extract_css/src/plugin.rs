@@ -9,23 +9,22 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
-  get_undo_path,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
-    WithoutOriginalOptions,
-  },
   ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
   Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, SourceType, get_undo_path,
+  rspack_sources::{
+    BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    WithoutOriginalOptions,
+  },
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
+  BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
 use rustc_hash::FxHashMap;
@@ -436,7 +435,7 @@ despite it was not able to fulfill desired ordering with these modules:
           source.add(RawStringSource::from(format!("@media {media} {{\n")));
         }
 
-        if let Some(layer) = &module.layer {
+        if let Some(layer) = &module.css_layer {
           source.add(RawStringSource::from(format!("@layer {layer} {{\n")));
         }
 
@@ -478,7 +477,7 @@ despite it was not able to fulfill desired ordering with these modules:
           source.add(RawStringSource::from_static("}\n"));
         }
 
-        if module.layer.is_some() {
+        if module.css_layer.is_some() {
           source.add(RawStringSource::from_static("}\n"));
         }
       }

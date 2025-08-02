@@ -21,8 +21,8 @@ pub use require_resolve_context_dependency::{
   RequireResolveContextDependency, RequireResolveContextDependencyTemplate,
 };
 use rspack_core::{
-  module_raw, ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
-  TemplateContext, TemplateReplaceSource,
+  ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions, TemplateContext,
+  TemplateReplaceSource, module_raw,
 };
 
 fn create_resource_identifier_for_context_dependency(

@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use rspack_collections::Identifier;
 use rspack_core::{
-  basic_function, compile_boolean_matcher, impl_runtime_module, BooleanMatcher, ChunkGroupOrderKey,
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleStage, basic_function, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
 use rustc_hash::FxHashSet as HashSet;

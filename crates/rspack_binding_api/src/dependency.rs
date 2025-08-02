@@ -1,6 +1,9 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
+use napi::{
+  Either, Env,
+  bindgen_prelude::{Array, ToNapiValue},
+};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, DependencyId};
 use rspack_napi::OneShotInstanceRef;
@@ -123,36 +126,36 @@ impl Dependency {
     Ok(())
   }
 
-  #[napi(getter)]
-  pub fn ids<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Vec<JsString<'a>>, ()>> {
+  #[napi(getter, ts_return_type = "Array<string> | undefined")]
+  pub fn ids<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Array<'a>, ()>> {
     let (dependency, compilation) = self.as_ref()?;
 
     Ok(match compilation {
       Some(compilation) => {
         let module_graph = compilation.get_module_graph();
         if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
+          let ids = dependency.get_ids(&module_graph);
+          let mut arr = env.create_array(ids.len() as u32)?;
+          for (i, v) in ids.iter().enumerate() {
+            arr.set(i as u32, v.as_str())?;
+          }
+          Either::A(arr)
         } else if let Some(dependency) =
           dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
         {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
+          let ids = dependency.get_ids(&module_graph);
+          let mut arr = env.create_array(ids.len() as u32)?;
+          for (i, v) in ids.iter().enumerate() {
+            arr.set(i as u32, v.as_str())?;
+          }
+          Either::A(arr)
         } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
+          let ids = dependency.get_ids(&module_graph);
+          let mut arr = env.create_array(ids.len() as u32)?;
+          for (i, v) in ids.iter().enumerate() {
+            arr.set(i as u32, v.as_str())?;
+          }
+          Either::A(arr)
         } else {
           Either::B(())
         }
@@ -212,36 +215,38 @@ impl ToNapiValue for DependencyWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    DEPENDENCY_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(val.compilation_id);
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = HashMap::default();
-          entry.insert(refs)
-        }
-      };
+    unsafe {
+      DEPENDENCY_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compilation_id = refs.borrow_mut();
+        let entry = refs_by_compilation_id.entry(val.compilation_id);
+        let refs = match entry {
+          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let refs = HashMap::default();
+            entry.insert(refs)
+          }
+        };
 
-      match refs.entry(val.dependency_id) {
-        std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
-          let r = occupied_entry.get_mut();
-          let instance = &mut **r;
-          instance.compilation = val.compilation;
-          instance.dependency = val.dependency;
+        match refs.entry(val.dependency_id) {
+          std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+            let r = occupied_entry.get_mut();
+            let instance = &mut **r;
+            instance.compilation = val.compilation;
+            instance.dependency = val.dependency;
 
-          ToNapiValue::to_napi_value(env, r)
+            ToNapiValue::to_napi_value(env, r)
+          }
+          std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+            let js_dependency = Dependency {
+              compilation: val.compilation,
+              dependency_id: val.dependency_id,
+              dependency: val.dependency,
+            };
+            let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_dependency)?);
+            ToNapiValue::to_napi_value(env, r)
+          }
         }
-        std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let js_dependency = Dependency {
-            compilation: val.compilation,
-            dependency_id: val.dependency_id,
-            dependency: val.dependency,
-          };
-          let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_dependency)?);
-          ToNapiValue::to_napi_value(env, r)
-        }
-      }
-    })
+      })
+    }
   }
 }

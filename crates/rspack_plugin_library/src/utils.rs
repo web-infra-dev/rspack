@@ -1,7 +1,7 @@
 use rspack_collections::Identifiable;
 use rspack_core::{
-  to_identifier, ChunkGraph, ChunkUkey, Compilation, ExternalModule, ExternalRequest,
-  LibraryOptions,
+  ChunkGraph, ChunkUkey, Compilation, ExternalModule, ExternalRequest, LibraryOptions,
+  to_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 

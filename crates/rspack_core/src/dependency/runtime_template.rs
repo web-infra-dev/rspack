@@ -4,13 +4,13 @@ use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
   PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, UsedName,
+  TemplateContext, UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
+  to_comment, to_normal_comment,
 };
 
 /// Check if a module is part of a shared bundle using BuildMeta only
@@ -245,7 +245,7 @@ pub fn export_from_import(
             property_access(export_name, 0)
           )),
           inlined.render()
-        )
+        );
       }
       None => {
         return format!(
@@ -254,7 +254,7 @@ pub fn export_from_import(
             "unused export {}",
             property_access(export_name, 0)
           ))
-        )
+        );
       }
     };
     let comment = if used_name != export_name {
@@ -751,7 +751,9 @@ pub fn throw_missing_module_error_block(request: &str) -> String {
 }
 
 pub fn weak_error(request: &str) -> String {
-  format!("var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
+  format!(
+    "var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;"
+  )
 }
 
 pub fn returning_function(environment: &Environment, return_value: &str, args: &str) -> String {

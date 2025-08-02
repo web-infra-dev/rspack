@@ -4,13 +4,13 @@ mod raw_storage;
 use core::panic;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
   Either,
+  bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
 use raw_snapshot::RawExperimentSnapshotOptions;
 use raw_storage::RawStorageOptions;
-use rspack_core::{cache::persistent::PersistentCacheOptions, ExperimentCacheOptions};
+use rspack_core::{ExperimentCacheOptions, cache::persistent::PersistentCacheOptions};
 
 pub type RawExperimentCacheOptions = Either<bool, RawExperimentCache>;
 
@@ -63,19 +63,21 @@ impl FromNapiValue for RawExperimentCache {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let o = Object::from_napi_value(env, napi_val)?;
-    let t = o.get_named_property::<String>("type")?;
+    unsafe {
+      let o = Object::from_napi_value(env, napi_val)?;
+      let t = o.get_named_property::<String>("type")?;
 
-    let v = match &*t {
-      "persistent" => {
-        let o = RawExperimentCacheOptionsPersistent::from_napi_value(env, napi_val)?;
-        Self::Persistent(o)
-      }
-      "memory" => Self::Memory,
-      _ => panic!("Unexpected cache type: {t}, expected 'persistent' or 'memory'"),
-    };
+      let v = match &*t {
+        "persistent" => {
+          let o = RawExperimentCacheOptionsPersistent::from_napi_value(env, napi_val)?;
+          Self::Persistent(o)
+        }
+        "memory" => Self::Memory,
+        _ => panic!("Unexpected cache type: {t}, expected 'persistent' or 'memory'"),
+      };
 
-    Ok(v)
+      Ok(v)
+    }
   }
 }
 

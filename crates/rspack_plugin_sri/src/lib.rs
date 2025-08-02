@@ -104,7 +104,7 @@ async fn handle_compilation(
   {
     let real_content_hash_plugin_hooks =
       RealContentHashPlugin::get_compilation_hooks_mut(compilation.id());
-    let mut real_content_hash_plugin_hooks = real_content_hash_plugin_hooks.write().await;
+    let mut real_content_hash_plugin_hooks = real_content_hash_plugin_hooks.borrow_mut();
     real_content_hash_plugin_hooks
       .update_hash
       .tap(update_hash::new(self));
@@ -122,7 +122,7 @@ async fn handle_compilation(
 
   {
     let runtime_plugin_hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
-    let mut runtime_plugin_hooks = runtime_plugin_hooks.write().await;
+    let mut runtime_plugin_hooks = runtime_plugin_hooks.borrow_mut();
     runtime_plugin_hooks
       .create_script
       .tap(create_script::new(self));
@@ -133,7 +133,7 @@ async fn handle_compilation(
 
   if matches!(self.options.html_plugin, IntegrityHtmlPlugin::NativePlugin) {
     let html_plugin_hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
-    let mut html_plugin_hooks = html_plugin_hooks.write().await;
+    let mut html_plugin_hooks = html_plugin_hooks.borrow_mut();
     html_plugin_hooks
       .before_asset_tag_generation
       .tap(before_asset_tag_generation::new(self));
@@ -155,19 +155,19 @@ impl Plugin for SubresourceIntegrityPlugin {
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
     options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
-    if let ChunkLoading::Enable(chunk_loading) = &options.output.chunk_loading {
-      if matches!(
+    if let ChunkLoading::Enable(chunk_loading) = &options.output.chunk_loading
+      && matches!(
         chunk_loading,
         ChunkLoadingType::Require | ChunkLoadingType::AsyncNode
-      ) {
-        ctx
-          .context
-          .compiler_hooks
-          .this_compilation
-          .tap(warn_non_web::new(self));
+      )
+    {
+      ctx
+        .context
+        .compiler_hooks
+        .this_compilation
+        .tap(warn_non_web::new(self));
 
-        return Ok(());
-      }
+      return Ok(());
     }
 
     ctx

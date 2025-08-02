@@ -1,10 +1,8 @@
-#![feature(let_chains)]
-
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
-  incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
-  ExportsInfo, ModuleGraph, Plugin, PluginContext, RuntimeSpec,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfo, ModuleGraph, Plugin,
+  PluginContext, RuntimeSpec, incremental::Mutation, is_runtime_equal,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -34,22 +32,15 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let mut possible_duplicates: Option<UkeySet<ChunkUkey>> = None;
     for module in compilation
       .chunk_graph
-      .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
+      .get_chunk_modules_identifier(&chunk_ukey)
     {
       if let Some(ref mut possible_duplicates) = possible_duplicates {
-        possible_duplicates.retain(|dup| {
-          compilation
-            .chunk_graph
-            .is_module_in_chunk(&module.identifier(), *dup)
-        });
+        possible_duplicates.retain(|dup| compilation.chunk_graph.is_module_in_chunk(module, *dup));
         if possible_duplicates.is_empty() {
           break;
         }
       } else {
-        for dup in compilation
-          .chunk_graph
-          .get_module_chunks(module.identifier())
-        {
+        for dup in compilation.chunk_graph.get_module_chunks(*module) {
           if *dup != chunk_ukey
             && compilation
               .chunk_graph
@@ -95,10 +86,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           let module_graph = compilation.get_module_graph();
           let is_all_equal = compilation
             .chunk_graph
-            .get_chunk_modules(&chunk_ukey, &module_graph)
+            .get_chunk_modules_identifier(&chunk_ukey)
             .into_par_iter()
             .all(|module| {
-              let exports_info = module_graph.get_exports_info(&module.identifier());
+              let exports_info = module_graph.get_exports_info(module);
               is_equally_used(
                 &exports_info,
                 &module_graph,

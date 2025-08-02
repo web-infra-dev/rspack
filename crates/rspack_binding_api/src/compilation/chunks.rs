@@ -1,6 +1,6 @@
 use napi::{
-  bindgen_prelude::{Object, ToNapiValue, WeakReference},
   Env,
+  bindgen_prelude::{Object, ToNapiValue, WeakReference},
 };
 use rspack_core::Compilation;
 
@@ -18,14 +18,14 @@ impl Chunks {
 
   fn as_ref(&self) -> napi::Result<&Compilation> {
     match self.compiler_reference.get() {
-        Some(wrapped_value) => Ok(wrapped_value.as_ref()?),
-        None => Err(napi::Error::from_reason(
-          "Unable to access compilation.chunks now. The Compilation has been garbage collected by JavaScript."
-        )),
-      }
+      Some(wrapped_value) => Ok(wrapped_value.as_ref()?),
+      None => Err(napi::Error::from_reason(
+        "Unable to access compilation.chunks now. The Compilation has been garbage collected by JavaScript.",
+      )),
+    }
   }
 
-  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object> {
+  pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
     let raw_env = env.raw();
     let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
     Ok(Object::from_raw(raw_env, napi_val))
