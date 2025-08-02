@@ -32,7 +32,7 @@
     "lint:js": "pnpm run lint-ci:js --write",
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
-    "lint:type": "rslint --config rslint.json --max-warnings=1974",
+    "lint:type": "rslint --config rslint.json --max-warnings=1995",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:ci": "pnpm --filter @rspack/binding run build:ci",
@@ -86,7 +86,7 @@
     "typescript": "^5.8.3",
     "webpack": "5.99.9",
     "zx": "8.7.1",
-    "@rslint/core": "0.1.0"
+    "@rslint/core": "0.1.1"
   },
   "packageManager": "pnpm@10.10.0",
   "pnpm": {
