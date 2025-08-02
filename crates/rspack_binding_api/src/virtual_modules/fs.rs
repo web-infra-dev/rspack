@@ -37,60 +37,60 @@ impl Debug for VirtualFileSystem {
 #[async_trait::async_trait]
 impl ReadableFileSystem for VirtualFileSystem {
   async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if let Ok(store) = self.virtual_file_store.read() {
-      if let Some(content) = store.get_file_content(path) {
-        return Ok(content.clone());
-      }
+    if let Ok(store) = self.virtual_file_store.read()
+      && let Some(content) = store.get_file_content(path)
+    {
+      return Ok(content.clone());
     }
 
     self.real_fs.read(path).await
   }
 
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if let Ok(store) = self.virtual_file_store.read() {
-      if let Some(content) = store.get_file_content(path) {
-        return Ok(content.clone());
-      }
+    if let Ok(store) = self.virtual_file_store.read()
+      && let Some(content) = store.get_file_content(path)
+    {
+      return Ok(content.clone());
     }
 
     self.real_fs.read_sync(path)
   }
 
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if let Ok(store) = self.virtual_file_store.read() {
-      if let Some(metadata) = store.get_file_metadata(path) {
-        return Ok(metadata.clone());
-      }
+    if let Ok(store) = self.virtual_file_store.read()
+      && let Some(metadata) = store.get_file_metadata(path)
+    {
+      return Ok(metadata.clone());
     }
 
     self.real_fs.metadata(path).await
   }
 
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if let Ok(store) = self.virtual_file_store.read() {
-      if let Some(metadata) = store.get_file_metadata(path) {
-        return Ok(metadata.clone());
-      }
+    if let Ok(store) = self.virtual_file_store.read()
+      && let Some(metadata) = store.get_file_metadata(path)
+    {
+      return Ok(metadata.clone());
     }
 
     self.real_fs.metadata_sync(path)
   }
 
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if let Ok(store) = self.virtual_file_store.read() {
-      if let Some(metadata) = store.get_file_metadata(path) {
-        return Ok(metadata.clone());
-      }
+    if let Ok(store) = self.virtual_file_store.read()
+      && let Some(metadata) = store.get_file_metadata(path)
+    {
+      return Ok(metadata.clone());
     }
 
     self.real_fs.symlink_metadata(path).await
   }
 
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    if let Ok(store) = self.virtual_file_store.read() {
-      if store.contains(path) {
-        return Ok(path.to_path_buf());
-      }
+    if let Ok(store) = self.virtual_file_store.read()
+      && store.contains(path)
+    {
+      return Ok(path.to_path_buf());
     }
 
     self.real_fs.canonicalize(path).await
@@ -127,10 +127,10 @@ impl ReadableFileSystem for VirtualFileSystem {
   }
 
   async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
-    if let Ok(store) = self.virtual_file_store.read() {
-      if store.contains(path) {
-        return Ok(Some(FilePermissions::from_mode(0o700)));
-      }
+    if let Ok(store) = self.virtual_file_store.read()
+      && store.contains(path)
+    {
+      return Ok(Some(FilePermissions::from_mode(0o700)));
     }
 
     self.real_fs.permissions(path).await

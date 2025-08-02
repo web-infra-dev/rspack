@@ -1,7 +1,9 @@
+import type EventEmitter from "node:events";
 import path from "node:path";
 import type { VirtualFileStore } from "@rspack/binding";
 import type { Compiler } from "./Compiler";
 import NativeWatchFileSystem from "./NativeWatchFileSystem";
+import type { WatchFileSystem } from "./util/fs";
 
 const PLUGIN_NAME = "VirtualModulesPlugin";
 
@@ -41,7 +43,7 @@ export class VirtualModulesPlugin {
 
 		const store = this.getVirtualFileStore();
 
-		const fullPath = path.resolve(this.#compiler!.context, filePath);
+		const fullPath = path.resolve(this.#compiler.context, filePath);
 
 		store.writeVirtualFileSync(fullPath, contents);
 
@@ -81,19 +83,33 @@ function notifyWatchers(compiler: Compiler, fullPath: string, time: number) {
 }
 
 function notifyJsWatchers(compiler: Compiler, fullPath: string, time: number) {
-	const watcher = (compiler.watchFileSystem as any)?.watcher;
-	if (!watcher) return;
-	const fileWatchers =
-		watcher.fileWatchers instanceof Map
-			? Array.from(watcher.fileWatchers.values())
-			: watcher.fileWatchers;
-	for (let fileWatcher of fileWatchers) {
-		if ("watcher" in fileWatcher) {
-			fileWatcher = fileWatcher.watcher;
-		}
-		if (fileWatcher.path === fullPath) {
-			delete fileWatcher.directoryWatcher._cachedTimeInfoEntries;
-			fileWatcher.emit("change", time, null);
+	if (
+		compiler.watchFileSystem &&
+		isNodeWatchFileSystem(compiler.watchFileSystem)
+	) {
+		const watcher = compiler.watchFileSystem.watcher;
+		if (!watcher) return;
+		const fileWatcher = watcher.fileWatchers.get(fullPath);
+		if (fileWatcher) {
+			fileWatcher.watcher.emit("change", time, null);
 		}
 	}
+}
+
+// rspack uses a precompiled watchpack, of which the implementation doesn't match the .d.ts
+interface Watcher extends EventEmitter {
+	path: string;
+}
+interface WatchpacFileWatcher {
+	watcher: Watcher;
+}
+interface Watchpack {
+	fileWatchers: Map<string, WatchpacFileWatcher>;
+}
+interface NodeWatchFileSystem extends WatchFileSystem {
+	watcher?: Watchpack;
+}
+
+function isNodeWatchFileSystem(fs: WatchFileSystem): fs is NodeWatchFileSystem {
+	return "watch" in fs;
 }
