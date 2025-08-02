@@ -96,12 +96,11 @@ impl ConsumeSharedModule {
 
   pub fn find_fallback_module_id(&self, module_graph: &ModuleGraph) -> Option<ModuleIdentifier> {
     for dep_id in &self.dependencies {
-      if let Some(dep) = module_graph.dependency_by_id(dep_id) {
-        if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback) {
-          if let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-            return Some(*fallback_id);
-          }
-        }
+      if let Some(dep) = module_graph.dependency_by_id(dep_id)
+        && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+        && let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id)
+      {
+        return Some(*fallback_id);
       }
     }
     None
