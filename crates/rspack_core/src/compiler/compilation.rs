@@ -260,7 +260,7 @@ pub struct Compilation {
   pub chunk_render_artifact: ChunkRenderArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
-  // artiface for caching module static info
+  // artifact for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
   // artifact for chunk render cache
@@ -2035,23 +2035,29 @@ impl Compilation {
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.chunks");
-    let mut chunk_requirements = HashMap::default();
-    for chunk_ukey in chunks.iter().chain(entries.iter()) {
-      let mut set = RuntimeGlobals::default();
-      for module in self
-        .chunk_graph
-        .get_chunk_modules(chunk_ukey, &self.get_module_graph())
-      {
-        let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
-        if let Some(runtime_requirements) =
-          ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
+    let chunk_requirements = chunks
+      .iter()
+      .chain(entries.iter())
+      .par_bridge()
+      .map(|chunk_ukey| {
+        let mut set = RuntimeGlobals::default();
+        for module in self
+          .chunk_graph
+          .get_chunk_modules(chunk_ukey, &self.get_module_graph())
         {
-          set.insert(*runtime_requirements);
+          let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
+          if let Some(runtime_requirements) =
+            ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
+          {
+            set.insert(*runtime_requirements);
+          }
         }
-      }
-      chunk_requirements.insert(chunk_ukey, set);
-    }
-    for (&chunk_ukey, mut set) in chunk_requirements {
+
+        (*chunk_ukey, set)
+      })
+      .collect::<UkeyMap<_, _>>();
+
+    for (chunk_ukey, mut set) in chunk_requirements {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
