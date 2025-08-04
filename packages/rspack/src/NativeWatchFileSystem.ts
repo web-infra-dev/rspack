@@ -33,9 +33,6 @@ const toJsWatcherIgnored = (
 			"NativeWatcher does not support using a function for the 'ignored' option"
 		);
 	}
-	if (ignored) {
-		throw new Error(`Invalid option for 'ignored': ${ignored}`);
-	}
 	return undefined;
 };
 
@@ -106,7 +103,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			[Array.from(missing.added!), Array.from(missing.removed!)],
 			(err: Error | null, result) => {
 				if (err) {
-					return callback(err, new Map(), new Map(), new Set(), new Set());
+					callback(err, new Map(), new Map(), new Set(), new Set());
+					return;
 				}
 				nativeWatcher.pause();
 				const changedFiles = result.changedFiles;
@@ -137,7 +135,15 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
 		return {
 			close: () => {
-				nativeWatcher.close();
+				nativeWatcher.close().then(
+					() => {
+						// Clean up the internal reference to the native watcher to allow it to be garbage collected.
+						this.#inner = undefined;
+					},
+					(err: unknown) => {
+						console.error("Error closing native watcher:", err);
+					}
+				);
 			},
 
 			pause: () => {
