@@ -350,12 +350,13 @@ export class WatchStepProcessor<
 		});
 		// wait compiler to ready watch the files and diretories
 
-		// Native Watcher using notify to watch files.
-		// After tests, notify.win will cost many milliseconds to watch.
-		// I don't know why it happens.
+		// Native Watcher using [notify](https://github.com/notify-rs/notify) to watch files.
+		// After tests, notify will cost many milliseconds to watch in windows OS when jest run concurrently.
 		// So we need to wait a while to ensure the watcher is ready.
 		// If we don't wait, copyDiff will happen before the watcher is ready,
-		// which will cause the watcher to not watch the files and directories.
+		// which will cause the compiler not rebuild when the files change.
+		// The timeout is set to 400ms for windows OS and 100ms for other OS.
+		// TODO: This is a workaround, we can remove it when notify support windows better.
 		const timeout =
 			this._watchOptions.nativeWatcher && process.platform === "win32"
 				? 400
