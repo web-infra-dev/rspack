@@ -126,7 +126,6 @@ pub enum BindingType {
 pub struct ConcatenatedInnerModule {
   pub id: ModuleIdentifier,
   pub size: f64,
-  pub original_source_hash: Option<u64>,
   pub shorten_id: String,
 }
 
