@@ -6,7 +6,7 @@ Builtin 插件使用 [rspack_macros](https://github.com/web-infra-dev/rspack/tre
 
 ```rust
 use rspack_hook::{plugin, plugin_hook};
-use rspack_core::{Plugin,  ApplyContext, CompilerOptions};
+use rspack_core::{Plugin, ApplyContext, CompilerOptions};
 use rspack_core::CompilerCompilation;
 use rspack_error::Result;
 
