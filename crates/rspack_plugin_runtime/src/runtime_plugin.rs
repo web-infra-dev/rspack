@@ -3,15 +3,13 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use async_trait::async_trait;
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationId, CompilationParams,
+  ChunkLoading, ChunkUkey, Compilation, CompilationId, CompilationParams,
   CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerCompilation,
-  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, PublicPath, RuntimeGlobals,
-  RuntimeModuleExt, SourceType, get_css_chunk_filename_template, get_js_chunk_filename_template,
-  has_hash_placeholder,
+  ModuleIdentifier, Plugin, PublicPath, RuntimeGlobals, RuntimeModuleExt, SourceType,
+  get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -535,25 +533,18 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
-#[async_trait]
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
     "rspack.RuntimePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_module
       .tap(runtime_requirements_in_module::new(self));
     ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));

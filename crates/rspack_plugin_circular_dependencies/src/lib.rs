@@ -4,8 +4,7 @@ use futures::future::BoxFuture;
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  ApplyContext, Compilation, CompilationOptimizeModules, CompilerOptions, DependencyType,
-  ModuleIdentifier, Plugin, PluginContext,
+  Compilation, CompilationOptimizeModules, DependencyType, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -404,9 +403,8 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
 
 // implement apply method for the plugin
 impl Plugin for CircularDependencyRspackPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_modules
       .tap(optimize_modules::new(self));

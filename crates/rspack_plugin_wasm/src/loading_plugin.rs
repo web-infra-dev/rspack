@@ -1,6 +1,6 @@
 use rspack_core::{
-  BoxPlugin, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree, Plugin, PluginContext,
-  PluginExt, RuntimeGlobals, RuntimeModuleExt, WasmLoadingType,
+  BoxPlugin, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree, Plugin, PluginExt,
+  RuntimeGlobals, RuntimeModuleExt, WasmLoadingType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -48,13 +48,8 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
     "FetchCompileAsyncWasmPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(fetch_compile_async_wasm_plugin_runtime_requirements_in_tree::new(self));
@@ -115,13 +110,8 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
     "ReadFileCompileAsyncWasmPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(read_file_compile_async_wasm_plugin_runtime_requirements_in_tree::new(self));

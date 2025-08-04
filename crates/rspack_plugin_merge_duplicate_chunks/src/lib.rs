@@ -1,8 +1,8 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfo, ModuleGraph, Plugin,
-  PluginContext, RuntimeSpec, incremental::Mutation, is_runtime_equal,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfo, ModuleGraph, Plugin, RuntimeSpec,
+  incremental::Mutation, is_runtime_equal,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -142,13 +142,8 @@ impl Plugin for MergeDuplicateChunksPlugin {
     "rspack.MergeDuplicateChunksPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

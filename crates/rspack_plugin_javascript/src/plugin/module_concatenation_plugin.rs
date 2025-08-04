@@ -4,11 +4,11 @@ use std::{borrow::Cow, collections::VecDeque, sync::Arc};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ApplyContext, BoxDependency, Compilation, CompilationOptimizeChunkModules, CompilerOptions,
-  DependencyId, ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions,
-  Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, ExportProvided,
+  ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
+  ModuleIdentifier, Plugin, PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition,
+  RuntimeSpec, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -1313,9 +1313,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 }
 
 impl Plugin for ModuleConcatenationPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));

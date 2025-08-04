@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  ApplyContext, CompilerOptions, DependencyRange, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, PluginContext, SharedSourceMap,
+  DependencyRange, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, SharedSourceMap,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -163,9 +163,8 @@ impl Plugin for ProvidePlugin {
     "rspack.ProvidePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

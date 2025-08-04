@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
-use rspack_core::{
-  ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
-  incremental::IncrementalPasses,
-};
+use rspack_core::{Chunk, CompilationChunkIds, Plugin, incremental::IncrementalPasses};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -105,12 +102,8 @@ impl Plugin for OccurrenceChunkIdsPlugin {
     "rspack.OccurrenceChunkIdsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .chunk_ids
-      .tap(chunk_ids::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     Ok(())
   }
 }

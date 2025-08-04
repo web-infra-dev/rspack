@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, CompilerMake, CompilerOptions, DependencyType, EntryOptions, EntryRuntime,
-  Filename, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
+  ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, CompilerMake, DependencyType, EntryOptions, EntryRuntime, Filename,
+  LibraryOptions, Plugin, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -114,21 +113,15 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
-#[async_trait]
 impl Plugin for ContainerPlugin {
   fn name(&self) -> &'static str {
     "rspack.ContainerPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx.compiler_hooks.make.tap(make::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx.context.compiler_hooks.make.tap(make::new(self));
-    ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
