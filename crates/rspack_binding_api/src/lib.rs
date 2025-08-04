@@ -179,6 +179,18 @@ impl JsCompiler {
       let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
       plugins.push(js_hooks_plugin.clone().boxed());
 
+      // Register builtin loader plugins
+      plugins.push(Box::new(
+        rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
+      plugins.push(Box::new(
+        rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(
+        rspack_loader_preact_refresh::PreactRefreshLoaderPlugin::new(),
+      ));
+
       let tsfn = env
         .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
         .build_threadsafe_function::<External<(CompilerId, Vec<ModuleIdentifier>)>>()
