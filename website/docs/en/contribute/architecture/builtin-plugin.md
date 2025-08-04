@@ -6,7 +6,7 @@ A simple example:
 
 ```rust
 use rspack_hook::{plugin, plugin_hook};
-use rspack_core::{Plugin,  ApplyContext, CompilerOptions};
+use rspack_core::{Plugin, ApplyContext, CompilerOptions};
 use rspack_core::CompilerCompilation;
 use rspack_error::Result;
 

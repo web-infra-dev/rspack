@@ -4637,7 +4637,6 @@ dependencies = [
 name = "rspack_plugin_dynamic_entry"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "derive_more 2.0.1",
  "futures",
  "rspack_core",
@@ -4662,7 +4661,6 @@ dependencies = [
 name = "rspack_plugin_entry"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4965,7 +4963,6 @@ dependencies = [
 name = "rspack_plugin_progress"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "futures",
  "indicatif",
  "rspack_collections",
