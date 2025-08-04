@@ -194,10 +194,10 @@ impl ModuleConcatenationPlugin {
         if cached.runtime == *runtime {
           // runtime is same, use cached value
           *cached_active
-        } else if cached.runtime.is_subset(runtime) && *cached_active {
+        } else if *cached_active && cached.runtime.is_subset(runtime) {
           // cached runtime is subset and active, means it is also active in current runtime
           true
-        } else if cached.runtime.is_superset(runtime) && !*cached_active {
+        } else if !*cached_active && cached.runtime.is_superset(runtime) {
           // cached runtime is superset and inactive, means it is also inactive in current runtime
           false
         } else {
@@ -1720,11 +1720,11 @@ fn is_connection_active_in_runtime(
       return *cached_active;
     }
 
-    if cached_runtime.is_subset(runtime) && *cached_active {
+    if *cached_active && cached_runtime.is_subset(runtime) {
       return true;
     }
 
-    if cached_runtime.is_superset(runtime) && !*cached_active {
+    if !*cached_active && cached_runtime.is_superset(runtime) {
       return false;
     }
   }
