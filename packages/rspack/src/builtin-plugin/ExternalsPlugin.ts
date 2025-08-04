@@ -83,7 +83,13 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 												callback(error);
 											} else {
 												const req = processResolveResult(text);
-												callback(null, req?.path ?? false, req);
+												callback(
+													null,
+													req
+														? `${req.path.replace(/#/g, "\u200b#")}${req.query.replace(/#/g, "\u200b#")}${req.fragment}`
+														: false,
+													req
+												);
 											}
 										});
 									} else {
@@ -93,7 +99,11 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 													promiseReject(error);
 												} else {
 													const req = processResolveResult(text);
-													promiseResolve(req?.path);
+													promiseResolve(
+														req
+															? `${req.path.replace(/#/g, "\u200b#")}${req.query.replace(/#/g, "\u200b#")}${req.fragment}`
+															: undefined
+													);
 												}
 											});
 										});
