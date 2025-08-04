@@ -296,7 +296,7 @@ export default {
 };
 ```
 
-`flag` tells Rspack to recognise the sideEffects flag in package.json or rules to skip over modules which are flagged to contain no side effects when exports are not used.
+`flag` tells Rspack to recognise the sideEffects flag in package.json or [module.rule.sideEffects](/config/module#rulesideeffects) to skip over modules which are flagged to contain no side effects when exports are not used.
 
 `true` tells Rspack not only recognise the sideEffects flag, but also analyse modules which are not flagged explicitly, and determine if they have side effects or not.
 

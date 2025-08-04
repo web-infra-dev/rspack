@@ -834,8 +834,8 @@ import imageUrl from 'https://example.com/image.png';
 
 <ApiMeta addedVersion="1.3.14" />
 
-- **类型:** `false | RegExp[]`
-- **默认值:** `false`
+- **类型：** `false | RegExp[]`
+- **默认值：** `false`
 
 默认情况下，Rspack 使用原生文件系统从磁盘读取文件。
 但你也可以通过更换 inputFileSystem，使用其他类型的文件系统。例如，可以用 memfs 替代默认文件系统来支持虚拟模块。
@@ -908,8 +908,8 @@ export default {
 
 <ApiMeta addedVersion="1.4.1" />
 
-- **类型:** `boolean`
-- **默认值:** `false`
+- **类型：** `boolean`
+- **默认值：** `false`
 
 实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后才能使用。
 
@@ -917,8 +917,8 @@ export default {
 
 <ApiMeta addedVersion="1.4.1" />
 
-- **类型:** `boolean`
-- **默认值:** `false`
+- **类型：** `boolean`
+- **默认值：** `false`
 
 实验性功能 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 的开关，开启后才能使用。
 
@@ -928,8 +928,8 @@ export default {
 
 <ApiMeta addedVersion="1.4.1" />
 
-- **类型:** `boolean`
-- **默认值:** `false`
+- **类型：** `boolean`
+- **默认值：** `false`
 
 实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
 
@@ -959,3 +959,16 @@ export default {
   },
 };
 ```
+
+## experiments.lazyBarrel
+
+<ApiMeta addedVersion="1.5.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
+
+无副作用指[经过 `package.json` 标记 `"sideEffects": false` 或 `module.rule.sideEffects` 标记的模块](/config/optimization#optimizationsideeffects)。
+
+> 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
