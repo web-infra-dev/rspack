@@ -106,17 +106,9 @@ impl DiskWatcher {
       }
 
       if let Some(watcher) = &mut self.inner {
-        let start = std::time::Instant::now();
         watcher
           .watch(&pattern.path, pattern.mode)
           .map_err(|e| rspack_error::error!(e))?;
-        let elapsed = start.elapsed();
-        if elapsed > Duration::from_millis(50) {
-          eprintln!(
-            "Warning: Watching {:?} took {:?} to complete, consider increasing the poll interval.",
-            pattern.path, elapsed
-          );
-        }
       }
 
       self.watch_patterns.insert(pattern);
