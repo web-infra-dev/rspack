@@ -711,6 +711,8 @@ export interface JsBuildMeta {
   defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
+  isSharedDescendant?: boolean
+  effectiveSharedKey?: string
 }
 
 export interface JsBuildMetaDefaultObjectRedirectWarn {

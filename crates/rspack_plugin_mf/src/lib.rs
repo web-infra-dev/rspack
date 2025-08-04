@@ -21,6 +21,7 @@ pub use sharing::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,
   },
   share_runtime_plugin::ShareRuntimePlugin,
+  share_usage_plugin::{ShareUsagePlugin, ShareUsagePluginOptions},
 };
 
 mod utils {
