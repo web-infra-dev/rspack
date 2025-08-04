@@ -5,10 +5,12 @@ use rspack_core::{Resolve, ResolverFactory};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
 
 use crate::{
-  JsResolver, RawResolveOptions, RspackResultToNapiResultExt,
-  raw_resolve::{
-    RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
+  error::RspackResultToNapiResultExt,
+  options::raw_resolve::{
+    RawResolveOptions, RawResolveOptionsWithDependencyType,
+    normalize_raw_resolve_options_with_dependency_type,
   },
+  resolver::JsResolver,
 };
 
 #[napi]

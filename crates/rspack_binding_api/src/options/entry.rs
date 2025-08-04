@@ -3,7 +3,7 @@ use napi_derive::napi;
 use rspack_core::{EntryOptions, EntryRuntime};
 
 use super::library::JsLibraryOptions;
-use crate::{JsFilename, RawChunkLoading};
+use crate::{filename::JsFilename, raw_options::RawChunkLoading};
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]

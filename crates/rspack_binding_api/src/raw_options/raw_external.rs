@@ -14,8 +14,12 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  ErrorCode, RawResolveOptionsWithDependencyType, ResolveRequest, callbackify,
-  normalize_raw_resolve_options_with_dependency_type,
+  error::ErrorCode,
+  options::raw_resolve::{
+    RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
+  },
+  resolver::ResolveRequest,
+  utils::callbackify,
 };
 
 #[napi(object)]

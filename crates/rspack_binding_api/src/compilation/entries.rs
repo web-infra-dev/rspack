@@ -3,8 +3,9 @@ use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRunti
 use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
-  DependencyWrapper, RawChunkLoading, WithFalse, dependency::Dependency, entry::JsEntryOptions,
-  library::JsLibraryOptions,
+  dependency::{Dependency, DependencyWrapper},
+  options::{entry::JsEntryOptions, library::JsLibraryOptions},
+  raw_options::{RawChunkLoading, WithFalse},
 };
 
 #[napi]

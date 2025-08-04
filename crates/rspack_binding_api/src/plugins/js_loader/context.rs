@@ -8,7 +8,7 @@ use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ModuleObject, RspackError};
+use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
 #[derive(Hash)]

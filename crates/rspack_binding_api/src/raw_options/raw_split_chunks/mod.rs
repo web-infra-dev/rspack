@@ -22,7 +22,7 @@ use self::{
   raw_split_chunk_name::default_chunk_option_name,
   raw_split_chunk_size::RawSplitChunkSizes,
 };
-use crate::JsFilename;
+use crate::filename::JsFilename;
 
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]

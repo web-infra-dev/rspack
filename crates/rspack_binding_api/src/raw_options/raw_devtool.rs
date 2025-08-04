@@ -11,7 +11,7 @@ use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
 };
 
-use crate::{RawAssetConditions, into_asset_conditions};
+use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
 

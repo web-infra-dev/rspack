@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_core::NormalModuleCreateData;
 use serde::Serialize;
 
-use crate::JsResourceData;
+use crate::resource_data::JsResourceData;
 
 #[napi(object)]
 pub struct JsResolveForSchemeArgs {

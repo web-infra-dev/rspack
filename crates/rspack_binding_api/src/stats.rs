@@ -20,8 +20,10 @@ use rspack_util::{atom::Atom, itoa};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  JsCompilation, JsModuleId, RspackError, RspackResultToNapiResultExt, identifier::JsIdentifier,
-  to_js_module_id,
+  chunk_graph::{JsModuleId, to_js_module_id},
+  compilation::JsCompilation,
+  error::{RspackError, RspackResultToNapiResultExt},
+  identifier::JsIdentifier,
 };
 
 // These handles are only used during the `to_json` call,

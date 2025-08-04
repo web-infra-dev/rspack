@@ -15,11 +15,17 @@ use rspack_napi::{
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 
-use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, COMPILER_REFERENCES, ChunkWrapper,
-  ConcatenatedModule, ContextModule, DependencyWrapper, ExternalModule, JsCodegenerationResults,
-  JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, define_symbols,
+  COMPILER_REFERENCES, JsCompiler,
+  asset::AssetInfo,
+  async_dependency_block::AsyncDependenciesBlockWrapper,
+  build_info::BuildInfo,
+  chunk::ChunkWrapper,
+  codegen_result::JsCodegenerationResults,
+  define_symbols,
+  dependency::DependencyWrapper,
+  modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
+  source::{JsCompatSource, JsCompatSourceOwned, ToJsCompatSource},
 };
 
 define_symbols! {
