@@ -1,9 +1,7 @@
-//! # rspack_binding_api
-//!
-//! Shared binding API for Rspack, providing bridge interfaces between Rspack core functionality and Node.js/browser environments.
-//!
-//! ## Overview
-//!
+#![recursion_limit = "256"]
+#![allow(deprecated)]
+#![allow(unused)]
+
 //! `rspack_binding_api` is the core binding layer in the Rspack project, responsible for exposing Rspack core functionality written in Rust to JavaScript/TypeScript environments. It provides complete API interfaces for compilation, building, module processing, and other functionalities.
 //!
 //! ## Features
@@ -45,10 +43,6 @@
 //! If you're a user of Rspack custom binding:
 //! - Do not depend on this crate directly
 //! - Use [`rspack_binding_builder`](https://crates.io/crates/rspack_binding_builder) to build your own binding
-
-#![recursion_limit = "256"]
-#![allow(deprecated)]
-#![allow(unused)]
 
 #[macro_use]
 extern crate napi_derive;

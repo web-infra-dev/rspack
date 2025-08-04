@@ -136,6 +136,7 @@ use crate::{
 
 #[napi(string_enum)]
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum BuiltinPluginName {
   // webpack also have these plugins
   DefinePlugin,
