@@ -267,11 +267,9 @@ impl ModuleConcatenationPlugin {
       statistics.cache_hit += 1;
       incomings.clone()
     } else {
-      let module = module_graph
-        .module_by_identifier(module_id)
-        .expect("should have module");
       let module_readable_identifier = get_cached_readable_identifier(
-        module,
+        module_id,
+        &module_graph,
         &compilation.module_static_cache_artifact,
         &compilation.options.context,
       );
@@ -324,14 +322,29 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      let NoRuntimeModuleCache { incomings, .. } = module_cache
+      let NoRuntimeModuleCache {
+        incomings,
+        active_incomings,
+        runtime: cached_module_runtime,
+        ..
+      } = module_cache
         .get(module_id)
         .expect("should have module cache");
 
       if let Some(incoming_connections_from_non_modules) = incomings.get(&None) {
-        let has_active_non_modules_connections = incoming_connections_from_non_modules
-          .iter()
-          .any(|connection| connection.is_active(&module_graph, runtime, module_graph_cache));
+        let has_active_non_modules_connections =
+          incoming_connections_from_non_modules
+            .iter()
+            .any(|connection| {
+              is_connection_active_in_runtime(
+                connection,
+                runtime,
+                active_incomings,
+                cached_module_runtime,
+                &module_graph,
+                module_graph_cache,
+              )
+            });
 
         // TODO: ADD module connection explanations
         if has_active_non_modules_connections {
@@ -366,23 +379,36 @@ impl ModuleConcatenationPlugin {
             continue;
           }
 
-          let mut origin_runtime = RuntimeSpec::default();
-          for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
-            origin_runtime.extend(r);
-          }
-
           let is_intersect = if let Some(runtime) = runtime {
-            runtime.intersection(&origin_runtime).count() > 0
+            if let Some(origin_runtime) = module_cache.get(origin_module).map(|m| &m.runtime) {
+              runtime.intersection(origin_runtime).count() > 0
+            } else {
+              let mut origin_runtime = RuntimeSpec::default();
+              for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
+                origin_runtime.extend(r);
+              }
+              runtime.intersection(&origin_runtime).count() > 0
+            }
           } else {
             false
           };
+
           if !is_intersect {
             continue;
           }
 
           let active_connections: Vec<_> = connections
             .iter()
-            .filter(|&connection| connection.is_active(&module_graph, runtime, module_graph_cache))
+            .filter(|&connection| {
+              is_connection_active_in_runtime(
+                connection,
+                runtime,
+                active_incomings,
+                cached_module_runtime,
+                &module_graph,
+                module_graph_cache,
+              )
+            })
             .collect();
 
           if !active_connections.is_empty() {
@@ -410,11 +436,9 @@ impl ModuleConcatenationPlugin {
           let mut names: Vec<_> = other_chunk_modules
             .into_iter()
             .map(|mid| {
-              let m = module_graph
-                .module_by_identifier(mid)
-                .expect("should have module");
               get_cached_readable_identifier(
-                m,
+                mid,
+                &module_graph,
                 &compilation.module_static_cache_artifact,
                 &compilation.options.context,
               )
@@ -454,11 +478,9 @@ impl ModuleConcatenationPlugin {
           let names: Vec<_> = non_esm_connections
             .iter()
             .map(|(origin_module, connections)| {
-              let module = module_graph
-                .module_by_identifier(origin_module)
-                .expect("should have module");
               let readable_identifier = get_cached_readable_identifier(
-                module,
+                origin_module,
+                &module_graph,
                 &compilation.module_static_cache_artifact,
                 &compilation.options.context,
               );
@@ -533,11 +555,9 @@ impl ModuleConcatenationPlugin {
               other_runtime_connections
                 .iter()
                 .map(|(origin_module, runtime_condition)| {
-                  let module = module_graph
-                    .module_by_identifier(origin_module)
-                    .expect("should have module");
                   let readable_identifier = get_cached_readable_identifier(
-                    module,
+                    origin_module,
+                    &module_graph,
                     &compilation.module_static_cache_artifact,
                     &compilation.options.context,
                   );
@@ -637,7 +657,8 @@ impl ModuleConcatenationPlugin {
     let root_module_ctxt = RootModuleContext {
       id: root_module_id,
       readable_identifier: get_cached_readable_identifier(
-        box_module,
+        &root_module_id,
+        &module_graph,
         &compilation.module_static_cache_artifact,
         &compilation.options.context,
       ),
@@ -681,7 +702,8 @@ impl ModuleConcatenationPlugin {
             Some(compilation),
           ),
           shorten_id: get_cached_readable_identifier(
-            module,
+            id,
+            &module_graph,
             &compilation.module_static_cache_artifact,
             &compilation.options.context,
           ),
@@ -1005,8 +1027,12 @@ impl ModuleConcatenationPlugin {
           runtime.extend(r);
         }
 
-        let _ =
-          get_cached_readable_identifier(module, module_static_cache_artifact, compilation_context);
+        let _ = get_cached_readable_identifier(
+          module_id,
+          &module_graph,
+          module_static_cache_artifact,
+          compilation_context,
+        );
 
         let connections = module
           .get_dependencies()
@@ -1035,6 +1061,13 @@ impl ModuleConcatenationPlugin {
           .collect::<Vec<_>>();
 
         let incomings = module_graph.get_incoming_connections_by_origin_module(module_id);
+        let mut active_incomings = HashMap::default();
+        for connection in incomings.values().flatten() {
+          active_incomings.insert(
+            connection.dependency_id,
+            connection.is_active(&module_graph, Some(&runtime), module_graph_cache),
+          );
+        }
         (
           *module_id,
           NoRuntimeModuleCache {
@@ -1042,6 +1075,7 @@ impl ModuleConcatenationPlugin {
             provided_names,
             connections,
             incomings,
+            active_incomings,
           },
         )
       })
@@ -1345,6 +1379,7 @@ pub struct NoRuntimeModuleCache {
   provided_names: bool,
   connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>>,
+  active_incomings: HashMap<DependencyId, bool>,
 }
 
 async fn create_concatenated_module(
@@ -1362,7 +1397,8 @@ async fn create_concatenated_module(
   let root_module_ctxt = RootModuleContext {
     id: root_module_id,
     readable_identifier: get_cached_readable_identifier(
-      box_module,
+      &root_module_id,
+      &module_graph,
       &compilation.module_static_cache_artifact,
       &compilation.options.context,
     ),
@@ -1406,7 +1442,8 @@ async fn create_concatenated_module(
           Some(compilation),
         ),
         shorten_id: get_cached_readable_identifier(
-          module,
+          id,
+          &module_graph,
           &compilation.module_static_cache_artifact,
           &compilation.options.context,
         ),
@@ -1665,4 +1702,32 @@ fn add_concatenated_module(
 
   module_graph.add_module(new_module.boxed());
   compilation.chunk_graph = chunk_graph;
+}
+
+fn is_connection_active_in_runtime(
+  connection: &ModuleGraphConnection,
+  runtime: Option<&RuntimeSpec>,
+  cached_active_incomings: &HashMap<DependencyId, bool>,
+  cached_runtime: &RuntimeSpec,
+  mg: &ModuleGraph,
+  mg_cache: &ModuleGraphCacheArtifact,
+) -> bool {
+  if let (Some(cached_active), Some(runtime)) = (
+    cached_active_incomings.get(&connection.dependency_id),
+    runtime,
+  ) {
+    if runtime == cached_runtime {
+      return *cached_active;
+    }
+
+    if cached_runtime.is_subset(runtime) && *cached_active {
+      return true;
+    }
+
+    if cached_runtime.is_superset(runtime) && !*cached_active {
+      return false;
+    }
+  }
+
+  connection.is_active(mg, runtime, mg_cache)
 }

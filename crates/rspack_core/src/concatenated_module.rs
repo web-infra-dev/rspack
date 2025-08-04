@@ -40,16 +40,16 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DependenciesBlock, DependencyId, DependencyType, ErrorSpan, ExportProvided, ExportsArgument,
-  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
-  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
+  ConnectionState, Context, DEFAULT_EXPORT, DependenciesBlock, DependencyId, DependencyType,
+  ErrorSpan, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
+  GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
   UsedNameItem, define_es_module_flag_statement, escape_identifier, filter_runtime,
@@ -737,9 +737,8 @@ impl Module for ConcatenatedModule {
         let mut escaped_names: HashMap<String, String> = HashMap::default();
         let mut escaped_identifiers: HashMap<String, Vec<String>> = HashMap::default();
         let readable_identifier = get_cached_readable_identifier(
-          module_graph
-            .module_by_identifier(&info.id())
-            .expect("should have module identifier"),
+          &info.id(),
+          &module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -783,8 +782,12 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
-      let readable_identifier =
-        get_cached_readable_identifier(module, &compilation.module_static_cache_artifact, &context);
+      let readable_identifier = get_cached_readable_identifier(
+        &info.id(),
+        &module_graph,
+        &compilation.module_static_cache_artifact,
+        &context,
+      );
       let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
       let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
       match info {
@@ -1296,7 +1299,8 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(module_info_id)
           .expect("should have box module");
         let module_readable_identifier = get_cached_readable_identifier(
-          box_module,
+          module_info_id,
+          &module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -1398,11 +1402,9 @@ impl Module for ConcatenatedModule {
       let info = module_to_info_map
         .get(&module_info_id)
         .expect("should have module info");
-      let box_module = module_graph
-        .module_by_identifier(&module_info_id)
-        .expect("should have box module");
       let module_readable_identifier = get_cached_readable_identifier(
-        box_module,
+        &module_info_id,
+        &module_graph,
         &compilation.module_static_cache_artifact,
         &context,
       );
@@ -2144,14 +2146,16 @@ impl ConcatenatedModule {
           .get(&binding.info_id)
           .and_then(|info| info.try_as_concatenated())
           .expect("should have concatenate module info");
-        let module = module_graph
-          .module_by_identifier(&info.module)
-          .expect("should have module");
         let name = info.internal_names.get(export_id).unwrap_or_else(|| {
           panic!(
             "The export \"{}\" in \"{}\" has no internal name (existing names: {})",
             export_id,
-            get_cached_readable_identifier(module, module_static_cache_artifact, context),
+            get_cached_readable_identifier(
+              &info.module,
+              module_graph,
+              module_static_cache_artifact,
+              context
+            ),
             info
               .internal_names
               .iter()
@@ -2738,11 +2742,13 @@ impl FinalNameResult {
 }
 
 pub fn get_cached_readable_identifier(
-  module: &BoxModule,
+  mid: &ModuleIdentifier,
+  mg: &ModuleGraph,
   module_static_cache_artifact: &ModuleStaticCacheArtifact,
   compilation_context: &Context,
 ) -> String {
-  module_static_cache_artifact.cached_readable_identifier((module.identifier(), None), || {
+  module_static_cache_artifact.cached_readable_identifier((*mid, None), || {
+    let module = mg.module_by_identifier(mid).expect("should have module");
     module.readable_identifier(compilation_context).to_string()
   })
 }
