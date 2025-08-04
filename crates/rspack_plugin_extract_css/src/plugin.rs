@@ -538,7 +538,9 @@ async fn runtime_requirement_in_tree(
         "mini-css",
         SOURCE_TYPE[0],
         "__webpack_require__.miniCssF".into(),
-        move |_| has_hot_update,
+        move |runtime_requirements| {
+          runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+        },
         move |chunk, compilation| {
           chunk
             .content_hash(&compilation.chunk_hashes_artifact)?
