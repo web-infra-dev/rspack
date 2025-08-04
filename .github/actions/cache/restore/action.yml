@@ -21,6 +21,11 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Check Zstd
+      shell: bash
+      run: |
+        which zstd
+
     - name: Restore cache to github
       id: github-cache
       if: ${{ runner.environment == 'github-hosted' }}
