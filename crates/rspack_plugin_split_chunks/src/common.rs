@@ -6,13 +6,13 @@ use std::{
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_collections::IdentifierMap;
-use rspack_core::{Chunk, Compilation, Module, SourceType};
+use rspack_core::{ChunkUkey, Compilation, Module, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilter =
-  Arc<dyn Fn(&Chunk, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+  Arc<dyn Fn(&ChunkUkey, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 pub type ModuleLayerFilter =
   Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
@@ -26,14 +26,16 @@ pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
-  Arc::new(|chunk, compilation| {
+  Arc::new(|chunk_ukey, compilation| {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
     Box::pin(async move { Ok(!can_be_initial) })
   })
 }
 
 pub fn create_initial_chunk_filter() -> ChunkFilter {
-  Arc::new(|chunk, compilation| {
+  Arc::new(|chunk_ukey, compilation| {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
     Box::pin(async move { Ok(can_be_initial) })
   })
@@ -53,7 +55,8 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 }
 
 pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
-  Arc::new(move |chunk, _| {
+  Arc::new(move |chunk_ukey, compilation| {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let res = chunk.name().is_some_and(|name| re.test(name));
     Box::pin(async move { Ok(res) })
   })

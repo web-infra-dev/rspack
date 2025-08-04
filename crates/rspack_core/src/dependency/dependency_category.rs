@@ -35,7 +35,7 @@ impl From<&str> for DependencyCategory {
       "loaderImport" => Self::LoaderImport,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
-      _ => unimplemented!("DependencyCategory {}", value),
+      _ => Self::Unknown,
     }
   }
 }

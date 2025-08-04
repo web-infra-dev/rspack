@@ -46,10 +46,17 @@ impl SplitChunksPlugin {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");
 
-    let module_sizes = Self::get_module_sizes(compilation);
+    let all_modules = compilation
+      .get_module_graph()
+      .modules()
+      .keys()
+      .copied()
+      .collect::<Vec<_>>();
+
+    let module_sizes = Self::get_module_sizes(&all_modules, compilation);
 
     let mut module_group_map = self
-      .prepare_module_group_map(compilation, &module_sizes)
+      .prepare_module_group_map(&all_modules, compilation, &module_sizes)
       .await?;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);

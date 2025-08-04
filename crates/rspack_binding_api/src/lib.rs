@@ -179,6 +179,18 @@ impl JsCompiler {
       let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
       plugins.push(js_hooks_plugin.clone().boxed());
 
+      // Register builtin loader plugins
+      plugins.push(Box::new(
+        rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
+      plugins.push(Box::new(
+        rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(
+        rspack_loader_preact_refresh::PreactRefreshLoaderPlugin::new(),
+      ));
+
       let tsfn = env
         .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
         .build_threadsafe_function::<External<(CompilerId, Vec<ModuleIdentifier>)>>()
@@ -220,14 +232,13 @@ impl JsCompiler {
           })
         });
 
-      if let Some(fs) = &input_file_system {
-        resolver_factory_reference.input_filesystem = fs.clone();
-      }
-
-      let resolver_factory =
-        (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
-      let loader_resolver_factory = (*resolver_factory_reference)
-        .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
+      resolver_factory_reference.update_options(
+        input_file_system.clone(),
+        compiler_options.resolve.clone(),
+        compiler_options.resolve_loader.clone(),
+      );
+      let resolver_factory = resolver_factory_reference.get_resolver_factory();
+      let loader_resolver_factory = resolver_factory_reference.get_loader_resolver_factory();
 
       let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
         if let Some(fs) = intermediate_filesystem {

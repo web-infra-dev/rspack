@@ -406,11 +406,10 @@ export declare class JsModuleGraph {
 export declare class JsResolver {
   resolveSync(path: string, request: string): string | undefined
   resolve(path: string, request: string, callback: (err: null | Error, req?: string) => void): void
-  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
 export declare class JsResolverFactory {
-  constructor(pnp: boolean)
+  constructor(pnp: boolean, jsResolveOptions: RawResolveOptions, jsLoaderResolveOptions: RawResolveOptions)
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
@@ -2676,7 +2675,7 @@ export interface RawResolveOptionsWithDependencyType {
   aliasFields?: Array<string>
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
-  dependencyCategory?: string
+  dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
 }
