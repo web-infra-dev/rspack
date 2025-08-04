@@ -1,8 +1,6 @@
-#![allow(unused)]
 use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
 use dashmap::{DashSet as HashSet, setref::multiple::RefMulti};
-use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
 
@@ -128,23 +126,14 @@ impl PathUpdater {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
-    for should_be_added in added_paths
-      .par_iter()
-      .map(|added| {
-        if ignored.should_be_ignored(added) {
-          return None; // Skip ignored paths
-        }
+    for added in added_paths {
+      if ignored.should_be_ignored(&added) {
+        continue; // Skip ignored paths
+      }
 
-        let path = ArcPath::from(PathBuf::from(added));
-        Some(path)
-      })
-      .collect::<Vec<_>>()
-      .into_iter()
-      .flatten()
-    {
-      // Insert the path into the set
-      paths.insert(should_be_added.clone());
-      incremental_manager.insert_added(should_be_added);
+      let path = ArcPath::from(PathBuf::from(&added));
+      paths.insert(path.clone());
+      incremental_manager.insert_added(path);
     }
 
     for removed in removed_paths {

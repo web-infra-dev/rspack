@@ -276,6 +276,7 @@ export class WatchProcessor<
 			options.optimization ??= {};
 			options.experiments ??= {};
 			options.experiments.css ??= true;
+
 			if (nativeWatcher) {
 				(
 					options as TCompilerOptions<ECompilerType.Rspack>
@@ -348,7 +349,19 @@ export class WatchStepProcessor<
 			});
 		});
 		// wait compiler to ready watch the files and diretories
-		await new Promise(resolve => setTimeout(resolve, 100));
+
+		// Native Watcher using [notify](https://github.com/notify-rs/notify) to watch files.
+		// After tests, notify will cost many milliseconds to watch in windows OS when jest run concurrently.
+		// So we need to wait a while to ensure the watcher is ready.
+		// If we don't wait, copyDiff will happen before the watcher is ready,
+		// which will cause the compiler not rebuild when the files change.
+		// The timeout is set to 400ms for windows OS and 100ms for other OS.
+		// TODO: This is a workaround, we can remove it when notify support windows better.
+		const timeout =
+			this._watchOptions.nativeWatcher && process.platform === "win32"
+				? 400
+				: 100;
+		await new Promise(resolve => setTimeout(resolve, timeout));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
 			this._watchOptions.tempDir,
