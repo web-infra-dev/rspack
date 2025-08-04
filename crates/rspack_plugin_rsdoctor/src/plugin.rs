@@ -3,15 +3,13 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use async_trait::async_trait;
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ApplyContext, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
-  CompilationAfterProcessAssets, CompilationId, CompilationModuleIds,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext,
+  ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
+  CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
+  CompilationParams, CompilerCompilation, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -457,44 +455,31 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for RsdoctorPlugin {
   fn name(&self) -> &'static str {
     "rsdoctor"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
 
-    ctx
-      .context
-      .compilation_hooks
-      .module_ids
-      .tap(module_ids::new(self));
+    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .after_code_generation
       .tap(after_code_generation::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));
@@ -503,7 +488,7 @@ impl Plugin for RsdoctorPlugin {
       cheap: self.options.source_map_features.cheap,
       module: self.options.source_map_features.module,
     })
-    .apply(ctx, options)?;
+    .apply(ctx)?;
 
     Ok(())
   }

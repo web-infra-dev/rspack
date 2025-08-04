@@ -4,10 +4,9 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration,
-  CompilerOptions, ExportInfo, ExportProvided, ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin,
-  PluginContext, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState,
-  incremental::IncrementalPasses,
+  BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
+  ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, UsageState, incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -204,9 +203,8 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
 }
 
 impl Plugin for MangleExportsPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_code_generation
       .tap(optimize_code_generation::new(self));

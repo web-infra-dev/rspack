@@ -1,10 +1,8 @@
 use std::hash::Hash;
 
-use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, miette};
@@ -262,25 +260,18 @@ async fn render_chunk(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ModuleChunkFormatPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
     ctx
-      .context
       .compilation_hooks
       .dependent_full_hash
       .tap(compilation_dependent_full_hash::new(self));

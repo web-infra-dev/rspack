@@ -3,7 +3,7 @@ extern crate napi_derive;
 extern crate rspack_binding_builder;
 
 use rspack_binding_builder_macros::register_plugin;
-use rspack_core::{ApplyContext, BoxPlugin, CompilerOptions, Plugin, PluginContext};
+use rspack_core::{BoxPlugin, Plugin};
 use rspack_napi::{napi, napi::bindgen_prelude::*};
 
 #[derive(Debug)]
@@ -11,11 +11,7 @@ use rspack_napi::{napi, napi::bindgen_prelude::*};
 struct BindingBuilderTestingPlugin;
 
 impl Plugin for BindingBuilderTestingPlugin {
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> rspack_error::Result<()> {
+  fn apply(&self, _ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
     Ok(())
   }
 }

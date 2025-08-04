@@ -5,11 +5,10 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxModule, CompilerOptions, ContextInfo, DependencyMeta, DependencyType,
-  ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest,
-  ExternalRequestValue, ExternalType, ExternalTypeEnum, ModuleDependency, ModuleExt,
-  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  ResolveOptionsWithDependencyType, SourceType,
+  BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalItem, ExternalItemFnCtx,
+  ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
+  ExternalTypeEnum, ModuleDependency, ModuleExt, ModuleFactoryCreateData,
+  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -224,9 +223,8 @@ impl Plugin for ExternalsPlugin {
     "rspack.ExternalsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .factorize
       .tap(factorize::new(self));

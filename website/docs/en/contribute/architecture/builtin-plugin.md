@@ -6,7 +6,7 @@ A simple example:
 
 ```rust
 use rspack_hook::{plugin, plugin_hook};
-use rspack_core::{Plugin, PluginContext, ApplyContext, CompilerOptions};
+use rspack_core::{Plugin,  ApplyContext, CompilerOptions};
 use rspack_core::CompilerCompilation;
 use rspack_error::Result;
 
@@ -24,8 +24,8 @@ async fn compilation(&self, compilation: &mut Compilation) -> Result<()> {
 
 // implement apply method for the plugin
 impl Plugin for MyPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &mut CompilerOptions) -> Result<()> {
-    ctx.context.compiler_hooks.tap(compilation::new(self))
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.tap(compilation::new(self))
     Ok(())
   }
 }

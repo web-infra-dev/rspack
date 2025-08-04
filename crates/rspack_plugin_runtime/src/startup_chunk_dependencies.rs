@@ -1,8 +1,6 @@
-use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationRuntimeRequirementInTree, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
-  RuntimeModuleExt,
+  ChunkLoading, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -72,20 +70,17 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
-#[async_trait]
 impl Plugin for StartupChunkDependenciesPlugin {
   fn name(&self) -> &'static str {
     "StartupChunkDependenciesPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
     ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));

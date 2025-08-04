@@ -4,10 +4,7 @@ use std::collections::HashMap;
 
 use cow_utils::CowUtils;
 use rspack_collections::{Identifier, IdentifierSet};
-use rspack_core::{
-  ApplyContext, Compilation, CompilationSeal, CompilerOptions, Logger, ModuleGraph, Plugin,
-  PluginContext,
-};
+use rspack_core::{Compilation, CompilationSeal, Logger, ModuleGraph, Plugin};
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
@@ -107,8 +104,8 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
     "rspack.WarnCaseSensitiveModulesPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx.context.compilation_hooks.seal.tap(seal::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.seal.tap(seal::new(self));
     Ok(())
   }
 }

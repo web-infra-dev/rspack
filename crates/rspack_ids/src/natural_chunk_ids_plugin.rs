@@ -1,9 +1,6 @@
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
-use rspack_core::{
-  ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
-  incremental::IncrementalPasses,
-};
+use rspack_core::{Chunk, CompilationChunkIds, Plugin, incremental::IncrementalPasses};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
@@ -56,16 +53,8 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 }
 
 impl Plugin for NaturalChunkIdsPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> rspack_error::Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .chunk_ids
-      .tap(chunk_ids::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
+    ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     Ok(())
   }
 }

@@ -6,16 +6,14 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use async_trait::async_trait;
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
-  get_css_chunk_filename_template,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Module, ModuleGraph,
+  ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
+  RuntimeGlobals, SelfModuleFactory, SourceType, get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
     SourceExt,
@@ -454,39 +452,27 @@ async fn render_manifest(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
     ctx
-      .context
       .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
-      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.context.register_parser_and_generator_builder(
+    ctx.register_parser_and_generator_builder(
       ModuleType::Css,
       Box::new(|p, g| {
         let p = p
@@ -508,7 +494,7 @@ impl Plugin for CssPlugin {
         }) as Box<dyn ParserAndGenerator>
       }),
     );
-    ctx.context.register_parser_and_generator_builder(
+    ctx.register_parser_and_generator_builder(
       ModuleType::CssModule,
       Box::new(|p, g| {
         let p = p
@@ -537,7 +523,7 @@ impl Plugin for CssPlugin {
         }) as Box<dyn ParserAndGenerator>
       }),
     );
-    ctx.context.register_parser_and_generator_builder(
+    ctx.register_parser_and_generator_builder(
       ModuleType::CssAuto,
       Box::new(|p, g| {
         let p = p

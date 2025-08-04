@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  AfterResolveResult, ApplyContext, BeforeResolveResult, CompilerOptions, ContextElementDependency,
+  AfterResolveResult, BeforeResolveResult, ContextElementDependency,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve, DependencyId,
-  DependencyType, Plugin, PluginContext,
+  DependencyType, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -140,14 +140,12 @@ impl Plugin for ContextReplacementPlugin {
     "rspack.ContextReplacementPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .context_module_factory_hooks
       .before_resolve
       .tap(cmf_before_resolve::new(self));
     ctx
-      .context
       .context_module_factory_hooks
       .after_resolve
       .tap(cmf_after_resolve::new(self));

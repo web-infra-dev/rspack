@@ -1,8 +1,6 @@
 use std::fmt::Debug;
 
-use rspack_core::{
-  ApplyContext, Compilation, CompilerOptions, CompilerShouldEmit, Plugin, PluginContext,
-};
+use rspack_core::{Compilation, CompilerShouldEmit, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -30,12 +28,8 @@ impl Plugin for NoEmitOnErrorsPlugin {
     "NoEmitOnErrorsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .should_emit
-      .tap(should_emit::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.should_emit.tap(should_emit::new(self));
     Ok(())
   }
 }

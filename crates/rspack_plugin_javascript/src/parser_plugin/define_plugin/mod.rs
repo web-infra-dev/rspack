@@ -5,8 +5,8 @@ use std::{borrow::Cow, collections::HashMap};
 use itertools::Itertools;
 use parser::{DefineParserPlugin, walk_definitions};
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginContext,
+  Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin,
 };
 use rspack_error::{
   DiagnosticExt, Result,
@@ -108,14 +108,9 @@ impl Plugin for DefinePlugin {
     "rspack.DefinePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

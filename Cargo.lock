@@ -4591,7 +4591,6 @@ dependencies = [
 name = "rspack_plugin_devtool"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "cow-utils",
  "dashmap 6.1.0",
  "derive_more 2.0.1",
@@ -4851,7 +4850,6 @@ dependencies = [
 name = "rspack_plugin_library"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "futures",
  "regex",
  "rspack_cacheable",
@@ -4940,7 +4938,6 @@ dependencies = [
 name = "rspack_plugin_module_info_header"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "regex",
  "rspack_cacheable",
  "rspack_collections",
@@ -5026,7 +5023,6 @@ dependencies = [
 name = "rspack_plugin_rsdoctor"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "atomic_refcell",
  "futures",
  "indexmap",
@@ -5047,7 +5043,6 @@ dependencies = [
 name = "rspack_plugin_rslib"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -5060,7 +5055,6 @@ dependencies = [
 name = "rspack_plugin_rstest"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "camino",
  "regex",
  "rspack_cacheable",
