@@ -45,7 +45,7 @@ Object {
     layers: false,
     lazyBarrel: false,
     lazyCompilation: Object {
-      entries: true,
+      entries: false,
       imports: true,
     },
     parallelCodeSplitting: false,
