@@ -44,7 +44,10 @@ Object {
     inlineEnum: false,
     layers: false,
     lazyBarrel: false,
-    lazyCompilation: false,
+    lazyCompilation: Object {
+      entries: true,
+      imports: true,
+    },
     parallelCodeSplitting: false,
     parallelLoader: false,
     rspackFuture: Object {

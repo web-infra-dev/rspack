@@ -211,7 +211,12 @@ const applyExperimentsDefaults = (
 
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
-	D(experiments, "lazyCompilation", false);
+	D(experiments, "lazyCompilation", {});
+	if (typeof experiments.lazyCompilation === "object") {
+		D(experiments.lazyCompilation, "entries", true);
+		D(experiments.lazyCompilation, "imports", true);
+	}
+
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);
