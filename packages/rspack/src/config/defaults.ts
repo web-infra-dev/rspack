@@ -218,7 +218,7 @@ const applyExperimentsDefaults = (
 	F(experiments, "topLevelAwait", () => {
 		if (typeof experiments.topLevelAwait === "boolean") {
 			console.warn(
-				"`experiments.topLevelAwait` config will be deprecated next major version."
+				"`experiments.topLevelAwait` config will be removed in Rspack v2.0.0. Please plan your migration accordingly."
 			);
 
 			if (!experiments.topLevelAwait) {
