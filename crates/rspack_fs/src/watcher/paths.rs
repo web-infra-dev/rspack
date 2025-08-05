@@ -147,7 +147,15 @@ impl PathUpdater {
 }
 
 #[derive(Debug, Default)]
-/// `PathTracker` is a structure that tracks added, removed, and all paths.
+/// `PathTracker` is responsible for tracking the state of file system paths for the watcher.
+/// 
+/// It maintains three sets:
+/// - `added`: Paths that have been recently added and are being watched.
+/// - `removed`: Paths that have been removed from watching.
+/// - `all`: All currently watched paths.
+/// 
+/// This struct enables efficient updates and queries for the file system watcher,
+/// ensuring that changes to the set of watched paths are tracked and managed correctly.
 struct PathTracker {
   added: HashSet<ArcPath>,
   removed: HashSet<ArcPath>,
