@@ -54,7 +54,7 @@ export class PreviewCommand implements RspackCommand {
 				const rspackOptions = { ...options, argv: { ...options } };
 				const { RspackDevServer } = await import("@rspack/dev-server");
 
-				let config = await cli.loadConfig(rspackOptions);
+				let { config } = await cli.loadConfig(rspackOptions);
 				config = await getPreviewConfig(config, options);
 				if (!Array.isArray(config)) {
 					config = [config as RspackOptions];

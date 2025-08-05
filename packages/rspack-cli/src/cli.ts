@@ -24,11 +24,7 @@ import type {
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
-import {
-	type LoadedRspackConfig,
-	loadExtendedConfig,
-	loadRspackConfig
-} from "./utils/loadConfig";
+import { loadExtendedConfig, loadRspackConfig } from "./utils/loadConfig";
 import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
@@ -47,8 +43,8 @@ export class RspackCLI {
 	) {
 		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
 
-		let config = await this.loadConfig(options);
-		config = await this.buildConfig(config, options, rspackCommand);
+		let { config, pathMap } = await this.loadConfig(options);
+		config = await this.buildConfig(config, pathMap, options, rspackCommand);
 
 		const isWatch = Array.isArray(config)
 			? (config as MultiRspackOptions).some(i => i.watch)
@@ -114,6 +110,7 @@ export class RspackCLI {
 	}
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
+		pathMap: WeakMap<RspackOptions, string[]>,
 		options: RspackBuildCLIOptions,
 		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
@@ -186,6 +183,22 @@ export class RspackCLI {
 				}
 			}
 
+			// set configPaths to persistent cache build dependencies
+			const cacheOptions = item.experiments?.cache;
+			if (
+				typeof cacheOptions === "object" &&
+				cacheOptions.type === "persistent"
+			) {
+				const configPaths = pathMap.get(item);
+				if (configPaths) {
+					// for persistent cache
+					cacheOptions.buildDependencies = [
+						...configPaths,
+						...(cacheOptions.buildDependencies || [])
+					];
+				}
+			}
+
 			if (typeof item.stats === "undefined") {
 				item.stats = { preset: "errors-warnings", timings: true };
 			} else if (typeof item.stats === "boolean") {
@@ -215,12 +228,19 @@ export class RspackCLI {
 		return internalBuildConfig(item as RspackOptions);
 	}
 
-	async loadConfig(
-		options: RspackCLIOptions
-	): Promise<RspackOptions | MultiRspackOptions> {
-		let loadedConfig = (await loadRspackConfig(
-			options
-		)) as NonNullable<LoadedRspackConfig>;
+	async loadConfig(options: RspackCLIOptions): Promise<{
+		config: RspackOptions | MultiRspackOptions;
+		pathMap: WeakMap<RspackOptions, string[]>;
+	}> {
+		const config = await loadRspackConfig(options);
+		// can not found any config
+		if (!config) {
+			return {
+				config: this.filterConfig(options, {}),
+				pathMap: new WeakMap()
+			};
+		}
+		let { loadedConfig, configPath } = config;
 
 		if (typeof loadedConfig === "function") {
 			let functionResult = loadedConfig(options.argv?.env, options.argv);
@@ -233,32 +253,38 @@ export class RspackCLI {
 			}
 
 			loadedConfig = functionResult;
-
-			// Handle extends property for function configs
-			if ("extends" in loadedConfig && loadedConfig.extends) {
-				// Create a temporary config path for the function result
-				const tempConfigPath = path.resolve(process.cwd(), "rspack.config.js");
-				loadedConfig = await loadExtendedConfig(
-					loadedConfig,
-					tempConfigPath,
-					process.cwd(),
-					options
-				);
-			}
 		}
 
+		// Handle extends property if the loaded config is not a function
+		const { config: extendedConfig, pathMap } = await loadExtendedConfig(
+			loadedConfig as RspackOptions | MultiRspackOptions,
+			configPath,
+			process.cwd(),
+			options
+		);
+
+		return {
+			config: this.filterConfig(options, extendedConfig),
+			pathMap
+		};
+	}
+
+	private filterConfig(
+		options: RspackCLIOptions,
+		config: RspackOptions | MultiRspackOptions
+	): RspackOptions | MultiRspackOptions {
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
-			loadedConfig = options.configName.map((configName: string) => {
+			config = options.configName.map((configName: string) => {
 				let found: RspackOptions | undefined;
 
-				if (Array.isArray(loadedConfig)) {
-					found = loadedConfig.find(options => options.name === configName);
+				if (Array.isArray(config)) {
+					found = config.find(options => options.name === configName);
 				} else {
 					found =
-						(loadedConfig as RspackOptions).name === configName
-							? (loadedConfig as RspackOptions)
+						(config as RspackOptions).name === configName
+							? (config as RspackOptions)
 							: undefined;
 				}
 
@@ -283,8 +309,7 @@ export class RspackCLI {
 				process.exit(2);
 			}
 		}
-
-		return loadedConfig;
+		return config;
 	}
 
 	isMultipleCompiler(
