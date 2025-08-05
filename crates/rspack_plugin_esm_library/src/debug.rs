@@ -1,4 +1,4 @@
-use rspack_collections::{IdentifierIndexMap, UkeyMap};
+use rspack_collections::IdentifierIndexMap;
 use rspack_core::{Compilation, ModuleInfo};
 use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
