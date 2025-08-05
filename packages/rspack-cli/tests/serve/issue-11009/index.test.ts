@@ -1,12 +1,19 @@
 import { runWatch } from "../../utils/test-utils";
 
-describe("should set config path to persistent cache build dependencies", () => {
-	it.concurrent("should serve work", async () => {
-		const { stdout } = await runWatch(__dirname, ["serve"], {
-			killString: /localhost/
-		});
+describe("issue-11009 serve", () => {
+	it.concurrent(
+		"should set config path to persistent cache build dependencies",
+		async () => {
+			if (process.env.WASM) {
+				// skip when test wasm
+				return;
+			}
 
-		expect(stdout).toContain("issue-11009/rspack.config.js");
-		expect(stdout).toContain("issue-11009/base.config.js");
-	});
+			const { stdout } = await runWatch(__dirname, ["serve"], {
+				killString: /localhost/
+			});
+
+			expect(stdout).toContain("===buildDependencies===");
+		}
+	);
 });

@@ -16,10 +16,14 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
-				console.log(
-					"buildDependencies is ",
-					compiler.options.experiments.cache.buildDependencies
-				);
+				const [dep1, dep2] =
+					compiler.options.experiments.cache.buildDependencies;
+				if (
+					dep1 === path.resolve(__dirname, "./rspack.config.js") &&
+					dep2 === path.resolve(__dirname, "./base.config.js")
+				) {
+					console.log("===buildDependencies===");
+				}
 			}
 		}
 	]
