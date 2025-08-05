@@ -50,11 +50,27 @@ jobs:
           # a fresh new installation takes about 5s
           save-if: false
 
-      - name: Install zstd via vcpkg
+      - name: Download zstd
         shell: powershell
         if: runner.os == 'Windows'
         run: |
-          .\vcpkg\vcpkg.exe install zstd
+          Invoke-WebRequest -Uri "https://github.com/facebook/zstd/releases/latest/download/zstd-v1.5.5-win64.zip" -OutFile "zstd.zip"
+
+      - name: Extract zstd
+        shell: powershell
+        if: runner.os == 'Windows'
+        run: |
+          Expand-Archive -Path "zstd.zip" -DestinationPath "$env:ProgramFiles\zstd" -Force
+
+      - name: Add zstd to PATH (temp for this job)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $zstdPath = "$env:ProgramFiles\zstd"
+          $env:Path = "$zstdPath;$env:Path"
+          echo "##[add-path]$zstdPath"
+          # verify
+          & "$zstdPath\zstd.exe" --version
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
