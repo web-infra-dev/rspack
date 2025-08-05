@@ -8,6 +8,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
+  find_new_name,
 };
 
 pub mod chunk_graph_chunk;
@@ -79,6 +80,78 @@ pub struct ExternalInterop {
   pub default_access: Option<Atom>,
   pub namespace_object: Option<Atom>,
   pub namespace_object2: Option<Atom>,
+}
+
+impl ExternalInterop {
+  pub fn namespace(&mut self, used_names: &mut HashSet<Atom>) -> Atom {
+    if self.required_symbol.is_none() {
+      self.required_symbol = Some(find_new_name("", used_names, &vec![]));
+    }
+
+    if let Some(namespace_object) = &self.namespace_object {
+      namespace_object.clone()
+    } else {
+      let mut new_name = format!(
+        "{}_namespace",
+        self.required_symbol.as_ref().expect("already set")
+      )
+      .into();
+
+      if used_names.contains(&new_name) {
+        new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
+      }
+      self.namespace_object = Some(new_name.clone());
+      used_names.insert(new_name.clone());
+      new_name
+    }
+  }
+
+  pub fn namespace2(&mut self, used_names: &mut HashSet<Atom>) -> Atom {
+    if self.required_symbol.is_none() {
+      self.required_symbol = Some(find_new_name("", used_names, &vec![]));
+    }
+
+    if let Some(namespace_object) = &self.namespace_object2 {
+      namespace_object.clone()
+    } else {
+      let mut new_name = format!(
+        "{}_namespace2",
+        self.required_symbol.as_ref().expect("already set")
+      )
+      .into();
+
+      if used_names.contains(&new_name) {
+        new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
+      }
+      self.namespace_object2 = Some(new_name.clone());
+      used_names.insert(new_name.clone());
+      new_name
+    }
+  }
+
+  pub fn default_access<'me>(&'me mut self, used_names: &mut HashSet<Atom>) -> Atom {
+    if self.required_symbol.is_none() {
+      self.required_symbol = Some(find_new_name("", used_names, &vec![]));
+    }
+
+    if let Some(default_access) = &self.default_access {
+      default_access.clone()
+    } else {
+      let mut new_name = format!(
+        "{}_default",
+        self.required_symbol.as_ref().expect("already set")
+      )
+      .into();
+
+      if used_names.contains(&new_name) {
+        new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
+      }
+
+      self.default_access = Some(new_name.clone());
+      used_names.insert(new_name.clone());
+      new_name.clone()
+    }
+  }
 }
 
 #[derive(Debug, Clone, Default)]

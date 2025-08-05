@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::{IdentifierIndexMap, IdentifierMap, UkeyIndexMap, UkeySet};
+use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
   Compilation, ConcatenatedModuleInfo, ConcatenationScope, DEFAULT_EXPORT, InitFragment,
@@ -203,7 +203,7 @@ impl EsmLibraryPlugin {
       let info = concatenated_modules_map.get(m).expect("should have info");
       let info = info.as_concatenated();
 
-      let source = Self::render_module(info, concatenated_modules_map, chunk_link, compilation)?;
+      let source = Self::render_module(info, chunk_link)?;
 
       if matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
         render_source.add(RawStringSource::from(format!(
@@ -440,9 +440,7 @@ impl EsmLibraryPlugin {
 
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
-    concatenated_modules_map: &IdentifierIndexMap<ModuleInfo>,
     chunk_link: &ChunkLinkContext,
-    compilation: &Compilation,
   ) -> Result<ReplaceSource<BoxSource>> {
     let mut source = info.source.clone().expect("should have source");
 
