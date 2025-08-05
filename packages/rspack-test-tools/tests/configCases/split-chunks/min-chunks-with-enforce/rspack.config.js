@@ -13,16 +13,12 @@ module.exports = {
                     name: "vendors",
                     test: /[\\/]node_modules[\\/]/,
                     priority: 10,
-                    minSize: 0,
-                    maxSize: 0,
                     enforce: true,
                 },
                 vendorsCommon: {
                     test: /[\\/]node_modules[\\/]/,
                     name: "vendors-common",
                     minChunks: 2,
-                    minSize: 0,
-                    maxSize: 0,
                     priority: 12,
                     enforce: true,
                 },
@@ -32,8 +28,17 @@ module.exports = {
     plugins: [
         {
             apply(compiler) {
-
+                compiler.hooks.done.tap("PLUGIN", stats => {
+                    const json = stats.toJson({
+                        all: true,
+                    });
+                    expect(json.assets.find(asset => asset.name == "vendors.js")).toBeTruthy();
+                    expect(json.assets.find(asset => asset.name == "vendors-common.js")).toBeTruthy();
+                });
             }
         }
-    ]
+    ],
+    stats: {
+        all: true
+    }
 };
