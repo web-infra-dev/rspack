@@ -246,6 +246,12 @@ async function loaderImpl(
 
 	loaderContext._compiler = {
 		...loaderContext._compiler,
+		rspack: {
+			// @ts-expect-error: some properties are missing.
+			experiments: {
+				swc: require("../swc")
+			}
+		},
 		// @ts-expect-error: some properties are missing.
 		webpack: {
 			util: {
