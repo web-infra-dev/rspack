@@ -60,8 +60,8 @@ impl ToNapiValue for RspackRegex {
     let global = env.get_global()?;
     let regex = global.get_named_property::<Function<'_, _>>("RegExp")?;
 
-    let flags = env.create_string(&val.flags)?;
-    let source = env.create_string(&val.source)?;
+    let flags = env.create_string(val.flags())?;
+    let source = env.create_string(val.source())?;
 
     Ok(regex.new_instance((source, flags))?.raw())
   }

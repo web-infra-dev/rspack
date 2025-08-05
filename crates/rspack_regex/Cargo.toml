@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 cow-utils        = { workspace = true }
 napi             = { workspace = true }
+regex            = { workspace = true }
 regex-syntax     = { workspace = true }
 regress          = { workspace = true, features = ["backend-pikevm", "std"] }
 rspack_cacheable = { workspace = true }
