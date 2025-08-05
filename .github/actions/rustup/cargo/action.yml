@@ -13,13 +13,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install zstd
-      if: ${{ runner.environment == 'self-hosted' && runner.os == 'Linux' }}
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y zstd
-
     - name: Cache to github
       if: ${{ runner.environment == 'github-hosted' }}
       uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2
