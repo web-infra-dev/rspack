@@ -88,23 +88,17 @@ export default {
 
 ## experiments.topLevelAwait
 
-:::warning
-
-`topLevelAwait` 该配置项将在 Rspack v2.0.0 中废弃。
-
-`topLevelAwait` 自 Rspack v1.5.0 将始终开启；将 `experiments.topLevelAwait` 配置为 `false` 没有任何效果。
-
-:::
-
 - **类型：** `boolean`
 - **默认值：** `true`
 
 开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
 
+默认开启，可通过该配置关闭：
+
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    topLevelAwait: true,
+    topLevelAwait: false,
   },
 };
 ```
