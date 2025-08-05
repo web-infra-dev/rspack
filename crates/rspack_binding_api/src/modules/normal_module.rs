@@ -11,6 +11,46 @@ use crate::{
   resource_data::ReadonlyResourceDataWrapper,
 };
 
+#[js_function]
+pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let env = ctx.env.raw();
+  let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
+
+  let (_, module) = wrapped_value.as_ref()?;
+  Ok(match module.match_resource() {
+    Some(match_resource) => Either::A(&match_resource.resource),
+    None => Either::B(()),
+  })
+}
+
+#[js_function(1)]
+pub fn match_resource_setter(ctx: CallContext) -> napi::Result<()> {
+  let this = ctx.this_unchecked::<JsObject>();
+  let env = ctx.env.raw();
+  let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
+
+  let val = ctx.get::<Either<String, ()>>(0)?;
+  match val {
+    Either::A(val) => {
+      let module = wrapped_value.as_mut()?;
+      let ResourceParsedData {
+        path,
+        query,
+        fragment,
+      } = parse_resource(&val).expect("Should parse resource");
+      *module.match_resource_mut() = Some(
+        ResourceData::new(val)
+          .path(path)
+          .query_optional(query)
+          .fragment_optional(fragment),
+      );
+    }
+    Either::B(_) => {}
+  }
+  Ok(())
+}
+
 #[napi]
 #[repr(C)]
 pub struct NormalModule {
@@ -50,83 +90,43 @@ impl NormalModule {
       )?
     });
 
-    #[js_function]
-    pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(match module.match_resource() {
-        Some(match_resource) => Either::A(&match_resource.resource),
-        None => Either::B(()),
-      })
-    }
-
-    #[js_function(1)]
-    pub fn match_resource_setter(ctx: CallContext) -> napi::Result<()> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      let val = ctx.get::<Either<String, ()>>(0)?;
-      match val {
-        Either::A(val) => {
-          let module = wrapped_value.as_mut()?;
-          let ResourceParsedData {
-            path,
-            query,
-            fragment,
-          } = parse_resource(&val).expect("Should parse resource");
-          *module.match_resource_mut() = Some(
-            ResourceData::new(val)
-              .path(path)
-              .query_optional(query)
-              .fragment_optional(fragment),
-          );
-        }
-        Either::B(_) => {}
-      }
-      Ok(())
-    }
-
     MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
       let mut properties = ref_cell.borrow_mut();
       properties.clear();
 
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("resource")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"resource")?
           .with_value(&resource),
       );
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("request")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"request")?
           .with_value(&request),
       );
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"userRequest")?
           .with_value(&user_request),
       );
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("rawRequest")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"rawRequest")?
           .with_value(&raw_request),
       );
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("resourceResolveData")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"resourceResolveData")?
           .with_value(&resource_resolve_data),
       );
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("loaders")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"loaders")?
           .with_value(&loaders),
       );
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("matchResource")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"matchResource")?
           .with_getter(match_resource_getter)
           .with_setter(match_resource_setter),
       );

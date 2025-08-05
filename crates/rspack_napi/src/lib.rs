@@ -2,6 +2,7 @@
 
 mod ext;
 mod js_values;
+mod object;
 mod utils;
 
 mod errors;
@@ -22,4 +23,5 @@ pub use js_values::{
   weak_ref::*,
 };
 pub use napi;
+pub use object::*;
 pub use utils::*;

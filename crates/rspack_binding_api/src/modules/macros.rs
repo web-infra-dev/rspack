@@ -5,7 +5,7 @@ macro_rules! impl_module_methods {
       fn new_inherited<'a>(
         self,
         env: &'a napi::Env,
-        properties: &mut Vec<napi::Property>,
+        properties: &mut Vec<rspack_napi::Property>,
       ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'a, Self>> {
         use napi::bindgen_prelude::{JavaScriptClassExt, JsObjectValue, JsValue};
 
@@ -186,59 +186,59 @@ macro_rules! impl_module_methods {
         }
 
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("type")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"type")?
             .with_value(&env.create_string(module.module_type().as_str())?),
         );
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("context")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"context")?
             .with_getter(context_getter)
         );
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("layer")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"layer")?
             .with_getter(layer_getter)
         );
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("useSourceMap")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"useSourceMap")?
             .with_getter(use_source_map_getter)
         );
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("useSimpleSourceMap")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"useSimpleSourceMap")?
             .with_getter(use_simple_source_map_getter),
         );
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("factoryMeta")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"factoryMeta")?
             .with_getter(factory_meta_getter)
             .with_setter(factory_meta_setter),
         );
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("buildInfo")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"buildInfo")?
             .with_getter(build_info_getter)
             .with_setter(build_info_setter)
         );
         properties.push(
-          napi::Property::new()
-            .with_utf8_name("buildMeta")?
+          rspack_napi::Property::new()
+            .with_utf8_name(c"buildMeta")?
             .with_value(&napi::bindgen_prelude::Object::new(env)?)
         );
         $crate::module::MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
           let identifier = env.create_string(module.identifier().as_str())?;
           let symbol = once_cell.get().unwrap();
           properties.push(
-            napi::bindgen_prelude::Property::new()
+            rspack_napi::Property::new()
               .with_name(env, symbol)?
               .with_value(&identifier)
               .with_property_attributes(napi::bindgen_prelude::PropertyAttributes::Configurable),
           );
           Ok::<(), napi::Error>(())
         })?;
-        object.define_properties(properties)?;
+        rspack_napi::define_properties(env, &mut object, properties)?;
 
         Ok(instance)
       }
