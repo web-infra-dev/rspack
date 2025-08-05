@@ -25,7 +25,6 @@ export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
 	tempDir: string;
-	nativeWatcher?: boolean;
 }
 
 export class WatchProcessor<
@@ -250,8 +249,7 @@ export class WatchProcessor<
 	}
 
 	static overrideOptions<T extends ECompilerType>({
-		tempDir,
-		nativeWatcher
+		tempDir
 	}: IWatchProcessorOptions<T>) {
 		return (
 			index: number,
@@ -277,11 +275,9 @@ export class WatchProcessor<
 			options.experiments ??= {};
 			options.experiments.css ??= true;
 
-			if (nativeWatcher) {
-				(
-					options as TCompilerOptions<ECompilerType.Rspack>
-				).experiments!.nativeWatcher ??= true;
-			}
+			(
+				options as TCompilerOptions<ECompilerType.Rspack>
+			).experiments!.nativeWatcher ??= true;
 
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
@@ -357,10 +353,7 @@ export class WatchStepProcessor<
 		// which will cause the compiler not rebuild when the files change.
 		// The timeout is set to 400ms for windows OS and 100ms for other OS.
 		// TODO: This is a workaround, we can remove it when notify support windows better.
-		const timeout =
-			this._watchOptions.nativeWatcher && process.platform === "win32"
-				? 400
-				: 100;
+		const timeout = process.platform === "win32" ? 400 : 100;
 		await new Promise(resolve => setTimeout(resolve, timeout));
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),

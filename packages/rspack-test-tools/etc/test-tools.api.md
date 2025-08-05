@@ -1177,8 +1177,6 @@ export interface ITestRunner {
 // @public (undocumented)
 export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
     // (undocumented)
-    nativeWatcher?: boolean;
-    // (undocumented)
     stepName: string;
     // (undocumented)
     tempDir: string;
@@ -1694,7 +1692,7 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>({ tempDir, nativeWatcher }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
+    static overrideOptions<T extends ECompilerType>({ tempDir, }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)

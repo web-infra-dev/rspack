@@ -34,8 +34,8 @@ const creator = new BasicCaseCreator({
 							tempDir: temp!,
 							runable: true,
 							compilerType: ECompilerType.Rspack,
-							configFiles: ["rspack.config.js", "webpack.config.js"],
-							nativeWatcher: true
+							configFiles: ["rspack.config.js", "webpack.config.js"]
+							// nativeWatcher: true
 						},
 						watchState
 					)
@@ -46,8 +46,8 @@ const creator = new BasicCaseCreator({
 							tempDir: temp!,
 							runable: true,
 							compilerType: ECompilerType.Rspack,
-							configFiles: ["rspack.config.js", "webpack.config.js"],
-							nativeWatcher: true
+							configFiles: ["rspack.config.js", "webpack.config.js"]
+							// nativeWatcher: true
 						},
 						watchState
 					)
