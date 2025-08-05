@@ -733,21 +733,17 @@ impl Compilation {
     new_info: Option<&AssetInfo>,
     old_info: Option<&AssetInfo>,
   ) {
-    if let Some(old_info) = old_info {
-      if let Some(source_map) = &old_info.related.source_map {
-        if let Some(entry) = self.assets_related_in.get_mut(source_map) {
-          entry.remove(name);
-        }
-      }
+    if let Some(old_info) = old_info
+      && let Some(source_map) = &old_info.related.source_map
+      && let Some(entry) = self.assets_related_in.get_mut(source_map)
+    {
+      entry.remove(name);
     }
-    if let Some(new_info) = new_info {
-      if let Some(source_map) = new_info.related.source_map.clone() {
-        let entry = self
-          .assets_related_in
-          .entry(source_map)
-          .or_insert(Default::default());
-        entry.insert(name.to_string());
-      }
+    if let Some(new_info) = new_info
+      && let Some(source_map) = new_info.related.source_map.clone()
+    {
+      let entry = self.assets_related_in.entry(source_map).or_default();
+      entry.insert(name.to_string());
     }
   }
 
