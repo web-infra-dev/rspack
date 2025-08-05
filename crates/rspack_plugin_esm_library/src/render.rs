@@ -3,12 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
-  Compilation, ConcatenatedModuleInfo, ConcatenationScope, DEFAULT_EXPORT, InitFragment,
+  Compilation, ConcatenatedModuleInfo, ConcatenationScope, DEFAULT_EXPORT_ATOM, InitFragment,
   ModuleIdentifier, ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals, SourceType, SpanExt,
   get_js_chunk_filename_template, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, SourceExt},
 };
-use rspack_error::{Result, error};
+use rspack_error::Result;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
   runtime::{render_module, render_runtime_modules},
@@ -305,22 +305,18 @@ impl EsmLibraryPlugin {
           for raw_symbol in exports {
             let is_default = raw_symbol.as_str() == "default";
             let symbol = if is_default {
-              DEFAULT_EXPORT.into()
+              info
+                .get_internal_name(&DEFAULT_EXPORT_ATOM)
+                .expect("should have internal name for atom")
+                .as_str()
             } else {
-              raw_symbol.clone()
+              raw_symbol.as_str()
             };
-            let Some(local_symbol) = info.get_internal_name(&symbol) else {
-              return Err(error!(
-                "module {id} should already set internal names for export: {symbol}, internal_names: {:?}",
-                &info.internal_names
-              ));
-            };
-
             if is_default && !already_export_default {
-              export_specifiers.insert(Cow::Owned(format!("{local_symbol} as default")));
+              export_specifiers.insert(Cow::Owned(format!("{symbol} as default")));
               already_export_default = true;
             } else {
-              export_specifiers.insert(Cow::Borrowed(local_symbol.as_str()));
+              export_specifiers.insert(Cow::Borrowed(symbol));
             }
           }
         }
@@ -518,7 +514,7 @@ impl EsmLibraryPlugin {
     let mut source = ConcatSource::default();
 
     for (id, interop_info) in &chunk_link.required {
-      if interop_info.from_module != root {
+      if interop_info.from_module.contains(&root) {
         continue;
       }
 

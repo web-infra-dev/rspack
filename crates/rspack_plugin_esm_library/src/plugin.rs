@@ -6,9 +6,9 @@ use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
-  ConcatenatedModuleInfo, ConcatenationScope, ExportProvided, ExportsInfoGetter,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportProvided, ExportsInfoGetter,
   ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition,
-  RuntimeGlobals, get_target,
+  RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -111,6 +111,15 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       should_scope_hoisting = false;
     } else if !module.build_info().strict {
       logger.debug(format!("module {module_identifier} is not strict module"));
+      should_scope_hoisting = false;
+    } else if module_graph
+      .get_incoming_connections(module_identifier)
+      .filter_map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
+      .any(|dep| !is_esm_dep_like(dep) && !matches!(dep.dependency_type(), DependencyType::Entry))
+    {
+      logger.debug(format!(
+        "module {module_identifier} is referenced by non esm dependency"
+      ));
       should_scope_hoisting = false;
     }
 
