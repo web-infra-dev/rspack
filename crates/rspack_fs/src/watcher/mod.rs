@@ -6,7 +6,7 @@ mod paths;
 mod scanner;
 mod trigger;
 
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
@@ -15,6 +15,7 @@ pub use ignored::FsWatcherIgnored;
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
+use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
 use tokio::sync::mpsc;
 use trigger::Trigger;

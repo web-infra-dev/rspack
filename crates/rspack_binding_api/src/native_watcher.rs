@@ -172,8 +172,8 @@ impl JsEventHandler {
 impl rspack_fs::EventAggregateHandler for JsEventHandler {
   fn on_event_handle(
     &self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: rspack_util::fx_hash::FxHashSet<String>,
+    deleted_files: rspack_util::fx_hash::FxHashSet<String>,
   ) {
     let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
     let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();

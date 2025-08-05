@@ -67,7 +67,6 @@ impl Scanner {
 
 #[cfg(test)]
 mod tests {
-  use dashmap::DashSet as HashSet;
   use rspack_paths::ArcPath;
 
   use super::*;
@@ -75,15 +74,6 @@ mod tests {
   #[tokio::test]
   async fn test_scan() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let files = HashSet::new();
-    files.insert(ArcPath::from(current_dir.join("___test_file.txt")));
-
-    let directories = HashSet::new();
-    directories.insert(ArcPath::from(current_dir.join("___test_dir/a/b/c")));
-
-    let missing = HashSet::new();
-    missing.insert(ArcPath::from(current_dir.join("___missing_file.txt")));
-
     let path_manager = PathManager::default();
 
     let files = (
@@ -96,11 +86,11 @@ mod tests {
       vec![].into_iter(),
     );
 
-    let missings = (
+    let missing = (
       vec![current_dir.join("___missing_file.txt").into()].into_iter(),
       vec![].into_iter(),
     );
-    path_manager.update(files, dirs, missings).unwrap();
+    path_manager.update(files, dirs, missing).unwrap();
 
     let (tx, mut _rx) = tokio::sync::mpsc::unbounded_channel();
     let mut scanner = Scanner::new(tx, Arc::new(path_manager));

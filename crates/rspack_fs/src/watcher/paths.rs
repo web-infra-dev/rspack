@@ -221,7 +221,6 @@ impl PathManager {
 mod tests {
   use std::path::PathBuf;
 
-  use dashmap::DashSet as HashSet;
   use rspack_paths::Utf8Path;
 
   use super::*;
@@ -254,18 +253,6 @@ mod tests {
 
   #[test]
   fn test_accessor() {
-    let files = HashSet::new();
-    let file_0 = ArcPath::from(PathBuf::from("src/index.js"));
-    files.insert(file_0);
-
-    let directories = HashSet::new();
-    let dir_0 = ArcPath::from(PathBuf::from("src"));
-    directories.insert(dir_0);
-
-    let missing = HashSet::new();
-    let miss_0 = ArcPath::from(PathBuf::from("src/page/index.ts"));
-    missing.insert(miss_0);
-
     let path_manager = PathManager::default();
 
     let files = (
@@ -276,12 +263,12 @@ mod tests {
       vec![ArcPath::from(Utf8Path::new("src"))].into_iter(),
       vec![].into_iter(),
     );
-    let missings = (
+    let missing = (
       vec![ArcPath::from(Utf8Path::new("src/page/index.ts"))].into_iter(),
       vec![].into_iter(),
     );
 
-    path_manager.update(files, dirs, missings).unwrap();
+    path_manager.update(files, dirs, missing).unwrap();
 
     let accessor = PathAccessor::new(&path_manager);
     let mut all_paths = vec![];
