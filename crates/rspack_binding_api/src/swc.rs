@@ -25,7 +25,7 @@ impl From<CompilerTransformOutput> for TransformOutput {
   }
 }
 
-fn to_source_map_kind(source_maps: Option<SourceMapsConfig>) -> SourceMapKind {
+fn _to_source_map_kind(source_maps: Option<SourceMapsConfig>) -> SourceMapKind {
   match source_maps {
     Some(SourceMapsConfig::Str(s)) if s == "inline" => SourceMapKind::SourceMap,
     Some(SourceMapsConfig::Bool(true)) => SourceMapKind::SourceMap,
@@ -37,7 +37,7 @@ fn to_source_map_kind(source_maps: Option<SourceMapsConfig>) -> SourceMapKind {
 fn _transform(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: SwcOptions = serde_json::from_str(&options)?;
   let compiler = JavaScriptCompiler::new();
-  let module_source_map_kind = to_source_map_kind(options.source_maps.clone());
+  let module_source_map_kind = _to_source_map_kind(options.source_maps.clone());
   compiler
     .transform(
       source,
