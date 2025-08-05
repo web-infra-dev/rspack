@@ -215,20 +215,19 @@ const applyExperimentsDefaults = (
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);
-	F(experiments, "topLevelAwait", () => {
-		if (typeof experiments.topLevelAwait === "boolean") {
-			console.warn(
-				"`experiments.topLevelAwait` config will be removed in Rspack v2.0.0. Please plan your migration accordingly."
-			);
 
-			if (!experiments.topLevelAwait) {
-				console.warn(
-					"Setting `experiments.topLevelAwait` to false has no effect as this feature is always enabled in Rspack."
-				);
-			}
+	if (typeof experiments.topLevelAwait === "boolean") {
+		console.warn(
+			"`experiments.topLevelAwait` config will be removed in Rspack v2.0.0. Please plan your migration accordingly."
+		);
+
+		if (!experiments.topLevelAwait) {
+			console.warn(
+				"Setting `experiments.topLevelAwait` to false has no effect as this feature is always enabled in Rspack."
+			);
 		}
-		return true;
-	});
+	}
+	experiments.topLevelAwait = true;
 
 	D(experiments, "buildHttp", undefined);
 	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
