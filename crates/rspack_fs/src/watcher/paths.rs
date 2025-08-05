@@ -102,7 +102,10 @@ impl<'a> PathAccessor<'a> {
   }
 }
 
-/// Updating the set of registered paths, directories, and missing paths.
+/// `PathUpdater` is used to update collections of registered paths (files, directories, and missing paths)
+/// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
+/// added and removed, and provides functionality to apply these changes to a path tracker. This struct
+/// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
 #[derive(Debug)]
 struct PathUpdater {
   pub added: Vec<ArcPath>,
