@@ -971,4 +971,22 @@ export default {
 
 无副作用指[经过 `package.json` 标记 `"sideEffects": false` 或 `module.rule.sideEffects` 标记的模块](/config/optimization#optimizationsideeffects)。
 
+:::info FAQ
+
+1. `lazyBarrel` 是否支持 CommonJS？
+
+   是的，理论上这个功能也可以支持 CommonJS，但在那之前我们需要先改进 Rspack 对 CJS 的 tree shaking 能力，特别是静态分析部分。所以目前我们只会支持 ESM，后续 PR 再支持 CJS。
+
+2. 为什么依赖 package.json 中的 `"sideEffects": false` 标记？Rspack 不能自动分析模块是否无副作用吗？
+
+   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `module.rule.sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
+
+3. 所以 `export * from "./x"` 不再是问题了？
+
+   不，`export * from "./x"` 对构建性能来说仍然是个不好的实践。`lazyBarrel` 只会在以下情况不构建 star re-export：当你导入一个 specifier 时，且这个无副作用的重导出模块（barrel file）的具名导出中包含该 specifier（`export { x as A } from "./a";`、`export * as A from "./a"`、`export { a, b }`、`export const A`、`export default A (the name is default)`），这意味着 star re-export 没有被使用。所以 Rspack 在以下情况仍然会构建 star re-export：
+   1. 重导出模块（barrel file）不是无副作用的
+   2. star re-export 被使用了
+
 > 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
+
+:::
