@@ -225,6 +225,7 @@ pub struct Compilation {
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
+  assets_related_in: HashMap<String, HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
@@ -364,6 +365,7 @@ impl Compilation {
       entrypoints: Default::default(),
       async_entrypoints: Default::default(),
       assets: Default::default(),
+      assets_related_in: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging: Default::default(),
@@ -725,6 +727,26 @@ impl Compilation {
     Ok(())
   }
 
+  fn set_asset_info(
+    &mut self,
+    name: &str,
+    new_info: Option<&AssetInfo>,
+    old_info: Option<&AssetInfo>,
+  ) {
+    if let Some(old_info) = old_info
+      && let Some(source_map) = &old_info.related.source_map
+      && let Some(entry) = self.assets_related_in.get_mut(source_map)
+    {
+      entry.remove(name);
+    }
+    if let Some(new_info) = new_info
+      && let Some(source_map) = new_info.related.source_map.clone()
+    {
+      let entry = self.assets_related_in.entry(source_map).or_default();
+      entry.insert(name.to_string());
+    }
+  }
+
   pub fn update_asset(
     &mut self,
     filename: &str,
@@ -735,18 +757,22 @@ impl Compilation {
   ) -> Result<()> {
     let assets = &mut self.assets;
 
-    let (new_source, new_info) = match assets.remove(filename) {
+    let (old_info, new_source, new_info) = match assets.remove(filename) {
       Some(CompilationAsset {
         source: Some(source),
-        info,
-      }) => updater(source, info)?,
+        info: old_info,
+      }) => {
+        let (new_source, new_info) = updater(source, old_info.clone())?;
+        (old_info, new_source, new_info)
+      }
       _ => {
         return Err(error!(
           "Called Compilation.updateAsset for not existing filename {filename}"
         ));
       }
     };
-    self.emit_asset(
+    self.set_asset_info(filename, Some(&new_info), Some(&old_info));
+    self.assets.insert(
       filename.to_owned(),
       CompilationAsset {
         source: Some(new_source),
@@ -777,18 +803,23 @@ impl Compilation {
           )
           .into(),
         );
+        self.set_asset_info(&filename, Some(asset.get_info()), None);
         self.assets.insert(filename, asset);
         return;
       }
+      self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
       original.info = asset.info;
       self.assets.insert(filename, original);
     } else {
+      self.set_asset_info(&filename, Some(asset.get_info()), None);
       self.assets.insert(filename, asset);
     }
   }
 
   pub fn delete_asset(&mut self, filename: &str) {
     if let Some(asset) = self.assets.remove(filename) {
+      self.set_asset_info(filename, None, Some(asset.get_info()));
+
       if let Some(source_map) = &asset.info.related.source_map {
         self.delete_asset(source_map);
       }
@@ -801,7 +832,19 @@ impl Compilation {
 
   pub fn rename_asset(&mut self, filename: &str, new_name: String) {
     if let Some(asset) = self.assets.remove(filename) {
+      // Update related in all other assets
+      if let Some(related_in_info) = self.assets_related_in.get(filename) {
+        for name in related_in_info {
+          if let Some(asset) = self.assets.get_mut(name) {
+            asset.get_info_mut().related.source_map = Some(new_name.to_string());
+          }
+        }
+      }
+      self.set_asset_info(filename, None, Some(asset.get_info()));
+      self.set_asset_info(&new_name, Some(asset.get_info()), None);
+
       self.assets.insert(new_name.clone(), asset);
+
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         if chunk.remove_file(filename) {
           chunk.add_file(new_name.clone());
