@@ -24,39 +24,15 @@ export function nonWebpackRequire(): RequireFn {
 							}
 
 							const loaderCode = data?.toString() || "";
-
-							// 1. Assume it's a cjs
+							// Only customn esm loader is supported.
+							// Use `import(base64code)` to load ESM
+							const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
 							try {
-								// Use `new Function` to emulate CJS
-								const module = { exports: {} };
-								const exports = module.exports;
-								const createRequire = () => {
-									throw new Error(
-										"@rspack/browser doesn't support `require` in loaders yet"
-									);
-								};
-
-								// rslint-disable no-implied-eval
-								const wrapper = new Function(
-									"module",
-									"exports",
-									"require",
-									loaderCode
-								);
-
-								wrapper(module, exports, createRequire);
-								resolve(module.exports);
-							} catch {
-								// 2. Assume it's an esm
-								// Use `import(base64code)` to load ESM
-								const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
-								try {
-									// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
-									const modulePromise = eval(`import("${dataUrl}")`);
-									modulePromise.then(resolve);
-								} catch (e) {
-									reject(e);
-								}
+								// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
+								const modulePromise = eval(`import("${dataUrl}")`);
+								modulePromise.then(resolve);
+							} catch (e) {
+								reject(e);
 							}
 						});
 					})
