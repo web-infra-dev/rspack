@@ -50,12 +50,17 @@ jobs:
           # a fresh new installation takes about 5s
           save-if: false
 
+      - name: Install zstd via vcpkg
+        shell: pwsh
+        if: runner.os == 'Windows'
+        run: |
+          .\vcpkg\vcpkg.exe install zstd
+
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
           key: ${{ inputs.target }}-${{ inputs.profile }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
-          save-if: ${{ runner.environment != 'self-hosted'  || runner.os != 'Windows' }}
 
       # setup rust target for native runner
       - name: Setup Rust Target

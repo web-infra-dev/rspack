@@ -64,7 +64,6 @@ runs:
         key: rustup-cache-v3-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     - name: Cargo cache
-      if: ${{ runner.environment != 'self-hosted' || runner.os != 'Windows' }}
       uses: ./.github/actions/rustup/cargo
       with:
         key: ${{ inputs.key }}
