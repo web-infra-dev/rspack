@@ -24,7 +24,7 @@ impl Scanner {
   pub fn scan(&self) {
     let accessor = self.path_manager.access();
 
-    let files = accessor.files().clone();
+    let files = accessor.files().0.clone();
     let _tx = self.tx.clone();
     tokio::spawn(async move {
       for file in files.iter() {
@@ -41,7 +41,7 @@ impl Scanner {
       }
     });
 
-    let directories = accessor.directories().clone();
+    let directories = accessor.directories().0.clone();
     let _tx = self.tx.clone();
     tokio::spawn(async move {
       for dir in directories.iter() {
@@ -84,10 +84,23 @@ mod tests {
     let missing = HashSet::new();
     missing.insert(ArcPath::from(current_dir.join("___missing_file.txt")));
 
-    let mut path_manager = PathManager::default();
-    path_manager.files.extend(files);
-    path_manager.directories.extend(directories);
-    path_manager.missing.extend(missing);
+    let path_manager = PathManager::default();
+
+    let files = (
+      vec![current_dir.join("___test_file.txt").into()].into_iter(),
+      vec![].into_iter(),
+    );
+
+    let dirs = (
+      vec![current_dir.join("___test_dir/a/b/c").into()].into_iter(),
+      vec![].into_iter(),
+    );
+
+    let missings = (
+      vec![current_dir.join("___missing_file.txt").into()].into_iter(),
+      vec![].into_iter(),
+    );
+    path_manager.update(files, dirs, missings).unwrap();
 
     let (tx, mut _rx) = tokio::sync::mpsc::unbounded_channel();
     let mut scanner = Scanner::new(tx, Arc::new(path_manager));
