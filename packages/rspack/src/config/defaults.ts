@@ -218,7 +218,7 @@ const applyExperimentsDefaults = (
 
 	if (experiments.topLevelAwait === false) {
 		console.warn(
-			"`experiments.topLevelAwait` config will be removed in Rspack v2.0.0 and topLevelAwait will be enable by default. Please plan your migration accordingly."
+			"`experiments.topLevelAwait` config has been deprecated and will be removed in Rspack v2.0. Top-level await will be always enabled. Please remove this option from your Rspack configuration."
 		);
 	}
 	D(experiments, "topLevelAwait", true);
