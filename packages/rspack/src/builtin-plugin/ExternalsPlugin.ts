@@ -83,6 +83,13 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 												callback(error);
 											} else {
 												const req = processResolveResult(text);
+												// Reference: webpack/enhanced-resolve#255
+												// Handle fragment escaping in resolve results:
+												// - `#` can be escaped as `\0#` to prevent fragment parsing
+												// - enhanced-resolve resolves `#` ambiguously as both path and fragment
+												// - Example: `./some#thing` could resolve to `.../some.js#thing` or `.../some#thing.js`
+												// - When `#` is part of the path, it gets escaped as `\0#` in the result
+												// - We replace `\0#` with zero-width space + `#` (\u200b#) for compatibility
 												callback(
 													null,
 													req
@@ -99,6 +106,13 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 													promiseReject(error);
 												} else {
 													const req = processResolveResult(text);
+													// Reference: webpack/enhanced-resolve#255
+													// Handle fragment escaping in resolve results:
+													// - `#` can be escaped as `\0#` to prevent fragment parsing
+													// - enhanced-resolve resolves `#` ambiguously as both path and fragment
+													// - Example: `./some#thing` could resolve to `.../some.js#thing` or `.../some#thing.js`
+													// - When `#` is part of the path, it gets escaped as `\0#` in the result
+													// - We replace `\0#` with zero-width space + `#` (\u200b#) for compatibility
 													promiseResolve(
 														req
 															? `${req.path.replace(/#/g, "\u200b#")}${req.query.replace(/#/g, "\u200b#")}${req.fragment}`
