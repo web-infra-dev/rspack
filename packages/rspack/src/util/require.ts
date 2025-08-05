@@ -24,7 +24,7 @@ export function nonWebpackRequire(): RequireFn {
 							}
 
 							const loaderCode = data?.toString() || "";
-							// Only customn esm loader is supported.
+							// Only custom esm loader is supported.
 							// Use `import(base64code)` to load ESM
 							const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
 							try {
