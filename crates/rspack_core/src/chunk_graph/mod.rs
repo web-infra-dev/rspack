@@ -2,13 +2,15 @@ use core::fmt;
 use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_collections::{
+  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
+};
 use rspack_util::{atom::Atom, env::has_query, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
-  find_new_name,
+  RuntimeGlobals, find_new_name,
 };
 
 pub mod chunk_graph_chunk;
@@ -75,7 +77,8 @@ pub trait BindingRenderer {
 
 #[derive(Debug, Clone, Default)]
 pub struct ExternalInterop {
-  pub from_module: ModuleIdentifier,
+  pub module: ModuleIdentifier,
+  pub from_module: IdentifierSet,
   pub required_symbol: Option<Atom>,
   pub default_access: Option<Atom>,
   pub namespace_object: Option<Atom>,
@@ -85,7 +88,9 @@ pub struct ExternalInterop {
 impl ExternalInterop {
   pub fn namespace(&mut self, used_names: &mut HashSet<Atom>) -> Atom {
     if self.required_symbol.is_none() {
-      self.required_symbol = Some(find_new_name("", used_names, &vec![]));
+      let new_name = find_new_name("", used_names, &vec![]);
+      used_names.insert(new_name.clone());
+      self.required_symbol = Some(new_name);
     }
 
     if let Some(namespace_object) = &self.namespace_object {
@@ -108,7 +113,9 @@ impl ExternalInterop {
 
   pub fn namespace2(&mut self, used_names: &mut HashSet<Atom>) -> Atom {
     if self.required_symbol.is_none() {
-      self.required_symbol = Some(find_new_name("", used_names, &vec![]));
+      let new_name = find_new_name("", used_names, &vec![]);
+      used_names.insert(new_name.clone());
+      self.required_symbol = Some(new_name);
     }
 
     if let Some(namespace_object) = &self.namespace_object2 {
@@ -131,7 +138,9 @@ impl ExternalInterop {
 
   pub fn default_access<'me>(&'me mut self, used_names: &mut HashSet<Atom>) -> Atom {
     if self.required_symbol.is_none() {
-      self.required_symbol = Some(find_new_name("", used_names, &vec![]));
+      let new_name = find_new_name("", used_names, &vec![]);
+      used_names.insert(new_name.clone());
+      self.required_symbol = Some(new_name);
     }
 
     if let Some(default_access) = &self.default_access {

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::hash_map::Entry, sync::Arc};
 
+use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments, ChunkLinkContext, ChunkUkey,
@@ -9,9 +10,9 @@ use rspack_core::{
   ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, Ref, RuntimeGlobals,
   SourceType, SymbolRef, UsageState, UsedName, UsedNameItem, find_new_name,
   get_js_chunk_filename_template, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, rspack_sources::ReplaceSource, to_normal_comment,
+  returning_function, rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
-use rspack_error::{Diagnostic, Result, error};
+use rspack_error::Result;
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{JsPlugin, RenderSource, visitors::swc_visitor::resolver};
 use rspack_util::{
@@ -32,6 +33,18 @@ use crate::{EsmLibraryPlugin, debug::get_debug_info};
 impl EsmLibraryPlugin {
   pub(crate) async fn link(&self, compilation: &mut Compilation) -> Result<()> {
     let module_graph = compilation.get_module_graph();
+
+    let readable_ids = module_graph
+      .modules()
+      .values()
+      .par_bridge()
+      .map(|m| {
+        (
+          m.identifier(),
+          split_readable_identifier(&m.readable_identifier(&compilation.options.context)),
+        )
+      })
+      .collect::<IdentifierMap<_>>();
 
     // codegen uses self.concatenated_modules_map_for_codegen which has hold another Arc, so
     // it's safe to access concate_modules_map lock
@@ -95,19 +108,18 @@ impl EsmLibraryPlugin {
       })
       .collect();
 
-    for (chunk_ukey, chunk_link) in &mut link {
-      self.deconflict_symbols(compilation, *chunk_ukey, concate_modules_map, chunk_link);
+    for chunk_link in link.values_mut() {
+      self.deconflict_symbols(compilation, concate_modules_map, chunk_link, &readable_ids);
     }
 
     // link imported specifier with exported symbol
     let mut needed_namespace_objects_by_ukey = UkeyMap::default();
-    let errors = self.link_imports_and_exports(
+    self.link_imports_and_exports(
       compilation,
       &mut link,
       concate_modules_map,
       &mut needed_namespace_objects_by_ukey,
     );
-    compilation.extend_diagnostics(errors);
 
     for (ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
       let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
@@ -282,9 +294,9 @@ impl EsmLibraryPlugin {
   fn deconflict_symbols(
     &self,
     compilation: &Compilation,
-    chunk_ukey: ChunkUkey,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     chunk_link: &mut ChunkLinkContext,
+    readable_ids: &IdentifierMap<Vec<String>>,
   ) {
     let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
     let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES
@@ -402,21 +414,26 @@ impl EsmLibraryPlugin {
       }
     }
 
-    for external_module in compilation
-      .chunk_graph
-      .get_chunk_modules(&chunk_ukey, &module_graph)
-      .into_iter()
-      .filter(|m| !chunk_link.hoisted_modules.contains(&m.identifier()))
-    {
+    for external_module in chunk_link.decl_modules.iter() {
       let ModuleInfo::External(info) = concate_modules_map
-        .get_mut(&external_module.identifier())
+        .get_mut(external_module)
         .expect("should have external module info")
       else {
         unreachable!("should be un-scope-hoisted module");
       };
-      let name = find_new_name("", &all_used_names, &vec![]);
-      info.name = Some(name.clone());
-      all_used_names.insert(name.clone());
+
+      if info.name.is_none() {
+        info.name = Some(
+          find_new_name(
+            "",
+            &chunk_link.used_names,
+            readable_ids
+              .get(external_module)
+              .expect("should have value"),
+          )
+          .into(),
+        );
+      }
     }
 
     chunk_link.used_names = all_used_names;
@@ -639,13 +656,9 @@ impl EsmLibraryPlugin {
     let require_info: &mut ExternalInterop =
       required.get_mut(&m).expect("should have external_info");
 
-    let new_name = if let Some(ref name) = require_info.required_symbol {
+    if let Some(ref name) = require_info.required_symbol {
       name.clone()
     } else {
-      // the symbol is caused by interop
-      // eg.
-      // var symbol = __webpack_require__('');
-      // var symbol_default = __webpack_require__.n(symbol)
       let new_name = if all_used_names.contains(symbol) {
         let new_name = find_new_name(symbol, all_used_names, &vec![]);
         all_used_names.insert(new_name.clone());
@@ -655,11 +668,9 @@ impl EsmLibraryPlugin {
         symbol.clone()
       };
 
+      require_info.required_symbol = Some(new_name.clone());
       new_name
-    };
-    require_info.required_symbol = Some(new_name.clone());
-
-    new_name
+    }
   }
 
   fn link_imports_and_exports(
@@ -668,8 +679,7 @@ impl EsmLibraryPlugin {
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
-  ) -> Vec<Diagnostic> {
-    let mut errors = vec![];
+  ) {
     let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
     let mut exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashSet<Atom>>>::default();
     let mut imports = UkeyMap::<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>::default();
@@ -698,11 +708,15 @@ impl EsmLibraryPlugin {
 
         if let Some(export_map) = info.export_map.as_ref() {
           for export_atom in export_map.keys() {
+            let internal_name = info
+              .get_internal_name(export_atom)
+              .expect("should have internal name for exported item");
+
             chunk_link
               .exports
               .entry(entry_module)
               .or_default()
-              .insert(export_atom.clone());
+              .insert(internal_name.clone());
           }
         }
 
@@ -721,7 +735,12 @@ impl EsmLibraryPlugin {
                 .exports
                 .entry(*exported_module)
                 .or_default()
-                .insert(name.clone());
+                .insert(
+                  info
+                    .get_internal_name(name)
+                    .expect("should have internal name")
+                    .clone(),
+                );
             }
           }
         }
@@ -765,8 +784,12 @@ impl EsmLibraryPlugin {
           if matches!(outgoing_module_info, ModuleInfo::External(_)) {
             required
               .entry(*conn.module_identifier())
+              .and_modify(|info| {
+                info.from_module.insert(m);
+              })
               .or_insert(ExternalInterop {
-                from_module: m,
+                module: *conn.module_identifier(),
+                from_module: std::iter::once(m).collect(),
                 required_symbol: None,
                 default_access: None,
                 namespace_object: None,
@@ -813,6 +836,11 @@ impl EsmLibraryPlugin {
 
               if &ref_chunk != chunk {
                 // ref chunk should expose the symbol
+                imports
+                  .entry(*chunk)
+                  .or_default()
+                  .entry(*ref_module)
+                  .or_default();
                 exports
                   .entry(ref_chunk)
                   .or_default()
@@ -875,6 +903,11 @@ impl EsmLibraryPlugin {
 
               if from_other_chunk {
                 // ref chunk should expose the symbol
+                imports
+                  .entry(*chunk)
+                  .or_default()
+                  .entry(module_id)
+                  .or_default();
                 exports
                   .entry(ref_chunk)
                   .or_default()
@@ -891,7 +924,7 @@ impl EsmLibraryPlugin {
 
       // deconflict imported symbol and required symbols
       // if symbol is from outside, we should deconflict them,
-      // because we only deconflict local symbols before
+      // because we've only deconflicted local symbols before
       let mut ref_by_symbol =
         FxIndexMap::<(Atom, ModuleIdentifier), Vec<(String, SymbolRef)>>::default();
       let mut inline_refs = FxHashMap::<String, Ref>::default();
@@ -958,17 +991,7 @@ impl EsmLibraryPlugin {
               .expect("should have module info");
 
             let final_symbol = match ref_module_info {
-              ModuleInfo::Concatenated(ref_module_info) => {
-                let Some(internal_symbol) = ref_module_info.get_internal_name(&symbol_ref.symbol)
-                else {
-                  errors.push(Diagnostic::from(error!(
-                    "should have internal name for {}",
-                    &symbol_ref.symbol
-                  )));
-                  continue;
-                };
-                Cow::Borrowed(internal_symbol)
-              }
+              ModuleInfo::Concatenated(_) => Cow::Borrowed(&symbol_ref.symbol),
               ModuleInfo::External(_) => {
                 let ref_chunk = Self::get_module_chunk(symbol_ref.module, compilation);
                 imports
@@ -1011,41 +1034,10 @@ impl EsmLibraryPlugin {
     for (chunk, required) in required {
       link.entry(chunk).or_default().required = required;
     }
-
-    errors
   }
-
-  // fn is_interop_name(
-  //   m: ModuleIdentifier,
-  //   symbol: &Atom,
-  //   module_to_info_map: &IdentifierIndexMap<ModuleInfo>,
-  // ) -> bool {
-  //   let info = module_to_info_map.get(&m).expect("should have module info");
-
-  //   if let Some(name) = info.get_interop_default_access_name()
-  //     && name == symbol
-  //   {
-  //     return true;
-  //   }
-
-  //   if let Some(name) = info.get_interop_namespace_object_name()
-  //     && name == symbol
-  //   {
-  //     return true;
-  //   }
-
-  //   if let Some(name) = info.get_interop_namespace_object2_name()
-  //     && name == symbol
-  //   {
-  //     return true;
-  //   }
-
-  //   false
-  // }
 
   // if imported specifier is in the same chunk
   // the final name is symbol in current chunk
-  //
   // if imported specifier is in other chunk
   // the final name is symbol in referenced chunk
   #[allow(clippy::too_many_arguments)]
