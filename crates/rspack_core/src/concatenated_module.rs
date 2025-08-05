@@ -812,7 +812,8 @@ impl Module for ConcatenatedModule {
           &compilation.module_static_cache_artifact,
           &context,
         );
-        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
+        let splitted_readable_identifier: Vec<String> =
+          split_readable_identifier(&readable_identifier);
         escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
 
         match info {
