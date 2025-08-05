@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsModuleDependency, ChunkGraph, ChunkUkey, Compilation, DependencyTemplate, ModuleIdentifier,
-  RuntimeGlobals, UsageState, missing_module_promise,
+  AsModuleDependency, ChunkGraph, ChunkUkey, Compilation, DependencyTemplate, ExternalInterop,
+  ModuleIdentifier, RuntimeGlobals, UsageState, missing_module_promise,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
