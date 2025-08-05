@@ -193,9 +193,6 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       continue;
     }
 
-    let module = module_graph
-      .module_by_identifier(&m)
-      .expect("should have module for id");
     for dep in module_graph.get_outgoing_deps_in_order(&m) {
       let Some(dep_module) = module_graph.module_identifier_by_dependency_id(dep) else {
         continue;
