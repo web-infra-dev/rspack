@@ -223,7 +223,7 @@ const applyExperimentsDefaults = (
 
 			if (!experiments.topLevelAwait) {
 				console.warn(
-					"`experiments.topLevelAwait` will be always enabled in Rspack."
+					"Setting `experiments.topLevelAwait` to false has no effect as this feature is always enabled in Rspack."
 				);
 			}
 		}
