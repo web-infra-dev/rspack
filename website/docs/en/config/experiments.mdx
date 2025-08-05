@@ -969,7 +969,10 @@ export default {
 
 Whether to skip building unused re-export modules in side-effect-free barrel files to optimize build performance.
 
-A module is considered side-effect-free when it is marked with [`"sideEffects": false` in package.json or flagged by module.rule.sideEffects](/config/optimization#optimizationsideeffects).
+A side-effect-free module is a module that meets one of the following conditions:
+
+- The `package.json` file of its package declares `"sideEffects": false`, see [Side effects analysis](/guide/optimization/tree-shaking#side-effects-analysis)
+- Modules explicitly marked as `false` through the [module.rule.sideEffects](/config/optimization#optimizationsideeffects) option
 
 :::info FAQ
 
