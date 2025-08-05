@@ -37,7 +37,9 @@ The resolver function should return a `rspack_core::BoxPlugin`
 
 This example will expose `registerMyBannerPlugin` in the final N-API binding:
 
-```rust
+> **Note:** The following example requires the `napi_derive`, `rspack_binding_builder_macros`, `rspack_core`, and `rspack_error` crates, and is for illustration only. It may not compile without additional setup.
+
+```rust,ignore
 use napi_derive::napi;
 use rspack_binding_builder_macros::register_plugin;
 
