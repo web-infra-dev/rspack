@@ -2,6 +2,9 @@
   {
     "language": "javascript",
     "files": [],
+    "ignores": [
+      "packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
+    ],
     "languageOptions": {
       "parserOptions": {
         "projectService": false,

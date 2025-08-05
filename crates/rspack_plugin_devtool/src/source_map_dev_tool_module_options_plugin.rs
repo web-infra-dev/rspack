@@ -1,6 +1,6 @@
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationBuildModule, CompilationId,
-  CompilationRuntimeModule, CompilerId, CompilerOptions, ModuleIdentifier, Plugin, PluginContext,
+  BoxModule, ChunkUkey, Compilation, CompilationBuildModule, CompilationId,
+  CompilationRuntimeModule, CompilerId, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -68,14 +68,12 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
     "SourceMapDevToolModuleOptionsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .build_module
       .tap(build_module::new(self));
     ctx
-      .context
       .compilation_hooks
       .runtime_module
       .tap(runtime_module::new(self));

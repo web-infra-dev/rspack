@@ -10,7 +10,7 @@ use rspack_plugin_runtime::{
 };
 use rustc_hash::FxHashMap;
 
-use crate::ChunkWrapper;
+use crate::chunk::ChunkWrapper;
 
 type RuntimeGlobalMap = (
   FxHashMap<RuntimeGlobals, String>,

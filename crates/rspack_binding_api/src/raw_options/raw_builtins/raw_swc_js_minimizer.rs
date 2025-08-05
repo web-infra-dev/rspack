@@ -7,7 +7,7 @@ use rspack_plugin_swc_js_minimizer::{
 use serde::de::DeserializeOwned;
 use swc_core::base::BoolOrDataConfig;
 
-use crate::{RawAssetConditions, into_asset_conditions};
+use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
 
 #[derive(Debug)]
 #[napi(object)]

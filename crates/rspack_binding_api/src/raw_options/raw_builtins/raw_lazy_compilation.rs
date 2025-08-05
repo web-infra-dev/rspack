@@ -13,7 +13,7 @@ use rspack_plugin_lazy_compilation::{
 };
 use rspack_regex::RspackRegex;
 
-use crate::ModuleObject;
+use crate::module::ModuleObject;
 
 #[derive(Debug)]
 pub struct RawLazyCompilationTest<F = ThreadsafeFunction<ModuleObject, Option<bool>>>(

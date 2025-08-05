@@ -24,7 +24,7 @@ impl Scanner {
   pub fn scan(&self) {
     let accessor = self.path_manager.access();
 
-    let files = accessor.files().clone();
+    let files = accessor.files().0.clone();
     let _tx = self.tx.clone();
     tokio::spawn(async move {
       for file in files.iter() {
@@ -41,7 +41,7 @@ impl Scanner {
       }
     });
 
-    let directories = accessor.directories().clone();
+    let directories = accessor.directories().0.clone();
     let _tx = self.tx.clone();
     tokio::spawn(async move {
       for dir in directories.iter() {
@@ -67,7 +67,6 @@ impl Scanner {
 
 #[cfg(test)]
 mod tests {
-  use dashmap::DashSet as HashSet;
   use rspack_paths::ArcPath;
 
   use super::*;
@@ -75,19 +74,23 @@ mod tests {
   #[tokio::test]
   async fn test_scan() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let files = HashSet::new();
-    files.insert(ArcPath::from(current_dir.join("___test_file.txt")));
+    let path_manager = PathManager::default();
 
-    let directories = HashSet::new();
-    directories.insert(ArcPath::from(current_dir.join("___test_dir/a/b/c")));
+    let files = (
+      vec![current_dir.join("___test_file.txt").into()].into_iter(),
+      vec![].into_iter(),
+    );
 
-    let missing = HashSet::new();
-    missing.insert(ArcPath::from(current_dir.join("___missing_file.txt")));
+    let dirs = (
+      vec![current_dir.join("___test_dir/a/b/c").into()].into_iter(),
+      vec![].into_iter(),
+    );
 
-    let mut path_manager = PathManager::default();
-    path_manager.files.extend(files);
-    path_manager.directories.extend(directories);
-    path_manager.missing.extend(missing);
+    let missing = (
+      vec![current_dir.join("___missing_file.txt").into()].into_iter(),
+      vec![].into_iter(),
+    );
+    path_manager.update(files, dirs, missing).unwrap();
 
     let (tx, mut _rx) = tokio::sync::mpsc::unbounded_channel();
     let mut scanner = Scanner::new(tx, Arc::new(path_manager));

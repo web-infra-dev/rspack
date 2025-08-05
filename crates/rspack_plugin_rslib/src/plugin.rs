@@ -1,9 +1,7 @@
 use std::time::{Duration, Instant};
 
-use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, CompilerOptions, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PluginContext,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -56,15 +54,13 @@ async fn nmf_parser(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for RslibPlugin {
   fn name(&self) -> &'static str {
     "rslib"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

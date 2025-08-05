@@ -19,7 +19,6 @@ sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
 anyhow                   = { workspace = true }
-browserslist-rs          = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
 rspack_browserslist      = { workspace = true }

@@ -70,19 +70,33 @@ use rspack_plugin_runtime::{
 };
 
 use crate::{
-  ChunkWrapper, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-  JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
-  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
-  JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
-  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
-  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsCreateScriptData, JsExecuteModuleArg,
-  JsFactorizeArgs, JsFactorizeOutput, JsLinkPrefetchData, JsLinkPreloadData,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph,
-  JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch, JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals,
-  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ModuleObject, ToJsCompatSourceOwned,
+  asset::JsAssetEmittedArgs,
+  chunk::{ChunkWrapper, JsChunkAssetArgs},
+  compilation::JsCompilationWrapper,
+  context_module_factory::{
+    JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
+    JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
+  },
+  html::{
+    JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
+    JsBeforeAssetTagGenerationData, JsBeforeEmitData,
+  },
+  module::{JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ModuleObject},
+  normal_module_factory::{
+    JsAfterResolveData, JsAfterResolveOutput, JsBeforeResolveArgs, JsBeforeResolveOutput,
+    JsCreateData, JsFactorizeArgs, JsFactorizeOutput, JsNormalModuleFactoryCreateModuleArgs,
+    JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
+  },
+  rsdoctor::{
+    JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
+    JsRsdoctorModuleSourcesPatch,
+  },
+  runtime::{
+    JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
+    JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
+    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
+  },
+  source::ToJsCompatSourceOwned,
 };
 
 #[napi(object)]

@@ -3890,7 +3890,6 @@ version = "0.4.11"
 dependencies = [
  "anyhow",
  "async-trait",
- "browserslist-rs",
  "color-backtrace",
  "cow-utils",
  "derive_more 2.0.1",
@@ -4202,7 +4201,6 @@ dependencies = [
  "fast-glob",
  "notify",
  "pnp",
- "rayon",
  "rspack_error",
  "rspack_paths",
  "rspack_regex",
@@ -4593,7 +4591,6 @@ dependencies = [
 name = "rspack_plugin_devtool"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "cow-utils",
  "dashmap 6.1.0",
  "derive_more 2.0.1",
@@ -4640,7 +4637,6 @@ dependencies = [
 name = "rspack_plugin_dynamic_entry"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "derive_more 2.0.1",
  "futures",
  "rspack_core",
@@ -4665,7 +4661,6 @@ dependencies = [
 name = "rspack_plugin_entry"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4853,7 +4848,6 @@ dependencies = [
 name = "rspack_plugin_library"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "futures",
  "regex",
  "rspack_cacheable",
@@ -4942,7 +4936,6 @@ dependencies = [
 name = "rspack_plugin_module_info_header"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "regex",
  "rspack_cacheable",
  "rspack_collections",
@@ -4970,7 +4963,6 @@ dependencies = [
 name = "rspack_plugin_progress"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "futures",
  "indicatif",
  "rspack_collections",
@@ -5028,7 +5020,6 @@ dependencies = [
 name = "rspack_plugin_rsdoctor"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "atomic_refcell",
  "futures",
  "indexmap",
@@ -5049,7 +5040,6 @@ dependencies = [
 name = "rspack_plugin_rslib"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -5062,7 +5052,6 @@ dependencies = [
 name = "rspack_plugin_rstest"
 version = "0.4.11"
 dependencies = [
- "async-trait",
  "camino",
  "regex",
  "rspack_cacheable",

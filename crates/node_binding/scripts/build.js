@@ -1,5 +1,5 @@
 const path = require("path");
-const { readFileSync, writeFileSync } = require("fs");
+const { readFileSync, writeFileSync, renameSync } = require("fs");
 const { values, positionals } = require("util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
@@ -127,6 +127,11 @@ async function build() {
 						.replaceAll(/export\s+declare\s+class\s+NormalModule\s*\{([\s\S]*?)\}\s*(?=\n\s*(?:export|declare|class|$))/g, "")
 				);
 
+				// For browser wasm, we rename the artifacts to distinguish them from node wasm
+				if (process.env.BROWSER) {
+					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
+					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
+				}
 			}
 			resolve(code);
 		});

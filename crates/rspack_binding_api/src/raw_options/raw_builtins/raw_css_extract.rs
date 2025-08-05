@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_plugin_extract_css::plugin::{CssExtractOptions, InsertType};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::JsFilename;
+use crate::filename::JsFilename;
 
 #[napi(object, object_to_js = false)]
 pub struct RawCssExtractPluginOption {

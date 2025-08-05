@@ -4,7 +4,7 @@ use napi::{JsString, bindgen_prelude::Either3};
 use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
 use rspack_regex::RspackRegex;
 
-use crate::ChunkWrapper;
+use crate::chunk::ChunkWrapper;
 
 pub type Chunks<'a> = Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<ChunkWrapper, bool>>;
 
