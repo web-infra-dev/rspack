@@ -969,7 +969,10 @@ export default {
 
 是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
 
-无副作用指[经过 `package.json` 标记 `"sideEffects": false` 或 `module.rule.sideEffects` 标记的模块](/config/optimization#optimizationsideeffects)。
+无副作用模块是指满足以下条件之一的模块：
+
+- 其所属包的 `package.json` 文件中声明了 `"sideEffects": false`，详见 [副作用分析](/guide/optimization/tree-shaking#副作用分析)
+- 通过 [module.rule.sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
 
 :::info FAQ
 
