@@ -51,7 +51,7 @@ jobs:
           save-if: false
 
       - name: Install zstd via vcpkg
-        shell: pwsh
+        shell: powershell
         if: runner.os == 'Windows'
         run: |
           .\vcpkg\vcpkg.exe install zstd
