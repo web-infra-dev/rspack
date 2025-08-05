@@ -3,7 +3,8 @@ use rspack_javascript_compiler::{
   JavaScriptCompiler, TransformOutput as CompilerTransformOutput, minify::JsMinifyOptions,
   transform::SwcOptions,
 };
-use swc_core::ecma::ast::noop_pass;
+use rspack_util::source_map::SourceMapKind;
+use swc_core::{base::config::SourceMapsConfig, ecma::ast::noop_pass};
 
 #[napi(object)]
 pub struct TransformOutput {
@@ -24,15 +25,25 @@ impl From<CompilerTransformOutput> for TransformOutput {
   }
 }
 
+fn to_source_map_kind(source_maps: Option<SourceMapsConfig>) -> SourceMapKind {
+  match source_maps {
+    Some(SourceMapsConfig::Str(s)) if s == "inline" => SourceMapKind::SourceMap,
+    Some(SourceMapsConfig::Bool(true)) => SourceMapKind::SourceMap,
+    Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
+    _ => SourceMapKind::empty(),
+  }
+}
+
 fn _transform(source: String, options: String) -> napi::Result<TransformOutput> {
   let options: SwcOptions = serde_json::from_str(&options)?;
   let compiler = JavaScriptCompiler::new();
+  let module_source_map_kind = to_source_map_kind(options.source_maps.clone());
   compiler
     .transform(
       source,
       Some(swc_core::common::FileName::Anon),
       options,
-      None,
+      Some(module_source_map_kind),
       |_| {},
       |_| noop_pass(),
     )
