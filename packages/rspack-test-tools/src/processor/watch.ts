@@ -21,6 +21,10 @@ const currentWatchStepModulePath = path.resolve(
 	"../helper/util/currentWatchStep"
 );
 
+declare global {
+	var WASM: boolean;
+}
+
 export interface IWatchProcessorOptions<T extends ECompilerType>
 	extends IMultiTaskProcessorOptions<T> {
 	stepName: string;
@@ -275,9 +279,12 @@ export class WatchProcessor<
 			options.experiments ??= {};
 			options.experiments.css ??= true;
 
-			(
-				options as TCompilerOptions<ECompilerType.Rspack>
-			).experiments!.nativeWatcher ??= true;
+			// TODO: remove this when native watcher support watch in wasm
+			if (!global.WASM) {
+				(
+					options as TCompilerOptions<ECompilerType.Rspack>
+				).experiments!.nativeWatcher ??= true;
+			}
 
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>

@@ -70,7 +70,8 @@ const config = {
 							: process.argv.indexOf("--test")) + 1
 					]
 				: undefined,
-		printLogger: process.argv.includes("--verbose")
+		printLogger: process.argv.includes("--verbose"),
+		WASM: Boolean(process.env.WASM)
 	},
 	...(wasmConfig || {})
 };
