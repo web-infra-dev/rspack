@@ -15,10 +15,10 @@ use rspack_core::{
   BoxModule, Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
   CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
   CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
-  CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
-  CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
-  CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, Plugin,
+  CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
+  CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
+  CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
+  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -481,6 +481,11 @@ async fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("chunk ids", 21).await
 }
 
+#[plugin_hook(CompilationOptimizeCodeGeneration for ProgressPlugin)]
+async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("code generation", 26).await
+}
+
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35).await
@@ -572,6 +577,10 @@ impl Plugin for ProgressPlugin {
       .tap(optimize_chunk_modules::new(self));
     ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
     ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
+    ctx
+      .compilation_hooks
+      .optimize_code_generation
+      .tap(optimize_code_generation::new(self));
     ctx
       .compilation_hooks
       .process_assets
