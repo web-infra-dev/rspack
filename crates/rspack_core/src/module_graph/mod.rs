@@ -9,8 +9,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -1254,6 +1254,39 @@ impl<'a> ModuleGraph<'a> {
     let active_partial = self.active.as_mut().expect("should have active partial");
     for (mid, mgm) in changed {
       active_partial.module_graph_modules.insert(mid, Some(mgm));
+    }
+  }
+
+  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, Atom)>) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (export_info, used_name) in tasks {
+      let ExportInfo {
+        exports_info,
+        export_name,
+      } = export_info;
+
+      let data = active_partial
+        .exports_info_map
+        .get_mut(&exports_info)
+        .expect("should have exports info");
+      match export_name {
+        ExportName::Named(name) => {
+          data
+            .named_exports_mut(&name)
+            .expect("should have named export")
+            .set_used_name(used_name);
+        }
+        ExportName::Other => {
+          data.other_exports_info_mut().set_used_name(used_name);
+        }
+        ExportName::SideEffects => {
+          data.side_effects_only_info_mut().set_used_name(used_name);
+        }
+      }
     }
   }
 }
