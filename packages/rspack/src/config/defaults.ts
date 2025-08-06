@@ -215,6 +215,12 @@ const applyExperimentsDefaults = (
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);
+
+	if (experiments.topLevelAwait === false) {
+		console.warn(
+			"`experiments.topLevelAwait` config has been deprecated and will be removed in Rspack v2.0. Top-level await will be always enabled. Please remove this option from your Rspack configuration."
+		);
+	}
 	D(experiments, "topLevelAwait", true);
 
 	D(experiments, "buildHttp", undefined);
