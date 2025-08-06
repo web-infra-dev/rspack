@@ -1,6 +1,6 @@
 use std::{
   fmt::Debug,
-  sync::{Arc, LazyLock},
+  sync::Arc,
 };
 
 use rspack_core::{
@@ -10,19 +10,33 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_regex::RspackRegex;
 use tokio::sync::Mutex;
 
 use crate::{
   backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
 };
 
-static WEBPACK_DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
-  RspackRegex::new(
-    r#"(webpack|rspack)[/\\]hot[/\\]|(webpack|rspack)-dev-server[/\\]client|(webpack|rspack)-hot-middleware[/\\]client"#,
-  )
-  .expect("should compile regex")
-});
+fn is_webpack_dev_server_client(path: &str) -> bool {
+  // Check for hot reloader paths
+  if path.contains("webpack/hot/") || path.contains("webpack\\hot\\") ||
+     path.contains("rspack/hot/") || path.contains("rspack\\hot\\") {
+    return true;
+  }
+  
+  // Check for dev server client paths
+  if path.contains("webpack-dev-server/client") || path.contains("webpack-dev-server\\client") ||
+     path.contains("rspack-dev-server/client") || path.contains("rspack-dev-server\\client") {
+    return true;
+  }
+  
+  // Check for hot middleware client paths
+  if path.contains("webpack-hot-middleware/client") || path.contains("webpack-hot-middleware\\client") ||
+     path.contains("rspack-hot-middleware/client") || path.contains("rspack-hot-middleware\\client") {
+    return true;
+  }
+  
+  false
+}
 
 #[derive(Debug, Hash, Clone)]
 pub enum LazyCompilationTest<F: LazyCompilationTestCheck> {
@@ -168,7 +182,7 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if WEBPACK_DEV_SERVER_CLIENT_RE.test(&create_data.resource_resolve_data.resource)
+  if is_webpack_dev_server_client(&create_data.resource_resolve_data.resource)
     || !self
       .check_test(
         module_factory_create_data.compiler_id,

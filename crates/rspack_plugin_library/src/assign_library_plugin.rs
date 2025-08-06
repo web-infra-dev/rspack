@@ -564,9 +564,17 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
   current
 }
 
-static KEYWORD_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"^(await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|super|switch|static|this|throw|try|true|typeof|var|void|while|with|yield)$").expect("should init regex")
-});
+fn is_js_keyword(s: &str) -> bool {
+  matches!(s,
+    "await" | "break" | "case" | "catch" | "class" | "const" | "continue" |
+    "debugger" | "default" | "delete" | "do" | "else" | "enum" | "export" |
+    "extends" | "false" | "finally" | "for" | "function" | "if" | "implements" |
+    "import" | "in" | "instanceof" | "interface" | "let" | "new" | "null" |
+    "package" | "private" | "protected" | "public" | "return" | "super" |
+    "switch" | "static" | "this" | "throw" | "try" | "true" | "typeof" |
+    "var" | "void" | "while" | "with" | "yield"
+  )
+}
 
 static IDENTIFIER_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[\p{L}\p{Nl}$_][\p{L}\p{Nl}$\p{Mn}\p{Mc}\p{Nd}\p{Pc}]*$")
@@ -575,5 +583,5 @@ static IDENTIFIER_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
 
 #[inline]
 fn is_name_valid(v: &str) -> bool {
-  !KEYWORD_REGEXP.is_match(v) && IDENTIFIER_REGEXP.is_match(v)
+  !is_js_keyword(v) && IDENTIFIER_REGEXP.is_match(v)
 }
