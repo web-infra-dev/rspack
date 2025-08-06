@@ -4563,12 +4563,9 @@ version = "0.4.11"
 dependencies = [
  "dashmap 6.1.0",
  "derive_more 2.0.1",
- "ere",
- "ere-core",
  "futures",
  "glob",
  "pathdiff",
- "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hash",

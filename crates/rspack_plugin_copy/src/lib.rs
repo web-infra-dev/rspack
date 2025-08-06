@@ -9,10 +9,8 @@ use std::{
 
 use dashmap::DashSet;
 use derive_more::Debug;
-use ere::prelude::*;
 use futures::future::{BoxFuture, join_all};
 use glob::{MatchOptions, Pattern as GlobPattern};
-use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, Logger, PathData, Plugin,
@@ -128,7 +126,19 @@ pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
 }
 
-const TEMPLATE_RE: ere::Regex<2> = compile_regex!(r"\[\\*([\w:]+)\\*\]");
+/// Check if a string contains template placeholders like [*name*]
+fn is_template_string(s: &str) -> bool {
+  // Look for patterns like [*name*] or [*path:hash*]
+  // This is more efficient than regex for this simple pattern
+  if let Some(start) = s.find("[*") {
+    if let Some(end) = s[start + 2..].find("*]") {
+      let content = &s[start + 2..start + 2 + end];
+      // Check if content contains only word characters and colons
+      return content.chars().all(|c| c.is_alphanumeric() || c == '_' || c == ':');
+    }
+  }
+  false
+}
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
@@ -216,7 +226,7 @@ impl CopyRspackPlugin {
 
     let to_type = if let Some(to_type) = pattern.to_type.as_ref() {
       to_type.clone()
-    } else if TEMPLATE_RE.test(&to) {
+    } else if is_template_string(&to) {
       ToType::Template
     } else if Path::new(&to).extension().is_none() || to.ends_with(MAIN_SEPARATOR) {
       ToType::Dir
@@ -802,4 +812,26 @@ async fn handle_transform(
 fn ensure_info_fields() {
   let info = AssetInfo::default();
   std::hint::black_box(info);
+}
+
+#[cfg(test)]
+mod tests {
+  use super::is_template_string;
+
+  #[test]
+  fn test_template_string_detection() {
+    // Should match template patterns
+    assert!(is_template_string("[*name*]"));
+    assert!(is_template_string("prefix-[*path*]-suffix")); 
+    assert!(is_template_string("[*path:hash*]"));
+    assert!(is_template_string("[*file:name:ext*]"));
+
+    // Should not match non-template patterns
+    assert!(!is_template_string("normal-filename.js"));
+    assert!(!is_template_string("[invalid]"));
+    assert!(!is_template_string("[]"));
+    assert!(!is_template_string("[**name**]")); // double stars
+    assert!(!is_template_string("[*name*extra]")); // extra chars after
+    assert!(!is_template_string("prefix[*name*extra]")); // extra chars after
+  }
 }
