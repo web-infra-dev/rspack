@@ -525,7 +525,7 @@ export default {
 };
 ```
 
-详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+详细示例可参考：[collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
 
 :::warning
 目前仍为实验性功能，需要开启 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 该配置才会生效。
@@ -589,7 +589,26 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-对位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化，常见场景为 `constants.js`。
+对位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化。
+
+常见的优化场景为 `constants.js`，比如：
+
+```js
+// constants.js
+export const A = true;
+// index.js
+import { A } from './constants';
+console.log(A ? 1 : 2);
+
+// 经过打包后的结果 output.js
+const __webpack_modules__ = {
+  './index.js': __webpack_require__ => {
+    // 1. A 会被内联到使用的地方。
+    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
+    console.log(true ? 1 : 2);
+  },
+};
+```
 
 inline 优化的条件是常量值为：
 
@@ -613,8 +632,10 @@ export default {
 };
 ```
 
+详细示例可参考：[inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
+
 :::warning
-目前仍为实验性功能，需要开启 [experiments.inlineConst](/config/experiments#experimentstypereexportspresence) 该配置才会生效。
+目前仍为实验性功能，需要开启 [experiments.inlineConst](/config/experiments#experimentstypereexportspresence)。
 :::
 
 ### module.parser["javascript/auto"]

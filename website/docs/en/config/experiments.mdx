@@ -918,7 +918,28 @@ Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other t
 - **Type:** `boolean`
 - **Default:** `false`
 
-The switch for the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst). Must be enabled to use the feature.
+Whether to enable the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst), which will perform cross-module inline optimization for constant exports in leaf modules of the module graph.
+
+A common optimization case is `constants.js`, for example:
+
+```js
+// constants.js
+export const A = true;
+// index.js
+import { A } from './constants';
+console.log(A ? 1 : 2);
+
+// Bundled by Rspack: output.js
+const __webpack_modules__ = {
+  './index.js': __webpack_require__ => {
+    // 1. A will be inlined at the usage sites.
+    // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
+    console.log(true ? 1 : 2);
+  },
+};
+```
+
+Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
 ## experiments.inlineEnum
 
@@ -929,7 +950,7 @@ The switch for the experimental feature [`module.parser.javascript.inlineConst`]
 
 The switch for the experimental feature [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum). Must be enabled to use the feature.
 
-Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+Please refer to [collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
 
 ## experiments.typeReexportsPresence
 
@@ -940,7 +961,7 @@ Please refer to this [example](https://github.com/rspack-contrib/rstack-examples
 
 The switch for the experimental feature [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). Must be enabled to use the feature.
 
-Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+Please refer to [collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
 
 ## experiments.nativeWatcher
 

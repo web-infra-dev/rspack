@@ -15,6 +15,7 @@ it("should inline constants", () => {
   expect(constants.REMOVE_i).toBe(123456);
   expect(constants.REMOVE_f).toBe(123.45);
   expect(constants.REMOVE_s).toBe("remove");
+  expect(constants.REMOVE_m).toBe(13);
   // END:A
   const block = generated.match(/\/\/ START:A([\s\S]*)\/\/ END:A/)[1];
   expect(block.includes(`(/* inlined export .REMOVE_n */ null).toBe(null)`)).toBe(true);
@@ -23,6 +24,7 @@ it("should inline constants", () => {
   expect(block.includes(`(/* inlined export .REMOVE_i */ 123456).toBe(123456)`)).toBe(true);
   expect(block.includes(`(/* inlined export .REMOVE_f */ 123.45).toBe(123.45)`)).toBe(true);
   expect(block.includes(`(/* inlined export .REMOVE_s */ "remove").toBe("remove")`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_m */ 13).toBe(13)`)).toBe(true);
 })
 
 it("should inline constants with re-export", () => {
