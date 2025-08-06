@@ -1,6 +1,5 @@
-use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError, sync::LazyLock};
+use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
 
-use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
@@ -211,20 +210,69 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
-static MATCH_ID_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"^"\s\+*\s*(.*)\s*\+\s*"$"#).expect("invalid Regex"));
-static PREPARE_ID_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
-
 impl<'a> PathData<'a> {
+  fn parse_quoted_template(v: &str) -> Option<&str> {
+    // Match pattern: " + (content) + "
+    if v.starts_with('"') && v.ends_with('"') && v.len() > 2 {
+      let inner = &v[1..v.len()-1];
+      // Look for pattern: whitespace + + whitespace (content) whitespace + whitespace
+      if let Some(first_plus) = inner.find('+') {
+        if let Some(last_plus) = inner.rfind('+') {
+          if first_plus != last_plus {
+            let before_first = &inner[..first_plus];
+            let after_last = &inner[last_plus + 1..];
+            if before_first.trim().is_empty() && after_last.trim().is_empty() {
+              let content = &inner[first_plus + 1..last_plus];
+              return Some(content.trim());
+            }
+          }
+        }
+      }
+    }
+    None
+  }
+
+  fn clean_id_chars(v: &str) -> Cow<str> {
+    let mut result = String::new();
+    let mut needs_replacement = false;
+    let mut chars = v.chars().enumerate();
+    
+    while let Some((idx, ch)) = chars.next() {
+      let is_valid = if idx == 0 {
+        // First character can't be . or -
+        ch.is_ascii_alphanumeric() || ch == '_'
+      } else {
+        ch.is_ascii_alphanumeric() || ch == '_' || ch == '-'
+      };
+      
+      if !is_valid {
+        if !needs_replacement {
+          needs_replacement = true;
+          result.reserve(v.len());
+          // Copy the valid part so far
+          result.push_str(&v[..idx]);
+        }
+        result.push('_');
+      } else if needs_replacement {
+        result.push(ch);
+      }
+    }
+    
+    if needs_replacement {
+      Cow::Owned(result)
+    } else {
+      Cow::Borrowed(v)
+    }
+  }
+
   pub fn prepare_id(v: &str) -> Cow<'_, str> {
-    if let Some(caps) = MATCH_ID_REGEX.captures(v) {
+    if let Some(content) = Self::parse_quoted_template(v) {
       Cow::Owned(format!(
         "\" + ({} + \"\").replace(/(^[.-]|[^a-zA-Z0-9_-])+/g, \"_\") + \"",
-        caps.get(1).expect("capture group should exist").as_str()
+        content
       ))
     } else {
-      PREPARE_ID_REGEX.replace_all(v, "_")
+      Self::clean_id_chars(v)
     }
   }
 

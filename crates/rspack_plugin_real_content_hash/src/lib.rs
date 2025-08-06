@@ -2,7 +2,7 @@ mod drive;
 
 use std::{
   hash::{BuildHasherDefault, Hasher},
-  sync::{Arc, LazyLock},
+  sync::Arc,
 };
 
 use aho_corasick::{AhoCorasick, MatchKind};
@@ -11,7 +11,6 @@ use derive_more::Debug;
 pub use drive::*;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
-use regex::Regex;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -24,8 +23,6 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
-pub static QUOTE_META: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
 ///

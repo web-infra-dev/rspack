@@ -2,13 +2,12 @@ use std::{
   collections::HashMap,
   hash::Hash,
   path::Path,
-  sync::{LazyLock, Mutex, mpsc},
+  sync::{Mutex, mpsc},
 };
 
 use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
-use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, Plugin,
@@ -36,8 +35,23 @@ pub use swc_ecma_minifier::option::{
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
-static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
+fn is_javascript_asset(filename: &str) -> bool {
+  // Check for .js, .cjs, .mjs extensions
+  if filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs") {
+    true
+  } else {
+    // Check for extensions followed by query string like .js?v=123
+    for ext in [".js", ".cjs", ".mjs"] {
+      if let Some(ext_idx) = filename.rfind(ext) {
+        let after_ext = &filename[ext_idx + ext.len()..];
+        if after_ext.is_empty() || after_ext.starts_with('?') {
+          return true;
+        }
+      }
+    }
+    false
+  }
+}
 
 #[derive(Debug, Hash)]
 pub struct PluginOptions {
@@ -372,7 +386,7 @@ pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
     && !condition.try_match(str)
   {
     return false;
-  } else if !JAVASCRIPT_ASSET_REGEXP.is_match(str) {
+  } else if !is_javascript_asset(str) {
     return false;
   }
   if let Some(condition) = &obj.include

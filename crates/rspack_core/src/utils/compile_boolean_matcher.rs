@@ -1,6 +1,5 @@
-use std::{collections::BTreeSet, sync::LazyLock};
+use std::collections::BTreeSet;
 
-use regex::Regex;
 use rustc_hash::FxHashMap as HashMap;
 
 pub enum BooleanMatcher {
@@ -278,11 +277,18 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   }
 }
 
-static QUOTE_META_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
-
-fn quote_meta(str: &str) -> String {
-  QUOTE_META_REG.replace_all(str, "\\$0").to_string()
+fn quote_meta(s: &str) -> String {
+  let mut result = String::with_capacity(s.len() * 2);
+  for ch in s.chars() {
+    match ch {
+      '-' | '[' | ']' | '\\' | '/' | '{' | '}' | '(' | ')' | '*' | '+' | '?' | '.' | '^' | '$' | '|' => {
+        result.push('\\');
+        result.push(ch);
+      }
+      _ => result.push(ch),
+    }
+  }
+  result
 }
 
 fn pop_common_items<T, F, G>(items_set: &mut BTreeSet<T>, get_key: F, condition: G) -> Vec<Vec<T>>
