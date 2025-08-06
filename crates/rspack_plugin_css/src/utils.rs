@@ -326,7 +326,7 @@ static UNESCAPE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
 
 fn is_data_uri(s: &str) -> bool {
-  s.len() >= 5 && s[0..5].eq_ignore_ascii_case("data:")
+  s.len() >= 5 && s.as_bytes()[0..5].eq_ignore_ascii_case(b"data:")
 }
 
 // `\/foo` in css should be treated as `foo` in js
