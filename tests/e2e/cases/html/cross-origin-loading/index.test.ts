@@ -15,7 +15,7 @@ test("should set crossOrigin to anonymous for script tag correctly", async ({
 
 	expect(srcPaths).toEqual([
 		"main.js",
-		"https://cdn.example.com/src_foo_js.js"
+		"https://cdn.example.com/src_foo_js_lazy-compilation-proxy.js"
 	]);
 	expect(crossOrigins).toEqual([null, "anonymous"]);
 });
