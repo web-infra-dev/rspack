@@ -12,9 +12,11 @@ ignored = ["swc"]
 default = []
 plugin = [
   "swc_plugin_backend_wasmtime",
-  "swc_core/plugin_transform_host_native",
+
+  # plugin_transform_host_native cannot be enabled directly to avoid wasmer dependency
+  "swc_core/__plugin_transform_host",
+  "swc_core/__plugin_transform_host_schema_v1",
   "swc_core/plugin_transform_host_native_filesystem_cache",
-  "swc_core/plugin_transform_host_native_shared_runtime",
 ]
 
 [dependencies]

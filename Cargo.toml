@@ -341,9 +341,6 @@ opt-level = "s"
 [profile.release.package.swc_error_reporters]
 opt-level = "s"
 
-[profile.release.package.http]
-opt-level = "s"
-
 [profile.release.package.idna]
 opt-level = "s"
 
