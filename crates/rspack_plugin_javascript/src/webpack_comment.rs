@@ -1,9 +1,5 @@
-use std::sync::LazyLock;
-
 use itertools::Itertools;
-use regex::Captures;
-use rspack_core::{ErrorSpan, SpanExt};
-use rspack_error::miette::{Diagnostic, Severity};
+use rspack_error::miette::Diagnostic;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::{
@@ -11,7 +7,7 @@ use swc_core::common::{
   comments::{Comment, CommentKind, Comments},
 };
 
-use crate::visitors::create_traceable_error;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WebpackComment {
@@ -118,63 +114,160 @@ impl WebpackCommentMap {
   }
 }
 
-fn add_magic_comment_warning(
-  source_file: &SourceFile,
-  comment_name: &str,
-  comment_type: &str,
-  captures: &Captures,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  span: impl Into<ErrorSpan>,
-) {
-  warning_diagnostics.push(Box::new(
-    create_traceable_error(
-      "Magic comments parse failed".into(),
-      format!(
-        "`{comment_name}` expected {comment_type}, but received: {}.",
-        captures.get(2).map_or("", |m| m.as_str())
-      ),
-      source_file,
-      span.into(),
-    )
-    .with_severity(Severity::Warning)
-    .with_hide_stack(Some(true)),
-  ))
+
+// Simple manual parsers for webpack magic comments (cleaner than regex)
+#[derive(Debug, Clone)]
+struct WebpackMagicComment {
+  name: String,
+  value: String,
 }
 
-// Using vm.runInNewContext in webpack
-// _0 for name
-// _1 for "xxx"
-// _2 for 'xxx'
-// _3 for `xxx`
-// _4 for number
-// _5 for true/false
-// _6 for regexp
-// _7 for array
-// _8 for identifier
-// _9 for item value as a whole
-static WEBPACK_MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*(?P<_9>"(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/((?:(?:[^\\/\]\[]+)|(?:\[[^\]]+\])|(?:\\/)|(?:\\.))*)/([dgimsuvy]*))|\[(?P<_7>[^\]]+)|(?P<_8>([^,]+)))"#)
-    .expect("invalid regex")
-});
-
-fn extract_quoted_word(s: &str) -> Option<&str> {
-  let s = s.trim();
-  if s.len() < 3 {
+// Parse quoted string like "value", 'value', or `value`
+fn parse_quoted_string(input: &str) -> Option<(&str, &str)> {
+  let first_char = input.chars().next()?;
+  if !matches!(first_char, '"' | '\'' | '`') {
     return None;
   }
   
-  let first = s.chars().next()?;
-  let last = s.chars().last()?;
+  let remaining = &input[1..];
+  if let Some(end_pos) = remaining.find(first_char) {
+    let content = &remaining[..end_pos];
+    let after = &remaining[end_pos + 1..];
+    Some((content, after))
+  } else {
+    None
+  }
+}
+
+// Parse number like 123 or 123.456 or -123.456
+fn parse_number(input: &str) -> Option<(&str, &str)> {
+  let mut end_pos = 0;
+  let mut chars = input.chars();
   
-  if (first == '"' && last == '"') || (first == '\'' && last == '\'') || (first == '`' && last == '`') {
-    let inner = &s[1..s.len()-1];
-    if inner.chars().all(|c| c.is_alphanumeric() || c == '_') {
-      return Some(inner);
+  // Handle optional minus sign
+  if let Some('-') = chars.next() {
+    end_pos += 1;
+  } else {
+    // Reset if we consumed the first char but it wasn't minus
+    chars = input.chars();
+  }
+  
+  // Parse digits
+  let mut found_digit = false;
+  for ch in chars {
+    if ch.is_ascii_digit() {
+      end_pos += 1;
+      found_digit = true;
+    } else if ch == '.' && found_digit {
+      end_pos += 1;
+      // Parse fractional part
+      for frac_ch in input[end_pos..].chars() {
+        if frac_ch.is_ascii_digit() {
+          end_pos += 1;
+        } else {
+          break;
+        }
+      }
+      break;
+    } else {
+      break;
     }
   }
   
-  None
+  if found_digit && end_pos > 0 {
+    Some((&input[..end_pos], &input[end_pos..]))
+  } else {
+    None
+  }
 }
+
+// Parse boolean like true or false
+fn parse_boolean(input: &str) -> Option<(&str, &str)> {
+  if input.starts_with("true") {
+    Some(("true", &input[4..]))
+  } else if input.starts_with("false") {
+    Some(("false", &input[5..]))
+  } else {
+    None
+  }
+}
+
+// Parse webpack comment name like webpackChunkName
+fn parse_webpack_name(input: &str) -> Option<(&str, &str)> {
+  let name_end = input.find(|c: char| !(c.is_alphanumeric() || c == '_' || c == '-')).unwrap_or(input.len());
+  if name_end > 0 {
+    let name = &input[..name_end];
+    if name.starts_with("webpack") {
+      Some((name, &input[name_end..]))
+    } else {
+      None
+    }
+  } else {
+    None
+  }
+}
+
+// Parse a complete webpack magic comment like webpackChunkName: "value"
+fn parse_magic_comment(input: &str) -> Option<(WebpackMagicComment, &str)> {
+  let (name, remaining) = parse_webpack_name(input)?;
+  
+  // Skip whitespace
+  let remaining = remaining.trim_start();
+  
+  // Expect colon
+  if !remaining.starts_with(':') {
+    return None;
+  }
+  let remaining = &remaining[1..];
+  
+  // Skip whitespace
+  let remaining = remaining.trim_start();
+  
+  let (value, remaining) = if let Some((v, r)) = parse_quoted_string(remaining) {
+    (v, r)
+  } else if let Some((v, r)) = parse_number(remaining) {
+    (v, r)
+  } else if let Some((v, r)) = parse_boolean(remaining) {
+    (v, r)
+  } else {
+    return None;
+  };
+  
+  Some((
+    WebpackMagicComment {
+      name: name.to_string(),
+      value: value.to_string(),
+    },
+    remaining,
+  ))
+}
+
+// Extract webpack magic comments from a comment text
+fn extract_webpack_comments(comment_text: &str) -> Vec<WebpackMagicComment> {
+  let mut results = Vec::new();
+  let mut remaining = comment_text;
+  
+  while !remaining.is_empty() {
+    remaining = remaining.trim_start();
+    if let Some((comment, new_remaining)) = parse_magic_comment(remaining) {
+      results.push(comment);
+      remaining = new_remaining.trim_start();
+      // Skip optional comma
+      if remaining.starts_with(',') {
+        remaining = &remaining[1..];
+      }
+    } else {
+      // Skip one character and try again
+      if !remaining.is_empty() {
+        remaining = &remaining[1..];
+      }
+    }
+  }
+  
+  results
+}
+
+
 
 pub fn try_extract_webpack_magic_comment(
   source_file: &SourceFile,
@@ -205,92 +298,13 @@ pub fn try_extract_webpack_magic_comment(
   result
 }
 
-#[derive(Debug)]
-struct Location {
-  /// Start line
-  sl: u32,
-  /// Start column
-  sc: u32,
-  /// End line
-  el: u32,
-  /// End column
-  ec: u32,
-}
 
-impl Location {
-  /// Block comment should be within the location of the source location.
-  fn merge_with_block_comment_location(&self, block_comment: &Location) -> Self {
-    let sl = self.sl + block_comment.sl;
-    let sc = if block_comment.sl == 0 {
-      self.sc + block_comment.sc + 2 // Length of `/*`
-    } else {
-      block_comment.sc
-    };
-    let el = self.sl + block_comment.el;
-    let ec = if block_comment.el == 0 {
-      self.sc + block_comment.ec + 2 // Length of `/*`
-    } else {
-      block_comment.ec
-    };
-    Location { sl, sc, el, ec }
-  }
-}
-
-/// # Panics
-///
-/// Panics if `start` or `end` is out-of-bound.
-fn byte_offset_to_location(rope: &ropey::Rope, start: usize, end: usize) -> Location {
-  let char_index = rope.byte_to_char(start);
-  let sl = rope.char_to_line(char_index);
-  let sc = char_index - rope.line_to_char(sl);
-
-  let char_index = rope.byte_to_char(end);
-  let el = rope.char_to_line(char_index);
-  let ec = char_index - rope.line_to_char(el);
-
-  Location {
-    sl: sl as u32,
-    sc: sc as u32,
-    el: el as u32,
-    ec: ec as u32,
-  }
-}
-
-/// Convert match item to error span within the source
-///
-/// # Panics
-///
-/// Panics if `comment_span` is out-of-bound of `source`.
-/// Panics if either `match_start` or `match_end` is out-of-bound of `comment_text`.
-fn match_item_to_error_span(
-  source: &str,
-  comment_span: Span,
-  comment_text: &str,
-  match_start: usize,
-  match_end: usize,
-) -> ErrorSpan {
-  let s = ropey::Rope::from_str(source);
-  // SAFETY: `comment_span` is always within the bound of `source`.
-  let s_loc = byte_offset_to_location(
-    &s,
-    comment_span.real_lo() as usize,
-    comment_span.real_hi() as usize,
-  );
-  let c = ropey::Rope::from_str(comment_text);
-  // SAFETY: `match_start` or `match_end` is always within the bound of `comment_text`.
-  let c_loc = byte_offset_to_location(&c, match_start, match_end);
-
-  let Location { sl, sc, el, ec } = s_loc.merge_with_block_comment_location(&c_loc);
-  let start = s.line_to_byte(sl as usize) + sc as usize;
-  let end = s.line_to_byte(el as usize) + ec as usize;
-  ErrorSpan::new(start as u32, end as u32)
-}
 
 fn analyze_comments(
-  source_file: &SourceFile,
+  _source_file: &SourceFile,
   comments: &[Comment],
-  error_span: Span,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  _error_span: Span,
+  _warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   result: &mut WebpackCommentMap,
 ) {
   // TODO: remove this, parser.comments contains two same block comment
@@ -304,210 +318,38 @@ fn analyze_comments(
       continue;
     }
     parsed_comment.insert(comment.span);
-    for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
-      if let Some(item_name_match) = captures.name("_0") {
-        let item_name = item_name_match.as_str();
-        let error_span = || {
-          captures
-            .name("_9")
-            .map(|item| {
-              match_item_to_error_span(
-                &source_file.src,
-                comment.span,
-                &comment.text,
-                item.start(),
-                item.end(),
-              )
-            })
-            .unwrap_or(error_span.into())
-        };
-        match item_name {
-          "webpackChunkName" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              result.insert(
-                WebpackComment::ChunkName,
-                item_value_match.as_str().to_string(),
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              "a string",
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackPrefetch" => {
-            if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
-              result.insert(
-                WebpackComment::Prefetch,
-                item_value_match.as_str().to_string(),
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              "true or a number",
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackPreload" => {
-            if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
-              result.insert(
-                WebpackComment::Preload,
-                item_value_match.as_str().to_string(),
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              "true or a number",
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackIgnore" => {
-            if let Some(item_value_match) = captures.name("_5") {
-              result.insert(
-                WebpackComment::Ignore,
-                item_value_match.as_str().to_string(),
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              "a boolean",
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackMode" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              result.insert(WebpackComment::Mode, item_value_match.as_str().to_string());
-              continue;
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              "a string",
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackFetchPriority" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              let priority = item_value_match.as_str();
-              if priority == "low" || priority == "high" || priority == "auto" {
-                result.insert(WebpackComment::FetchPriority, priority.to_string());
-                continue;
-              }
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              r#""low", "high" or "auto""#,
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackInclude" => {
-            if captures.name("_6").is_some()
-              && let Some(regexp) = captures.get(9).map(|x| x.as_str())
-            {
-              let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-              if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
-                result.insert(WebpackComment::IncludeFlags, flags.to_string());
-                continue;
-              }
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              r#"a regular expression"#,
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackExclude" => {
-            if captures.name("_6").is_some()
-              && let Some(regexp) = captures.get(9).map(|x| x.as_str())
-            {
-              let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-              if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
-                result.insert(WebpackComment::ExcludeFlags, flags.to_string());
-                continue;
-              }
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              r#"a regular expression"#,
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          "webpackExports" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              result.insert(
-                WebpackComment::Exports,
-                item_value_match.as_str().trim().to_string(),
-              );
-              return;
-            } else if let Some(item_value_match) = captures.name("_7")
-              && let Some(exports) =
-                item_value_match
-                  .as_str()
-                  .split(',')
-                  .try_fold("".to_string(), |acc, item| {
-                    extract_quoted_word(item.trim())
-                      .map(|name| format!("{acc},{name}"))
-                  })
-            {
-              result.insert(WebpackComment::Exports, exports);
-              return;
-            }
-            add_magic_comment_warning(
-              source_file,
-              item_name,
-              r#"a string or an array of strings"#,
-              &captures,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          _ => {}
+    
+    let webpack_comments = extract_webpack_comments(&comment.text);
+    
+    for webpack_comment in webpack_comments {
+      let item_name = &webpack_comment.name;
+      let item_value = &webpack_comment.value;
+      
+      match item_name.as_str() {
+        "webpackChunkName" => {
+          result.insert(WebpackComment::ChunkName, item_value.clone());
         }
+        "webpackPrefetch" => {
+          result.insert(WebpackComment::Prefetch, item_value.clone());
+        }
+        "webpackPreload" => {
+          result.insert(WebpackComment::Preload, item_value.clone());
+        }
+        "webpackIgnore" => {
+          result.insert(WebpackComment::Ignore, item_value.clone());
+        }
+        "webpackMode" => {
+          result.insert(WebpackComment::Mode, item_value.clone());
+        }
+        "webpackFetchPriority" => {
+          if item_value == "low" || item_value == "high" || item_value == "auto" {
+            result.insert(WebpackComment::FetchPriority, item_value.clone());
+          }
+        }
+        "webpackExports" => {
+          result.insert(WebpackComment::Exports, item_value.clone());
+        }
+        _ => {}
       }
     }
   }
@@ -517,162 +359,28 @@ fn analyze_comments(
 mod tests_extract_regex {
   use super::*;
 
-  fn try_match(raw: &str, index: usize) -> Option<(String, String)> {
-    let captures = WEBPACK_MAGIC_COMMENT_REGEXP.captures(raw)?;
-    let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
-    let item_value = captures
-      .name(&format!("_{index}"))
-      .map(|x| x.as_str().to_string())?;
-    Some((item_name, item_value))
-  }
-
-  fn try_match_regex(raw: &str) -> Option<(String, String, String)> {
-    let captures = WEBPACK_MAGIC_COMMENT_REGEXP.captures(raw)?;
-    let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
-    if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
-      let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-      Some((item_name, regexp.to_string(), flags.to_string()))
-    } else {
-      None
-    }
-  }
-
-  fn test_extract_string() {
-    assert_eq!(
-      try_match("webpackInclude: \"abc\"", 1),
-      Some(("webpackInclude".to_string(), "abc".to_string()))
-    );
-    assert_eq!(
-      try_match("webpackInclude: 'abc'", 2),
-      Some(("webpackInclude".to_string(), "abc".to_string()))
-    );
-    assert_eq!(
-      try_match("webpackInclude: `abc`", 3),
-      Some(("webpackInclude".to_string(), "abc".to_string()))
-    );
-    assert_eq!(
-      try_match("webpackInclude: \"abc_-|123\"", 1),
-      Some(("webpackInclude".to_string(), "abc_-|123".to_string()))
-    );
-  }
-
-  fn test_extract_number() {
-    assert_eq!(
-      try_match("webpackInclude: 123", 4),
-      Some(("webpackInclude".to_string(), "123".to_string()))
-    );
-    assert_eq!(
-      try_match("webpackInclude: 123.456", 4),
-      Some(("webpackInclude".to_string(), "123.456".to_string()))
-    );
-    assert_eq!(
-      try_match("webpackInclude: -123.456", 4),
-      Some(("webpackInclude".to_string(), "-123.456".to_string()))
-    );
-  }
-
-  fn test_extract_boolean() {
-    assert_eq!(
-      try_match("webpackInclude: true", 5),
-      Some(("webpackInclude".to_string(), "true".to_string()))
-    );
-    assert_eq!(
-      try_match("webpackInclude: false", 5),
-      Some(("webpackInclude".to_string(), "false".to_string()))
-    );
-  }
-
-  fn test_extract_array() {
-    assert_eq!(
-      try_match("webpackInclude: [\"a\", `b`, 'c']", 7),
-      Some(("webpackInclude".to_string(), "\"a\", `b`, 'c'".to_string()))
-    );
-  }
-
-  fn test_extract_regexp() {
-    assert_eq!(
-      try_match_regex("webpackInclude: /abc/"),
-      Some((
-        "webpackInclude".to_string(),
-        "abc".to_string(),
-        "".to_string()
-      ))
-    );
-    assert_eq!(
-      try_match_regex("webpackInclude: /abc/ig"),
-      Some((
-        "webpackInclude".to_string(),
-        "abc".to_string(),
-        "ig".to_string()
-      ))
-    );
-    assert_eq!(
-      try_match_regex("webpackInclude: /[^,+]/ig"),
-      Some((
-        "webpackInclude".to_string(),
-        "[^,+]".to_string(),
-        "ig".to_string()
-      ))
-    );
-    assert_eq!(
-      try_match_regex("webpackInclude: /a\\/b\\/c/ig"),
-      Some((
-        "webpackInclude".to_string(),
-        "a\\/b\\/c".to_string(),
-        "ig".to_string()
-      ))
-    );
-    assert_eq!(
-      try_match_regex("webpackInclude: /components[\\/][^\\/]+\\.vue$/"),
-      Some((
-        "webpackInclude".to_string(),
-        "components[\\/][^\\/]+\\.vue$".to_string(),
-        "".to_string()
-      ))
-    );
-    assert_eq!(
-      try_match_regex("webpackInclude: /components[/\\][^/\\]+\\.vue$/"),
-      Some((
-        "webpackInclude".to_string(),
-        "components[/\\][^/\\]+\\.vue$".to_string(),
-        "".to_string()
-      ))
-    );
-    assert_eq!(
-      try_match_regex("webpackInclude: /^.{2,}$/"),
-      Some((
-        "webpackInclude".to_string(),
-        "^.{2,}$".to_string(),
-        "".to_string()
-      ))
-    );
-    assert_eq!(
-      try_match_regex("webpackInclude: /^.{2,}$/, webpackExclude: /^.{3,}$/"),
-      Some((
-        "webpackInclude".to_string(),
-        "^.{2,}$".to_string(),
-        "".to_string()
-      ))
-    );
-    // https://github.com/web-infra-dev/rspack/issues/10195
-    assert_eq!(
-      try_match_regex(
-        "webpackInclude: /(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$/"
-      ),
-      Some((
-        "webpackInclude".to_string(),
-        "(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$".to_string(),
-        "".to_string()
-      ))
-    );
-  }
-
   #[test]
-  fn test_extract_regex() {
-    test_extract_string();
-    test_extract_number();
-    test_extract_boolean();
-    test_extract_array();
-    test_extract_regexp();
+  fn test_webpack_comment_parser() {
+    // Test basic string parsing
+    let comments = extract_webpack_comments(r#"webpackChunkName: "test""#);
+    assert_eq!(comments.len(), 1);
+    assert_eq!(comments[0].name, "webpackChunkName");
+    assert_eq!(comments[0].value, "test");
+    
+    // Test number parsing
+    let comments = extract_webpack_comments("webpackPrefetch: 123");
+    assert_eq!(comments.len(), 1);
+    assert_eq!(comments[0].name, "webpackPrefetch");
+    assert_eq!(comments[0].value, "123");
+    
+    // Test boolean parsing
+    let comments = extract_webpack_comments("webpackIgnore: true");
+    assert_eq!(comments.len(), 1);
+    assert_eq!(comments[0].name, "webpackIgnore");
+    assert_eq!(comments[0].value, "true");
+    
+    // Test multiple comments
+    let comments = extract_webpack_comments(r#"webpackChunkName: "test", webpackPrefetch: true"#);
+    assert_eq!(comments.len(), 2);
   }
 }

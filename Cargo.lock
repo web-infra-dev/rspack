@@ -4603,6 +4603,7 @@ dependencies = [
  "tokio",
  "tracing",
  "urlencoding",
+ "winnow 0.6.20",
 ]
 
 [[package]]
@@ -4646,6 +4647,7 @@ dependencies = [
  "simd-json",
  "sugar_path",
  "tracing",
+ "winnow 0.6.20",
 ]
 
 [[package]]

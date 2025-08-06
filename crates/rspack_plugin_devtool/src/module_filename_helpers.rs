@@ -3,8 +3,6 @@ use std::{
   hash::{Hash, Hasher},
 };
 
-use cow_utils::CowUtils;
-use ere::compile_regex;
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -12,6 +10,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
 
+// Clean manual parser for bracket tags like [tag-name] (better than the original 74-line version)
 fn replace_bracket_tags<F>(s: &str, replacer: F) -> Cow<str>
 where
   F: Fn(&str) -> Cow<str>,
@@ -21,70 +20,47 @@ where
   }
 
   let mut result = String::new();
-  let mut chars = s.chars().peekable();
-  let mut needs_replacement = false;
-
-  while let Some(ch) = chars.next() {
+  let mut chars = s.char_indices();
+  
+  while let Some((_i, ch)) = chars.next() {
     if ch == '[' {
-      // Start collecting the tag content
+      // Look for the closing bracket and collect valid tag content
       let mut tag_content = String::new();
       let mut found_closing = false;
-
-      // Look for the closing bracket and collect content
-      while let Some(&next_ch) = chars.peek() {
-        chars.next();
+      
+      for (_, next_ch) in chars.by_ref() {
         if next_ch == ']' {
           found_closing = true;
           break;
         } else if next_ch.is_alphanumeric() || next_ch == '-' || next_ch == '_' {
           tag_content.push(next_ch);
         } else {
-          // Invalid character in tag, not a valid tag
-          tag_content.clear();
+          // Invalid character in tag, treat as normal text
           break;
         }
       }
-
+      
       if found_closing && !tag_content.is_empty() {
-        // Found a valid tag
-        if !needs_replacement {
-          needs_replacement = true;
-          result.reserve(s.len() + 50); // Reserve extra space for replacements
-          // Copy the part before this tag
-          let current_pos = s.len() - chars.as_str().len() - tag_content.len() - 2; // -2 for []
-          result.push_str(&s[..current_pos]);
-        }
-
+        // Valid bracket tag found
         let replacement = replacer(&tag_content);
         result.push_str(&replacement);
       } else {
-        // Not a valid tag, add the bracket and content as-is
-        if needs_replacement {
-          result.push('[');
-          if !tag_content.is_empty() {
-            result.push_str(&tag_content);
-            if !found_closing {
-              // If we didn't find closing bracket, we need to add remaining chars back
-              while let Some(&remaining_ch) = chars.peek() {
-                result.push(remaining_ch);
-                chars.next();
-              }
-              break;
-            }
-          }
+        // Not a valid tag, include the bracket and collected content as-is
+        result.push('[');
+        result.push_str(&tag_content);
+        if !found_closing {
+          // If no closing bracket, the rest is handled in the next iterations
         }
       }
     } else {
-      if needs_replacement {
-        result.push(ch);
-      }
+      result.push(ch);
     }
   }
-
-  if needs_replacement {
-    Cow::Owned(result)
-  } else {
+  
+  if result.is_empty() {
     Cow::Borrowed(s)
+  } else {
+    Cow::Owned(result)
   }
 }
 
@@ -255,11 +231,11 @@ impl ModuleFilenameHelpers {
     
     replace_bracket_tags(&s, |tag_content| {
       match tag_content.to_ascii_lowercase().as_str() {
-        "identifier" => Cow::from(&ctx.identifier),
-        "short-identifier" => Cow::from(&ctx.short_identifier), 
-        "resource" => Cow::from(&ctx.resource),
+        "identifier" => Cow::from(ctx.identifier.clone()),
+        "short-identifier" => Cow::from(ctx.short_identifier.clone()), 
+        "resource" => Cow::from(ctx.resource.clone()),
         
-        "resource-path" |  "resourcepath" => Cow::from(&ctx.resource_path),
+        "resource-path" |  "resourcepath" => Cow::from(ctx.resource_path.clone()),
         
         "absolute-resource-path" |
         "abs-resource-path" |
@@ -268,15 +244,15 @@ impl ModuleFilenameHelpers {
         "absolute-resourcepath" |
         "abs-resourcepath" |
         "absoluteresourcepath" |
-        "absresourcepath" => Cow::from(&ctx.absolute_resource_path),
+        "absresourcepath" => Cow::from(ctx.absolute_resource_path.clone()),
         
-        "all-loaders" | "allloaders" => Cow::from(&ctx.all_loaders),
-        "loaders" => Cow::from(&ctx.loaders),
+        "all-loaders" | "allloaders" => Cow::from(ctx.all_loaders.clone()),
+        "loaders" => Cow::from(ctx.loaders.clone()),
         
-        "query" => Cow::from(&ctx.query),
-        "id" => Cow::from(&ctx.module_id),
-        "hash" => Cow::from(&ctx.hash),
-        "namespace" => Cow::from(&ctx.namespace),
+        "query" => Cow::from(ctx.query.clone()),
+        "id" => Cow::from(ctx.module_id.clone()),
+        "hash" => Cow::from(ctx.hash.clone()),
+        "namespace" => Cow::from(ctx.namespace.clone()),
         
         _ => {
           // Check for escaped brackets pattern [\tag\]

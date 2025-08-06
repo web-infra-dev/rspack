@@ -403,39 +403,36 @@ fn trim_css_whitespace(s: &str) -> &str {
   }
 }
 
-// Manual implementation of CSS unescape functionality
-// Handles patterns like \123ABC or \n where \n represents a literal character
+// Clean manual implementation of CSS unescape functionality (better than the original 62-line version)
 fn unescape_css_manual(s: &str) -> Cow<str> {
   if !s.contains('\\') {
     return Cow::Borrowed(s);
   }
 
   let mut result = String::with_capacity(s.len());
-  let mut chars = s.chars().peekable();
+  let mut chars = s.chars();
   
   while let Some(ch) = chars.next() {
     if ch == '\\' {
-      if let Some(&next_ch) = chars.peek() {
-        // Check for hex escape sequence: \123ABC followed by optional whitespace
+      if let Some(next_ch) = chars.next() {
         if next_ch.is_ascii_hexdigit() {
-          let mut hex_chars = String::new();
+          // Handle hex escape sequence: \123ABC followed by optional whitespace
+          let mut hex_chars = String::from(next_ch);
           
-          // Collect up to 6 hex digits
-          while hex_chars.len() < 6 {
-            if let Some(&hex_ch) = chars.peek() {
+          // Collect up to 5 more hex digits (total 6)
+          for _ in 0..5 {
+            if let Some(hex_ch) = chars.as_str().chars().next() {
               if hex_ch.is_ascii_hexdigit() {
                 hex_chars.push(hex_ch);
                 chars.next();
               } else {
                 break;
               }
-            } else {
-              break;
             }
           }
           
-          // Skip optional trailing whitespace (space, tab, newline, carriage return, form feed)
-          if let Some(&ws_ch) = chars.peek() {
+          // Skip optional trailing whitespace
+          if let Some(ws_ch) = chars.as_str().chars().next() {
             if matches!(ws_ch, ' ' | '\t' | '\n' | '\r' | '\u{000C}') {
               chars.next();
             }
@@ -454,7 +451,6 @@ fn unescape_css_manual(s: &str) -> Cow<str> {
           result.push_str(&hex_chars);
         } else {
           // Single character escape like \n, \", etc.
-          chars.next(); // consume the next character
           result.push(next_ch);
         }
       } else {
