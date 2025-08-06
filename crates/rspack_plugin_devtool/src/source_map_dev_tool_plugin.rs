@@ -32,9 +32,6 @@ use crate::{
 
 const SCHEMA_SOURCE_REGEXP: ere::Regex<2> = compile_regex!(r"^(data|https?):"); 
 const CSS_EXTENSION_DETECT_REGEXP: ere::Regex<2> = compile_regex!(r"\.css($|\?)");
-static URL_FORMATTING_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"^\n\/\/(.*)$").expect("failed to compile URL_FORMATTING_REGEXP regex")
-});
 
 #[derive(Clone)]
 pub enum ModuleFilenameTemplate {
@@ -483,7 +480,12 @@ impl SourceMapDevToolPlugin {
               let current_source_mapping_url_comment = match &plugin.source_mapping_url_comment {
                 Some(SourceMappingUrlComment::String(s)) => {
                   let s = if css_extension_detected {
-                    URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
+                    // Manual replacement for ^\n\/\/(.*)$ -> \n/*$1*/
+                    if let Some(captures) = s.strip_prefix("\n//") {
+                      Cow::Owned(format!("\n/*{}*/", captures))
+                    } else {
+                      Cow::from(s)
+                    }
                   } else {
                     Cow::from(s)
                   };

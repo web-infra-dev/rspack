@@ -5159,6 +5159,7 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "winnow 0.6.20",
 ]
 
 [[package]]
@@ -5432,6 +5433,7 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "dashmap 6.1.0",
+ "ere",
  "indexmap",
  "itoa",
  "regex",

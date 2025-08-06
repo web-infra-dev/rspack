@@ -1,10 +1,10 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::LazyLock,
 };
 
 use cow_utils::CowUtils;
+use ere::compile_regex;
 use regex::{Captures, Regex};
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
@@ -13,15 +13,9 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
 
-static REGEXP_ALL_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\[all-?loaders\]\[resource\]")
-    .expect("failed to compile REGEXP_ALL_LOADERS_RESOURCE")
-});
-static SQUARE_BRACKET_TAG_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+// Keep complex regex for now - has capture group used in complex closure
+static SQUARE_BRACKET_TAG_REGEXP: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
   Regex::new(r"\[\\*([\w-]+)\\*\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
-});
-static REGEXP_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\[loaders\]\[resource\]").expect("failed to compile REGEXP_LOADERS_RESOURCE")
 });
 
 fn get_before(s: &str, token: &str) -> String {
@@ -182,8 +176,13 @@ impl ModuleFilenameHelpers {
       namespace,
     );
 
-    let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(module_filename_template, "[identifier]");
-    let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
+    // Manual replacement for [all-loaders][resource] -> [identifier]
+    let s = module_filename_template.replace("[all-loaders][resource]", "[identifier]")
+      .replace("[allloaders][resource]", "[identifier]");
+    
+    // Manual replacement for [loaders][resource] -> [short-identifier]
+    let s = s.replace("[loaders][resource]", "[short-identifier]");
+    
     SQUARE_BRACKET_TAG_REGEXP
       .replace_all(&s, |caps: &Captures| {
         let full_match = caps

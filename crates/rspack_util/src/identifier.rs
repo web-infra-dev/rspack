@@ -1,23 +1,39 @@
 use std::{
   borrow::Cow,
   path::{Path, PathBuf},
-  sync::LazyLock,
 };
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
-use regex::Regex;
+use ere::compile_regex;
 use sugar_path::SugarPath;
 
-static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"([|!])").expect("TODO:"));
-static WINDOWS_ABS_PATH_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
+const WINDOWS_ABS_PATH_REGEXP: ere::Regex<1> = compile_regex!(r"^[a-zA-Z]:[/\\]");
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
+fn split_on_separators(s: &str) -> impl Iterator<Item = &str> {
+  let mut parts = Vec::new();
+  let mut start = 0;
+  
+  for (i, ch) in s.char_indices() {
+    if ch == '|' || ch == '!' {
+      if start < i {
+        parts.push(&s[start..i]);
+      }
+      parts.push(&s[i..i + ch.len_utf8()]);
+      start = i + ch.len_utf8();
+    }
+  }
+  
+  if start < s.len() {
+    parts.push(&s[start..]);
+  }
+  
+  parts.into_iter()
+}
+
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
-  SEGMENTS_SPLIT_REGEXP
-    .split(identifier)
+  split_on_separators(identifier)
     .map(|s| absolute_to_request(context, s))
     .collect::<Vec<_>>()
     .join("")
@@ -108,18 +124,33 @@ fn request_to_absolute(context: &str, relative_path: &str) -> String {
 }
 
 pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
-  SEGMENTS_SPLIT_REGEXP
-    .split(identifier)
+  split_on_separators(identifier)
     .map(|str| request_to_absolute(context, str))
     .collect::<Vec<String>>()
     .join("")
 }
 
-static ZERO_WIDTH_SPACE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
-
 pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
-  ZERO_WIDTH_SPACE.replace_all(s, "$1")
+  const ZERO_WIDTH_SPACE: char = '\u{200b}';
+  
+  if !s.contains(ZERO_WIDTH_SPACE) {
+    return Cow::Borrowed(s);
+  }
+  
+  let mut result = String::new();
+  let mut chars = s.chars();
+  
+  while let Some(ch) = chars.next() {
+    if ch == ZERO_WIDTH_SPACE {
+      if let Some(next_char) = chars.next() {
+        result.push(next_char);
+      }
+    } else {
+      result.push(ch);
+    }
+  }
+  
+  Cow::Owned(result)
 }
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {

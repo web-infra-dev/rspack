@@ -135,6 +135,7 @@ swc_error_reporters = { version = "16.0.1", default-features = false }
 swc_html            = { version = "25.0.0", default-features = false }
 swc_html_minifier   = { version = "27.0.0", default-features = false }
 swc_node_comments   = { version = "14.0.0", default-features = false }
+winnow              = { version = "0.6.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 

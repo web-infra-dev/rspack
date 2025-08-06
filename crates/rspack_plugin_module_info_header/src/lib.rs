@@ -1,6 +1,4 @@
-use std::{hash::Hash, sync::LazyLock};
-
-use regex::Regex;
+use std::hash::Hash;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_collections::Identifiable;
 use rspack_core::{
@@ -23,8 +21,6 @@ use rspack_plugin_javascript::{
 };
 use rustc_hash::FxHashSet;
 
-static COMMENT_END_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\*/").expect("should init regex"));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -155,7 +151,7 @@ impl ModuleInfoHeaderPlugin {
 
   pub fn generate_header(module: &dyn Module, compilation: &Compilation) -> String {
     let req = module.readable_identifier(&compilation.options.context);
-    let req = COMMENT_END_REGEX.replace_all(&req, "*_/");
+    let req = req.replace("*/", "*_/");
 
     let req_stars_str = "*".repeat(req.len());
 

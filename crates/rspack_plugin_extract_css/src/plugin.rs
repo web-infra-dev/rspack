@@ -1,11 +1,10 @@
 use std::{
   borrow::Cow,
   hash::Hash,
-  sync::{Arc, LazyLock},
+  sync::Arc,
 };
 
 use cow_utils::CowUtils;
-use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
@@ -403,10 +402,21 @@ despite it was not able to fulfill desired ordering with these modules:
           external_source.add(header);
         }
         if let Some(media) = &module.media {
-          static MEDIA_RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
-          let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
-          external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
+          // Manual replacement for pattern `r#";|\s*$"#`
+          let content_str = content.as_ref();
+          let new_content = if content_str.ends_with(';') || content_str.trim_end() != content_str {
+            // Replace `;` or trailing whitespace with media
+            let trimmed = content_str.trim_end();
+            if trimmed.ends_with(';') {
+              format!("{}{}", &trimmed[..trimmed.len()-1], media)
+            } else {
+              format!("{}{}", trimmed, media)
+            }
+          } else {
+            // No ; or trailing whitespace, append media
+            format!("{}{}", content_str, media)
+          };
+          external_source.add(RawStringSource::from(new_content + "\n"));
         } else {
           external_source.add(RawStringSource::from(content.to_string() + "\n"));
         }

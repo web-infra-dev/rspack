@@ -13,6 +13,7 @@ bitflags         = { workspace = true }
 concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
+ere              = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
 regex            = { workspace = true }
