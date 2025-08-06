@@ -81,9 +81,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
   let mut q = modules
     .iter()
     .filter_map(|(mid, module)| {
-      let Some(mgm) = mg.module_graph_module_by_identifier(mid) else {
-        return None;
-      };
+      let mgm = mg.module_graph_module_by_identifier(mid)?;
       let is_namespace = matches!(
         module.build_meta().exports_type,
         BuildMetaExportsType::Namespace
@@ -182,9 +180,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
   let mut queue = modules
     .into_iter()
     .filter_map(|(mid, _)| {
-      let Some(mgm) = mg.module_graph_module_by_identifier(&mid) else {
-        return None;
-      };
+      let mgm = mg.module_graph_module_by_identifier(&mid)?;
       Some(mgm.exports)
     })
     .collect_vec();
