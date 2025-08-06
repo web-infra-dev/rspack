@@ -7,17 +7,17 @@ use std::{
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use futures::future::{join_all, BoxFuture};
+use futures::future::{BoxFuture, join_all};
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
-  Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
+  Logger, ModuleIdentifier, PathData, Plugin,
+  rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
 };
-use rspack_error::{error, miette::IntoDiagnostic, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error, miette::IntoDiagnostic};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{asset_condition::AssetConditions, identifier::make_paths_absolute};
@@ -25,8 +25,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 
 use crate::{
-  generate_debug_id::generate_debug_id, mapped_assets_cache::MappedAssetsCache,
-  module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplateFn, ModuleOrSource,
+  ModuleFilenameTemplateFn, ModuleOrSource, generate_debug_id::generate_debug_id,
+  mapped_assets_cache::MappedAssetsCache, module_filename_helpers::ModuleFilenameHelpers,
 };
 
 static SCHEMA_SOURCE_REGEXP: LazyLock<Regex> =
@@ -128,20 +128,20 @@ pub struct SourceMapDevToolPlugin {
 }
 
 fn match_object(obj: &SourceMapDevToolPlugin, str: &str) -> bool {
-  if let Some(condition) = &obj.test {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.test
+    && !condition.try_match(str)
+  {
+    return false;
   }
-  if let Some(condition) = &obj.include {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.include
+    && !condition.try_match(str)
+  {
+    return false;
   }
-  if let Some(condition) = &obj.exclude {
-    if condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.exclude
+    && condition.try_match(str)
+  {
+    return false;
   }
   true
 }
@@ -211,15 +211,15 @@ impl SourceMapDevToolPlugin {
         } else {
           true
         };
-        let source = if is_match {
+
+        if is_match {
           asset.get_source().map(|source| {
             let source_map = source.map(&map_options);
             (file, source, source_map)
           })
         } else {
           None
-        };
-        source
+        }
       })
       .collect::<Vec<_>>();
 
@@ -269,11 +269,10 @@ impl SourceMapDevToolPlugin {
               };
               s.spawn(
                 |(namespace, compilation, file, module_or_source, file_to_chunk, template)| async move {
-                  if let ModuleOrSource::Source(source) = module_or_source {
-                    if SCHEMA_SOURCE_REGEXP.is_match(source) {
+                  if let ModuleOrSource::Source(source) = module_or_source
+                    && SCHEMA_SOURCE_REGEXP.is_match(source) {
                       return Ok(source.to_string());
                     }
-                  }
 
                   let chunk = file_to_chunk.get(file);
                   let path_data = PathData::default()
@@ -324,10 +323,10 @@ impl SourceMapDevToolPlugin {
         let tasks = source_map_modules
           .values()
           .map(|(_, module_or_source)| async move {
-            if let ModuleOrSource::Source(source) = module_or_source {
-              if SCHEMA_SOURCE_REGEXP.is_match(source) {
-                return Ok((module_or_source, source.to_string()));
-              }
+            if let ModuleOrSource::Source(source) = module_or_source
+              && SCHEMA_SOURCE_REGEXP.is_match(source)
+            {
+              return Ok((module_or_source, source.to_string()));
             }
 
             let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
@@ -715,13 +714,8 @@ impl Plugin for SourceMapDevToolPlugin {
     "rspack.SourceMapDevToolPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));

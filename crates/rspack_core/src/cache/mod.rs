@@ -4,11 +4,12 @@ pub mod persistent;
 
 use std::{fmt::Debug, sync::Arc};
 
-use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
 use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
-use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOptions};
+use crate::{
+  Compilation, CompilerOptions, ExperimentCacheOptions, compilation::make::MakeArtifact,
+};
 
 /// Cache trait
 ///
@@ -25,19 +26,13 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOpt
 #[async_trait::async_trait]
 pub trait Cache: Debug + Send + Sync {
   /// before compile return is_hot_start
-  async fn before_compile(&mut self, _compilation: &mut Compilation) -> Result<bool> {
-    Ok(false)
+  async fn before_compile(&mut self, _compilation: &mut Compilation) -> bool {
+    false
   }
-  async fn after_compile(&mut self, _compilation: &Compilation) -> Result<()> {
-    Ok(())
-  }
+  async fn after_compile(&mut self, _compilation: &Compilation) {}
 
-  async fn before_make(&mut self, _make_artifact: &mut MakeArtifact) -> Result<()> {
-    Ok(())
-  }
-  async fn after_make(&mut self, _make_artifact: &MakeArtifact) -> Result<()> {
-    Ok(())
-  }
+  async fn before_make(&mut self, _make_artifact: &mut MakeArtifact) {}
+  async fn after_make(&mut self, _make_artifact: &MakeArtifact) {}
 }
 
 pub fn new_cache(

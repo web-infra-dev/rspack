@@ -32,26 +32,26 @@ impl VisitMut for AssetInjector<'_> {
     match &*n.tag_name {
       "head" => {
         for tag in head_tags.iter() {
-          if tag.tag_name == "title" {
-            if let Some(Child::Element(title_ele)) = n.children.iter_mut().find(|child| {
+          if tag.tag_name == "title"
+            && let Some(Child::Element(title_ele)) = n.children.iter_mut().find(|child| {
               if let Child::Element(ele) = child {
                 return ele.tag_name.eq("title");
               }
               false
-            }) {
-              title_ele.children = vec![Child::Text(Text {
-                span: DUMMY_SP,
-                data: Atom::from(
-                  tag
-                    .inner_html
-                    .as_ref()
-                    .unwrap_or_else(|| panic!("should have title content"))
-                    .to_string(),
-                ),
-                raw: None,
-              })];
-              continue;
-            }
+            })
+          {
+            title_ele.children = vec![Child::Text(Text {
+              span: DUMMY_SP,
+              data: Atom::from(
+                tag
+                  .inner_html
+                  .as_ref()
+                  .unwrap_or_else(|| panic!("should have title content"))
+                  .to_string(),
+              ),
+              raw: None,
+            })];
+            continue;
           }
           n.children
             .push(Child::Element(Element::from(tag.to_owned())));

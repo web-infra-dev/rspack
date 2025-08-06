@@ -1,13 +1,14 @@
-use std::collections::{hash_map::Entry, VecDeque};
+use std::collections::{VecDeque, hash_map::Entry};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
-  is_no_exports_referenced, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExportsInfoData, ExtendedReferencedExport, GroupOptions, Inlinable, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
+  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
+  is_no_exports_referenced,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -380,33 +381,31 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               export_info.set_inlinable(Inlinable::NoByUse);
             }
             let last_one = i == len - 1;
-            if !last_one {
-              if let Some(nested_info) = export_info.exports_info() {
-                let changed_flag = export_info.set_used_conditionally(
-                  Box::new(|used| used == &UsageState::Unused),
-                  UsageState::OnlyPropertiesUsed,
-                  runtime.as_ref(),
-                );
-                if changed_flag {
-                  let current_module = if current_exports_info == mgm_exports_info {
-                    Some(module_id)
-                  } else {
-                    self
-                      .exports_info_module_map
-                      .get(&current_exports_info)
-                      .copied()
-                  };
-                  if let Some(current_module) = current_module {
-                    queue.push((
-                      ModuleOrAsyncDependenciesBlock::Module(current_module),
-                      runtime.clone(),
-                      false,
-                    ));
-                  }
+            if !last_one && let Some(nested_info) = export_info.exports_info() {
+              let changed_flag = export_info.set_used_conditionally(
+                Box::new(|used| used == &UsageState::Unused),
+                UsageState::OnlyPropertiesUsed,
+                runtime.as_ref(),
+              );
+              if changed_flag {
+                let current_module = if current_exports_info == mgm_exports_info {
+                  Some(module_id)
+                } else {
+                  self
+                    .exports_info_module_map
+                    .get(&current_exports_info)
+                    .copied()
+                };
+                if let Some(current_module) = current_module {
+                  queue.push((
+                    ModuleOrAsyncDependenciesBlock::Module(current_module),
+                    runtime.clone(),
+                    false,
+                  ));
                 }
-                current_exports_info = nested_info;
-                continue;
               }
+              current_exports_info = nested_info;
+              continue;
             }
 
             let changed_flag = export_info.set_used_conditionally(
@@ -490,13 +489,8 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
 }
 
 impl Plugin for FlagDependencyUsagePlugin {
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));

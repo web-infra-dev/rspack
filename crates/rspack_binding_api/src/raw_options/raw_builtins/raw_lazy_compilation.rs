@@ -1,8 +1,8 @@
 use std::ptr::NonNull;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, ToNapiValue, ValidateNapiValue},
   Either,
+  bindgen_prelude::{FromNapiValue, ToNapiValue, ValidateNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
@@ -13,7 +13,7 @@ use rspack_plugin_lazy_compilation::{
 };
 use rspack_regex::RspackRegex;
 
-use crate::ModuleObject;
+use crate::module::ModuleObject;
 
 #[derive(Debug)]
 pub struct RawLazyCompilationTest<F = ThreadsafeFunction<ModuleObject, Option<bool>>>(
@@ -25,7 +25,7 @@ impl<F: FromNapiValue + ValidateNapiValue> FromNapiValue for RawLazyCompilationT
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    Ok(Self(Either::from_napi_value(env, napi_val)?))
+    unsafe { Ok(Self(Either::from_napi_value(env, napi_val)?)) }
   }
 }
 
@@ -34,7 +34,7 @@ impl<F: ToNapiValue> ToNapiValue for RawLazyCompilationTest<F> {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    Either::to_napi_value(env, val.0)
+    unsafe { Either::to_napi_value(env, val.0) }
   }
 }
 

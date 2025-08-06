@@ -1,7 +1,7 @@
 use std::{fmt::Debug, future::Future, sync::LazyLock};
 
-use futures::{future::BoxFuture, FutureExt};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use futures::{FutureExt, future::BoxFuture};
+use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 pub struct TaskQueue(LazyLock<UnboundedSender<BoxFuture<'static, ()>>>);
 
@@ -40,7 +40,7 @@ impl TaskQueue {
 mod tests {
   use std::{sync::Arc, time::Duration};
 
-  use tokio::sync::{oneshot, Mutex};
+  use tokio::sync::{Mutex, oneshot};
 
   use crate::pack::manager::queue::TaskQueue;
 

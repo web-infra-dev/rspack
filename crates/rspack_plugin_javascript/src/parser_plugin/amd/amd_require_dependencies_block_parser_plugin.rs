@@ -15,20 +15,20 @@ use swc_core::{
 };
 
 use crate::{
+  JavascriptParserPlugin,
   dependency::{
+    AMDRequireContextDependency,
     amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
     amd_require_dependency::AMDRequireDependency,
     amd_require_item_dependency::AMDRequireItemDependency,
     local_module_dependency::LocalModuleDependency,
     unsupported_dependency::UnsupportedDependency,
-    AMDRequireContextDependency,
   },
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    context_reg_exp, create_context_dependency, create_traceable_error, JavascriptParser, Statement,
+    JavascriptParser, Statement, context_reg_exp, create_context_dependency, create_traceable_error,
   },
-  JavascriptParserPlugin,
 };
 
 fn is_reserved_param(pat: &Pat) -> bool {

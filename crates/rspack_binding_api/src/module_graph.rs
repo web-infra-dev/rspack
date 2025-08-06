@@ -1,11 +1,14 @@
 use std::ptr::NonNull;
 
-use napi::{bindgen_prelude::Array, Either, Env, JsString};
+use napi::{Either, Env, JsString, bindgen_prelude::Array};
 use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
 
 use crate::{
-  DependencyObject, JsExportsInfo, ModuleGraphConnectionWrapper, ModuleObject, ModuleObjectRef,
+  dependencies::DependencyObject,
+  exports_info::JsExportsInfo,
+  module::{ModuleObject, ModuleObjectRef},
+  module_graph_connection::ModuleGraphConnectionWrapper,
 };
 
 #[napi]

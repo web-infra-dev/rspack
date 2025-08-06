@@ -1,8 +1,8 @@
-use napi::{bindgen_prelude::WeakReference, Either};
+use napi::{Either, bindgen_prelude::WeakReference};
 use rspack_core::Compilation;
 use rspack_error::RspackSeverity;
 
-use crate::{JsCompilation, RspackError};
+use crate::{compilation::JsCompilation, error::RspackError};
 
 #[napi]
 pub struct Diagnostics {
@@ -22,18 +22,16 @@ impl Diagnostics {
     match self.compiler_reference.get() {
       Some(wrapped_value) => Ok(wrapped_value.as_ref()?),
       None => Err(napi::Error::from_reason(
-        "Unable to access compilation.errors now. The Compilation has been garbage collected by JavaScript."
+        "Unable to access compilation.errors now. The Compilation has been garbage collected by JavaScript.",
       )),
     }
   }
 
   fn as_mut(&mut self) -> napi::Result<&mut Compilation> {
     match self.compiler_reference.get_mut() {
-      Some(wrapped_value) => {
-        Ok(wrapped_value.as_mut()?)
-      },
+      Some(wrapped_value) => Ok(wrapped_value.as_mut()?),
       None => Err(napi::Error::from_reason(
-        "Unable to access compilation.errors now. The Compilation has been garbage collected by JavaScript."
+        "Unable to access compilation.errors now. The Compilation has been garbage collected by JavaScript.",
       )),
     }
   }

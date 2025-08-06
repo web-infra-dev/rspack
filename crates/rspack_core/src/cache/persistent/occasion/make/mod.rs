@@ -5,10 +5,10 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::super::{cacheable_context::CacheableContext, Storage};
+use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
-  make::{MakeArtifact, MakeArtifactState},
   FactorizeInfo, FileCounter,
+  compilation::make::{MakeArtifact, MakeArtifactState},
 };
 
 /// Make Occasion is used to save MakeArtifact
@@ -29,6 +29,7 @@ impl MakeOccasion {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph_partial,
+      module_to_lazy_make,
       revoked_modules,
       built_modules,
       // skip
@@ -44,6 +45,7 @@ impl MakeOccasion {
 
     module_graph::save_module_graph(
       module_graph_partial,
+      module_to_lazy_make,
       revoked_modules,
       built_modules,
       &self.storage,
@@ -55,9 +57,10 @@ impl MakeOccasion {
   pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 
-    let (partial, force_build_dependencies, isolated_modules) =
+    let (partial, module_to_lazy_make, force_build_dependencies, isolated_modules) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
     artifact.module_graph_partial = partial;
+    artifact.module_to_lazy_make = module_to_lazy_make;
     artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies, isolated_modules);
 
     // regenerate statistical data
@@ -80,13 +83,13 @@ impl MakeOccasion {
     // recovery make_failed_dependencies
     let mut make_failed_dependencies = HashSet::default();
     for (dep_id, dep) in mg.dependencies() {
-      if let Some(info) = FactorizeInfo::get_from(dep) {
-        if !info.is_success() {
-          make_failed_dependencies.insert(dep_id);
-          file_dep.add_batch_file(&info.file_dependencies());
-          context_dep.add_batch_file(&info.context_dependencies());
-          missing_dep.add_batch_file(&info.missing_dependencies());
-        }
+      if let Some(info) = FactorizeInfo::get_from(dep)
+        && !info.is_success()
+      {
+        make_failed_dependencies.insert(dep_id);
+        file_dep.add_batch_file(&info.file_dependencies());
+        context_dep.add_batch_file(&info.context_dependencies());
+        missing_dep.add_batch_file(&info.missing_dependencies());
       }
     }
     artifact.make_failed_dependencies = make_failed_dependencies;
@@ -94,7 +97,6 @@ impl MakeOccasion {
     artifact.context_dependencies = context_dep;
     artifact.missing_dependencies = missing_dep;
     artifact.build_dependencies = build_dep;
-    artifact.reset_dependencies_incremental_info();
 
     Ok(artifact)
   }

@@ -3,7 +3,7 @@
 
 use tracing::instrument;
 
-use crate::{incremental::IncrementalPasses, Compilation};
+use crate::{Compilation, incremental::IncrementalPasses};
 
 mod available_modules;
 pub(crate) mod code_splitter;
@@ -20,6 +20,8 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   } else {
     Default::default()
   };
+
+  splitter.prepare(compilation)?;
 
   splitter.update_with_compilation(compilation)?;
 

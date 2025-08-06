@@ -1,18 +1,16 @@
 use std::hash::Hash;
 
-use async_trait::async_trait;
 use rspack_core::{
+  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_error::{miette, Result};
+use rspack_error::{Result, miette};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  runtime::render_chunk_runtime_modules, JavascriptModulesChunkHash, JavascriptModulesRenderChunk,
-  JsPlugin, RenderSource,
+  JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::render_chunk_runtime_modules,
 };
 use rspack_util::{itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
@@ -210,15 +208,19 @@ async fn render_chunk(
         let index = loaded_chunks.len();
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
         let other_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
+        let mut index_buffer = itoa::Buffer::new();
+        let index_str = index_buffer.format(index);
         startup_source.push(format!(
           "import * as __webpack_chunk_${}__ from '{}';",
-          itoa!(index),
+          index_str,
           get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
         ));
+        let mut index_buffer2 = itoa::Buffer::new();
+        let index_str2 = index_buffer2.format(index);
         startup_source.push(format!(
           "{}(__webpack_chunk_${}__);",
           RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
-          itoa!(index)
+          index_str2
         ));
       }
 
@@ -258,25 +260,18 @@ async fn render_chunk(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ModuleChunkFormatPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
     ctx
-      .context
       .compilation_hooks
       .dependent_full_hash
       .tap(compilation_dependent_full_hash::new(self));

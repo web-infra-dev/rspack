@@ -143,7 +143,7 @@ where
   pub fn entry(
     &mut self,
     id: <Item as DatabaseItem>::ItemUkey,
-  ) -> std::collections::hash_map::Entry<<Item as DatabaseItem>::ItemUkey, Item> {
+  ) -> std::collections::hash_map::Entry<'_, <Item as DatabaseItem>::ItemUkey, Item> {
     self.inner.entry(id)
   }
 

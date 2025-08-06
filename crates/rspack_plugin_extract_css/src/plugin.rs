@@ -9,23 +9,21 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
-  get_undo_path,
+  AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename, Module,
+  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals, SourceType, get_undo_path,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
   },
-  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
+  BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
 use rustc_hash::FxHashMap;
@@ -539,7 +537,9 @@ async fn runtime_requirement_in_tree(
         "mini-css",
         SOURCE_TYPE[0],
         "__webpack_require__.miniCssF".into(),
-        move |_| has_hot_update,
+        move |runtime_requirements| {
+          runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+        },
         move |chunk, compilation| {
           chunk
             .content_hash(&compilation.chunk_hashes_artifact)?
@@ -703,32 +703,23 @@ async fn nmf_parser(
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirement_in_tree::new(self));
     ctx
-      .context
       .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
-      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
     ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

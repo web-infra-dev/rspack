@@ -1,15 +1,15 @@
 use std::any::Any;
 
 use rkyv::{
+  Serialize,
   api::{high::HighSerializer, serialize_using},
   rancor::{BoxedError, Source, Trace},
   ser::{
+    Serializer as RkyvSerializer,
     allocator::{Arena, ArenaHandle},
     sharing::Share,
-    Serializer as RkyvSerializer,
   },
   util::AlignedVec,
-  Serialize,
 };
 
 use crate::context::ContextGuard;

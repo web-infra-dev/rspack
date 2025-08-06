@@ -1,13 +1,13 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_error::{miette::IntoDiagnostic, Result};
+use rspack_error::{Result, miette::IntoDiagnostic};
 use rspack_plugin_swc_js_minimizer::{
   ExtractComments, MinimizerOptions, OptionWrapper, PluginOptions,
 };
 use serde::de::DeserializeOwned;
 use swc_core::base::BoolOrDataConfig;
 
-use crate::{into_asset_conditions, RawAssetConditions};
+use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
 
 #[derive(Debug)]
 #[napi(object)]

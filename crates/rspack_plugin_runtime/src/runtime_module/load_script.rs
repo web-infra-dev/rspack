@@ -3,11 +3,11 @@ use std::ptr::NonNull;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  impl_runtime_module, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, impl_runtime_module,
 };
 
 use crate::{
-  get_chunk_runtime_requirements, CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin,
+  CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, get_chunk_runtime_requirements,
 };
 
 #[impl_runtime_module]

@@ -5,8 +5,8 @@ use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module, Chunk, ChunkGraph, ChunkUkey, Compilation,
-  Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
+  SourceType, get_filename_without_hash_length, impl_runtime_module,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap;
@@ -238,11 +238,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .get("[fullhash]")
         .or(hash_len_map.get("[hash]"))
       {
-        Some(hash_len) => format!(
-          "\" + {}().slice(0, {}) + \"",
-          RuntimeGlobals::GET_FULL_HASH,
-          itoa!(*hash_len)
-        ),
+        Some(hash_len) => {
+          let mut hash_len_buffer = itoa::Buffer::new();
+          let hash_len_str = hash_len_buffer.format(*hash_len);
+          format!(
+            "\" + {}().slice(0, {}) + \"",
+            RuntimeGlobals::GET_FULL_HASH,
+            hash_len_str
+          )
+        }
         None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
       };
 
@@ -319,11 +323,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           .get("[fullhash]")
           .or(hash_len_map.get("[hash]"))
         {
-          Some(hash_len) => format!(
-            "\" + {}().slice(0, {}) + \"",
-            RuntimeGlobals::GET_FULL_HASH,
-            itoa!(*hash_len)
-          ),
+          Some(hash_len) => {
+            let mut hash_len_buffer = itoa::Buffer::new();
+            let hash_len_str = hash_len_buffer.format(*hash_len);
+            format!(
+              "\" + {}().slice(0, {}) + \"",
+              RuntimeGlobals::GET_FULL_HASH,
+              hash_len_str
+            )
+          }
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };
         let chunk_runtime = chunk.runtime().as_str();

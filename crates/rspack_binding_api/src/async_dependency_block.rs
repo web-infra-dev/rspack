@@ -2,10 +2,10 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi_derive::napi;
 use rspack_core::DependenciesBlock as _;
-use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
+use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::DependencyWrapper;
+use crate::dependency::DependencyWrapper;
 
 #[napi]
 pub struct AsyncDependenciesBlock {
@@ -98,32 +98,34 @@ impl ToNapiValue for AsyncDependenciesBlockWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    BLOCK_INSTANCE_REFS.with(|refs| {
-      let compilation = unsafe { val.compilation.as_ref() };
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(compilation.id());
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = HashMap::default();
-          entry.insert(refs)
-        }
-      };
+    unsafe {
+      BLOCK_INSTANCE_REFS.with(|refs| {
+        let compilation = val.compilation.as_ref();
+        let mut refs_by_compilation_id = refs.borrow_mut();
+        let entry = refs_by_compilation_id.entry(compilation.id());
+        let refs = match entry {
+          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let refs = HashMap::default();
+            entry.insert(refs)
+          }
+        };
 
-      match refs.entry(val.block_id) {
-        std::collections::hash_map::Entry::Occupied(occupied_entry) => {
-          let r = occupied_entry.get();
-          ToNapiValue::to_napi_value(env, r)
+        match refs.entry(val.block_id) {
+          std::collections::hash_map::Entry::Occupied(occupied_entry) => {
+            let r = occupied_entry.get();
+            ToNapiValue::to_napi_value(env, r)
+          }
+          std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+            let js_block = AsyncDependenciesBlock {
+              block_id: val.block_id,
+              compilation: val.compilation,
+            };
+            let r = vacant_entry.insert(OneShotRef::new(env, js_block)?);
+            ToNapiValue::to_napi_value(env, r)
+          }
         }
-        std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let js_block = AsyncDependenciesBlock {
-            block_id: val.block_id,
-            compilation: val.compilation,
-          };
-          let r = vacant_entry.insert(OneShotRef::new(env, js_block)?);
-          ToNapiValue::to_napi_value(env, r)
-        }
-      }
-    })
+      })
+    }
   }
 }

@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 use std::{
   fmt::{self, Debug},
   sync::LazyLock,
@@ -9,8 +7,9 @@ use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
+  Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  to_comment, Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  to_comment,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -61,20 +60,20 @@ impl fmt::Debug for BannerContent {
 }
 
 fn match_object(obj: &BannerPluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.test
+    && !condition.try_match(str)
+  {
+    return false;
   }
-  if let Some(condition) = &obj.include {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.include
+    && !condition.try_match(str)
+  {
+    return false;
   }
-  if let Some(condition) = &obj.exclude {
-    if condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.exclude
+    && condition.try_match(str)
+  {
+    return false;
   }
   true
 }
@@ -223,13 +222,8 @@ impl Plugin for BannerPlugin {
     "rspack.BannerPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));

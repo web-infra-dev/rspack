@@ -2,8 +2,8 @@ use std::{fmt::Formatter, ptr::NonNull, sync::Arc};
 
 use derive_more::with_trait::Debug;
 use napi::{
-  bindgen_prelude::{Buffer, Either3, FnArgs},
   Either,
+  bindgen_prelude::{Buffer, Either3, FnArgs},
 };
 use napi_derive::napi;
 use rspack_core::{
@@ -23,7 +23,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{JsFilename, ModuleObject, RawResolveOptions};
+use crate::{filename::JsFilename, module::ModuleObject, options::raw_resolve::RawResolveOptions};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is

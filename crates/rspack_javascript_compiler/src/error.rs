@@ -1,14 +1,14 @@
 use std::{
   fmt::Debug,
-  sync::{mpsc, Arc},
+  sync::{Arc, mpsc},
 };
 
 use rspack_cacheable::cacheable;
-use rspack_error::{error, BatchErrors, DiagnosticKind, TraceableError};
+use rspack_error::{BatchErrors, DiagnosticKind, TraceableError, error};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
-  errors::{Emitter, Handler, HANDLER},
   SourceFile, SourceMap, Span, Spanned,
+  errors::{Emitter, HANDLER, Handler},
 };
 
 /// Using `u32` instead of `usize` to reduce memory usage,

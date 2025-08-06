@@ -1,8 +1,8 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
 use napi::{
-  bindgen_prelude::{Either4, Function, FunctionCallContext, Object, Promise, ToNapiValue},
   Either, Env,
+  bindgen_prelude::{Either4, Function, FunctionCallContext, Object, Promise, ToNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{
@@ -14,8 +14,12 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  callbackify, normalize_raw_resolve_options_with_dependency_type, ErrorCode,
-  RawResolveOptionsWithDependencyType, ResolveRequest,
+  error::ErrorCode,
+  options::raw_resolve::{
+    RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
+  },
+  resolver::ResolveRequest,
+  utils::callbackify,
 };
 
 #[napi(object)]
@@ -84,13 +88,15 @@ impl ToNapiValue for &ContextInfo {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    let env_wrapper = Env::from(env);
-    let mut obj = Object::new(&env_wrapper)?;
-    obj.set("issuer", &val.issuer)?;
-    if let Some(issuer_layer) = &val.issuer_layer {
-      obj.set("issuerLayer", issuer_layer)?;
+    unsafe {
+      let env_wrapper = Env::from(env);
+      let mut obj = Object::new(&env_wrapper)?;
+      obj.set("issuer", &val.issuer)?;
+      if let Some(issuer_layer) = &val.issuer_layer {
+        obj.set("issuerLayer", issuer_layer)?;
+      }
+      ToNapiValue::to_napi_value(env, obj)
     }
-    ToNapiValue::to_napi_value(env, obj)
   }
 }
 
@@ -101,25 +107,6 @@ pub struct RawExternalItemFnCtxData<'a> {
   pub context: &'a str,
   pub dependency_type: &'a str,
   pub context_info: &'a ContextInfo,
-}
-
-#[derive(Debug, Clone)]
-struct ResolveClosureContextInner {
-  first: Arc<ResolveOptionsWithDependencyType>,
-  second: Arc<ResolveOptionsWithDependencyType>,
-  resolver_factory: Arc<ResolverFactory>,
-}
-
-#[derive(Debug, Clone)]
-struct ResolveClosureContext {
-  i: Option<ResolveClosureContextInner>,
-}
-
-impl Drop for ResolveClosureContext {
-  fn drop(&mut self) {
-    let inner = self.i.take();
-    rayon::spawn(move || drop(inner));
-  }
 }
 
 #[derive(Debug)]
@@ -148,7 +135,7 @@ impl Drop for RawExternalItemFnCtx {
 #[napi]
 impl RawExternalItemFnCtx {
   #[napi]
-  pub fn data(&self) -> RawExternalItemFnCtxData {
+  pub fn data(&self) -> RawExternalItemFnCtxData<'_> {
     #[allow(clippy::unwrap_used)]
     let inner = self.i.as_ref().unwrap();
     RawExternalItemFnCtxData {
@@ -175,13 +162,6 @@ impl RawExternalItemFnCtx {
         .map_err(|e| napi::Error::from_reason(e.to_string()))?,
     );
     let resolver_factory = inner.resolver_factory.clone();
-    let resolve_closure_context = ResolveClosureContext {
-      i: Some(ResolveClosureContextInner {
-        first,
-        second,
-        resolver_factory,
-      }),
-    };
 
     let f: Function<(String, String, Function<'static>), ()> =
       env.create_function_from_closure("resolve", move |ctx: FunctionCallContext| {
@@ -189,18 +169,13 @@ impl RawExternalItemFnCtx {
         let request = ctx.get::<String>(1)?;
         let callback = ctx.get::<Function<'static>>(2)?;
 
-        let resolve_closure_context = resolve_closure_context.clone();
+        let first = first.clone();
+        let second = second.clone();
+        let resolver_factory = resolver_factory.clone();
 
         callbackify(
           callback,
           async move {
-            #[allow(clippy::unwrap_used)]
-            let ResolveClosureContextInner {
-              first,
-              second,
-              resolver_factory,
-            } = resolve_closure_context.i.as_ref().unwrap();
-
             let merged_resolve_options = match second.resolve_options.as_ref() {
               Some(second_resolve_options) => match first.resolve_options.as_ref() {
                 Some(first_resolve_options) => Some(Box::new(

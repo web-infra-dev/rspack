@@ -5,12 +5,12 @@ use rspack_paths::Utf8Path;
 
 use super::SplitPackStrategy;
 use crate::{
+  FSError, FSOperation,
   error::Result,
   pack::{
     data::PackKeys,
     strategy::{PackMainContents, PackReadStrategy},
   },
-  FSError, FSOperation,
 };
 
 #[async_trait]
@@ -126,8 +126,8 @@ mod tests {
   use crate::{
     error::Result,
     pack::strategy::{
-      split::util::test_pack_utils::{clean_strategy, create_strategies, mock_pack_file},
       PackReadStrategy, ScopeReadStrategy, SplitPackStrategy,
+      split::util::test_pack_utils::{clean_strategy, create_strategies, mock_pack_file},
     },
   };
 

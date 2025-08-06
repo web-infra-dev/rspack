@@ -6,23 +6,23 @@ mod raw_split_chunk_size;
 use std::sync::Arc;
 
 use derive_more::Debug;
-use napi::{bindgen_prelude::Either3, Either, JsString};
+use napi::{Either, JsString, bindgen_prelude::Either3};
 use napi_derive::napi;
-use raw_split_chunk_name::{normalize_raw_chunk_name, RawChunkOptionName};
-use rspack_core::{Filename, SourceType, DEFAULT_DELIMITER};
+use raw_split_chunk_name::{RawChunkOptionName, normalize_raw_chunk_name};
+use rspack_core::{DEFAULT_DELIMITER, Filename, SourceType};
 use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
 use rspack_plugin_split_chunks::ChunkNameGetter;
 use rspack_regex::RspackRegex;
 
 use self::{
   raw_split_chunk_cache_group_test::{
-    default_cache_group_test, normalize_raw_cache_group_test, RawCacheGroupTest,
+    RawCacheGroupTest, default_cache_group_test, normalize_raw_cache_group_test,
   },
-  raw_split_chunk_chunks::{create_chunks_filter, Chunks},
+  raw_split_chunk_chunks::{Chunks, create_chunks_filter},
   raw_split_chunk_name::default_chunk_option_name,
   raw_split_chunk_size::RawSplitChunkSizes,
 };
-use crate::JsFilename;
+use crate::filename::JsFilename;
 
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]

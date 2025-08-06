@@ -39,6 +39,12 @@ export const getRsdoctorPluginSchema = memoize(
 				.optional(),
 			chunkGraphFeatures: z
 				.union([z.boolean(), z.array(z.enum(["graph", "assets"]))])
+				.optional(),
+			sourceMapFeatures: z
+				.object({
+					module: z.boolean().optional(),
+					cheap: z.boolean().optional()
+				})
 				.optional()
 		}) satisfies z.ZodType<RsdoctorPluginOptions>
 );

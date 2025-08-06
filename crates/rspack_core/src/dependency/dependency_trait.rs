@@ -1,20 +1,20 @@
 use std::{any::Any, fmt::Debug};
 
-use dyn_clone::{clone_trait_object, DynClone};
+use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_location::DependencyLocation;
-use rspack_util::{atom::Atom, ext::AsAny};
+use rspack_util::ext::AsAny;
 
 use super::{
-  dependency_template::AsDependencyCodeGeneration, module_dependency::*, DependencyCategory,
-  DependencyId, DependencyRange, DependencyType, ExportsSpec,
+  DependencyCategory, DependencyId, DependencyRange, DependencyType, ExportsSpec,
+  dependency_template::AsDependencyCodeGeneration, module_dependency::*,
 };
 use crate::{
-  create_exports_object_referenced, AsContextDependency, ConnectionState, Context,
-  ExtendedReferencedExport, ImportAttributes, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  RuntimeSpec, UsedByExports,
+  AsContextDependency, ConnectionState, Context, ExtendedReferencedExport, ForwardId,
+  ImportAttributes, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, RuntimeSpec,
+  UsedByExports, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -91,13 +91,6 @@ pub trait Dependency:
     None
   }
 
-  // TODO: remove this once incremental build chunk graph is stable.
-  // For now only `ESMImportSpecifierDependency` and
-  // `ESMExportImportedSpecifierDependency` can use this method
-  fn _get_ids<'a>(&'a self, _mg: &'a ModuleGraph) -> &'a [Atom] {
-    unreachable!()
-  }
-
   fn resource_identifier(&self) -> Option<&str> {
     None
   }
@@ -120,6 +113,18 @@ pub trait Dependency:
   }
 
   fn could_affect_referencing_module(&self) -> AffectType;
+
+  fn forward_id(&self) -> ForwardId {
+    ForwardId::All
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    None
+  }
+
+  fn unset_lazy(&mut self) -> bool {
+    false
+  }
 }
 
 impl dyn Dependency + '_ {

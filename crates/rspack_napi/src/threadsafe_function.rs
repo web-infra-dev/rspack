@@ -5,12 +5,15 @@ use std::{
 };
 
 use napi::{
+  Env, JsValue, Status, Unknown, ValueType,
   bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue},
   sys::{self, napi_env},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env, JsValue, Status, Unknown, ValueType,
 };
-use oneshot::Receiver;
+#[cfg(not(feature = "browser"))]
+use oneshot::{Receiver, channel};
+#[cfg(feature = "browser")]
+use rspack_browser::oneshot::{Receiver, channel};
 use rspack_error::{Error, Result};
 
 use crate::{JsCallback, NapiErrorToRspackErrorExt};
@@ -76,7 +79,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   }
 
   fn call_with_return<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
-    let (tx, rx) = oneshot::channel::<Result<D>>();
+    let (tx, rx) = channel::<Result<D>>();
     self
       .inner
       .call_with_return_value(value, ThreadsafeFunctionCallMode::NonBlocking, {
@@ -100,7 +103,13 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
 
   async fn call_async<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
     let rx = self.call_with_return(value);
-    rx.await.expect("failed to receive tsfn value")
+    #[cfg(feature = "browser")]
+    let ret = tokio::task::unconstrained(rx)
+      .await
+      .expect("failed to receive tsfn value");
+    #[cfg(not(feature = "browser"))]
+    let ret = rx.await.expect("failed to receive tsfn value");
+    ret
   }
 }
 

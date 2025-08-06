@@ -114,7 +114,7 @@ export class ServeCommand implements RspackCommand {
 					if (setupMiddlewares) {
 						finalMiddlewares = setupMiddlewares(finalMiddlewares, server);
 					}
-					return [lazyCompileMiddleware, ...finalMiddlewares];
+					return [...finalMiddlewares, lazyCompileMiddleware];
 				};
 
 				/**

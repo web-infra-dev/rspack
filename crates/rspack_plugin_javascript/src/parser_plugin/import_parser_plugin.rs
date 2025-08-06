@@ -5,6 +5,7 @@ use rspack_core::{
   DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap, SpanExt,
 };
 use rspack_error::miette::Severity;
+use rspack_util::swc::get_swc_comments;
 use swc_core::{
   common::Spanned,
   ecma::{ast::CallExpr, atoms::Atom},
@@ -15,8 +16,8 @@ use crate::{
   dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency},
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    context_reg_exp, create_context_dependency, create_traceable_error, parse_order_string,
-    ContextModuleScanResult, JavascriptParser,
+    ContextModuleScanResult, JavascriptParser, context_reg_exp, create_context_dependency,
+    create_traceable_error, parse_order_string,
   },
   webpack_comment::try_extract_webpack_magic_comment,
 };
@@ -121,12 +122,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         parser.dependencies.push(Box::new(dep));
         return Some(true);
       }
+
       let dep = Box::new(ImportDependency::new(
         param.string().as_str().into(),
         node.span.into(),
         exports,
         attributes,
         parser.in_try,
+        get_swc_comments(
+          parser.comments,
+          dyn_imported.span().lo,
+          dyn_imported.span().hi,
+        ),
       ));
       let source_map: SharedSourceMap = parser.source_map.clone();
       let mut block = AsyncDependenciesBlock::new(

@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{BuildMeta, LibraryType, ModuleId};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
-use serde::{ser::SerializeSeq, Serialize};
+use serde::{Serialize, ser::SerializeSeq};
 
 mod dll_entry;
 mod dll_reference;

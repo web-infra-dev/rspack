@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ApplyContext, BoxLoader, CompilerOptions, Context, ModuleRuleUseLoader,
-  NormalModuleFactoryResolveLoader, Plugin, PluginContext, Resolver,
+  BoxLoader, Context, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, Plugin, Resolver,
 };
 use rspack_error::{Result, SerdeResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
+use crate::{LIGHTNINGCSS_LOADER_IDENTIFIER, config::Config};
 
 #[plugin]
 #[derive(Debug)]
@@ -30,9 +29,8 @@ impl Plugin for LightningcssLoaderPlugin {
     "LightningcssLoaderPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .resolve_loader
       .tap(resolve_loader::new(self));

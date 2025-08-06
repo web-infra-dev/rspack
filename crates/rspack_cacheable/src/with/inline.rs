@@ -1,7 +1,7 @@
 use rkyv::{
+  Place,
   rancor::Fallible,
   with::{ArchiveWith, SerializeWith},
-  Place,
 };
 
 use crate::with::AsCacheable;

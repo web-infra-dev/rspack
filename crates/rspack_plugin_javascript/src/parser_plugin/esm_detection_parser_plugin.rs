@@ -10,7 +10,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::ESMCompatibilityDependency,
   utils::eval::BasicEvaluatedExpression,
-  visitors::{create_traceable_error, JavascriptParser},
+  visitors::{JavascriptParser, create_traceable_error},
 };
 
 impl JavascriptParser<'_> {

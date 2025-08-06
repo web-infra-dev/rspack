@@ -19,8 +19,8 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationOptimizeChunks, CompilerCompilation, CompilerOptions,
-  Dependency, DependencyId, Module, ModuleIdentifier, Plugin, PluginContext,
+  Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId, Module,
+  ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -230,17 +230,16 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               .chunk_graph
               .get_number_of_entry_modules(&chunk_ukey)
               == 0
+            && let Some(mut removed_chunk) = compilation.chunk_by_ukey.remove(&chunk_ukey)
           {
-            if let Some(mut removed_chunk) = compilation.chunk_by_ukey.remove(&chunk_ukey) {
-              compilation
-                .chunk_graph
-                .disconnect_chunk(&mut removed_chunk, &mut compilation.chunk_group_by_ukey);
-              compilation.chunk_graph.remove_chunk(&chunk_ukey);
+            compilation
+              .chunk_graph
+              .disconnect_chunk(&mut removed_chunk, &mut compilation.chunk_group_by_ukey);
+            compilation.chunk_graph.remove_chunk(&chunk_ukey);
 
-              // Remove from named chunks if it has a name
-              if let Some(name) = removed_chunk.name() {
-                compilation.named_chunks.remove(name);
-              }
+            // Remove from named chunks if it has a name
+            if let Some(name) = removed_chunk.name() {
+              compilation.named_chunks.remove(name);
             }
           }
         }
@@ -260,32 +259,31 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .iter()
   {
     let module_graph = compilation.get_module_graph();
-    if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-      if let Some(module) = module_graph.module_by_identifier(module_id) {
-        let referenced_modules =
-          get_all_referenced_modules(compilation, module.as_ref(), "initial");
-        all_modules_to_hoist.extend(&referenced_modules);
+    if let Some(module_id) = module_graph.module_identifier_by_dependency_id(dep_id)
+      && let Some(module) = module_graph.module_by_identifier(module_id)
+    {
+      let referenced_modules = get_all_referenced_modules(compilation, module.as_ref(), "initial");
+      all_modules_to_hoist.extend(&referenced_modules);
 
-        // Get module runtimes and hoist to runtime chunks
-        let runtime_specs: Vec<_> = compilation
-          .chunk_graph
-          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
-          .cloned()
-          .collect();
+      // Get module runtimes and hoist to runtime chunks
+      let runtime_specs: Vec<_> = compilation
+        .chunk_graph
+        .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+        .cloned()
+        .collect();
 
-        for runtime_spec in runtime_specs {
-          // Find runtime chunks by name
-          for runtime_name in runtime_spec.iter() {
-            if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_str()) {
-              for &ref_module_id in &referenced_modules {
-                if !compilation
+      for runtime_spec in runtime_specs {
+        // Find runtime chunks by name
+        for runtime_name in runtime_spec.iter() {
+          if let Some(runtime_chunk) = compilation.named_chunks.get(runtime_name.as_str()) {
+            for &ref_module_id in &referenced_modules {
+              if !compilation
+                .chunk_graph
+                .is_module_in_chunk(&ref_module_id, *runtime_chunk)
+              {
+                compilation
                   .chunk_graph
-                  .is_module_in_chunk(&ref_module_id, *runtime_chunk)
-                {
-                  compilation
-                    .chunk_graph
-                    .connect_chunk_and_module(*runtime_chunk, ref_module_id);
-                }
+                  .connect_chunk_and_module(*runtime_chunk, ref_module_id);
               }
             }
           }
@@ -305,14 +303,9 @@ impl Plugin for HoistContainerReferencesPlugin {
     "HoistContainerReferencesPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

@@ -10,8 +10,8 @@ use super::data::{
   RootOptions,
 };
 use crate::{
-  error::{Result, ValidateResult},
   ItemKey, ItemValue,
+  error::{Result, ValidateResult},
 };
 
 pub struct UpdatePacksResult {

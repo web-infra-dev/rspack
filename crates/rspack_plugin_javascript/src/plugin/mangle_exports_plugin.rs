@@ -4,10 +4,9 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
-  CompilationOptimizeCodeGeneration, CompilerOptions, ExportInfo, ExportProvided, ExportsInfo,
-  ExportsInfoGetter, ModuleGraph, Plugin, PluginContext, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState,
+  BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
+  ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, UsageState, incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -16,7 +15,7 @@ use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::utils::mangle_exports::{
-  number_to_identifier, NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS,
+  NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS, number_to_identifier,
 };
 
 fn can_mangle(exports_info: &PrefetchedExportsInfoWrapper<'_>) -> bool {
@@ -204,9 +203,8 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
 }
 
 impl Plugin for MangleExportsPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_code_generation
       .tap(optimize_code_generation::new(self));

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  incremental::Mutation, ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier,
-  Plugin,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
+  incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -86,13 +86,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 }
 
 impl Plugin for RemoveDuplicateModulesPlugin {
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> rspack_error::Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

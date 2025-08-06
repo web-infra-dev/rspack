@@ -9,8 +9,8 @@ use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  cache::persistent::FromContext, BoxDependency, BoxModule, CompilationId, CompilerId,
-  CompilerOptions, Context, ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory,
+  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
+  ModuleLayer, Resolve, ResolverFactory, cache::persistent::FromContext,
 };
 
 #[cacheable]

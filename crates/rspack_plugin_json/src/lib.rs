@@ -1,28 +1,27 @@
-#![feature(let_chains)]
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use json::{
-  number::Number,
-  object::Object,
-  stringify,
   Error::{
     ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
   },
   JsonValue,
+  number::Number,
+  object::Object,
+  stringify,
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoGetter, GenerateContext,
+  Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, Plugin,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfoGetter,
-  GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
-  UsageState, UsedNameItem, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
-  miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
-  TWithDiagnosticArray, TraceableError,
+  DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  TraceableError, miette::diagnostic,
 };
 use rspack_util::itoa;
 
@@ -211,7 +210,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         } else {
           json_str.cow_replace("\"__proto__\":", "[\"__proto__\"]:")
         };
-        let content = if let Some(ref mut scope) = concatenation_scope {
+        let content = if let Some(scope) = concatenation_scope {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
           format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
         } else {
@@ -247,12 +246,8 @@ impl Plugin for JsonPlugin {
     "json"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
-    ctx.context.register_parser_and_generator_builder(
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
       Box::new(|p, g| {
         let p = p
@@ -330,7 +325,9 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info = exports_info.get_read_only_export_info(&itoa!(i).into());
+          let mut i_buffer = itoa::Buffer::new();
+          let i_str = i_buffer.format(i);
+          let export_info = exports_info.get_read_only_export_info(&i_str.into());
           let used = export_info.get_used(runtime);
           if used == UsageState::Unused {
             return None;

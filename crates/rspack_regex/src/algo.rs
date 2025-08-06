@@ -1,8 +1,8 @@
 use std::{fmt::Debug, hash::Hash};
 
-use regex_syntax::hir::{literal::ExtractKind, Hir, HirKind, Look};
+use regex_syntax::hir::{Hir, HirKind, Look, literal::ExtractKind};
 use regress::Match;
-use rspack_error::{error, Error};
+use rspack_error::{Error, error};
 
 #[derive(Clone)]
 pub struct HashRegressRegex {

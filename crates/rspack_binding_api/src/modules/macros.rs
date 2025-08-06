@@ -30,7 +30,7 @@ macro_rules! impl_module_methods {
         }
 
         #[js_function]
-        fn layer_getter(ctx: napi::CallContext) -> napi::Result<napi::Either<&String, ()>> {
+        fn layer_getter(ctx: napi::CallContext<'_>) -> napi::Result<napi::Either<&String, ()>> {
           let this = ctx.this::<napi::JsObject>()?;
           let wrapped_value: &mut $module = unsafe {
             napi::bindgen_prelude::FromNapiMutRef::from_napi_mut_ref(
@@ -72,7 +72,7 @@ macro_rules! impl_module_methods {
         }
 
         #[js_function]
-        fn factory_meta_getter(ctx: napi::CallContext) -> napi::Result<$crate::JsFactoryMeta> {
+        fn factory_meta_getter(ctx: napi::CallContext) -> napi::Result<$crate::module::JsFactoryMeta> {
           use rspack_core::Module;
 
           let this = ctx.this_unchecked::<napi::JsObject>();
@@ -85,14 +85,14 @@ macro_rules! impl_module_methods {
           let (_, module) = wrapped_value.module.as_ref()?;
           Ok(match module.as_normal_module() {
             Some(normal_module) => match normal_module.factory_meta() {
-              Some(meta) => $crate::JsFactoryMeta {
+              Some(meta) => $crate::module::JsFactoryMeta {
                 side_effect_free: meta.side_effect_free,
               },
-              None => $crate::JsFactoryMeta {
+              None => $crate::module::JsFactoryMeta {
                 side_effect_free: None,
               },
             },
-            None => $crate::JsFactoryMeta {
+            None => $crate::module::JsFactoryMeta {
               side_effect_free: None,
             },
           })
@@ -108,7 +108,7 @@ macro_rules! impl_module_methods {
             )?
           };
           let module = wrapped_value.module.as_mut()?;
-          let factory_meta = ctx.get::<$crate::JsFactoryMeta>(0)?;
+          let factory_meta = ctx.get::<$crate::module::JsFactoryMeta>(0)?;
           module.set_factory_meta(factory_meta.into());
           Ok(())
         }
@@ -119,13 +119,13 @@ macro_rules! impl_module_methods {
           let mut this = ctx.this::<napi::JsObject>()?;
           let env = ctx.env;
           let raw_env = env.raw();
-          let mut reference: napi::bindgen_prelude::Reference<$crate::Module> =
+          let mut reference: napi::bindgen_prelude::Reference<$crate::module::Module> =
             unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
           if let Some(r) = &reference.build_info_ref {
             return r.as_object(env);
           }
-          let mut build_info = $crate::BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
-          $crate::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+          let mut build_info = $crate::build_info::BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+          $crate::module::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
             let sym = unsafe {
               #[allow(clippy::unwrap_used)]
               let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
@@ -149,7 +149,7 @@ macro_rules! impl_module_methods {
           let raw_env = env.raw();
           let mut reference: napi::bindgen_prelude::Reference<Module> =
             unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
-          let new_build_info = $crate::BuildInfo::new(reference.downgrade());
+          let new_build_info = $crate::build_info::BuildInfo::new(reference.downgrade());
           let mut new_instrance = new_build_info.get_jsobject(env)?;
 
           let names = input_object.get_all_property_names(
@@ -173,7 +173,7 @@ macro_rules! impl_module_methods {
             }
           }
 
-          $crate::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
+          $crate::module::MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
             let sym = unsafe {
               #[allow(clippy::unwrap_used)]
               let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
@@ -227,7 +227,7 @@ macro_rules! impl_module_methods {
             .with_utf8_name("buildMeta")?
             .with_value(&napi::bindgen_prelude::Object::new(env)?)
         );
-        $crate:: MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
+        $crate::module::MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
           let identifier = env.create_string(module.identifier().as_str())?;
           let symbol = once_cell.get().unwrap();
           properties.push(
@@ -255,7 +255,7 @@ macro_rules! impl_module_methods {
       pub fn original_source(
         &mut self,
         env: &napi::Env,
-      ) -> napi::Result<napi::Either<$crate::JsCompatSource, ()>> {
+      ) -> napi::Result<napi::Either<$crate::source::JsCompatSource<'_>, ()>> {
         self.module.original_source(env)
       }
 
@@ -287,7 +287,7 @@ macro_rules! impl_module_methods {
       pub fn lib_ident<'a>(
         &mut self,
         env: &'a napi::Env,
-        options: $crate::JsLibIdentOptions,
+        options: $crate::module::JsLibIdentOptions,
       ) -> napi::Result<Option<napi::JsString<'a>>> {
         self.module.lib_ident(env, options)
       }
@@ -301,7 +301,7 @@ macro_rules! impl_module_methods {
         &mut self,
         env: &napi::Env,
         filename: String,
-        source: $crate::JsCompatSource,
+        source: $crate::source::JsCompatSource,
         asset_info: Option<napi::bindgen_prelude::Object>,
       ) -> napi::Result<()> {
         self

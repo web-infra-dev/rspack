@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use rayon::prelude::*;
 use rspack_cacheable::{
-  cacheable, from_bytes, to_bytes,
+  SerializeError, cacheable, from_bytes, to_bytes,
   utils::OwnedOrRef,
   with::{AsOption, AsOwned, AsTuple2, AsVec},
-  SerializeError,
 };
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
@@ -13,10 +12,11 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::Storage;
 use crate::{
-  cache::persistent::cacheable_context::CacheableContext, AsyncDependenciesBlock,
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, DependencyId, DependencyParents,
-  ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleGraphPartial,
-  RayonConsumer,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, DependencyId,
+  DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  ModuleGraphPartial, RayonConsumer,
+  cache::persistent::cacheable_context::CacheableContext,
+  compilation::make::{LazyDependencies, ModuleToLazyMake},
 };
 
 const SCOPE: &str = "occasion_make_module_graph";
@@ -37,11 +37,14 @@ struct Node<'a> {
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   #[cacheable(with=AsVec<AsOwned>)]
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
+  #[cacheable(with=AsOption<AsOwned>)]
+  pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
 pub fn save_module_graph(
   partial: &ModuleGraphPartial,
+  module_to_lazy_make: &ModuleToLazyMake,
   revoked_modules: &IdentifierSet,
   built_modules: &IdentifierSet,
   storage: &Arc<dyn Storage>,
@@ -92,12 +95,16 @@ pub fn save_module_graph(
             .into()
         })
         .collect::<Vec<_>>();
+      let lazy_info = module_to_lazy_make
+        .get_lazy_dependencies(identifier)
+        .map(|lazy_deps| lazy_deps.into());
       let node = Node {
         mgm: mgm.into(),
         module: module.into(),
         dependencies,
         connections,
         blocks,
+        lazy_info,
       };
       match to_bytes(&node, context) {
         Ok(bytes) => Some((identifier.as_bytes().to_vec(), bytes)),
@@ -125,9 +132,15 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
-) -> Result<(ModuleGraphPartial, HashSet<DependencyId>, IdentifierSet)> {
+) -> Result<(
+  ModuleGraphPartial,
+  ModuleToLazyMake,
+  HashSet<DependencyId>,
+  IdentifierSet,
+)> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
+  let mut module_to_lazy_make = ModuleToLazyMake::default();
   let mut mg = ModuleGraph::new([None, None], Some(&mut partial));
   storage
     .load(SCOPE)
@@ -162,6 +175,10 @@ pub async fn recovery_module_graph(
         let block = block.into_owned();
         mg.add_block(Box::new(block));
       }
+      if let Some(lazy_info) = node.lazy_info {
+        module_to_lazy_make
+          .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
+      }
       // recovery exports/export info
       let exports_info = ExportsInfoData::default();
       mgm.exports = exports_info.id();
@@ -195,5 +212,10 @@ pub async fn recovery_module_graph(
   tracing::debug!("recovery {} module", mg.modules().len());
   tracing::debug!("recovery failed {} deps", force_build_dependencies.len());
   tracing::debug!("isolated modules {} ", isolated_modules.len());
-  Ok((partial, force_build_dependencies, isolated_modules))
+  Ok((
+    partial,
+    module_to_lazy_make,
+    force_build_dependencies,
+    isolated_modules,
+  ))
 }

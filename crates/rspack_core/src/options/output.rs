@@ -217,7 +217,7 @@ static PREPARE_ID_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 
 impl<'a> PathData<'a> {
-  pub fn prepare_id(v: &str) -> Cow<str> {
+  pub fn prepare_id(v: &str) -> Cow<'_, str> {
     if let Some(caps) = MATCH_ID_REGEX.captures(v) {
       Cow::Owned(format!(
         "\" + ({} + \"\").replace(/(^[.-]|[^a-zA-Z0-9_-])+/g, \"_\") + \"",

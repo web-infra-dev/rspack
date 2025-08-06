@@ -3,12 +3,11 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use async_trait::async_trait;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
-  CompilerFinishMake, CompilerOptions, DependencyType, EntryOptions, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
+  BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
+  CompilerFinishMake, DependencyType, EntryOptions, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -147,10 +146,21 @@ impl ProvideSharedPlugin {
           },
         );
       } else {
-        add_diagnostic(Diagnostic::warn(title.to_string(), format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display())));
+        add_diagnostic(Diagnostic::warn(
+          title.to_string(),
+          format!(
+            "{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}",
+            description.path().display()
+          ),
+        ));
       }
     } else {
-      add_diagnostic(Diagnostic::warn(title.to_string(), format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}")));
+      add_diagnostic(Diagnostic::warn(
+        title.to_string(),
+        format!(
+          "{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"
+        ),
+      ));
     }
   }
 }
@@ -276,25 +286,15 @@ async fn normal_module_factory_module(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ProvideSharedPlugin {
   fn name(&self) -> &'static str {
     "rspack.ProvideSharedPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
-      .compiler_hooks
-      .finish_make
-      .tap(finish_make::new(self));
-    ctx
-      .context
       .normal_module_factory_hooks
       .module
       .tap(normal_module_factory_module::new(self));

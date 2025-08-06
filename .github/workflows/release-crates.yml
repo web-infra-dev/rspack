@@ -42,7 +42,7 @@ jobs:
           save-if: true
           key: release
 
-      - uses: cargo-bins/cargo-binstall@8aac5aa2bf0dfaa2863eccad9f43c68fe40e5ec8 # v1.14.1
+      - uses: cargo-bins/cargo-binstall@dd6a0ac24caa1243d18df0f770b941e990e8facc # v1.14.3
 
       - name: Install cargo-workspaces
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force

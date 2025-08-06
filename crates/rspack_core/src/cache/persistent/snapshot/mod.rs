@@ -22,6 +22,7 @@ const SCOPE: &str = "snapshot";
 /// through the generated `Strategy`
 #[derive(Debug)]
 pub struct Snapshot {
+  scope: &'static str,
   options: Arc<SnapshotOptions>,
   fs: Arc<dyn ReadableFileSystem>,
   storage: Arc<dyn Storage>,
@@ -34,6 +35,21 @@ impl Snapshot {
     storage: Arc<dyn Storage>,
   ) -> Self {
     Self {
+      scope: SCOPE,
+      options: Arc::new(options),
+      fs,
+      storage,
+    }
+  }
+
+  pub fn new_with_scope(
+    scope: &'static str,
+    options: SnapshotOptions,
+    fs: Arc<dyn ReadableFileSystem>,
+    storage: Arc<dyn Storage>,
+  ) -> Self {
+    Self {
+      scope,
       options: Arc::new(options),
       fs,
       storage,
@@ -49,10 +65,10 @@ impl Snapshot {
     if options.is_immutable_path(&path_str) {
       return None;
     }
-    if options.is_managed_path(&path_str) {
-      if let Some(v) = helper.package_version(path).await {
-        return Some(v);
-      }
+    if options.is_managed_path(&path_str)
+      && let Some(v) = helper.package_version(path).await
+    {
+      return Some(v);
     }
     if let Some(h) = helper.path_hash(path).await {
       return Some(h);
@@ -86,7 +102,7 @@ impl Snapshot {
       })
       .fut_consume(|data| {
         if let Some((key, value)) = data {
-          self.storage.set(SCOPE, key, value);
+          self.storage.set(self.scope, key, value);
         }
       })
       .await;
@@ -96,17 +112,21 @@ impl Snapshot {
     for item in paths {
       self
         .storage
-        .remove(SCOPE, item.as_os_str().as_encoded_bytes())
+        .remove(self.scope, item.as_os_str().as_encoded_bytes())
     }
   }
 
+  #[allow(clippy::type_complexity)]
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
-  pub async fn calc_modified_paths(&self) -> Result<(bool, HashSet<ArcPath>, HashSet<ArcPath>)> {
+  pub async fn calc_modified_paths(
+    &self,
+  ) -> Result<(bool, HashSet<ArcPath>, HashSet<ArcPath>, HashSet<ArcPath>)> {
     let mut modified_path = HashSet::default();
     let mut deleted_path = HashSet::default();
+    let mut no_change_path = HashSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
 
-    let data = self.storage.load(SCOPE).await?;
+    let data = self.storage.load(self.scope).await?;
     let is_hot_start = !data.is_empty();
     data
       .into_iter()
@@ -127,11 +147,13 @@ impl Snapshot {
         ValidateResult::Deleted => {
           deleted_path.insert(path);
         }
-        ValidateResult::NoChanged => {}
+        ValidateResult::NoChanged => {
+          no_change_path.insert(path);
+        }
       })
       .await;
 
-    Ok((is_hot_start, modified_path, deleted_path))
+    Ok((is_hot_start, modified_path, deleted_path, no_change_path))
   }
 }
 
@@ -212,7 +234,7 @@ mod tests {
       .await
       .unwrap();
 
-    let (is_hot_start, modified_paths, deleted_paths) =
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) =
       snapshot.calc_modified_paths().await.unwrap();
     assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
@@ -220,6 +242,7 @@ mod tests {
     assert!(modified_paths.contains(&p!("/file1")));
     assert!(modified_paths.contains(&p!("/node_modules/project/file1")));
     assert!(!modified_paths.contains(&p!("/node_modules/lib/file1")));
+    assert_eq!(no_change_paths.len(), 1);
 
     fs.write(
       "/node_modules/lib/package.json".into(),
@@ -228,7 +251,7 @@ mod tests {
     .await
     .unwrap();
     snapshot.add([p!("/file1")].into_iter()).await;
-    let (is_hot_start, modified_paths, deleted_paths) =
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) =
       snapshot.calc_modified_paths().await.unwrap();
     assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
@@ -236,5 +259,6 @@ mod tests {
     assert!(!modified_paths.contains(&p!("/file1")));
     assert!(modified_paths.contains(&p!("/node_modules/project/file1")));
     assert!(modified_paths.contains(&p!("/node_modules/lib/file1")));
+    assert_eq!(no_change_paths.len(), 1);
   }
 }

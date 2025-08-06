@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use napi::{
-  bindgen_prelude::{block_on, Either3},
   Either,
+  bindgen_prelude::{Either3, block_on},
 };
 use rspack_fs::{
   Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,

@@ -1,5 +1,5 @@
 use either::Either;
-use swc_core::ecma::ast::{noop_pass, Pass};
+use swc_core::ecma::ast::{Pass, noop_pass};
 
 use crate::options::RspackExperiments;
 

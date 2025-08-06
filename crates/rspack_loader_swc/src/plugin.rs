@@ -4,15 +4,14 @@ use std::{
 };
 
 use rspack_core::{
-  ApplyContext, BoxLoader, CompilerOptions, Context, ModuleRuleUseLoader,
-  NormalModuleFactoryResolveLoader, Plugin, PluginContext, Resolver,
+  BoxLoader, Context, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, Plugin, Resolver,
 };
 use rspack_error::{Result, SerdeResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
-use crate::{SwcLoader, SWC_LOADER_IDENTIFIER};
+use crate::{SWC_LOADER_IDENTIFIER, SwcLoader};
 
 #[plugin]
 #[derive(Debug)]
@@ -35,9 +34,8 @@ impl Plugin for SwcLoaderPlugin {
     "SwcLoaderPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .resolve_loader
       .tap(resolve_loader::new(self));

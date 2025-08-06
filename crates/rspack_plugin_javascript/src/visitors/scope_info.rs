@@ -377,7 +377,7 @@ impl ScopeInfo {
     self
       .map
       .iter()
-      .filter(|(_, &info_id)| info_id != VariableInfo::TOMBSTONE)
+      .filter(|&(_, &info_id)| info_id != VariableInfo::TOMBSTONE)
       .map(|(name, info_id)| (name.as_str(), info_id))
   }
 }

@@ -1,11 +1,11 @@
 use hashlink::LinkedHashMap;
 
 use super::{
-  value_type::{GetValueType, ValueType},
   Alias, AliasFields, ByDependency, ConditionNames, DependencyCategoryStr, DescriptionFiles,
   EnforceExtension, ExportsFields, ExtensionAlias, Extensions, Fallback, FullySpecified,
   ImportsFields, MainFields, MainFiles, Modules, PreferAbsolute, PreferRelative, Resolve,
   Restrictions, Roots, Symlink, TsconfigOptions,
+  value_type::{GetValueType, ValueType},
 };
 
 pub(super) fn merge_resolve(first: Resolve, second: Resolve) -> Resolve {
@@ -460,6 +460,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     restrictions: result_entry.restrictions.base,
     roots: result_entry.roots.base,
     pnp: result_entry.pnp.base,
+    builtin_modules: false,
   }
 }
 

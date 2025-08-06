@@ -1,12 +1,16 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
+use napi::{Either, Env, JsString, bindgen_prelude::ToNapiValue};
 use napi_derive::napi;
 use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
-use crate::{location::RealDependencyLocation, ChunkWrapper, ModuleObject, ModuleObjectRef};
+use crate::{
+  chunk::ChunkWrapper,
+  location::RealDependencyLocation,
+  module::{ModuleObject, ModuleObjectRef},
+};
 
 #[napi]
 pub struct ChunkGroup {
@@ -211,32 +215,34 @@ impl ToNapiValue for ChunkGroupWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    CHUNK_GROUP_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(val.compilation_id);
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = UkeyMap::default();
-          entry.insert(refs)
-        }
-      };
+    unsafe {
+      CHUNK_GROUP_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compilation_id = refs.borrow_mut();
+        let entry = refs_by_compilation_id.entry(val.compilation_id);
+        let refs = match entry {
+          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let refs = UkeyMap::default();
+            entry.insert(refs)
+          }
+        };
 
-      match refs.entry(val.chunk_group_ukey) {
-        std::collections::hash_map::Entry::Occupied(entry) => {
-          let r = entry.get();
-          ToNapiValue::to_napi_value(env, r)
+        match refs.entry(val.chunk_group_ukey) {
+          std::collections::hash_map::Entry::Occupied(entry) => {
+            let r = entry.get();
+            ToNapiValue::to_napi_value(env, r)
+          }
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let js_module = ChunkGroup {
+              chunk_group_ukey: val.chunk_group_ukey,
+              compilation: val.compilation,
+            };
+            let r = entry.insert(OneShotRef::new(env, js_module)?);
+            ToNapiValue::to_napi_value(env, r)
+          }
         }
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let js_module = ChunkGroup {
-            chunk_group_ukey: val.chunk_group_ukey,
-            compilation: val.compilation,
-          };
-          let r = entry.insert(OneShotRef::new(env, js_module)?);
-          ToNapiValue::to_napi_value(env, r)
-        }
-      }
-    })
+      })
+    }
   }
 }
 

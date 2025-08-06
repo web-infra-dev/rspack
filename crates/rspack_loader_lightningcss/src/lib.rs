@@ -14,8 +14,8 @@ use lightningcss::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  rspack_sources::{encode_mappings, Mapping, OriginalLocation, SourceMap},
   Loader, LoaderContext, RunnerContext,
+  rspack_sources::{Mapping, OriginalLocation, SourceMap, encode_mappings},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Identifiable, Identifier};

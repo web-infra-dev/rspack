@@ -1,14 +1,13 @@
 use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
+  Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
+  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
+  LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
+  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
-  Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
-  PluginContext, RuntimeGlobals, SourceType,
 };
-use rspack_error::{error, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -301,20 +300,14 @@ async fn additional_chunk_runtime_requirements(
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for UmdLibraryPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
@@ -444,16 +437,16 @@ fn accessor_access(base: Option<&str>, accessor: &[String]) -> String {
 }
 
 fn get_auxiliary_comment(t: &str, auxiliary_comment: Option<&LibraryAuxiliaryComment>) -> String {
-  if let Some(auxiliary_comment) = auxiliary_comment {
-    if let Some(value) = match t {
+  if let Some(auxiliary_comment) = auxiliary_comment
+    && let Some(value) = match t {
       "amd" => &auxiliary_comment.amd,
       "commonjs" => &auxiliary_comment.commonjs,
       "commonjs2" => &auxiliary_comment.commonjs2,
       "root" => &auxiliary_comment.root,
       _ => &None,
-    } {
-      return format!("\t// {value} \n");
     }
+  {
+    return format!("\t// {value} \n");
   }
   "".to_string()
 }

@@ -2,6 +2,9 @@
   {
     "language": "javascript",
     "files": [],
+    "ignores": [
+      "packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
+    ],
     "languageOptions": {
       "parserOptions": {
         "projectService": false,
@@ -38,7 +41,8 @@
       "@typescript-eslint/prefer-reduce-type-parameter": "warn",
       "@typescript-eslint/no-unnecessary-boolean-literal-compare": "warn",
       "@typescript-eslint/restrict-plus-operands": "warn",
-      "@typescript-eslint/no-unnecessary-template-expression": "warn"
+      "@typescript-eslint/no-unnecessary-template-expression": "warn",
+      "@typescript-eslint/no-implied-eval": "warn"
     },
     "plugins": [
       "@typescript-eslint"

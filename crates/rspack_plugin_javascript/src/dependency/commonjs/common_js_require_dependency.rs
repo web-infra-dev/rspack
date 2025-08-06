@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, FactorizeInfo, ModuleDependency, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  FactorizeInfo, ModuleDependency, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  module_id,
 };
 
 #[cacheable]

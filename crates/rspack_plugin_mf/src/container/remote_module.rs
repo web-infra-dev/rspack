@@ -4,14 +4,14 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
   Dependency, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType,
+  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::source_map::SourceMapKind;
 
@@ -20,7 +20,7 @@ use super::{
   remote_to_external_dependency::RemoteToExternalDependency,
 };
 use crate::{
-  sharing::share_runtime_module::DataInitInfo, CodeGenerationDataShareInit, ShareInitData,
+  CodeGenerationDataShareInit, ShareInitData, sharing::share_runtime_module::DataInitInfo,
 };
 
 #[impl_source_map_config]
@@ -128,11 +128,11 @@ impl Module for RemoteModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+  fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     self.readable_identifier.as_str().into()
   }
 
-  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(self.lib_ident.as_str().into())
   }
 

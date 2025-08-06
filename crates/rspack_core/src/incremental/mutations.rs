@@ -79,7 +79,7 @@ impl Mutations {
 }
 
 impl Mutations {
-  pub fn iter(&self) -> std::slice::Iter<Mutation> {
+  pub fn iter(&self) -> std::slice::Iter<'_, Mutation> {
     self.inner.iter()
   }
 }

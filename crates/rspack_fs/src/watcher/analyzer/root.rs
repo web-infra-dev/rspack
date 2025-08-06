@@ -1,41 +1,32 @@
+#![allow(unused)]
+use std::ops::Deref;
+
 use dashmap::DashSet as HashSet;
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
-use crate::watcher::path_manager::PathAccessor;
+use crate::watcher::paths::PathAccessor;
 
 #[derive(Default)]
+/// The `WatcherRootAnalyzer` is an implementation of the `Analyzer` trait that
+/// analyzes the root directory of the file system and determines the common root
+/// path to be watched.
 pub struct WatcherRootAnalyzer {
   path_tree: PathTree,
 }
 
 impl Analyzer for WatcherRootAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    let incremental_files = path_accessor.incremental_files();
-    let incremental_directories = path_accessor.incremental_directories();
-    let incremental_missing = path_accessor.incremental_missing();
+    let (_, added_files, removed_files) = path_accessor.files();
+    let (_, added_directories, removed_directories) = path_accessor.directories();
+    let (_, added_missing, removed_missing) = path_accessor.missing();
 
-    for added in incremental_files.added().iter() {
-      self.path_tree.add_path(&added);
-    }
-
-    for removed in incremental_files.removed().iter() {
-      self.path_tree.remove_path(&removed);
-    }
-
-    for added in incremental_directories.added().iter() {
-      self.path_tree.add_path(&added);
-    }
-    for removed in incremental_directories.removed().iter() {
-      self.path_tree.remove_path(&removed);
-    }
-    for added in incremental_missing.added().iter() {
-      self.path_tree.add_path(&added);
-    }
-    for removed in incremental_missing.removed().iter() {
-      self.path_tree.remove_path(&removed);
-    }
+    self.path_tree.update_paths(added_files, removed_files);
+    self
+      .path_tree
+      .update_paths(added_directories, removed_directories);
+    self.path_tree.update_paths(added_missing, removed_missing);
 
     let common_root = self.path_tree.find_common_root();
 
@@ -79,6 +70,15 @@ impl PathTree {
     }
   }
 
+  pub fn update_paths(&self, added_paths: &HashSet<ArcPath>, removed_paths: &HashSet<ArcPath>) {
+    for added in added_paths.iter() {
+      self.add_path(added.deref());
+    }
+    for removed in removed_paths.iter() {
+      self.remove_path(removed.deref());
+    }
+  }
+
   pub fn add_path(&self, path: &ArcPath) {
     self.inner.entry(path.clone()).or_default();
     self.add_path_recursive(path);
@@ -99,7 +99,8 @@ impl PathTree {
 
   fn find_root_recursive(&self, path: ArcPath) -> ArcPath {
     // If the path is already a root, return it
-    let parent_path = match path.parent() {
+
+    match path.parent() {
       Some(parent) => {
         // If the parent exists in the tree, continue searching up
         if self.inner.get(&ArcPath::from(parent)).is_some() {
@@ -109,8 +110,7 @@ impl PathTree {
         }
       }
       None => path,
-    };
-    parent_path
+    }
   }
 
   fn add_path_recursive(&self, path: &ArcPath) {
@@ -152,7 +152,7 @@ mod tests {
   use rspack_paths::ArcPath;
 
   use super::*;
-  use crate::watcher::path_manager::{PathManager, PathUpdater};
+  use crate::watcher::paths::PathManager;
 
   #[test]
   fn test_find_watch_root() {
@@ -162,27 +162,10 @@ mod tests {
     let dir_0 = ArcPath::from(current_dir.clone());
     let dir_1 = ArcPath::from(current_dir.join("src"));
     let path_manager = PathManager::default();
-    let file_updater = PathUpdater {
-      added: vec![
-        file_0.to_string_lossy().to_string(),
-        file_1.to_string_lossy().to_string(),
-      ],
-      removed: vec![],
-    };
-    let directory_updater = PathUpdater {
-      added: vec![
-        dir_0.to_string_lossy().to_string(),
-        dir_1.to_string_lossy().to_string(),
-      ],
-      removed: vec![],
-    };
-    let missing_updater = PathUpdater {
-      added: vec![],
-      removed: vec![],
-    };
-    path_manager
-      .update_paths(file_updater, directory_updater, missing_updater)
-      .unwrap();
+    let files = (vec![file_0, file_1].into_iter(), vec![].into_iter());
+    let dirs = (vec![dir_0, dir_1].into_iter(), vec![].into_iter());
+    let missing = (vec![].into_iter(), vec![].into_iter());
+    path_manager.update(files, dirs, missing).unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
@@ -197,38 +180,19 @@ mod tests {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
 
     let path_manager = PathManager::default();
-    let file_updater = PathUpdater {
-      added: vec![],
-      removed: vec![],
-    };
-    let directory_updater = PathUpdater {
-      added: vec![],
-      removed: vec![],
-    };
-    let missing_updater = PathUpdater {
-      added: vec![
-        current_dir
-          .join("_missing")
-          .join("a")
-          .to_string_lossy()
-          .to_string(),
-        current_dir
-          .join("_missing")
-          .join("b")
-          .to_string_lossy()
-          .to_string(),
-        current_dir
-          .join("_missing")
-          .join("c.js")
-          .to_string_lossy()
-          .to_string(),
-      ],
-      removed: vec![],
-    };
+    let files = (vec![].into_iter(), vec![].into_iter());
+    let dirs = (vec![].into_iter(), vec![].into_iter());
+    let missing = (
+      vec![
+        current_dir.join("_missing").join("a").into(),
+        current_dir.join("_missing").join("b").into(),
+        current_dir.join("_missing").join("c.js").into(),
+      ]
+      .into_iter(),
+      vec![].into_iter(),
+    );
 
-    path_manager
-      .update_paths(file_updater, directory_updater, missing_updater)
-      .unwrap();
+    path_manager.update(files, dirs, missing).unwrap();
 
     let analyzer = WatcherRootAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());

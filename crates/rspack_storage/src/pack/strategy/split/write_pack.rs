@@ -6,15 +6,15 @@ use itertools::Itertools;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use super::{handle_file::redirect_to_path, SplitPackStrategy};
+use super::{SplitPackStrategy, handle_file::redirect_to_path};
 use crate::{
+  FSError, FSOperation, ItemKey, ItemValue,
   error::Result,
   pack::{
-    data::{Pack, PackFileMeta, PackOptions},
-    strategy::{split::util::get_name, PackReadStrategy, PackWriteStrategy, UpdatePacksResult},
     ScopeUpdate,
+    data::{Pack, PackFileMeta, PackOptions},
+    strategy::{PackReadStrategy, PackWriteStrategy, UpdatePacksResult, split::util::get_name},
   },
-  FSError, FSOperation, ItemKey, ItemValue,
 };
 
 #[derive(Debug, Eq)]
@@ -393,11 +393,11 @@ mod tests {
     pack::{
       data::{Pack, PackFileMeta, PackOptions},
       strategy::{
+        PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
         split::{
           handle_file::redirect_to_path,
-          util::test_pack_utils::{clean_strategy, create_strategies, mock_updates, UpdateVal},
+          util::test_pack_utils::{UpdateVal, clean_strategy, create_strategies, mock_updates},
         },
-        PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
       },
     },
   };

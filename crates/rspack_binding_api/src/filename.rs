@@ -2,13 +2,13 @@ use std::{fmt::Debug, sync::Arc};
 
 use futures::future::BoxFuture;
 use napi::{
-  bindgen_prelude::{FnArgs, FromNapiValue, TypeName},
   Either,
+  bindgen_prelude::{FnArgs, FromNapiValue, TypeName},
 };
 use rspack_core::{Filename, FilenameFn, LocalFilenameFn, PathData, PublicPath};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
-use crate::{AssetInfo, JsPathData};
+use crate::{asset::AssetInfo, path_data::JsPathData};
 
 type FilenameValue =
   Either<String, ThreadsafeFunction<FnArgs<(JsPathData, Option<AssetInfo>)>, String>>;
@@ -24,9 +24,11 @@ impl FromNapiValue for JsFilename {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    Ok(Self {
-      filename: Either::from_napi_value(env, napi_val)?,
-    })
+    unsafe {
+      Ok(Self {
+        filename: Either::from_napi_value(env, napi_val)?,
+      })
+    }
   }
 }
 

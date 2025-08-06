@@ -14,10 +14,10 @@ use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
 
 use crate::{
-  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
-  ModuleIdsArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
-  RuntimeSpecSet,
+  AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  for_each_runtime,
 };
 
 #[cacheable]
@@ -125,6 +125,16 @@ impl ChunkGraph {
   ) -> bool {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(&chunk_ukey);
     chunk_graph_chunk.modules.contains(module_identifier)
+  }
+
+  pub fn is_any_module_in_chunk<'a>(
+    &self,
+    mut module_identifiers: impl Iterator<Item = &'a ModuleIdentifier>,
+    chunk_ukey: ChunkUkey,
+  ) -> bool {
+    let chunk_graph_chunk = self.expect_chunk_graph_chunk(&chunk_ukey);
+    module_identifiers
+      .any(|module_identifier| chunk_graph_chunk.modules.contains(module_identifier))
   }
 
   pub(crate) fn expect_chunk_graph_module_mut(

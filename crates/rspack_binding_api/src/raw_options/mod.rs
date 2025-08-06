@@ -1,12 +1,12 @@
 use napi::{
-  bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
   Either,
+  bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{
-  incremental::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
-  ModuleOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
-  OutputOptions, References,
+  CacheOptions, CompilerOptions, Context, Experiments, ModuleOptions, NodeDirnameOption,
+  NodeFilenameOption, NodeGlobalOption, NodeOption, OutputOptions, References,
+  incremental::IncrementalPasses,
 };
 use rspack_error::error;
 
@@ -38,7 +38,7 @@ pub use raw_output::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
 
-pub use crate::raw_resolve::*;
+pub use crate::options::raw_resolve::*;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -147,11 +147,13 @@ impl<T: ValidateNapiValue + FromNapiValue> FromNapiValue for WithFalse<T> {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    Either::from_napi_value(env, napi_val).map(|either| match either {
-      Either::A(false) => WithFalse::False,
-      Either::A(true) => panic!("true is not a valid value for `WithFalse`"),
-      Either::B(value) => WithFalse::True(value),
-    })
+    unsafe {
+      Either::from_napi_value(env, napi_val).map(|either| match either {
+        Either::A(false) => WithFalse::False,
+        Either::A(true) => panic!("true is not a valid value for `WithFalse`"),
+        Either::B(value) => WithFalse::True(value),
+      })
+    }
   }
 }
 
@@ -197,10 +199,12 @@ impl<T: ValidateNapiValue + FromNapiValue> FromNapiValue for WithBool<T> {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    Either::from_napi_value(env, napi_val).map(|either| match either {
-      Either::A(false) => WithBool::False,
-      Either::A(true) => WithBool::True,
-      Either::B(value) => WithBool::Value(value),
-    })
+    unsafe {
+      Either::from_napi_value(env, napi_val).map(|either| match either {
+        Either::A(false) => WithBool::False,
+        Either::A(true) => WithBool::True,
+        Either::B(value) => WithBool::Value(value),
+      })
+    }
   }
 }

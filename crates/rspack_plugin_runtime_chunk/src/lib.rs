@@ -1,9 +1,7 @@
-#![feature(let_chains)]
-
 use std::fmt;
 
 use futures::future::BoxFuture;
-use rspack_core::{ApplyContext, Compilation, CompilationAddEntry, CompilerOptions, PluginContext};
+use rspack_core::{Compilation, CompilationAddEntry};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -66,12 +64,8 @@ async fn add_entry(&self, compilation: &mut Compilation, entry_name: Option<&str
 }
 
 impl rspack_core::Plugin for RuntimeChunkPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .add_entry
-      .tap(add_entry::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.add_entry.tap(add_entry::new(self));
     Ok(())
   }
 }

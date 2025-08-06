@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationParams,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  ExternalType, ModuleExt, ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin,
-  PluginContext, RuntimeGlobals,
+  BoxModule, ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, DependencyType, ExternalType, ModuleExt, ModuleFactoryCreateData,
+  NormalModuleFactoryFactorize, Plugin, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -83,15 +81,14 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               if let Some(stripped) = e.strip_prefix("internal ") {
                 stripped.to_string()
               } else {
-                format!(
-                  "webpack/container/reference/{}{}",
-                  key,
-                  if i > 0 {
-                    format!("/fallback-{}", itoa!(i))
-                  } else {
-                    Default::default()
-                  }
-                )
+                let fallback_suffix = if i > 0 {
+                  let mut i_buffer = itoa::Buffer::new();
+                  let i_str = i_buffer.format(i);
+                  format!("/fallback-{}", i_str)
+                } else {
+                  Default::default()
+                };
+                format!("webpack/container/reference/{}{}", key, fallback_suffix)
               }
             })
             .collect(),
@@ -130,25 +127,18 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
-#[async_trait]
 impl Plugin for ContainerReferencePlugin {
   fn name(&self) -> &'static str {
     "rspack.ContainerReferencePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .normal_module_factory_hooks
       .factorize
       .tap(factorize::new(self));
     ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));

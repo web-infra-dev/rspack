@@ -8,7 +8,7 @@ use rspack_plugin_mf::{
   ProvideOptions, ProvideVersion, RemoteOptions,
 };
 
-use crate::{
+use crate::options::{
   entry::{JsEntryRuntime, JsEntryRuntimeWrapper},
   library::JsLibraryOptions,
 };

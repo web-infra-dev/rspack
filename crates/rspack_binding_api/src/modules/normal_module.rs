@@ -1,12 +1,14 @@
 use napi::{
-  bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
   CallContext, Either, JsObject, NapiRaw,
+  bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
 };
-use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
+use rspack_core::{ResourceData, ResourceParsedData, parse_resource};
 
 use crate::{
-  impl_module_methods, plugins::JsLoaderItem, Module, ReadonlyResourceDataWrapper,
-  MODULE_PROPERTIES_BUFFER,
+  impl_module_methods,
+  module::{MODULE_PROPERTIES_BUFFER, Module},
+  plugins::JsLoaderItem,
+  resource_data::ReadonlyResourceDataWrapper,
 };
 
 #[napi]
@@ -23,7 +25,7 @@ impl NormalModule {
   pub(crate) fn custom_into_instance(
     mut self,
     env: &napi::Env,
-  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<Self>> {
+  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
     let (_, module) = self.as_ref()?;
 
     let resource_resolved_data = module.resource_resolved_data();
@@ -49,7 +51,7 @@ impl NormalModule {
     });
 
     #[js_function]
-    pub fn match_resource_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
+    pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
       let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };

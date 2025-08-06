@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 mod chunk_combination;
 
 use std::collections::HashSet;
@@ -7,8 +5,8 @@ use std::collections::HashSet;
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_collections::{UkeyMap, UkeySet};
 use rspack_core::{
-  compare_chunks_with_graph, incremental::Mutation, ChunkSizeOptions, ChunkUkey, Compilation,
-  CompilationOptimizeChunks, Plugin,
+  ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
+  compare_chunks_with_graph, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -179,19 +177,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       }
       for group_ukey in queue.clone() {
         for modified_chunk_ukey in modified_chunks.clone() {
-          if let Some(m_chunk) = chunk_by_ukey.get(&modified_chunk_ukey) {
-            if modified_chunk_ukey != a
-              && modified_chunk_ukey != b
-              && m_chunk.is_in_group(&group_ukey)
-            {
-              remaining_chunks_to_merge -= 1;
-              if remaining_chunks_to_merge <= 0 {
-                break;
-              }
-              modified_chunks.insert(a);
-              modified_chunks.insert(b);
-              continue;
+          if let Some(m_chunk) = chunk_by_ukey.get(&modified_chunk_ukey)
+            && modified_chunk_ukey != a
+            && modified_chunk_ukey != b
+            && m_chunk.is_in_group(&group_ukey)
+          {
+            remaining_chunks_to_merge -= 1;
+            if remaining_chunks_to_merge <= 0 {
+              break;
             }
+            modified_chunks.insert(a);
+            modified_chunks.insert(b);
+            continue;
           }
         }
         if let Some(group) = chunk_group_by_ukey.get(&group_ukey) {
@@ -319,13 +316,8 @@ impl Plugin for LimitChunkCountPlugin {
     "LimitChunkCountPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

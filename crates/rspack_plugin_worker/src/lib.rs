@@ -1,7 +1,4 @@
-use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  DependencyType, PluginContext,
-};
+use rspack_core::{Compilation, CompilationParams, CompilerCompilation, DependencyType};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -23,12 +20,8 @@ async fn compilation(
 }
 
 impl rspack_core::Plugin for WorkerPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
   }
 }

@@ -1,4 +1,4 @@
-use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin, PluginContext};
+use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -67,11 +67,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               if let Some(module) = compilation
                 .get_module_graph()
                 .module_by_identifier(module_id)
+                && matches!(module.chunk_condition(chunk, compilation), Some(true))
               {
-                if matches!(module.chunk_condition(chunk, compilation), Some(true)) {
-                  target_chunks.insert(*chunk);
-                  continue 'out;
-                }
+                target_chunks.insert(*chunk);
+                continue 'out;
               }
             }
             if chunk_group.is_initial() {
@@ -124,13 +123,8 @@ impl Plugin for EnsureChunkConditionsPlugin {
     "rspack.EnsureChunkConditionsPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

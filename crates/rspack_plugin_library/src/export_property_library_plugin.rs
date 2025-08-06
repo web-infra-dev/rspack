@@ -1,12 +1,10 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  get_entry_runtime, property_access,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
+  CompilationParams, CompilerCompilation, EntryData, LibraryExport, LibraryOptions, LibraryType,
+  ModuleIdentifier, Plugin, RuntimeGlobals, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
-  LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext,
-  RuntimeGlobals, UsageState,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -173,25 +171,18 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for ExportPropertyLibraryPlugin {
   fn name(&self) -> &'static str {
     "rspack.ExportPropertyLibraryPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
     ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

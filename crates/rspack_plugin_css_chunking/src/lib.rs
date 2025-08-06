@@ -8,8 +8,8 @@ use rspack_collections::{
   UkeySet,
 };
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, Logger, Module, ModuleIdentifier, Plugin, PluginContext, SourceType,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams, CompilerCompilation,
+  Logger, Module, ModuleIdentifier, Plugin, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -94,12 +94,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let module_graph = compilation.get_module_graph();
 
   for (chunk_ukey, chunk) in chunks.iter() {
-    if let Some(name) = chunk.name() {
-      if let Some(exclude) = &self.exclude {
-        if exclude.test(name) {
-          continue;
-        }
-      }
+    if let Some(name) = chunk.name()
+      && let Some(exclude) = &self.exclude
+      && exclude.test(name)
+    {
+      continue;
     }
 
     let modules: Vec<&dyn Module> = chunk_graph
@@ -245,12 +244,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     for (chunk_ukey, i) in all_chunk_states {
       #[allow(clippy::unwrap_used)]
       let chunk_state = chunk_states.get(chunk_ukey).unwrap();
-      if let Some(next_module_identifier) = chunk_state.modules.get(i + 1) {
-        if remaining_modules.contains(next_module_identifier) {
-          #[allow(clippy::unwrap_used)]
-          let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
-          potential_next_modules.insert(*next_module_identifier, next_module_size);
-        }
+      if let Some(next_module_identifier) = chunk_state.modules.get(i + 1)
+        && remaining_modules.contains(next_module_identifier)
+      {
+        #[allow(clippy::unwrap_used)]
+        let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
+        potential_next_modules.insert(*next_module_identifier, next_module_size);
       }
     }
 
@@ -360,14 +359,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             chunk_state.requests -= 1;
           }
           all_chunk_states.insert(chunk_ukey, i);
-          if let Some(next_module_identifier) = chunk_state.modules.get(i + 1) {
-            if remaining_modules.contains(next_module_identifier)
-              && !new_chunk_modules.contains(next_module_identifier)
-            {
-              #[allow(clippy::unwrap_used)]
-              let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
-              potential_next_modules.insert(*next_module_identifier, next_module_size);
-            }
+          if let Some(next_module_identifier) = chunk_state.modules.get(i + 1)
+            && remaining_modules.contains(next_module_identifier)
+            && !new_chunk_modules.contains(next_module_identifier)
+          {
+            #[allow(clippy::unwrap_used)]
+            let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
+            potential_next_modules.insert(*next_module_identifier, next_module_size);
           }
         }
         new_chunk_modules.insert(next_module_identifier);
@@ -419,19 +417,10 @@ impl Plugin for CssChunkingPlugin {
     "rspack.CssChunkingPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

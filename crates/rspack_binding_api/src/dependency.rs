@@ -1,8 +1,8 @@
 use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{
-  bindgen_prelude::{Array, ToNapiValue},
   Either, Env,
+  bindgen_prelude::{Array, ToNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, DependencyId};
@@ -13,7 +13,7 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::ModuleObject;
+use crate::module::ModuleObject;
 
 // allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
@@ -215,36 +215,38 @@ impl ToNapiValue for DependencyWrapper {
     env: napi::sys::napi_env,
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
-    DEPENDENCY_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(val.compilation_id);
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = HashMap::default();
-          entry.insert(refs)
-        }
-      };
+    unsafe {
+      DEPENDENCY_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compilation_id = refs.borrow_mut();
+        let entry = refs_by_compilation_id.entry(val.compilation_id);
+        let refs = match entry {
+          std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            let refs = HashMap::default();
+            entry.insert(refs)
+          }
+        };
 
-      match refs.entry(val.dependency_id) {
-        std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
-          let r = occupied_entry.get_mut();
-          let instance = &mut **r;
-          instance.compilation = val.compilation;
-          instance.dependency = val.dependency;
+        match refs.entry(val.dependency_id) {
+          std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+            let r = occupied_entry.get_mut();
+            let instance = &mut **r;
+            instance.compilation = val.compilation;
+            instance.dependency = val.dependency;
 
-          ToNapiValue::to_napi_value(env, r)
+            ToNapiValue::to_napi_value(env, r)
+          }
+          std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+            let js_dependency = Dependency {
+              compilation: val.compilation,
+              dependency_id: val.dependency_id,
+              dependency: val.dependency,
+            };
+            let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_dependency)?);
+            ToNapiValue::to_napi_value(env, r)
+          }
         }
-        std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let js_dependency = Dependency {
-            compilation: val.compilation,
-            dependency_id: val.dependency_id,
-            dependency: val.dependency,
-          };
-          let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_dependency)?);
-          ToNapiValue::to_napi_value(env, r)
-        }
-      }
-    })
+      })
+    }
   }
 }

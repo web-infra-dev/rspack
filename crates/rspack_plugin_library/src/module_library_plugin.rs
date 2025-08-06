@@ -1,20 +1,20 @@
 use std::hash::Hash;
 
 use rspack_core::{
+  ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, UsedNameItem,
   property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_identifier, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier,
-  Plugin, PluginContext, PrefetchExportsInfoMode, UsedNameItem,
+  to_identifier,
 };
-use rspack_error::{error_bail, Result};
+use rspack_error::{Result, error_bail};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
 
-use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.ModuleLibraryPlugin";
 
@@ -148,12 +148,8 @@ impl Plugin for ModuleLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
   }
 }

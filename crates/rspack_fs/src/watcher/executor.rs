@@ -1,14 +1,12 @@
-use std::{
-  collections::HashSet,
-  sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-  },
+use std::sync::{
+  Arc,
+  atomic::{AtomicBool, Ordering},
 };
 
+use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::sync::{
-  mpsc::{self, UnboundedReceiver, UnboundedSender},
   Mutex,
+  mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEvent, FsEventKind};
@@ -251,7 +249,7 @@ fn create_execute_aggregate_task(
           let mut files = files.lock().await;
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
-            return;
+            continue;
           }
           std::mem::take(&mut *files)
         };

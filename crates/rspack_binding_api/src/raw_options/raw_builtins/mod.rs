@@ -22,8 +22,8 @@ mod raw_swc_js_minimizer;
 use std::cell::RefCell;
 
 use napi::{
-  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
   Either, Env, Unknown,
+  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -55,15 +55,15 @@ use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
-  electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
+  ExternalsPlugin, electron_target_plugin, http_externals_rspack_plugin, node_target_plugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin, api_plugin::APIPlugin,
+  define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -84,8 +84,8 @@ use rspack_plugin_rsdoctor::RsdoctorPlugin;
 use rspack_plugin_rslib::RslibPlugin;
 use rspack_plugin_rstest::RstestPlugin;
 use rspack_plugin_runtime::{
-  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
-  ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
+  ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin, ChunkPrefetchPreloadPlugin,
+  CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin, enable_chunk_loading_plugin,
 };
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
@@ -94,7 +94,7 @@ use rspack_plugin_sri::SubresourceIntegrityPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
-  enable_wasm_loading_plugin, AsyncWasmPlugin, FetchCompileAsyncWasmPlugin,
+  AsyncWasmPlugin, FetchCompileAsyncWasmPlugin, enable_wasm_loading_plugin,
 };
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
@@ -122,15 +122,21 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin, JsLoaderRunnerGetter,
-  RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
-  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawRslibPluginOptions,
-  RawRstestPluginOptions, RawSplitChunksOptions, SourceMapDevToolPluginOptions,
+  options::entry::JsEntryPluginOptions,
+  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter, RawContextReplacementPluginOptions},
+  raw_options::{
+    RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
+    RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
+    SourceMapDevToolPluginOptions,
+  },
+  rsdoctor::RawRsdoctorPluginOptions,
+  rslib::RawRslibPluginOptions,
+  rstest::RawRstestPluginOptions,
 };
 
 #[napi(string_enum)]
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum BuiltinPluginName {
   // webpack also have these plugins
   DefinePlugin,
@@ -226,6 +232,7 @@ pub enum BuiltinPluginName {
   CssChunkingPlugin,
 }
 
+#[doc(hidden)]
 pub type CustomPluginBuilder =
   for<'a> fn(env: Env, options: Unknown<'a>) -> napi::Result<BoxPlugin>;
 

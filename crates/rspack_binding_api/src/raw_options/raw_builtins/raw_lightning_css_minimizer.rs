@@ -5,7 +5,7 @@ use rspack_plugin_lightning_css_minimizer::{
   Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
 
-use crate::{into_asset_conditions, RawAssetConditions};
+use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -37,6 +37,7 @@ pub struct RawLightningCssMinimizerOptions {
 
 #[derive(Debug)]
 #[napi(object)]
+#[allow(unused)]
 pub struct RawLightningCssBrowsers {
   pub android: Option<u32>,
   pub chrome: Option<u32>,

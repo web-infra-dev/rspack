@@ -7,7 +7,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource,
 };
 
-use crate::utils::{css_escape_string, AUTO_PUBLIC_PATH_PLACEHOLDER};
+use crate::utils::{AUTO_PUBLIC_PATH_PLACEHOLDER, css_escape_string};
 
 #[cacheable]
 #[derive(Debug, Clone)]

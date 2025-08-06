@@ -1,24 +1,18 @@
-use crate::watcher::{path_manager::PathAccessor, WatchPattern};
+use crate::watcher::{WatchPattern, paths::PathAccessor};
 
 mod directories;
 mod root;
 
-/// The `Analyzer` trait defines an interface for analyzing a [`PathRegister`]
-/// and producing a set of [`WatchTarget`]s to be watched by the file system watcher.
-///
-/// Implementors of this trait should provide logic to determine which paths
-/// should be watched, and with what recursive mode, based on the current state
-/// of the path register.
-///
-/// The trait is bounded by `Default` to allow easy instantiation.
+/// The `Analyzer` trait defines an interface for analyzing a [`PathAccessor`]
+/// and producing a set of [`WatchPattern`]s to be watched by the file system watcher.
 pub(crate) trait Analyzer: Default {
   /// Analyze the given [`PathRegister`] and return a list of [`WatchTarget`]s.
   ///
   /// # Arguments
-  /// * `register` - The path register containing all paths to consider.
+  /// * `path_accessor` - A reference to a [`PathAccessor`] that provides access to the current state of paths, directories, and missing paths.
   ///
   /// # Returns
-  /// A vector of [`WatchTarget`]s representing the paths and their watch modes.
+  /// A vector of [`WatchPattern`]s representing the paths and their watch modes.
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern>;
 }
 

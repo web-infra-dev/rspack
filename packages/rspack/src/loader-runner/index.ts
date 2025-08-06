@@ -1031,7 +1031,7 @@ export async function runLoaders(
 						continue;
 					}
 
-					await loadLoader(currentLoaderObject);
+					await loadLoader(currentLoaderObject, compiler);
 					const fn = currentLoaderObject.pitch;
 					// If parallelism is enabled,
 					// we delegate the current loader to use the runner in worker.
@@ -1075,7 +1075,7 @@ export async function runLoaders(
 						continue;
 					}
 
-					await loadLoader(currentLoaderObject);
+					await loadLoader(currentLoaderObject, compiler);
 					const fn = currentLoaderObject.normal;
 					// If parallelism is enabled,
 					// we delegate the current loader to use the runner in worker.

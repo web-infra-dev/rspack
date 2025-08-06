@@ -6,7 +6,10 @@ use rspack_error::Result;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
 
-use crate::{into_asset_conditions, ChunkWrapper, RawAssetConditions};
+use crate::{
+  asset_condition::{RawAssetConditions, into_asset_conditions},
+  chunk::ChunkWrapper,
+};
 
 #[napi(object, object_from_js = false)]
 pub struct JsBannerContentFnCtx {

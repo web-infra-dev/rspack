@@ -7,18 +7,18 @@ use std::{
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::{
-  bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
   Env, JsValue,
+  bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, rspack_sources::RawStringSource, AfterResolveResult, AssetEmittedInfo,
-  BeforeResolveResult, BindingCell, BoxModule, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
-  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
-  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
-  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
-  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BindingCell, BoxModule, ChunkUkey,
+  Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
+  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
+  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
+  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
+  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
   CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
   CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
   CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
@@ -41,7 +41,7 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme,
+  Scheme, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -70,19 +70,33 @@ use rspack_plugin_runtime::{
 };
 
 use crate::{
-  ChunkWrapper, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-  JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
-  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
-  JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
-  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
-  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsCreateScriptData, JsExecuteModuleArg,
-  JsFactorizeArgs, JsFactorizeOutput, JsLinkPrefetchData, JsLinkPreloadData,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph,
-  JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch, JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals,
-  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ModuleObject, ToJsCompatSourceOwned,
+  asset::JsAssetEmittedArgs,
+  chunk::{ChunkWrapper, JsChunkAssetArgs},
+  compilation::JsCompilationWrapper,
+  context_module_factory::{
+    JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
+    JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
+  },
+  html::{
+    JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
+    JsBeforeAssetTagGenerationData, JsBeforeEmitData,
+  },
+  module::{JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ModuleObject},
+  normal_module_factory::{
+    JsAfterResolveData, JsAfterResolveOutput, JsBeforeResolveArgs, JsBeforeResolveOutput,
+    JsCreateData, JsFactorizeArgs, JsFactorizeOutput, JsNormalModuleFactoryCreateModuleArgs,
+    JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
+  },
+  rsdoctor::{
+    JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
+    JsRsdoctorModuleSourcesPatch,
+  },
+  runtime::{
+    JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
+    JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
+    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
+  },
+  source::ToJsCompatSourceOwned,
 };
 
 #[napi(object)]
@@ -126,8 +140,10 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let t = JsTap::from_napi_value(env, napi_val)?;
-    ThreadsafeJsTap::from_js_tap(t, Env::from_raw(env))
+    unsafe {
+      let t = JsTap::from_napi_value(env, napi_val)?;
+      ThreadsafeJsTap::from_js_tap(t, Env::from_raw(env))
+    }
   }
 }
 

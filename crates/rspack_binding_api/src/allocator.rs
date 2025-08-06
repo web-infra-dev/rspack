@@ -1,7 +1,11 @@
-use napi::{bindgen_prelude::ToNapiValue, sys::napi_env, Env};
+use napi::{Env, bindgen_prelude::ToNapiValue, sys::napi_env};
 use rspack_core::BindingCell;
 
-use crate::{AssetInfo, Assets, CodeGenerationResult, CodeGenerationResults, Sources};
+use crate::{
+  asset::AssetInfo,
+  build_info::Assets,
+  compilation::{CodeGenerationResult, CodeGenerationResults, Sources},
+};
 
 pub(crate) struct NapiAllocatorImpl;
 

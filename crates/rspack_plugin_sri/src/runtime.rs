@@ -1,10 +1,9 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  chunk_graph_chunk::ChunkId, impl_runtime_module, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleExt,
+  ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
-use rspack_error::{error, Result};
+use rspack_error::{Result, error};
 use rspack_hook::plugin_hook;
 use rspack_plugin_mf::{ConsumeSharedModule, ProvideSharedModule};
 use rspack_plugin_runtime::{
@@ -13,8 +12,8 @@ use rspack_plugin_runtime::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  util::{find_chunks, make_placeholder, SRI_HASH_VARIABLE_REFERENCE},
   SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  util::{SRI_HASH_VARIABLE_REFERENCE, find_chunks, make_placeholder},
 };
 
 fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {

@@ -2,15 +2,14 @@ use std::{any::Any, hash::BuildHasherDefault, sync::Arc};
 
 use dashmap::DashMap;
 use rspack_cacheable::{
-  cacheable,
+  DeserializeError, SerializeError, cacheable,
   with::{As, AsConverter},
-  DeserializeError, SerializeError,
 };
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHasher;
 
 use super::resolver_impl::Resolver;
-use crate::{cache::persistent::CacheableContext, DependencyCategory, Resolve};
+use crate::{DependencyCategory, Resolve, cache::persistent::CacheableContext};
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 // Actually this should be ResolveOptionsWithDependencyCategory, it's a mistake from webpack, but keep the alignment for easily find the code in webpack

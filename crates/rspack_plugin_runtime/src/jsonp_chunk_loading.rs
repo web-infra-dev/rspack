@@ -1,11 +1,11 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, PluginContext, RuntimeGlobals,
+  Plugin, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::runtime_module::{is_enabled_for_chunk, JsonpChunkLoadingRuntimeModule};
+use crate::runtime_module::{JsonpChunkLoadingRuntimeModule, is_enabled_for_chunk};
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -67,13 +67,8 @@ impl Plugin for JsonpChunkLoadingPlugin {
     "JsonpChunkLoadingPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));

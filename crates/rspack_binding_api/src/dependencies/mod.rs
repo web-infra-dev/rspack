@@ -4,7 +4,7 @@ pub use entry_dependency::*;
 use napi::bindgen_prelude::{Either, FromNapiValue};
 use rspack_core::DependencyId;
 
-use crate::Dependency;
+use crate::dependency::Dependency;
 
 // DependencyObject is used to uniformly handle Dependency and EntryDependency.
 pub struct DependencyObject(Option<DependencyId>);
@@ -20,9 +20,11 @@ impl FromNapiValue for DependencyObject {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    match Either::<&Dependency, &EntryDependency>::from_napi_value(env, napi_val)? {
-      Either::A(dependency) => Ok(DependencyObject(Some(dependency.dependency_id))),
-      Either::B(entry_dependency) => Ok(DependencyObject(entry_dependency.dependency_id)),
+    unsafe {
+      match Either::<&Dependency, &EntryDependency>::from_napi_value(env, napi_val)? {
+        Either::A(dependency) => Ok(DependencyObject(Some(dependency.dependency_id))),
+        Either::B(entry_dependency) => Ok(DependencyObject(entry_dependency.dependency_id)),
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
 use std::collections::hash_map::Entry;
 
+use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
@@ -245,32 +246,32 @@ impl<'a> ModuleGraph<'a> {
         .dependency_id_to_parents
         .insert(*dep_id, None);
       active_partial.connection_to_condition.remove(dep_id);
-      if let Some(m_id) = original_module_identifier {
-        if let Some(Some(module)) = active_partial.modules.get_mut(&m_id) {
-          module.remove_dependency_id(*dep_id);
-        }
+      if let Some(m_id) = original_module_identifier
+        && let Some(Some(module)) = active_partial.modules.get_mut(&m_id)
+      {
+        module.remove_dependency_id(*dep_id);
       }
-      if let Some(b_id) = parent_block {
-        if let Some(Some(block)) = active_partial.blocks.get_mut(&b_id) {
-          block.remove_dependency_id(*dep_id);
-        }
+      if let Some(b_id) = parent_block
+        && let Some(Some(block)) = active_partial.blocks.get_mut(&b_id)
+      {
+        block.remove_dependency_id(*dep_id);
       }
     }
 
     // remove outgoing from original module graph module
-    if let Some(original_module_identifier) = &original_module_identifier {
-      if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
-        mgm.remove_outgoing_connection(dep_id);
-        if force {
-          mgm.all_dependencies.retain(|id| id != dep_id);
-        }
+    if let Some(original_module_identifier) = &original_module_identifier
+      && let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier)
+    {
+      mgm.remove_outgoing_connection(dep_id);
+      if force {
+        mgm.all_dependencies.retain(|id| id != dep_id);
       }
     }
     // remove incoming from module graph module
-    if let Some(module_identifier) = &module_identifier {
-      if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier) {
-        mgm.remove_incoming_connection(dep_id);
-      }
+    if let Some(module_identifier) = &module_identifier
+      && let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier)
+    {
+      mgm.remove_incoming_connection(dep_id);
     }
 
     Some((*dep_id, original_module_identifier))
@@ -655,6 +656,22 @@ impl<'a> ModuleGraph<'a> {
     self
       .loop_partials(|p| p.dependencies.get(dependency_id))?
       .as_ref()
+  }
+
+  pub fn dependency_by_id_mut(
+    &mut self,
+    dependency_id: &DependencyId,
+  ) -> Option<&mut BoxDependency> {
+    self
+      .loop_partials_mut(
+        |p| p.dependencies.contains_key(dependency_id),
+        |p, search_result| {
+          p.dependencies.insert(*dependency_id, search_result);
+        },
+        |p| p.dependencies.get(dependency_id).cloned(),
+        |p| p.dependencies.get_mut(dependency_id),
+      )?
+      .as_mut()
   }
 
   /// Uniquely identify a module by its dependency
@@ -1127,5 +1144,116 @@ impl<'a> ModuleGraph<'a> {
     active_partial
       .connections
       .insert(connection.dependency_id, Some(connection));
+  }
+
+  pub fn batch_set_connections_original_module(
+    &mut self,
+    tasks: Vec<(DependencyId, ModuleIdentifier)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(dep_id, original_module_identifier)| {
+        let mut con = self
+          .connection_by_dependency_id(&dep_id)
+          .expect("should have connection")
+          .clone();
+        con.original_module_identifier = Some(original_module_identifier);
+        (dep_id, con)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (dep_id, con) in changed {
+      active_partial.connections.insert(dep_id, Some(con));
+    }
+  }
+
+  pub fn batch_set_connections_module(&mut self, tasks: Vec<(DependencyId, ModuleIdentifier)>) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(dep_id, module_identifier)| {
+        let mut con = self
+          .connection_by_dependency_id(&dep_id)
+          .expect("should have connection")
+          .clone();
+        con.set_module_identifier(module_identifier);
+        (dep_id, con)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (dep_id, con) in changed {
+      active_partial.connections.insert(dep_id, Some(con));
+    }
+  }
+
+  pub fn batch_add_connections(
+    &mut self,
+    tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(mid, outgoings, incomings)| {
+        let mut mgm = self
+          .module_graph_module_by_identifier(&mid)
+          .expect("should have mgm")
+          .clone();
+        for outgoing in outgoings {
+          mgm.add_outgoing_connection(outgoing);
+        }
+        for incoming in incomings {
+          mgm.add_incoming_connection(incoming);
+        }
+        (mid, mgm)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (mid, mgm) in changed {
+      active_partial.module_graph_modules.insert(mid, Some(mgm));
+    }
+  }
+
+  pub fn batch_remove_connections(
+    &mut self,
+    tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(mid, outgoings, incomings)| {
+        let mut mgm = self
+          .module_graph_module_by_identifier(&mid)
+          .expect("should have mgm")
+          .clone();
+        for outgoing in outgoings.iter() {
+          mgm.remove_outgoing_connection(outgoing);
+        }
+        for incoming in incomings.iter() {
+          mgm.remove_incoming_connection(incoming);
+        }
+        (mid, mgm)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (mid, mgm) in changed {
+      active_partial.module_graph_modules.insert(mid, Some(mgm));
+    }
   }
 }

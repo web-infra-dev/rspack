@@ -3,15 +3,15 @@ mod parser;
 use std::{borrow::Cow, collections::HashMap};
 
 use itertools::Itertools;
-use parser::{walk_definitions, DefineParserPlugin};
+use parser::{DefineParserPlugin, walk_definitions};
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginContext,
+  Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin,
 };
 use rspack_error::{
+  DiagnosticExt, Result,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
-  DiagnosticExt, Result,
 };
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
@@ -73,7 +73,10 @@ async fn compilation(
         )
       } else if let Some(value) = value.as_array() {
         let indexes = (0..value.len())
-          .map(|index| itoa!(index).to_string())
+          .map(|index| {
+            let mut index_buffer = itoa::Buffer::new();
+            index_buffer.format(index).to_string()
+          })
           .collect_vec();
         let iter = indexes.iter().zip(value.iter());
         walk_definitions(iter, compilation, Cow::Owned(format!("{prefix}{key}.")))
@@ -105,14 +108,9 @@ impl Plugin for DefinePlugin {
     "rspack.DefinePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

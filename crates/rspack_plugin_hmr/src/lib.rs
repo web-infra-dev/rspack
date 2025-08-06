@@ -1,21 +1,18 @@
-#![feature(let_chains)]
-
 mod hot_module_replacement;
 
 use std::collections::hash_map;
 
-use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
+  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
+  CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
+  ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
+  RuntimeModuleExt, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{RawStringSource, SourceExt},
-  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
-  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
-  RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -463,35 +460,26 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
     ctx
-      .context
       .normal_module_hooks
       .loader
       .tap(normal_module_loader::new(self));
     ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(normal_module_factory_parser::new(self));
     ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));

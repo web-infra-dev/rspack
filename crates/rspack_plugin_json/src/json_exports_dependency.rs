@@ -108,8 +108,10 @@ fn get_exports_from_data(
           .iter()
           .enumerate()
           .map(|(i, item)| {
+            let mut i_buffer = itoa::Buffer::new();
+            let i_str = i_buffer.format(i);
             ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: itoa!(i).into(),
+              name: i_str.into(),
               can_mangle: Some(true),
               exports: get_exports_from_data(item, exports_depth, cur_depth + 1).map(|item| {
                 match item {

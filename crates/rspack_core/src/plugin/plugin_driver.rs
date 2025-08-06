@@ -7,7 +7,7 @@ use rspack_util::fx_hash::FxDashMap;
 use crate::{
   ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilationId, CompilerHooks,
   CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks, ModuleType,
-  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, PluginContext, ResolverFactory,
+  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, ResolverFactory,
 };
 
 #[derive(Debug)]
@@ -49,11 +49,10 @@ impl PluginDriver {
       context_module_factory_hooks: &mut context_module_factory_hooks,
       normal_module_hooks: &mut normal_module_hooks,
       concatenated_module_hooks: &mut concatenated_module_hooks,
+      compiler_options: &options,
     };
     for plugin in &plugins {
-      plugin
-        .apply(PluginContext::with_context(&mut apply_context), &options)
-        .expect("TODO:");
+      plugin.apply(&mut apply_context).expect("TODO:");
     }
 
     Arc::new(Self {

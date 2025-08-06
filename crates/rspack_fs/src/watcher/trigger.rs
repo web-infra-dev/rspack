@@ -5,7 +5,7 @@ use rspack_paths::ArcPath;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind};
-use crate::watcher::path_manager::PathManager;
+use crate::watcher::paths::PathManager;
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///
@@ -125,10 +125,14 @@ impl Trigger {
   fn finder(&self) -> DependencyFinder<'_> {
     let accessor = self.path_manager.access();
 
+    let files = accessor.files().0;
+    let directories = accessor.directories().0;
+    let missing = accessor.missing().0;
+
     DependencyFinder {
-      files: accessor.files(),
-      directories: accessor.directories(),
-      missing: accessor.missing(),
+      files,
+      directories,
+      missing,
     }
   }
 

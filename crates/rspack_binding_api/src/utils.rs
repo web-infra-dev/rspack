@@ -1,9 +1,9 @@
 use futures::Future;
 use rspack_napi::napi::{
-  bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode, Result,
+  Result, bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode,
 };
 
-use crate::ErrorCode;
+use crate::error::ErrorCode;
 /**
  *  execution workflow
  *  1. let future_result = fut.await; // get rust future result

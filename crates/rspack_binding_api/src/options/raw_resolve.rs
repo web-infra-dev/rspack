@@ -174,6 +174,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       description_files,
       imports_fields,
       pnp,
+      builtin_modules: false,
     })
   }
 }
@@ -182,14 +183,21 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
   type Error = rspack_error::Error;
   fn try_from(value: RawResolveTsconfigOptions) -> Result<Self, Self::Error> {
     let references = match value.references_type.as_str() {
-      "manual" => TsconfigReferences::Paths(value.references.unwrap_or_default().into_iter().map(Into::into).collect()),
+      "manual" => TsconfigReferences::Paths(
+        value
+          .references
+          .unwrap_or_default()
+          .into_iter()
+          .map(Into::into)
+          .collect(),
+      ),
       "auto" => TsconfigReferences::Auto,
       "disabled" => TsconfigReferences::Disabled,
       _ => panic!(
-          "Failed to resolve the references type {}. Expected type is `auto`, `manual` or `disabled`.",
-          value.references_type
-      )
-  };
+        "Failed to resolve the references type {}. Expected type is `auto`, `manual` or `disabled`.",
+        value.references_type
+      ),
+    };
     Ok(TsconfigOptions {
       config_file: value.config_file.into(),
       references,
@@ -226,7 +234,7 @@ pub struct RawResolveOptionsWithDependencyType {
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
 
-  pub dependency_category: Option<String>,
+  pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
 }
@@ -297,12 +305,13 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         by_dependency,
         description_files: raw.description_files,
         enforce_extension: raw.enforce_extension,
+        builtin_modules: false,
       };
       Ok(ResolveOptionsWithDependencyType {
         resolve_options: Some(Box::new(resolve_options)),
         resolve_to_context: raw.resolve_to_context.unwrap_or(default_resolve_to_context),
         dependency_category: raw
-          .dependency_category
+          .dependency_type
           .map(|c| DependencyCategory::from(c.as_str()))
           .unwrap_or(DependencyCategory::Unknown),
       })

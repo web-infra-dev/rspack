@@ -1,17 +1,16 @@
 use std::hash::Hash;
 
 use rspack_core::{
+  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
-  CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  runtime::{render_chunk_runtime_modules, render_runtime_modules},
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
+  runtime::{render_chunk_runtime_modules, render_runtime_modules},
 };
 use rspack_util::json_stringify;
 
@@ -190,14 +189,9 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

@@ -1,6 +1,6 @@
 use std::sync::{
-  atomic::{AtomicBool, Ordering},
   Arc, RwLock,
+  atomic::{AtomicBool, Ordering},
 };
 
 pub use determine_export_assignments::DetermineExportAssignmentsKey;
@@ -259,6 +259,7 @@ pub struct NormalReexportItem {
 #[derive(Debug, Clone)]
 pub enum ExportMode {
   Missing,
+  LazyMake,
   Unused(ExportModeUnused),
   EmptyStar(ExportModeEmptyStar),
   ReexportDynamicDefault(ExportModeReexportDynamicDefault),

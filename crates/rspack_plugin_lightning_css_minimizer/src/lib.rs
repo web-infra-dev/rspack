@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 use std::{
   collections::HashSet,
   hash::Hash,
@@ -15,11 +13,11 @@ use lightningcss::{
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
     MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
-  ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -105,20 +103,20 @@ pub struct LightningCssMinimizerRspackPlugin {
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.test
+    && !condition.try_match(str)
+  {
+    return false;
   }
-  if let Some(condition) = &obj.include {
-    if !condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.include
+    && !condition.try_match(str)
+  {
+    return false;
   }
-  if let Some(condition) = &obj.exclude {
-    if condition.try_match(str) {
-      return false;
-    }
+  if let Some(condition) = &obj.exclude
+    && condition.try_match(str)
+  {
+    return false;
   }
   true
 }
@@ -230,28 +228,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               unused_symbols,
             })
             .to_rspack_result()?;
-          let result = stylesheet
-            .to_css(PrinterOptions {
-              minify: true,
-              source_map: source_map.as_mut(),
-              project_root: None,
-              targets,
-              analyze_dependencies: None,
-              pseudo_classes: minimizer_options.pseudo_classes
-              .as_ref()
-              .map(|pseudo_classes| lightningcss::stylesheet::PseudoClasses {
-                hover: pseudo_classes.hover.as_deref(),
-                active: pseudo_classes.active.as_deref(),
-                focus: pseudo_classes.focus.as_deref(),
-                focus_visible: pseudo_classes.focus_visible.as_deref(),
-                focus_within: pseudo_classes.focus_within.as_deref(),
-              }),
-            })
-            .to_rspack_result()?;
           // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
-          // enable when we have a better way to handle it.
-
-          // let warnings = warnings.read().expect("should lock");
+          // enable when we have a better way to handle it. let warnings = warnings.read().expect("should lock");
           // all_warnings.write().expect("should lock").extend(
           //   warnings.iter().map(|e| {
           //     if let Some(loc) = &e.loc {
@@ -272,7 +250,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           //     }
           //   }),
           // );
-          result
+          stylesheet
+            .to_css(PrinterOptions {
+              minify: true,
+              source_map: source_map.as_mut(),
+              project_root: None,
+              targets,
+              analyze_dependencies: None,
+              pseudo_classes: minimizer_options.pseudo_classes
+              .as_ref()
+              .map(|pseudo_classes| lightningcss::stylesheet::PseudoClasses {
+                hover: pseudo_classes.hover.as_deref(),
+                active: pseudo_classes.active.as_deref(),
+                focus: pseudo_classes.focus.as_deref(),
+                focus_visible: pseudo_classes.focus_visible.as_deref(),
+                focus_within: pseudo_classes.focus_within.as_deref(),
+              }),
+            })
+            .to_rspack_result()?
         };
 
         let minimized_source = if let Some(mut source_map) = source_map {
@@ -310,18 +305,9 @@ impl Plugin for LightningCssMinimizerRspackPlugin {
     "rspack.LightningCssMinimizerRspackPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.chunk_hash.tap(chunk_hash::new(self));
     ctx
-      .context
-      .compilation_hooks
-      .chunk_hash
-      .tap(chunk_hash::new(self));
-    ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));

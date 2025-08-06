@@ -1,5 +1,3 @@
-#![feature(try_find)]
-
 mod cacheable;
 mod cacheable_dyn;
 mod hook;

@@ -7,8 +7,8 @@ use rspack_error::miette::{Diagnostic, Severity};
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::{
-  comments::{Comment, CommentKind, Comments},
   SourceFile, Span,
+  comments::{Comment, CommentKind, Comments},
 };
 
 use crate::visitors::create_traceable_error;
@@ -418,14 +418,14 @@ fn analyze_comments(
             );
           }
           "webpackInclude" => {
-            if captures.name("_6").is_some() {
-              if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
-                let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-                if RspackRegex::with_flags(regexp, flags).is_ok() {
-                  result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
-                  result.insert(WebpackComment::IncludeFlags, flags.to_string());
-                  continue;
-                }
+            if captures.name("_6").is_some()
+              && let Some(regexp) = captures.get(9).map(|x| x.as_str())
+            {
+              let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
+              if RspackRegex::with_flags(regexp, flags).is_ok() {
+                result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
+                result.insert(WebpackComment::IncludeFlags, flags.to_string());
+                continue;
               }
             }
             add_magic_comment_warning(
@@ -438,14 +438,14 @@ fn analyze_comments(
             );
           }
           "webpackExclude" => {
-            if captures.name("_6").is_some() {
-              if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
-                let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-                if RspackRegex::with_flags(regexp, flags).is_ok() {
-                  result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
-                  result.insert(WebpackComment::ExcludeFlags, flags.to_string());
-                  continue;
-                }
+            if captures.name("_6").is_some()
+              && let Some(regexp) = captures.get(9).map(|x| x.as_str())
+            {
+              let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
+              if RspackRegex::with_flags(regexp, flags).is_ok() {
+                result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
+                result.insert(WebpackComment::ExcludeFlags, flags.to_string());
+                continue;
               }
             }
             add_magic_comment_warning(
@@ -468,8 +468,8 @@ fn analyze_comments(
                 item_value_match.as_str().trim().to_string(),
               );
               return;
-            } else if let Some(item_value_match) = captures.name("_7") {
-              if let Some(exports) =
+            } else if let Some(item_value_match) = captures.name("_7")
+              && let Some(exports) =
                 item_value_match
                   .as_str()
                   .split(',')
@@ -479,10 +479,9 @@ fn analyze_comments(
                       .and_then(|matched| matched.get(1).map(|x| x.as_str()))
                       .map(|name| format!("{acc},{name}"))
                   })
-              {
-                result.insert(WebpackComment::Exports, exports);
-                return;
-              }
+            {
+              result.insert(WebpackComment::Exports, exports);
+              return;
             }
             add_magic_comment_warning(
               source_file,

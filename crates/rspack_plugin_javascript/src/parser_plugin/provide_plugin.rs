@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  ApplyContext, CompilerOptions, DependencyRange, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, PluginContext, SharedSourceMap,
+  DependencyRange, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, SharedSourceMap,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -11,8 +11,8 @@ use swc_core::{atoms::Atom, common::Spanned};
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::ProvideDependency, parser_and_generator::JavaScriptParserAndGenerator,
-  visitors::JavascriptParser, BoxJavascriptParserPlugin,
+  BoxJavascriptParserPlugin, dependency::ProvideDependency,
+  parser_and_generator::JavaScriptParserAndGenerator, visitors::JavascriptParser,
 };
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;
@@ -163,9 +163,8 @@ impl Plugin for ProvidePlugin {
     "rspack.ProvidePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

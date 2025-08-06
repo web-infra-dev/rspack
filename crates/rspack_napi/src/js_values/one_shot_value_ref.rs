@@ -6,9 +6,9 @@ use std::{
 };
 
 use napi::{
-  bindgen_prelude::{check_status, ToNapiValue},
-  sys::{self, napi_env},
   CleanupEnvHook, Env, Result,
+  bindgen_prelude::{ToNapiValue, check_status},
+  sys::{self, napi_env},
 };
 
 thread_local! {

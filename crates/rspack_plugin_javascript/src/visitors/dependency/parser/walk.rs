@@ -16,12 +16,12 @@ use swc_core::{
 };
 
 use super::{
-  estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
   AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName,
   TopLevelScope,
+  estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
-  parser_plugin::{is_logic_op, JavascriptParserPlugin},
+  parser_plugin::{JavascriptParserPlugin, is_logic_op},
   visitors::scope_info::FreeName,
 };
 
@@ -447,26 +447,25 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {
-    if expr.op == UnaryOp::TypeOf {
-      if let Some(expr_info) =
+    if expr.op == UnaryOp::TypeOf
+      && let Some(expr_info) =
         self.get_member_expression_info_from_expr(&expr.arg, AllowedMemberTypes::Expression)
-      {
-        let MemberExpressionInfo::Expression(expr_info) = expr_info else {
-          // we use `AllowedMemberTypes::Expression` above
-          unreachable!();
-        };
-        if expr_info
-          .name
-          .call_hooks_name(self, |this, for_name| {
-            this.plugin_drive.clone().r#typeof(this, expr, for_name)
-          })
-          .unwrap_or_default()
-        {
-          return;
-        }
+    {
+      let MemberExpressionInfo::Expression(expr_info) = expr_info else {
+        // we use `AllowedMemberTypes::Expression` above
+        unreachable!();
       };
-      // TODO: expr.arg belongs chain_expression
-    }
+      if expr_info
+        .name
+        .call_hooks_name(self, |this, for_name| {
+          this.plugin_drive.clone().r#typeof(this, expr, for_name)
+        })
+        .unwrap_or_default()
+      {
+        return;
+      }
+    };
+    // TODO: expr.arg belongs chain_expression
     self.walk_expression(&expr.arg)
   }
 
@@ -854,10 +853,10 @@ impl JavascriptParser<'_> {
     }
 
     // Add function name in scope for recursive calls
-    if let Some(expr) = expr.as_fn_expr() {
-      if let Some(ident) = &expr.ident {
-        scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
-      }
+    if let Some(expr) = expr.as_fn_expr()
+      && let Some(ident) = &expr.ident
+    {
+      scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
     }
 
     let was_top_level_scope = self.top_level_scope;
@@ -1382,15 +1381,14 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_class(&mut self, classy: &Class, class_decl_or_expr: ClassDeclOrExpr) {
-    if let Some(super_class) = &classy.super_class {
-      if !self
+    if let Some(super_class) = &classy.super_class
+      && !self
         .plugin_drive
         .clone()
         .class_extends_expression(self, super_class, class_decl_or_expr)
         .unwrap_or_default()
-      {
-        self.walk_expression(super_class);
-      }
+    {
+      self.walk_expression(super_class);
     }
 
     let scope_params = if let Some(pat) = class_decl_or_expr

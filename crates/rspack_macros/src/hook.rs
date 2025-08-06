@@ -1,10 +1,10 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
+  Error, Ident, LitStr, PatType, Result, Token, TypePath,
   parse::{Parse, ParseStream},
   punctuated::Punctuated,
   token::Comma,
-  Error, Ident, LitStr, PatType, Result, Token, TypePath,
 };
 
 pub struct DefineHookInput {
@@ -34,7 +34,7 @@ impl Parse for DefineHookInput {
             return Err(Error::new(
               input.span(),
               "Waterfall hooks must explicitly define a return type",
-            ))
+            ));
           }
         };
         ExecKind::SeriesWaterfall { ret }
@@ -45,7 +45,7 @@ impl Parse for DefineHookInput {
         return Err(Error::new_spanned(
           kind_ident,
           "unsupported hook execution kind",
-        ))
+        ));
       }
     };
 

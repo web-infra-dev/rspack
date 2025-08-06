@@ -1,9 +1,9 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{
+  ChunkGraph, CompilationModuleIds, Logger, ModuleGraph, ModuleId, ModuleIdentifier,
+  ModuleIdsArtifact, Plugin,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
-  ApplyContext, ChunkGraph, CompilationModuleIds, CompilerOptions, Logger, ModuleGraph, ModuleId,
-  ModuleIdentifier, ModuleIdsArtifact, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -95,12 +95,14 @@ fn assign_named_module_ids(
       items.sort_unstable_by(|a, b| compare_ids(a, b));
       let mut i = 0;
       for item in items {
-        let mut formatted_name = format!("{name}{}", itoa!(i));
+        let mut i_buffer = itoa::Buffer::new();
+        let mut formatted_name = format!("{name}{}", i_buffer.format(i));
         while name_to_items_keys.contains(&formatted_name)
           && used_ids.contains_key(&formatted_name.as_str().into())
         {
           i += 1;
-          formatted_name = format!("{name}{}", itoa!(i));
+          let mut i_buffer = itoa::Buffer::new();
+          formatted_name = format!("{name}{}", i_buffer.format(i));
         }
         let name: ModuleId = formatted_name.into();
         if ChunkGraph::set_module_id(module_ids, item, name.clone())
@@ -241,12 +243,8 @@ impl Plugin for NamedModuleIdsPlugin {
     "NamedModuleIdsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .module_ids
-      .tap(module_ids::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
     Ok(())
   }
 }

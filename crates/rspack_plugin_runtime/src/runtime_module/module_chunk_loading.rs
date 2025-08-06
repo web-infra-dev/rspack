@@ -3,15 +3,15 @@ use std::ptr::NonNull;
 use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  compile_boolean_matcher, impl_runtime_module, BooleanMatcher, Chunk, ChunkGroupOrderKey,
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
+  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
-  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
 };
 
 #[impl_runtime_module]

@@ -1,19 +1,19 @@
 use std::hash::Hash;
 
 use rspack_core::{
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
+  CompilerCompilation, ExternalModule, ExternalRequest, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, Plugin, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_error::{error_bail, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error_bail};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
 };
 
-use crate::utils::{external_module_names, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
+use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, external_module_names, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.SystemLibraryPlugin";
 
@@ -201,14 +201,9 @@ impl Plugin for SystemLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

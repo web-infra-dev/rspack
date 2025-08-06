@@ -1,24 +1,22 @@
 use std::{hash::Hash, sync::LazyLock};
 
-use async_trait::async_trait;
 use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  get_target,
+  BoxModule, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  CompilationParams, CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, Module,
+  ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
+  UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
-  ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, ExportInfo, ExportProvided, ExportsInfoGetter, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, PluginContext, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  UsageState,
+  to_comment_with_nl,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::{
-  plugin::{CssModulesRenderModulePackage, CssModulesRenderSource},
   CssPlugin,
+  plugin::{CssModulesRenderModulePackage, CssModulesRenderSource},
 };
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderModulePackage, JsPlugin, RenderSource,
@@ -302,18 +300,13 @@ async fn render_js_module_package(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ModuleInfoHeaderPlugin {
   fn name(&self) -> &'static str {
     "rspack.ModuleInfoHeaderPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
   }
 }

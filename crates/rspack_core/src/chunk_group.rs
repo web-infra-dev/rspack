@@ -7,13 +7,13 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeySet};
-use rspack_error::{error, Result};
+use rspack_error::{Result, error};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading,
-  ChunkUkey, Compilation, DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions,
-  ModuleIdentifier, ModuleLayer, PublicPath,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
+  DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions, ModuleIdentifier,
+  ModuleLayer, PublicPath, compare_chunk_group,
 };
 
 #[derive(Debug, Clone)]
@@ -52,6 +52,14 @@ pub struct ChunkGroup {
   pub(crate) entrypoint_chunk: Option<ChunkUkey>,
   origins: Vec<OriginRecord>,
   pub(crate) is_over_size_limit: Option<bool>,
+}
+
+impl Default for ChunkGroup {
+  fn default() -> Self {
+    Self::new(ChunkGroupKind::Normal {
+      options: Default::default(),
+    })
+  }
 }
 
 impl ChunkGroup {
@@ -234,16 +242,16 @@ impl ChunkGroup {
   }
 
   pub fn replace_chunk(&mut self, old_chunk: &ChunkUkey, new_chunk: &ChunkUkey) -> bool {
-    if let Some(runtime_chunk) = self.runtime_chunk {
-      if runtime_chunk == *old_chunk {
-        self.runtime_chunk = Some(*new_chunk);
-      }
+    if let Some(runtime_chunk) = self.runtime_chunk
+      && runtime_chunk == *old_chunk
+    {
+      self.runtime_chunk = Some(*new_chunk);
     }
 
-    if let Some(entry_point_chunk) = self.entrypoint_chunk {
-      if entry_point_chunk == *old_chunk {
-        self.entrypoint_chunk = Some(*new_chunk);
-      }
+    if let Some(entry_point_chunk) = self.entrypoint_chunk
+      && entry_point_chunk == *old_chunk
+    {
+      self.entrypoint_chunk = Some(*new_chunk);
     }
 
     match self.chunks.iter().position(|x| x == old_chunk) {
