@@ -15,7 +15,6 @@ browser         = ["rspack_binding_api/browser"]
 color-backtrace = ["rspack_binding_api/color-backtrace"]
 debug_tool      = ["rspack_binding_api/debug_tool"]
 info-level      = ["tracing/release_max_level_info"]
-plugin          = ["rspack_binding_api/plugin"]
 sftrace-setup   = ["rspack_binding_api/sftrace-setup"]
 
 [package.metadata.cargo-shear]
@@ -27,6 +26,11 @@ rspack_binding_api = { workspace = true }
 
 napi-derive = { workspace = true, features = ["compat-mode", "type-def"] }
 tracing     = { workspace = true }
+
+# Enable SWC plugin feature for targets that support it
+# Skip: wasm32-wasip1-threads, i686-pc-windows-msvc, aarch64-pc-windows-msvc, armv7-linux-androideabi, armv7-unknown-linux-gnueabihf
+[target.'cfg(not(any(target_arch = "wasm32", target_arch = "arm", all(target_os = "windows", target_arch = "x86"), all(target_os = "windows", target_arch = "aarch64"))))'.dependencies]
+rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
 
 [build-dependencies]
 rspack_binding_build = { workspace = true }

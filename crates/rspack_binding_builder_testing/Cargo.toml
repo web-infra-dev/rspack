@@ -20,7 +20,7 @@ crate-type = ["cdylib"]
 ignored = ["napi"]
 
 [features]
-plugin = ["rspack_binding_builder/plugin"]
+plugin = ["rspack_binding_builder/loader-swc-wasm-plugin"]
 
 [dependencies]
 rspack_binding_builder        = { workspace = true }

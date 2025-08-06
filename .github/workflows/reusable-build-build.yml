@@ -144,7 +144,7 @@ jobs:
       # Windows
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build x86_64-pc-windows-msvc
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
@@ -152,7 +152,7 @@ jobs:
 
       - name: Build aarch64-pc-windows-msvc
         if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Mac
       - name: Build x86_64-apple-darwin
@@ -179,8 +179,8 @@ jobs:
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 pnpm build:binding:${{ inputs.profile }}
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
+          RUST_TARGET=wasm32-wasip1-threads BROWSER=1 pnpm build:binding:${{ inputs.profile }}
+          RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
       # WASM Release (use profile = release-wasi) + wasm-opt
       - name: Build wasm32-wasip1-threads(release-wasi) with linux in Docker

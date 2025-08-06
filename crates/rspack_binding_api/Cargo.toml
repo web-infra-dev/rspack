@@ -11,11 +11,11 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-browser         = ["dep:rspack_browser", "rspack_napi/browser"]
-color-backtrace = ["dep:color-backtrace"]
-debug_tool      = ["rspack_core/debug_tool"]
-plugin          = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
-sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+browser                = ["dep:rspack_browser", "rspack_napi/browser"]
+color-backtrace        = ["dep:color-backtrace"]
+debug_tool             = ["rspack_core/debug_tool"]
+loader-swc-wasm-plugin = ["rspack_loader_swc/wasm-plugin", "rspack_util/plugin"]
+sftrace-setup          = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
 anyhow                   = { workspace = true }

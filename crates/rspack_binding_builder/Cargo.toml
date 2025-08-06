@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-plugin = ["rspack_binding_api/plugin"]
+loader-swc-wasm-plugin = ["rspack_binding_api/loader-swc-wasm-plugin"]
 
 [dependencies]
 rspack_binding_api = { workspace = true }

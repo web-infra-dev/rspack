@@ -9,11 +9,14 @@ version.workspace = true
 [features]
 full = ["loaders"]
 
-loader_lightningcss   = ["rspack_loader_lightningcss"]
-loader_preact_refresh = ["rspack_loader_preact_refresh"]
-loader_react_refresh  = ["rspack_loader_react_refresh"]
-loader_swc            = ["rspack_loader_swc"]
-loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
+loader-lightningcss   = ["rspack_loader_lightningcss"]
+loader-preact-refresh = ["rspack_loader_preact_refresh"]
+loader-react-refresh  = ["rspack_loader_react_refresh"]
+
+loader-swc             = ["rspack_loader_swc"]
+loader-swc-wasm-plugin = ["rspack_loader_swc?/wasm-plugin"]
+
+loaders = ["loader-lightningcss", "loader-preact-refresh", "loader-react-refresh", "loader-swc"]
 
 [dependencies]
 bitflags            = { workspace = true }
