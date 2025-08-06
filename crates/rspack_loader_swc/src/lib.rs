@@ -87,7 +87,7 @@ impl SwcLoader {
           swc_options
             .runtime_options
             .plugin_runtime(std::sync::Arc::new(
-              swc_plugin_backend_wasmtime::WasmtimeRuntime,
+              swc_plugin_backend_wasmer::WasmerRuntime,
             ));
       }
 

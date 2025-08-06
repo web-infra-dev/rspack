@@ -132,7 +132,8 @@ swc_error_reporters         = { version = "16.0.1", default-features = false }
 swc_html                    = { version = "25.0.0", default-features = false }
 swc_html_minifier           = { version = "29.0.0", default-features = false }
 swc_node_comments           = { version = "14.0.0", default-features = false }
-swc_plugin_backend_wasmtime = { version = "0.2.0", default-features = false }
+# swc_plugin_backend_wasmtime = { version = "0.2.0", default-features = false }
+swc_plugin_backend_wasmer   = { version = "1.0.0", default-features = false, features = ["plugin_transform_host_native"] }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 

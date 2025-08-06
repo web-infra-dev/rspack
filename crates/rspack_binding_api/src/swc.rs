@@ -47,7 +47,7 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
   #[cfg(feature = "plugin")]
   {
     options.runtime_options = options.runtime_options.plugin_runtime(std::sync::Arc::new(
-      swc_plugin_backend_wasmtime::WasmtimeRuntime,
+      swc_plugin_backend_wasmer::WasmerRuntime,
     ));
   }
 
