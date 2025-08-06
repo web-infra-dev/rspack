@@ -44,7 +44,7 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
   let options: SwcOptions = serde_json::from_str(&options)?;
   let compiler = JavaScriptCompiler::new();
   let module_source_map_kind = _to_source_map_kind(options.source_maps.clone());
-  compiler
+  let task = || compiler
     .transform(
       source,
       Some(swc_core::common::FileName::Anon),
@@ -54,7 +54,8 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
       |_| noop_pass(),
     )
     .map(TransformOutput::from)
-    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")))
+    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")));
+  tokio::task::block_in_place(task)
 }
 
 #[napi]

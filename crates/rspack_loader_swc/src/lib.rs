@@ -91,11 +91,7 @@ impl SwcLoader {
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let mut collected_ts_info = None;
 
-    let TransformOutput {
-      code,
-      map,
-      diagnostics,
-    } = javascript_compiler.transform(
+    let task = || javascript_compiler.transform(
       source,
       Some(filename),
       swc_options,
@@ -114,7 +110,13 @@ impl SwcLoader {
         collected_ts_info = Some(collect_typescript_info(program, options));
       },
       |_| transformer::transform(&self.options_with_additional.rspack_experiments),
-    )?;
+    );
+
+    let TransformOutput {
+      code,
+      map,
+      diagnostics,
+    } = tokio::task::block_in_place(task)?;
 
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(
