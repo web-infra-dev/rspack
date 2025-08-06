@@ -1,7 +1,7 @@
 use std::{
   collections::HashSet,
   hash::Hash,
-  sync::{Arc, LazyLock, RwLock},
+  sync::{Arc, RwLock},
 };
 
 pub use lightningcss::targets::Browsers;
@@ -11,7 +11,6 @@ use lightningcss::{
   targets::{Features, Targets},
 };
 use rayon::prelude::*;
-use regex::Regex;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
@@ -24,8 +23,19 @@ use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::AssetConditions;
 
-static CSS_ASSET_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
+fn is_css_asset(filename: &str) -> bool {
+  if filename.ends_with(".css") {
+    true
+  } else {
+    // Check for .css followed by query string like .css?v=123
+    if let Some(css_idx) = filename.rfind(".css") {
+      let after_css = &filename[css_idx + 4..];
+      after_css.is_empty() || after_css.starts_with('?')
+    } else {
+      false
+    }
+  }
+}
 
 #[derive(Debug, Hash)]
 pub struct PluginOptions {
@@ -147,7 +157,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .assets_mut()
     .par_iter_mut()
     .filter(|(filename, original)| {
-      if !CSS_ASSET_REGEXP.is_match(filename) {
+      if !is_css_asset(filename) {
         return false;
       }
 

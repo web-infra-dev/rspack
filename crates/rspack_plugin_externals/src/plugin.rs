@@ -1,9 +1,8 @@
 use std::{
   fmt::Debug,
-  sync::{Arc, LazyLock},
+  sync::Arc,
 };
 
-use regex::Regex;
 use rspack_core::{
   BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalItem, ExternalItemFnCtx,
   ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
@@ -14,8 +13,6 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
 
-static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
 
 #[plugin]
 #[derive(Debug)]
@@ -95,8 +92,21 @@ impl ExternalsPlugin {
       ),
     };
 
+    fn has_external_type_prefix(v: &str) -> bool {
+      if let Some(space_idx) = v.find(' ') {
+        if space_idx == 0 {
+          return false; // Can't start with space
+        }
+        
+        // Check if all characters before the space are valid
+        v[..space_idx].chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+      } else {
+        false
+      }
+    }
+
     fn parse_external_type_from_str(v: &str) -> Option<(ExternalType, String)> {
-      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(v)
+      if has_external_type_prefix(v)
         && let Some((t, c)) = v.split_once(' ')
       {
         return Some((t.to_owned(), c.to_owned()));

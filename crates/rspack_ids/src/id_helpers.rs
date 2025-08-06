@@ -2,14 +2,12 @@ use std::{
   borrow::Cow,
   cmp::Ordering,
   hash::{Hash, Hasher},
-  sync::LazyLock,
 };
 
 use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
-use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
   BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, ModuleGraph,
@@ -311,15 +309,84 @@ pub fn get_full_chunk_name(
   full_module_names.join(",")
 }
 
-static REGEX1: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
-static REGEX2: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
+fn remove_leading_relative_paths(s: &str) -> Cow<str> {
+  if s.starts_with("../") || s.starts_with("./") {
+    let mut start_idx = 0;
+    let mut chars = s.chars();
+    
+    while let Some(ch) = chars.next() {
+      if ch == '.' {
+        if let Some(next_ch) = chars.next() {
+          if next_ch == '.' {
+            if let Some(slash_ch) = chars.next() {
+              if slash_ch == '/' {
+                start_idx = s.len() - chars.as_str().len();
+              } else {
+                break;
+              }
+            } else {
+              break;
+            }
+          } else if next_ch == '/' {
+            start_idx = s.len() - chars.as_str().len();
+          } else {
+            break;
+          }
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+    
+    if start_idx > 0 {
+      Cow::Owned(s[start_idx..].to_string())
+    } else {
+      Cow::Borrowed(s)
+    }
+  } else {
+    Cow::Borrowed(s)
+  }
+}
+
+fn replace_invalid_id_chars(s: &str) -> Cow<str> {
+  let mut result = String::new();
+  let mut needs_replacement = false;
+  let mut chars = s.chars().enumerate();
+  
+  while let Some((idx, ch)) = chars.next() {
+    let is_valid = if idx == 0 {
+      // First character can't be . or -
+      ch.is_ascii_alphanumeric() || ch == '_'
+    } else {
+      ch.is_ascii_alphanumeric() || ch == '_' || ch == '-'
+    };
+    
+    if !is_valid {
+      if !needs_replacement {
+        needs_replacement = true;
+        result.reserve(s.len());
+        // Copy the valid part so far
+        result.push_str(&s[..idx]);
+      }
+      result.push('_');
+    } else if needs_replacement {
+      result.push(ch);
+    }
+  }
+  
+  if needs_replacement {
+    Cow::Owned(result)
+  } else {
+    Cow::Borrowed(s)
+  }
+}
 
 pub fn request_to_id(request: &str) -> String {
-  REGEX2
-    .replace_all(&REGEX1.replace(request, ""), "_")
-    .to_string()
+  let step1 = remove_leading_relative_paths(request);
+  let step2 = replace_invalid_id_chars(&step1);
+  step2.to_string()
 }
 
 pub fn get_used_chunk_ids(compilation: &Compilation) -> FxHashSet<String> {
