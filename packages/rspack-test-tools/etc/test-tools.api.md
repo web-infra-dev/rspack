@@ -1692,7 +1692,7 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>({ tempDir, }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
+    static overrideOptions<T extends ECompilerType>({ tempDir }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
     // (undocumented)
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
