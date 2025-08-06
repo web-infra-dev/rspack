@@ -11,6 +11,8 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
 either = { workspace = true }
+ere = { workspace = true }
+ere-core = { workspace = true }
 fast-glob = { workspace = true }
 indexmap = { workspace = true }
 indoc = { workspace = true }

@@ -1,8 +1,6 @@
-use std::sync::LazyLock;
-
+use ere::prelude::*;
 use itertools::Itertools;
 use rayon::prelude::*;
-use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
   ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
@@ -134,10 +132,10 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
                   .expect("the name of export_info inserted in exports_info can not be `None`")
                   .clone();
                 let can_not_mangle = export_info_data.can_mangle() != Some(true)
-                  || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
+                  || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.test(name.as_str()))
                   || (deterministic
                     && name.len() == 2
-                    && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
+                    && MANGLE_NAME_DETERMINISTIC_REG.test(name.as_str()))
                   || (avoid_mangle_non_provided
                     && !matches!(export_info_data.provided(), Some(ExportProvided::Provided)));
 
@@ -216,11 +214,8 @@ impl Plugin for MangleExportsPlugin {
 fn compare_strings_numeric(a: Option<&Atom>, b: Option<&Atom>) -> std::cmp::Ordering {
   a.cmp(&b)
 }
-static MANGLE_NAME_NORMAL_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new("^[a-zA-Z0-9_$]").expect("should construct regex"));
-static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new("^[a-zA-Z_$][a-zA-Z0-9_$]|^[1-9][0-9]").expect("should construct regex")
-});
+const MANGLE_NAME_NORMAL_REG: ere::Regex<1> = compile_regex!("^[a-zA-Z0-9_$]");
+const MANGLE_NAME_DETERMINISTIC_REG: ere::Regex<1> = compile_regex!("^[a-zA-Z_$][a-zA-Z0-9_$]|^[1-9][0-9]");
 
 /// Function to mangle exports information.
 fn mangle_exports_info(

@@ -11,6 +11,8 @@ version.workspace = true
 cow-utils                = { workspace = true }
 dashmap                  = { workspace = true }
 derive_more              = { workspace = true, features = ["debug"] }
+ere                      = { workspace = true }
+ere-core                 = { workspace = true }
 futures                  = { workspace = true }
 itertools                = { workspace = true }
 rayon                    = { workspace = true }

@@ -7,6 +7,7 @@ use std::{
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
+use ere::prelude::*;
 use futures::future::{BoxFuture, join_all};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -29,12 +30,8 @@ use crate::{
   mapped_assets_cache::MappedAssetsCache, module_filename_helpers::ModuleFilenameHelpers,
 };
 
-static SCHEMA_SOURCE_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(data|https?):").expect("failed to compile SCHEMA_SOURCE_REGEXP"));
-
-static CSS_EXTENSION_DETECT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\.css($|\?)").expect("failed to compile CSS_EXTENSION_DETECT_REGEXP")
-});
+const SCHEMA_SOURCE_REGEXP: ere::Regex<2> = compile_regex!(r"^(data|https?):"); 
+const CSS_EXTENSION_DETECT_REGEXP: ere::Regex<2> = compile_regex!(r"\.css($|\?)");
 static URL_FORMATTING_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^\n\/\/(.*)$").expect("failed to compile URL_FORMATTING_REGEXP regex")
 });
@@ -270,7 +267,7 @@ impl SourceMapDevToolPlugin {
               s.spawn(
                 |(namespace, compilation, file, module_or_source, file_to_chunk, template)| async move {
                   if let ModuleOrSource::Source(source) = module_or_source
-                    && SCHEMA_SOURCE_REGEXP.is_match(source) {
+                    && SCHEMA_SOURCE_REGEXP.test(source) {
                       return Ok(source.to_string());
                     }
 
@@ -324,7 +321,7 @@ impl SourceMapDevToolPlugin {
           .values()
           .map(|(_, module_or_source)| async move {
             if let ModuleOrSource::Source(source) = module_or_source
-              && SCHEMA_SOURCE_REGEXP.is_match(source)
+              && SCHEMA_SOURCE_REGEXP.test(source)
             {
               return Ok((module_or_source, source.to_string()));
             }
@@ -482,7 +479,7 @@ impl SourceMapDevToolPlugin {
                   source_map: None,
                 });
               };
-              let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&source_filename);
+              let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.test(&source_filename);
               let current_source_mapping_url_comment = match &plugin.source_mapping_url_comment {
                 Some(SourceMappingUrlComment::String(s)) => {
                   let s = if css_extension_detected {
