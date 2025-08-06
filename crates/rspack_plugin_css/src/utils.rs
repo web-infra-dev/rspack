@@ -2,13 +2,12 @@ use std::{
   borrow::Cow,
   fmt::Write,
   hash::Hasher,
-  sync::{Arc, LazyLock},
+  sync::Arc,
 };
 
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
-use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
   PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
@@ -26,8 +25,29 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::parser_and_generator::CssExport;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
-pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
+fn replace_leading_digit_or_dash(s: &str) -> Cow<str> {
+  if s.is_empty() {
+    return Cow::Borrowed(s);
+  }
+  
+  let bytes = s.as_bytes();
+  if bytes[0] == b'-' && bytes.len() > 1 {
+    if bytes[1] == b'-' {
+      // Replace "--" with "_--"
+      Cow::Owned(format!("_{}", s))
+    } else if bytes[1].is_ascii_digit() {
+      // Replace "-digit" with "_-digit"  
+      Cow::Owned(format!("_{}", s))
+    } else {
+      Cow::Borrowed(s)
+    }
+  } else if bytes[0].is_ascii_digit() {
+    // Replace leading digit with "_digit"
+    Cow::Owned(format!("_{}", s))
+  } else {
+    Cow::Borrowed(s)
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
@@ -65,9 +85,8 @@ impl<'a> LocalIdentOptions<'a> {
         hasher.write(local.as_bytes());
       }
       let hash = hasher.digest(&output.hash_digest);
-      LEADING_DIGIT_REGEX
-        .replace(hash.rendered(output.hash_digest_length), "_${1}")
-        .into_owned()
+      let rendered_hash = hash.rendered(output.hash_digest_length);
+      replace_leading_digit_or_dash(&rendered_hash).into_owned()
     };
     LocalIdentNameRenderOptions {
       path_data: PathData::default()
@@ -113,11 +132,42 @@ impl LocalIdentNameRenderOptions<'_> {
   }
 }
 
-static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
-
 pub fn escape_css(s: &str) -> Cow<'_, str> {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]))
+  let mut result = String::new();
+  let mut needs_escape = false;
+  
+  for ch in s.chars() {
+    match ch {
+      'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-' => {
+        if needs_escape {
+          result.push(ch);
+        }
+      }
+      '\u{0081}'..='\u{FFFF}' => {
+        if needs_escape {
+          result.push(ch);
+        }
+      }
+      _ => {
+        if !needs_escape {
+          needs_escape = true;
+          result.reserve(s.len() + 10); // Reserve some extra space for escapes
+          // Copy the part we've checked so far
+          for prev_ch in s.chars().take_while(|&c| c != ch) {
+            result.push(prev_ch);
+          }
+        }
+        result.push('\\');
+        result.push(ch);
+      }
+    }
+  }
+  
+  if needs_escape {
+    Cow::Owned(result)
+  } else {
+    Cow::Borrowed(s)
+  }
 }
 
 pub(crate) fn export_locals_convention(
@@ -316,14 +366,108 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   Ok(())
 }
 
-static STRING_MULTILINE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
+fn remove_css_multiline_backslashes(s: &str) -> Cow<str> {
+  if s.contains("\\") {
+    // Check for multiline backslashes: backslash followed by newline, carriage return, or form feed
+    let mut result = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    
+    while let Some(ch) = chars.next() {
+      if ch == '\\' {
+        if let Some(&next_ch) = chars.peek() {
+          if next_ch == '\n' || next_ch == '\r' || next_ch == '\u{000C}' {
+            chars.next(); // Skip the whitespace character after backslash
+            continue;
+          }
+        }
+      }
+      result.push(ch);
+    }
+    Cow::Owned(result)
+  } else {
+    Cow::Borrowed(s)
+  }
+}
 
-static TRIM_WHITE_SPACES: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
+fn trim_css_whitespace(s: &str) -> &str {
+  // CSS whitespace: space, tab, newline, carriage return, form feed
+  let start = s.find(|c: char| !matches!(c, ' ' | '\t' | '\n' | '\r' | '\u{000C}')).unwrap_or(s.len());
+  let end = s.rfind(|c: char| !matches!(c, ' ' | '\t' | '\n' | '\r' | '\u{000C}'))
+    .map(|i| i + 1)
+    .unwrap_or(0);
+  
+  if end > start {
+    &s[start..end]
+  } else {
+    ""
+  }
+}
 
-static UNESCAPE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
+// Manual implementation of CSS unescape functionality
+// Handles patterns like \123ABC or \n where \n represents a literal character
+fn unescape_css_manual(s: &str) -> Cow<str> {
+  if !s.contains('\\') {
+    return Cow::Borrowed(s);
+  }
+
+  let mut result = String::with_capacity(s.len());
+  let mut chars = s.chars().peekable();
+  
+  while let Some(ch) = chars.next() {
+    if ch == '\\' {
+      if let Some(&next_ch) = chars.peek() {
+        // Check for hex escape sequence: \123ABC followed by optional whitespace
+        if next_ch.is_ascii_hexdigit() {
+          let mut hex_chars = String::new();
+          
+          // Collect up to 6 hex digits
+          while hex_chars.len() < 6 {
+            if let Some(&hex_ch) = chars.peek() {
+              if hex_ch.is_ascii_hexdigit() {
+                hex_chars.push(hex_ch);
+                chars.next();
+              } else {
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+          
+          // Skip optional trailing whitespace (space, tab, newline, carriage return, form feed)
+          if let Some(&ws_ch) = chars.peek() {
+            if matches!(ws_ch, ' ' | '\t' | '\n' | '\r' | '\u{000C}') {
+              chars.next();
+            }
+          }
+          
+          // Convert hex to unicode character
+          if let Ok(code_point) = u32::from_str_radix(&hex_chars, 16) {
+            if let Some(unicode_ch) = char::from_u32(code_point) {
+              result.push(unicode_ch);
+              continue;
+            }
+          }
+          
+          // If conversion failed, keep the original backslash and hex chars
+          result.push('\\');
+          result.push_str(&hex_chars);
+        } else {
+          // Single character escape like \n, \", etc.
+          chars.next(); // consume the next character
+          result.push(next_ch);
+        }
+      } else {
+        // Backslash at end of string
+        result.push('\\');
+      }
+    } else {
+      result.push(ch);
+    }
+  }
+  
+  Cow::Owned(result)
+}
 
 fn is_data_uri(s: &str) -> bool {
   s.len() >= 5 && s.as_bytes()[0..5].eq_ignore_ascii_case(b"data:")
@@ -331,24 +475,7 @@ fn is_data_uri(s: &str) -> bool {
 
 // `\/foo` in css should be treated as `foo` in js
 pub fn unescape(s: &str) -> Cow<'_, str> {
-  UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
-    caps
-      .get(0)
-      .and_then(|m| {
-        let m = m.as_str();
-        if m.len() > 2 {
-          if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16)
-            && let Some(ch) = char::from_u32(r_u32)
-          {
-            return Some(format!("{ch}"));
-          }
-          None
-        } else {
-          Some(m[1..2].to_string())
-        }
-      })
-      .unwrap_or(caps[0].to_string())
-  })
+  unescape_css_manual(s)
 }
 
 fn escape_white_or_bracket_chars(s: &str) -> String {
@@ -400,8 +527,8 @@ pub fn css_escape_string(s: &str) -> String {
 }
 
 pub fn normalize_url(s: &str) -> String {
-  let result = STRING_MULTILINE.replace_all(s, "");
-  let result = TRIM_WHITE_SPACES.replace_all(&result, "");
+  let result = remove_css_multiline_backslashes(s);
+  let result = trim_css_whitespace(&result);
   let result = unescape(&result);
 
   if is_data_uri(&result) {

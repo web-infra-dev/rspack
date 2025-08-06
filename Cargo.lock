@@ -4846,6 +4846,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "winnow 0.6.20",
 ]
 
 [[package]]

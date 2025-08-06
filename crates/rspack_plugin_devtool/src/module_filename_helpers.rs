@@ -5,7 +5,6 @@ use std::{
 
 use cow_utils::CowUtils;
 use ere::compile_regex;
-use regex::{Captures, Regex};
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -13,10 +12,81 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
 
-// Keep complex regex for now - has capture group used in complex closure
-static SQUARE_BRACKET_TAG_REGEXP: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-  Regex::new(r"\[\\*([\w-]+)\\*\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
-});
+fn replace_bracket_tags<F>(s: &str, replacer: F) -> Cow<str>
+where
+  F: Fn(&str) -> Cow<str>,
+{
+  if !s.contains('[') {
+    return Cow::Borrowed(s);
+  }
+
+  let mut result = String::new();
+  let mut chars = s.chars().peekable();
+  let mut needs_replacement = false;
+
+  while let Some(ch) = chars.next() {
+    if ch == '[' {
+      // Start collecting the tag content
+      let mut tag_content = String::new();
+      let mut found_closing = false;
+
+      // Look for the closing bracket and collect content
+      while let Some(&next_ch) = chars.peek() {
+        chars.next();
+        if next_ch == ']' {
+          found_closing = true;
+          break;
+        } else if next_ch.is_alphanumeric() || next_ch == '-' || next_ch == '_' {
+          tag_content.push(next_ch);
+        } else {
+          // Invalid character in tag, not a valid tag
+          tag_content.clear();
+          break;
+        }
+      }
+
+      if found_closing && !tag_content.is_empty() {
+        // Found a valid tag
+        if !needs_replacement {
+          needs_replacement = true;
+          result.reserve(s.len() + 50); // Reserve extra space for replacements
+          // Copy the part before this tag
+          let current_pos = s.len() - chars.as_str().len() - tag_content.len() - 2; // -2 for []
+          result.push_str(&s[..current_pos]);
+        }
+
+        let replacement = replacer(&tag_content);
+        result.push_str(&replacement);
+      } else {
+        // Not a valid tag, add the bracket and content as-is
+        if needs_replacement {
+          result.push('[');
+          if !tag_content.is_empty() {
+            result.push_str(&tag_content);
+            if !found_closing {
+              // If we didn't find closing bracket, we need to add remaining chars back
+              while let Some(&remaining_ch) = chars.peek() {
+                result.push(remaining_ch);
+                chars.next();
+              }
+              break;
+            }
+          }
+        }
+      }
+    } else {
+      if needs_replacement {
+        result.push(ch);
+      }
+    }
+  }
+
+  if needs_replacement {
+    Cow::Owned(result)
+  } else {
+    Cow::Borrowed(s)
+  }
+}
 
 fn get_before(s: &str, token: &str) -> String {
   match s.rfind(token) {
@@ -183,51 +253,43 @@ impl ModuleFilenameHelpers {
     // Manual replacement for [loaders][resource] -> [short-identifier]
     let s = s.replace("[loaders][resource]", "[short-identifier]");
     
-    SQUARE_BRACKET_TAG_REGEXP
-      .replace_all(&s, |caps: &Captures| {
-        let full_match = caps
-          .get(0)
-          .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
-          .as_str();
-        let content = caps
-          .get(1)
-          .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
-          .as_str();
-
-        if content.len() + 2 == full_match.len() {
-          match content.cow_to_ascii_lowercase().as_ref() {
-            "identifier" => Cow::from(&ctx.identifier),
-            "short-identifier" => Cow::from(&ctx.short_identifier),
-            "resource" => Cow::from(&ctx.resource),
-
-            "resource-path" |  "resourcepath" => Cow::from(&ctx.resource_path),
-
-            "absolute-resource-path" |
-            "abs-resource-path" |
-            "absoluteresource-path" |
-            "absresource-path" |
-            "absolute-resourcepath" |
-            "abs-resourcepath" |
-            "absoluteresourcepath" |
-            "absresourcepath" => Cow::from(&ctx.absolute_resource_path),
-
-            "all-loaders" | "allloaders" => Cow::from(&ctx.all_loaders),
-            "loaders" => Cow::from(&ctx.loaders),
-
-            "query" => Cow::from(&ctx.query),
-            "id" => Cow::from(&ctx.module_id),
-            "hash" => Cow::from(&ctx.hash),
-            "namespace" => Cow::from(&ctx.namespace),
-
-            _ => Cow::from(full_match.to_string())
+    replace_bracket_tags(&s, |tag_content| {
+      match tag_content.to_ascii_lowercase().as_str() {
+        "identifier" => Cow::from(&ctx.identifier),
+        "short-identifier" => Cow::from(&ctx.short_identifier), 
+        "resource" => Cow::from(&ctx.resource),
+        
+        "resource-path" |  "resourcepath" => Cow::from(&ctx.resource_path),
+        
+        "absolute-resource-path" |
+        "abs-resource-path" |
+        "absoluteresource-path" |
+        "absresource-path" |
+        "absolute-resourcepath" |
+        "abs-resourcepath" |
+        "absoluteresourcepath" |
+        "absresourcepath" => Cow::from(&ctx.absolute_resource_path),
+        
+        "all-loaders" | "allloaders" => Cow::from(&ctx.all_loaders),
+        "loaders" => Cow::from(&ctx.loaders),
+        
+        "query" => Cow::from(&ctx.query),
+        "id" => Cow::from(&ctx.module_id),
+        "hash" => Cow::from(&ctx.hash),
+        "namespace" => Cow::from(&ctx.namespace),
+        
+        _ => {
+          // Check for escaped brackets pattern [\tag\]
+          if tag_content.starts_with('\\') && tag_content.ends_with('\\') && tag_content.len() > 2 {
+            Cow::from(format!("[{}]", &tag_content[1..tag_content.len() - 1]))
+          } else {
+            // Keep unmatched patterns as-is
+            Cow::from(format!("[{}]", tag_content))
           }
-        } else if full_match.starts_with("[\\") && full_match.ends_with("\\]") {
-          Cow::from(format!("[{}]", &full_match[2..full_match.len() - 2]))
-        } else {
-          Cow::from(full_match.to_string())
         }
-      })
-      .to_string()
+      }
+    })
+    .to_string()
   }
 
   pub fn replace_duplicates<F>(filenames: Vec<String>, mut fn_replace: F) -> Vec<String>
