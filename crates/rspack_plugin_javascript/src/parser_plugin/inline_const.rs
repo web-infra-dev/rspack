@@ -114,7 +114,7 @@ fn to_evaluated_inlinable_value(
     && let num = evaluated.number()
     && ryu_js::Buffer::new().format(num).len() <= EvaluatedInlinableValue::SHORT_SIZE
   {
-    Some(EvaluatedInlinableValue::new_number(num.into()))
+    Some(EvaluatedInlinableValue::new_number(num))
   } else if evaluated.is_string()
     && let str = evaluated.string()
     && str.len() <= EvaluatedInlinableValue::SHORT_SIZE

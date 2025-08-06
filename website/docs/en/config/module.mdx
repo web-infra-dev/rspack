@@ -525,7 +525,7 @@ export default {
 };
 ```
 
-Please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+Please refer to [collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
 
 :::warning
 This is currently an experimental feature. You must enable [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) for this configuration to take effect.
@@ -600,11 +600,11 @@ export const A = true;
 import { A } from './constants';
 console.log(A ? 1 : 2);
 
-// 经过打包后的结果 output.js
+// Bundled by Rspack: output.js
 const __webpack_modules__ = {
   './index.js': __webpack_require__ => {
-    // 1. A 会被内联到使用的地方。
-    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
+    // 1. A will be inlined at the usage sites.
+    // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
     console.log(true ? 1 : 2);
   },
 };
@@ -631,6 +631,8 @@ export default {
   },
 };
 ```
+
+Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
 :::warning
 This is currently an experimental feature, so you also need to enable [experiments.inlineConst](/config/experiments#experimentstypereexportspresence).
