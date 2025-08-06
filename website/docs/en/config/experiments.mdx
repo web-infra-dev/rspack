@@ -916,15 +916,15 @@ A common optimization case is `constants.js`, for example:
 
 ```js
 // constants.js
-export const IS_A = true;
+export const A = true;
 // index.js
-import { IS_A } from './constants';
-console.log(IS_A ? 1 : 2);
+import { A } from './constants';
+console.log(A ? 1 : 2);
 
 // Bundled by Rspack: output.js
 const __webpack_modules__ = {
   './index.js': __webpack_require__ => {
-    // 1. IS_A will be inlined at the usage sites.
+    // 1. A will be inlined at the usage sites.
     // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
     console.log(true ? 1 : 2);
   },

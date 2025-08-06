@@ -595,15 +595,15 @@ export default {
 
 ```js
 // constants.js
-export const IS_A = true;
+export const A = true;
 // index.js
-import { IS_A } from './constants';
-console.log(IS_A ? 1 : 2);
+import { A } from './constants';
+console.log(A ? 1 : 2);
 
 // 经过打包后的结果 output.js
 const __webpack_modules__ = {
   './index.js': __webpack_require__ => {
-    // IS_A 会被内联到使用的地方，且 constants.js 所有导出都被内联，
+    // A 会被内联到使用的地方，且 constants.js 所有导出都被内联，
     // 会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
     console.log(true ? 1 : 2);
   },
