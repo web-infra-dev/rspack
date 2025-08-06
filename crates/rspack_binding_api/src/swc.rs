@@ -28,6 +28,12 @@ impl From<CompilerTransformOutput> for TransformOutput {
 fn _to_source_map_kind(source_maps: Option<SourceMapsConfig>) -> SourceMapKind {
   match source_maps {
     Some(SourceMapsConfig::Str(s)) if s == "inline" => SourceMapKind::SourceMap,
+    Some(SourceMapsConfig::Str(s)) => {
+      // Explicitly handle non-"inline" string values for SourceMapsConfig::Str.
+      // Currently, only "inline" is supported; other values are treated as empty.
+      // Consider updating this match arm if additional string values are supported in the future.
+      SourceMapKind::empty()
+    }
     Some(SourceMapsConfig::Bool(true)) => SourceMapKind::SourceMap,
     Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
     _ => SourceMapKind::empty(),
