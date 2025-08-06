@@ -8,10 +8,10 @@ export type {
 	Asset,
 	AssetInfo,
 	Assets,
+	ChunkPathData,
 	CompilationParams,
 	LogEntry,
-	PathData,
-	PathDataChunkLike
+	PathData
 } from "./Compilation";
 export { Compilation } from "./Compilation";
 export { Compiler } from "./Compiler";
