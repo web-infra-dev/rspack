@@ -113,9 +113,9 @@ wasmparser          = { version = "0.222.0", default-features = false }
 xxhash-rust         = { version = "0.8.14", default-features = false }
 
 # Pinned
-napi        = { version = "3.1.2", default-features = false }
-napi-build  = { version = "2.2.2", default-features = false }
-napi-derive = { version = "3.1.1", default-features = false }
+napi        = { version = "3.1.6", default-features = false }
+napi-build  = { version = "2.2.3", default-features = false }
+napi-derive = { version = "3.1.2", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
