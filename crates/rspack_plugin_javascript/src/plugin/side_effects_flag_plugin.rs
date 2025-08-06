@@ -1,4 +1,4 @@
-use std::{fmt::Debug, rc::Rc, sync::LazyLock};
+use std::{fmt::Debug, rc::Rc};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -327,8 +327,10 @@ impl SideEffectsFlagPluginVisitor<'_> {
   }
 }
 
-static PURE_COMMENTS: LazyLock<regex::Regex> =
-  LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+fn is_pure_comment(text: &str) -> bool {
+  let trimmed = text.trim();
+  trimmed == "#__PURE__" || trimmed == "@__PURE__"
+}
 
 fn is_pure_call_expr(
   expr: &Expr,
@@ -349,7 +351,7 @@ fn is_pure_call_expr(
           && last_comment.kind == comments::CommentKind::Block
         {
           // iterate through the parens and check if it contains pure comment
-          if PURE_COMMENTS.is_match(&last_comment.text) {
+          if is_pure_comment(&last_comment.text) {
             return Some(true);
           }
         }

@@ -157,8 +157,24 @@ static WEBPACK_MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
     .expect("invalid regex")
 });
 
-static WEBAPCK_EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
-  LazyLock::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
+fn extract_quoted_word(s: &str) -> Option<&str> {
+  let s = s.trim();
+  if s.len() < 3 {
+    return None;
+  }
+  
+  let first = s.chars().next()?;
+  let last = s.chars().last()?;
+  
+  if (first == '"' && last == '"') || (first == '\'' && last == '\'') || (first == '`' && last == '`') {
+    let inner = &s[1..s.len()-1];
+    if inner.chars().all(|c| c.is_alphanumeric() || c == '_') {
+      return Some(inner);
+    }
+  }
+  
+  None
+}
 
 pub fn try_extract_webpack_magic_comment(
   source_file: &SourceFile,
@@ -474,9 +490,7 @@ fn analyze_comments(
                   .as_str()
                   .split(',')
                   .try_fold("".to_string(), |acc, item| {
-                    WEBAPCK_EXPORT_NAME_REGEXP
-                      .captures(item.trim())
-                      .and_then(|matched| matched.get(1).map(|x| x.as_str()))
+                    extract_quoted_word(item.trim())
                       .map(|name| format!("{acc},{name}"))
                   })
             {
