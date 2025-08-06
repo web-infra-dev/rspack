@@ -464,7 +464,7 @@ impl CompilerBuilder {
   }
 }
 
-#[cfg(feature = "loader_lightningcss")]
+#[cfg(feature = "loader-lightningcss")]
 impl CompilerBuilder {
   /// Enable support for builtin:lightningcss-loader.
   pub fn enable_loader_lightningcss(&mut self) -> &mut Self {
@@ -474,7 +474,7 @@ impl CompilerBuilder {
   }
 }
 
-#[cfg(feature = "loader_swc")]
+#[cfg(feature = "loader-swc")]
 impl CompilerBuilder {
   /// Enable support for builtin:swc-loader.
   pub fn enable_loader_swc(&mut self) -> &mut Self {
@@ -482,7 +482,7 @@ impl CompilerBuilder {
   }
 }
 
-#[cfg(feature = "loader_react_refresh")]
+#[cfg(feature = "loader-react-refresh")]
 impl CompilerBuilder {
   /// Enable support for builtin:react-refresh-loader.
   pub fn enable_loader_react_refresh(&mut self) -> &mut Self {
@@ -492,7 +492,7 @@ impl CompilerBuilder {
   }
 }
 
-#[cfg(feature = "loader_preact_refresh")]
+#[cfg(feature = "loader-preact-refresh")]
 impl CompilerBuilder {
   /// Enable support for builtin:preact-refresh-loader.
   pub fn enable_loader_preact_refresh(&mut self) -> &mut Self {

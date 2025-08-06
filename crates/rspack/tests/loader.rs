@@ -9,7 +9,7 @@ use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use serde_json::json;
 
-#[cfg(feature = "loader_lightningcss")]
+#[cfg(feature = "loader-lightningcss")]
 #[tokio::test(flavor = "multi_thread")]
 async fn lightningcss() {
   use rspack_tasks::within_compiler_context_for_testing;
@@ -46,7 +46,7 @@ async fn lightningcss() {
   .await;
 }
 
-#[cfg(feature = "loader_swc")]
+#[cfg(feature = "loader-swc")]
 #[tokio::test(flavor = "multi_thread")]
 async fn swc() {
   use rspack_tasks::within_compiler_context_for_testing;
@@ -97,7 +97,7 @@ async fn swc() {
   .await;
 }
 
-#[cfg(feature = "loader_react_refresh")]
+#[cfg(feature = "loader-react-refresh")]
 #[tokio::test(flavor = "multi_thread")]
 async fn react_refresh() {
   use rspack_tasks::within_compiler_context_for_testing;
@@ -154,7 +154,7 @@ async fn react_refresh() {
   .await;
 }
 
-#[cfg(feature = "loader_preact_refresh")]
+#[cfg(feature = "loader-preact-refresh")]
 #[tokio::test(flavor = "multi_thread")]
 async fn preact_refresh() {
   use rspack_tasks::within_compiler_context_for_testing;
