@@ -225,7 +225,7 @@ async fn render_startup(
     }
   }
 
-  if !exports.is_empty() {
+  if !exports.is_empty() && !compilation.options.output.iife {
     source.add(RawStringSource::from(format!(
       "export {{ {} }};\n",
       exports.join(", ")
