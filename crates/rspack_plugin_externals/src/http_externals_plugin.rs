@@ -1,18 +1,20 @@
-use std::sync::LazyLock;
-
-use regex::Regex;
 use rspack_core::{
   BoxPlugin, ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue, PluginExt,
 };
 
 use crate::ExternalsPlugin;
 
-static EXTERNAL_HTTP_REQUEST: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
-static EXTERNAL_HTTP_STD_REQUEST: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(//|https?://|std:)").expect("Invalid regex"));
-static EXTERNAL_CSS_REQUEST: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
+fn is_http_request(request: &str) -> bool {
+  request.starts_with("//") || request.starts_with("http://") || request.starts_with("https://") || request.starts_with('#')
+}
+
+fn is_http_std_request(request: &str) -> bool {
+  request.starts_with("//") || request.starts_with("http://") || request.starts_with("https://") || request.starts_with("std:")
+}
+
+fn is_css_request(request: &str) -> bool {
+  request.starts_with(".css") && (request == ".css" || request.starts_with(".css?"))
+}
 
 pub fn http_externals_rspack_plugin(css: bool, web_async: bool) -> BoxPlugin {
   if web_async {
@@ -26,21 +28,21 @@ fn http_external_item_web(css: bool) -> ExternalItem {
   ExternalItem::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
     Box::pin(async move {
       if ctx.dependency_type == "url" {
-        if EXTERNAL_HTTP_REQUEST.is_match(&ctx.request) {
+        if is_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("asset".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),
           });
         }
       } else if css && ctx.dependency_type == "css-import" {
-        if EXTERNAL_HTTP_REQUEST.is_match(&ctx.request) {
+        if is_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("css-import".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),
           });
         }
-      } else if EXTERNAL_HTTP_STD_REQUEST.is_match(&ctx.request) {
-        if css && EXTERNAL_CSS_REQUEST.is_match(&ctx.request) {
+      } else if is_http_std_request(&ctx.request) {
+        if css && is_css_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("css-import".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),
@@ -64,21 +66,21 @@ fn http_external_item_web_async(css: bool) -> ExternalItem {
   ExternalItem::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
     Box::pin(async move {
       if ctx.dependency_type == "url" {
-        if EXTERNAL_HTTP_REQUEST.is_match(&ctx.request) {
+        if is_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("asset".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),
           });
         }
       } else if css && ctx.dependency_type == "css-import" {
-        if EXTERNAL_HTTP_REQUEST.is_match(&ctx.request) {
+        if is_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("css-import".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),
           });
         }
-      } else if EXTERNAL_HTTP_STD_REQUEST.is_match(&ctx.request) {
-        if css && EXTERNAL_CSS_REQUEST.is_match(&ctx.request) {
+      } else if is_http_std_request(&ctx.request) {
+        if css && is_css_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("css-import".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),

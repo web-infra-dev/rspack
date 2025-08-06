@@ -4,10 +4,9 @@ use std::{
   hash::{Hash, Hasher},
   ops::Deref,
   ptr,
-  sync::{Arc, LazyLock},
+  sync::Arc,
 };
 
-use regex::Regex;
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, Unsupported},
@@ -32,9 +31,6 @@ pub static HASH_PLACEHOLDER: &str = "[hash]";
 pub static FULL_HASH_PLACEHOLDER: &str = "[fullhash]";
 pub static CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
 pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
-
-static DATA_URI_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
 #[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
@@ -200,20 +196,18 @@ fn render_template(
   let mut t = template;
   // file-level
   if let Some(filename) = options.filename {
-    if let Some(caps) = DATA_URI_REGEX.captures(filename) {
-      let ext = mime_guess::get_mime_extensions_str(
-        caps
-          .get(1)
-          .expect("should match mime for data uri")
-          .as_str(),
-      )
-      .map(|exts| exts[0]);
+    // Manual data URI parsing for ^data:([^;,]+)
+    if let Some(data_content) = filename.strip_prefix("data:") {
+      if let Some(pos) = data_content.find(|c| c == ';' || c == ',') {
+        let mime_type = &data_content[..pos];
+        let ext = mime_guess::get_mime_extensions_str(mime_type)
+          .map(|exts| exts[0]);
 
-      let replacer = options
-        .content_hash
-        // "XXXX" used for updateHash, so we don't need it here
-        .filter(|hash| !hash.contains('X'))
-        .unwrap_or("");
+        let replacer = options
+          .content_hash
+          // "XXXX" used for updateHash, so we don't need it here
+          .filter(|hash| !hash.contains('X'))
+          .unwrap_or("");
 
       t = t
         .map(|t| t.replace_all(FILE_PLACEHOLDER, ""))

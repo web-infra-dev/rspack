@@ -1,11 +1,7 @@
-use std::{
-  fmt::{self, Debug},
-  sync::LazyLock,
-};
+use std::fmt::{self, Debug};
 
 use cow_utils::CowUtils;
 use futures::future::BoxFuture;
-use regex::Regex;
 use rspack_core::{
   Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
@@ -78,8 +74,12 @@ fn match_object(obj: &BannerPluginOptions, str: &str) -> bool {
   true
 }
 
-static TRIALING_WHITESPACE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\s+\n").expect("invalid regexp"));
+fn trim_trailing_whitespace_before_newline(s: &str) -> String {
+  s.lines()
+    .map(|line| line.trim_end())
+    .collect::<Vec<_>>()
+    .join("\n")
+}
 
 fn wrap_comment(str: &str) -> String {
   if !str.contains('\n') {
@@ -91,7 +91,7 @@ fn wrap_comment(str: &str) -> String {
     .split('\n')
     .collect::<Vec<_>>()
     .join("\n * ");
-  let result = TRIALING_WHITESPACE.replace_all(&result, "\n");
+  let result = trim_trailing_whitespace_before_newline(&result);
   let result = result.trim_end();
 
   format!("/*!\n * {result}\n */")

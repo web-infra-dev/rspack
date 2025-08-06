@@ -4138,6 +4138,7 @@ dependencies = [
  "derive_more 2.0.1",
  "dyn-clone",
  "either",
+ "ere",
  "futures",
  "hashlink",
  "hex",
