@@ -11,6 +11,7 @@ ignored = ["swc"]
 [features]
 default = []
 plugin = [
+  "swc_plugin_backend_wasmtime",
   "swc_core/plugin_transform_host_native",
   "swc_core/plugin_transform_host_native_filesystem_cache",
   "swc_core/plugin_transform_host_native_shared_runtime",
@@ -36,6 +37,7 @@ swc_config                     = { workspace = true }
 swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common", "ecma_preset_env", "ecma_helpers_inline"] }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
+swc_plugin_backend_wasmtime    = { workspace = true, optional = true }
 
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
