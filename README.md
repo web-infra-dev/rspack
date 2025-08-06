@@ -41,6 +41,7 @@ Rstack is a unified JavaScript toolchain built around Rspack, with high performa
 | [Rspress](https://github.com/web-infra-dev/rspress)   | Static site generator    |
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | Build analyzer           |
 | [Rstest](https://github.com/web-infra-dev/rstest)     | Testing framework        |
+| [Rslint](https://github.com/web-infra-dev/rslint)     | Linter                   |
 
 ## Getting started
 

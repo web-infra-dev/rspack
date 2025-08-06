@@ -40,6 +40,7 @@ Rstack 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优�
 | [Rspress](https://github.com/web-infra-dev/rspress)   | 静态站点生成器 |
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | 构建分析工具   |
 | [Rstest](https://github.com/web-infra-dev/rstest)     | 测试框架       |
+| [Rslint](https://github.com/web-infra-dev/rslint)     | 代码分析工具   |
 
 ## 快速上手
 
