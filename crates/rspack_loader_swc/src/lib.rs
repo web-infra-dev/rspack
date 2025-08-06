@@ -129,7 +129,7 @@ impl SwcLoader {
       code,
       map,
       diagnostics,
-    } = tokio::task::block_in_place(task)?;
+    } = task()?;
 
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(

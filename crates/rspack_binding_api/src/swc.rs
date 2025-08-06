@@ -67,7 +67,7 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
       .map(TransformOutput::from)
       .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")))
   };
-  tokio::task::block_in_place(task)
+  task()
 }
 
 #[napi]
