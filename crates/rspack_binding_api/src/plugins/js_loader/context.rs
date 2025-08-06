@@ -92,7 +92,7 @@ impl From<LoaderState> for JsLoaderState {
 #[napi(object, object_to_js = false)]
 pub struct LoaderContextFromJs {
   /// Content maybe empty in pitching stage
-  pub content: Either<Null, Buffer>,
+  pub content: Either3<String, Buffer, Null>,
   #[napi(ts_type = "any")]
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
   #[napi(js_name = "__internal__parseMeta")]
@@ -108,11 +108,6 @@ pub struct LoaderContextFromJs {
   pub loader_index: i32,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
-
-  /// UTF-8 hint for `content`
-  /// - Some(true): `content` is a `UTF-8` encoded sequence
-  #[napi(js_name = "__internal__utf8Hint")]
-  pub utf8_hint: Option<bool>,
 }
 
 #[derive(Serialize)]

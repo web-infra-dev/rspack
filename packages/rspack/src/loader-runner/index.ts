@@ -43,7 +43,6 @@ import {
 	isNil,
 	serializeObject,
 	stringifyLoaderObject,
-	toBuffer,
 	toObject
 } from "../util";
 import { createHash } from "../util/createHash";
@@ -1050,7 +1049,7 @@ export async function runLoaders(
 
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
-						context.content = isNil(content) ? null : toBuffer(content);
+						context.content = isNil(content) ? null : content;
 						context.sourceMap = serializeObject(sourceMap);
 						context.additionalData = additionalData || undefined;
 						break;
@@ -1090,10 +1089,9 @@ export async function runLoaders(
 					]);
 				}
 
-				context.content = isNil(content) ? null : toBuffer(content);
+				context.content = isNil(content) ? null : content;
 				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
 				context.additionalData = additionalData || undefined;
-				context.__internal__utf8Hint = typeof content === "string";
 
 				break;
 			}

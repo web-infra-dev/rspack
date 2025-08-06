@@ -1493,7 +1493,7 @@ export declare function loadBrowserslist(input: string | undefined | null, conte
 
 export interface LoaderContextFromJs {
   /** Content maybe empty in pitching stage */
-  content: null | Buffer
+  content: string | Buffer | null
   additionalData?: any
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
@@ -1505,11 +1505,6 @@ export interface LoaderContextFromJs {
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   __internal__error?: RspackError
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
 }
 
 export interface LoaderContextToJs {
