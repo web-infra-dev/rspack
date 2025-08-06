@@ -36,46 +36,55 @@ impl Property {
     Default::default()
   }
 
+  #[inline]
   pub fn with_utf8_name(mut self, name: &'static CStr) -> Result<Self> {
     self.utf8_name = Some(name);
     Ok(self)
   }
 
+  #[inline]
   pub fn with_name<T: ToNapiValue>(mut self, env: &Env, name: T) -> Result<Self> {
     self.name = unsafe { T::to_napi_value(env.raw(), name)? };
     Ok(self)
   }
 
+  #[inline]
   pub fn with_method(mut self, callback: Callback) -> Self {
     self.method = Some(callback);
     self
   }
 
+  #[inline]
   pub fn with_getter(mut self, callback: Callback) -> Self {
     self.getter = Some(callback);
     self
   }
 
+  #[inline]
   pub fn with_setter(mut self, callback: Callback) -> Self {
     self.setter = Some(callback);
     self
   }
 
+  #[inline]
   pub fn with_property_attributes(mut self, attributes: PropertyAttributes) -> Self {
     self.attrs = attributes;
     self
   }
 
+  #[inline]
   pub fn with_value<'env, T: JsValue<'env>>(mut self, value: &T) -> Self {
     self.value = T::raw(value);
     self
   }
 
+  #[inline]
   pub fn with_napi_value<T: ToNapiValue>(mut self, env: &Env, value: T) -> Result<Self> {
     self.value = unsafe { T::to_napi_value(env.raw(), value)? };
     Ok(self)
   }
 
+  #[inline]
   pub(crate) fn raw(&self) -> sys::napi_property_descriptor {
     sys::napi_property_descriptor {
       utf8name: match self.utf8_name {
