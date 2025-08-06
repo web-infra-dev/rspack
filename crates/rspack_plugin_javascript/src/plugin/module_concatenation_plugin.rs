@@ -1305,17 +1305,34 @@ impl ModuleConcatenationPlugin {
     .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
+    let mut set_original_mid_tasks = vec![];
+    let mut set_mid_tasks = vec![];
+    let mut add_connection_tasks = vec![];
+    let mut remove_connection_tasks = vec![];
+
     for res in new_modules {
-      let (new_module, connections, root_outgoings, root_incomings, config) = res?;
-      add_concatenated_module(
-        compilation,
-        new_module,
-        connections,
-        root_outgoings,
-        root_incomings,
-        config,
-      );
+      let (new_module, outgoings, root_outgoings, root_incomings, config) = res?;
+      let new_module_id = new_module.id();
+      let root_module_id = config.root_module;
+      add_concatenated_module(compilation, new_module, config);
+
+      for connection in outgoings.iter().chain(root_outgoings.iter()) {
+        set_original_mid_tasks.push((*connection, new_module_id));
+      }
+      for connection in root_incomings.iter() {
+        set_mid_tasks.push((*connection, new_module_id));
+      }
+      let mut all_outgoings = outgoings;
+      all_outgoings.extend(root_outgoings.clone());
+      add_connection_tasks.push((new_module_id, all_outgoings, root_incomings.clone()));
+      remove_connection_tasks.push((root_module_id, root_outgoings, root_incomings));
     }
+
+    let mut module_graph = compilation.get_module_graph_mut();
+    module_graph.batch_set_connections_original_module(set_original_mid_tasks);
+    module_graph.batch_set_connections_module(set_mid_tasks);
+    module_graph.batch_add_connections(add_connection_tasks);
+    module_graph.batch_remove_connections(remove_connection_tasks);
 
     Ok(())
   }
@@ -1559,9 +1576,6 @@ where
 fn add_concatenated_module(
   compilation: &mut Compilation,
   new_module: ConcatenatedModule,
-  outgoings: Vec<DependencyId>,
-  root_outgoings: Vec<DependencyId>,
-  root_incomings: Vec<DependencyId>,
   config: ConcatConfiguration,
 ) {
   let root_module_id = config.root_module;
@@ -1588,31 +1602,15 @@ fn add_concatenated_module(
 
   let mut module_graph = compilation.get_module_graph_mut();
 
-  for dep_id in outgoings.iter() {
-    let con = module_graph
-      .connection_by_dependency_id_mut(dep_id)
-      .expect("should have connection");
-    con.original_module_identifier = Some(new_module.id());
-  }
-
-  let new_mgm = module_graph
-    .module_graph_module_by_identifier_mut(&new_module.id())
-    .expect("should have mgm");
-
-  for dep_id in outgoings {
-    new_mgm.add_outgoing_connection(dep_id);
-  }
-
   for m in modules_set.iter() {
     if *m == root_module_id {
       continue;
     }
+    let module = module_graph
+      .module_by_identifier(m)
+      .expect("should exist module");
     // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
     for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
-      let module = module_graph
-        .module_by_identifier(m)
-        .expect("should exist module");
-
       let source_types =
         chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, &module_graph);
 
@@ -1653,50 +1651,6 @@ fn add_concatenated_module(
     }
   } else {
     chunk_graph.replace_module(&root_module_id, &new_module.id());
-  }
-
-  // move root outgoing connections
-  for dep_id in root_outgoings.iter() {
-    let con = module_graph
-      .connection_by_dependency_id_mut(dep_id)
-      .expect("should have connection");
-    con.original_module_identifier = Some(new_module.id());
-  }
-
-  let old_mgm = module_graph
-    .module_graph_module_by_identifier_mut(&root_module_id)
-    .expect("should have mgm");
-  for dep_id in root_outgoings.iter() {
-    old_mgm.remove_outgoing_connection(dep_id);
-  }
-
-  let new_mgm = module_graph
-    .module_graph_module_by_identifier_mut(&new_module.id())
-    .expect("should have mgm");
-  for dep_id in root_outgoings {
-    new_mgm.add_outgoing_connection(dep_id);
-  }
-
-  // move root incoming connections
-  for dep_id in root_incomings.iter() {
-    let con = module_graph
-      .connection_by_dependency_id_mut(dep_id)
-      .expect("should have connection");
-    con.set_module_identifier(new_module.id());
-  }
-
-  let old_mgm = module_graph
-    .module_graph_module_by_identifier_mut(&root_module_id)
-    .expect("should have mgm");
-  for dep_id in root_incomings.iter() {
-    old_mgm.remove_incoming_connection(dep_id);
-  }
-
-  let new_mgm = module_graph
-    .module_graph_module_by_identifier_mut(&new_module.id())
-    .expect("should have mgm");
-  for dep_id in root_incomings {
-    new_mgm.add_incoming_connection(dep_id);
   }
 
   module_graph.add_module(new_module.boxed());
