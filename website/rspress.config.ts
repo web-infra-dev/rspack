@@ -4,7 +4,7 @@ import { defineConfig } from '@rspress/core';
 import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
-import pluginSitemap from '@rspress/plugin-sitemap';
+import { pluginSitemap } from '@rspress/plugin-sitemap';
 import { transformerNotationHighlight } from '@shikijs/transformers';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
@@ -43,7 +43,7 @@ export default defineConfig({
     pluginAlgolia(),
     pluginLlms(),
     pluginSitemap({
-      domain: PUBLISH_URL,
+      siteUrl: PUBLISH_URL,
     }),
     pluginFontOpenSans(),
     pluginRss({
