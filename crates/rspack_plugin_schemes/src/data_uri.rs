@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use rspack_core::{
   Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme, NormalModuleReadResource,
   Plugin, ResourceData, Scheme,
@@ -7,9 +5,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use winnow::{
-  ascii::{alphanumeric1, till_line_ending},
-  combinator::{opt, repeat, separated},
-  error::ParseError,
+  combinator::opt,
   prelude::*,
   token::{take_till, take_while},
 };
@@ -22,7 +18,7 @@ struct DataUri<'a> {
   data: &'a str,
 }
 
-fn parse_data_uri(input: &mut &str) -> PResult<DataUri> {
+fn parse_data_uri<'a>(input: &mut &'a str) -> PResult<DataUri<'a>> {
   let _: &str = "data:".parse_next(input)?;
   
   // Parse mimetype (optional)

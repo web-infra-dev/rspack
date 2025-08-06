@@ -325,7 +325,9 @@ static TRIM_WHITE_SPACES: LazyLock<Regex> =
 static UNESCAPE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
 
-static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
+fn is_data_uri(s: &str) -> bool {
+  s.to_lowercase().starts_with("data:")
+}
 
 // `\/foo` in css should be treated as `foo` in js
 pub fn unescape(s: &str) -> Cow<'_, str> {
@@ -349,12 +351,32 @@ pub fn unescape(s: &str) -> Cow<'_, str> {
   })
 }
 
-static WHITE_OR_BRACKET_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
-static QUOTATION_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
-static APOSTROPHE_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
+fn escape_white_or_bracket_chars(s: &str) -> String {
+  s.chars()
+    .map(|c| match c {
+      '\n' | '\t' | ' ' | '(' | ')' | '\'' | '"' | '\\' => format!("\\{}", c),
+      _ => c.to_string(),
+    })
+    .collect()
+}
+
+fn escape_quotation_chars(s: &str) -> String {
+  s.chars()
+    .map(|c| match c {
+      '\n' | '"' | '\\' => format!("\\{}", c),
+      _ => c.to_string(),
+    })
+    .collect()
+}
+
+fn escape_apostrophe_chars(s: &str) -> String {
+  s.chars()
+    .map(|c| match c {
+      '\n' | '\'' | '\\' => format!("\\{}", c),
+      _ => c.to_string(),
+    })
+    .collect()
+}
 
 pub fn css_escape_string(s: &str) -> String {
   let mut count_white_or_bracket = 0;
@@ -369,18 +391,11 @@ pub fn css_escape_string(s: &str) -> String {
     }
   }
   if count_white_or_bracket < 2 {
-    WHITE_OR_BRACKET_REGEX
-      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-      .into_owned()
+    escape_white_or_bracket_chars(s)
   } else if count_quotation <= count_apostrophe {
-    format!(
-      "\"{}\"",
-      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
-    )
+    format!("\"{}\"", escape_quotation_chars(s))
   } else {
-    format!(
-      "\'{}\'",
-      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    format!("'{}'", escape_apostrophe_chars(s))
     )
   }
 }
@@ -390,7 +405,7 @@ pub fn normalize_url(s: &str) -> String {
   let result = TRIM_WHITE_SPACES.replace_all(&result, "");
   let result = unescape(&result);
 
-  if DATA.is_match(&result) {
+  if is_data_uri(&result) {
     return result.to_string();
   }
   if result.contains('%')

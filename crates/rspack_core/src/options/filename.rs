@@ -209,19 +209,20 @@ fn render_template(
           .filter(|hash| !hash.contains('X'))
           .unwrap_or("");
 
-      t = t
-        .map(|t| t.replace_all(FILE_PLACEHOLDER, ""))
-        .map(|t| t.replace_all(QUERY_PLACEHOLDER, ""))
-        .map(|t| t.replace_all(FRAGMENT_PLACEHOLDER, ""))
-        .map(|t| t.replace_all(PATH_PLACEHOLDER, ""))
-        .map(|t| t.replace_all(BASE_PLACEHOLDER, replacer))
-        .map(|t| t.replace_all(NAME_PLACEHOLDER, replacer))
-        .map(|t| {
-          t.replace_all(
-            EXT_PLACEHOLDER,
-            &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
-          )
-        });
+        t = t
+          .map(|t| t.replace_all(FILE_PLACEHOLDER, ""))
+          .map(|t| t.replace_all(QUERY_PLACEHOLDER, ""))
+          .map(|t| t.replace_all(FRAGMENT_PLACEHOLDER, ""))
+          .map(|t| t.replace_all(PATH_PLACEHOLDER, ""))
+          .map(|t| t.replace_all(BASE_PLACEHOLDER, replacer))
+          .map(|t| t.replace_all(NAME_PLACEHOLDER, replacer))
+          .map(|t| {
+            t.replace_all(
+              EXT_PLACEHOLDER,
+              &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
+            )
+          });
+      }
     } else if let Some(ResourceParsedData {
       path: file,
       query,

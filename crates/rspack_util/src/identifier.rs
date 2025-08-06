@@ -70,7 +70,7 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
     let tmp = Path::new(maybe_absolute_resource).relative(context);
     let tmp_path = tmp.to_string_lossy();
     relative_path_to_request(&tmp_path).into_owned()
-  } else if WINDOWS_ABS_PATH_REGEXP.is_match(maybe_absolute_path) {
+  } else if WINDOWS_ABS_PATH_REGEXP.test(maybe_absolute_path) {
     let mut resource = maybe_absolute_resource
       .as_path()
       .relative(context)
@@ -79,7 +79,7 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
 
     // In windows, A path that relative to a another path could still be absolute.
     // ("d:/aaaa/cccc").relative("c:/aaaaa/") would get "d:/aaaa/cccc".
-    if !WINDOWS_ABS_PATH_REGEXP.is_match(&resource) {
+    if !WINDOWS_ABS_PATH_REGEXP.test(&resource) {
       resource =
         relative_path_to_request(&resource.cow_replace(WINDOWS_PATH_SEPARATOR, "/")).into_owned();
     }

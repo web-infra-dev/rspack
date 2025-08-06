@@ -14,6 +14,7 @@ concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 ere              = { workspace = true }
+ere-core         = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
 regex            = { workspace = true }

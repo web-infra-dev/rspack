@@ -5435,6 +5435,7 @@ dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
  "ere",
+ "ere-core",
  "indexmap",
  "itoa",
  "regex",
