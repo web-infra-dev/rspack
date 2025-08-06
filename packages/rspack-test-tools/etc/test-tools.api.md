@@ -263,9 +263,6 @@ export function createHotIncrementalCase(name: string, src: string, dist: string
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
-export function createNativeWatcher(name: string, src: string, dist: string, temp: string): void;
-
-// @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
