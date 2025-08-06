@@ -5521,7 +5521,7 @@ export type ParserOptionsByModuleTypeUnknown = {
 export type Path = string;
 
 // @public (undocumented)
-type PathData = {
+export type PathData = {
     filename?: string;
     hash?: string;
     contentHash?: string;
@@ -5533,7 +5533,7 @@ type PathData = {
 };
 
 // @public (undocumented)
-type PathDataChunkLike = {
+export type PathDataChunkLike = {
     id?: string;
     name?: string;
     hash?: string;
@@ -6249,6 +6249,8 @@ declare namespace rspackExports {
         Assets,
         CompilationParams,
         LogEntry,
+        PathData,
+        PathDataChunkLike,
         Compilation,
         Compiler,
         MultiCompilerOptions,
