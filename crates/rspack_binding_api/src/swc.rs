@@ -41,20 +41,33 @@ fn _to_source_map_kind(source_maps: Option<SourceMapsConfig>) -> SourceMapKind {
 }
 
 fn _transform(source: String, options: String) -> napi::Result<TransformOutput> {
-  let options: SwcOptions = serde_json::from_str(&options)?;
+  #[cfg_attr(not(feature = "plugin"), allow(unused_mut))]
+  let mut options: SwcOptions = serde_json::from_str(&options)?;
+
+  #[cfg(feature = "plugin")]
+  {
+    options.runtime_options = options.runtime_options.plugin_runtime(std::sync::Arc::new(
+      swc_plugin_backend_wasmtime::WasmtimeRuntime,
+    ));
+  }
+
   let compiler = JavaScriptCompiler::new();
   let module_source_map_kind = _to_source_map_kind(options.source_maps.clone());
-  compiler
-    .transform(
-      source,
-      Some(swc_core::common::FileName::Anon),
-      options,
-      Some(module_source_map_kind),
-      |_| {},
-      |_| noop_pass(),
-    )
-    .map(TransformOutput::from)
-    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")))
+
+  let task = || {
+    compiler
+      .transform(
+        source,
+        Some(swc_core::common::FileName::Anon),
+        options,
+        Some(module_source_map_kind),
+        |_| {},
+        |_| noop_pass(),
+      )
+      .map(TransformOutput::from)
+      .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")))
+  };
+  tokio::task::block_in_place(task)
 }
 
 #[napi]
