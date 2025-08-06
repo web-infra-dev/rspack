@@ -102,7 +102,7 @@ impl EvaluatedInlinableValue {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum Inlinable {
   NoByProvide,
   NoByUse,
@@ -112,13 +112,6 @@ pub enum Inlinable {
 impl Inlinable {
   pub fn can_inline(&self) -> bool {
     matches!(self, Inlinable::Inlined(_))
-  }
-
-  pub fn as_inline(&self) -> Option<&EvaluatedInlinableValue> {
-    match self {
-      Inlinable::Inlined(value) => Some(value),
-      _ => None,
-    }
   }
 }
 
