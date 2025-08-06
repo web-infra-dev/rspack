@@ -3,7 +3,7 @@ use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use super::{Analyzer, WatchPattern};
-use crate::watcher::path_manager::PathAccessor;
+use crate::watcher::paths::PathAccessor;
 
 /// `WatcherDirectoriesAnalyzer` analyzes the path register and determines
 ///
@@ -66,33 +66,29 @@ impl WatcherDirectoriesAnalyzer {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::watcher::path_manager::{PathManager, PathUpdater};
+  use crate::watcher::paths::PathManager;
 
   #[test]
   fn test_find_watch_directories() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let path_manager = PathManager::default();
-    let file_updater = PathUpdater {
-      added: vec![
-        current_dir.join("Cargo.toml").to_string_lossy().to_string(),
-        current_dir.join("src/lib.rs").to_string_lossy().to_string(),
-      ],
-      removed: vec![],
-    };
+    let files = (
+      vec![
+        current_dir.join("Cargo.toml").into(),
+        current_dir.join("src/lib.rs").into(),
+      ]
+      .into_iter(),
+      vec![].into_iter(),
+    );
 
-    let directory_updater = PathUpdater {
-      added: vec![current_dir.join("src").to_string_lossy().to_string()],
-      removed: vec![],
-    };
+    let dirs = (
+      vec![current_dir.join("src").into()].into_iter(),
+      vec![].into_iter(),
+    );
 
-    let missing_updater = PathUpdater {
-      added: vec![],
-      removed: vec![],
-    };
+    let missing = (vec![].into_iter(), vec![].into_iter());
 
-    path_manager
-      .update_paths(file_updater, directory_updater, missing_updater)
-      .unwrap();
+    path_manager.update(files, dirs, missing).unwrap();
     let analyzer = WatcherDirectoriesAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
 
@@ -115,33 +111,25 @@ mod tests {
     let dir_0 = ArcPath::from(current_dir.join("src"));
 
     let path_manager = PathManager::default();
-    let file_updater = PathUpdater {
-      added: vec![
-        current_dir.join("Cargo.toml").to_string_lossy().to_string(),
-        current_dir
-          .join("src/a/b/c/d.rs")
-          .to_string_lossy()
-          .to_string(),
-      ],
-      removed: vec![],
-    };
-    let directory_updater = PathUpdater {
-      added: vec![
-        current_dir.join("src").to_string_lossy().to_string(),
-        current_dir
-          .join("src/b/c/d/e")
-          .to_string_lossy()
-          .to_string(),
-      ],
-      removed: vec![],
-    };
-    let missing_updater = PathUpdater {
-      added: vec![],
-      removed: vec![],
-    };
-    path_manager
-      .update_paths(file_updater, directory_updater, missing_updater)
-      .unwrap();
+    let files = (
+      vec![
+        current_dir.join("Cargo.toml").into(),
+        current_dir.join("src/a/b/c/d.rs").into(),
+      ]
+      .into_iter(),
+      vec![].into_iter(),
+    );
+    let dirs = (
+      vec![
+        current_dir.join("src").into(),
+        current_dir.join("src/b/c/d/e").into(),
+      ]
+      .into_iter(),
+      vec![].into_iter(),
+    );
+    let missing = (vec![].into_iter(), vec![].into_iter());
+
+    path_manager.update(files, dirs, missing).unwrap();
 
     let analyzer = WatcherDirectoriesAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
