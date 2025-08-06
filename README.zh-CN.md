@@ -40,6 +40,7 @@ Rstack 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优�
 | [Rspress](https://github.com/web-infra-dev/rspress)   | 静态站点生成器 |
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | 构建分析工具   |
 | [Rstest](https://github.com/web-infra-dev/rstest)     | 测试框架       |
+| [Rslint](https://github.com/web-infra-dev/rslint)     | 代码分析工具   |
 
 ## 快速上手
 
@@ -70,7 +71,7 @@ Rstack 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优�
 | [Rspack 1.x 文档](https://rspack.rs/zh/)                                             | Rspack 1.x 版本的文档（最新）                                                |
 | [Rspack 0.x 文档](https://v0.rspack.rs/zh/)                                          | Rspack 0.x 版本的文档                                                        |
 | [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Rspack 的开发服务器                                                          |
-| [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Rstack 生态（Rspack、Rsbuild、Rspress、Rsdoctor）的示例                      |
+| [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Rstack 的示例项目                                                            |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Rspack Stack 的设计资源                                                      |
 

@@ -41,6 +41,7 @@ Rstack is a unified JavaScript toolchain built around Rspack, with high performa
 | [Rspress](https://github.com/web-infra-dev/rspress)   | Static site generator    |
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | Build analyzer           |
 | [Rstest](https://github.com/web-infra-dev/rstest)     | Testing framework        |
+| [Rslint](https://github.com/web-infra-dev/rslint)     | Linter                   |
 
 ## Getting started
 
@@ -69,15 +70,15 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Links
 
-| Name                                                                                 | Description                                                                     |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | A curated list of awesome things related to Rspack                              |
-| [Rspack 1.x documentation](https://rspack.rs/)                                       | Documentation for Rspack 1.x (latest)                                           |
-| [Rspack 0.x documentation](https://v0.rspack.rs/)                                    | Documentation for Rspack 0.x version                                            |
-| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Dev server for Rspack                                                           |
-| [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Examples showcasing Rstack ecosystem tools (Rspack, Rsbuild, Rspress, Rsdoctor) |
-| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources)   |
-| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Design resources for Rspack Stack                                               |
+| Name                                                                                 | Description                                                                   |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | A curated list of awesome things related to Rspack                            |
+| [Rspack 1.x documentation](https://rspack.rs/)                                       | Documentation for Rspack 1.x (latest)                                         |
+| [Rspack 0.x documentation](https://v0.rspack.rs/)                                    | Documentation for Rspack 0.x version                                          |
+| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Dev server for Rspack                                                         |
+| [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Examples showcasing Rstack                                                    |
+| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Design resources for Rspack Stack                                             |
 
 ## Contributors
 
