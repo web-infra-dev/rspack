@@ -910,7 +910,26 @@ Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other t
 - **Type:** `boolean`
 - **Default:** `false`
 
-The switch for the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst). Must be enabled to use the feature.
+Whether to enable the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst), which will perform cross-module inline optimization for constant exports in leaf modules of the module graph.
+
+A common optimization case is `constants.js`, for example:
+
+```js
+// constants.js
+export const IS_A = true;
+// index.js
+import { IS_A } from './constants';
+console.log(IS_A ? 1 : 2);
+
+// Bundled by Rspack: output.js
+const __webpack_modules__ = {
+  './index.js': __webpack_require__ => {
+    // 1. IS_A will be inlined at the usage sites.
+    // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
+    console.log(true ? 1 : 2);
+  },
+};
+```
 
 ## experiments.inlineEnum
 

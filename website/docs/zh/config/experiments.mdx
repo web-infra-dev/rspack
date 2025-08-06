@@ -911,7 +911,26 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后才能使用。
+实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后会将位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化。
+
+常见的优化场景为 `constants.js`，比如：
+
+```js
+// constants.js
+export const IS_A = true;
+// index.js
+import { IS_A } from './constants';
+console.log(IS_A ? 1 : 2);
+
+// 经过打包后的结果 output.js
+const __webpack_modules__ = {
+  './index.js': __webpack_require__ => {
+    // 1. IS_A 会被内联到使用的地方。
+    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
+    console.log(true ? 1 : 2);
+  },
+};
+```
 
 ## experiments.inlineEnum
 

@@ -401,7 +401,11 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       export_info.get_used(runtime).dyn_hash(hasher);
       export_info.provided().dyn_hash(hasher);
       export_info.terminal_binding().dyn_hash(hasher);
-      export_info.inlinable().dyn_hash(hasher);
+      export_info
+        .inlinable()
+        .as_inline()
+        .map(|v| v.render())
+        .dyn_hash(hasher);
     }
 
     let mut exports = self.exports.values().collect_vec();

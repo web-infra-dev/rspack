@@ -644,9 +644,21 @@ pub fn evaluate_to_number<'a>(value: f64, start: u32, end: u32) -> BasicEvaluate
   eval
 }
 
+pub fn evaluate_to_boolean<'a>(value: bool, start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
+  let mut eval = BasicEvaluatedExpression::with_range(start, end);
+  eval.set_bool(value);
+  eval
+}
+
 pub fn evaluate_to_null<'a>(start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_null();
+  eval
+}
+
+pub fn evaluate_to_undefined<'a>(start: u32, end: u32) -> BasicEvaluatedExpression<'a> {
+  let mut eval = BasicEvaluatedExpression::with_range(start, end);
+  eval.set_undefined();
   eval
 }
 

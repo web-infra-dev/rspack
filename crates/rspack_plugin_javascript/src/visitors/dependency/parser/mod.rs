@@ -494,7 +494,7 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(id))
   }
 
-  pub fn get_tag_data(&mut self, name: &Atom, tag: &str) -> Option<Box<dyn anymap::CloneAny>> {
+  pub fn get_tag_data(&mut self, name: &str, tag: &str) -> Option<Box<dyn anymap::CloneAny>> {
     self
       .get_variable_info(name)
       .and_then(|variable_info| variable_info.tag_info)

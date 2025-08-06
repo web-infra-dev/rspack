@@ -589,7 +589,26 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Performs cross-module inline optimization for constant exports in leaf modules of the module graph, commonly seen in scenarios like `constants.js`.
+Performs cross-module inline optimization for constant exports in leaf modules of the module graph.
+
+A common optimization case is `constants.js`, for example:
+
+```js
+// constants.js
+export const IS_A = true;
+// index.js
+import { IS_A } from './constants';
+console.log(IS_A ? 1 : 2);
+
+// 经过打包后的结果 output.js
+const __webpack_modules__ = {
+  './index.js': __webpack_require__ => {
+    // 1. IS_A 会被内联到使用的地方。
+    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
+    console.log(true ? 1 : 2);
+  },
+};
+```
 
 Inline optimization is applied when the constant value is:
 
