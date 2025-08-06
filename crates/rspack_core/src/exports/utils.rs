@@ -44,22 +44,18 @@ pub enum EvaluatedInlinableValue {
 
 impl Hash for EvaluatedInlinableValue {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    std::mem::discriminant(self).hash(state);
     match self {
-      EvaluatedInlinableValue::Null => 0.hash(state),
-      EvaluatedInlinableValue::Undefined => 1.hash(state),
       EvaluatedInlinableValue::Boolean(v) => {
-        2.hash(state);
         v.hash(state);
       }
       EvaluatedInlinableValue::Number(v) => {
-        3.hash(state);
-        let mut buf = ryu_js::Buffer::new();
-        buf.format(*v).hash(state);
+        v.to_bits().hash(state);
       }
       EvaluatedInlinableValue::String(atom) => {
-        4.hash(state);
         atom.hash(state);
       }
+      _ => {}
     }
   }
 }
