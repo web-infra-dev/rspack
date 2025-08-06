@@ -8,6 +8,8 @@ version.workspace = true
 [dependencies]
 dashmap      = { workspace = true }
 derive_more  = { workspace = true, features = ["debug"] }
+ere          = { workspace = true }
+ere-core     = { workspace = true }
 futures      = { workspace = true }
 glob         = { workspace = true }
 pathdiff     = { workspace = true, features = ["camino"] }

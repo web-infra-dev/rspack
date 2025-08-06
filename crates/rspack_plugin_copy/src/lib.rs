@@ -4,11 +4,12 @@ use std::{
   hash::Hash,
   ops::DerefMut,
   path::{MAIN_SEPARATOR, Path, PathBuf},
-  sync::{Arc, LazyLock, Mutex},
+  sync::{Arc, Mutex},
 };
 
 use dashmap::DashSet;
 use derive_more::Debug;
+use ere::prelude::*;
 use futures::future::{BoxFuture, join_all};
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
@@ -127,8 +128,7 @@ pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
 }
 
-static TEMPLATE_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
+const TEMPLATE_RE: ere::Regex<2> = compile_regex!(r"\[\\*([\w:]+)\\*\]");
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
@@ -216,7 +216,7 @@ impl CopyRspackPlugin {
 
     let to_type = if let Some(to_type) = pattern.to_type.as_ref() {
       to_type.clone()
-    } else if TEMPLATE_RE.is_match(&to) {
+    } else if TEMPLATE_RE.test(&to) {
       ToType::Template
     } else if Path::new(&to).extension().is_none() || to.ends_with(MAIN_SEPARATOR) {
       ToType::Dir
