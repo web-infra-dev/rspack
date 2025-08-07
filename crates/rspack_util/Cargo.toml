@@ -29,8 +29,16 @@ unicase          = { workspace = true }
 swc_config = { workspace = true }
 swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
 
+# wasm runtime
+anyhow            = { workspace = true, optional = true }
+once_cell         = { workspace = true, optional = true }
+wasmtime          = { workspace = true, optional = true, features = ["runtime", "cranelift", "threads"] }
+wasi-common       = { workspace = true, optional = true, features = ["sync", "wasmtime"] } 
+swc_plugin_runner = { workspace = true, optional = true }
+
 rspack_regex = { workspace = true }
 signal-hook  = { workspace = true, optional = true }
 
 [features]
 debug_tool = ["signal-hook"] # only used for local debug and  should not be enabled in production release
+plugin = [ "anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner" ]
