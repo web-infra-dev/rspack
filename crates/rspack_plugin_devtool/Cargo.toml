@@ -28,6 +28,7 @@ rustc-hash               = { workspace = true }
 simd-json                = { workspace = true }
 sugar_path               = { workspace = true }
 tracing                  = { workspace = true }
+memchr                   = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

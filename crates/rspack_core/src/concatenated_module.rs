@@ -2753,7 +2753,7 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<String> {
   let extra_info = REGEX.replace_all(extra_info, "");
   let mut splitted_info: Vec<String> = extra_info
     .split('/')
-    .map(|s| escape_identifier(s).to_string())
+    .map(|s| escape_identifier(s).into_owned())
     .collect();
   splitted_info.reverse();
   splitted_info
@@ -2767,5 +2767,5 @@ pub fn escape_name(name: &str) -> String {
     return "namespaceObject".to_string();
   }
 
-  escape_identifier(name).to_string()
+  escape_identifier(name).into_owned()
 }
