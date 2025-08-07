@@ -87,7 +87,7 @@ impl SwcLoader {
           swc_options
             .runtime_options
             .plugin_runtime(std::sync::Arc::new(
-              swc_plugin_backend_wasmtime::WasmtimeRuntime,
+              rspack_util::swc::runtime::WasmtimeRuntime,
             ));
       }
 
@@ -102,34 +102,30 @@ impl SwcLoader {
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let mut collected_ts_info = None;
 
-    let task = || {
-      javascript_compiler.transform(
-        source,
-        Some(filename),
-        swc_options,
-        Some(loader_context.context.module_source_map_kind),
-        |program| {
-          if !is_typescript {
-            return;
-          }
-          let Some(options) = &self
-            .options_with_additional
-            .rspack_experiments
-            .collect_typescript_info
-          else {
-            return;
-          };
-          collected_ts_info = Some(collect_typescript_info(program, options));
-        },
-        |_| transformer::transform(&self.options_with_additional.rspack_experiments),
-      )
-    };
-
     let TransformOutput {
       code,
       map,
       diagnostics,
-    } = tokio::task::block_in_place(task)?;
+    } = javascript_compiler.transform(
+      source,
+      Some(filename),
+      swc_options,
+      Some(loader_context.context.module_source_map_kind),
+      |program| {
+        if !is_typescript {
+          return;
+        }
+        let Some(options) = &self
+          .options_with_additional
+          .rspack_experiments
+          .collect_typescript_info
+        else {
+          return;
+        };
+        collected_ts_info = Some(collect_typescript_info(program, options));
+      },
+      |_| transformer::transform(&self.options_with_additional.rspack_experiments),
+    )?;
 
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(

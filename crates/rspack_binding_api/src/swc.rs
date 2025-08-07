@@ -47,27 +47,24 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
   #[cfg(feature = "plugin")]
   {
     options.runtime_options = options.runtime_options.plugin_runtime(std::sync::Arc::new(
-      swc_plugin_backend_wasmtime::WasmtimeRuntime,
+      rspack_util::swc::runtime::WasmtimeRuntime,
     ));
   }
 
   let compiler = JavaScriptCompiler::new();
   let module_source_map_kind = _to_source_map_kind(options.source_maps.clone());
 
-  let task = || {
-    compiler
-      .transform(
-        source,
-        Some(swc_core::common::FileName::Anon),
-        options,
-        Some(module_source_map_kind),
-        |_| {},
-        |_| noop_pass(),
-      )
-      .map(TransformOutput::from)
-      .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")))
-  };
-  tokio::task::block_in_place(task)
+  compiler
+    .transform(
+      source,
+      Some(swc_core::common::FileName::Anon),
+      options,
+      Some(module_source_map_kind),
+      |_| {},
+      |_| noop_pass(),
+    )
+    .map(TransformOutput::from)
+    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e}")))
 }
 
 #[napi]

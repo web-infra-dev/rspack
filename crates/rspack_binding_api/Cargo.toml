@@ -14,7 +14,7 @@ version.workspace       = true
 browser         = ["dep:rspack_browser", "rspack_napi/browser"]
 color-backtrace = ["dep:color-backtrace"]
 debug_tool      = ["rspack_core/debug_tool"]
-plugin          = ["rspack_loader_swc/plugin", "swc_plugin_backend_wasmtime"]
+plugin          = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
 sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
@@ -115,7 +115,6 @@ rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-swc_plugin_backend_wasmtime            = { workspace = true, optional = true }
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing", "parking_lot"] }
 ustr                                   = { workspace = true }
 

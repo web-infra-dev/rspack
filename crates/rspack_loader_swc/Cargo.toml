@@ -11,7 +11,7 @@ ignored = ["swc"]
 [features]
 default = []
 plugin = [
-  "swc_plugin_backend_wasmtime",
+  "rspack_util/plugin",
 
   # plugin_transform_host_native cannot be enabled directly to avoid wasmer dependency
   "swc_core/__plugin_transform_host",
@@ -39,7 +39,7 @@ swc_config                     = { workspace = true }
 swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common", "ecma_preset_env", "ecma_helpers_inline"] }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
-swc_plugin_backend_wasmtime    = { workspace = true, optional = true }
+rspack_util                    = { workspace = true, optional = true }
 
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
