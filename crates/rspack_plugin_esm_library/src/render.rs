@@ -514,12 +514,11 @@ impl EsmLibraryPlugin {
     let mut source = ConcatSource::default();
 
     for (id, interop_info) in &chunk_link.required {
-      if interop_info.from_module.contains(&root) {
+      if !interop_info.from_module.contains(&root) {
         continue;
       }
 
       let name = interop_info.required_symbol.as_ref();
-
       if let Some(name) = name {
         source.add(RawStringSource::from(format!(
           "const {name} = __webpack_require__({});\n",
