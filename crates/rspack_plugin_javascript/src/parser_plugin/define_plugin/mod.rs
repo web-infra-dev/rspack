@@ -1,44 +1,36 @@
 mod parser;
+mod utils;
+mod walk_data;
 
-use std::{borrow::Cow, collections::HashMap};
+use std::{collections::HashMap, sync::Arc};
 
-use itertools::Itertools;
-use parser::{DefineParserPlugin, walk_definitions};
+use parser::DefineParserPlugin;
 use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
 };
-use rspack_error::{
-  DiagnosticExt, Result,
-  miette::{self, Diagnostic},
-  thiserror::{self, Error},
-};
+use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::itoa;
 use serde_json::Value;
 
+use self::walk_data::WalkData;
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
-pub type DefineValue = HashMap<String, Value>;
-
 const VALUE_DEP_PREFIX: &str = "webpack/DefinePlugin ";
+
+pub type DefineValue = HashMap<String, Value>;
 
 #[plugin]
 #[derive(Debug)]
 pub struct DefinePlugin {
-  definitions: DefineValue,
+  walk_data: Arc<WalkData>,
 }
 
 impl DefinePlugin {
   pub fn new(definitions: DefineValue) -> Self {
-    Self::new_inner(definitions)
+    Self::new_inner(Arc::new(WalkData::new(&definitions)))
   }
 }
-
-#[derive(Debug, Error, Diagnostic)]
-#[error("DefinePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
-#[diagnostic(severity(Warning))]
-struct ConflictingValuesError(String, String, String);
 
 #[plugin_hook(CompilerCompilation for DefinePlugin, tracing=false)]
 async fn compilation(
@@ -46,44 +38,10 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  fn walk_definitions<'d, 's>(
-    definitions: impl Iterator<Item = (&'d String, &'d Value)>,
-    compilation: &mut Compilation,
-    prefix: Cow<'s, str>,
-  ) {
-    definitions.for_each(|(key, value)| {
-      let name = format!("{VALUE_DEP_PREFIX}{prefix}{key}");
-      let value_str = value.to_string();
-      if let Some(prev) = compilation.value_cache_versions.get(&name)
-        && !prev.eq(&value_str)
-      {
-        compilation.push_diagnostic(
-          ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .boxed()
-            .into(),
-        );
-      } else {
-        compilation.value_cache_versions.insert(name, value_str);
-      }
-      if let Some(value) = value.as_object() {
-        walk_definitions(
-          value.iter(),
-          compilation,
-          Cow::Owned(format!("{prefix}{key}.")),
-        )
-      } else if let Some(value) = value.as_array() {
-        let indexes = (0..value.len())
-          .map(|index| {
-            let mut index_buffer = itoa::Buffer::new();
-            index_buffer.format(index).to_string()
-          })
-          .collect_vec();
-        let iter = indexes.iter().zip(value.iter());
-        walk_definitions(iter, compilation, Cow::Owned(format!("{prefix}{key}.")))
-      }
-    });
-  }
-  walk_definitions(self.definitions.iter(), compilation, "".into());
+  compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
+  compilation
+    .value_cache_versions
+    .extend(self.walk_data.value_cache_versions.clone());
   Ok(())
 }
 
@@ -97,8 +55,9 @@ async fn nmf_parser(
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
-    let walk_data = walk_definitions(&self.definitions);
-    parser.add_parser_plugin(Box::new(DefineParserPlugin { walk_data }));
+    parser.add_parser_plugin(Box::new(DefineParserPlugin {
+      walk_data: self.walk_data.clone(),
+    }));
   }
   Ok(())
 }
