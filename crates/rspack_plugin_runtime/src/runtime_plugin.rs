@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use atomic_refcell::AtomicRefCell;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkLoading, ChunkUkey, Compilation, CompilationId, CompilationParams,
@@ -16,6 +15,7 @@ use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::fx_hash::FxDashMap;
+use tokio::sync::RwLock;
 
 use crate::{
   RuntimePluginHooks,
@@ -35,12 +35,7 @@ use crate::{
   },
 };
 
-/// Safety with [atomic_refcell::AtomicRefCell]:
-///
-/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RuntimePlugin::get_compilation_hooks_mut]
-type ArcRuntimePluginHooks = Arc<AtomicRefCell<RuntimePluginHooks>>;
-
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRuntimePluginHooks>> =
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Arc<RwLock<RuntimePluginHooks>>>> =
   LazyLock::new(Default::default);
 
 const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
@@ -153,7 +148,7 @@ fn handle_dependency_globals(
 pub struct RuntimePlugin;
 
 impl RuntimePlugin {
-  pub fn get_compilation_hooks(id: CompilationId) -> ArcRuntimePluginHooks {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<RuntimePluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -163,7 +158,7 @@ impl RuntimePlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_mut(id: CompilationId) -> ArcRuntimePluginHooks {
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<RuntimePluginHooks>> {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }

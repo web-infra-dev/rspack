@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -18,6 +17,7 @@ use rspack_plugin_devtool::{
 };
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::sync::RwLock;
 
 use crate::{
   EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph,
@@ -42,12 +42,7 @@ pub type SendAssets =
 pub type SendModuleSources =
   Arc<dyn Fn(RsdoctorModuleIdsPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
-/// Safety with [atomic_refcell::AtomicRefCell]:
-///
-/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RsdoctorPlugin::get_compilation_hooks_mut]
-type ArcRsdoctorPluginHooks = Arc<AtomicRefCell<RsdoctorPluginHooks>>;
-
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRsdoctorPluginHooks>> =
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Arc<RwLock<RsdoctorPluginHooks>>>> =
   LazyLock::new(Default::default);
 
 static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<Identifier, ModuleUkey>>> =
@@ -161,7 +156,7 @@ impl RsdoctorPlugin {
     panic!("chunk graph feature \"{feature}\" need \"graph\" to be enabled");
   }
 
-  pub fn get_compilation_hooks(id: CompilationId) -> ArcRsdoctorPluginHooks {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<RsdoctorPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -171,7 +166,7 @@ impl RsdoctorPlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_mut(id: CompilationId) -> ArcRsdoctorPluginHooks {
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<RsdoctorPluginHooks>> {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 }
@@ -234,7 +229,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   tokio::spawn(async move {
     match hooks
-      .borrow()
+      .read()
+      .await
       .chunk_graph
       .call(&mut RsdoctorChunkGraph {
         chunks: rsd_chunks.into_values().collect::<Vec<_>>(),
@@ -357,7 +353,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
   tokio::spawn(async move {
     match hooks
-      .borrow()
+      .read()
+      .await
       .module_graph
       .call(&mut RsdoctorModuleGraph {
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
@@ -393,7 +390,8 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
 
   tokio::spawn(async move {
     match hooks
-      .borrow()
+      .read()
+      .await
       .module_ids
       .call(&mut RsdoctorModuleIdsPatch {
         module_ids: rsd_module_ids,
@@ -428,7 +426,8 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
 
   tokio::spawn(async move {
     match hooks
-      .borrow()
+      .read()
+      .await
       .module_sources
       .call(&mut RsdoctorModuleSourcesPatch {
         module_original_sources: rsd_module_original_sources,
@@ -466,7 +465,8 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
 
   tokio::spawn(async move {
     match hooks
-      .borrow()
+      .read()
+      .await
       .assets
       .call(&mut RsdoctorAssetPatch {
         assets: rsd_assets.into_values().collect::<Vec<_>>(),

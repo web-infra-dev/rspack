@@ -6,7 +6,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use atomic_refcell::AtomicRefCell;
 use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
@@ -25,6 +24,7 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::sync::RwLock;
 
 use crate::{
   CssPlugin,
@@ -38,20 +38,16 @@ use crate::{
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
 };
 
-/// Safety with [atomic_refcell::AtomicRefCell]:
-///
-/// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [CssPlugin::get_compilation_hooks_mut]
-type ArcCssModulesPluginHooks = Arc<AtomicRefCell<CssModulesPluginHooks>>;
-
-static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcCssModulesPluginHooks>> =
-  LazyLock::new(Default::default);
+static COMPILATION_HOOKS_MAP: LazyLock<
+  FxDashMap<CompilationId, Arc<RwLock<CssModulesPluginHooks>>>,
+> = LazyLock::new(Default::default);
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,
 }
 
 impl CssPlugin {
-  pub fn get_compilation_hooks(id: CompilationId) -> ArcCssModulesPluginHooks {
+  pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<CssModulesPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -61,7 +57,7 @@ impl CssPlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_mut(id: CompilationId) -> ArcCssModulesPluginHooks {
+  pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<CssModulesPluginHooks>> {
     COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
   }
 
@@ -221,7 +217,8 @@ impl CssPlugin {
 
               let chunk_ukey = chunk.ukey().as_u32().into();
               hooks
-                .borrow()
+                .read()
+                .await
                 .render_module_package
                 .call(
                   compilation,
