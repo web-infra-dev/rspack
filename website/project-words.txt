@@ -16,12 +16,12 @@ behaviour
 behaviours
 Boshen
 Brooooooklyn
+browserslistrc
 builtinscssmodules
 builtinspresetenv
 builtinswc
 bundleless
 Bundleless
-browserslistrc
 bvanjoi
 chakra
 chapple
@@ -136,8 +136,8 @@ outputlibraryamdcontainer
 outputlibraryumdnameddefine
 outputwasmloading
 perfetto
-pftrace
 Peschke
+pftrace
 pmmmwh
 proxied
 proxying
@@ -153,9 +153,9 @@ rsdoctor
 Rsdoctor
 rsdoctors
 rsfamily
-Rslib
 rslib
-rstest
+Rslib
+rslint
 rspack
 Rspack
 rspackplugin
@@ -163,6 +163,7 @@ Rspeedy
 rspress
 Rspress
 rstack
+rstest
 Rstest
 ruid
 ruleoneof
