@@ -324,6 +324,7 @@ impl Compilation {
   pub const PROCESS_ASSETS_STAGE_ANALYSE: i32 = 4000;
   pub const PROCESS_ASSETS_STAGE_REPORT: i32 = 5000;
 
+  #[inline(always)]
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     compiler_id: CompilerId,
