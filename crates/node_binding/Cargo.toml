@@ -27,9 +27,44 @@ rspack_binding_api = { workspace = true }
 napi-derive = { workspace = true, features = ["compat-mode", "type-def"] }
 tracing     = { workspace = true }
 
-# Enable SWC plugin feature for targets that support it
-# Skip: wasm32-wasip1-threads, i686-pc-windows-msvc, aarch64-pc-windows-msvc, armv7-linux-androideabi, armv7-unknown-linux-gnueabihf
-[target.'cfg(not(any(target_arch = "wasm32", target_arch = "arm", all(target_os = "windows", target_arch = "x86"), all(target_os = "windows", target_arch = "aarch64"))))'.dependencies]
+# Enable SWC plugin feature for targets that support it, based on GitHub workflow build matrix
+# 
+# The SWC WASM plugin feature is only enabled for targets that:
+# 1. Are actively built in our CI/CD workflows (.github/workflows/*.yml)
+# 2. Support the required dependencies (wasmtime, wasi-common, etc.)
+# 3. Have sufficient runtime capabilities for plugin execution
+#
+# Excluded targets and reasons:
+# - wasm32-wasip1-threads: WASM target cannot run wasmtime plugins
+# - i686-pc-windows-msvc: 32-bit Windows lacks plugin runtime support
+# - aarch64-pc-windows-msvc: ARM64 Windows lacks plugin runtime support  
+# - armv7-*: ARM7 targets lack plugin runtime support
+#
+# When adding new targets to CI, evaluate whether they should be added here.
+
+# Linux targets (GNU libc)
+[target.x86_64-unknown-linux-gnu.dependencies]
+rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
+
+[target.aarch64-unknown-linux-gnu.dependencies]
+rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
+
+# Linux targets (musl libc)
+[target.x86_64-unknown-linux-musl.dependencies]
+rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
+
+[target.aarch64-unknown-linux-musl.dependencies]
+rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
+
+# Windows targets (x64 only - see exclusion comments above)
+[target.x86_64-pc-windows-msvc.dependencies]
+rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
+
+# macOS targets
+[target.x86_64-apple-darwin.dependencies]
+rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
+
+[target.aarch64-apple-darwin.dependencies]
 rspack_binding_api = { workspace = true, features = ["loader-swc-wasm-plugin"] }
 
 [build-dependencies]
