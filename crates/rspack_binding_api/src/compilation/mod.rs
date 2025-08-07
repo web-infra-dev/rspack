@@ -11,6 +11,7 @@ pub use code_generation_results::*;
 use dependencies::JsDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
+use napi::bindgen_prelude::block_on;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
@@ -481,9 +482,7 @@ impl JsCompilation {
   #[napi]
   pub fn get_asset_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
-    #[allow(clippy::disallowed_methods)]
-    futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
-      .to_napi_result()
+    block_on(compilation.get_asset_path(&filename.into(), data.to_path_data())).to_napi_result()
   }
 
   #[napi]
@@ -494,20 +493,15 @@ impl JsCompilation {
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    #[allow(clippy::disallowed_methods)]
-    let res = futures::executor::block_on(
-      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()),
-    )
-    .to_napi_result()?;
+    let res = block_on(compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()))
+      .to_napi_result()?;
     Ok(res.into())
   }
 
   #[napi]
   pub fn get_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
-    #[allow(clippy::disallowed_methods)]
-    futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
-      .to_napi_result()
+    block_on(compilation.get_path(&filename.into(), data.to_path_data())).to_napi_result()
   }
 
   #[napi]
@@ -516,8 +510,7 @@ impl JsCompilation {
 
     let mut asset_info = rspack_core::AssetInfo::default();
 
-    #[allow(clippy::disallowed_methods)]
-    let path = futures::executor::block_on(compilation.get_path_with_info(
+    let path = block_on(compilation.get_path_with_info(
       &filename.into(),
       data.to_path_data(),
       &mut asset_info,
