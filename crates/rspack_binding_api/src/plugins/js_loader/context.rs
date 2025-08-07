@@ -195,26 +195,14 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for LoaderContextToJs {
         if resource.path.as_str().is_empty() {
           (
             None,
-            resource.query.as_ref().map(|q| q.as_str()),
-            resource.fragment.as_ref().map(|q| q.as_str()),
+            resource.query.as_deref(),
+            resource.fragment.as_deref(),
           )
         } else {
           (
             Some(resource.path.as_str()),
-            Some(
-              resource
-                .query
-                .as_ref()
-                .map(|q| q.as_str())
-                .unwrap_or_default(),
-            ),
-            Some(
-              resource
-                .fragment
-                .as_ref()
-                .map(|q| q.as_str())
-                .unwrap_or_default(),
-            ),
+            Some(resource.query.as_deref().unwrap_or_default()),
+            Some(resource.fragment.as_deref().unwrap_or_default()),
           )
         }
       }
