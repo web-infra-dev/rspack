@@ -13,11 +13,11 @@ import assert from "node:assert";
 import querystring from "node:querystring";
 import {
 	formatDiagnostic,
-	type LoaderContextFromJs,
 	type JsLoaderItem,
 	JsLoaderState,
 	JsRspackSeverity,
-	LoaderContextToJs
+	type LoaderContextFromJs,
+	type LoaderContextToJs
 } from "@rspack/binding";
 import {
 	OriginalSource,
