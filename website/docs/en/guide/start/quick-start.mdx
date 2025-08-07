@@ -13,30 +13,25 @@ As a low-level bundler, Rspack has a rich ecosystem that includes various framew
 
 See the [Ecosystem](/guide/start/ecosystem) page to explore these ecosystem projects.
 
-## Setup environment
+## Environment preparation
 
-Rspack supports using [Node.js](https://nodejs.org/), [Deno](https://deno.com/), or [Bun](https://bun.sh/) as the runtime.
+Rspack supports using [Node.js](https://nodejs.org/), [Deno](https://deno.com/), or [Bun](https://bun.sh/) as the JavaScript runtime.
 
-### Node.js
+You can refer to the following installation guides and choose one runtime:
 
-For Node.js, please install Node.js >= 16, it is recommended to use the Node.js LTS version.
+- [Install Node.js](https://nodejs.org/en/download)
+- [Install Bun](https://bun.com/docs/installation)
+- [Install Deno](https://docs.deno.com/runtime/getting_started/installation/)
 
-Check the current Node.js version with the following command:
+:::tip Version requirements
 
-```bash
-node -v
-```
+Rspack has the following Node.js version requirements:
 
-If you do not have Node.js installed in current environment, or the installed version is too low, you can use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) to install.
+- `@rspack/cli >= v1.0.0` requires Node.js 18.12.0 or higher.
+- `@rspack/core >= v1.5.0` requires Node.js 18.12.0 or higher.
+- `@rspack/core < v1.5.0` requires Node.js 16.0.0 or higher.
 
-Here is an example of how to install via nvm:
-
-```bash
-# Install Node.js LTS
-nvm install --lts
-# Switch to Node.js LTS
-nvm use --lts
-```
+:::
 
 ## Create a new project
 
