@@ -857,6 +857,45 @@ impl Compilation {
     }
   }
 
+  // Batch version of rename_asset with parallel optimization.
+  // Multiple calls to rename_asset would cause performance degradation due to
+  // repeated full traversals of chunk_by_ukey. This method uses parallel iteration
+  // over chunk_by_ukey to reduce traversal frequency and improve performance.
+  pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
+    self
+      .chunk_by_ukey
+      .values_mut()
+      .par_bridge()
+      .for_each(|chunk| {
+        for (old_name, new_name) in renames.iter() {
+          if chunk.remove_file(old_name) {
+            chunk.add_file(new_name.clone());
+          }
+
+          if chunk.remove_auxiliary_file(old_name) {
+            chunk.add_auxiliary_file(new_name.clone());
+          }
+        }
+      });
+
+    for (old_name, new_name) in renames {
+      if let Some(asset) = self.assets.remove(&old_name) {
+        // Update related in all other assets
+        if let Some(related_in_info) = self.assets_related_in.get(&old_name) {
+          for related_in_name in related_in_info {
+            if let Some(asset) = self.assets.get_mut(related_in_name) {
+              asset.get_info_mut().related.source_map = Some(new_name.clone());
+            }
+          }
+        }
+        self.set_asset_info(&old_name, None, Some(asset.get_info()));
+        self.set_asset_info(&new_name, Some(asset.get_info()), None);
+
+        self.assets.insert(new_name, asset);
+      }
+    }
+  }
+
   pub fn assets(&self) -> &CompilationAssets {
     &self.assets
   }

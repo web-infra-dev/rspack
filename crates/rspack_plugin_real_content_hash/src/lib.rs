@@ -260,6 +260,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("update assets");
+  let mut asset_renames = Vec::with_capacity(updates.len());
   for (name, new_source, new_name) in updates {
     compilation.update_asset(&name, |_, old_info| {
       let new_hashes: HashSet<_> = old_info
@@ -279,9 +280,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       ))
     })?;
     if let Some(new_name) = new_name {
-      compilation.rename_asset(&name, new_name);
+      asset_renames.push((name, new_name));
     }
   }
+
+  compilation.par_rename_assets(asset_renames);
 
   logger.time_end(start);
 
