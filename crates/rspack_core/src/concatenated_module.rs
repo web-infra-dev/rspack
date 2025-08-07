@@ -225,7 +225,7 @@ pub struct ExternalModuleInfo {
 
 #[derive(Debug, Clone)]
 pub struct ConnectionWithRuntimeCondition {
-  pub connection: ModuleGraphConnection,
+  pub connection: Arc<ModuleGraphConnection>,
   pub runtime_condition: RuntimeCondition,
 }
 
@@ -1927,7 +1927,7 @@ impl ConcatenatedModule {
         }
         indexmap::map::Entry::Vacant(vac) => {
           vac.insert(ConnectionWithRuntimeCondition {
-            connection: reference.connection.clone(),
+            connection: Arc::new(reference.connection.clone()),
             runtime_condition,
           });
         }

@@ -16,7 +16,7 @@ use swc_core::atoms::Atom;
 
 use crate::{
   ConnectionState, ConnectionWithRuntimeCondition, DependencyId, ExportInfo, ExportsInfo,
-  ExportsType, RuntimeKey,
+  ExportsType, ModuleIdentifier, RuntimeKey,
 };
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
@@ -111,7 +111,7 @@ impl ModuleGraphCacheArtifactInner {
 
   pub fn cached_get_side_effects_connection_state<F: FnOnce() -> ConnectionState>(
     &self,
-    key: GetSideEffectsConnectionStateCacheKey,
+    key: ModuleIdentifier,
     f: F,
   ) -> ConnectionState {
     if !self.freezed.load(Ordering::Acquire) {
@@ -132,7 +132,7 @@ impl ModuleGraphCacheArtifactInner {
     F: FnOnce() -> IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
   >(
     &self,
-    key: ConcatenatedModuleImportsCacheKey,
+    key: ModuleIdentifier,
     f: F,
   ) -> IdentifierMap<Vec<ConnectionWithRuntimeCondition>> {
     if !self.freezed.load(Ordering::Acquire) {
@@ -153,7 +153,7 @@ impl ModuleGraphCacheArtifactInner {
 
   pub fn cached_module_graph_hash<F: FnOnce() -> (u64, ExportsInfo, Vec<ExportsInfo>)>(
     &self,
-    key: ModuleGraphHashCacheKey,
+    key: ModuleIdentifier,
     f: F,
   ) -> (u64, ExportsInfo, Vec<ExportsInfo>) {
     if !self.freezed.load(Ordering::Acquire) {
@@ -172,13 +172,13 @@ impl ModuleGraphCacheArtifactInner {
 }
 
 pub(super) mod module_graph_hash {
-  use crate::{ExportsInfo, ModuleIdentifier};
+  use rspack_collections::IdentifierDashMap;
 
-  pub type ModuleGraphHashCacheKey = ModuleIdentifier;
+  use crate::{ExportsInfo, ModuleIdentifier};
 
   #[derive(Debug, Default)]
   pub struct ModuleGraphHashCache {
-    cache: dashmap::DashMap<ModuleGraphHashCacheKey, (u64, ExportsInfo, Vec<ExportsInfo>)>,
+    cache: IdentifierDashMap<(u64, ExportsInfo, Vec<ExportsInfo>)>,
   }
 
   impl ModuleGraphHashCache {
@@ -186,88 +186,69 @@ pub(super) mod module_graph_hash {
       self.cache.clear();
     }
 
-    pub fn get(
-      &self,
-      key: &ModuleGraphHashCacheKey,
-    ) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
+    pub fn get(&self, key: &ModuleIdentifier) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
       self.cache.get(key).map(|v| v.value().clone())
     }
 
-    pub fn set(&self, key: ModuleGraphHashCacheKey, value: (u64, ExportsInfo, Vec<ExportsInfo>)) {
+    pub fn set(&self, key: ModuleIdentifier, value: (u64, ExportsInfo, Vec<ExportsInfo>)) {
       self.cache.insert(key, value);
     }
   }
 }
 pub(super) mod concatenated_module_imports {
-  use rustc_hash::FxHashMap as HashMap;
+  use rspack_collections::IdentifierDashMap;
 
   use super::*;
   use crate::{ConnectionWithRuntimeCondition, ModuleIdentifier};
-  pub type ConcatenatedModuleImportsCacheKey = ModuleIdentifier;
 
   #[derive(Debug, Default)]
   pub struct ConcatenatedModuleImportsCache {
-    cache: RwLock<
-      HashMap<
-        ConcatenatedModuleImportsCacheKey,
-        IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
-      >,
-    >,
+    cache: IdentifierDashMap<IdentifierMap<Vec<ConnectionWithRuntimeCondition>>>,
   }
 
   impl ConcatenatedModuleImportsCache {
     pub fn freeze(&self) {
-      self.cache.write().expect("should get lock").clear();
+      self.cache.clear();
     }
 
     pub fn get(
       &self,
-      key: &ConcatenatedModuleImportsCacheKey,
+      key: &ModuleIdentifier,
     ) -> Option<IdentifierMap<Vec<ConnectionWithRuntimeCondition>>> {
-      let inner = self.cache.read().expect("should get lock");
-      inner.get(key).cloned()
+      self.cache.get(key).map(|v| v.value().clone())
     }
 
     pub fn set(
       &self,
-      key: ConcatenatedModuleImportsCacheKey,
+      key: ModuleIdentifier,
       value: IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
     ) {
-      self
-        .cache
-        .write()
-        .expect("should get lock")
-        .insert(key, value);
+      self.cache.insert(key, value);
     }
   }
 }
 
 pub(super) mod get_side_effects_connection_state {
-  use super::*;
+  use rspack_collections::IdentifierDashMap;
+
   use crate::{ConnectionState, ModuleIdentifier};
-  pub type GetSideEffectsConnectionStateCacheKey = ModuleIdentifier;
 
   #[derive(Debug, Default)]
   pub struct GetSideEffectsConnectionStateCache {
-    cache: RwLock<HashMap<GetSideEffectsConnectionStateCacheKey, ConnectionState>>,
+    cache: IdentifierDashMap<ConnectionState>,
   }
 
   impl GetSideEffectsConnectionStateCache {
     pub fn freeze(&self) {
-      self.cache.write().expect("should get lock").clear();
+      self.cache.clear();
     }
 
-    pub fn get(&self, key: &GetSideEffectsConnectionStateCacheKey) -> Option<ConnectionState> {
-      let inner = self.cache.read().expect("should get lock");
-      inner.get(key).copied()
+    pub fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
+      self.cache.get(key).map(|v| v.value().clone())
     }
 
-    pub fn set(&self, key: GetSideEffectsConnectionStateCacheKey, value: ConnectionState) {
-      self
-        .cache
-        .write()
-        .expect("should get lock")
-        .insert(key, value);
+    pub fn set(&self, key: ModuleIdentifier, value: ConnectionState) {
+      self.cache.insert(key, value);
     }
   }
 }
