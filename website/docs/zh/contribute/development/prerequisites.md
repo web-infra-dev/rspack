@@ -9,4 +9,4 @@ Rspack 使用 [Rust](https://rust-lang.org/) 和 [NAPI-RS](https://napi.rs/) 构
 
 ## 安装 Node.js
 
-使用最新的 Node.js LTS 版本。安装说明请参考 [安装 Node.js](https://nodejs.org/en/download)。
+使用最新的 Node.js LTS 版本。安装说明请参考 [安装 Node.js](https://nodejs.org/zh-cn/download)。
