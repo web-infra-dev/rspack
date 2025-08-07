@@ -1,9 +1,10 @@
 use std::{
   collections::{HashMap, hash_map},
   hash::{BuildHasherDefault, Hash, Hasher},
+  sync::RwLock,
 };
 
-use dashmap::{DashMap, mapref::entry::Entry};
+use dashmap::mapref::entry::Entry;
 use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeySet};
@@ -318,8 +319,6 @@ impl SplitChunksPlugin {
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
 
-    let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
-
     let mut combinator = Combinator::default();
 
     combinator.prepare_group_by_chunks(all_modules, &compilation.chunk_graph);
@@ -337,10 +336,12 @@ impl SplitChunksPlugin {
       );
     }
 
-    let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
+    let module_group_candidats_map = RwLock::new(FxHashMap::default());
+
+    rspack_futures::scope::<_, Result<_>>(|token| {
       all_modules.iter().for_each(|module| {
-        let s = unsafe { token.used((&self, module, &module_graph, compilation, &module_group_map, &combinator, &module_sizes)) };
-        s.spawn(|(plugin, module, module_graph, compilation, module_group_map, combinator, module_sizes)| async move {
+        let s = unsafe { token.used((&self, module, &module_graph, compilation, &combinator, &module_sizes, &module_group_candidats_map)) };
+        s.spawn(|(plugin, module, module_graph, compilation, combinator, module_sizes, module_group_candidats_map)| async move {
           let module = module_graph.module_by_identifier(module).expect("should have module").as_ref();
           let belong_to_chunks = compilation
               .chunk_graph
@@ -351,6 +352,7 @@ impl SplitChunksPlugin {
           }
 
           let mut temp = Vec::with_capacity(plugin.cache_groups.len());
+          let mut candidates = vec![];
 
           for idx in 0..plugin.cache_groups.len() {
             let cache_group = &plugin.cache_groups[idx];
@@ -438,7 +440,7 @@ impl SplitChunksPlugin {
               let selected_chunks_key =
                 get_key(selected_chunks.iter().copied());
 
-              merge_matched_item_into_module_group_map(
+              candidates.push(merge_matched_item_into_module_group_map(
                 MatchedItem {
                   idx: CacheGroupIdx::new(idx),
                   module,
@@ -447,13 +449,17 @@ impl SplitChunksPlugin {
                   selected_chunks,
                   selected_chunks_key,
                 },
-                module_group_map,
                 &mut chunk_key_to_string,
                 compilation,
-                module_sizes,
-              ).await?;
+              ).await?);
             }
           }
+
+          let mut module_group_candidats_map = module_group_candidats_map.write().expect("should have write lock");
+          for (key, candidate) in candidates {
+            module_group_candidats_map.entry(key).or_insert_with(Vec::new).push(candidate);
+          }
+
           Ok(())
         });
       })
@@ -462,11 +468,29 @@ impl SplitChunksPlugin {
     .into_iter().map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
-    for result in module_group_results {
-      result?;
-    }
+    let module_group_map = module_group_candidats_map
+      .write()
+      .expect("should have write lock")
+      .drain()
+      .par_bridge()
+      .map(|(key, candidates)| {
+        let mut module_group = ModuleGroup::new(
+          candidates[0].index,
+          candidates[0].chunk_name.clone(),
+          candidates[0].cache_group_index,
+          &self.cache_groups[candidates[0].cache_group_index],
+        );
 
-    Ok(module_group_map.into_iter().collect())
+        for candidate in candidates {
+          module_group.add_module(candidate.module_identifier, module_sizes);
+          module_group.chunks.extend(candidate.selected_chunks);
+        }
+
+        (key, module_group)
+      })
+      .collect();
+
+    Ok(module_group_map)
   }
 
   // #[tracing::instrument(skip_all)]
@@ -607,11 +631,9 @@ impl SplitChunksPlugin {
 
 async fn merge_matched_item_into_module_group_map(
   matched_item: MatchedItem<'_>,
-  module_group_map: &DashMap<String, ModuleGroup>,
   chunk_key_to_string: &mut HashMap<ChunksKey, String, ChunksKeyHashBuilder>,
   compilation: &Compilation,
-  module_sizes: &ModuleSizes,
-) -> Result<()> {
+) -> Result<(String, ModuleGroupCandidate)> {
   let MatchedItem {
     idx,
     module,
@@ -656,13 +678,30 @@ async fn merge_matched_item_into_module_group_map(
     key
   };
 
-  let mut module_group = {
-    module_group_map
-      .entry(key)
-      .or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group))
-  };
+  // let mut module_group = {
+  //   module_group_map
+  //     .entry(key)
+  //     .or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group))
+  // };
 
-  module_group.add_module(module.identifier(), module_sizes);
-  module_group.chunks.extend(selected_chunks.iter().copied());
-  Ok(())
+  // module_group.add_module(module.identifier(), module_sizes);
+  // module_group.chunks.extend(selected_chunks.iter().copied());
+  Ok((
+    key,
+    ModuleGroupCandidate {
+      chunk_name,
+      index: idx,
+      cache_group_index,
+      selected_chunks,
+      module_identifier: module.identifier(),
+    },
+  ))
+}
+
+pub struct ModuleGroupCandidate {
+  chunk_name: Option<String>,
+  index: CacheGroupIdx,
+  cache_group_index: usize,
+  selected_chunks: Vec<ChunkUkey>,
+  module_identifier: ModuleIdentifier,
 }
