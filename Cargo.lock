@@ -217,12 +217,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "atomic_refcell"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41e67cd8309bbd06cd603a9e693a784ac2e5d1e955f11286e355089fcab3047c"
-
-[[package]]
 name = "auto_impl"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4194,7 +4188,6 @@ name = "rspack_plugin_css"
 version = "0.4.11"
 dependencies = [
  "async-trait",
- "atomic_refcell",
  "cow-utils",
  "css-module-lexer",
  "heck",
@@ -4376,7 +4369,6 @@ name = "rspack_plugin_html"
 version = "0.4.11"
 dependencies = [
  "anyhow",
- "atomic_refcell",
  "cow-utils",
  "futures",
  "itertools 0.14.0",
@@ -4396,6 +4388,7 @@ dependencies = [
  "swc_core",
  "swc_html",
  "swc_html_minifier",
+ "tokio",
  "tracing",
  "urlencoding",
 ]
@@ -4623,7 +4616,6 @@ name = "rspack_plugin_real_content_hash"
 version = "0.4.11"
 dependencies = [
  "aho-corasick",
- "atomic_refcell",
  "derive_more",
  "indexmap",
  "once_cell",
@@ -4636,6 +4628,7 @@ dependencies = [
  "rspack_hook",
  "rspack_util",
  "rustc-hash",
+ "tokio",
  "tracing",
 ]
 
@@ -4665,7 +4658,6 @@ dependencies = [
 name = "rspack_plugin_rsdoctor"
 version = "0.4.11"
 dependencies = [
- "atomic_refcell",
  "futures",
  "indexmap",
  "rayon",
@@ -4714,7 +4706,6 @@ name = "rspack_plugin_runtime"
 version = "0.4.11"
 dependencies = [
  "async-trait",
- "atomic_refcell",
  "cow-utils",
  "derive_more",
  "futures",
