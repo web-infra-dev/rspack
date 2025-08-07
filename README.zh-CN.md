@@ -32,15 +32,15 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 
 Rstack 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
 
-| 名称                                                  | 描述           |
-| ----------------------------------------------------- | -------------- |
-| [Rspack](https://github.com/web-infra-dev/rspack)     | 打包工具       |
-| [Rsbuild](https://github.com/web-infra-dev/rsbuild)   | 构建工具       |
-| [Rslib](https://github.com/web-infra-dev/rslib)       | 库开发工具     |
-| [Rspress](https://github.com/web-infra-dev/rspress)   | 静态站点生成器 |
-| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | 构建分析工具   |
-| [Rstest](https://github.com/web-infra-dev/rstest)     | 测试框架       |
-| [Rslint](https://github.com/web-infra-dev/rslint)     | 代码分析工具   |
+| 名称                                                  | 描述           | 版本                                                                                                                                                                             |
+| ----------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Rspack](https://github.com/web-infra-dev/rspack)     | 打包工具       | <a href="https://npmjs.com/package/@rspack/core"><img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>     |
+| [Rsbuild](https://github.com/web-infra-dev/rsbuild)   | 构建工具       | <a href="https://npmjs.com/package/@rsbuild/core"><img src="https://img.shields.io/npm/v/@rsbuild/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>   |
+| [Rslib](https://github.com/web-infra-dev/rslib)       | 库开发工具     | <a href="https://npmjs.com/package/@rslib/core"><img src="https://img.shields.io/npm/v/@rslib/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>       |
+| [Rspress](https://github.com/web-infra-dev/rspress)   | 静态站点生成器 | <a href="https://npmjs.com/package/@rspress/core"><img src="https://img.shields.io/npm/v/@rspress/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>   |
+| [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | 构建分析工具   | <a href="https://npmjs.com/package/@rsdoctor/core"><img src="https://img.shields.io/npm/v/@rsdoctor/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a> |
+| [Rstest](https://github.com/web-infra-dev/rstest)     | 测试框架       | <a href="https://npmjs.com/package/@rstest/core"><img src="https://img.shields.io/npm/v/@rstest/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>     |
+| [Rslint](https://github.com/web-infra-dev/rslint)     | 代码检查工具   | <a href="https://npmjs.com/package/@rslint/core"><img src="https://img.shields.io/npm/v/@rslint/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>     |
 
 ## 快速上手
 
