@@ -84,7 +84,7 @@ pub struct Compiler {
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Compilation,
+  pub compilation: Box<Compilation>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,

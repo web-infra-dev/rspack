@@ -343,8 +343,8 @@ impl Compilation {
     output_filesystem: Arc<dyn WritableFileSystem>,
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
-  ) -> Self {
-    Self {
+  ) -> Box<Self> {
+    Box::new(Self {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
@@ -424,7 +424,7 @@ impl Compilation {
       output_filesystem,
       is_rebuild,
       compiler_context,
-    }
+    })
   }
 
   pub fn id(&self) -> CompilationId {

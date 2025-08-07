@@ -59,7 +59,7 @@ impl TaskContext {
   }
 
   // TODO remove it after incremental rebuild cover all stage
-  pub fn transform_to_temp_compilation(&mut self) -> Compilation {
+  pub fn transform_to_temp_compilation(&mut self) -> Box<Compilation> {
     let compiler_context = CURRENT_COMPILER_CONTEXT.get();
     let mut compilation = Compilation::new(
       self.compiler_id,
@@ -87,7 +87,7 @@ impl TaskContext {
     compilation
   }
 
-  pub fn recovery_from_temp_compilation(&mut self, mut compilation: Compilation) {
+  pub fn recovery_from_temp_compilation(&mut self, mut compilation: Box<Compilation>) {
     compilation.swap_make_artifact(&mut self.artifact);
   }
 }
