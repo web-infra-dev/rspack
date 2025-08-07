@@ -10,7 +10,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
-  RuntimeGlobals, find_new_name,
+  find_new_name,
 };
 
 pub mod chunk_graph_chunk;
