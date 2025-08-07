@@ -2,7 +2,7 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_core::{LoaderContext, Module, RunnerContext, parse_resource};
 use rspack_error::miette::IntoDiagnostic;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
@@ -145,6 +145,12 @@ impl<'a> From<&'a rspack_loader_runner::LoaderItem<RunnerContext>> for LoaderIte
 #[serde(rename_all = "camelCase")]
 pub struct LoaderContextSerializablePart<'a> {
   pub resource: &'a str,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub resource_path: Option<&'a str>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub resource_query: Option<&'a str>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub resource_fragment: Option<&'a str>,
   pub hot: bool,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub source_map: Option<&'a rspack_core::rspack_sources::SourceMap>,
@@ -181,8 +187,45 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for LoaderContextToJs {
   ) -> std::result::Result<Self, Self::Error> {
     let module = unsafe { cx.context.module.as_ref() };
 
+    let resource_path = cx.resource_path().map(|p| p.as_str());
+    let parsed_data = parse_resource(&cx.resource_data.resource);
+
+    let (resource_path, resource_query, resource_fragment) = match parsed_data.as_ref() {
+      Some(resource) => {
+        if resource.path.as_str().is_empty() {
+          (
+            None,
+            resource.query.as_ref().map(|q| q.as_str()),
+            resource.fragment.as_ref().map(|q| q.as_str()),
+          )
+        } else {
+          (
+            Some(resource.path.as_str()),
+            Some(
+              resource
+                .query
+                .as_ref()
+                .map(|q| q.as_str())
+                .unwrap_or_default(),
+            ),
+            Some(
+              resource
+                .fragment
+                .as_ref()
+                .map(|q| q.as_str())
+                .unwrap_or_default(),
+            ),
+          )
+        }
+      }
+      None => (None, None, None),
+    };
+
     let serialized_part = LoaderContextSerializablePart {
       resource: &cx.resource_data.resource,
+      resource_path,
+      resource_query,
+      resource_fragment,
       hot: cx.hot,
       source_map: cx.source_map(),
       cacheable: cx.cacheable,

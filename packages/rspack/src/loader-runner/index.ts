@@ -263,8 +263,15 @@ export async function runLoaders(
 	contextToJs: LoaderContextToJs
 ): Promise<LoaderContextFromJs> {
 	const { _module, serializedPart, ...contextToJsRest } = contextToJs;
-	const { loaderState, resource, hot, ...serializedPartRest } =
-		JSON.parse(serializedPart);
+	const {
+		loaderState,
+		resource,
+		resourcePath,
+		resourceQuery,
+		resourceFragment,
+		hot,
+		...serializedPartRest
+	} = JSON.parse(serializedPart);
 	const context = {
 		...contextToJsRest,
 		...serializedPartRest
@@ -284,12 +291,6 @@ export async function runLoaders(
 			resource: resource
 		}
 	});
-	const splittedResource = resource && parsePathQueryFragment(resource);
-	const resourcePath = splittedResource ? splittedResource.path : undefined;
-	const resourceQuery = splittedResource ? splittedResource.query : undefined;
-	const resourceFragment = splittedResource
-		? splittedResource.fragment
-		: undefined;
 	const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
 	// execution state
@@ -307,8 +308,8 @@ export async function runLoaders(
 
 	loaderContext.hot = hot;
 	loaderContext.context = contextDirectory;
-	loaderContext.resourcePath = resourcePath!;
-	loaderContext.resourceQuery = resourceQuery!;
+	loaderContext.resourcePath = resourcePath;
+	loaderContext.resourceQuery = resourceQuery;
 	loaderContext.resourceFragment = resourceFragment!;
 	loaderContext.dependency = loaderContext.addDependency =
 		function addDependency(file) {
