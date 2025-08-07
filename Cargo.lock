@@ -2351,9 +2351,9 @@ dependencies = [
 
 [[package]]
 name = "memchr"
-version = "2.7.4"
+version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
 
 [[package]]
 name = "memfd"
@@ -3798,6 +3798,7 @@ dependencies = [
  "tokio",
  "tracing",
  "ustr-fxhash",
+ "winnow 0.7.12",
 ]
 
 [[package]]
@@ -3978,7 +3979,6 @@ dependencies = [
  "async-trait",
  "derive_more",
  "once_cell",
- "regex",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_error",
@@ -3990,6 +3990,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "winnow 0.7.12",
 ]
 
 [[package]]
@@ -4241,6 +4242,7 @@ dependencies = [
  "derive_more",
  "futures",
  "itertools 0.14.0",
+ "memchr",
  "rayon",
  "regex",
  "rspack_base64",
@@ -4454,6 +4456,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "winnow 0.7.12",
 ]
 
 [[package]]
@@ -6866,7 +6869,7 @@ dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow",
+ "winnow 0.6.20",
 ]
 
 [[package]]
@@ -7752,6 +7755,15 @@ name = "winnow"
 version = "0.6.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36c1fec1a2bb5866f07c25f68c26e565c4c200aebb96d7e55710c19d3e8ac49b"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "winnow"
+version = "0.7.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3edebf492c8125044983378ecb5766203ad3b4c2f7a922bd7dd207f6d443e95"
 dependencies = [
  "memchr",
 ]

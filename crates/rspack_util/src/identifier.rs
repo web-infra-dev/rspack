@@ -115,11 +115,8 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
     .join("")
 }
 
-static ZERO_WIDTH_SPACE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
-
 pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
-  ZERO_WIDTH_SPACE.replace_all(s, "$1")
+  s.cow_replace("\u{200b}", "")
 }
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
