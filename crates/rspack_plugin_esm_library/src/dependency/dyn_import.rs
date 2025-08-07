@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsModuleDependency, ChunkGraph, ChunkUkey, Compilation, DependencyTemplate, ExternalInterop,
-  ModuleIdentifier, RuntimeGlobals, UsageState, missing_module_promise,
+  AsModuleDependency, DependencyTemplate, DependencyType, RuntimeGlobals, UsageState,
+  missing_module_promise, module_namespace_promise,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -67,17 +67,21 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       b. if refModule is not scope hoisted
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
+    let block = module_graph.get_parent_block(dep_id);
+
     let Some(concatenation_scope) = &mut code_generatable_context.concatenation_scope else {
       // if we are not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __webpack_require__ to fetch module
       source.replace(
         dep.range.start,
         dep.range.end,
-        &fetch_raw_module(
-          ref_module.identifier(),
-          ref_chunk,
-          orig_chunk,
-          code_generatable_context.compilation,
+        &module_namespace_promise(
+          code_generatable_context,
+          dep_id,
+          block,
+          &dep.request,
+          DependencyType::DynamicImport.as_str(),
+          false,
         ),
         None,
       );
@@ -91,16 +95,19 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       concatenation_scope.is_module_concatenated(&ref_module.identifier());
 
     if !is_ref_module_concatenated {
-      // if we are not in a concatenation scope, then all its children are not scope hoisted as well
+      // if target is not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __webpack_require__ to fetch module
+
       source.replace(
         dep.range.start,
         dep.range.end,
-        &fetch_raw_module(
-          ref_module.identifier(),
-          ref_chunk,
-          orig_chunk,
-          code_generatable_context.compilation,
+        &module_namespace_promise(
+          code_generatable_context,
+          dep_id,
+          block,
+          &dep.request,
+          DependencyType::DynamicImport.as_str(),
+          false,
         ),
         None,
       );
@@ -179,29 +186,4 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       None,
     );
   }
-}
-
-fn fetch_raw_module(
-  ref_module: ModuleIdentifier,
-  ref_chunk: ChunkUkey,
-  orig_chunk: ChunkUkey,
-  compilation: &Compilation,
-) -> String {
-  format!(
-    "{}.then(() => {}({}))",
-    if ref_chunk == orig_chunk {
-      Cow::Borrowed("Promise.resolve()")
-    } else {
-      Cow::Owned(format!(
-        "import(\"__RSPACK_ESM_CHUNK_{}\")",
-        ref_chunk.as_u32()
-      ))
-    },
-    RuntimeGlobals::REQUIRE,
-    serde_json::to_string(
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, ref_module)
-        .expect("should have id")
-    )
-    .expect("should serde to string")
-  )
 }
