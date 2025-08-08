@@ -138,7 +138,7 @@ const options = {
 };
 const compiler = rspack(options);
 
-new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
+new compiler.rspack.EntryPlugin(compiler.context, 'dev-client.js', {
   // name: undefined means this is global entry
   name: undefined,
 }).apply(compiler);
