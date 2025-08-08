@@ -23,8 +23,4 @@ impl ValueCacheVersions {
     }
     false
   }
-
-  pub fn extend(&mut self, other: Self) {
-    self.0.extend(other.0);
-  }
 }

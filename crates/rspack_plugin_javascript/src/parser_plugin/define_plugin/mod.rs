@@ -9,7 +9,11 @@ use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
 };
-use rspack_error::Result;
+use rspack_error::{
+  DiagnosticExt, Result,
+  miette::{self, Diagnostic as MietteDiagnostic},
+  thiserror::{self, Error},
+};
 use rspack_hook::{plugin, plugin_hook};
 use serde_json::Value;
 
@@ -17,6 +21,11 @@ use self::walk_data::WalkData;
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
 const VALUE_DEP_PREFIX: &str = "webpack/DefinePlugin ";
+
+#[derive(Debug, Error, MietteDiagnostic)]
+#[error("DefinePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
+#[diagnostic(severity(Warning))]
+struct ConflictingValuesError(String, String, String);
 
 pub type DefineValue = HashMap<String, Value>;
 
@@ -39,9 +48,23 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
-  compilation
-    .value_cache_versions
-    .extend(self.walk_data.value_cache_versions.clone());
+  for (key, value) in self.walk_data.tiling_definitions.iter() {
+    let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
+    if let Some(prev) = compilation.value_cache_versions.get(&cache_key)
+      && prev != value
+    {
+      compilation.push_diagnostic(
+        ConflictingValuesError(key.clone(), prev.clone(), value.clone())
+          .boxed()
+          .into(),
+      );
+    } else {
+      compilation
+        .value_cache_versions
+        .insert(cache_key, value.clone());
+    }
+  }
+
   Ok(())
 }
 

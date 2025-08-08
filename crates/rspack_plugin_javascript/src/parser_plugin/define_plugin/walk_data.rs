@@ -8,18 +8,13 @@ use std::{
 
 use itertools::Itertools as _;
 use regex::Regex;
-use rspack_core::ValueCacheVersions;
-use rspack_error::{
-  Diagnostic, DiagnosticExt,
-  miette::{self, Diagnostic as MietteDiagnostic},
-  thiserror::{self, Error},
-};
+use rspack_error::{Diagnostic, DiagnosticExt};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::{Map, Value, json};
 use swc_core::common::Span;
 
 use super::{
-  DefineValue, VALUE_DEP_PREFIX,
+  ConflictingValuesError, DefineValue,
   utils::{code_to_string, gen_const_dep},
 };
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
@@ -172,14 +167,9 @@ impl ObjectDefineRecord {
   }
 }
 
-#[derive(Debug, Error, MietteDiagnostic)]
-#[error("DefinePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
-#[diagnostic(severity(Warning))]
-struct ConflictingValuesError(String, String, String);
-
 #[derive(Debug, Default)]
 pub struct WalkData {
-  pub value_cache_versions: ValueCacheVersions,
+  pub tiling_definitions: FxHashMap<String, String>,
   pub diagnostics: Vec<Diagnostic>,
   pub can_rename: FxHashSet<Arc<str>>,
   pub define_record: FxHashMap<Arc<str>, DefineRecord>,
@@ -200,9 +190,9 @@ impl WalkData {
     prefix: Cow<'s, str>,
   ) {
     definitions.for_each(|(key, value)| {
-      let name = format!("{VALUE_DEP_PREFIX}{prefix}{key}");
+      let name = format!("{prefix}{key}");
       let value_str = value.to_string();
-      if let Some(prev) = self.value_cache_versions.get(&name)
+      if let Some(prev) = self.tiling_definitions.get(&name)
         && !prev.eq(&value_str)
       {
         self.diagnostics.push(
@@ -211,7 +201,7 @@ impl WalkData {
             .into(),
         );
       } else {
-        self.value_cache_versions.insert(name, value_str);
+        self.tiling_definitions.insert(name, value_str);
       }
       if let Some(value) = value.as_object() {
         self.setup_value_cache(value.iter(), Cow::Owned(format!("{prefix}{key}.")))

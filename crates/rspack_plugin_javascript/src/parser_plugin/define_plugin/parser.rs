@@ -16,12 +16,12 @@ pub struct DefineParserPlugin {
 
 impl DefineParserPlugin {
   fn add_value_dependency(&self, parser: &mut JavascriptParser, key: &str) {
-    let key = format!("{VALUE_DEP_PREFIX}{key}");
-    if let Some(value) = self.walk_data.value_cache_versions.get(&key) {
+    if let Some(value) = self.walk_data.tiling_definitions.get(key) {
+      let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
       parser
         .build_info
         .value_dependencies
-        .insert(key, value.clone());
+        .insert(cache_key, value.clone());
     }
   }
 }
