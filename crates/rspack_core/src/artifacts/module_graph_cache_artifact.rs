@@ -244,7 +244,7 @@ pub(super) mod get_side_effects_connection_state {
     }
 
     pub fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
-      self.cache.get(key).map(|v| v.value().clone())
+      self.cache.get(key).map(|v| *v.value())
     }
 
     pub fn set(&self, key: ModuleIdentifier, value: ConnectionState) {
