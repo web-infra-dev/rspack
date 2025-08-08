@@ -3,7 +3,7 @@ use std::sync::{Arc, LazyLock};
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet};
 use rspack_core::{
-  AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
   ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportProvided, ExportsInfoGetter,
@@ -414,49 +414,32 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 impl Plugin for EsmLibraryPlugin {
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut ApplyContext) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .after_code_generation
       .tap(after_code_generation::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .concatenation_scope
       .tap(concatenation_scope::new(self));
 
-    ctx
-      .context
-      .compilation_hooks
-      .after_seal
-      .tap(after_seal::new(self));
+    ctx.compilation_hooks.after_seal.tap(after_seal::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

@@ -805,10 +805,6 @@ impl EsmLibraryPlugin {
           .expect("should have concatenation scope for scope hoisted module");
 
         for (ref_module, all_refs) in &concatenation_scope.refs {
-          let module = module_graph
-            .module_by_identifier(ref_module)
-            .expect("should have ref module");
-
           // import all atoms from ref_module
           for (ref_string, options) in all_refs.iter() {
             if refs.contains_key(ref_string) {
@@ -823,7 +819,7 @@ impl EsmLibraryPlugin {
               needed_namespace_objects,
               options.call,
               !options.direct_import,
-              module.build_info().strict,
+              module.build_meta().strict_esm_module,
               options.asi_safe,
               &mut Default::default(),
               required,
@@ -872,10 +868,6 @@ impl EsmLibraryPlugin {
               .extend(all_refs.iter().map(|(_, atom)| atom.clone()));
           }
 
-          let module = module_graph
-            .module_by_identifier(ref_module)
-            .expect("should have ref module");
-
           for (ref_string, ref_atom) in all_refs.iter() {
             if dyn_refs.contains_key(ref_string) {
               continue;
@@ -890,7 +882,7 @@ impl EsmLibraryPlugin {
               needed_namespace_objects,
               false,
               false,
-              module.build_info().strict,
+              module.build_meta().strict_esm_module,
               Some(false),
               &mut Default::default(),
               required,
@@ -1060,14 +1052,13 @@ impl EsmLibraryPlugin {
       .module_by_identifier(info_id)
       .expect("should have module");
     let exports_type = module.get_exports_type(mg, mg_cache, strict_esm_module);
+    let info = module_to_info_map
+      .get_mut(info_id)
+      .expect("should have module info");
 
     if export_name.is_empty() {
-      let info = module_to_info_map
-        .get_mut(info_id)
-        .expect("should have module info");
       match exports_type {
         ExportsType::DefaultOnly => {
-          info.set_interop_namespace_object2_used(true);
           let symbol = match info {
             ModuleInfo::External(_) => {
               let required_info = required.entry(*info_id).or_default();
@@ -1087,9 +1078,9 @@ impl EsmLibraryPlugin {
           ));
         }
         ExportsType::DefaultWithNamed => {
-          info.set_interop_namespace_object_used(true);
           let symbol = match info {
-            ModuleInfo::External(_) => {
+            ModuleInfo::External(external_info) => {
+              external_info.interop_namespace_object_used = true;
               let required_info = required.entry(*info_id).or_default();
               required_info.namespace(all_used_names)
             }
@@ -1109,10 +1100,6 @@ impl EsmLibraryPlugin {
         _ => {}
       }
     } else {
-      let info = module_to_info_map
-        .get_mut(info_id)
-        .expect("should have module info");
-
       match exports_type {
         // normal case
         ExportsType::Namespace => {}
@@ -1140,10 +1127,10 @@ impl EsmLibraryPlugin {
         ExportsType::Dynamic => match export_name.first().map(|atom| atom.as_str()) {
           Some("default") => {
             // shadowing the previous immutable ref to avoid violating rustc borrow rules
-            info.set_interop_default_access_used(true);
             let symbol = match info {
               ModuleInfo::External(_) => {
                 let required_info = required.entry(*info_id).or_default();
+                info.set_interop_default_access_used(true);
                 required_info.default_access(all_used_names)
               }
               ModuleInfo::Concatenated(info) => info
@@ -1198,7 +1185,6 @@ impl EsmLibraryPlugin {
       let info = module_to_info_map
         .get_mut(info_id)
         .expect("should have module info");
-
       match info {
         ModuleInfo::Concatenated(info) => {
           needed_namespace_objects.insert(info.module);
