@@ -4,7 +4,7 @@ pub use entry_dependency::*;
 use napi::bindgen_prelude::{Either, FromNapiValue};
 use rspack_core::DependencyId;
 
-use crate::Dependency;
+use crate::dependency::Dependency;
 
 // DependencyObject is used to uniformly handle Dependency and EntryDependency.
 pub struct DependencyObject(Option<DependencyId>);

@@ -1,13 +1,12 @@
 use std::{hash::Hash, sync::Arc};
 
-use async_trait::async_trait;
 use rspack_core::{
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  CompilerOptions, ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph,
-  ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
+  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
+  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
@@ -567,63 +566,41 @@ async fn render_manifest(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
   }
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+    ctx.compilation_hooks.chunk_hash.tap(chunk_hash::new(self));
     ctx
-      .context
-      .compilation_hooks
-      .chunk_hash
-      .tap(chunk_hash::new(self));
-    ctx
-      .context
       .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
-      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::JsAuto, {
-        Box::new(move |_, _| {
-          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-        })
-      });
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::JsEsm, {
-        Box::new(move |_, _| {
-          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-        })
-      });
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::JsDynamic, {
-        Box::new(move |_, _| {
-          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-        })
-      });
+    ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
+      Box::new(move |_, _| {
+        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      })
+    });
+    ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
+      Box::new(move |_, _| {
+        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      })
+    });
+    ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
+      Box::new(move |_, _| {
+        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      })
+    });
 
     Ok(())
   }

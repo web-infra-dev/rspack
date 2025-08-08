@@ -23,7 +23,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{JsFilename, ModuleObject, RawResolveOptions};
+use crate::{filename::JsFilename, module::ModuleObject, options::raw_resolve::RawResolveOptions};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is

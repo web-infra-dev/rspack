@@ -656,6 +656,14 @@ export type ChunkLoadingGlobal = string;
 export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
 
 // @public (undocumented)
+export type ChunkPathData = {
+    id?: string;
+    name?: string;
+    hash?: string;
+    contentHash?: Record<string, string>;
+};
+
+// @public (undocumented)
 export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
     constructor(options: CircularDependencyRspackPluginOptions);
     // (undocumented)
@@ -5521,23 +5529,15 @@ export type ParserOptionsByModuleTypeUnknown = {
 export type Path = string;
 
 // @public (undocumented)
-type PathData = {
+export type PathData = {
     filename?: string;
     hash?: string;
     contentHash?: string;
     runtime?: string;
     url?: string;
     id?: string;
-    chunk?: Chunk | PathDataChunkLike;
+    chunk?: Chunk | ChunkPathData;
     contentHashType?: string;
-};
-
-// @public (undocumented)
-type PathDataChunkLike = {
-    id?: string;
-    name?: string;
-    hash?: string;
-    contentHash?: Record<string, string>;
 };
 
 // @public
@@ -6247,8 +6247,10 @@ declare namespace rspackExports {
         Asset,
         AssetInfo,
         Assets,
+        ChunkPathData,
         CompilationParams,
         LogEntry,
+        PathData,
         Compilation,
         Compiler,
         MultiCompilerOptions,

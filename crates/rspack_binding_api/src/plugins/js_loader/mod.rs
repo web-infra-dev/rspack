@@ -17,14 +17,14 @@ use napi::{
 };
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerEmit, CompilerId, CompilerOptions,
-  CompilerThisCompilation, Plugin, PluginContext,
+  CompilerThisCompilation, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 use tokio::sync::{OnceCell, RwLock};
 
-use crate::{COMPILER_REFERENCES, RspackResultToNapiResultExt};
+use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
 pub type JsLoaderRunner = ThreadsafeFunction<
   JsLoaderContext,
@@ -195,33 +195,29 @@ impl Plugin for JsLoaderRspackPlugin {
     "rspack.JsLoaderRspackPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compiler_hooks
       .this_compilation
       .tap(this_compilation::new(self));
 
     ctx
-      .context
       .normal_module_factory_hooks
       .resolve_loader
       .tap(resolver::resolve_loader::new(self));
 
     ctx
-      .context
       .normal_module_hooks
       .loader_should_yield
       .tap(scheduler::loader_should_yield::new(self));
 
     ctx
-      .context
       .normal_module_hooks
       .loader_yield
       .tap(scheduler::loader_yield::new(self));
 
     // TODO: tap compiler done hook will be better.
-    ctx.context.compiler_hooks.emit.tap(done::new(self));
+    ctx.compiler_hooks.emit.tap(done::new(self));
     Ok(())
   }
 }

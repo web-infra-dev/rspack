@@ -122,15 +122,21 @@ use self::{
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
 use crate::{
-  JsLoaderRunnerGetter, RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
-  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawRsdoctorPluginOptions, RawRslibPluginOptions,
-  RawRstestPluginOptions, RawSplitChunksOptions, SourceMapDevToolPluginOptions,
-  entry::JsEntryPluginOptions, plugins::JsLoaderRspackPlugin,
+  options::entry::JsEntryPluginOptions,
+  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter, RawContextReplacementPluginOptions},
+  raw_options::{
+    RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
+    RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
+    SourceMapDevToolPluginOptions,
+  },
+  rsdoctor::RawRsdoctorPluginOptions,
+  rslib::RawRslibPluginOptions,
+  rstest::RawRstestPluginOptions,
 };
 
 #[napi(string_enum)]
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum BuiltinPluginName {
   // webpack also have these plugins
   DefinePlugin,
@@ -226,6 +232,7 @@ pub enum BuiltinPluginName {
   CssChunkingPlugin,
 }
 
+#[doc(hidden)]
 pub type CustomPluginBuilder =
   for<'a> fn(env: Env, options: Unknown<'a>) -> napi::Result<BoxPlugin>;
 

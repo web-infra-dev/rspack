@@ -2,11 +2,11 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ApplyContext, BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
+  BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
-  CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock,
-  Dependency, DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
-  PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
+  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
+  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -225,7 +225,7 @@ async fn render_startup(
     }
   }
 
-  if !exports.is_empty() {
+  if !exports.is_empty() && !compilation.options.output.iife {
     source.add(RawStringSource::from(format!(
       "export {{ {} }};\n",
       exports.join(", ")
@@ -449,29 +449,19 @@ impl Plugin for ModernModuleLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
-      .context
       .concatenated_module_hooks
       .exports_definitions
       .tap(exports_definitions::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
-    ctx
-      .context
-      .compiler_hooks
-      .finish_make
-      .tap(finish_make::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     Ok(())
   }

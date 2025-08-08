@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use napi::{Env, Result};
 use rspack_core::{
   ApplyContext, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerOptions, PluginContext,
+  CompilerOptions, Plugin,
 };
 use rspack_hook::{Hook as _, plugin, plugin_hook};
 use rspack_plugin_html::HtmlRspackPlugin;
@@ -80,113 +80,84 @@ impl fmt::Debug for JsHooksAdapterPlugin {
   }
 }
 
-#[async_trait]
-impl rspack_core::Plugin for JsHooksAdapterPlugin {
+impl Plugin for JsHooksAdapterPlugin {
   fn name(&self) -> &'static str {
     "rspack.JsHooksAdapterPlugin"
   }
 
   // #[tracing::instrument("js_hooks_adapter::apply", skip_all)]
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> rspack_error::Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
     ctx
-      .context
       .compiler_hooks
       .this_compilation
       .intercept(self.register_compiler_this_compilation_taps.clone());
     ctx
-      .context
       .compiler_hooks
       .compilation
       .intercept(self.register_compiler_compilation_taps.clone());
     ctx
-      .context
       .compiler_hooks
       .make
       .intercept(self.register_compiler_make_taps.clone());
     ctx
-      .context
       .compiler_hooks
       .finish_make
       .intercept(self.register_compiler_finish_make_taps.clone());
     ctx
-      .context
       .compiler_hooks
       .should_emit
       .intercept(self.register_compiler_should_emit_taps.clone());
     ctx
-      .context
       .compiler_hooks
       .emit
       .intercept(self.register_compiler_emit_taps.clone());
     ctx
-      .context
       .compiler_hooks
       .after_emit
       .intercept(self.register_compiler_after_emit_taps.clone());
     ctx
-      .context
       .compiler_hooks
       .asset_emitted
       .intercept(self.register_compiler_asset_emitted_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .build_module
       .intercept(self.register_compilation_build_module_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .still_valid_module
       .intercept(self.register_compilation_still_valid_module_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .succeed_module
       .intercept(self.register_compilation_succeed_module_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .execute_module
       .intercept(self.register_compilation_execute_module_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .finish_modules
       .intercept(self.register_compilation_finish_modules_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .optimize_modules
       .intercept(self.register_compilation_optimize_modules_taps.clone());
+    ctx.compilation_hooks.after_optimize_modules.intercept(
+      self
+        .register_compilation_after_optimize_modules_taps
+        .clone(),
+    );
     ctx
-      .context
-      .compilation_hooks
-      .after_optimize_modules
-      .intercept(
-        self
-          .register_compilation_after_optimize_modules_taps
-          .clone(),
-      );
-    ctx
-      .context
       .compilation_hooks
       .optimize_tree
       .intercept(self.register_compilation_optimize_tree_taps.clone());
+    ctx.compilation_hooks.optimize_chunk_modules.intercept(
+      self
+        .register_compilation_optimize_chunk_modules_taps
+        .clone(),
+    );
     ctx
-      .context
-      .compilation_hooks
-      .optimize_chunk_modules
-      .intercept(
-        self
-          .register_compilation_optimize_chunk_modules_taps
-          .clone(),
-      );
-    ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .intercept(
@@ -194,72 +165,54 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .register_compilation_additional_tree_runtime_requirements_taps
           .clone(),
       );
+    ctx.compilation_hooks.runtime_requirement_in_tree.intercept(
+      self
+        .register_compilation_runtime_requirement_in_tree_taps
+        .clone(),
+    );
     ctx
-      .context
-      .compilation_hooks
-      .runtime_requirement_in_tree
-      .intercept(
-        self
-          .register_compilation_runtime_requirement_in_tree_taps
-          .clone(),
-      );
-    ctx
-      .context
       .compilation_hooks
       .runtime_module
       .intercept(self.register_compilation_runtime_module_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .chunk_hash
       .intercept(self.register_compilation_chunk_hash_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .chunk_asset
       .intercept(self.register_compilation_chunk_asset_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .process_assets
       .intercept(self.register_compilation_process_assets_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .after_process_assets
       .intercept(self.register_compilation_after_process_assets_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .seal
       .intercept(self.register_compilation_seal_taps.clone());
     ctx
-      .context
       .compilation_hooks
       .after_seal
       .intercept(self.register_compilation_after_seal_taps.clone());
 
+    ctx.normal_module_factory_hooks.before_resolve.intercept(
+      self
+        .register_normal_module_factory_before_resolve_taps
+        .clone(),
+    );
     ctx
-      .context
-      .normal_module_factory_hooks
-      .before_resolve
-      .intercept(
-        self
-          .register_normal_module_factory_before_resolve_taps
-          .clone(),
-      );
-    ctx
-      .context
       .normal_module_factory_hooks
       .factorize
       .intercept(self.register_normal_module_factory_factorize_taps.clone());
     ctx
-      .context
       .normal_module_factory_hooks
       .resolve
       .intercept(self.register_normal_module_factory_resolve_taps.clone());
     ctx
-      .context
       .normal_module_factory_hooks
       .resolve_for_scheme
       .intercept(
@@ -267,63 +220,43 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
           .register_normal_module_factory_resolve_for_scheme_taps
           .clone(),
       );
-    ctx
-      .context
-      .normal_module_factory_hooks
-      .after_resolve
-      .intercept(
-        self
-          .register_normal_module_factory_after_resolve_taps
-          .clone(),
-      );
-    ctx
-      .context
-      .normal_module_factory_hooks
-      .create_module
-      .intercept(
-        self
-          .register_normal_module_factory_create_module_taps
-          .clone(),
-      );
-    ctx
-      .context
-      .context_module_factory_hooks
-      .before_resolve
-      .intercept(
-        self
-          .register_context_module_factory_before_resolve_taps
-          .clone(),
-      );
-    ctx
-      .context
-      .context_module_factory_hooks
-      .after_resolve
-      .intercept(
-        self
-          .register_context_module_factory_after_resolve_taps
-          .clone(),
-      );
+    ctx.normal_module_factory_hooks.after_resolve.intercept(
+      self
+        .register_normal_module_factory_after_resolve_taps
+        .clone(),
+    );
+    ctx.normal_module_factory_hooks.create_module.intercept(
+      self
+        .register_normal_module_factory_create_module_taps
+        .clone(),
+    );
+    ctx.context_module_factory_hooks.before_resolve.intercept(
+      self
+        .register_context_module_factory_before_resolve_taps
+        .clone(),
+    );
+    ctx.context_module_factory_hooks.after_resolve.intercept(
+      self
+        .register_context_module_factory_after_resolve_taps
+        .clone(),
+    );
 
     ctx
-      .context
       .compiler_hooks
       .compilation
       .tap(js_hooks_adapter_compilation::new(self));
 
     ctx
-      .context
       .compiler_hooks
       .compilation
       .tap(html_hooks_adapter_compilation::new(self));
 
     ctx
-      .context
       .compiler_hooks
       .compilation
       .tap(runtime_hooks_adapter_compilation::new(self));
 
     ctx
-      .context
       .compiler_hooks
       .compilation
       .tap(rsdoctor_hooks_adapter_compilation::new(self));

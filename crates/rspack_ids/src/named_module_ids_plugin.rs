@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{
-  ApplyContext, ChunkGraph, CompilationModuleIds, CompilerOptions, Logger, ModuleGraph, ModuleId,
-  ModuleIdentifier, ModuleIdsArtifact, Plugin, PluginContext,
+  ChunkGraph, CompilationModuleIds, Logger, ModuleGraph, ModuleId, ModuleIdentifier,
+  ModuleIdsArtifact, Plugin,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
@@ -243,12 +243,8 @@ impl Plugin for NamedModuleIdsPlugin {
     "NamedModuleIdsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .module_ids
-      .tap(module_ids::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
     Ok(())
   }
 }

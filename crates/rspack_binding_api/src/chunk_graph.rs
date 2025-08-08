@@ -5,8 +5,11 @@ use napi_derive::napi;
 use rspack_core::{Compilation, ModuleId, SourceType};
 
 use crate::{
-  AsyncDependenciesBlock, Chunk, ChunkGroupWrapper, ChunkWrapper, JsRuntimeSpec, ModuleObject,
-  ModuleObjectRef,
+  async_dependency_block::AsyncDependenciesBlock,
+  chunk::{Chunk, ChunkWrapper},
+  chunk_group::ChunkGroupWrapper,
+  module::{ModuleObject, ModuleObjectRef},
+  runtime::JsRuntimeSpec,
 };
 
 pub type JsModuleId = Either<String, u32>;

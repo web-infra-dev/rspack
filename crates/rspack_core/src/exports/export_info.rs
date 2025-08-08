@@ -21,8 +21,8 @@ pub enum ExportName {
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct ExportInfo {
-  exports_info: ExportsInfo,
-  export_name: ExportName,
+  pub exports_info: ExportsInfo,
+  pub export_name: ExportName,
 }
 
 impl ExportInfo {

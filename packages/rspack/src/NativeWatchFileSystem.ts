@@ -1,6 +1,11 @@
 import binding from "@rspack/binding";
 import type Watchpack from "watchpack";
-import type { FileSystemInfoEntry, Watcher, WatchFileSystem } from "./util/fs";
+import type {
+	FileSystemInfoEntry,
+	InputFileSystem,
+	Watcher,
+	WatchFileSystem
+} from "./util/fs";
 
 /**
  * The following code is modified based on
@@ -28,14 +33,16 @@ const toJsWatcherIgnored = (
 			"NativeWatcher does not support using a function for the 'ignored' option"
 		);
 	}
-	if (ignored) {
-		throw new Error(`Invalid option for 'ignored': ${ignored}`);
-	}
 	return undefined;
 };
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
+	#inputFileSystem: InputFileSystem;
+
+	constructor(inputFileSystem: InputFileSystem) {
+		this.#inputFileSystem = inputFileSystem;
+	}
 
 	watch(
 		files: Iterable<string> & {
@@ -95,7 +102,22 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			[Array.from(directories.added!), Array.from(directories.removed!)],
 			[Array.from(missing.added!), Array.from(missing.removed!)],
 			(err: Error | null, result) => {
-				const { changedFiles, removedFiles } = result;
+				if (err) {
+					callback(err, new Map(), new Map(), new Set(), new Set());
+					return;
+				}
+				nativeWatcher.pause();
+				const changedFiles = result.changedFiles;
+				const removedFiles = result.removedFiles;
+				if (this.#inputFileSystem?.purge) {
+					const fs = this.#inputFileSystem;
+					for (const item of changedFiles) {
+						fs.purge?.(item);
+					}
+					for (const item of removedFiles) {
+						fs.purge?.(item);
+					}
+				}
 				// TODO: add fileTimeInfoEntries and contextTimeInfoEntries
 				callback(
 					err,
@@ -113,7 +135,15 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
 		return {
 			close: () => {
-				nativeWatcher.close();
+				nativeWatcher.close().then(
+					() => {
+						// Clean up the internal reference to the native watcher to allow it to be garbage collected.
+						this.#inner = undefined;
+					},
+					(err: unknown) => {
+						console.error("Error closing native watcher:", err);
+					}
+				);
 			},
 
 			pause: () => {

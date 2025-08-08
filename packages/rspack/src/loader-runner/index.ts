@@ -759,7 +759,7 @@ export async function runLoaders(
 			resource: loaderContext.resource,
 			mode: loaderContext.mode,
 			sourceMap: loaderContext.sourceMap,
-			rootContext: loaderContext.context!,
+			rootContext: loaderContext.rootContext,
 			loaderIndex: loaderContext.loaderIndex,
 			loaders: loaderContext.loaders.map(item => {
 				let options = item.options;

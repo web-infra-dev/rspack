@@ -1,3 +1,6 @@
+#[cfg(feature = "plugin")]
+pub mod runtime;
+
 use rustc_hash::FxHashSet;
 use swc_config::types::BoolOr;
 use swc_core::{

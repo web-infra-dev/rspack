@@ -8,19 +8,17 @@ use std::{
   time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-use async_trait::async_trait;
 use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
-  CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
-  CompilationFinishModules, CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
+  BoxModule, Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
+  CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
+  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
+  CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
-  CompilerFinishMake, CompilerId, CompilerMake, CompilerOptions, CompilerThisCompilation,
-  ModuleIdentifier, Plugin, PluginContext,
+  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -483,6 +481,11 @@ async fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("chunk ids", 21).await
 }
 
+#[plugin_hook(CompilationOptimizeCodeGeneration for ProgressPlugin)]
+async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<()> {
+  self.sealing_hooks_report("code generation", 26).await
+}
+
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35).await
@@ -522,102 +525,73 @@ async fn close(&self, _compilation: &Compilation) -> Result<()> {
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
     "progress"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compiler_hooks
       .this_compilation
       .tap(this_compilation::new(self));
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx.compiler_hooks.make.tap(make::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx.context.compiler_hooks.make.tap(make::new(self));
-    ctx
-      .context
       .compilation_hooks
       .build_module
       .tap(build_module::new(self));
     ctx
-      .context
       .compilation_hooks
       .succeed_module
       .tap(succeed_module::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .finish_make
-      .tap(finish_make::new(self));
-    ctx
-      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
-    ctx.context.compilation_hooks.seal.tap(seal::new(self));
+    ctx.compilation_hooks.seal.tap(seal::new(self));
     ctx
-      .context
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
     ctx
-      .context
       .compilation_hooks
       .optimize_modules
       .tap(optimize_modules::new(self));
     ctx
-      .context
       .compilation_hooks
       .after_optimize_modules
       .tap(after_optimize_modules::new(self));
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
     ctx
-      .context
       .compilation_hooks
       .optimize_tree
       .tap(optimize_tree::new(self));
     ctx
-      .context
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
+    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
+    ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     ctx
-      .context
       .compilation_hooks
-      .module_ids
-      .tap(module_ids::new(self));
+      .optimize_code_generation
+      .tap(optimize_code_generation::new(self));
     ctx
-      .context
-      .compilation_hooks
-      .chunk_ids
-      .tap(chunk_ids::new(self));
-    ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
     ctx
-      .context
       .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));
-    ctx.context.compiler_hooks.emit.tap(emit::new(self));
-    ctx
-      .context
-      .compiler_hooks
-      .after_emit
-      .tap(after_emit::new(self));
-    ctx.context.compiler_hooks.close.tap(close::new(self));
+    ctx.compiler_hooks.emit.tap(emit::new(self));
+    ctx.compiler_hooks.after_emit.tap(after_emit::new(self));
+    ctx.compiler_hooks.close.tap(close::new(self));
     Ok(())
   }
 }

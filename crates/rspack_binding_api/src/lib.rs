@@ -1,29 +1,52 @@
 #![recursion_limit = "256"]
 #![allow(deprecated)]
+#![allow(unused)]
+
+//! `rspack_binding_api` is the core binding layer in the Rspack project, responsible for exposing Rspack core functionality written in Rust to JavaScript/TypeScript environments. It provides complete API interfaces for compilation, building, module processing, and other functionalities.
+//!
+//! ## Features
+//!
+//! - `browser`: Enable browser environment support
+//! - `color-backtrace`: Enable colored error backtraces
+//! - `debug_tool`: Enable debug tools
+//! - `plugin`: Enable SWC plugin support
+//! - `sftrace-setup`: Enable performance tracing setup
+//!
+//! ## Important Notice
+//!
+//! ⚠️ **Version Compatibility Warning**
+//!
+//! **This repository does not follow Semantic Versioning (SemVer).**
+//!
+//! - Any version update may contain breaking changes
+//! - It is recommended to lock specific version numbers in production environments
+//! - Please thoroughly test all functionality before upgrading
+//!
+//! ## API Usage Warning
+//!
+//! 🚨 **This package's API should NOT be used as a public Rust API**
+//!
+//! This crate is designed to be linked as a **C dynamic library** during Rspack binding generation, not as a public Rust API for external consumption.
+//!
+//! ### For Developers
+//!
+//! If you're working on Rspack itself:
+//! - This crate is safe to use within the Rspack project
+//! - Changes should be coordinated with the binding generation process
+//! - Test thoroughly when making changes
+//!
+//! If you're an external developer:
+//! - Do not depend on this crate directly
+//! - Use the official Rspack Node.js package instead
+//! - Report issues through the main Rspack repository
+//!
+//! If you're a user of Rspack custom binding:
+//! - Do not depend on this crate directly
+//! - Use [`rspack_binding_builder`](https://crates.io/crates/rspack_binding_builder) to build your own binding
 
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
-use std::{cell::RefCell, sync::Arc};
-
-use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use fs_node::HybridFileSystem;
-use napi::{CallContext, bindgen_prelude::*};
-use rspack_collections::UkeyMap;
-use rspack_core::{
-  BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
-};
-use rspack_error::Diagnostic;
-use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
-use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
-use rspack_util::tracing_preset::{
-  TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
-};
-
-use crate::{
-  fs_node::{NodeFileSystem, ThreadsafeNodeFS},
-  trace_event::RawTraceEvent,
-};
 
 mod allocator;
 mod asset;
@@ -75,56 +98,46 @@ mod swc;
 mod trace_event;
 mod utils;
 
-pub use asset::*;
-pub use asset_condition::*;
-pub use async_dependency_block::*;
-pub use browserslist::*;
-pub use build_info::*;
-pub use chunk::*;
-pub use chunk_graph::*;
-pub use chunk_group::*;
-pub use clean_options::*;
-pub use codegen_result::*;
-pub use compilation::*;
-pub use context_module_factory::*;
-pub use dependencies::*;
-pub use dependency::*;
-pub use diagnostic::*;
-pub use error::*;
-pub use exports_info::*;
-pub use filename::*;
-pub use html::*;
-pub use location::*;
-pub use module::*;
-pub use module_graph::*;
-pub use module_graph_connection::*;
-pub use modules::*;
-pub use native_watcher::*;
-pub use normal_module_factory::*;
-pub use options::*;
-pub use path_data::*;
-pub use plugins::buildtime_plugins;
-use plugins::*;
-pub use raw_options::*;
-pub use resolver::*;
-use resolver_factory::*;
-pub use resource_data::*;
-pub use rsdoctor::*;
-pub use rslib::*;
-pub use rspack_resolver::*;
+use std::{cell::RefCell, sync::Arc};
+
+use napi::{CallContext, bindgen_prelude::*};
+pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
+use rspack_collections::UkeyMap;
+use rspack_core::{
+  BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
+};
+use rspack_error::Diagnostic;
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
+use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
-pub use rstest::*;
-pub use runtime::*;
+use rspack_util::tracing_preset::{
+  TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
+};
 use rustc_hash::FxHashMap;
-pub use source::*;
-pub use stats::*;
-pub use swc::*;
 use swc_core::common::util::take::Take;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
   EnvFilter, Layer, Registry, layer::SubscriberExt, reload, util::SubscriberInitExt,
 };
-pub use utils::*;
+
+use crate::{
+  async_dependency_block::AsyncDependenciesBlockWrapper,
+  chunk::ChunkWrapper,
+  chunk_group::ChunkGroupWrapper,
+  compilation::JsCompilationWrapper,
+  compiler::{Compiler, CompilerState, CompilerStateGuard},
+  dependency::DependencyWrapper,
+  error::{ErrorCode, RspackResultToNapiResultExt},
+  fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
+  module::ModuleObject,
+  plugins::{
+    JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
+  },
+  raw_options::{BuiltinPlugin, RawOptions, WithFalse},
+  resolver_factory::JsResolverFactory,
+  trace_event::RawTraceEvent,
+  utils::callbackify,
+};
 
 // Export expected @rspack/core version
 /// Expected version of @rspack/core to the current binding version
@@ -133,7 +146,7 @@ pub use utils::*;
 pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_version!();
 
 thread_local! {
-  pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+  static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
 #[js_function(1)]
@@ -146,7 +159,7 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 }
 
 #[napi(custom_finalize)]
-pub struct JsCompiler {
+struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
   compiler: Compiler,
   state: CompilerState,
@@ -178,6 +191,18 @@ impl JsCompiler {
       let mut plugins = Vec::with_capacity(builtin_plugins.len());
       let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
       plugins.push(js_hooks_plugin.clone().boxed());
+
+      // Register builtin loader plugins
+      plugins.push(Box::new(
+        rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
+      plugins.push(Box::new(
+        rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(
+        rspack_loader_preact_refresh::PreactRefreshLoaderPlugin::new(),
+      ));
 
       let tsfn = env
         .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
@@ -508,7 +533,7 @@ thread_local! {
  * Copyright (c)
  */
 #[napi]
-pub fn register_global_trace(
+fn register_global_trace(
   filter: String,
   #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
   output: String,
@@ -574,7 +599,7 @@ pub fn cleanup_global_trace() {
 }
 // sync Node.js event to Rust side
 #[napi]
-pub fn sync_trace_event(events: Vec<RawTraceEvent>) {
+fn sync_trace_event(events: Vec<RawTraceEvent>) {
   use std::borrow::BorrowMut;
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
@@ -606,7 +631,7 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 }
 
 #[napi(module_exports)]
-pub fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;

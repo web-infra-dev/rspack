@@ -3,7 +3,7 @@ use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_dynamic_entry::{DynamicEntryPluginOptions, EntryDynamicResult};
 
-use crate::entry::JsEntryOptions;
+use crate::options::entry::JsEntryOptions;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]

@@ -1,4 +1,7 @@
-use crate::{MODULE_PROPERTIES_BUFFER, Module, ModuleObject, impl_module_methods};
+use crate::{
+  impl_module_methods,
+  module::{MODULE_PROPERTIES_BUFFER, Module, ModuleObject},
+};
 
 #[napi]
 #[repr(C)]
