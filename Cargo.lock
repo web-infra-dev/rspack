@@ -4922,7 +4922,6 @@ dependencies = [
  "cow-utils",
  "napi",
  "regex",
- "regex-syntax 0.8.5",
  "regress",
  "rspack_cacheable",
  "rspack_error",
