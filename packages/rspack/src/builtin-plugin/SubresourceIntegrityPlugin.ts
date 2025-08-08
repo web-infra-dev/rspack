@@ -309,7 +309,16 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 						}
 					});
 			} else {
-				bindingHtmlHooks(require(this.options.htmlPlugin));
+				try {
+					bindingHtmlHooks(require(this.options.htmlPlugin));
+				} catch (e) {
+					if (
+						!isErrorWithCode(e as Error) ||
+						(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
+					) {
+						throw e;
+					}
+				}
 			}
 		}
 	}
