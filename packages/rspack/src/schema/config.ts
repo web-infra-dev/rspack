@@ -1525,7 +1525,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			profile: profile,
 			amd: amd,
 			bail: bail,
-			performance: performance
+			performance: performance,
+			lazyCompilation: z.boolean().or(lazyCompilationOptions).optional()
 		})
 		.partial()
 		.check(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;

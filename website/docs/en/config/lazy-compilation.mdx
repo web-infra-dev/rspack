@@ -1,0 +1,145 @@
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/configuration/experiments/#experimentslazycompilation" />
+
+# LazyCompilation
+
+Lazy compilation: only build an entry or module when it is actually accessed.
+
+Enable lazy compilation, which can greatly improve the dev startup performance of multi-page applications (MPA) or large single-page applications (SPA).
+
+## lazyCompilation
+
+- **Type:** `boolean | LazyCompilationOptions`
+- **Default:** `false`
+
+```ts
+type LazyCompilationOptions =
+  | boolean
+  | {
+      /**
+       * Enable lazy compilation for entries.
+       * @default true
+       */
+      entries?: boolean;
+      /**
+       * Enable lazy compilation for dynamic imports.
+       * @default true
+       */
+      imports?: boolean;
+      /**
+       * Specify which imported modules should be lazily compiled.
+       */
+      test?: RegExp | ((m: Module) => boolean);
+      /**
+       * The path to a custom runtime code that overrides the default lazy
+       * compilation client.
+       */
+      client?: string;
+      /**
+       * Tells the client the server path that needs to be requested.
+       */
+      serverUrl?: string;
+      /**
+       * Customize the prefix used for lazy compilation endpoint.
+       * @default "/lazy-compilation-using-"
+       */
+      prefix?: string;
+    };
+```
+
+:::tip
+Check out the [guide](/guide/features/lazy-compilation) for a quick start.
+:::
+
+if you have twenty entry points, only the accessed entry points will be built when you enable lazyCompilation. Or if there are many `import()` statements in the project, each module pointed to by `import()` will only be built when it is actually accessed.
+
+If set to true, lazy compilation will be applied by default to both entry modules and modules pointed to by `import()`. You can decide whether it applies only to entries or only to `import()` through a configuration object. The `entries` option determines whether it applies to entries, while the `import()` option determines whether it applies to `import()`.
+
+```js title="rspack.config.mjs"
+import path from 'path';
+
+export default {
+  lazyCompilation: {
+    client: path.resolve('custom-client.js'),
+  },
+};
+```
+
+In addition, you can also configure a `test` parameter for more fine-grained control over which modules are lazily compiled. The `test` parameter can be a regular expression that matches only those modules that should be lazily compiled. It can also be a function where the input is of type 'Module' and returns a boolean value indicating whether it meets the criteria for lazy compilation logic.
+
+### lazyCompilation.client
+
+- **Type:** `string`
+
+The path to a custom runtime code that overrides the default lazy compilation client. If you want to customize the logic of the client runtime, you can specify it through this option.
+
+- [Client for web](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-web.js)
+- [Client for node](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-node.js)
+
+```js title="rspack.config.mjs"
+import path from 'path';
+
+export default {
+  lazyCompilation: {
+    client: path.resolve('custom-client.js'),
+  },
+};
+```
+
+### lazyCompilation.serverUrl
+
+- **Type:** `string`
+
+Tells the client the server path that needs to be requested. By default it is empty, in a browser environment it will find the server path where the page is located, but in a node environment you need to explicitly specify a specific path.
+
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: {
+    serverUrl: 'http://localhost:3000',
+  },
+};
+```
+
+### lazyCompilation.prefix
+
+- **Type:** `string`
+- **Default:** `'/lazy-compilation-using-'`
+
+Customize the prefix used for lazy compilation endpoint. By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests.
+
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: {
+    prefix: '/custom-lazy-endpoint-',
+  },
+};
+```
+
+### Exclude HMR client
+
+If you do not use Rspack's own dev server and instead use your own server as the dev server, you generally need to add another client modules in the entry configuration to enable capabilities such as HMR. It is best to exclude these client module from lazy compilation by configuring `test`.
+
+If not excluded and lazy compilation of entry is enabled, this client will not be compiled when accessing the page for the first time, so an additional refresh is needed to make it take effect.
+
+For example:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+const options = {
+  lazyCompilation: {
+    test(module) {
+      const isMyClient = module.nameForCondition().endsWith('dev-client.js');
+      // make sure that dev-client.js won't be lazy compiled
+      return !isMyClient;
+    },
+  },
+};
+const compiler = rspack(options);
+
+new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
+  // name: undefined means this is global entry
+  name: undefined,
+}).apply(compiler);
+```

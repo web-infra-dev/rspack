@@ -36,6 +36,9 @@ const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
 	);
 };
 
+const DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN =
+	"The `experiments.lazyCompilation` option is deprecated, please use the configuration top level `lazyCompilation` instead.";
+
 export const lazyCompilationMiddleware = (
 	compiler: Compiler | MultiCompiler
 ): MiddlewareHandler => {
@@ -43,13 +46,30 @@ export const lazyCompilationMiddleware = (
 		const middlewareByCompiler: Map<string, MiddlewareHandler> = new Map();
 
 		let i = 0;
+		let isReportDeprecatedWarned = false;
 		for (const c of compiler.compilers) {
-			if (!c.options.experiments.lazyCompilation) {
+			if (c.options.experiments.lazyCompilation) {
+				if (c.name) {
+					console.warn(
+						`The 'experiments.lazyCompilation' option in compiler named '${c.name}' is deprecated, please use the Configuration top level 'lazyCompilation' instead.`
+					);
+				} else if (!isReportDeprecatedWarned) {
+					console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
+					isReportDeprecatedWarned = true;
+				}
+			}
+
+			if (
+				!c.options.lazyCompilation &&
+				!c.options.experiments.lazyCompilation
+			) {
 				continue;
 			}
 
 			const options = {
-				...c.options.experiments.lazyCompilation
+				// TODO: remove this when experiments.lazyCompilation is removed
+				...c.options.experiments.lazyCompilation,
+				...c.options.lazyCompilation
 			};
 
 			const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
@@ -93,7 +113,14 @@ export const lazyCompilationMiddleware = (
 		};
 	}
 
-	if (!compiler.options.experiments.lazyCompilation) {
+	if (compiler.options.experiments.lazyCompilation) {
+		console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
+	}
+
+	if (
+		!compiler.options.lazyCompilation &&
+		!compiler.options.experiments.lazyCompilation
+	) {
 		return noop;
 	}
 
@@ -103,7 +130,9 @@ export const lazyCompilationMiddleware = (
 	const moduleToIndex = new Map();
 
 	const options = {
-		...compiler.options.experiments.lazyCompilation
+		// TODO: remove this when experiments.lazyCompilation is removed
+		...compiler.options.experiments.lazyCompilation,
+		...compiler.options.lazyCompilation
 	};
 	applyPlugin(
 		compiler,

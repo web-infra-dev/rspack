@@ -2456,7 +2456,7 @@ export interface ExperimentsNormalized {
     layers?: boolean;
     // (undocumented)
     lazyBarrel?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     nativeWatcher?: boolean;
@@ -6636,6 +6636,7 @@ export type RspackOptions = {
     amd?: Amd;
     bail?: Bail;
     performance?: Performance_2;
+    lazyCompilation?: boolean | LazyCompilationOptions;
 };
 
 // @public (undocumented)
@@ -6676,6 +6677,8 @@ export interface RspackOptionsNormalized {
     ignoreWarnings?: IgnoreWarningsNormalized;
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
+    // (undocumented)
+    lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     loader: Loader;
     // (undocumented)
