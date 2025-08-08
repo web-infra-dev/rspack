@@ -81,6 +81,8 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => (development ? "eval" : false));
 	D(options, "watch", false);
 	D(options, "profile", false);
+	// IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
+	D(options, "lazyCompilation", false);
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
@@ -211,6 +213,7 @@ const applyExperimentsDefaults = (
 	F(experiments, "cache", () => development);
 
 	D(experiments, "futureDefaults", false);
+	// TODO: lazyCompilation is moving to Configuration top level, we can remove this in future.
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
