@@ -123,20 +123,20 @@ inventory = { version = "0.3.17", default-features = false }
 rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "bytecheck"] }
 
 # Must be pinned with the same swc versions
-pnp                         = { version = "0.12.1", default-features = false }
-swc                         = { version = "34.0.0", default-features = false }
-swc_config                  = { version = "3.1.1", default-features = false }
-swc_core                    = { version = "35.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_lexer              = { version = "22.0.0", default-features = false }
-swc_ecma_minifier           = { version = "29.0.0", default-features = false }
-swc_error_reporters         = { version = "16.0.1", default-features = false }
-swc_html                    = { version = "25.0.0", default-features = false }
-swc_html_minifier           = { version = "29.0.0", default-features = false }
-swc_node_comments           = { version = "14.0.0", default-features = false }
-swc_plugin_runner           = { version = "18.0.0", default-features = false }
+pnp                 = { version = "0.12.1", default-features = false }
+swc                 = { version = "34.0.0", default-features = false }
+swc_config          = { version = "3.1.1", default-features = false }
+swc_core            = { version = "35.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_lexer      = { version = "22.0.0", default-features = false }
+swc_ecma_minifier   = { version = "29.0.0", default-features = false }
+swc_error_reporters = { version = "16.0.1", default-features = false }
+swc_html            = { version = "25.0.0", default-features = false }
+swc_html_minifier   = { version = "29.0.0", default-features = false }
+swc_node_comments   = { version = "14.0.0", default-features = false }
+swc_plugin_runner   = { version = "18.0.0", default-features = false }
 
-wasmtime                    = { version = "35.0.0", default-features = false }
-wasi-common                 = { version = "35.0.0", default-features = false }
+wasi-common = { version = "35.0.0", default-features = false }
+wasmtime    = { version = "35.0.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 

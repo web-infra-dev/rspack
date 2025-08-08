@@ -5,7 +5,7 @@ use rspack_core::{
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::{Result, miette};
+use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -130,16 +130,15 @@ async fn render_chunk(
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
-  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
-    return Err(miette::miette!(
-      "HMR is not implemented for module chunk format yet"
-    ));
-  }
+
+  let chunk_id_json_string = json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact));
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_ids__ = [{}];\n",
-    json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
+    "export const __webpack_id__ = {chunk_id_json_string} ;\n",
+  )));
+  sources.add(RawStringSource::from(format!(
+    "export const __webpack_ids__ = [{chunk_id_json_string}];\n",
   )));
   sources.add(RawStringSource::from_static(
     "export const __webpack_modules__ = ",
@@ -156,6 +155,11 @@ async fn render_chunk(
     ));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
+  }
+
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
+    render_source.source = sources.boxed();
+    return Ok(());
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
