@@ -39,6 +39,9 @@ const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
 const DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN =
 	"The `experiments.lazyCompilation` option is deprecated, please use the configuration top level `lazyCompilation` instead.";
 
+const REPEAT_LAZY_COMPILATION_OPTIONS_WARN =
+	"Both top-level `lazyCompilation` and `experiments.lazyCompilation` options are set. The top-level `lazyCompilation` configuration will take precedence.";
+
 export const lazyCompilationMiddleware = (
 	compiler: Compiler | MultiCompiler
 ): MiddlewareHandler => {
@@ -47,6 +50,7 @@ export const lazyCompilationMiddleware = (
 
 		let i = 0;
 		let isReportDeprecatedWarned = false;
+		let isReportRepeatWarned = false;
 		for (const c of compiler.compilers) {
 			if (c.options.experiments.lazyCompilation) {
 				if (c.name) {
@@ -56,6 +60,17 @@ export const lazyCompilationMiddleware = (
 				} else if (!isReportDeprecatedWarned) {
 					console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
 					isReportDeprecatedWarned = true;
+				}
+			}
+
+			if (c.options.lazyCompilation && c.options.experiments.lazyCompilation) {
+				if (c.name) {
+					console.warn(
+						`The top-level 'lazyCompilation' option in compiler named '${c.name}' will override the 'experiments.lazyCompilation' option.`
+					);
+				} else if (!isReportRepeatWarned) {
+					console.warn(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
+					isReportRepeatWarned = true;
 				}
 			}
 
@@ -115,6 +130,9 @@ export const lazyCompilationMiddleware = (
 
 	if (compiler.options.experiments.lazyCompilation) {
 		console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
+		if (compiler.options.lazyCompilation) {
+			console.warn(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
+		}
 	}
 
 	if (
