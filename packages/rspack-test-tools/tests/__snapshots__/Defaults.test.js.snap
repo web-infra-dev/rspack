@@ -71,6 +71,7 @@ Object {
   externalsType: var,
   ignoreWarnings: undefined,
   infrastructureLogging: Object {},
+  lazyCompilation: false,
   loader: Object {
     environment: Object {
       arrowFunction: true,
