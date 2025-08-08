@@ -136,7 +136,7 @@ const options = {
 };
 const compiler = rspack(options);
 
-new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
+new compiler.rspack.EntryPlugin(compiler.context, 'dev-client.js', {
   // name: undefined 代表这是全局 entry，会插入到每一个 entry 前
   name: undefined,
 }).apply(compiler);
