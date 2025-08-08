@@ -26,7 +26,7 @@ const externalAlias = ({ request }: { request?: string }, callback) => {
 
 const commonLibConfig: LibConfig = {
 	format: "cjs",
-	syntax: ["node 16"],
+	syntax: ["node 18"],
 	source: {
 		define: {
 			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
