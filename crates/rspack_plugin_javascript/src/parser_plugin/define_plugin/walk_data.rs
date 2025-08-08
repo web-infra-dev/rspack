@@ -1,9 +1,6 @@
 use std::{
   borrow::Cow,
-  sync::{
-    Arc, LazyLock,
-    atomic::{AtomicBool, Ordering},
-  },
+  sync::{Arc, LazyLock},
 };
 
 use itertools::Itertools as _;
@@ -243,17 +240,11 @@ impl WalkData {
       };
       let key = Arc::<str>::from(key);
       let mut define_record = DefineRecord::from_code(code.clone());
-      let recurse = AtomicBool::new(false);
-      let recurse_typeof = AtomicBool::new(false);
       if !is_typeof {
         walk_data.can_rename.insert(key.clone());
         define_record = define_record
           .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
-            // Avoid endless recursion, for example: new DefinePlugin({ "a": "a" })
-            if recurse.swap(true, Ordering::Acquire) {
-              return None;
-            }
-            let evaluated = parser
+            parser
               .evaluate(
                 code_to_string(&record.code, None, None).into_owned(),
                 "DefinePlugin",
@@ -261,9 +252,7 @@ impl WalkData {
               .map(|mut evaluated| {
                 evaluated.set_range(start, end);
                 evaluated
-              });
-            recurse.store(false, Ordering::Release);
-            evaluated
+              })
           }))
           .with_on_expression(Box::new(
             move |record, parser, span, start, end, for_name| {
@@ -278,24 +267,18 @@ impl WalkData {
 
       define_record = define_record
         .with_on_evaluate_typeof(Box::new(move |record, parser, start, end| {
-          // Avoid endless recursion, for example: new DefinePlugin({ "typeof a": "typeof a" })
-          if recurse_typeof.swap(true, Ordering::Acquire) {
-            return None;
-          }
           let code = code_to_string(&record.code, None, None);
           let typeof_code = if is_typeof {
             code
           } else {
             Cow::Owned(format!("typeof ({code})"))
           };
-          let evaluated = parser
+          parser
             .evaluate(typeof_code.into_owned(), "DefinePlugin")
             .map(|mut evaluated| {
               evaluated.set_range(start, end);
               evaluated
-            });
-          recurse_typeof.store(false, Ordering::Release);
-          evaluated
+            })
         }))
         .with_on_typeof(Box::new(move |record, parser, start, end| {
           let code = code_to_string(&record.code, None, None);

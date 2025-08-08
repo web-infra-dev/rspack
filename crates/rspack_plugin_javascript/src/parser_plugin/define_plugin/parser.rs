@@ -1,4 +1,10 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
+};
 
 use rspack_core::SpanExt as _;
 use swc_core::common::Spanned as _;
@@ -11,10 +17,20 @@ use crate::{
 };
 
 pub struct DefineParserPlugin {
-  pub walk_data: Arc<WalkData>,
+  recurse: AtomicBool,
+  recurse_typeof: AtomicBool,
+  walk_data: Arc<WalkData>,
 }
 
 impl DefineParserPlugin {
+  pub fn new(walk_data: Arc<WalkData>) -> Self {
+    Self {
+      recurse: AtomicBool::new(false),
+      recurse_typeof: AtomicBool::new(false),
+      walk_data,
+    }
+  }
+
   fn add_value_dependency(&self, parser: &mut JavascriptParser, key: &str) {
     if let Some(value) = self.walk_data.tiling_definitions.get(key) {
       let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
@@ -44,8 +60,14 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     if let Some(record) = self.walk_data.define_record.get(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
+      // Avoid endless recursion, for example: new DefinePlugin({ "typeof a": "typeof a" })
+      if self.recurse_typeof.swap(true, Ordering::Acquire) {
+        return None;
+      }
       self.add_value_dependency(parser, for_name);
-      return on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.hi.0);
+      let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.hi.0);
+      self.recurse_typeof.store(false, Ordering::Release);
+      return evaluated;
     } else if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       return Some(evaluate_to_string(
@@ -67,8 +89,14 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     if let Some(record) = self.walk_data.define_record.get(ident)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
+      // Avoid endless recursion, for example: new DefinePlugin({ "a": "a" })
+      if self.recurse.swap(true, Ordering::Acquire) {
+        return None;
+      }
       self.add_value_dependency(parser, ident);
-      return on_evaluate_identifier(record, parser, ident, start, end);
+      let evaluated = on_evaluate_identifier(record, parser, ident, start, end);
+      self.recurse.store(false, Ordering::Release);
+      return evaluated;
     } else if let Some(record) = self.walk_data.object_define_record.get(ident)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
