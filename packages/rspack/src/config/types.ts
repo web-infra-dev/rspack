@@ -2642,7 +2642,7 @@ export type Experiments = {
 	cache?: ExperimentCacheOptions;
 	/**
 	 * Enable lazy compilation.
-	 * @default false
+	 * @default true
 	 */
 	lazyCompilation?: boolean | LazyCompilationOptions;
 	/**

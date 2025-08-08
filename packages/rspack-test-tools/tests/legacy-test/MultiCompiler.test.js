@@ -46,7 +46,10 @@ describe("with lazy compilation", function () {
 		const configs = [
 			{
 				entry: "./esm/a.js",
-				context
+				context,
+				experiments: {
+					lazyCompilation: false
+				}
 			},
 			{
 				entry: "./esm/b.js",

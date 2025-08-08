@@ -212,7 +212,11 @@ const applyExperimentsDefaults = (
 
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
-	D(experiments, "lazyCompilation", false);
+	// Rsbuild configure `{lazyCompilation: { imports: true, entries: false }` works well after tests.
+	// So we decide to set lazyCompilation as `{ imports: true, entries: false }` firstly.
+	// Maybe we can change it to true in the future.
+	D(experiments, "lazyCompilation", { imports: true, entries: false });
+
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);

@@ -1,13 +1,15 @@
-import { test, expect } from "@/fixtures";
+import { test, expect, waitForHmr } from "@/fixtures";
 
 test("asset emitted hook should only emit modified assets", async ({
 	page,
 	fileAction,
 	rspack
 }) => {
+
 	const assets = (rspack.compiler as any).assets;
 	// reset assets
 	assets.length = 0;
+	await waitForHmr(page);
 	expect(await page.textContent("#root")).toBe("__ROOT_TEXT____FOO_VALUE__");
 
 	// update js file
@@ -47,6 +49,7 @@ test("asset emitted should not emit removed assets", async ({
 	const assets = (rspack.compiler as any).assets;
 	// reset assets
 	assets.length = 0;
+	await waitForHmr(page);
 	expect(await page.textContent("#root")).toBe("__ROOT_TEXT____FOO_VALUE__");
 	// update js file
 	fileAction.updateFile("src/index.js", () => {

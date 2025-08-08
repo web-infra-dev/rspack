@@ -10,3 +10,4 @@ const test = base
 
 export type { RspackOptions };
 export { test, expect };
+export { waitForHmr } from './waitForHmr' 
