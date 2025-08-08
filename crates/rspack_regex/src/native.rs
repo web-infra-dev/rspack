@@ -13,7 +13,7 @@ impl RspackNativeRegex {
   }
 
   pub fn with_flags(expr: &str, raw_flags: &str) -> Result<Self, Error> {
-    let pattern = expr.cow_replace("\\/", "/");
+    let pattern = expr.cow_replace("\\\\", "\\");
 
     let mut flags = raw_flags.chars().collect::<Vec<char>>();
     flags.sort_unstable();
