@@ -99,7 +99,10 @@ mod trace_event;
 mod utils;
 mod virtual_modules;
 
-use std::{cell::RefCell, sync::Arc};
+use std::{
+  cell::RefCell,
+  sync::{Arc, RwLock},
+};
 
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};

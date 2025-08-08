@@ -1,4 +1,7 @@
-use std::{boxed::Box, path::PathBuf};
+use std::{
+  boxed::Box,
+  path::{Path, PathBuf},
+};
 
 use napi::bindgen_prelude::*;
 use napi_derive::*;
@@ -116,7 +119,7 @@ impl NativeWatcher {
     } {
       self
         .watcher
-        .trigger_event(&ArcPath::from_str(path.as_str()), kind);
+        .trigger_event(&ArcPath::from(AsRef::<Path>::as_ref(&path)), kind);
     }
   }
 

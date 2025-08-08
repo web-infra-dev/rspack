@@ -27,7 +27,7 @@ pub(crate) struct WatchPattern {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FsEventKind {
+pub enum FsEventKind {
   Change,
   Remove,
   Create,
