@@ -341,8 +341,8 @@ importers:
         specifier: ^4.2.11
         version: 4.2.11(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
       memfs:
-        specifier: 4.20.0
-        version: 4.20.0
+        specifier: 4.36.0
+        version: 4.36.0
       prebundle:
         specifier: ^1.4.1
         version: 1.4.1(typescript@5.8.3)
@@ -383,8 +383,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
       memfs:
-        specifier: 4.20.0
-        version: 4.20.0
+        specifier: 4.36.0
+        version: 4.36.0
     devDependencies:
       '@rspack/binding':
         specifier: workspace:*
@@ -502,8 +502,8 @@ importers:
         specifier: ^2.0.4
         version: 2.0.4
       memfs:
-        specifier: 4.20.0
-        version: 4.20.0
+        specifier: 4.36.0
+        version: 4.36.0
       path-serializer:
         specifier: 0.5.0
         version: 0.5.0
@@ -937,8 +937,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       memfs:
-        specifier: ^4.20.0
-        version: 4.20.0
+        specifier: ^4.36.0
+        version: 4.36.0
       mime-types:
         specifier: ^3.0.1
         version: 3.0.1
@@ -6165,8 +6165,8 @@ packages:
   medium-zoom@1.1.0:
     resolution: {integrity: sha512-ewyDsp7k4InCUp3jRmwHBRFGyjBimKps/AJLjRSox+2q/2H4p/PNpQf+pwONWlJiOudkBXtbdmVbFjqyybfTmQ==}
 
-  memfs@4.20.0:
-    resolution: {integrity: sha512-VKta4Y+0CPo0NvYMOE7vvhaNe4K5WTP077G1S4PS0h0joX0f15NosPT6y48rOpKLCh48nnlgY/TdRPwiKCIIkg==}
+  memfs@4.36.0:
+    resolution: {integrity: sha512-mfBfzGUdoEw5AZwG8E965ej3BbvW2F9LxEWj4uLxF6BEh1dO2N9eS3AGu9S6vfenuQYrVjsbUOOZK7y3vz4vyQ==}
     engines: {node: '>= 4.0.0'}
 
   merge-descriptors@1.0.3:
@@ -14699,7 +14699,7 @@ snapshots:
 
   medium-zoom@1.1.0: {}
 
-  memfs@4.20.0:
+  memfs@4.36.0:
     dependencies:
       '@jsonjoy.com/json-pack': 1.2.0(tslib@2.8.1)
       '@jsonjoy.com/util': 1.6.0(tslib@2.8.1)
@@ -17124,7 +17124,7 @@ snapshots:
   webpack-dev-middleware@7.4.2(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))):
     dependencies:
       colorette: 2.0.20
-      memfs: 4.20.0
+      memfs: 4.36.0
       mime-types: 2.1.35
       on-finished: 2.4.1
       range-parser: 1.2.1
