@@ -52,7 +52,7 @@
     "enhanced-resolve": "5.18.2",
     "graceful-fs": "^4.2.11",
     "memfs": "4.20.0",
-    "prebundle": "^1.3.4",
+    "prebundle": "^1.4.1",
     "tinypool": "^1.1.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
