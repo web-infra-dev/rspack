@@ -7,7 +7,8 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
   DependencyId, EntryDependency, FactoryMeta, Module, ModuleGraph, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -119,7 +120,7 @@ impl Module for DllModule {
     Ok(code_generation_result)
   }
 
-  fn need_build(&self) -> bool {
+  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
     false
   }
 

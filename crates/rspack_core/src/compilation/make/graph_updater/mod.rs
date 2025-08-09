@@ -41,7 +41,7 @@ pub async fn update_module_graph(
   artifact.state = MakeArtifactState::Initialized;
   let mut cutout = Cutout::default();
 
-  let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
+  let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
 
   compilation
     .plugin_driver
