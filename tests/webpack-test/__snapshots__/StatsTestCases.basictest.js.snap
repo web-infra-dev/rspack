@@ -400,8 +400,8 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
 "asset react.js xx KiB [emitted] (name: react)
 ./react.js xx bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@19.1.0/node_modules/react/index.js xx bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@19.1.0/node_modules/react/cjs/react.production.js xx KiB [built] [code generated]
+../../../../node_modules/.pnpm/react@19.1.1/node_modules/react/index.js xx bytes [built] [code generated]
+../../../../node_modules/.pnpm/react@19.1.1/node_modules/react/cjs/react.production.js xx KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -491,8 +491,8 @@ Entrypoint main 1.01 MiB = runtime.js xx KiB common.js xx KiB main.js xx KiB
 runtime modules xx KiB 12 modules
 cacheable modules 1 MiB
   modules by path ../../../../node_modules/.pnpm/ xx KiB
-    modules by path ../../../../node_modules/.pnpm/react@19.1.0/node_modules/react/ xx KiB 4 modules
-    modules by path ../../../../node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/ xx KiB
+    modules by path ../../../../node_modules/.pnpm/react@19.1.1/node_modules/react/ xx KiB 4 modules
+    modules by path ../../../../node_modules/.pnpm/react-dom@19.1.1_react@19.1.1/node_modules/react-dom/ xx KiB
       modules by path ../../../../node_modules/.pnpm/react-xxx.js xx KiB 2 modules
       modules by path ../../../../node_modules/.pnpm/react-xxx.js xx KiB 2 modules
     modules by path ../../../../node_modules/.pnpm/scheduler@0.26.0/node_modules/scheduler/ xx KiB
