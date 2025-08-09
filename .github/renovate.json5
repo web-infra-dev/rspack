@@ -40,7 +40,7 @@
 				"rspack_resolver",
 				"inventory"
 			],
-			matchUpdateTypes: ["patch"],
+			matchUpdateTypes: ["patch"]
 		},
 		{
 			groupName: "swc",
@@ -102,12 +102,7 @@
 			matchManagers: ["npm"],
 			matchDepTypes: ["dependencies", "devDependencies"],
 			excludePackagePrefixes: ["webpack"],
-			excludePackageNames: [
-				"typescript",
-				"@playwright/test",
-				"@biomejs/biome",
-				"prettier"
-			],
+			excludePackageNames: ["typescript", "@playwright/test"],
 			// bump major and minor in a separate PR
 			matchUpdateTypes: ["patch"]
 		},
