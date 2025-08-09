@@ -79,6 +79,7 @@ swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
 ustr = { workspace = true }
+winnow = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
