@@ -30,6 +30,7 @@ jobs:
     name: Release Debug
     runs-on: ubuntu-latest
     needs: build
+    environment: npm-canary
     steps:
       - name: Checkout Branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -60,10 +61,14 @@ jobs:
       - name: Resolve dependencies for bindings
         run: pnpm install --no-frozen-lockfile
 
+      # Update npm to the latest version to enable OIDC
+      - name: Update npm
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - name: Release Debug
         run: |
           pnpm run build:js
           ./x version debug
           ./x publish stable --tag latest
-        env:
-          NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}
