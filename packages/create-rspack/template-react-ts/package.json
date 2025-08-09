@@ -19,6 +19,6 @@
     "@types/react-dom": "^19.1.6",
     "react-refresh": "^0.17.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   }
 }

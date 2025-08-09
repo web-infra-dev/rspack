@@ -55,7 +55,7 @@
     "prebundle": "^1.4.1",
     "tinypool": "^1.1.1",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.2",
     "watchpack": "^2.4.4",
     "webpack-sources": "3.3.3",
     "glob-to-regexp": "^0.4.1",
