@@ -1105,6 +1105,8 @@ export class Compiler {
     // @internal
     __internal__get_module_execution_results_map(): Map<number, any>;
     // @internal
+    __internal__get_virtual_file_store(): binding.VirtualFileStore | null | undefined;
+    // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
@@ -6395,6 +6397,7 @@ declare namespace rspackExports {
         SourceMapDevToolPlugin,
         SwcJsMinimizerRspackPlugin,
         experiments,
+        VirtualModulesPlugin,
         getRawResolve,
         LoaderContext,
         LoaderDefinition,
@@ -8889,6 +8892,20 @@ interface VariableDeclarator extends Node_4, HasSpan {
 
 // @public (undocumented)
 export const version: string;
+
+// @public (undocumented)
+export class VirtualModulesPlugin {
+    constructor(modules?: Record<string, string>);
+    // (undocumented)
+    static __internal__take_virtual_files(compiler: Compiler): {
+        path: string;
+        content: string;
+    }[] | undefined;
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    writeModule(filePath: string, contents: string): void;
+}
 
 // @public (undocumented)
 export const WarnCaseSensitiveModulesPlugin: {
