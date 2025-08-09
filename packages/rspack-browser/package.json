@@ -30,7 +30,7 @@
     "directory": "packages/rspack-browser"
   },
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^1.0.1",
+    "@napi-rs/wasm-runtime": "^1.0.3",
     "@rspack/lite-tapable": "1.0.1",
     "buffer": "^6.0.3",
     "memfs": "4.36.0"
