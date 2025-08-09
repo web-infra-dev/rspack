@@ -22,8 +22,8 @@ impl ExternalModule {
       properties.clear();
 
       properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
+        rspack_napi::Property::new()
+          .with_utf8_name(c"userRequest")?
           .with_value(&user_request),
       );
       Self::new_inherited(self, env, &mut properties)

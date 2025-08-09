@@ -9,8 +9,8 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
-  threadsafe_function::ThreadsafeFunction,
+  OneShotInstanceRef, Property, WeakRef, define_properties, napi::bindgen_prelude::*,
+  string::JsStringExt, threadsafe_function::ThreadsafeFunction,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
@@ -227,44 +227,44 @@ impl Module {
       properties.clear();
       properties.push(
         Property::new()
-          .with_utf8_name("type")?
+          .with_utf8_name(c"type")?
           .with_value(&env.create_string(module.module_type().as_str())?),
       );
       properties.push(
         Property::new()
-          .with_utf8_name("context")?
+          .with_utf8_name(c"context")?
           .with_getter(context_getter),
       );
       properties.push(
         Property::new()
-          .with_utf8_name("layer")?
+          .with_utf8_name(c"layer")?
           .with_getter(layer_getter),
       );
       properties.push(
         Property::new()
-          .with_utf8_name("useSourceMap")?
+          .with_utf8_name(c"useSourceMap")?
           .with_getter(use_source_map_getter),
       );
       properties.push(
         Property::new()
-          .with_utf8_name("useSimpleSourceMap")?
+          .with_utf8_name(c"useSimpleSourceMap")?
           .with_getter(use_simple_source_map_getter),
       );
       properties.push(
         Property::new()
-          .with_utf8_name("factoryMeta")?
+          .with_utf8_name(c"factoryMeta")?
           .with_getter(factory_meta_getter)
           .with_setter(factory_meta_setter),
       );
       properties.push(
         Property::new()
-          .with_utf8_name("buildInfo")?
+          .with_utf8_name(c"buildInfo")?
           .with_getter(build_info_getter)
           .with_setter(build_info_setter),
       );
       properties.push(
         Property::new()
-          .with_utf8_name("buildMeta")?
+          .with_utf8_name(c"buildMeta")?
           .with_value(&Object::new(env)?),
       );
       MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
@@ -280,7 +280,7 @@ impl Module {
         Ok::<(), napi::Error>(())
       })?;
 
-      object.define_properties(&properties)
+      define_properties(env, &mut object, &properties)
     })?;
 
     Ok(instance)

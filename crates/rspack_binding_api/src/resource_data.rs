@@ -4,11 +4,12 @@ use std::{
 };
 
 use napi::{
-  Env, JsValue, Property,
+  Env, JsValue,
   bindgen_prelude::{JavaScriptClassExt, JsObjectValue, ToNapiValue},
   sys::napi_value,
 };
 use napi_derive::napi;
+use rspack_napi::{Property, define_properties};
 
 // Converting the descriptionFileData property to a JSObject may become a performance bottleneck.
 // Additionally, descriptionFileData and descriptionFilePath are rarely used, so they are exposed via getter methods and only converted to JSObject when accessed.
@@ -85,31 +86,31 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
       properties.clear();
       properties.push(
         Property::new()
-          .with_utf8_name("resource")?
+          .with_utf8_name(c"resource")?
           .with_value(&env_wrapper.create_string(&resource_data.resource)?),
       );
       if let Some(path) = &resource_data.resource_path {
         properties.push(
           Property::new()
-            .with_utf8_name("path")?
+            .with_utf8_name(c"path")?
             .with_value(&env_wrapper.create_string(path.as_str())?),
         );
       }
       if let Some(query) = &resource_data.resource_query {
         properties.push(
           Property::new()
-            .with_utf8_name("query")?
+            .with_utf8_name(c"query")?
             .with_value(&env_wrapper.create_string(query)?),
         );
       }
       if let Some(fragment) = &resource_data.resource_fragment {
         properties.push(
           Property::new()
-            .with_utf8_name("fragment")?
+            .with_utf8_name(c"fragment")?
             .with_value(&env_wrapper.create_string(fragment)?),
         );
       }
-      object.define_properties(&properties)
+      define_properties(&env_wrapper, &mut object, &properties)
     })?;
 
     Ok(object.raw())
