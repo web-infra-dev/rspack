@@ -1,6 +1,5 @@
 ---
 source: crates/rspack/tests/defaults.rs
-assertion_line: 16
 expression: options
 ---
 CompilerOptions {
@@ -1404,6 +1403,13 @@ CompilerOptions {
                             ),
                             wrapped_context_reg_exp: Some(
                                 RspackRegex {
+                                    regex: Native(
+                                        RspackNativeRegex(
+                                            Regex(
+                                                ".*",
+                                            ),
+                                        ),
+                                    ),
                                     flags: "",
                                     source: ".*",
                                 },
