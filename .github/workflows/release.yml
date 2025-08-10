@@ -14,6 +14,7 @@ on:
           - latest
           - beta
           - alpha
+          - rc
       test:
         type: boolean
         description: "Run tests before release"
@@ -78,6 +79,7 @@ jobs:
 
   release:
     name: Release
+    environment: npm
     permissions:
       contents: write
       # To publish packages with provenance
@@ -103,6 +105,9 @@ jobs:
         with:
           path: artifacts
 
+      - name: Clean artifacts
+        run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
+
       - name: Build node packages
         run: pnpm run build:js
 
@@ -115,11 +120,16 @@ jobs:
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
 
+      # Update npm to the latest version to enable OIDC
+      - name: Update npm
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - name: Release Full
         run: |
           ./x publish stable --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
