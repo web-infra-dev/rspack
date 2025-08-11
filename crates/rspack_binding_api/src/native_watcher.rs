@@ -1,8 +1,11 @@
-use std::{boxed::Box, path::PathBuf};
+use std::{
+  boxed::Box,
+  path::{Path, PathBuf},
+};
 
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_fs::{FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use rspack_fs::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
 
@@ -104,6 +107,20 @@ impl NativeWatcher {
     })?;
 
     Ok(())
+  }
+
+  #[napi(ts_type = "(kind: 'change' | 'remove' | 'create', path: string): void")]
+  pub fn trigger_event(&self, kind: String, path: String) {
+    if let Some(kind) = match kind.as_str() {
+      "change" => Some(FsEventKind::Change),
+      "remove" => Some(FsEventKind::Remove),
+      "create" => Some(FsEventKind::Create),
+      _ => None,
+    } {
+      self
+        .watcher
+        .trigger_event(&ArcPath::from(AsRef::<Path>::as_ref(&path)), kind);
+    }
   }
 
   #[napi]
