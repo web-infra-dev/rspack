@@ -12,6 +12,7 @@ rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
+rspack_plugin_library    = { workspace = true }
 swc_core                 = { workspace = true }
 tracing                  = { workspace = true }
 
