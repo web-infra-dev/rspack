@@ -4451,7 +4451,6 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
- "swc_ecma_lexer",
  "swc_node_comments",
  "tokio",
  "tracing",

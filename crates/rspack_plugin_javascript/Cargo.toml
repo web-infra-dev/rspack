@@ -41,6 +41,7 @@ swc_core = { workspace = true, features = [
   "__parser",
   "__utils",
   "common_sourcemap",
+  "ecma_parser_unstable",
   "ecma_preset_env",
   "ecma_transforms_optimization",
   "ecma_transforms_module",
@@ -49,7 +50,6 @@ swc_core = { workspace = true, features = [
   "base",
   "ecma_quote",
 ] }
-swc_ecma_lexer = { workspace = true }
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
