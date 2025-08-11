@@ -300,11 +300,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   compilation.chunk_graph = new_chunk_graph;
 
   if let Some(mutations) = compilation.incremental.mutations_write() {
-    for chunk in removed_chunks {
-      mutations.add(Mutation::ChunkRemove { chunk });
-    }
+    // ChunkRemove mutations must be added last because a chunk can be removed after another chunk
+    // has been integrated into it
     for chunk in integrated_chunks {
       mutations.add(Mutation::ChunksIntegrate { to: chunk });
+    }
+    for chunk in removed_chunks {
+      mutations.add(Mutation::ChunkRemove { chunk });
     }
   }
 
