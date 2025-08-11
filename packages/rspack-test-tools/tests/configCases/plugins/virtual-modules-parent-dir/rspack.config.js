@@ -1,4 +1,6 @@
-const { VirtualModulesPlugin } = require("@rspack/core");
+const {
+	experiments: { VirtualModulesPlugin }
+} = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
