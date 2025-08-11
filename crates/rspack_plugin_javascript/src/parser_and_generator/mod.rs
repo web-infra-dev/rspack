@@ -195,7 +195,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Some(&comments),
     );
 
-    let lexer = swc_ecma_lexer::Lexer::new(
+    let lexer = swc_core::ecma::parser::Lexer::new(
       Syntax::Es(EsSyntax {
         allow_return_outside_function: matches!(
           module_type,
