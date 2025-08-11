@@ -1516,7 +1516,6 @@ export interface LoaderContextToJs {
 }
 
 export interface LoaderObjectFromJs {
-  type: string
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean

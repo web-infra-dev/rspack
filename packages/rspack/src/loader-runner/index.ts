@@ -22,7 +22,7 @@ import {
 import {
 	OriginalSource,
 	RawSource,
-	RawSourceMap,
+	type RawSourceMap,
 	type Source,
 	SourceMapSource
 } from "webpack-sources";
