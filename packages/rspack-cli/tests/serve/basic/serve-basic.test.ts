@@ -2,7 +2,7 @@ import { normalizeStderr, runWatch } from "../../utils/test-utils";
 
 describe("basic serve usage", () => {
 	it.concurrent("should work", async () => {
-		const { stderr } = await runWatch(__dirname, ["serve"], {
+		const { stderr } = await runWatch(__dirname, ["serve", "--port", "0"], {
 			killString: /localhost/
 		});
 
