@@ -2,7 +2,7 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_core::{LoaderContext, Module, RunnerContext, parse_resource};
 use rspack_error::miette::IntoDiagnostic;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
@@ -10,6 +10,19 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{error::RspackError, module::ModuleObject};
+
+#[napi(object, object_to_js = false)]
+#[derive(Hash)]
+pub struct LoaderObjectFromJs {
+  // data
+  pub data: serde_json::Value,
+
+  // status
+  pub normal_executed: bool,
+  pub pitch_executed: bool,
+
+  pub no_pitch: bool,
+}
 
 #[napi(object)]
 #[derive(Hash)]
@@ -104,7 +117,7 @@ pub struct LoaderContextFromJs {
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
 
-  pub loader_items: Vec<JsLoaderItem>,
+  pub loader_items: Vec<LoaderObjectFromJs>,
   pub loader_index: i32,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
@@ -112,7 +125,7 @@ pub struct LoaderContextFromJs {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LoaderItemToJs<'a> {
+pub struct LoaderObjectToJs<'a> {
   pub loader: &'a str,
   pub r#type: &'a str,
 
@@ -126,9 +139,9 @@ pub struct LoaderItemToJs<'a> {
   pub no_pitch: bool,
 }
 
-impl<'a> From<&'a rspack_loader_runner::LoaderItem<RunnerContext>> for LoaderItemToJs<'a> {
+impl<'a> From<&'a rspack_loader_runner::LoaderItem<RunnerContext>> for LoaderObjectToJs<'a> {
   fn from(value: &'a rspack_loader_runner::LoaderItem<RunnerContext>) -> Self {
-    LoaderItemToJs {
+    LoaderObjectToJs {
       loader: value.request().as_str(),
       r#type: value.r#type(),
 
@@ -153,7 +166,7 @@ pub struct LoaderContextSerializablePart<'a> {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
-  pub loader_items: Vec<LoaderItemToJs<'a>>,
+  pub loader_items: Vec<LoaderObjectToJs<'a>>,
   pub loader_index: i32,
   pub loader_state: JsLoaderState,
   #[serde(rename = "__internal__parseMeta")]

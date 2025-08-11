@@ -13,15 +13,16 @@ import assert from "node:assert";
 import querystring from "node:querystring";
 import {
 	formatDiagnostic,
-	type LoaderContextFromJs,
 	type JsLoaderItem,
 	JsLoaderState,
 	JsRspackSeverity,
-	LoaderContextToJs
+	type LoaderContextFromJs,
+	type LoaderContextToJs
 } from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,
+	RawSourceMap,
 	type Source,
 	SourceMapSource
 } from "webpack-sources";
@@ -258,16 +259,44 @@ function getCurrentLoader(
 	return null;
 }
 
+interface LoaderObjectToJs {
+	loader: string;
+	type: string;
+
+	data: any;
+
+	normalExecuted: boolean;
+	pitchExecuted: boolean;
+
+	noPitch: boolean;
+}
+
+interface LoaderContextSerializablePart {
+	resource: string;
+	hot: boolean;
+	sourceMap?: RawSourceMap;
+	cacheable: boolean;
+	fileDependencies: string[];
+	contextDependencies: string[];
+	missingDependencies: string[];
+	buildDependencies: string[];
+	loaderItems: LoaderObjectToJs[];
+	loaderIndex: number;
+	loaderState: JsLoaderState;
+	__internal__parseMeta: Record<string, string>;
+}
+
 export async function runLoaders(
 	compiler: Compiler,
 	contextToJs: LoaderContextToJs
 ): Promise<LoaderContextFromJs> {
 	const { _module, serializedPart, ...contextToJsRest } = contextToJs;
-	const { loaderState, resource, hot, ...serializedPartRest } =
-		JSON.parse(serializedPart);
+	const { loaderState, resource, hot, loaderItems, ...serializedPartRest } =
+		JSON.parse(serializedPart) as LoaderContextSerializablePart;
 	const context = {
 		...contextToJsRest,
-		...serializedPartRest
+		...serializedPartRest,
+		loaderItems
 	} as LoaderContextFromJs;
 
 	const pitch = loaderState === JsLoaderState.Pitching;
@@ -301,7 +330,7 @@ export async function runLoaders(
 	/// Construct `loaderContext`
 	const loaderContext = {} as LoaderContext;
 
-	loaderContext.loaders = context.loaderItems.map(item => {
+	loaderContext.loaders = loaderItems.map(item => {
 		return LoaderObject.__from_binding(item, compiler);
 	});
 

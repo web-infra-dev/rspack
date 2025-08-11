@@ -1502,7 +1502,7 @@ export interface LoaderContextFromJs {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   buildDependencies: Array<string>
-  loaderItems: Array<JsLoaderItem>
+  loaderItems: Array<LoaderObjectFromJs>
   loaderIndex: number
   __internal__error?: RspackError
 }
@@ -1513,6 +1513,14 @@ export interface LoaderContextToJs {
   content: string | Buffer | null
   additionalData?: any
   serializedPart: string
+}
+
+export interface LoaderObjectFromJs {
+  type: string
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
+  noPitch: boolean
 }
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
