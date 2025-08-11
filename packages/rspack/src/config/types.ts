@@ -1059,6 +1059,12 @@ export type JavascriptParserOptions = {
 	exprContextCritical?: boolean;
 
 	/**
+	 * Enable warnings for unknown dynamic dependencies
+	 * @default true
+	 * */
+	unknownContextCritical?: boolean;
+
+	/**
 	 * Enable warnings for partial dynamic dependencies
 	 * @default false
 	 * */
