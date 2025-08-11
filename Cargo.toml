@@ -79,7 +79,6 @@ prost               = { version = "0.13", default-features = false }
 quote               = { version = "1.0.38", default-features = false }
 rayon               = { version = "1.10.0", default-features = false }
 regex               = { version = "1.11.1", default-features = false }
-regex-syntax        = { version = "0.8.5", default-features = false, features = ["std"] }
 regress             = { version = "0.10.4", default-features = false, features = ["pattern"] }
 ropey               = { version = "1.6.1", default-features = false }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.2", default-features = false }
@@ -269,9 +268,6 @@ lto      = "off"
 strip    = "none"
 
 [profile.release.package]
-
-[profile.release.package.regex-syntax]
-opt-level = "s"
 
 [profile.release.package.swc_ecma_transforms_module]
 opt-level = "s"

@@ -4924,7 +4924,7 @@ version = "0.4.11"
 dependencies = [
  "cow-utils",
  "napi",
- "regex-syntax 0.8.5",
+ "regex",
  "regress",
  "rspack_cacheable",
  "rspack_error",

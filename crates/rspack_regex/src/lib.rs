@@ -1,9 +1,12 @@
-mod algo;
 mod napi;
+mod native;
+mod regress;
 
 use std::fmt::Debug;
 
 use cow_utils::CowUtils;
+use native::RspackNativeRegex;
+use regress::RspackRegressRegex;
 use rspack_cacheable::{
   cacheable,
   with::{AsString, AsStringConverter},
@@ -11,20 +14,32 @@ use rspack_cacheable::{
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
 
-use self::algo::Algo;
+#[derive(Debug, Clone)]
+pub enum RspackRegexImpl {
+  Native(RspackNativeRegex),
+  Regress(RspackRegressRegex),
+}
 
-/// Using wrapper type required by [TryFrom] trait
+impl RspackRegexImpl {
+  pub fn test(&self, text: &str) -> bool {
+    match self {
+      Self::Native(regex) => regex.test(text),
+      Self::Regress(regex) => regex.test(text),
+    }
+  }
+}
+
 #[cacheable(with=AsString)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RspackRegex {
-  algo: Box<Algo>,
+  pub regex: RspackRegexImpl,
   pub flags: String,
   pub source: String,
 }
 
 impl PartialEq for RspackRegex {
   fn eq(&self, other: &Self) -> bool {
-    self.flags == other.flags && self.source == other.source
+    self.flags == other.flags && self.source == other.source && self.r#type() == other.r#type()
   }
 }
 
@@ -34,32 +49,32 @@ impl std::hash::Hash for RspackRegex {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.flags.hash(state);
     self.source.hash(state);
-  }
-}
-
-impl Debug for RspackRegex {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RspackRegex")
-      .field("flags", &self.flags)
-      .field("source", &self.source)
-      .finish()
+    self.r#type().hash(state);
   }
 }
 
 impl RspackRegex {
   #[inline]
+  pub fn r#type(&self) -> String {
+    match self.regex {
+      RspackRegexImpl::Native(_) => "native".to_string(),
+      RspackRegexImpl::Regress(_) => "regress".to_string(),
+    }
+  }
+
+  #[inline]
   pub fn test(&self, text: &str) -> bool {
-    self.algo.test(text)
+    self.regex.test(text)
   }
 
   #[inline]
   pub fn global(&self) -> bool {
-    self.algo.global()
+    self.flags.contains('g')
   }
 
   #[inline]
   pub fn sticky(&self) -> bool {
-    self.algo.sticky()
+    self.flags.contains('y')
   }
 
   #[inline]
@@ -78,13 +93,21 @@ impl RspackRegex {
   }
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
-    let mut chars = flags.chars().collect::<Vec<char>>();
-    chars.sort_unstable();
-    Ok(Self {
-      flags: chars.into_iter().collect::<String>(),
-      source: expr.to_string(),
-      algo: Box::new(Algo::new(expr, flags)?),
-    })
+    match RspackNativeRegex::with_flags(expr, flags) {
+      Ok(regex) => Ok(Self {
+        regex: RspackRegexImpl::Native(regex),
+        flags: flags.to_string(),
+        source: expr.to_string(),
+      }),
+      Err(_) => {
+        let regress = RspackRegressRegex::with_flags(expr, flags)?;
+        Ok(Self {
+          regex: RspackRegexImpl::Regress(regress),
+          flags: flags.to_string(),
+          source: expr.to_string(),
+        })
+      }
+    }
   }
 
   // https://github.com/webpack/webpack/blob/4baf1c075d59babd028f8201526cb8c4acfd24a0/lib/dependencies/ContextDependency.js#L30
@@ -96,14 +119,16 @@ impl RspackRegex {
   // https://github.com/webpack/webpack/blob/4baf1c075d59babd028f8201526cb8c4acfd24a0/lib/ContextModule.js#L192
   #[inline]
   pub fn to_pretty_string(&self, strip_slash: bool) -> String {
-    if strip_slash {
+    let res = if strip_slash {
       format!("{}{}", self.source, self.flags)
     } else {
       self.to_source_string()
-    }
-    .cow_replace('!', "%21")
-    .cow_replace('|', "%7C")
-    .into_owned()
+    };
+
+    res
+      .cow_replace('!', "%21")
+      .cow_replace('|', "%7C")
+      .into_owned()
   }
 }
 
