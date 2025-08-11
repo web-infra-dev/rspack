@@ -3376,6 +3376,7 @@ export type JavascriptParserOptions = {
     importMeta?: boolean;
     url?: "relative" | boolean;
     exprContextCritical?: boolean;
+    unknownContextCritical?: boolean;
     wrappedContextCritical?: boolean;
     wrappedContextRegExp?: RegExp;
     exportsPresence?: ExportsPresence;

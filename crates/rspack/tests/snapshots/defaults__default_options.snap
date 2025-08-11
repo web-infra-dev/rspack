@@ -1,6 +1,5 @@
 ---
 source: crates/rspack/tests/defaults.rs
-assertion_line: 16
 expression: options
 ---
 CompilerOptions {
@@ -1395,6 +1394,9 @@ CompilerOptions {
                             dynamic_import_fetch_priority: None,
                             url: Some(
                                 Enable,
+                            ),
+                            unknown_context_critical: Some(
+                                true,
                             ),
                             expr_context_critical: Some(
                                 true,

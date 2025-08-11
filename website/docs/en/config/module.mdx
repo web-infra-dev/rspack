@@ -302,27 +302,6 @@ export default {
 };
 ```
 
-### module.parser.javascript.unknownContextCritical
-
-<PropertyType
-  type="boolean | undefined"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-Enable warnings for unknown dynamic dependencies (`require(['test'])`).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        unknownContextCritical: false,
-      },
-    },
-  },
-};
-```
-
 ### module.parser.javascript.wrappedContextCritical
 
 <PropertyType
@@ -338,6 +317,27 @@ export default {
     parser: {
       javascript: {
         wrappedContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.unknownContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Enable warnings when using the `require` function in a non-statically-analyzable way (`require(variable)`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        unknownContextCritical: false,
       },
     },
   },

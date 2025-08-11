@@ -2305,8 +2305,8 @@ export interface RawJavascriptParserOptions {
   dynamicImportFetchPriority?: string
   url?: string
   exprContextCritical?: boolean
+  unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
-	unknownContextCritical?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
   importExportsPresence?: string
