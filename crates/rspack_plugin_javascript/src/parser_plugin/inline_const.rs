@@ -4,7 +4,7 @@ use rspack_core::{
   PrefetchExportsInfoMode, RuntimeSpec, UsedName,
 };
 use rspack_util::ryu_js;
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDeclKind};
+use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDecl, VarDeclKind, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
     BasicEvaluatedExpression, evaluate_to_boolean, evaluate_to_null, evaluate_to_number,
     evaluate_to_string, evaluate_to_undefined,
   },
-  visitors::{JavascriptParser, Statement, TagInfoData, TopLevelScope},
+  visitors::{JavascriptParser, TagInfoData, TopLevelScope},
 };
 
 pub const INLINABLE_CONST_TAG: &str = "inlinable const";
@@ -53,20 +53,20 @@ impl JavascriptParserPlugin for InlineConstPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    if !parser.has_inlinable_const_decls || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.has_inlinable_const_decls || for_name != INLINABLE_CONST_TAG {
       return None;
     }
     // Propagate inlinable constants. Help the rest const variable declarations that referencing the
     // inlinable constants to evaluate to an inlinable constants.
-    let inlinable = parser
-      .get_tag_data(ident, INLINABLE_CONST_TAG)
-      .map(InlinableConstData::downcast)
-      .map(|data| data.value)?;
-    Some(match inlinable {
+    let tag_info = parser
+      .definitions_db
+      .expect_get_tag_info(parser.current_tag_info?);
+    let data = InlinableConstData::downcast(tag_info.data.clone()?);
+    Some(match data.value {
       EvaluatedInlinableValue::Null => evaluate_to_null(start, end),
       EvaluatedInlinableValue::Undefined => evaluate_to_undefined(start, end),
       EvaluatedInlinableValue::Boolean(v) => evaluate_to_boolean(v, start, end),
@@ -75,32 +75,28 @@ impl JavascriptParserPlugin for InlineConstPlugin {
     })
   }
 
-  fn block_pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    declarator: &VarDeclarator,
+    declaration: &VarDecl,
+  ) -> Option<bool> {
     if !parser.has_inlinable_const_decls || !matches!(parser.top_level_scope, TopLevelScope::Top) {
       return None;
     }
-
-    if let Statement::Var(declaration) = stmt
-      && matches!(declaration.kind, VarDeclKind::Const)
+    if matches!(declaration.kind, VarDeclKind::Const)
+      && let Some(name) = declarator.name.as_ident()
+      && let Some(init) = &declarator.init
     {
-      for declarator in &declaration.decls {
-        if let Some(name) = declarator.name.as_ident()
-          && let Some(init) = &declarator.init
-        {
-          let evaluated = parser.evaluate_expression(init);
-          if let Some(inlinable) = to_evaluated_inlinable_value(&evaluated) {
-            parser.tag_variable(
-              name.id.sym.to_string(),
-              INLINABLE_CONST_TAG,
-              Some(InlinableConstData { value: inlinable }),
-            );
-            continue;
-          }
-        }
+      let evaluated = parser.evaluate_expression(init);
+      if let Some(inlinable) = to_evaluated_inlinable_value(&evaluated) {
+        parser.tag_variable(
+          name.id.sym.to_string(),
+          INLINABLE_CONST_TAG,
+          Some(InlinableConstData { value: inlinable }),
+        );
       }
-      return None;
     }
-
     None
   }
 }

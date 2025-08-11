@@ -115,11 +115,11 @@ impl JavascriptParserPlugin for ConstPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    match ident {
+    match for_name {
       WEBPACK_RESOURCE_QUERY => Some(evaluate_to_string(
         parser
           .resource_data

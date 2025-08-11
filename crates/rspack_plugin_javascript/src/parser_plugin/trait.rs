@@ -91,7 +91,7 @@ pub trait JavascriptParserPlugin {
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,
-    _ident: &str,
+    _for_name: &str,
     _start: u32,
     _end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {

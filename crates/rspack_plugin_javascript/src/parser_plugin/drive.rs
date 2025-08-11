@@ -449,12 +449,12 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
     for plugin in &self.plugins {
-      let res = plugin.evaluate_identifier(parser, ident, start, end);
+      let res = plugin.evaluate_identifier(parser, for_name, start, end);
       // `SyncBailHook`
       if res.is_some() {
         return res;

@@ -403,18 +403,18 @@ impl JavascriptParserPlugin for DefineParserPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if let Some(record) = self.walk_data.define_record.get(ident)
+    if let Some(record) = self.walk_data.define_record.get(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
-      return on_evaluate_identifier(record, parser, ident, start, end);
-    } else if let Some(record) = self.walk_data.object_define_record.get(ident)
+      return on_evaluate_identifier(record, parser, for_name, start, end);
+    } else if let Some(record) = self.walk_data.object_define_record.get(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
-      return on_evaluate_identifier(record, parser, ident, start, end);
+      return on_evaluate_identifier(record, parser, for_name, start, end);
     }
     None
   }
