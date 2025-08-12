@@ -15,28 +15,23 @@ import { PackageManagerTabs } from '@theme';
 
 ## 环境准备
 
-Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) 或 [Bun](https://bun.sh/) 作为运行时。
+Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) 或 [Bun](https://bun.sh/) 作为 JavaScript 运行时。
 
-### Node.js
+你可以参考以下安装指南，选择其中一种运行时：
 
-对于 Node.js，请安装 Node.js >= 16 版本，推荐使用 Node.js LTS 版本。
+- [安装 Node.js](https://nodejs.org/zh-cn/download)
+- [安装 Bun](https://bun.com/docs/installation)
+- [安装 Deno](https://docs.deno.com/runtime/getting_started/installation/)
 
-通过以下命令检查当前使用的 Node.js 版本：
+:::tip 版本要求
 
-```bash
-node -v
-```
+Rspack 对于 Node.js 的版本要求如下：
 
-如果你的环境中尚未安装 Node.js，或是版本过低，可以通过 [nvm](https://github.com/nvm-sh/nvm) 或 [fnm](https://github.com/Schniz/fnm) 安装。
+- `@rspack/cli >= v1.0.0` 要求 Node.js 18.12.0 或更高版本。
+- `@rspack/core >= v1.5.0` 要求 Node.js 18.12.0 或更高版本。
+- `@rspack/core < v1.5.0` 要求 Node.js 16.0.0 或更高版本。
 
-下面是通过 nvm 安装的例子：
-
-```bash
-# 安装 Node.js LTS
-nvm install --lts
-# 切换到 Node.js LTS
-nvm use --lts
-```
+:::
 
 ## 创建新项目
 

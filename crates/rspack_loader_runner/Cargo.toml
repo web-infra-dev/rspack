@@ -13,7 +13,6 @@ rustc-hash  = { workspace = true }
 tokio       = { workspace = true, features = ["test-util"] }
 
 once_cell          = { workspace = true }
-regex              = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_error       = { workspace = true }
@@ -23,3 +22,4 @@ rspack_sources     = { workspace = true }
 rspack_util        = { workspace = true }
 serde_json         = { workspace = true }
 tracing            = { workspace = true }
+winnow             = { workspace = true }

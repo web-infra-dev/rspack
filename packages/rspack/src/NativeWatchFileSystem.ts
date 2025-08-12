@@ -178,4 +178,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		this.#inner = nativeWatcher;
 		return nativeWatcher;
 	}
+
+	triggerEvent(kind: "change" | "remove" | "create", path: string) {
+		this.#inner?.triggerEvent(kind, path);
+	}
 }

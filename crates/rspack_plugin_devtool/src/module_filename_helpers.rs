@@ -1,28 +1,11 @@
-use std::{
-  borrow::Cow,
-  hash::{Hash, Hasher},
-  sync::LazyLock,
-};
+use std::hash::{Hash, Hasher};
 
-use cow_utils::CowUtils;
-use regex::{Captures, Regex};
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
-
-static REGEXP_ALL_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\[all-?loaders\]\[resource\]")
-    .expect("failed to compile REGEXP_ALL_LOADERS_RESOURCE")
-});
-static SQUARE_BRACKET_TAG_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\[\\*([\w-]+)\\*\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
-});
-static REGEXP_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\[loaders\]\[resource\]").expect("failed to compile REGEXP_LOADERS_RESOURCE")
-});
 
 fn get_before(s: &str, token: &str) -> String {
   match s.rfind(token) {
@@ -45,7 +28,9 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
   } = output_options;
   let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
   text.as_bytes().hash(&mut hasher);
-  format!("{:x}", hasher.finish())[..4].to_string()
+  let mut buf = format!("{:x}", hasher.finish());
+  buf.truncate(4);
+  buf
 }
 
 pub struct ModuleFilenameHelpers;
@@ -182,53 +167,7 @@ impl ModuleFilenameHelpers {
       namespace,
     );
 
-    let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(module_filename_template, "[identifier]");
-    let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
-    SQUARE_BRACKET_TAG_REGEXP
-      .replace_all(&s, |caps: &Captures| {
-        let full_match = caps
-          .get(0)
-          .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
-          .as_str();
-        let content = caps
-          .get(1)
-          .expect("the SQUARE_BRACKET_TAG_REGEXP must match the whole tag, but it did not match anything.")
-          .as_str();
-
-        if content.len() + 2 == full_match.len() {
-          match content.cow_to_ascii_lowercase().as_ref() {
-            "identifier" => Cow::from(&ctx.identifier),
-            "short-identifier" => Cow::from(&ctx.short_identifier),
-            "resource" => Cow::from(&ctx.resource),
-
-            "resource-path" |  "resourcepath" => Cow::from(&ctx.resource_path),
-
-            "absolute-resource-path" |
-            "abs-resource-path" |
-            "absoluteresource-path" |
-            "absresource-path" |
-            "absolute-resourcepath" |
-            "abs-resourcepath" |
-            "absoluteresourcepath" |
-            "absresourcepath" => Cow::from(&ctx.absolute_resource_path),
-
-            "all-loaders" | "allloaders" => Cow::from(&ctx.all_loaders),
-            "loaders" => Cow::from(&ctx.loaders),
-
-            "query" => Cow::from(&ctx.query),
-            "id" => Cow::from(&ctx.module_id),
-            "hash" => Cow::from(&ctx.hash),
-            "namespace" => Cow::from(&ctx.namespace),
-
-            _ => Cow::from(full_match.to_string())
-          }
-        } else if full_match.starts_with("[\\") && full_match.ends_with("\\]") {
-          Cow::from(format!("[{}]", &full_match[2..full_match.len() - 2]))
-        } else {
-          Cow::from(full_match.to_string())
-        }
-      })
-      .to_string()
+    template_replace(module_filename_template, &ctx)
   }
 
   pub fn replace_duplicates<F>(filenames: Vec<String>, mut fn_replace: F) -> Vec<String>
@@ -263,4 +202,124 @@ impl ModuleFilenameHelpers {
       })
       .collect()
   }
+}
+
+fn starts_with_ignore_ascii_case(s: &[u8], prefix: &[u8]) -> bool {
+  s.len() >= prefix.len() && s[..prefix.len()].eq_ignore_ascii_case(prefix)
+}
+
+fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
+  let resource_tag = b"[resource]";
+  let sstr = s;
+  let s = s.as_bytes();
+  let mut buf = String::new();
+  let mut pos = 0;
+  let mut state = false;
+
+  macro_rules! match_ignore_case {
+        (
+            $value:expr ;
+            $(
+                $item:literal $( | $item2:literal )* => $b:expr,
+            )*
+            $name:ident => $tail:expr
+        ) => {
+            $(
+                if $value.eq_ignore_ascii_case($item)
+                    $( || $value.eq_ignore_ascii_case($item2) )*
+                {
+                    $b
+                } else
+            )*
+
+            {
+                let $name = $value;
+                $tail
+            }
+        }
+    }
+
+  for i in memchr::memchr2_iter(b'[', b']', s) {
+    if i < pos {
+      continue;
+    }
+
+    match s[i] {
+      b'[' => {
+        // # Safety
+        //
+        // always utf8
+        let s = &sstr[pos..i];
+        buf.push_str(s);
+        pos = i;
+        state = true;
+      }
+      b']' if state => {
+        let mut next_pos = i + 1;
+        match_ignore_case!(&s[pos..next_pos];
+            b"[identifier]" => buf.push_str(&ctx.identifier),
+            b"[short-identifier]" => buf.push_str(&ctx.short_identifier),
+            b"[resource]" => buf.push_str(&ctx.resource),
+            b"[resource-path]" |  b"[resourcepath]" => buf.push_str(&ctx.resource_path),
+
+            b"[absolute-resource-path]" |
+            b"[abs-resource-path]" |
+            b"[absoluteresource-path]" |
+            b"[absresource-path]" |
+            b"[absolute-resourcepath]" |
+            b"[abs-resourcepath]" |
+            b"[absoluteresourcepath]" |
+            b"[absresourcepath]" => buf.push_str(&ctx.absolute_resource_path),
+
+            b"[all-loaders]" | b"[allloaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
+                next_pos += resource_tag.len();
+                buf.push_str(&ctx.identifier);
+            } else {
+                buf.push_str(&ctx.all_loaders);
+            },
+            b"[loaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
+                next_pos += resource_tag.len();
+                buf.push_str(&ctx.short_identifier);
+            } else {
+                buf.push_str(&ctx.loaders);
+            },
+
+            b"[query]" => buf.push_str(&ctx.query),
+            b"[id]" => buf.push_str(&ctx.module_id),
+            b"[hash]" => buf.push_str(&ctx.hash),
+            b"[namespace]" => buf.push_str(&ctx.namespace),
+
+            matched => if let Some(matched) = matched.strip_prefix(b"[\\")
+                .and_then(|matched| matched.strip_suffix(b"\\]"))
+            {
+                // # Safety
+                //
+                // always utf8
+                #[allow(clippy::unwrap_used)]
+                let s = str::from_utf8(matched).unwrap();
+                buf.push('[');
+                buf.push_str(s);
+                buf.push(']');
+            } else {
+                // # Safety
+                //
+                // always utf8
+                let s = &sstr[pos..next_pos];
+                buf.push_str(s);
+            }
+        );
+
+        pos = next_pos;
+        state = false;
+      }
+      _ => (),
+    }
+  }
+
+  // # Safety
+  //
+  // always utf8
+  let s = &sstr[pos..];
+  buf.push_str(s);
+  buf
 }

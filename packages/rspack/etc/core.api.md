@@ -1105,6 +1105,8 @@ export class Compiler {
     // @internal
     __internal__get_module_execution_results_map(): Map<number, any>;
     // @internal
+    __internal__get_virtual_file_store(): binding.VirtualFileStore | null | undefined;
+    // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
@@ -2432,6 +2434,8 @@ interface Experiments_2 {
         transformSync: typeof transformSync;
         minifySync: typeof minifySync;
     };
+    // (undocumented)
+    VirtualModulesPlugin: typeof VirtualModulesPlugin;
 }
 
 // @public (undocumented)
@@ -2456,7 +2460,7 @@ export interface ExperimentsNormalized {
     layers?: boolean;
     // (undocumented)
     lazyBarrel?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     nativeWatcher?: boolean;
@@ -3374,6 +3378,7 @@ export type JavascriptParserOptions = {
     importMeta?: boolean;
     url?: "relative" | boolean;
     exprContextCritical?: boolean;
+    unknownContextCritical?: boolean;
     wrappedContextCritical?: boolean;
     wrappedContextRegExp?: RegExp;
     exportsPresence?: ExportsPresence;
@@ -6636,6 +6641,7 @@ export type RspackOptions = {
     amd?: Amd;
     bail?: Bail;
     performance?: Performance_2;
+    lazyCompilation?: boolean | LazyCompilationOptions;
 };
 
 // @public (undocumented)
@@ -6676,6 +6682,8 @@ export interface RspackOptionsNormalized {
     ignoreWarnings?: IgnoreWarningsNormalized;
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
+    // (undocumented)
+    lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     loader: Loader;
     // (undocumented)
@@ -8886,6 +8894,20 @@ interface VariableDeclarator extends Node_4, HasSpan {
 
 // @public (undocumented)
 export const version: string;
+
+// @public (undocumented)
+class VirtualModulesPlugin {
+    constructor(modules?: Record<string, string>);
+    // (undocumented)
+    static __internal__take_virtual_files(compiler: Compiler): {
+        path: string;
+        content: string;
+    }[] | undefined;
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    writeModule(filePath: string, contents: string): void;
+}
 
 // @public (undocumented)
 export const WarnCaseSensitiveModulesPlugin: {

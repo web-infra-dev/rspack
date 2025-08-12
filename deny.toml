@@ -249,7 +249,8 @@ skip = [
     { crate = "zerocopy", reason = "external dependency"},
     { crate = "linux-raw-sys", reason = "external dependency"},
     { crate = "rustix", reason = "external dependency"},
-    
+
+    { crate = "winnow", reason = "external dependency"},
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

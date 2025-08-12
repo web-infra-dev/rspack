@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
-use crate::{BuildDependency, FactorizeInfo};
+use crate::{BuildDependency, Compilation, FactorizeInfo};
 
 /// Cutout module graph.
 ///
@@ -27,6 +27,7 @@ impl Cutout {
   /// it will return the dependency of B->C.
   pub fn cutout_artifact(
     &mut self,
+    compilation: &Compilation,
     artifact: &mut MakeArtifact,
     params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
@@ -50,7 +51,7 @@ impl Cutout {
         }
         UpdateParam::CheckNeedBuild => {
           force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
-            if module.need_build() {
+            if module.need_build(&compilation.value_cache_versions) {
               Some(module.identifier())
             } else {
               None

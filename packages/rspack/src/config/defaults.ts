@@ -81,6 +81,8 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => (development ? "eval" : false));
 	D(options, "watch", false);
 	D(options, "profile", false);
+	// IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
+	D(options, "lazyCompilation", false);
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
@@ -211,6 +213,7 @@ const applyExperimentsDefaults = (
 	F(experiments, "cache", () => development);
 
 	D(experiments, "futureDefaults", false);
+	// TODO: lazyCompilation is moving to Configuration top level, we can remove this in future.
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
@@ -306,6 +309,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "dynamicImportPreload", false);
 	D(parserOptions, "url", true);
 	D(parserOptions, "exprContextCritical", true);
+	D(parserOptions, "unknownContextCritical", true);
 	D(parserOptions, "wrappedContextCritical", false);
 	D(parserOptions, "wrappedContextRegExp", /.*/);
 	D(parserOptions, "strictExportPresence", false);
@@ -689,7 +693,9 @@ const applyOutputDefaults = (
 		"hotUpdateChunkFilename",
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
-	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	F(output, "hotUpdateMainFilename", () => {
+		return `[runtime].[fullhash].hot-update.${output.module ? "json.mjs" : "json"}`;
+	});
 
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => `webpackHotUpdate${uniqueNameId}`);
