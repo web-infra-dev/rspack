@@ -8,7 +8,7 @@
     "dev": "node ../../rspack-cli/bin/rspack.js serve"
   },
   "dependencies": {
-    "@arco-design/web-react": "^2.66.1",
+    "@arco-design/web-react": "^2.66.4",
     "@monaco-editor/react": "^4.7.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
