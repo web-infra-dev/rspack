@@ -4,7 +4,7 @@ mod max_size;
 mod min_size;
 mod module_group;
 
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, collections::BinaryHeap, fmt::Debug};
 
 use rspack_collections::UkeyMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};

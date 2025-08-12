@@ -164,29 +164,31 @@ impl SplitChunksPlugin {
     original_chunks: &UkeySet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
-    for module_identifier in &item.modules {
-      if let Some(module) = compilation.module_by_identifier(module_identifier)
-        && module
-          .chunk_condition(&new_chunk, compilation)
-          .is_some_and(|condition| !condition)
-      {
-        continue;
-      }
+    let modules = item
+      .modules
+      .iter()
+      .filter(|mid| {
+        if let Some(module) = compilation.module_by_identifier(mid)
+          && module
+            .chunk_condition(&new_chunk, compilation)
+            .is_some_and(|condition| !condition)
+        {
+          return false;
+        }
+        true
+      })
+      .copied()
+      .collect::<Vec<_>>();
 
-      // First, we remove modules from old chunks
+    let chunks = original_chunks.iter().copied().collect::<Vec<_>>();
 
-      // Remove module from old chunks
-      for used_chunk in original_chunks {
-        compilation
-          .chunk_graph
-          .disconnect_chunk_and_module(used_chunk, *module_identifier);
-      }
+    compilation
+      .chunk_graph
+      .disconnect_chunks_and_modules(&chunks, &modules);
 
-      // Add module to new chunk
-      compilation
-        .chunk_graph
-        .connect_chunk_and_module(new_chunk, *module_identifier);
-    }
+    compilation
+      .chunk_graph
+      .connect_chunk_and_modules(new_chunk, &modules);
   }
 
   /// Since the modules are moved into the `new_chunk`, we should

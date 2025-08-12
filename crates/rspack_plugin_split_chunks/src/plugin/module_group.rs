@@ -488,10 +488,22 @@ impl SplitChunksPlugin {
           .intersection(used_chunks)
           .next()?;
 
-        current_module_group.modules.iter().for_each(|module| {
-          tracing::trace!("remove module({module}) from {key}");
-          other_module_group.remove_module(*module, module_sizes);
-        });
+        let module_count = other_module_group.modules.len();
+
+        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
+          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
+        } else {
+          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
+        };
+
+        for module in duplicated_modules {
+          other_module_group.remove_module(module, module_sizes);
+        }
+
+        if module_count == other_module_group.modules.len() {
+          // nothing is removed
+          return None;
+        }
 
         if other_module_group.modules.is_empty() {
           tracing::trace!(
@@ -543,66 +555,6 @@ impl SplitChunksPlugin {
       module_group_map.remove(&key);
     });
   }
-
-  // #[allow(clippy::type_complexity)]
-  // fn prepare_combination_maps(
-  //   module_graph: &ModuleGraph,
-  //   chunk_graph: &ChunkGraph,
-  //   used_exports: bool,
-  //   chunk_by_ukey: &ChunkByUkey,
-  // ) -> (
-  //   HashMap<ChunksKey, UkeySet<ChunkUkey>, ChunksKeyHashBuilder>,
-  //   FxHashMap<usize, Vec<UkeySet<ChunkUkey>>>,
-  //   Option<FxHashMap<ModuleIdentifier, Vec<UkeySet<ChunkUkey>>>>,
-  // ) {
-  //   let mut chunk_sets_in_graph =
-  //     HashMap::<ChunksKey, UkeySet<ChunkUkey>, ChunksKeyHashBuilder>::default();
-  //   let mut chunk_sets_by_count = FxHashMap::<usize, Vec<UkeySet<ChunkUkey>>>::default();
-
-  //   let mut grouped_by_exports_map: Option<FxHashMap<ModuleIdentifier, Vec<UkeySet<ChunkUkey>>>> =
-  //     None;
-
-  //   if used_exports {
-  //     let mut grouped_by_exports: FxHashMap<ModuleIdentifier, Vec<UkeySet<ChunkUkey>>> =
-  //       Default::default();
-  //     for module in module_graph.modules().keys() {
-  //       let grouped_chunks = Self::group_chunks_by_exports(
-  //         module,
-  //         chunk_graph.get_module_chunks(*module).iter().cloned(),
-  //         module_graph,
-  //         chunk_by_ukey,
-  //       );
-  //       for chunks in &grouped_chunks {
-  //         let chunk_key = get_key(chunks.iter());
-  //         chunk_sets_in_graph.insert(chunk_key, chunks.clone());
-  //       }
-
-  //       grouped_by_exports.insert(*module, grouped_chunks);
-  //     }
-
-  //     grouped_by_exports_map = Some(grouped_by_exports);
-  //   } else {
-  //     for module in module_graph.modules().keys() {
-  //       let chunks = chunk_graph.get_module_chunks(*module);
-  //       let chunk_key = get_key(chunks.iter());
-  //       chunk_sets_in_graph.insert(chunk_key, chunks.clone());
-  //     }
-  //   }
-
-  //   for chunks in chunk_sets_in_graph.values() {
-  //     let count = chunks.len();
-  //     chunk_sets_by_count
-  //       .entry(count)
-  //       .and_modify(|set| set.push(chunks.clone()))
-  //       .or_insert(vec![chunks.clone()]);
-  //   }
-
-  //   (
-  //     chunk_sets_in_graph,
-  //     chunk_sets_by_count,
-  //     grouped_by_exports_map,
-  //   )
-  // }
 }
 
 async fn merge_matched_item_into_module_group_map(
