@@ -592,6 +592,9 @@ importers:
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
+      exports-loader:
+        specifier: ^5.0.0
+        version: 5.0.0(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
@@ -4992,6 +4995,12 @@ packages:
   expect@29.7.0:
     resolution: {integrity: sha512-2Zks0hf1VLFYI1kbh0I5jP3KHHyCHpkfyHBzsSXRFgl/Bg9mWYfMW8oD+PdMPlEwy5HNsR9JutYy6pMeOh61nw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  exports-loader@5.0.0:
+    resolution: {integrity: sha512-W15EyyytBwd30yCCieTCqZSCUvU/o3etj2IUItSMjVQEzAf5xOQx8JL9iMo7ERnuAzIA6eapGSFWl7E9F+Wy9g==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      webpack: ^5.0.0
 
   express@4.21.2:
     resolution: {integrity: sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==}
@@ -12981,6 +12990,11 @@ snapshots:
       jest-matcher-utils: 29.7.0
       jest-message-util: 29.7.0
       jest-util: 29.7.0
+
+  exports-loader@5.0.0(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))):
+    dependencies:
+      source-map: 0.6.1
+      webpack: 5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))
 
   express@4.21.2:
     dependencies:
