@@ -89,30 +89,20 @@ export const lazyCompilationMiddleware = (
 
 			const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
 			options.prefix = `${prefix}__${i++}`;
-			const activeModules = new Map<string, boolean>();
+			const activeModules = new Set<string>();
 			const filesByKey = new Map<string, string>();
-			const indexToModule = new Map();
-			const moduleToIndex = new Map();
 
 			middlewareByCompiler.set(
 				options.prefix,
 				lazyCompilationMiddlewareInternal(
 					compiler,
-					indexToModule,
 					activeModules,
 					filesByKey,
 					options.prefix
 				)
 			);
 
-			applyPlugin(
-				c,
-				moduleToIndex,
-				indexToModule,
-				options,
-				activeModules,
-				filesByKey
-			);
+			applyPlugin(c, options, activeModules, filesByKey);
 		}
 
 		const keys = [...middlewareByCompiler.keys()];
@@ -142,29 +132,20 @@ export const lazyCompilationMiddleware = (
 		return noop;
 	}
 
-	const activeModules: Map<string, boolean> = new Map();
+	const activeModules: Set<string> = new Set();
 	const filesByKey: Map<string, string> = new Map();
-	const indexToMap = new Map();
-	const moduleToIndex = new Map();
 
 	const options = {
 		// TODO: remove this when experiments.lazyCompilation is removed
 		...compiler.options.experiments.lazyCompilation,
 		...compiler.options.lazyCompilation
 	};
-	applyPlugin(
-		compiler,
-		moduleToIndex,
-		indexToMap,
-		options,
-		activeModules,
-		filesByKey
-	);
+
+	applyPlugin(compiler, options, activeModules, filesByKey);
 
 	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
 	return lazyCompilationMiddlewareInternal(
 		compiler,
-		indexToMap,
 		activeModules,
 		filesByKey,
 		lazyCompilationPrefix
@@ -173,26 +154,23 @@ export const lazyCompilationMiddleware = (
 
 function applyPlugin(
 	compiler: Compiler,
-	moduleToIndex: Map<string, string>,
-	indexToModule: Map<string, string>,
 	options: LazyCompilationOptions,
-	activeModules: Map<string, boolean>,
+	activeModules: Set<string>,
 	filesByKey: Map<string, string>
 ) {
 	const plugin = new BuiltinLazyCompilationPlugin(
 		({ module, path }) => {
-			let index = moduleToIndex.get(module);
-			if (index === undefined) {
-				index = moduleToIndex.size.toString();
-				moduleToIndex.set(module, index);
-				indexToModule.set(index, module);
-			}
-			const key = indexToModule.get(index)!;
-			filesByKey.set(key, path);
-			const active = activeModules.get(key) === true;
+			const data = `${encodeURIComponent(
+				module.replace(/\\/g, "/").replace(/@/g, "_")
+			)}`;
+			filesByKey.set(data, path);
+			const active = activeModules.has(data);
+
 			return {
+				// port in server url can change frequently,
+				// even configuration is totally the same
 				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
-				data: index,
+				data,
 				active
 			};
 		},
@@ -208,8 +186,7 @@ function applyPlugin(
 // used for reuse code, do not export this
 const lazyCompilationMiddlewareInternal = (
 	compiler: Compiler | MultiCompiler,
-	indexToModule: Map<string, string>,
-	activeModules: Map<string, boolean>,
+	activeModules: Set<string>,
 	filesByKey: Map<string, string>,
 	lazyCompilationPrefix: string
 ): MiddlewareHandler => {
@@ -221,7 +198,7 @@ const lazyCompilationMiddlewareInternal = (
 			return next?.();
 		}
 
-		const indices = req.url.slice(lazyCompilationPrefix.length).split("@");
+		const modules = req.url.slice(lazyCompilationPrefix.length).split("@");
 		req.socket.setNoDelay(true);
 
 		res.setHeader("content-type", "text/event-stream");
@@ -229,11 +206,10 @@ const lazyCompilationMiddlewareInternal = (
 		res.write("\n");
 
 		const moduleActivated = [];
-		for (const index of indices) {
-			const key = indexToModule.get(index)!;
-			const oldValue = activeModules.get(key) ?? false;
-			activeModules.set(key, true);
-			if (!oldValue) {
+		for (const key of modules) {
+			const activated = activeModules.has(key);
+			activeModules.add(key);
+			if (!activated) {
 				logger.log(`${key} is now in use and will be compiled.`);
 				moduleActivated.push(key);
 			}
@@ -253,9 +229,7 @@ const lazyCompilationMiddlewareInternal = (
 			);
 
 			if (rebuiltModules.size) {
-				compiler.watching.invalidateWithChangesAndRemovals(
-					new Set(rebuiltModules)
-				);
+				compiler.watching.invalidateWithChangesAndRemovals(rebuiltModules);
 			}
 		}
 	};
