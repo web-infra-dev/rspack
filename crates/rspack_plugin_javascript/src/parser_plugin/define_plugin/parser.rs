@@ -82,26 +82,26 @@ impl JavascriptParserPlugin for DefineParserPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if let Some(record) = self.walk_data.define_record.get(ident)
+    if let Some(record) = self.walk_data.define_record.get(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
       // Avoid endless recursion, for example: new DefinePlugin({ "a": "a" })
       if self.recurse.swap(true, Ordering::Acquire) {
         return None;
       }
-      self.add_value_dependency(parser, ident);
-      let evaluated = on_evaluate_identifier(record, parser, ident, start, end);
+      self.add_value_dependency(parser, for_name);
+      let evaluated = on_evaluate_identifier(record, parser, for_name, start, end);
       self.recurse.store(false, Ordering::Release);
       return evaluated;
-    } else if let Some(record) = self.walk_data.object_define_record.get(ident)
+    } else if let Some(record) = self.walk_data.object_define_record.get(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
-      self.add_value_dependency(parser, ident);
-      return on_evaluate_identifier(record, parser, ident, start, end);
+      self.add_value_dependency(parser, for_name);
+      return on_evaluate_identifier(record, parser, for_name, start, end);
     }
     None
   }

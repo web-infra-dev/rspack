@@ -363,11 +363,6 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
-    if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
-        unresolved_mark,
-      )));
-    }
     // disabled by default for now, it's still experimental
     if javascript_options.inline_const.unwrap_or_default() {
       if !compiler_options.experiments.inline_const {
@@ -375,6 +370,11 @@ impl<'parser> JavascriptParser<'parser> {
       } else {
         plugins.push(Box::new(parser_plugin::InlineConstPlugin));
       }
+    }
+    if compiler_options.optimization.inner_graph {
+      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
+        unresolved_mark,
+      )));
     }
 
     if !matches!(

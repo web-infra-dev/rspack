@@ -427,11 +427,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    match ident {
+    match for_name {
       expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE.to_string(),
         expr_name::REQUIRE.to_string(),
