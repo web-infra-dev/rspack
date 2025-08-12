@@ -26,16 +26,16 @@ impl From<RawNormalModuleReplacementPluginOptions> for NormalModuleReplacementPl
   fn from(val: RawNormalModuleReplacementPluginOptions) -> Self {
     Self {
       resource_reg_exp: val.resource_reg_exp,
-      new_resource: RawNormalModuleReplacerWarpper(val.new_resource).into(),
+      new_resource: RawNormalModuleReplacerWrapper(val.new_resource).into(),
     }
   }
 }
 
 type RawNormalModuleReplacer = Either<String, ThreadsafeFunction<JsResolveData, JsResolveData>>;
-struct RawNormalModuleReplacerWarpper(RawNormalModuleReplacer);
+struct RawNormalModuleReplacerWrapper(RawNormalModuleReplacer);
 
-impl From<RawNormalModuleReplacerWarpper> for NormalModuleReplacer {
-  fn from(value: RawNormalModuleReplacerWarpper) -> Self {
+impl From<RawNormalModuleReplacerWrapper> for NormalModuleReplacer {
+  fn from(value: RawNormalModuleReplacerWrapper) -> Self {
     match value.0 {
       Either::A(s) => Self::String(s),
       Either::B(f) => NormalModuleReplacer::Fn(Box::new(move |data, create_data| {
