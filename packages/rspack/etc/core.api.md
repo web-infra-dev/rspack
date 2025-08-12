@@ -2434,6 +2434,8 @@ interface Experiments_2 {
         transformSync: typeof transformSync;
         minifySync: typeof minifySync;
     };
+    // (undocumented)
+    VirtualModulesPlugin: typeof VirtualModulesPlugin;
 }
 
 // @public (undocumented)
@@ -6398,7 +6400,6 @@ declare namespace rspackExports {
         SourceMapDevToolPlugin,
         SwcJsMinimizerRspackPlugin,
         experiments,
-        VirtualModulesPlugin,
         getRawResolve,
         LoaderContext,
         LoaderDefinition,
@@ -8895,7 +8896,7 @@ interface VariableDeclarator extends Node_4, HasSpan {
 export const version: string;
 
 // @public (undocumented)
-export class VirtualModulesPlugin {
+class VirtualModulesPlugin {
     constructor(modules?: Record<string, string>);
     // (undocumented)
     static __internal__take_virtual_files(compiler: Compiler): {

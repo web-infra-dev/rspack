@@ -356,6 +356,7 @@ import { createNativePlugin } from "./builtin-plugin";
 ///// Experiments SWC /////
 import { minify, minifySync, transform, transformSync } from "./swc";
 import { JavaScriptTracer } from "./trace";
+import { VirtualModulesPlugin } from "./VirtualModulesPlugin";
 
 interface Experiments {
 	globalTrace: {
@@ -386,6 +387,7 @@ interface Experiments {
 	};
 	CssChunkingPlugin: typeof CssChunkingPlugin;
 	createNativePlugin: typeof createNativePlugin;
+	VirtualModulesPlugin: typeof VirtualModulesPlugin;
 }
 
 export const experiments: Experiments = {
@@ -436,7 +438,6 @@ export const experiments: Experiments = {
 		sync: resolveSync
 	},
 	CssChunkingPlugin,
-	createNativePlugin
+	createNativePlugin,
+	VirtualModulesPlugin
 };
-
-export { VirtualModulesPlugin } from "./VirtualModulesPlugin";
