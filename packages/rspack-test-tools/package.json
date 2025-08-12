@@ -79,7 +79,7 @@
     "@swc/helpers": "0.5.17",
     "@swc/plugin-remove-console": "^9.0.0",
     "@types/babel__generator": "7.27.0",
-    "@types/babel__traverse": "7.20.7",
+    "@types/babel__traverse": "7.28.0",
     "@types/fs-extra": "11.0.4",
     "@types/jsdom": "^21.1.7",
     "@types/react": "^19.1.8",
