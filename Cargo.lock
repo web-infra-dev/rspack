@@ -3571,7 +3571,6 @@ dependencies = [
  "rspack_plugin_asset",
  "rspack_plugin_banner",
  "rspack_plugin_circular_dependencies",
- "rspack_plugin_context_replacement",
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_css_chunking",
@@ -3594,6 +3593,7 @@ dependencies = [
  "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_mf",
  "rspack_plugin_module_info_header",
+ "rspack_plugin_module_replacement",
  "rspack_plugin_no_emit_on_errors",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
@@ -4157,19 +4157,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_plugin_context_replacement"
-version = "0.4.11"
-dependencies = [
- "rspack_core",
- "rspack_error",
- "rspack_hook",
- "rspack_paths",
- "rspack_regex",
- "rustc-hash",
- "tracing",
-]
-
-[[package]]
 name = "rspack_plugin_copy"
 version = "0.4.11"
 dependencies = [
@@ -4590,6 +4577,21 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_css",
  "rspack_plugin_javascript",
+ "rustc-hash",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_module_replacement"
+version = "0.4.11"
+dependencies = [
+ "derive_more",
+ "futures",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_paths",
+ "rspack_regex",
  "rustc-hash",
  "tracing",
 ]

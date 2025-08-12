@@ -58,6 +58,7 @@ export * from "./NaturalChunkIdsPlugin";
 export * from "./NaturalModuleIdsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./NoEmitOnErrorsPlugin";
+export * from "./NormalModuleReplacementPlugin";
 export * from "./OccurrenceChunkIdsPlugin";
 export * from "./ProgressPlugin";
 export * from "./ProvidePlugin";

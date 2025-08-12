@@ -9,6 +9,7 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 	},
 	plugins: [
 		new NormalModuleReplacementPlugin(/request.v1(\.|$)/, args => {
+			console.log(args);
 			expect(args.request).toBe("./request.v1");
 			expect(args.contextInfo.issuerLayer).toBe("test");
 			expect(args.contextInfo.issuer.endsWith("index.js")).toBe(true);

@@ -1,12 +1,14 @@
 [package]
-description       = "rspack context replacement plugin"
+description       = "rspack module replacement plugin"
 edition.workspace = true
 license           = "MIT"
-name              = "rspack_plugin_context_replacement"
+name              = "rspack_plugin_module_replacement"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
+derive_more  = { workspace = true, features = ["debug"] }
+futures      = { workspace = true }
 rspack_core  = { workspace = true }
 rspack_error = { workspace = true }
 rspack_hook  = { workspace = true }

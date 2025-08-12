@@ -1433,12 +1433,6 @@ export type ContainerReferencePluginOptions = {
 // @public
 export type Context = string;
 
-// @public (undocumented)
-type ContextInfo = {
-    issuer: string;
-    issuerLayer?: string | null;
-};
-
 export { ContextModule }
 
 // @public (undocumented)
@@ -1531,9 +1525,6 @@ export const CopyRspackPlugin: {
 export type CopyRspackPluginOptions = {
     patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
 };
-
-// @public (undocumented)
-type CreateData = Partial<binding.JsCreateData>;
 
 // @public
 function createNativePlugin<T extends any[], R>(name: CustomPluginName, resolve: (this: Compiler, ...args: T) => R, affectedHooks?: AffectedHooks): {
@@ -4760,9 +4751,6 @@ export interface ModuleOptionsNormalized {
 }
 
 // @public (undocumented)
-type ModuleReplacer = (createData: ResolveData) => void;
-
-// @public (undocumented)
 export class MultiCompiler {
     constructor(compilers: Compiler[] | Record<string, Compiler>, options?: MultiCompilerOptions);
     // (undocumented)
@@ -5063,14 +5051,15 @@ export class NormalModuleFactory {
 }
 
 // @public (undocumented)
-export class NormalModuleReplacementPlugin {
-    constructor(resourceRegExp: RegExp, newResource: string | ModuleReplacer);
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    readonly newResource: string | ModuleReplacer;
-    // (undocumented)
-    readonly resourceRegExp: RegExp;
-}
+export const NormalModuleReplacementPlugin: {
+    new (resourceRegExp: RegExp, newResource: string | ((data: ResolveData) => void)): {
+        name: string;
+        _args: [resourceRegExp: RegExp, newResource: string | ((data: ResolveData) => void)];
+        affectedHooks: "done" | "compilation" | "run" | "afterDone" | "thisCompilation" | "invalid" | "compile" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "emit" | "assetEmitted" | "afterEmit" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "make" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 interface NullLiteral extends Node_4, HasSpan {
@@ -6007,15 +5996,7 @@ type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?
 type ResolveContext = {};
 
 // @public (undocumented)
-export type ResolveData = {
-    contextInfo: ContextInfo;
-    context: string;
-    request: string;
-    fileDependencies: string[];
-    missingDependencies: string[];
-    contextDependencies: string[];
-    createData?: CreateData;
-};
+export type ResolveData = binding.JsResolveData;
 
 // @public
 export type ResolveOptions = {
@@ -6321,7 +6302,6 @@ declare namespace rspackExports {
         EnvironmentPlugin,
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
-        NormalModuleReplacementPlugin,
         OutputFileSystem,
         web,
         node,
@@ -6386,6 +6366,7 @@ declare namespace rspackExports {
         SwcJsMinimizerRspackPluginOptions,
         CircularDependencyRspackPlugin,
         ContextReplacementPlugin,
+        NormalModuleReplacementPlugin,
         CopyRspackPlugin,
         CssExtractRspackPlugin,
         EvalDevToolModulePlugin,
