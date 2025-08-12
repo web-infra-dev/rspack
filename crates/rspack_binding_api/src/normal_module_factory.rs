@@ -112,21 +112,18 @@ impl JsResolveData {
       },
       file_dependencies: data
         .file_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
+        .iter()
+        .map(|item| item.to_string_lossy().into_owned())
         .collect::<Vec<_>>(),
       context_dependencies: data
         .context_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
+        .iter()
+        .map(|item| item.to_string_lossy().into_owned())
         .collect::<Vec<_>>(),
       missing_dependencies: data
         .missing_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
+        .iter()
+        .map(|item| item.to_string_lossy().into_owned())
         .collect::<Vec<_>>(),
       create_data: create_data.map(|create_data| JsCreateData {
         request: create_data.request.to_owned(),

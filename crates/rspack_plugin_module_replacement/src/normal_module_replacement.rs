@@ -65,7 +65,7 @@ async fn nmf_after_resolve(
   {
     match &self.new_resource {
       NormalModuleReplacer::String(new_resource) => {
-        if new_resource.starts_with('/') || new_resource.chars().nth(1) == Some(':') {
+        if Utf8PathBuf::from(new_resource).is_absolute() {
           create_data.resource_resolve_data.resource = new_resource.clone();
         } else if let Some(dir) =
           Utf8PathBuf::from(&create_data.resource_resolve_data.resource).parent()
