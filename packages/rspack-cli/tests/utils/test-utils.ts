@@ -420,9 +420,20 @@ function isPortAvailable(port: number) {
 
 const portMap = new Map();
 
-// Available port ranges: 1024 ～ 65535
-// `10080` is not available in macOS CI, `> 50000` get 'permission denied' in Windows.
-// so we use `15000` ~ `45000`.
+/**
+ * Get a random available port for testing.
+ *
+ * Uses Jest worker ID to assign unique base ports per worker to prevent conflicts
+ * in parallel test execution. Similar to e2e tests approach:
+ * - Worker 1 gets ports starting from 15000
+ * - Worker 2 gets ports starting from 15100
+ * - Worker 3 gets ports starting from 15200
+ * - etc.
+ *
+ * Available port ranges: 1024 ～ 65535
+ * `10080` is not available in macOS CI, `> 50000` get 'permission denied' in Windows.
+ * So we use `15000` ~ `45000`.
+ */
 export async function getRandomPort(defaultPort?: number) {
 	// Use Jest workerIndex to assign unique base ports, similar to e2e tests
 	const workerIndex = parseInt(process.env.JEST_WORKER_ID || "1", 10);
