@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-
+import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import type {
 	ECompilerType,
 	ITestEnv,
@@ -137,6 +137,14 @@ export abstract class BasicRunner<
 				path: modulePath,
 				content: fs.readFileSync(modulePath, "utf-8"),
 				subPath: "absolute_path"
+			};
+		} else if (modulePath.startsWith("https://test.cases/path/")) {
+			const relativePath = urlToRelativePath(modulePath);
+			const absPath = path.join(currentDirectory, relativePath);
+			res = {
+				path: absPath,
+				content: fs.readFileSync(absPath, "utf-8"),
+				subPath: ""
 			};
 		}
 		if (this._options.cachable && res) {

@@ -71,6 +71,7 @@ Object {
   externalsType: var,
   ignoreWarnings: undefined,
   infrastructureLogging: Object {},
+  lazyCompilation: false,
   loader: Object {
     environment: Object {
       arrowFunction: true,
@@ -201,6 +202,7 @@ Object {
         requireResolve: true,
         strictExportPresence: false,
         typeReexportsPresence: no-tolerant,
+        unknownContextCritical: true,
         url: true,
         worker: Array [
           ...,

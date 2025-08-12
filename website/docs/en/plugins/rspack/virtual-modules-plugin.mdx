@@ -1,0 +1,71 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# VirtualModulesPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+The `rspack.experiments.VirtualModulesPlugin` is a Rust port of the [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) plugin. It's deeply integrated with Rspack to deliver the same functionality with enhanced performance.
+
+## Usage
+
+### Basic usage
+
+You can pass virtual modules to the constructor when creating a new VirtualModulesPlugin instance:
+
+```ts
+new rspack.experiments.VirtualModulesPlugin(modules?: Record<string, string>)
+```
+
+**Parameters:**
+
+- `modules` (optional): An object where keys are file paths and values are file contents.
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.experiments.VirtualModulesPlugin({
+      'src/generated/config.js': 'export default { version: "1.0.0" };',
+      'src/generated/constants.js': `
+        export const API_URL = "${process.env.API_URL || 'http://localhost:3000'}";
+        export const DEBUG = ${process.env.NODE_ENV !== 'production'};
+      `,
+    }),
+  ],
+};
+```
+
+### Dynamic module creation
+
+You can dynamically create or modify virtual modules using the `writeModule` method:
+
+```ts
+writeModule(filePath: string, contents: string): void
+```
+
+**Parameters:**
+
+- `filePath`: The virtual file path relative to `compiler.context`
+- `contents`: The content of the virtual file
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+const virtualModulesPlugin = new rspack.experiments.VirtualModulesPlugin();
+
+module.exports = {
+  plugins: [
+    virtualModulesPlugin,
+    {
+      apply(compiler) {
+        compiler.hooks.beforeCompile.tap('MyPlugin', () => {
+          // Dynamically create modules
+          const moduleContent = generateSomeContent();
+          virtualModulesPlugin.writeModule('src/dynamic.js', moduleContent);
+        });
+      },
+    },
+  ],
+};
+```

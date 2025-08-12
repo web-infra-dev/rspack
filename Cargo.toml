@@ -60,6 +60,7 @@ jsonc-parser        = { version = "0.26.2", default-features = false, features =
 lightningcss        = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set     = { version = "0.1.5", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
+memchr              = { version = "2.7.5", default-features = false }
 micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.5.0", default-features = false }
 mimalloc            = { version = "0.2.4", package = "mimalloc-rspack", default-features = false }
@@ -111,6 +112,7 @@ url                 = { version = "2.5.4", default-features = false }
 urlencoding         = { version = "2.1.3", default-features = false }
 ustr                = { package = "ustr-fxhash", version = "1.0.1", default-features = false }
 wasmparser          = { version = "0.222.0", default-features = false }
+winnow              = { version = "0.7.12", default-features = false, features = ["std", "simd"] }
 xxhash-rust         = { version = "0.8.14", default-features = false }
 
 # Pinned
@@ -127,7 +129,6 @@ pnp                 = { version = "0.12.1", default-features = false }
 swc                 = { version = "34.0.0", default-features = false }
 swc_config          = { version = "3.1.1", default-features = false }
 swc_core            = { version = "35.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_lexer      = { version = "22.0.0", default-features = false }
 swc_ecma_minifier   = { version = "29.0.0", default-features = false }
 swc_error_reporters = { version = "16.0.1", default-features = false }
 swc_html            = { version = "25.0.0", default-features = false }
@@ -254,7 +255,7 @@ strip         = "debuginfo"
 [profile.release]
 codegen-units = 1
 debug         = false
-# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
+# Performs "fat" LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto       = "fat"
 opt-level = 3
 panic     = "abort"

@@ -11,7 +11,10 @@ use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   get_chunk_runtime_requirements,
-  runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
+  runtime_module::{
+    generate_javascript_hmr_runtime,
+    utils::{get_initial_chunk_ids, stringify_chunks},
+  },
 };
 
 #[impl_runtime_module]
@@ -57,6 +60,8 @@ impl ModuleChunkLoadingRuntimeModule {
       TemplateId::WithLoading => format!("{}_with_loading", self.id),
       TemplateId::WithPrefetch => format!("{}_with_prefetch", self.id),
       TemplateId::WithPreload => format!("{}_with_preload", self.id),
+      TemplateId::WithHMR => format!("{}_with_hmr", self.id),
+      TemplateId::WithHMRManifest => format!("{}_with_hmr_manifest", self.id),
     }
   }
 }
@@ -66,6 +71,8 @@ enum TemplateId {
   WithLoading,
   WithPrefetch,
   WithPreload,
+  WithHMR,
+  WithHMRManifest,
 }
 
 #[async_trait::async_trait]
@@ -92,6 +99,14 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         self.template(TemplateId::WithPreload),
         include_str!("runtime/module_chunk_loading_with_preload.ejs").to_string(),
       ),
+      (
+        self.template(TemplateId::WithHMR),
+        include_str!("runtime/module_chunk_loading_with_hmr.ejs").to_string(),
+      ),
+      (
+        self.template(TemplateId::WithHMRManifest),
+        include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
     ]
   }
 
@@ -109,6 +124,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+    let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
       && compilation.options.output.environment.supports_document()
       && chunk.has_child_by_order(
@@ -134,18 +150,21 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 
     let root_output_dir = get_output_dir(chunk, compilation, true).await?;
+    let import_function_name = &compilation.options.output.import_function_name;
 
     let mut source = String::default();
 
     if with_base_uri {
       source.push_str(&self.generate_base_uri(chunk, compilation, &root_output_dir));
+    } else {
+      source.push_str("// no BaseURI")
     }
 
     source.push_str(&format!(
       r#"
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
-      // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
       var installedChunks = {}{};
       "#,
       match with_hmr {
@@ -170,6 +189,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       )?;
 
       source.push_str(&raw_source);
+    } else {
+      source.push_str("// no install chunk");
     }
 
     if with_loading {
@@ -199,6 +220,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         "#,
         RuntimeGlobals::ENSURE_CHUNK_HANDLERS
       ));
+    } else {
+      source.push_str("// no chunk on demand loading\n");
     }
 
     if !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
@@ -330,6 +353,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         "#,
         RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
       ));
+    } else {
+      source.push_str("// no external install chunk\n");
     }
 
     if with_on_chunk_load {
@@ -341,6 +366,37 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         "#,
         RuntimeGlobals::ON_CHUNKS_LOADED
       ));
+    } else {
+      source.push_str("// no on chunks loaded\n");
+    }
+
+    if with_hmr {
+      source.push_str(&format!(
+        r#"
+ {}
+ {}
+      "#,
+        generate_javascript_hmr_runtime("module"),
+        compilation.runtime_template.render(
+          &self.template(TemplateId::WithHMR),
+          Some(serde_json::json!({
+            "importFunctionName": import_function_name,
+          })),
+        )?
+      ))
+    } else {
+      source.push_str("// no HMR\n");
+    }
+
+    if with_hmr_manifest {
+      source.push_str(&compilation.runtime_template.render(
+        &self.template(TemplateId::WithHMRManifest),
+        Some(serde_json::json!({
+          "importFunctionName": import_function_name,
+        })),
+      )?)
+    } else {
+      source.push_str("// no HMR manifest\n");
     }
 
     Ok(source)

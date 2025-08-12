@@ -30,6 +30,7 @@ rspack_javascript_compiler     = { workspace = true }
 rspack_loader_runner           = { workspace = true }
 rspack_swc_plugin_import       = { workspace = true }
 rspack_swc_plugin_ts_collector = { workspace = true }
+rspack_util                    = { workspace = true, optional = true }
 rspack_workspace               = { workspace = true }
 rustc-hash                     = { workspace = true }
 serde                          = { workspace = true, features = ["derive"] }
@@ -39,7 +40,6 @@ swc_config                     = { workspace = true }
 swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common", "ecma_preset_env", "ecma_helpers_inline"] }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
-rspack_util                    = { workspace = true, optional = true }
 
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]

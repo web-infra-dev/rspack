@@ -1,6 +1,6 @@
 use std::{borrow::Cow, path::Path, sync::Arc};
 
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
@@ -47,8 +47,9 @@ pub(crate) struct LazyCompilationProxyModule {
 
   pub active: bool,
   pub data: String,
-  /// The client field will be refreshed when rspack restart, so this field does not support caching
-  #[cacheable(with=Unsupported)]
+  // TODO:
+  // The client field may be refreshed when rspack restart,
+  // so this is not safe to cache at the moment
   pub client: String,
 }
 
@@ -164,14 +165,19 @@ impl Module for LazyCompilationProxyModule {
         vec![Box::new(dep)],
         None,
       )));
+
+      // when module is activated, proxy module should not be modified again,
+      // when users modify real module, the proxy module will be untouched,
+      // and the real module will be invalidated
+      self.build_info.file_dependencies.clear();
+    } else {
+      let mut files = FxHashSet::default();
+      files.extend(self.create_data.file_dependencies.clone());
+      files.insert(Path::new(&self.resource).into());
+      self.build_info.file_dependencies = files;
     }
 
-    let mut files = FxHashSet::default();
-    files.extend(self.create_data.file_dependencies.clone());
-    files.insert(Path::new(&self.resource).into());
-
     self.build_info.cacheable = self.cacheable;
-    self.build_info.file_dependencies = files;
 
     Ok(BuildResult {
       dependencies,
