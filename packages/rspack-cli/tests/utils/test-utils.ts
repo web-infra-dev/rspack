@@ -114,7 +114,16 @@ const runWatch = (
 	options: Record<string, any> = {},
 	env: Record<string, any> = {}
 ): any => {
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
+		// For serve commands, automatically add random port if no --port specified
+		if (args.includes("serve") && !args.some(arg => arg.startsWith("--port"))) {
+			const randomPort = await getRandomPort();
+			args.push(`--port=${randomPort}`);
+			console.log(
+				`[runWatch] Auto-assigned random port ${randomPort} for serve command`
+			);
+		}
+
 		const process = createProcess(cwd, args, options, env);
 		const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
 
@@ -414,10 +423,12 @@ const portMap = new Map();
 // Available port ranges: 1024 ～ 65535
 // `10080` is not available in macOS CI, `> 50000` get 'permission denied' in Windows.
 // so we use `15000` ~ `45000`.
-export async function getRandomPort(
-	defaultPort = Math.ceil(Math.random() * 30000) + 15000
-) {
-	let port = defaultPort;
+export async function getRandomPort(defaultPort?: number) {
+	// Use Jest workerIndex to assign unique base ports, similar to e2e tests
+	const workerIndex = parseInt(process.env.JEST_WORKER_ID || "1", 10);
+	const basePort = defaultPort || 15000 + (workerIndex - 1) * 100;
+
+	let port = basePort;
 	while (true) {
 		if (!portMap.get(port) && (await isPortAvailable(port))) {
 			portMap.set(port, 1);
