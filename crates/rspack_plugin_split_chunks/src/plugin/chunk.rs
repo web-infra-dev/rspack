@@ -1,7 +1,8 @@
-use rspack_collections::{DatabaseItem, UkeySet};
-use rspack_core::{Chunk, ChunkUkey, Compilation, incremental::Mutation};
+use rayon::prelude::*;
+use rspack_collections::{DatabaseItem, IdentifierMap, UkeySet};
+use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation};
 
-use crate::{SplitChunksPlugin, module_group::ModuleGroup};
+use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
 
 fn put_split_chunk_reason(
   chunk_reason: &mut Option<String>,
@@ -21,6 +22,16 @@ fn put_split_chunk_reason(
 }
 
 impl SplitChunksPlugin {
+  pub(crate) fn get_module_chunks(
+    all_modules: &[ModuleIdentifier],
+    compilation: &Compilation,
+  ) -> ModuleChunks {
+    let chunk_graph = &compilation.chunk_graph;
+    all_modules
+      .par_iter()
+      .map(|module| (*module, chunk_graph.get_module_chunks(*module).clone()))
+      .collect::<IdentifierMap<_>>()
+  }
   /// Affected by `splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk`
   ///
   /// If there is a code splitting chunk that the contains the same modules as the current `ModuleGroup`,

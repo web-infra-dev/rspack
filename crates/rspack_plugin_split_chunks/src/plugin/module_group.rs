@@ -9,18 +9,18 @@ use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeySet};
 use rspack_core::{
-  ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
+  ChunkByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
   PrefetchExportsInfoMode, UsageKey,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{fx_hash::FxDashMap, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::{FxHashMap, FxHasher};
+use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 use tracing::instrument;
 
 use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
-  common::ModuleSizes,
+  common::{ModuleChunks, ModuleSizes},
   module_group::{CacheGroupIdx, ModuleGroup, compare_entries},
   options::{
     cache_group::CacheGroup,
@@ -155,8 +155,8 @@ impl Combinator {
   fn get_combs(
     &self,
     module: ModuleIdentifier,
-    chunk_graph: &ChunkGraph,
     used_exports: bool,
+    module_chunks: &ModuleChunks,
   ) -> Vec<UkeySet<ChunkUkey>> {
     if used_exports {
       let (chunk_sets_in_graph, chunk_sets_by_count) = self.group_by_used_exports();
@@ -181,7 +181,9 @@ impl Combinator {
       result
     } else {
       let (chunk_sets_in_graph, chunk_sets_by_count) = self.group_by_chunks();
-      let chunks = chunk_graph.get_module_chunks(module);
+      let chunks = module_chunks
+        .get(&module)
+        .expect("should have module chunks");
       self.get_combination(
         get_key(chunks.iter().copied()),
         &self.combinations_cache,
@@ -194,12 +196,14 @@ impl Combinator {
   fn prepare_group_by_chunks(
     &mut self,
     all_modules: &[ModuleIdentifier],
-    chunk_graph: &ChunkGraph,
+    module_chunks: &ModuleChunks,
   ) {
     self.chunk_sets_in_graph = all_modules
       .par_iter()
       .filter_map(|module| {
-        let chunks = chunk_graph.get_module_chunks(*module);
+        let chunks = module_chunks
+          .get(module)
+          .expect("should have module chunks");
         if chunks.is_empty() {
           return None;
         }
@@ -229,15 +233,19 @@ impl Combinator {
     &mut self,
     all_modules: &[ModuleIdentifier],
     module_graph: &ModuleGraph,
-    chunk_graph: &ChunkGraph,
     chunk_by_ukey: &ChunkByUkey,
+    module_chunks: &ModuleChunks,
   ) {
     let (module_grouped_chunks, used_exports_chunks): (Vec<_>, Vec<_>) = all_modules
       .par_iter()
       .filter_map(|module| {
         let grouped_chunks = Self::group_chunks_by_exports(
           module,
-          chunk_graph.get_module_chunks(*module).iter().cloned(),
+          module_chunks
+            .get(module)
+            .expect("should have module chunks")
+            .iter()
+            .cloned(),
           module_graph,
           chunk_by_ukey,
         );
@@ -316,6 +324,7 @@ impl SplitChunksPlugin {
     all_modules: &[ModuleIdentifier],
     compilation: &Compilation,
     module_sizes: &ModuleSizes,
+    module_chunks: &ModuleChunks,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
 
@@ -323,7 +332,7 @@ impl SplitChunksPlugin {
 
     let mut combinator = Combinator::default();
 
-    combinator.prepare_group_by_chunks(all_modules, &compilation.chunk_graph);
+    combinator.prepare_group_by_chunks(all_modules, module_chunks);
 
     if self
       .cache_groups
@@ -333,24 +342,21 @@ impl SplitChunksPlugin {
       combinator.prepare_group_by_used_exports(
         all_modules,
         &module_graph,
-        &compilation.chunk_graph,
         &compilation.chunk_by_ukey,
+        module_chunks,
       );
     }
 
     let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
       all_modules.iter().for_each(|module| {
-        let s = unsafe { token.used((&self, module, &module_graph, compilation, &module_group_map, &combinator, &module_sizes)) };
-        s.spawn(|(plugin, module, module_graph, compilation, module_group_map, combinator, module_sizes)| async move {
-          let module = module_graph.module_by_identifier(module).expect("should have module").as_ref();
-          let belong_to_chunks = compilation
-              .chunk_graph
-              .get_module_chunks(module.identifier());
-
+        let s = unsafe { token.used((&self, module, &module_graph, compilation, &module_group_map, &combinator, &module_sizes, module_chunks)) };
+        s.spawn(|(plugin, module, module_graph, compilation, module_group_map, combinator, module_sizes, module_chunks)| async move {
+          let belong_to_chunks = module_chunks.get(module).expect("should have module chunks");
           if belong_to_chunks.is_empty() {
             return Ok(());
           }
 
+          let module = module_graph.module_by_identifier(module).expect("should have module").as_ref();
           let mut temp = Vec::with_capacity(plugin.cache_groups.len());
 
           for idx in 0..plugin.cache_groups.len() {
@@ -385,12 +391,30 @@ impl SplitChunksPlugin {
             .enumerate()
             .filter(|(index, _)| temp[*index]);
 
+          let mut used_exports_combs = None;
+          let mut non_used_exports_combs = None;
+          let mut added_keys = FxHashSet::default();
+
           for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
-            let combs = combinator.get_combs(
-              module.identifier(),
-              &compilation.chunk_graph,
-              cache_group.used_exports
-            );
+            let combs = if cache_group.used_exports {
+              if used_exports_combs.is_none() {
+                used_exports_combs = Some(combinator.get_combs(
+                  module.identifier(),
+                  true,
+                  module_chunks,
+                ));
+              }
+              used_exports_combs.as_ref().expect("should have used_exports_combs")
+            } else {
+              if non_used_exports_combs.is_none() {
+                non_used_exports_combs = Some(combinator.get_combs(
+                  module.identifier(),
+                  false,
+                  module_chunks,
+                ));
+              }
+              non_used_exports_combs.as_ref().expect("should have non_used_exports_combs")
+            };
 
             for chunk_combination in combs {
               if chunk_combination.is_empty() {
@@ -409,20 +433,30 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              let selected_chunks = join_all(chunk_combination.iter().map(|c|
-                async move {
+
+              let selected_chunks = if cache_group.chunk_filter.is_func() {
+                join_all(chunk_combination.iter().map(|c| async move {
                   // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-                  (cache_group.chunk_filter)(c, compilation).await.map(|filtered|  (c, filtered))
-                }
-              )).await.into_iter().collect::<Result<Vec<_>>>()?.into_iter().filter_map(
-                |(chunk, filtered)| {
-                  if filtered {
-                    Some(chunk)
-                  } else {
-                    None
-                  }
-                }
-              ).copied().collect::<Vec<_>>();
+                  cache_group.chunk_filter.test_func(c, compilation).await.map(|filtered|  (c, filtered))
+                }))
+                  .await
+                  .into_iter()
+                  .collect::<Result<Vec<_>>>()?
+                  .into_iter()
+                  .filter_map(
+                    |(chunk, filtered)| {
+                      if filtered {
+                        Some(chunk)
+                      } else {
+                        None
+                      }
+                    }
+                  ).copied().collect::<Vec<_>>()
+              } else {
+                chunk_combination.iter().filter(|c| {
+                  cache_group.chunk_filter.test_internal(c, compilation)
+                }).copied().collect::<Vec<_>>()
+              };
 
               // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
               if selected_chunks.len() < cache_group.min_chunks as usize {
@@ -452,6 +486,7 @@ impl SplitChunksPlugin {
                 &mut chunk_key_to_string,
                 compilation,
                 module_sizes,
+                &mut added_keys,
               ).await?;
             }
           }
@@ -563,6 +598,7 @@ async fn merge_matched_item_into_module_group_map(
   chunk_key_to_string: &mut HashMap<ChunksKey, String, ChunksKeyHashBuilder>,
   compilation: &Compilation,
   module_sizes: &ModuleSizes,
+  added_keys: &mut FxHashSet<String>,
 ) -> Result<()> {
   let MatchedItem {
     idx,
@@ -610,11 +646,13 @@ async fn merge_matched_item_into_module_group_map(
 
   let mut module_group = {
     module_group_map
-      .entry(key)
-      .or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group))
+      .entry(key.clone())
+      .or_insert_with(|| ModuleGroup::new(idx, chunk_name.clone(), cache_group_index, cache_group))
   };
-
-  module_group.add_module(module.identifier(), module_sizes);
+  if chunk_name.is_none() || added_keys.insert(key) {
+    module_group.add_module(module.identifier(), module_sizes);
+  }
   module_group.chunks.extend(selected_chunks.iter().copied());
+
   Ok(())
 }
