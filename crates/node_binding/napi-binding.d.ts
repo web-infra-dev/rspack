@@ -2709,7 +2709,17 @@ export interface RawRsdoctorPluginOptions {
 }
 
 export interface RawRslibPluginOptions {
-  interceptApiPlugin: boolean
+  /**
+   * Intercept partial parse hooks of APIPlugin, expect some statements not to be parsed as API.
+   * @default `false`
+   */
+  interceptApiPlugin?: boolean
+  /**
+   * Use the compact runtime for dynamic import from `modern-module`, commonly used in CommonJS output.
+   * This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
+   * @default `false`
+   */
+  compactExternalModuleDynamicImport?: boolean
 }
 
 export interface RawRspackFuture {

@@ -11,11 +11,16 @@ mod utils;
 pub use amd_library_plugin::AmdLibraryPlugin;
 pub use assign_library_plugin::*;
 pub use export_property_library_plugin::ExportPropertyLibraryPlugin;
-use modern_module_library_plugin::ModernModuleLibraryPlugin;
-pub use module_library_plugin::ModuleLibraryPlugin;
+pub use modern_module::ModernModuleImportDependencyTemplate;
+pub use modern_module_library_plugin::replace_import_dependencies_for_external_modules;
 use rspack_core::{BoxPlugin, PluginExt};
 pub use system_library_plugin::SystemLibraryPlugin;
 pub use umd_library_plugin::UmdLibraryPlugin;
+
+use crate::{
+  modern_module_library_plugin::ModernModuleLibraryPlugin,
+  module_library_plugin::ModuleLibraryPlugin,
+};
 
 pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>) {
   let ns_object_used = library_type != "module";
