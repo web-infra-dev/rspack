@@ -1,4 +1,5 @@
 use std::{
+  cmp::Ordering,
   collections::{HashMap, hash_map},
   hash::{BuildHasherDefault, Hash, Hasher},
 };
@@ -289,20 +290,20 @@ impl SplitChunksPlugin {
     &self,
     module_group_map: &mut ModuleGroupMap,
   ) -> (String, ModuleGroup) {
-    // perf(hyf): I wonder if we could use BinaryHeap to avoid sorting for find_best_module_group call
     debug_assert!(!module_group_map.is_empty());
-    let mut iter: std::collections::hash_map::Iter<String, ModuleGroup> = module_group_map.iter();
-    let (key, mut best_module_group) = iter.next().expect("at least have one item");
 
-    let mut best_entry_key = key;
-    for (key, each_module_group) in iter {
-      if compare_entries(best_module_group, each_module_group) < 0f64 {
-        best_entry_key = key;
-        best_module_group = each_module_group;
-      }
-    }
+    let best_entry_key = module_group_map
+      .iter()
+      .min_by(|a, b| {
+        if compare_entries(a.1, b.1) < 0f64 {
+          Ordering::Greater
+        } else {
+          Ordering::Less
+        }
+      })
+      .map(|(key, _)| key.clone())
+      .expect("at least have one item");
 
-    let best_entry_key = best_entry_key.clone();
     let best_module_group = module_group_map
       .remove(&best_entry_key)
       .expect("This should never happen, please file an issue");
@@ -480,8 +481,7 @@ impl SplitChunksPlugin {
   ) {
     // remove all modules from other entries and update size
     let keys_of_invalid_group = module_group_map
-      .iter_mut()
-      .par_bridge()
+      .par_iter_mut()
       .filter_map(|(key, other_module_group)| {
         other_module_group
           .chunks
