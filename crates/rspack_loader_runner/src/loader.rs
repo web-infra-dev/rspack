@@ -1,5 +1,4 @@
 use std::{
-  borrow::Cow,
   fmt::Display,
   ops::Deref,
   sync::{
@@ -201,7 +200,9 @@ where
     Ok(())
   }
 
-  fn r#type(&self) -> Option<Cow<'_, str>> {
+  /// Returns the loader type based on the module's package.json type field or file extension.
+  /// This affects how the loader context interprets the module (e.g., "commonjs", "module").
+  fn r#type(&self) -> Option<&str> {
     None
   }
 }

@@ -23,7 +23,11 @@ pub struct JsLoader(
 );
 
 #[cacheable_dyn]
-impl Loader<RunnerContext> for JsLoader {}
+impl Loader<RunnerContext> for JsLoader {
+  fn r#type(&self) -> Option<&str> {
+    self.1.as_deref()
+  }
+}
 
 impl Identifiable for JsLoader {
   fn identifier(&self) -> Identifier {
