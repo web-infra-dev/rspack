@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fmt::Display,
   ops::Deref,
   sync::{
@@ -194,9 +195,14 @@ where
     loader_context.current_loader().set_finish_called();
     Ok(())
   }
+
   async fn pitch(&self, _loader_context: &mut LoaderContext<Context>) -> Result<()> {
     // noop
     Ok(())
+  }
+
+  fn r#type(&self) -> Option<Cow<'_, str>> {
+    None
   }
 }
 
@@ -205,12 +211,14 @@ where
   C: Send,
 {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
-    if let Some((r#type, ident)) = loader.identifier().split_once('|') {
+    let ident = &**loader.identifier();
+    if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
         path,
         query,
         fragment,
       } = parse_resource(ident).expect("identifier should be valid");
+      let ty = r#type.to_string();
       return Self {
         loader,
         request: ident.into(),
@@ -218,7 +226,7 @@ where
         query,
         fragment,
         data: serde_json::Value::Null,
-        r#type: r#type.to_string(),
+        r#type: ty,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),

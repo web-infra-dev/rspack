@@ -110,7 +110,8 @@
     "terser": "5.43.1",
     "typescript": "^5.8.3",
     "wast-loader": "^1.14.1",
-    "worker-rspack-loader": "^3.1.2"
+    "worker-rspack-loader": "^3.1.2",
+    "exports-loader": "^5.0.0"
   },
   "peerDependencies": {
     "@rspack/core": ">=1.0.0"
