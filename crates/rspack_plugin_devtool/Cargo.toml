@@ -13,6 +13,7 @@ dashmap                  = { workspace = true }
 derive_more              = { workspace = true, features = ["debug"] }
 futures                  = { workspace = true }
 itertools                = { workspace = true }
+memchr                   = { workspace = true }
 rayon                    = { workspace = true }
 regex                    = { workspace = true }
 rspack_base64            = { workspace = true }
@@ -28,7 +29,6 @@ rustc-hash               = { workspace = true }
 simd-json                = { workspace = true }
 sugar_path               = { workspace = true }
 tracing                  = { workspace = true }
-memchr                   = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

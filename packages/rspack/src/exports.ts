@@ -130,7 +130,6 @@ export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
-export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 export type { OutputFileSystem } from "./util/fs";
 
 import {
@@ -337,6 +336,7 @@ export {
 	EvalSourceMapDevToolPlugin,
 	HtmlRspackPlugin,
 	LightningCssMinimizerRspackPlugin,
+	NormalModuleReplacementPlugin,
 	SourceMapDevToolPlugin,
 	SwcJsMinimizerRspackPlugin
 } from "./builtin-plugin";
