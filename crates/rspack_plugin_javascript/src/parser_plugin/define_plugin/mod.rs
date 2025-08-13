@@ -20,7 +20,7 @@ use serde_json::Value;
 use self::walk_data::WalkData;
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
-const VALUE_DEP_PREFIX: &str = "webpack/DefinePlugin ";
+const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
 
 #[derive(Debug, Error, MietteDiagnostic)]
 #[error("DefinePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
