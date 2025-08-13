@@ -15,8 +15,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use self::parser::ProvideParserPlugin;
-use super::JavascriptParserPlugin;
-use crate::{BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator};
+use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
 const VALUE_DEP_PREFIX: &str = "rspack/ProvidePlugin ";
 type ProvideValue = HashMap<String, Vec<String>>;
@@ -39,13 +38,10 @@ impl ProvidePlugin {
       .keys()
       .flat_map(|name| {
         let splitted: Vec<&str> = name.split('.').collect();
-        if !splitted.is_empty() {
-          (0..splitted.len() - 1)
-            .map(|i| splitted[0..i + 1].join("."))
-            .collect::<Vec<_>>()
-        } else {
-          vec![]
-        }
+        // splitted.len() is always greater than 0
+        (0..splitted.len() - 1)
+          .map(|i| splitted[0..i + 1].join("."))
+          .collect::<Vec<_>>()
       })
       .collect::<HashSet<_>>();
     Self::new_inner(provide.into(), names.into())
