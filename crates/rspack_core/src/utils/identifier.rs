@@ -14,42 +14,49 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
     .join("!")
 }
 
-fn is_ident_first_safe(b: u8) -> bool {
-  // TODO const
-  fn tablef() -> u128 {
-    (b'A'..=b'Z')
-      .chain(b'a'..=b'z')
-      .chain(Some(b'$'))
-      .chain(Some(b'_'))
-      .fold(0, |mut sum, next| {
-        sum |= 1 << next;
-        sum
-      })
-  }
+macro_rules! ident_table {
+  ( $( range: $range_start:literal, $range_end:expr ; )* $( unit: $unit:expr ; )* ) => {{
+    let mut table = 0u128;
 
-  #[allow(clippy::unreadable_literal)]
-  let table: u128 = 10633823849912963253511222563025453056;
-  debug_assert_eq!(table, tablef());
-  b < 128 && (table & (1 << b)) != 0
+    $(
+      assert!($range_start <= 128);
+      assert!($range_end <= 128);
+      let mut curr = $range_start;
+      while curr <= $range_end {
+        table |= 1 << curr;
+        curr += 1;
+      }
+    )*
+
+    $(
+      assert!($unit <= 128);
+      table |= 1 << $unit;
+    )*
+
+    table
+  }}
+}
+
+fn is_ident_first_safe(b: u8) -> bool {
+  const TABLE: u128 = ident_table! {
+    range: b'A', b'Z';
+    range: b'a', b'z';
+    unit : b'$';
+    unit : b'_';
+  };
+
+  b < 128 && (TABLE & (1 << b)) != 0
 }
 
 fn is_ident_safe(b: u8) -> bool {
-  // TODO const
-  fn tablef() -> u128 {
-    (b'0'..=b'9')
-      .chain(b'A'..=b'Z')
-      .chain(b'a'..=b'z')
-      .chain(Some(b'$'))
-      .fold(0, |mut sum, next| {
-        sum |= 1 << next;
-        sum
-      })
-  }
+  const TABLE: u128 = ident_table! {
+    range: b'0', b'9';
+    range: b'A', b'Z';
+    range: b'a', b'z';
+    unit : b'$';
+  };
 
-  #[allow(clippy::unreadable_literal)]
-  let table: u128 = 10633823810298881996667002667428478976;
-  debug_assert_eq!(table, tablef());
-  b < 128 && (table & (1 << b)) != 0
+  b < 128 && (TABLE & (1 << b)) != 0
 }
 
 #[inline]
