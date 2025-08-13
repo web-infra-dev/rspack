@@ -22,7 +22,7 @@
     "coffee-loader": "^1.0.1",
     "coffeescript": "^2.7.0",
     "css-loader": "^7.1.2",
-    "csv-to-markdown-table": "^1.5.0",
+    "csv-to-markdown-table": "^1.6.2",
     "es5-ext": "^0.10.64",
     "file-loader": "^6.2.0",
     "is-ci": "4.1.0",
