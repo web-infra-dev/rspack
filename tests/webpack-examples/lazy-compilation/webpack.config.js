@@ -9,9 +9,7 @@ module.exports = {
 		type: "filesystem",
 		idleTimeout: 5000
 	},
-	experiments: {
-		lazyCompilation: true
-	},
+	lazyCompilation: true,
 	devServer: {
 		hot: true,
 		devMiddleware: {
