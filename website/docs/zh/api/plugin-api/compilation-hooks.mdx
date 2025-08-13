@@ -579,7 +579,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeGlobals } = compiler.webpack;
+        const { RuntimeGlobals } = compiler.rspack;
         compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
           compilation.hooks.additionalTreeRuntimeRequirements.tap(
             'CustomPlugin',
@@ -619,7 +619,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeGlobals, RuntimeModule } = compiler.webpack;
+        const { RuntimeGlobals, RuntimeModule } = compiler.rspack;
         class CustomRuntimeModule extends RuntimeModule {
           constructor() {
             super('custom');
@@ -672,7 +672,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeGlobals } = compiler.webpack;
+        const { RuntimeGlobals } = compiler.rspack;
         compiler.hooks.compilation.tap('CustomPlugin', compilation => {
           compilation.hooks.runtimeModule.tap(
             'CustomPlugin',
@@ -735,14 +735,14 @@ console.log(__webpack_require__.p);
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
-  const { Compilation } = compiler.webpack;
+  const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
       stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
     },
     assets => {
-      const { RawSource } = compiler.webpack.sources;
+      const { RawSource } = compiler.rspack.sources;
       const source = new RawSource('This is a new asset!');
       compilation.emitAsset('new-asset.txt', source);
     },
@@ -754,7 +754,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
-  const { Compilation } = compiler.webpack;
+  const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
@@ -766,7 +766,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
         return;
       }
 
-      const { RawSource } = compiler.webpack.sources;
+      const { RawSource } = compiler.rspack.sources;
       const oldContent = asset.source();
       const newContent = oldContent + '\nconsole.log("hello world!")';
       const source = new RawSource(newContent);
@@ -781,7 +781,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
-  const { Compilation } = compiler.webpack;
+  const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
