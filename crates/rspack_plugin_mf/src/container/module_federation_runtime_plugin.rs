@@ -20,6 +20,7 @@ use super::{
   federation_runtime_dependency::FederationRuntimeDependency,
   hoist_container_references_plugin::HoistContainerReferencesPlugin,
 };
+use crate::{ShareUsagePlugin, ShareUsagePluginOptions};
 
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
@@ -98,6 +99,8 @@ impl Plugin for ModuleFederationRuntimePlugin {
     EmbedFederationRuntimePlugin::default()
       .apply(PluginContext::with_context(ctx.context), options)?;
     HoistContainerReferencesPlugin::default()
+      .apply(PluginContext::with_context(ctx.context), options)?;
+    ShareUsagePlugin::new(ShareUsagePluginOptions::default())
       .apply(PluginContext::with_context(ctx.context), options)?;
 
     Ok(())

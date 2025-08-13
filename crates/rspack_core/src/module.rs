@@ -203,6 +203,15 @@ pub struct BuildMeta {
   pub side_effect_free: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub exports_final_name: Option<Vec<(String, String)>>,
+  // Module federation fields
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub consume_shared_key: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub shared_key: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub is_shared_descendant: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub effective_shared_key: Option<String>,
 }
 
 // webpack build info
@@ -280,6 +289,10 @@ pub trait Module:
 
   fn get_module_argument(&self) -> ModuleArgument {
     self.build_info().module_argument
+  }
+
+  fn get_consume_shared_key(&self) -> Option<&String> {
+    self.build_meta().consume_shared_key.as_ref()
   }
 
   fn get_exports_type(

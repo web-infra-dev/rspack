@@ -10,10 +10,12 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
-  DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
+  CompilationFinishModules, CompilationParams, CompilerOptions, CompilerThisCompilation, Context,
+  DependencyCategory, DependencyType, ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleCreateData,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
+  PluginContext, PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
@@ -227,7 +229,7 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    mut add_diagnostic: impl FnMut(Diagnostic),
+    add_diagnostic: &mut impl FnMut(Diagnostic),
   ) -> Option<ConsumeVersion> {
     let mut required_version_warning = |details: &str| {
       add_diagnostic(Diagnostic::warn(
@@ -301,13 +303,317 @@ impl ConsumeSharedPlugin {
     }
   }
 
+  /// Extract share key from ConsumeShared module identifier
+  /// Format: "consume shared module ({share_scope}) {share_key}@{version}..."
+  fn extract_share_key_from_identifier(identifier: &str) -> Option<String> {
+    // Use regex to extract share_key from the identifier
+    static SHARE_KEY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+      Regex::new(r"consume shared module \([^)]+\) ([^@]+)@").expect("valid regex")
+    });
+
+    SHARE_KEY_REGEX
+      .captures(identifier)
+      .and_then(|caps| caps.get(1))
+      .map(|m| m.as_str().to_string())
+  }
+
+  /// Set consume_shared_key in the fallback module's BuildMeta for tree-shaking macro support
+  fn set_consume_shared_key_in_fallback(
+    compilation: &mut Compilation,
+    consume_shared_id: &ModuleIdentifier,
+  ) -> Result<()> {
+    // First, get the share_key from the ConsumeShared module
+    let share_key = {
+      let module_graph = compilation.get_module_graph();
+      if let Some(consume_shared_module) = module_graph.module_by_identifier(consume_shared_id) {
+        consume_shared_module.get_consume_shared_key().cloned()
+      } else {
+        None
+      }
+    };
+
+    if let Some(share_key) = share_key {
+      // Find the fallback module identifier
+      let fallback_id = {
+        let module_graph = compilation.get_module_graph();
+        if let Some(consume_shared_module) = module_graph.module_by_identifier(consume_shared_id) {
+          if let Some(consume_shared) = consume_shared_module
+            .as_any()
+            .downcast_ref::<ConsumeSharedModule>()
+          {
+            consume_shared.find_fallback_module_id(&module_graph)
+          } else {
+            None
+          }
+        } else {
+          None
+        }
+      };
+
+      // If we have a fallback, set the consume_shared_key in its BuildMeta
+      if let Some(fallback_id) = fallback_id {
+        let mut module_graph = compilation.get_module_graph_mut();
+        if let Some(fallback_module) = module_graph.module_by_identifier_mut(&fallback_id) {
+          // Set the consume_shared_key in the fallback module's BuildMeta
+          fallback_module.build_meta_mut().consume_shared_key = Some(share_key);
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  /// Copy metadata from fallback module to ConsumeShared module
+  fn copy_fallback_metadata_to_consume_shared(
+    compilation: &mut Compilation,
+    consume_shared_id: &ModuleIdentifier,
+  ) -> Result<()> {
+    // First, find the fallback module identifier
+    let fallback_id = {
+      let module_graph = compilation.get_module_graph();
+      if let Some(consume_shared_module) = module_graph.module_by_identifier(consume_shared_id) {
+        if let Some(consume_shared) = consume_shared_module
+          .as_any()
+          .downcast_ref::<ConsumeSharedModule>()
+        {
+          consume_shared.find_fallback_module_id(&module_graph)
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    };
+
+    // If we have a fallback, copy the export metadata
+    if let Some(fallback_id) = fallback_id {
+      let mut module_graph = compilation.get_module_graph_mut();
+
+      // Copy export information from fallback to ConsumeShared
+      Self::copy_exports_from_fallback_to_consume_shared(
+        &mut module_graph,
+        &fallback_id,
+        consume_shared_id,
+      )?;
+    }
+
+    Ok(())
+  }
+
+  /// Copy export information from fallback module to ConsumeShared module
+  fn copy_exports_from_fallback_to_consume_shared(
+    module_graph: &mut ModuleGraph,
+    fallback_id: &ModuleIdentifier,
+    consume_shared_id: &ModuleIdentifier,
+  ) -> Result<()> {
+    use rspack_core::ExportProvided;
+
+    // Get exports info for both modules
+    let fallback_exports_info = module_graph.get_exports_info(fallback_id);
+    let consume_shared_exports_info = module_graph.get_exports_info(consume_shared_id);
+
+    // Get the fallback module's provided exports using prefetched mode
+    let prefetched_fallback = ExportsInfoGetter::prefetch(
+      &fallback_exports_info,
+      module_graph,
+      PrefetchExportsInfoMode::Full,
+    );
+
+    let fallback_provided = prefetched_fallback.get_provided_exports();
+
+    // Copy the provided exports to the ConsumeShared module
+    match fallback_provided {
+      ProvidedExports::ProvidedNames(export_names) => {
+        // Copy each specific export from fallback to ConsumeShared
+        for export_name in export_names {
+          // Get or create export info for this export in the ConsumeShared module
+          let consume_shared_export_info =
+            consume_shared_exports_info.get_export_info(module_graph, &export_name);
+          let fallback_export_info =
+            fallback_exports_info.get_export_info(module_graph, &export_name);
+
+          // Copy the provided status
+          if let Some(provided) = fallback_export_info.as_data(module_graph).provided() {
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_provided(Some(provided));
+          } else {
+            // Default to provided if not explicitly set in fallback
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_provided(Some(ExportProvided::Provided));
+          }
+
+          // Copy can_mangle_provide status
+          if let Some(can_mangle) = fallback_export_info
+            .as_data(module_graph)
+            .can_mangle_provide()
+          {
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_can_mangle_provide(Some(can_mangle));
+          }
+
+          // Copy exports_info if it exists (for nested exports)
+          if let Some(nested_exports_info) =
+            fallback_export_info.as_data(module_graph).exports_info()
+          {
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_exports_info(Some(nested_exports_info));
+          }
+
+          // Note: Usage state copying is handled by FlagDependencyUsagePlugin
+          // We only copy provision metadata here
+
+          // Copy terminal binding information if available
+          let terminal_binding = fallback_export_info
+            .as_data(module_graph)
+            .terminal_binding();
+          if terminal_binding {
+            consume_shared_export_info
+              .as_data_mut(module_graph)
+              .set_terminal_binding(terminal_binding);
+          }
+        }
+
+        // Mark the ConsumeShared module as having complete provide info
+        consume_shared_exports_info.set_has_provide_info(module_graph);
+
+        // Set the "other exports" to not provided (since we copied all specific exports)
+        consume_shared_exports_info.set_unknown_exports_provided(
+          module_graph,
+          false, // not provided
+          None,  // no exclude exports
+          None,  // no can_mangle
+          None,  // no terminal_binding
+          None,  // no target_key
+        );
+      }
+      ProvidedExports::ProvidedAll => {
+        // If fallback provides all exports, mark ConsumeShared the same way
+        consume_shared_exports_info.set_unknown_exports_provided(
+          module_graph,
+          true, // provided
+          None, // no exclude exports
+          None, // no can_mangle
+          None, // no terminal_binding
+          None, // no target_key
+        );
+        consume_shared_exports_info.set_has_provide_info(module_graph);
+      }
+      ProvidedExports::Unknown => {
+        // Keep unknown status - don't copy anything
+      }
+    }
+
+    Ok(())
+  }
+
+  /// Enhanced metadata copying that also analyzes usage through incoming connections
+  fn enhanced_copy_fallback_metadata_to_consume_shared(
+    compilation: &mut Compilation,
+    consume_shared_id: &ModuleIdentifier,
+  ) -> Result<()> {
+    // Note: Enhanced analysis disabled due to borrow checker issues
+    // ShareUsagePlugin provides this functionality instead
+
+    // First, do the standard export metadata copying
+    Self::copy_fallback_metadata_to_consume_shared(compilation, consume_shared_id)?;
+
+    /* Enhanced analysis commented out due to borrow checker issues
+    // Then, enhance with usage analysis from incoming connections
+    let mut module_graph = compilation.get_module_graph_mut();
+
+    // Analyze incoming connections to track actual usage
+    let incoming_connections: Vec<_> = module_graph
+      .get_incoming_connections(consume_shared_id)
+      .collect();
+
+    for connection in incoming_connections {
+      if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
+        // Use get_referenced_exports to extract specific export names
+        let referenced_exports = dependency.get_referenced_exports(
+          &module_graph,
+          &ModuleGraphCacheArtifact::default(),
+          None,
+        );
+
+        // Process referenced exports and mark them as used in the ConsumeShared module
+        for export_ref in referenced_exports {
+          match export_ref {
+            ExtendedReferencedExport::Array(names) => {
+              for name in names {
+                let export_atom = rspack_util::atom::Atom::from(name.as_str());
+                let exports_info = module_graph.get_exports_info(consume_shared_id);
+                let export_info = exports_info.get_export_info(&mut module_graph, &export_atom);
+
+                // Usage state is handled by FlagDependencyUsagePlugin
+                // Just mark as provided
+
+                export_info.as_data_mut(&mut module_graph).set_provided(
+                  Some(rspack_core::ExportProvided::Provided),
+                );
+              }
+            },
+            ExtendedReferencedExport::Export(export_info) => {
+              if !export_info.name.is_empty() {
+                for name in export_info.name {
+                  let export_atom = rspack_util::atom::Atom::from(name.as_str());
+                  let exports_info = module_graph.get_exports_info(consume_shared_id);
+                  let export_info = exports_info.get_export_info(&mut module_graph, &export_atom);
+
+                  // Usage state is handled by FlagDependencyUsagePlugin
+                  // Just mark as provided
+
+                  export_info.as_data_mut(&mut module_graph).set_provided(
+                    Some(rspack_core::ExportProvided::Provided),
+                  );
+                }
+              }
+            },
+            ExtendedReferencedExport::Export(_) => {
+              // This might be a namespace import or similar - analyze further if needed
+              let exports_info = module_graph.get_exports_info(consume_shared_id);
+
+              // For namespace imports, we may need to mark all exports as potentially used
+              // This is a conservative approach to ensure tree-shaking doesn't remove needed exports
+              let prefetched = ExportsInfoGetter::prefetch(
+                &exports_info,
+                &module_graph,
+                PrefetchExportsInfoMode::Full,
+              );
+
+              if let ProvidedExports::ProvidedNames(export_names) = prefetched.get_provided_exports() {
+                for export_name in export_names {
+                  let export_info = exports_info.get_export_info(&mut module_graph, &export_name);
+                  // Usage state is handled by FlagDependencyUsagePlugin
+                  // Just mark as provided
+                  export_info.as_data_mut(&mut module_graph).set_provided(
+                    Some(rspack_core::ExportProvided::Provided),
+                  );
+                }
+              }
+            },
+            _ => {
+              // Handle other cases if needed - potentially log for debugging
+            }
+          }
+        }
+      }
+    }
+    */
+
+    Ok(())
+  }
+
   async fn create_consume_shared_module(
     &self,
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    mut add_diagnostic: impl FnMut(Diagnostic),
-  ) -> ConsumeSharedModule {
+    add_diagnostic: &mut impl FnMut(Diagnostic),
+  ) -> Result<ConsumeSharedModule> {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
     let import_resolved = match &config.import {
       None => None,
@@ -340,7 +646,8 @@ impl ConsumeSharedPlugin {
     let required_version = self
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
-    ConsumeSharedModule::new(
+
+    Ok(ConsumeSharedModule::new(
       if direct_fallback {
         self.get_context()
       } else {
@@ -360,7 +667,7 @@ impl ConsumeSharedPlugin {
         singleton: config.singleton,
         eager: config.eager,
       },
-    )
+    ))
   }
 }
 
@@ -382,6 +689,43 @@ async fn this_compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilationFinishModules for ConsumeSharedPlugin)]
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  // Find all ConsumeShared modules and copy metadata from their fallbacks
+  let consume_shared_modules: Vec<ModuleIdentifier> = compilation
+    .get_module_graph()
+    .modules()
+    .keys()
+    .filter(|id| {
+      if let Some(module) = compilation.get_module_graph().module_by_identifier(id) {
+        module.module_type() == &ModuleType::ConsumeShared
+      } else {
+        false
+      }
+    })
+    .copied()
+    .collect();
+
+  // Process each ConsumeShared module individually to avoid borrow checker issues
+  for consume_shared_id in consume_shared_modules {
+    // First, set the consume_shared_key in the fallback module's BuildMeta
+    Self::set_consume_shared_key_in_fallback(compilation, &consume_shared_id)?;
+
+    if self.options.enhanced {
+      // Use enhanced copying that includes usage analysis
+      Self::enhanced_copy_fallback_metadata_to_consume_shared(compilation, &consume_shared_id)?;
+    } else {
+      // Use standard metadata copying
+      Self::copy_fallback_metadata_to_consume_shared(compilation, &consume_shared_id)?;
+    }
+  }
+
+  // Phase 2: Unified shared detection optimization for all modules
+  Self::mark_shared_descendants(compilation)?;
+
+  Ok(())
+}
+
 #[plugin_hook(NormalModuleFactoryFactorize for ConsumeSharedPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dep = data.dependencies[0]
@@ -396,17 +740,20 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   let request = dep.request();
   let consumes = self.get_matched_consumes();
   if let Some(matched) = consumes.unresolved.get(request) {
-    let module = self
-      .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
-        data.diagnostics.push(d)
-      })
-      .await;
-    return Ok(Some(module.boxed()));
+    let mut add_diagnostic = |d| data.diagnostics.push(d);
+    match self
+      .create_consume_shared_module(&data.context, request, matched.clone(), &mut add_diagnostic)
+      .await
+    {
+      Ok(module) => return Ok(Some(module.boxed())),
+      Err(_) => return Ok(None), // Error already handled via diagnostic
+    }
   }
   for (prefix, options) in &consumes.prefixed {
     if request.starts_with(prefix) {
       let remainder = &request[prefix.len()..];
-      let module = self
+      let mut add_diagnostic = |d| data.diagnostics.push(d);
+      match self
         .create_consume_shared_module(
           &data.context,
           request,
@@ -421,10 +768,13 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             singleton: options.singleton,
             eager: options.eager,
           }),
-          |d| data.diagnostics.push(d),
+          &mut add_diagnostic,
         )
-        .await;
-      return Ok(Some(module.boxed()));
+        .await
+      {
+        Ok(module) => return Ok(Some(module.boxed())),
+        Err(_) => return Ok(None), // Error already handled via diagnostic
+      }
     }
   }
   Ok(None)
@@ -445,14 +795,58 @@ async fn create_module(
   let resource = &create_data.resource_resolve_data.resource;
   let consumes = self.get_matched_consumes();
   if let Some(options) = consumes.resolved.get(resource) {
-    let module = self
-      .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
-        data.diagnostics.push(d)
-      })
-      .await;
-    return Ok(Some(module.boxed()));
+    let mut add_diagnostic = |d| data.diagnostics.push(d);
+    match self
+      .create_consume_shared_module(
+        &data.context,
+        resource,
+        options.clone(),
+        &mut add_diagnostic,
+      )
+      .await
+    {
+      Ok(module) => return Ok(Some(module.boxed())),
+      Err(_) => return Ok(None), // Error already handled via diagnostic
+    }
   }
   Ok(None)
+}
+
+#[plugin_hook(NormalModuleFactoryModule for ConsumeSharedPlugin)]
+async fn normal_module_factory_module(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  _create_data: &mut NormalModuleCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  // Check if this is a ConsumeSharedFallback dependency
+  if !data.dependencies.is_empty()
+    && matches!(
+      data.dependencies[0].dependency_type(),
+      DependencyType::ConsumeSharedFallback
+    )
+  {
+    // Get the issuer identifier (ConsumeShared module)
+    if let Some(issuer_id) = &data.issuer_identifier {
+      // Try to get the share_key from the issuer module
+      // Since we're in the module factory, we need to check if the issuer is a ConsumeSharedModule
+      // The issuer should be in the dependency's context
+      if let Some(_dep) = data.dependencies[0]
+        .as_any()
+        .downcast_ref::<super::consume_shared_fallback_dependency::ConsumeSharedFallbackDependency>(
+      ) {
+        // Extract share key from the issuer identifier
+        // ConsumeShared module identifiers have the format:
+        // "consume shared module ({share_scope}) {share_key}@{version}..."
+        let issuer_str = issuer_id.to_string();
+        if let Some(share_key) = Self::extract_share_key_from_identifier(&issuer_str) {
+          // Set the consume_shared_key in the fallback module's BuildMeta
+          module.build_meta_mut().consume_shared_key = Some(share_key);
+        }
+      }
+    }
+  }
+  Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ConsumeSharedPlugin)]
@@ -473,6 +867,138 @@ async fn additional_tree_runtime_requirements(
     Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
   )?;
   Ok(())
+}
+
+impl ConsumeSharedPlugin {
+  /// Phase 2: Unified shared descendant detection optimization for ESM and CommonJS
+  /// Processes both ESM and CommonJS modules to maximize performance benefits
+  fn mark_shared_descendants(compilation: &mut Compilation) -> Result<()> {
+    use std::collections::{HashMap, HashSet, VecDeque};
+
+    // Collect all module data we need upfront to avoid borrow checker issues
+    let module_data: HashMap<ModuleIdentifier, (bool, Option<String>, Option<String>, ModuleType)> = {
+      let module_graph = compilation.get_module_graph();
+      module_graph
+        .modules()
+        .iter()
+        .map(|(id, module)| {
+          let build_meta = module.build_meta();
+          (
+            *id,
+            (
+              build_meta.esm,
+              build_meta.consume_shared_key.clone(),
+              build_meta.shared_key.clone(),
+              *module.module_type(),
+            ),
+          )
+        })
+        .collect()
+    };
+
+    // Collect all connections upfront
+    let connections: HashMap<ModuleIdentifier, Vec<ModuleIdentifier>> = {
+      let module_graph = compilation.get_module_graph();
+      module_data
+        .keys()
+        .map(|module_id| {
+          let outgoing: Vec<_> = module_graph
+            .get_outgoing_connections(module_id)
+            .map(|conn| *conn.module_identifier())
+            .collect();
+          (*module_id, outgoing)
+        })
+        .collect()
+    };
+
+    let mut queue = VecDeque::new();
+    let mut visited = HashSet::new();
+    let mut shared_descendants = HashSet::new();
+    let mut effective_keys = HashMap::new();
+
+    // Step 1: Find directly shared modules (both ESM and CommonJS)
+    for (module_id, (_is_esm, consume_shared_key, shared_key, module_type)) in &module_data {
+      // Phase 2: Process all modules, not just ESM
+
+      // Check if this is a directly shared module
+      let is_directly_shared = consume_shared_key.is_some()
+        || shared_key.is_some()
+        || module_type == &ModuleType::ConsumeShared
+        || module_type == &ModuleType::ProvideShared;
+
+      if is_directly_shared {
+        shared_descendants.insert(*module_id);
+
+        // Set effective shared key (prioritize consume_shared_key > shared_key)
+        if let Some(effective_key) = consume_shared_key.clone().or_else(|| shared_key.clone()) {
+          effective_keys.insert(*module_id, effective_key);
+        }
+
+        queue.push_back(*module_id);
+      }
+    }
+
+    // Step 2: BFS to mark all descendants (ESM and CommonJS)
+    while let Some(current_id) = queue.pop_front() {
+      if !visited.insert(current_id) {
+        continue;
+      }
+
+      let parent_shared_key = effective_keys.get(&current_id).cloned();
+
+      if let Some(outgoing) = connections.get(&current_id) {
+        for target_id in outgoing {
+          // Phase 2: Process all modules regardless of type
+          if let Some((_is_esm, _, _, _)) = module_data.get(target_id) {
+            // Check if target already processed
+            if shared_descendants.contains(target_id) {
+              continue;
+            }
+
+            // Mark target as shared descendant
+            shared_descendants.insert(*target_id);
+
+            // Inherit parent's shared key if target doesn't have one
+            if !effective_keys.contains_key(target_id) {
+              if let Some(key) = parent_shared_key.clone() {
+                effective_keys.insert(*target_id, key);
+              }
+            }
+
+            queue.push_back(*target_id);
+          }
+        }
+      }
+    }
+
+    // Step 3: Apply all mutations to the compilation
+    for (module_id, (_is_esm, _, _, _)) in &module_data {
+      // Phase 2: Apply to all modules, not just ESM
+
+      if let Some(module) = compilation
+        .get_module_graph_mut()
+        .module_by_identifier_mut(module_id)
+      {
+        let build_meta = module.build_meta_mut();
+
+        // Set shared descendant status
+        build_meta.is_shared_descendant = Some(shared_descendants.contains(module_id));
+
+        // Set effective shared key if we have one
+        if let Some(effective_key) = effective_keys.get(module_id) {
+          build_meta.effective_shared_key = Some(effective_key.clone());
+
+          // IMPORTANT: Also set consume_shared_key if not already set
+          // This is needed for macro generation in ConsumeSharedExportsDependency
+          if build_meta.consume_shared_key.is_none() {
+            build_meta.consume_shared_key = Some(effective_key.clone());
+          }
+        }
+      }
+    }
+
+    Ok(())
+  }
 }
 
 #[async_trait]
@@ -499,9 +1025,19 @@ impl Plugin for ConsumeSharedPlugin {
       .tap(create_module::new(self));
     ctx
       .context
+      .normal_module_factory_hooks
+      .module
+      .tap(normal_module_factory_module::new(self));
+    ctx
+      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+    ctx
+      .context
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
     Ok(())
   }
 }
