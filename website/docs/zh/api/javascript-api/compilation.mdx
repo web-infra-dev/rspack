@@ -66,7 +66,7 @@ emitAsset(
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
-  const { RawSource } = compiler.webpack.sources;
+  const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const buffer = Buffer.from(
       'i am content of emit asset, do not minimize me',
@@ -114,7 +114,7 @@ updateAsset(
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
-  const { RawSource } = compiler.webpack.sources;
+  const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const updatedSource = new RawSource(
       `module.exports = "This is the updated"`,
@@ -415,7 +415,7 @@ compiler.hooks.make.tap('MyPlugin', compilation => {
     {
       path: 'dist/child',
     },
-    [new compiler.webpack.EntryPlugin(compiler.context, './child-entry.js')],
+    [new compiler.rspack.EntryPlugin(compiler.context, './child-entry.js')],
   );
   childCompiler.compile((err, childCompilation) => {});
 });
@@ -452,7 +452,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeModule } = compiler.webpack;
+        const { RuntimeModule } = compiler.rspack;
 
         class CustomRuntimeModule extends RuntimeModule {
           constructor() {
