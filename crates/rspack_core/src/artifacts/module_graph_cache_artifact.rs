@@ -132,7 +132,7 @@ impl ModuleGraphCacheArtifactInner {
     F: FnOnce() -> IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
   >(
     &self,
-    key: ModuleIdentifier,
+    key: ConcatenatedModuleImportsKey,
     f: F,
   ) -> IdentifierMap<Vec<ConnectionWithRuntimeCondition>> {
     if !self.freezed.load(Ordering::Acquire) {
@@ -196,14 +196,17 @@ pub(super) mod module_graph_hash {
   }
 }
 pub(super) mod concatenated_module_imports {
-  use rspack_collections::IdentifierDashMap;
-
   use super::*;
   use crate::{ConnectionWithRuntimeCondition, ModuleIdentifier};
 
+  pub type ConcatenatedModuleImportsKey = (ModuleIdentifier, String);
+
   #[derive(Debug, Default)]
   pub struct ConcatenatedModuleImportsCache {
-    cache: IdentifierDashMap<IdentifierMap<Vec<ConnectionWithRuntimeCondition>>>,
+    cache: dashmap::DashMap<
+      ConcatenatedModuleImportsKey,
+      IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
+    >,
   }
 
   impl ConcatenatedModuleImportsCache {
@@ -213,14 +216,14 @@ pub(super) mod concatenated_module_imports {
 
     pub fn get(
       &self,
-      key: &ModuleIdentifier,
+      key: &ConcatenatedModuleImportsKey,
     ) -> Option<IdentifierMap<Vec<ConnectionWithRuntimeCondition>>> {
       self.cache.get(key).map(|v| v.value().clone())
     }
 
     pub fn set(
       &self,
-      key: ModuleIdentifier,
+      key: ConcatenatedModuleImportsKey,
       value: IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
     ) {
       self.cache.insert(key, value);

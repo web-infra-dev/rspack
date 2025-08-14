@@ -53,10 +53,10 @@ use crate::{
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
   UsedNameItem, define_es_module_flag_statement, escape_identifier, filter_runtime,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, runtime_condition_expression, subtract_runtime_condition,
-  to_identifier_with_escaped, to_normal_comment,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
+  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -1741,15 +1741,24 @@ impl ConcatenatedModule {
     let mut exists_entries = IdentifierMap::default();
     exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-    let imports_map = mg_cache.cached_concatenated_module_imports(self.id(), || {
-      module_set
-        .par_iter()
-        .map(|module| {
-          let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
-          (*module, imports)
-        })
-        .collect::<IdentifierMap<_>>()
-    });
+    let imports_map = mg_cache.cached_concatenated_module_imports(
+      (
+        self.id(),
+        runtime
+          .map(|r| get_runtime_key(r).to_string())
+          .unwrap_or_default(),
+      ),
+      || {
+        module_set
+          .par_iter()
+          .map(|module| {
+            let imports =
+              self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+            (*module, imports)
+          })
+          .collect::<IdentifierMap<_>>()
+      },
+    );
 
     let imports = imports_map.get(&root_module).expect("should have imports");
     for i in imports {
