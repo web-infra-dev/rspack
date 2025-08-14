@@ -72,10 +72,6 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       .expect("should have nested exports info")
   }
 
-  pub fn meta(&self) -> (ExportsInfo, Vec<ExportsInfo>) {
-    (self.entry, self.exports.keys().copied().collect())
-  }
-
   pub fn other_exports_info(&self) -> &ExportInfoData {
     if let Some(redirect) = self.get_redirect_to_in_exports_info(&self.entry) {
       return self.get_other_in_exports_info(&redirect);
@@ -745,23 +741,6 @@ impl ExportsInfoGetter {
         arr.extend(names.iter().skip(1).cloned());
         Some(UsedName::Normal(arr))
       }
-    }
-  }
-
-  pub fn from_meta<'a>(
-    meta: (ExportsInfo, Vec<ExportsInfo>),
-    mg: &'a ModuleGraph,
-  ) -> PrefetchedExportsInfoWrapper<'a> {
-    let (entry, exports) = meta;
-    let exports = exports
-      .into_iter()
-      .map(|e| (e, mg.get_exports_info_by_id(&e)))
-      .collect::<HashMap<_, _>>();
-
-    PrefetchedExportsInfoWrapper {
-      exports: Arc::new(exports),
-      entry,
-      mode: PrefetchExportsInfoMode::Full,
     }
   }
 }

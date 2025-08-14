@@ -223,9 +223,8 @@ pub struct ExternalModuleInfo {
   pub name: Option<Atom>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ConnectionWithRuntimeCondition {
-  pub connection: Arc<ModuleGraphConnection>,
+pub struct ConnectionWithRuntimeCondition<'a> {
+  pub connection: &'a ModuleGraphConnection,
   pub runtime_condition: RuntimeCondition,
 }
 
@@ -1555,6 +1554,8 @@ impl Module for ConcatenatedModule {
     };
     let runtime = runtime.as_deref();
     let concatenation_entries = self.create_concatenation_list(
+      self.root_module_ctxt.id,
+      self.modules.iter().map(|item| item.id).collect(),
       runtime,
       &compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
@@ -1675,7 +1676,13 @@ impl ConcatenatedModule {
     Vec<(ModuleIdentifier, Option<RuntimeCondition>)>,
     IdentifierIndexMap<ModuleInfo>,
   ) {
-    let ordered_concatenation_list = self.create_concatenation_list(runtime, mg, mg_cache);
+    let ordered_concatenation_list = self.create_concatenation_list(
+      self.root_module_ctxt.id,
+      self.modules.iter().map(|item| item.id).collect(),
+      runtime,
+      mg,
+      mg_cache,
+    );
     let mut list = vec![];
     let mut map = IdentifierIndexMap::default();
     for (i, concatenation_entry) in ordered_concatenation_list.into_iter().enumerate() {
@@ -1730,26 +1737,23 @@ impl ConcatenatedModule {
 
   fn create_concatenation_list(
     &self,
+    root_module: ModuleIdentifier,
+    module_set: IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ConcatenationEntry> {
-    let root_module = self.root_module_ctxt.id;
-    let module_set: IdentifierIndexSet = self.modules.iter().map(|item| item.id).collect();
-
     let mut list = vec![];
     let mut exists_entries = IdentifierMap::default();
     exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-    let imports_map = mg_cache.cached_concatenated_module_imports(self.id(), || {
-      module_set
-        .par_iter()
-        .map(|module| {
-          let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
-          (*module, imports)
-        })
-        .collect::<IdentifierMap<_>>()
-    });
+    let imports_map = module_set
+      .par_iter()
+      .map(|module| {
+        let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+        (*module, imports)
+      })
+      .collect::<IdentifierMap<_>>();
 
     let imports = imports_map.get(&root_module).expect("should have imports");
     for i in imports {
@@ -1757,7 +1761,7 @@ impl ConcatenatedModule {
         &module_set,
         runtime,
         mg,
-        &i.connection,
+        i.connection,
         i.runtime_condition.clone(),
         &mut exists_entries,
         &mut list,
@@ -1804,7 +1808,7 @@ impl ConcatenatedModule {
           module_set,
           runtime,
           mg,
-          &import.connection,
+          import.connection,
           import.runtime_condition.clone(),
           exists_entry,
           list,
@@ -1847,14 +1851,14 @@ impl ConcatenatedModule {
     }
   }
 
-  fn get_concatenated_imports(
+  fn get_concatenated_imports<'a>(
     &self,
     module_id: &ModuleIdentifier,
     root_module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
-  ) -> Vec<ConnectionWithRuntimeCondition> {
+    mg: &'a ModuleGraph,
+    mg_cache: &'a ModuleGraphCacheArtifact,
+  ) -> Vec<ConnectionWithRuntimeCondition<'a>> {
     let mut connections: Vec<&ModuleGraphConnection> =
       mg.get_ordered_outgoing_connections(module_id).collect();
     if module_id == root_module_id {
@@ -1927,7 +1931,7 @@ impl ConcatenatedModule {
         }
         indexmap::map::Entry::Vacant(vac) => {
           vac.insert(ConnectionWithRuntimeCondition {
-            connection: Arc::new(reference.connection.clone()),
+            connection: reference.connection,
             runtime_condition,
           });
         }
