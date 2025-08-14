@@ -1,8 +1,42 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
-import { defineConfig } from "@rslib/core";
+import { defineConfig, type rsbuild } from "@rslib/core";
 
 const bindingDir = path.resolve("../../crates/node_binding");
+const distDir = path.resolve("../rspack-browser/dist");
+
+const replaceDtsPlugin: rsbuild.RsbuildPlugin = {
+	name: "replace-dts-plugin",
+	setup(api) {
+		api.onAfterBuild(async () => {
+			const outFiles = await fs.readdir(distDir, { recursive: true });
+			for (const file of outFiles) {
+				if (!file.endsWith(".d.ts")) {
+					continue;
+				}
+				const filePath = path.join(distDir, file);
+
+				const dts = (await fs.readFile(filePath)).toString();
+
+				let relativeBindingDts = path.relative(
+					path.dirname(filePath),
+					path.join(distDir, "binding")
+				);
+				if (!relativeBindingDts.startsWith("../")) {
+					relativeBindingDts = `./${relativeBindingDts}`;
+				}
+				const replacedDts = dts
+					.replaceAll('from "@rspack/binding"', `from "${relativeBindingDts}"`)
+					.replaceAll(
+						'declare module "@rspack/binding"',
+						`declare module "${relativeBindingDts}"`
+					);
+				fs.writeFile(filePath, replacedDts);
+			}
+		});
+	}
+};
 
 export default defineConfig({
 	resolve: {
@@ -27,7 +61,7 @@ export default defineConfig({
 		cleanDistPath: true,
 		target: "web",
 		distPath: {
-			root: "../rspack-browser/dist"
+			root: distDir
 		},
 		externals: [
 			"@napi-rs/wasm-runtime",
@@ -41,6 +75,8 @@ export default defineConfig({
 			patterns: [
 				path.resolve(bindingDir, "rspack.wasi-browser.js"),
 				path.resolve(bindingDir, "wasi-worker-browser.mjs"),
+				path.resolve(bindingDir, "napi-binding.d.ts"),
+				path.resolve(bindingDir, "binding.d.ts"),
 				{
 					from: path.resolve(bindingDir, "rspack.browser.wasm"),
 					to: "rspack.wasm32-wasi.wasm",
@@ -66,7 +102,8 @@ export default defineConfig({
 				fs: path.resolve("./src/browser/fs"),
 				buffer: path.resolve("./src/browser/buffer")
 			}
-		})
+		}),
+		replaceDtsPlugin
 	],
 	source: {
 		tsconfigPath: "./tsconfig.browser.json",
