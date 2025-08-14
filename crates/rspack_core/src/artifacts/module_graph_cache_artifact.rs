@@ -3,20 +3,19 @@ use std::sync::{
   atomic::{AtomicBool, Ordering},
 };
 
-use concatenated_module_imports::*;
+use concatenated_module_entries::*;
 pub use determine_export_assignments::DetermineExportAssignmentsKey;
 use determine_export_assignments::*;
 use get_exports_type::*;
 use get_mode::*;
 use get_side_effects_connection_state::*;
 use module_graph_hash::*;
-use rspack_collections::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
 use crate::{
-  ConnectionState, ConnectionWithRuntimeCondition, DependencyId, ExportInfo, ExportsInfo,
-  ExportsType, ModuleIdentifier, RuntimeKey,
+  ConcatenationEntry, ConnectionState, DependencyId, ExportInfo, ExportsInfo, ExportsType,
+  ModuleIdentifier, RuntimeKey,
 };
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
@@ -31,7 +30,7 @@ pub struct ModuleGraphCacheArtifactInner {
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
   get_exports_type_cache: GetExportsTypeCache,
   get_side_effects_connection_state_cache: GetSideEffectsConnectionStateCache,
-  concatenated_module_imports_cache: ConcatenatedModuleImportsCache,
+  concatenated_module_entries: ConcatenatedModuleEntriesCache,
   module_graph_hash_cache: ModuleGraphHashCache,
 }
 
@@ -41,7 +40,7 @@ impl ModuleGraphCacheArtifactInner {
     self.determine_export_assignments_cache.freeze();
     self.get_exports_type_cache.freeze();
     self.get_side_effects_connection_state_cache.freeze();
-    self.concatenated_module_imports_cache.freeze();
+    self.concatenated_module_entries.freeze();
     self.module_graph_hash_cache.freeze();
     self.freezed.store(true, Ordering::Release);
   }
@@ -128,24 +127,20 @@ impl ModuleGraphCacheArtifactInner {
     }
   }
 
-  pub fn cached_concatenated_module_imports<
-    F: FnOnce() -> IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
-  >(
+  pub fn cached_concatenated_module_entries<F: FnOnce() -> Vec<ConcatenationEntry>>(
     &self,
-    key: ConcatenatedModuleImportsKey,
+    key: ConcatenatedModuleEntriesCacheKey,
     f: F,
-  ) -> IdentifierMap<Vec<ConnectionWithRuntimeCondition>> {
+  ) -> Vec<ConcatenationEntry> {
     if !self.freezed.load(Ordering::Acquire) {
       return f();
     }
 
-    match self.concatenated_module_imports_cache.get(&key) {
+    match self.concatenated_module_entries.get(&key) {
       Some(value) => value,
       None => {
         let value = f();
-        self
-          .concatenated_module_imports_cache
-          .set(key, value.clone());
+        self.concatenated_module_entries.set(key, value.clone());
         value
       }
     }
@@ -195,37 +190,27 @@ pub(super) mod module_graph_hash {
     }
   }
 }
-pub(super) mod concatenated_module_imports {
+pub(super) mod concatenated_module_entries {
   use super::*;
-  use crate::{ConnectionWithRuntimeCondition, ModuleIdentifier};
+  use crate::ModuleIdentifier;
 
-  pub type ConcatenatedModuleImportsKey = (ModuleIdentifier, String);
+  pub type ConcatenatedModuleEntriesCacheKey = (ModuleIdentifier, String);
 
   #[derive(Debug, Default)]
-  pub struct ConcatenatedModuleImportsCache {
-    cache: dashmap::DashMap<
-      ConcatenatedModuleImportsKey,
-      IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
-    >,
+  pub struct ConcatenatedModuleEntriesCache {
+    cache: dashmap::DashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
   }
 
-  impl ConcatenatedModuleImportsCache {
+  impl ConcatenatedModuleEntriesCache {
     pub fn freeze(&self) {
       self.cache.clear();
     }
 
-    pub fn get(
-      &self,
-      key: &ConcatenatedModuleImportsKey,
-    ) -> Option<IdentifierMap<Vec<ConnectionWithRuntimeCondition>>> {
+    pub fn get(&self, key: &ConcatenatedModuleEntriesCacheKey) -> Option<Vec<ConcatenationEntry>> {
       self.cache.get(key).map(|v| v.value().clone())
     }
 
-    pub fn set(
-      &self,
-      key: ConcatenatedModuleImportsKey,
-      value: IdentifierMap<Vec<ConnectionWithRuntimeCondition>>,
-    ) {
+    pub fn set(&self, key: ConcatenatedModuleEntriesCacheKey, value: Vec<ConcatenationEntry>) {
       self.cache.insert(key, value);
     }
   }
