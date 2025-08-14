@@ -23,14 +23,20 @@ export function nonWebpackRequire(): RequireFn {
 								return;
 							}
 
-							const loaderCode = data?.toString() || "";
 							// Only custom esm loader is supported.
-							// Use `import(base64code)` to load ESM
-							const dataUrl = `data:text/javascript;base64,${btoa(loaderCode)}`;
+							const loaderCode = data?.toString() || "";
+							const codeUrl = URL.createObjectURL(
+								new Blob([loaderCode], { type: "text/javascript" })
+							);
 							try {
 								// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
-								const modulePromise = eval(`import("${dataUrl}")`);
-								modulePromise.then(resolve);
+								const modulePromise = eval(
+									`import("${codeUrl}")`
+								) as Promise<unknown>;
+								modulePromise.then(module => {
+									URL.revokeObjectURL(codeUrl);
+									resolve(module);
+								});
 							} catch (e) {
 								reject(e);
 							}
