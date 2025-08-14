@@ -1,10 +1,7 @@
 mod parser;
-mod utils;
-mod walk_data;
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
-use parser::DefineParserPlugin;
 use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
@@ -15,60 +12,68 @@ use rspack_error::{
   thiserror::{self, Error},
 };
 use rspack_hook::{plugin, plugin_hook};
-use serde_json::Value;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use self::walk_data::WalkData;
+use self::parser::ProvideParserPlugin;
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
-const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
+const VALUE_DEP_PREFIX: &str = "rspack/ProvidePlugin ";
+type ProvideValue = HashMap<String, Vec<String>>;
 
 #[derive(Debug, Error, MietteDiagnostic)]
-#[error("DefinePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
+#[error("ProvidePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
 #[diagnostic(severity(Warning))]
 struct ConflictingValuesError(String, String, String);
 
-pub type DefineValue = HashMap<String, Value>;
-
 #[plugin]
-#[derive(Debug)]
-pub struct DefinePlugin {
-  walk_data: Arc<WalkData>,
+#[derive(Default, Debug, Clone)]
+pub struct ProvidePlugin {
+  provide: Arc<ProvideValue>,
+  names: Arc<HashSet<String>>,
 }
 
-impl DefinePlugin {
-  pub fn new(definitions: DefineValue) -> Self {
-    Self::new_inner(Arc::new(WalkData::new(&definitions)))
+impl ProvidePlugin {
+  pub fn new(provide: ProvideValue) -> Self {
+    let names = provide
+      .keys()
+      .flat_map(|name| {
+        let splitted: Vec<&str> = name.split('.').collect();
+        // splitted.len() is always greater than 0
+        (0..splitted.len() - 1)
+          .map(|i| splitted[0..i + 1].join("."))
+          .collect::<Vec<_>>()
+      })
+      .collect::<HashSet<_>>();
+    Self::new_inner(provide.into(), names.into())
   }
 }
 
-#[plugin_hook(CompilerCompilation for DefinePlugin, tracing=false)]
+#[plugin_hook(CompilerCompilation for ProvidePlugin, tracing=false)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
-  for (key, value) in self.walk_data.tiling_definitions.iter() {
+  for (key, value) in self.provide.iter() {
     let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
+    let value = value.join(".");
     if let Some(prev) = compilation.value_cache_versions.get(&cache_key)
-      && prev != value
+      && prev != &value
     {
       compilation.push_diagnostic(
-        ConflictingValuesError(key.clone(), prev.clone(), value.clone())
+        ConflictingValuesError(key.clone(), prev.clone(), value)
           .boxed()
           .into(),
       );
     } else {
-      compilation
-        .value_cache_versions
-        .insert(cache_key, value.clone());
+      compilation.value_cache_versions.insert(cache_key, value);
     }
   }
 
   Ok(())
 }
 
-#[plugin_hook(NormalModuleFactoryParser for DefinePlugin, tracing=false)]
+#[plugin_hook(NormalModuleFactoryParser for ProvidePlugin)]
 async fn nmf_parser(
   &self,
   module_type: &ModuleType,
@@ -78,14 +83,17 @@ async fn nmf_parser(
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
-    parser.add_parser_plugin(Box::new(DefineParserPlugin::new(self.walk_data.clone())));
+    parser.add_parser_plugin(Box::new(ProvideParserPlugin::new(
+      self.provide.clone(),
+      self.names.clone(),
+    )));
   }
   Ok(())
 }
 
-impl Plugin for DefinePlugin {
+impl Plugin for ProvidePlugin {
   fn name(&self) -> &'static str {
-    "rspack.DefinePlugin"
+    "rspack.ProvidePlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
