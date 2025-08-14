@@ -29,6 +29,9 @@ export function nonWebpackRequire(): RequireFn {
 								new Blob([loaderCode], { type: "text/javascript" })
 							);
 							try {
+								// We have to use `eval` to prevent this dynamic import being handled by any bundler.
+								// Applications should config their CSP to allow `unsafe-eval`.
+								// In the future, we may find a better way to handle this, such as user-injected module executor.
 								// biome-ignore lint/security/noGlobalEval: use `eval("import")` rather than `import` to suppress the warning in @rspack/browser
 								const modulePromise = eval(
 									`import("${codeUrl}")`
