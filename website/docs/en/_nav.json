@@ -35,6 +35,10 @@
     "activeMatch": "/contribute"
   },
   {
+    "text": "Playground",
+    "link": "https://repl.rspack.rs/"
+  },
+  {
     "text": "Version",
     "items": [
       {
