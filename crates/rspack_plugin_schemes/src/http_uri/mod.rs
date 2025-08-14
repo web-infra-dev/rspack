@@ -51,13 +51,18 @@ async fn resolve_content(
   url: &str,
   options: &HttpUriPluginOptions,
 ) -> miette::Result<ContentFetchResult> {
-  let result = fetch_content(url, options)
-    .await
-    .to_rspack_result_from_anyhow()?;
-  match result {
-    FetchResultType::Content(content) => Ok(content),
-    FetchResultType::Redirect(redirect) => {
-      Box::pin(resolve_content(&redirect.location, options)).await
+  // avoid recursive async calls which may capture non-Send futures by
+  // iteratively following redirects until content is returned
+  let mut current_url = url.to_string();
+  loop {
+    let result = fetch_content(&current_url, options)
+      .await
+      .to_rspack_result_from_anyhow()?;
+    match result {
+      FetchResultType::Content(content) => return Ok(content),
+      FetchResultType::Redirect(redirect) => {
+        current_url = redirect.location;
+      }
     }
   }
 }
