@@ -27,6 +27,10 @@ const replaceDtsPlugin: rsbuild.RsbuildPlugin = {
 					relativeBindingDts = `./${relativeBindingDts}`;
 				}
 				const replacedDts = dts
+					.replaceAll(
+						'import("@rspack/binding")',
+						`import("${relativeBindingDts}")`
+					)
 					.replaceAll('from "@rspack/binding"', `from "${relativeBindingDts}"`)
 					.replaceAll(
 						'declare module "@rspack/binding"',
