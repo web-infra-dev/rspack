@@ -34,7 +34,6 @@ import {
 	EnableLibraryPlugin,
 	EnableWasmLoadingPlugin,
 	EnsureChunkConditionsPlugin,
-	EsmLibraryPlugin,
 	EvalDevToolModulePlugin,
 	EvalSourceMapDevToolPlugin,
 	ExternalsPlugin,
@@ -150,10 +149,6 @@ export class RspackOptionsApply {
 				}
 				case "module": {
 					new ModuleChunkFormatPlugin().apply(compiler);
-					break;
-				}
-				case "esm": {
-					new EsmLibraryPlugin().apply(compiler);
 					break;
 				}
 				default:
