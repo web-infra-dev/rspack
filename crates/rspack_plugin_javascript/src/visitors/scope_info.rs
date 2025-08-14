@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -260,10 +261,24 @@ impl TagInfo {
   }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum FreeName {
-  String(String),
-  True,
+bitflags! {
+  #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+  pub struct VariableInfoFlags: u8 {
+    const EVALUATED = 0b000;
+    const FREE = 0b001;
+    const NORMAL = 0b010;
+    const TAGGED = 0b100;
+  }
+}
+
+impl VariableInfoFlags {
+  pub fn is_free(&self) -> bool {
+    self.contains(VariableInfoFlags::FREE)
+  }
+
+  pub fn is_tagged(&self) -> bool {
+    self.contains(VariableInfoFlags::TAGGED)
+  }
 }
 
 /// Similar to `VariableInfo` in webpack but more general.
@@ -274,28 +289,29 @@ pub struct VariableInfo {
   id: VariableInfoId,
   pub declared_scope: ScopeInfoId,
 
-  /// `free_name` is used for special identifiers such as `require` in
-  /// CommonJS:
+  /// `name` is alias name for free variable or tagged variable.
+  ///
+  /// For free variable:
   ///
   /// ```ignore
   /// let alias = require;
   /// ```
   ///
-  /// The info about `alias` becomes:
+  /// The name for variable `alias` is `Some("require")`, so `call_hooks_name`
+  /// will call the aliased name `"require"` for hooks.
+  ///
+  /// For tagged variable:
   ///
   /// ```ignore
-  /// VariableInfo {
-  ///   id: self_id,
-  ///   declared_scope: function_f_scope,
-  ///   free_name: Some("require"),
-  /// }
+  /// import { a } from "./m";
+  /// a.b;
   /// ```
-  /// This can help us redirect the invocation, such as `alias(something)`,
-  /// into `require(something)`.
   ///
-  /// Furthermore, if the value of this field is `Some(FreeName::True)`, it means
-  /// we can skip further handling.
-  pub free_name: Option<FreeName>,
+  /// The variable `a` is tagged as `ESM_SPECIFIER_TAG`, so `call_hooks_name`
+  /// will call the aliased name `"a"` for hooks.
+  pub name: Option<String>,
+
+  pub flags: VariableInfoFlags,
 
   /// For example, if we want to bundle a case that has the same name as one
   /// already used in the webpack output, we must rename the argument
@@ -316,8 +332,6 @@ pub struct VariableInfo {
   ///
   /// ```ignore
   /// VariableInfo {
-  ///   id: self_id,
-  ///   declared_scope: function_f_scope,
   ///   free_name: Some("__webpack_require__"),
   ///   tag: Some(Tag {
   ///     tag: COMPACT_WEBPACK_RUNTIME_REQUIRE_IDENTIFIER,
@@ -338,14 +352,16 @@ impl VariableInfo {
   pub fn create(
     definitions_db: &mut ScopeInfoDB,
     declared_scope: ScopeInfoId,
-    free_name: Option<FreeName>,
+    name: Option<String>,
+    flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
     let id = definitions_db.variable_info_db.next();
     let variable_info = VariableInfo {
       id,
       declared_scope,
-      free_name,
+      name,
+      flags,
       tag_info,
     };
     let prev = definitions_db

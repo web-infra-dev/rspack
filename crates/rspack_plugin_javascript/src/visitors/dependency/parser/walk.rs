@@ -20,10 +20,7 @@ use super::{
   TopLevelScope,
   estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
-use crate::{
-  parser_plugin::{JavascriptParserPlugin, is_logic_op},
-  visitors::scope_info::FreeName,
-};
+use crate::parser_plugin::{JavascriptParserPlugin, is_logic_op};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
@@ -804,12 +801,7 @@ impl JavascriptParser<'_> {
       {
         let variable = parser
           .get_variable_info(&rename_identifier)
-          .map(|info| info.free_name.as_ref())
-          .and_then(|free_name| free_name)
-          .and_then(|free_name| match free_name {
-            FreeName::String(s) => Some(s.to_string()),
-            FreeName::True => None,
-          })
+          .and_then(|info| info.name.clone())
           .unwrap_or(rename_identifier);
         return Some(variable);
       }
@@ -1117,12 +1109,7 @@ impl JavascriptParser<'_> {
         {
           let variable = self
             .get_variable_info(&rename_identifier)
-            .map(|info| info.free_name.as_ref())
-            .and_then(|free_name| free_name)
-            .and_then(|free_name| match free_name {
-              FreeName::String(s) => Some(s.to_string()),
-              FreeName::True => None,
-            })
+            .and_then(|info| info.name.clone())
             .unwrap_or(rename_identifier);
           self.set_variable(ident.sym.to_string(), variable);
         }
