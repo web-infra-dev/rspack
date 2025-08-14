@@ -35,6 +35,10 @@
     "activeMatch": "/contribute"
   },
   {
+    "text": "REPL",
+    "link": "https://repl.rspack.rs/"
+  },
+  {
     "text": "版本",
     "items": [
       {
