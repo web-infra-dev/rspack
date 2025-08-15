@@ -2,7 +2,7 @@ use swc_core::{
   common::Spanned,
   ecma::ast::{
     DefaultDecl, ExportSpecifier, ExprStmt, ImportDecl, ImportSpecifier, ModuleDecl,
-    ModuleExportName, ModuleItem, Stmt, VarDecl, VarDeclKind,
+    ModuleExportName, ModuleItem, Stmt,
   },
 };
 
@@ -13,7 +13,11 @@ use super::{
     ExportLocal, ExportNamedDeclaration, MaybeNamedClassDecl, Statement,
   },
 };
-use crate::{JS_DEFAULT_KEYWORD, parser_plugin::JavascriptParserPlugin};
+use crate::{
+  JS_DEFAULT_KEYWORD,
+  parser_plugin::JavascriptParserPlugin,
+  visitors::{VariableDeclaration, VariableDeclarationKind},
+};
 
 impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
@@ -105,8 +109,8 @@ impl JavascriptParser<'_> {
     }
   }
 
-  pub(super) fn block_pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
-    if decl.kind != VarDeclKind::Var {
+  pub(super) fn block_pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
+    if decl.kind() != VariableDeclarationKind::Var {
       self._pre_walk_variable_declaration(decl);
     }
   }
