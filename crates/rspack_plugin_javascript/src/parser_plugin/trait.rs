@@ -4,7 +4,7 @@ use swc_core::{
   ecma::ast::{
     AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident,
     IfStmt, ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr,
-    UnaryExpr, VarDecl, VarDeclarator,
+    UnaryExpr, VarDeclarator,
   },
 };
 
@@ -12,7 +12,7 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-    ExportedVariableInfo, JavascriptParser, Statement,
+    ExportedVariableInfo, JavascriptParser, Statement, VariableDeclaration,
   },
 };
 
@@ -74,7 +74,7 @@ pub trait JavascriptParserPlugin {
     &self,
     _parser: &mut JavascriptParser,
     _declarator: &VarDeclarator,
-    _declaration: &VarDecl,
+    _declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     None
   }
@@ -257,7 +257,7 @@ pub trait JavascriptParserPlugin {
     &self,
     _parser: &mut JavascriptParser,
     _expr: &VarDeclarator,
-    _stmt: &VarDecl,
+    _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     None
   }

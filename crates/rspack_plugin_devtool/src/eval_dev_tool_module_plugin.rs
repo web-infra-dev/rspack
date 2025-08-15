@@ -155,7 +155,7 @@ async fn eval_devtool_plugin_render_module_content(
     );
 
     let module_content =
-      simd_json::to_string(&format!("{source}{footer}")).expect("failed to parse string");
+      simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("failed to parse string");
     RawStringSource::from(format!(
       "eval({});",
       if compilation.options.output.trusted_types.is_some() {

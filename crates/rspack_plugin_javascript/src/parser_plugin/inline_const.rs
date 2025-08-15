@@ -4,7 +4,7 @@ use rspack_core::{
   PrefetchExportsInfoMode, RuntimeSpec, UsedName,
 };
 use rspack_util::ryu_js;
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDecl, VarDeclKind, VarDeclarator};
+use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -13,7 +13,9 @@ use crate::{
     BasicEvaluatedExpression, evaluate_to_boolean, evaluate_to_null, evaluate_to_number,
     evaluate_to_string, evaluate_to_undefined,
   },
-  visitors::{JavascriptParser, TagInfoData, TopLevelScope},
+  visitors::{
+    JavascriptParser, TagInfoData, TopLevelScope, VariableDeclaration, VariableDeclarationKind,
+  },
 };
 
 pub const INLINABLE_CONST_TAG: &str = "inlinable const";
@@ -79,12 +81,12 @@ impl JavascriptParserPlugin for InlineConstPlugin {
     &self,
     parser: &mut JavascriptParser,
     declarator: &VarDeclarator,
-    declaration: &VarDecl,
+    declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if !parser.has_inlinable_const_decls || !matches!(parser.top_level_scope, TopLevelScope::Top) {
       return None;
     }
-    if matches!(declaration.kind, VarDeclKind::Const)
+    if matches!(declaration.kind(), VariableDeclarationKind::Const)
       && let Some(name) = declarator.name.as_ident()
       && let Some(init) = &declarator.init
     {
