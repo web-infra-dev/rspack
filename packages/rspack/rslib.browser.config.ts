@@ -92,6 +92,7 @@ export default defineConfig({
 		],
 		copy: {
 			patterns: [
+				// Copy everything in `@rspack/binding` that is needed in browser
 				path.resolve(bindingDir, "rspack.wasi-browser.js"),
 				path.resolve(bindingDir, "wasi-worker-browser.mjs"),
 				path.resolve(bindingDir, "napi-binding.d.ts"),
