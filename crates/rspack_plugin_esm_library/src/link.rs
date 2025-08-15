@@ -76,7 +76,7 @@ impl EsmLibraryPlugin {
         let mut decl_modules = IdentifierIndexSet::default();
         let mut hoisted_modules = IdentifierIndexSet::default();
 
-        modules.iter().for_each(|m| {
+        for m in modules.iter() {
           let info = concate_modules_map
             .get(m)
             .unwrap_or_else(|| panic!("should have set module info for {m}"));
@@ -86,7 +86,7 @@ impl EsmLibraryPlugin {
           } else {
             decl_modules.insert(*m);
           }
-        });
+        }
 
         // non-scope-hoisted modules sort by identifier to get better gzip
         decl_modules.sort_unstable();
@@ -99,8 +99,8 @@ impl EsmLibraryPlugin {
         });
 
         let chunk_link = ChunkLinkContext {
-          hoisted_modules: hoisted_modules,
-          decl_modules: decl_modules,
+          hoisted_modules,
+          decl_modules,
           ..Default::default()
         };
 
@@ -165,7 +165,7 @@ impl EsmLibraryPlugin {
 
           let mut ns_obj = Vec::new();
           let exports_info = module_graph.get_exports_info(module_info_id);
-          for (_name, export_info) in exports_info.as_data(&module_graph).exports() {
+          for export_info in exports_info.as_data(&module_graph).exports().values() {
             if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
               continue;
             }
@@ -266,7 +266,7 @@ impl EsmLibraryPlugin {
     if std::env::var("RSPACK_ESM_DEBUG").is_ok() {
       std::fs::write(
         "RSPACK_ESM_DEBUG.json",
-        &get_debug_info(compilation, &concate_modules_map),
+        get_debug_info(compilation, concate_modules_map),
       )
       .expect("should write debug info to file");
     }
@@ -423,16 +423,13 @@ impl EsmLibraryPlugin {
       };
 
       if info.name.is_none() {
-        info.name = Some(
-          find_new_name(
-            "",
-            &chunk_link.used_names,
-            readable_ids
-              .get(external_module)
-              .expect("should have value"),
-          )
-          .into(),
-        );
+        info.name = Some(find_new_name(
+          "",
+          &chunk_link.used_names,
+          readable_ids
+            .get(external_module)
+            .expect("should have value"),
+        ));
       }
     }
 
@@ -725,7 +722,7 @@ impl EsmLibraryPlugin {
             .get_exports_info(exported_module)
             .as_data(&module_graph);
 
-          for (_, export) in exports_info.exports() {
+          for export in exports_info.exports().values() {
             if matches!(export.global_used(), Some(UsageState::Unused)) {
               continue;
             }
@@ -975,7 +972,7 @@ impl EsmLibraryPlugin {
         }
       }
 
-      for (_, (_, binding_ref)) in &mut dyn_refs {
+      for (_, binding_ref) in &mut dyn_refs.values_mut() {
         match binding_ref {
           Ref::Symbol(symbol_ref) => {
             let ref_module_info = concate_modules_map
@@ -1267,7 +1264,7 @@ impl EsmLibraryPlugin {
                 let symbol = info
                   .internal_names
                   .get(&direct_export)
-                  .unwrap_or_else(|| panic!("should set internal name for {}", direct_export));
+                  .unwrap_or_else(|| panic!("should set internal name for {direct_export}"));
 
                 return Ref::Symbol(SymbolRef::new(
                   info.module,

@@ -372,9 +372,9 @@ impl EsmLibraryPlugin {
       source: Arc::new(final_source),
     }))
   }
-  pub async fn render_runtime<'me>(
+  pub async fn render_runtime(
     chunk_ukey: &ChunkUkey,
-    compilation: &'me Compilation,
+    compilation: &Compilation,
   ) -> Result<ConcatSource> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
