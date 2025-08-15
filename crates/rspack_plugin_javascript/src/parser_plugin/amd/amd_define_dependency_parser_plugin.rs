@@ -24,7 +24,9 @@ use crate::{
     local_module_dependency::LocalModuleDependency,
   },
   utils::eval::BasicEvaluatedExpression,
-  visitors::{JavascriptParser, Statement, context_reg_exp, create_context_dependency},
+  visitors::{
+    ExportedVariableInfo, JavascriptParser, Statement, context_reg_exp, create_context_dependency,
+  },
 };
 
 pub struct AMDDefineDependencyParserPlugin;
@@ -494,8 +496,8 @@ impl AMDDefineDependencyParserPlugin {
           for (name, &rename_identifier) in fn_renames.iter() {
             let variable = parser
               .get_variable_info(rename_identifier)
-              .and_then(|info| info.name.clone())
-              .unwrap_or(rename_identifier.to_string());
+              .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
             parser.set_variable(name.to_string(), variable);
           }
 
@@ -550,8 +552,8 @@ impl AMDDefineDependencyParserPlugin {
               for (name, &rename_identifier) in fn_renames.iter() {
                 let variable = parser
                   .get_variable_info(rename_identifier)
-                  .and_then(|info| info.name.clone())
-                  .unwrap_or(rename_identifier.to_string());
+                  .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
                 parser.set_variable(name.to_string(), variable);
               }
 

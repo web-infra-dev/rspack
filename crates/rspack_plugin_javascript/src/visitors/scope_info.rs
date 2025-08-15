@@ -271,16 +271,6 @@ bitflags! {
   }
 }
 
-impl VariableInfoFlags {
-  pub fn is_free(&self) -> bool {
-    self.contains(VariableInfoFlags::FREE)
-  }
-
-  pub fn is_tagged(&self) -> bool {
-    self.contains(VariableInfoFlags::TAGGED)
-  }
-}
-
 /// Similar to `VariableInfo` in webpack but more general.
 /// For example, webpack will only store a string when both
 /// `free_name` and `tag_info` are `None`, but we use `VariableInfo` instead.
@@ -374,6 +364,14 @@ impl VariableInfo {
 
   pub fn id(&self) -> VariableInfoId {
     self.id
+  }
+
+  pub fn is_free(&self) -> bool {
+    self.flags.contains(VariableInfoFlags::FREE)
+  }
+
+  pub fn is_tagged(&self) -> bool {
+    self.flags.contains(VariableInfoFlags::TAGGED)
   }
 }
 

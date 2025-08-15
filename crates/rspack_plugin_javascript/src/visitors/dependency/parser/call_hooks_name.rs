@@ -27,7 +27,7 @@ impl CallHooksName for &str {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
-      // unresolved variable, for example the global `require` in commonjs.
+      // unresolved free variable, for example the global `require` in commonjs.
       hook_call(parser, self)
     }
   }
@@ -136,7 +136,7 @@ where
 
   let info = parser.definitions_db.expect_get_variable(id);
   if let Some(name) = &info.name
-    && (info.flags.is_free() || info.flags.is_tagged())
+    && (info.is_free() || info.is_tagged())
   {
     let result = hook_call(parser, &name.to_string());
     if result.is_some() {

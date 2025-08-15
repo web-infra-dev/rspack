@@ -484,11 +484,6 @@ impl<'parser> JavascriptParser<'parser> {
     self.module_layer
   }
 
-  pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
-    let id = self.definitions_db.get(self.definitions, name)?;
-    Some(self.definitions_db.expect_get_mut_variable(id))
-  }
-
   pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
@@ -521,7 +516,7 @@ impl<'parser> JavascriptParser<'parser> {
     let Some(name) = &info.name else {
       return None;
     };
-    if !info.flags.is_free() {
+    if !info.is_free() {
       return None;
     }
     Some(FreeInfo {
@@ -537,7 +532,7 @@ impl<'parser> JavascriptParser<'parser> {
     let Some(name) = &info.name else {
       return None;
     };
-    if !info.flags.is_free() && !info.flags.is_tagged() {
+    if !info.is_free() && !info.is_tagged() {
       return None;
     }
     Some(FreeInfo {
@@ -571,20 +566,25 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(definitions, name, info);
   }
 
-  pub fn set_variable(&mut self, name: String, variable: String) {
-    if self.get_variable_info(&variable).is_none() {
-      let id = self.definitions;
-      if name == variable {
-        self.definitions_db.delete(id, &name);
-      } else {
-        let variable = VariableInfo::create(
-          &mut self.definitions_db,
-          id,
-          Some(variable),
-          VariableInfoFlags::FREE,
-          None,
-        );
-        self.definitions_db.set(id, name, variable);
+  pub fn set_variable(&mut self, name: String, variable: ExportedVariableInfo) {
+    let scope_id = self.definitions;
+    match variable {
+      ExportedVariableInfo::Name(variable) => {
+        if name == variable {
+          self.definitions_db.delete(scope_id, &name);
+        } else {
+          let variable = VariableInfo::create(
+            &mut self.definitions_db,
+            scope_id,
+            Some(variable),
+            VariableInfoFlags::FREE,
+            None,
+          );
+          self.definitions_db.set(scope_id, name, variable);
+        }
+      }
+      ExportedVariableInfo::VariableInfo(variable) => {
+        self.definitions_db.set(scope_id, name, variable);
       }
     }
   }
@@ -1110,7 +1110,9 @@ impl JavascriptParser<'_> {
           .or_else(|| {
             let info = self.get_variable_info(name);
             if let Some(info) = info {
-              if let Some(name) = &info.name {
+              if let Some(name) = &info.name
+                && (info.is_free() || info.is_tagged())
+              {
                 let mut eval =
                   BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
                 eval.set_identifier(
@@ -1157,7 +1159,9 @@ impl JavascriptParser<'_> {
             .evaluate_identifier(self, "this", this.span.real_lo(), this.span.hi.0)
             .or_else(default_eval);
         };
-        if let Some(name) = &info.name {
+        if let Some(name) = &info.name
+          && (info.is_free() || info.is_tagged())
+        {
           // avoid ownership
           let name = name.to_string();
           return drive

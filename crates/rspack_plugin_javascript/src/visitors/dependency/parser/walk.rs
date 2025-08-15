@@ -20,7 +20,10 @@ use super::{
   TopLevelScope,
   estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
-use crate::parser_plugin::{JavascriptParserPlugin, is_logic_op};
+use crate::{
+  parser_plugin::{JavascriptParserPlugin, is_logic_op},
+  visitors::ExportedVariableInfo,
+};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
@@ -370,7 +373,10 @@ impl JavascriptParser<'_> {
             .rename(self, init, &renamed_identifier)
             .unwrap_or_default()
           {
-            self.set_variable(ident.sym.to_string(), renamed_identifier);
+            self.set_variable(
+              ident.sym.to_string(),
+              ExportedVariableInfo::Name(renamed_identifier),
+            );
           }
           continue;
         }
@@ -789,7 +795,7 @@ impl JavascriptParser<'_> {
     args: impl Iterator<Item = &'a Expr>,
     current_this: Option<&'a Expr>,
   ) {
-    fn get_var_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<String> {
+    fn get_var_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<ExportedVariableInfo> {
       if let Some(rename_identifier) = parser.get_rename_identifier(expr)
         && let drive = parser.plugin_drive.clone()
         && rename_identifier
@@ -801,8 +807,8 @@ impl JavascriptParser<'_> {
       {
         let variable = parser
           .get_variable_info(&rename_identifier)
-          .and_then(|info| info.name.clone())
-          .unwrap_or(rename_identifier);
+          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+          .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
         return Some(variable);
       }
       parser.walk_expression(expr);
@@ -823,7 +829,7 @@ impl JavascriptParser<'_> {
         params.push(ident);
         if variable_info_for_args
           .get(i)
-          .and_then(|i| i.as_deref())
+          .and_then(|i| i.as_ref())
           .is_none()
         {
           scope_params.push(Cow::Borrowed(pat));
@@ -836,7 +842,7 @@ impl JavascriptParser<'_> {
         params.push(ident);
         if variable_info_for_args
           .get(i)
-          .and_then(|i| i.as_deref())
+          .and_then(|i| i.as_ref())
           .is_none()
         {
           scope_params.push(Cow::Borrowed(pat));
@@ -1109,8 +1115,8 @@ impl JavascriptParser<'_> {
         {
           let variable = self
             .get_variable_info(&rename_identifier)
-            .and_then(|info| info.name.clone())
-            .unwrap_or(rename_identifier);
+            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
           self.set_variable(ident.sym.to_string(), variable);
         }
         return;
