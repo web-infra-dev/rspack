@@ -136,7 +136,7 @@ impl ExternalInterop {
     }
   }
 
-  pub fn default_access<'me>(&'me mut self, used_names: &mut HashSet<Atom>) -> Atom {
+  pub fn default_access(&mut self, used_names: &mut HashSet<Atom>) -> Atom {
     if self.required_symbol.is_none() {
       let new_name = find_new_name("", used_names, &vec![]);
       used_names.insert(new_name.clone());
