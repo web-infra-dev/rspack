@@ -40,20 +40,20 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DependenciesBlock, DependencyId, DependencyType, ErrorSpan, ExportMode, ExportProvided,
-  ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector,
-  InitFragment, InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module,
-  ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
-  ModuleLayer, ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  SpanExt, UsageState, UsedName, UsedNameItem, define_es_module_flag_statement, escape_identifier,
-  filter_runtime, get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
+  ConnectionState, Context, DEFAULT_EXPORT, DependenciesBlock, DependencyId, DependencyType,
+  ErrorSpan, ExportMode, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType,
+  FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
+  UsedNameItem, define_es_module_flag_statement, escape_identifier, filter_runtime,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -220,7 +220,7 @@ pub struct ConcatenatedModuleInfo {
 }
 
 impl ConcatenatedModuleInfo {
-  pub fn get_internal_name<'me, 'other>(&'me self, atom: &'other Atom) -> Option<&'me Atom> {
+  pub fn get_internal_name<'me>(&'me self, atom: &Atom) -> Option<&'me Atom> {
     if let Some(name) = self.internal_names.get(atom) {
       return Some(name);
     }
