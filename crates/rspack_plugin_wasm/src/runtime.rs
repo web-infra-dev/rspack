@@ -60,6 +60,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           .hash(&hash)
           .content_hash(&hash)
           .id(&PathData::prepare_id("\" + wasmModuleId + \""))
+          .filename("\" + wasmModuleName + \"")
           .runtime(chunk.runtime().as_str()),
       )
       .await?;
@@ -109,7 +110,7 @@ fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
   if supports_streaming {
     format!(
       r#"
-    __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+    __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, wasmModuleName, importsObj) {{
       var req = {req};
       var fallback = function() {{
         return req{fallback_code}
@@ -122,7 +123,7 @@ fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
     let req = req.trim_end_matches(';');
     format!(
       r#"
-    __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+    __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, wasmModuleName, importsObj) {{
       return {req}{fallback_code}
     }};
       "#
