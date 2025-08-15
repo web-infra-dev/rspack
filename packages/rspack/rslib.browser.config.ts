@@ -51,7 +51,7 @@ const replaceDtsPlugin: rsbuild.RsbuildPlugin = {
 						'declare module "@rspack/binding"',
 						`declare module "${relativeBindingDts}"`
 					);
-				fs.writeFile(filePath, replacedDts);
+				await fs.writeFile(filePath, replacedDts);
 			}
 		});
 	}
