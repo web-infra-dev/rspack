@@ -14,7 +14,9 @@ use crate::{
   dependency::PureExpressionDependency,
   is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
-  visitors::{JavascriptParser, Statement, TagInfoData, TopLevelScope},
+  visitors::{
+    JavascriptParser, Statement, TagInfoData, TopLevelScope, scope_info::VariableInfoFlags,
+  },
 };
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]
@@ -318,7 +320,12 @@ impl InnerGraphPlugin {
     }
 
     let symbol = TopLevelSymbol::new(name.clone());
-    parser.tag_variable(name.to_string(), TOP_LEVEL_SYMBOL, Some(symbol.clone()));
+    parser.tag_variable_with_flags(
+      name.to_string(),
+      TOP_LEVEL_SYMBOL,
+      Some(symbol.clone()),
+      VariableInfoFlags::NORMAL,
+    );
     symbol
   }
 }
