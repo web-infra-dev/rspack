@@ -389,9 +389,6 @@ importers:
       webpack-sources:
         specifier: 3.3.3
         version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
 
   packages/rspack-cli:
     dependencies:
