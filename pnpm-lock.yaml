@@ -376,7 +376,6 @@ importers:
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.17
-    devDependencies:
       '@swc/types':
         specifier: 0.1.23
         version: 0.1.23
