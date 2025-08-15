@@ -2,6 +2,7 @@ use std::{
   borrow::Cow,
   collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
+  path::Path,
 };
 
 use indexmap::IndexMap;
@@ -261,10 +262,16 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           None
         };
 
+        let origin_filename = Path::new(&normal_module.resource_resolved_data().resource)
+          .file_stem()
+          .and_then(|s| s.to_str())
+          .unwrap_or("");
+
         let instantiate_call = format!(
-          "{}(exports, module.id, {} {})",
+          "{}(exports, module.id, {}, {} {})",
           RuntimeGlobals::INSTANTIATE_WASM,
           serde_json::to_string(&hash).expect("should be ok"),
+          serde_json::to_string(origin_filename).expect("should be ok"),
           imports_obj.unwrap_or_default()
         );
 
