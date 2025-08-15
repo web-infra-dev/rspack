@@ -1544,12 +1544,27 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     let mode = dep.get_mode(&module_graph, *runtime, module_graph_cache);
 
     if let Some(scope) = concatenation_scope {
-      if let ExportMode::ReexportUndefined(mode) = mode {
-        scope.register_raw_export(
-          mode.name.clone(),
-          String::from("/* reexport non-default export from non-ESM */ undefined"),
-        );
+      if let Some(ref_module) = module_graph.get_module_by_dependency_id(&dep.id) {
+        match &mode {
+          ExportMode::ReexportUndefined(mode) => {
+            scope.register_raw_export(
+              mode.name.clone(),
+              String::from("/* reexport non-default export from non-ESM */ undefined"),
+            );
+          }
+
+          ExportMode::ReexportDynamicDefault(_)
+          | ExportMode::ReexportNamedDefault(_)
+          | ExportMode::ReexportNamespaceObject(_)
+          | ExportMode::ReexportFakeNamespaceObject(_)
+          | ExportMode::DynamicReexport(_)
+          | ExportMode::NormalReexport(_) => {
+            scope.register_star_export(ref_module.identifier(), mode.clone());
+          }
+          _ => {}
+        };
       }
+
       return;
     }
 
