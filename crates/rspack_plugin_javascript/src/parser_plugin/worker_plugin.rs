@@ -10,7 +10,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, NewExpr, VarDecl, VarDeclarator},
+  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, NewExpr, VarDeclarator},
 };
 
 use super::{
@@ -21,7 +21,7 @@ use super::{
 use crate::{
   dependency::{CreateScriptUrlDependency, WorkerDependency},
   utils::object_properties::get_literal_str_by_obj_prop,
-  visitors::{JavascriptParser, TagInfoData},
+  visitors::{JavascriptParser, TagInfoData, VariableDeclaration},
   webpack_comment::try_extract_webpack_magic_comment,
 };
 
@@ -277,7 +277,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     &self,
     parser: &mut JavascriptParser,
     decl: &VarDeclarator,
-    _statement: &VarDecl,
+    _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if let Some(ident) = decl.name.as_ident()
       && self.pattern_syntax.contains_key(ident.sym.as_str())

@@ -11,7 +11,7 @@ use swc_core::{
     NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat, Prop,
     PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget, Stmt,
     SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp,
-    UpdateExpr, VarDecl, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
+    UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
   },
 };
 
@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
   parser_plugin::{JavascriptParserPlugin, is_logic_op},
-  visitors::ExportedVariableInfo,
+  visitors::{ExportedVariableInfo, VariableDeclaration},
 };
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -293,6 +293,7 @@ impl JavascriptParser<'_> {
       if let Some(init) = &stmt.init {
         match init {
           VarDeclOrExpr::VarDecl(decl) => {
+            let decl = VariableDeclaration::VarDecl(decl);
             this.block_pre_walk_variable_declaration(decl);
             this.prev_statement = None;
             this.walk_variable_declaration(decl);
@@ -350,16 +351,21 @@ impl JavascriptParser<'_> {
   fn walk_for_head(&mut self, for_head: &ForHead) {
     match &for_head {
       ForHead::VarDecl(decl) => {
+        let decl = VariableDeclaration::VarDecl(decl);
+        self.block_pre_walk_variable_declaration(decl);
+        self.walk_variable_declaration(decl);
+      }
+      ForHead::UsingDecl(decl) => {
+        let decl = VariableDeclaration::UsingDecl(decl);
         self.block_pre_walk_variable_declaration(decl);
         self.walk_variable_declaration(decl);
       }
       ForHead::Pat(pat) => self.walk_pattern(pat),
-      ForHead::UsingDecl(_) => (),
     }
   }
 
-  fn walk_variable_declaration(&mut self, decl: &VarDecl) {
-    for declarator in &decl.decls {
+  fn walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
+    for declarator in decl.declarators() {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
