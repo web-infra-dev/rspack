@@ -1,8 +1,61 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
-import { defineConfig } from "@rslib/core";
+import { defineConfig, type rsbuild } from "@rslib/core";
 
 const bindingDir = path.resolve("../../crates/node_binding");
+const distDir = path.resolve("../rspack-browser/dist");
+
+/**
+ * Since `@rspack/browser` doesn't depend on `@rspack/binding`, we should directly bundle the type declarations to it.
+ * This plugin will replace the usages of `@rspack/binding` to the relative dts path in the generated .d.ts files.
+ * The `binding.d.ts` and the `napi.binding.d.ts` will be copied to the output directory with RspackCopyPlugin.
+ *
+ * The reason that we don't use `paths` in `tsconfig.json` is that it can't rewrite the module idents in `declare module`,
+ * so we decided to simply replace all instances of it.
+ */
+const replaceDtsPlugin: rsbuild.RsbuildPlugin = {
+	name: "replace-dts-plugin",
+	setup(api) {
+		api.onAfterBuild(async () => {
+			const outFiles = await fs.readdir(distDir, { recursive: true });
+			for (const file of outFiles) {
+				// Filter *.d.ts
+				if (!file.endsWith(".d.ts")) {
+					continue;
+				}
+				const filePath = path.join(distDir, file);
+
+				const dts = (await fs.readFile(filePath)).toString();
+				let relativeBindingDts = path.relative(
+					path.dirname(filePath),
+					path.join(distDir, "binding")
+				);
+
+				// Ensure relative path starts with "./"
+				if (!relativeBindingDts.startsWith("../")) {
+					relativeBindingDts = `./${relativeBindingDts}`;
+				}
+
+				// There are three cases that @rspack/binding may be used
+				// 1. import("@rspack/binding").XXX
+				// 2. import { XX } from "@rspack/binding"
+				// 3. declare module "@rspack/binding" { XX }
+				const replacedDts = dts
+					.replaceAll(
+						'import("@rspack/binding")',
+						`import("${relativeBindingDts}")`
+					)
+					.replaceAll('from "@rspack/binding"', `from "${relativeBindingDts}"`)
+					.replaceAll(
+						'declare module "@rspack/binding"',
+						`declare module "${relativeBindingDts}"`
+					);
+				await fs.writeFile(filePath, replacedDts);
+			}
+		});
+	}
+};
 
 export default defineConfig({
 	resolve: {
@@ -27,7 +80,7 @@ export default defineConfig({
 		cleanDistPath: true,
 		target: "web",
 		distPath: {
-			root: "../rspack-browser/dist"
+			root: distDir
 		},
 		externals: [
 			"@napi-rs/wasm-runtime",
@@ -39,8 +92,11 @@ export default defineConfig({
 		],
 		copy: {
 			patterns: [
+				// Copy everything in `@rspack/binding` that is needed in browser
 				path.resolve(bindingDir, "rspack.wasi-browser.js"),
 				path.resolve(bindingDir, "wasi-worker-browser.mjs"),
+				path.resolve(bindingDir, "napi-binding.d.ts"),
+				path.resolve(bindingDir, "binding.d.ts"),
 				{
 					from: path.resolve(bindingDir, "rspack.browser.wasm"),
 					to: "rspack.wasm32-wasi.wasm",
@@ -66,7 +122,8 @@ export default defineConfig({
 				fs: path.resolve("./src/browser/fs"),
 				buffer: path.resolve("./src/browser/buffer")
 			}
-		})
+		}),
+		replaceDtsPlugin
 	],
 	source: {
 		tsconfigPath: "./tsconfig.browser.json",
