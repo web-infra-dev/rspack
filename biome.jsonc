@@ -61,7 +61,9 @@
 			"!**/packages/rspack-test-tools/template/*",
 			// --- ignore runtime code in browser
 			"!**/packages/rspack/hot",
-			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
+			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js",
+			// --- ignore examples/basic test directory
+			"!**/examples/basic/**/*"
 		],
 		"ignoreUnknown": true
 	},
