@@ -1,4 +1,3 @@
-import { DEFAULT_TIMEOUT } from "./config.js";
 // Shared utility functions
 import { deepClone, generateId, validateEmail } from "./nested-utils.js";
 

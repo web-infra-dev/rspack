@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, DEFAULT_TIMEOUT, getApiUrl } from "./config.js";
+import { DEFAULT_TIMEOUT } from "./config.js";
 // Shared API utilities
 import { generateId } from "./nested-utils.js";
 

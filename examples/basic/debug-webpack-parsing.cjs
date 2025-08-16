@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('node:fs');
 
 console.log('=== DEBUGGING WEBPACK BUNDLE PARSING ===');
 
@@ -75,7 +75,7 @@ console.log('\n=== ACTUAL FORMAT DETECTED ===');
 const structureMatch = originalCode.match(/\(self\["webpackChunk[^"]+"\][^{]+\{([^}]+)/);
 if (structureMatch) {
     console.log('Detected rspack chunk format:');
-    console.log(structureMatch[0] + '...');
+    console.log(`${structureMatch[0]}...`);
     console.log('\nThis is an rspack chunk, not a standard webpack bundle!');
     console.log('Our tree shaker expects standard webpack format, not rspack chunks.');
 } else {
@@ -92,7 +92,7 @@ if (innerWebpackMatch) {
     const startIdx = originalCode.indexOf(innerWebpackMatch[0]);
     const moduleSection = originalCode.substring(startIdx, startIdx + 1000);
     console.log('Modules section preview:');
-    console.log(moduleSection + '...');
+    console.log(`${moduleSection}...`);
 } else {
     console.log('\n❌ No webpack modules object found within rspack chunk');
 }

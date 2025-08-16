@@ -27,7 +27,7 @@ const fs = {
 		// Simulated file reading for browser
 		return `Simulated content of ${path}`;
 	},
-	existsSync: path => {
+	existsSync: _path => {
 		// Simulated file existence check
 		return true;
 	}

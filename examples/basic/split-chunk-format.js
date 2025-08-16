@@ -1,4 +1,4 @@
-(self["webpackChunk"] = self["webpackChunk"] || []).push([
+(self.webpackChunk = self.webpackChunk || []).push([
 	["test"],
 	{
 		mod1: function (module, exports, __webpack_require__) {

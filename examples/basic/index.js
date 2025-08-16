@@ -3,18 +3,23 @@ console.log("Hello Rspack with Module Federation");
 // Import existing modules
 import "./lib";
 
-import { filter, map, uniq, VERSION } from "lodash-es";
+import { filter, map, VERSION } from "lodash-es";
 // Import external shared dependencies
 import React from "react";
-import ReactDOM from "react-dom/client";
-import { createApiClient, createApiClient as dynamicCreateApiClient } from "./shared/api.js";
+import {
+	createApiClient,
+	createApiClient as dynamicCreateApiClient
+} from "./shared/api.js";
 import { Button, Button as DynamicButton, Modal } from "./shared/components.js";
 // Eager shared imports - loaded immediately and shared across federated modules
 // Only import specific exports to enable better tree-shaking analysis
 // Static imports for previously dynamic modules
-import { capitalize, 
+import {
+	capitalize,
 	capitalize as dynamicCapitalize,
-	formatDate as dynamicFormatDate, formatDate } from "./shared/utils.js";
+	formatDate as dynamicFormatDate,
+	formatDate
+} from "./shared/utils.js";
 import {
 	cjsExport,
 	definedExport,
@@ -126,7 +131,7 @@ console.log("Created API client:", client);
 console.log("Static formatted date:", dynamicFormatDate(new Date()));
 console.log("Static capitalized text:", dynamicCapitalize("static hello"));
 
-const staticButton = new DynamicButton("Static Button", () =>
+const _staticButton = new DynamicButton("Static Button", () =>
 	console.log("Static button clicked!")
 );
 const staticModal = new Modal("Static Modal", "This is a static loaded modal");
