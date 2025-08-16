@@ -960,9 +960,9 @@ impl ConsumeSharedPlugin {
 
             // Inherit parent's shared key if target doesn't have one
             if !effective_keys.contains_key(target_id)
-              && let Some(key) = parent_shared_key.clone()
+              && let Some(key) = parent_shared_key.as_ref()
             {
-              effective_keys.insert(*target_id, key);
+              effective_keys.insert(*target_id, key.clone());
             }
 
             queue.push_back(*target_id);
