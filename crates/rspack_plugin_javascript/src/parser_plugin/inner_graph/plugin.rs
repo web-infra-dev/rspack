@@ -5,7 +5,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
   common::{Mark, Span, Spanned, SyntaxContext},
-  ecma::ast::{AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat},
+  ecma::ast::{
+    AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat, VarDeclarator,
+  },
 };
 
 use super::state::UsageCallback;
@@ -14,7 +16,10 @@ use crate::{
   dependency::PureExpressionDependency,
   is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
-  visitors::{JavascriptParser, Statement, TagInfoData, TopLevelScope},
+  visitors::{
+    JavascriptParser, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
+    scope_info::VariableInfoFlags,
+  },
 };
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]
@@ -318,7 +323,12 @@ impl InnerGraphPlugin {
     }
 
     let symbol = TopLevelSymbol::new(name.clone());
-    parser.tag_variable(name.to_string(), TOP_LEVEL_SYMBOL, Some(symbol.clone()));
+    parser.tag_variable_with_flags(
+      name.to_string(),
+      TOP_LEVEL_SYMBOL,
+      Some(symbol.clone()),
+      VariableInfoFlags::NORMAL,
+    );
     symbol
   }
 }
@@ -459,8 +469,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
   fn pre_declarator(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
-    decl: &swc_core::ecma::ast::VarDeclarator,
-    _stmt: &swc_core::ecma::ast::VarDecl,
+    decl: &VarDeclarator,
+    _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
       return None;
@@ -667,7 +677,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     &self,
     parser: &mut JavascriptParser,
     decl: &swc_core::ecma::ast::VarDeclarator,
-    _stmt: &swc_core::ecma::ast::VarDecl,
+    _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() {
       return None;

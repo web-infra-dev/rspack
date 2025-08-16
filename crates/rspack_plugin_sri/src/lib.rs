@@ -17,7 +17,7 @@ use html::{alter_asset_tag_groups, before_asset_tag_generation};
 pub use integrity::SubresourceIntegrityHashFunction;
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, Compilation, CompilationId, CompilationParams,
-  CompilerThisCompilation, CrossOriginLoading, Plugin, PluginContext,
+  CompilerThisCompilation, CrossOriginLoading, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -150,19 +150,14 @@ impl Plugin for SubresourceIntegrityPlugin {
     "rspack.SubresourceIntegrityPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
-    if let ChunkLoading::Enable(chunk_loading) = &options.output.chunk_loading
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    if let ChunkLoading::Enable(chunk_loading) = &ctx.compiler_options.output.chunk_loading
       && matches!(
         chunk_loading,
         ChunkLoadingType::Require | ChunkLoadingType::AsyncNode
       )
     {
       ctx
-        .context
         .compiler_hooks
         .this_compilation
         .tap(warn_non_web::new(self));
@@ -171,25 +166,21 @@ impl Plugin for SubresourceIntegrityPlugin {
     }
 
     ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(handle_assets::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .after_process_assets
       .tap(detect_unresolved_integrity::new(self));
 
     ctx
-      .context
       .compiler_hooks
       .this_compilation
       .tap(handle_compilation::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(handle_runtime::new(self));

@@ -1,8 +1,7 @@
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  ApplyContext, ChunkGraph, Compilation, CompilerEmit, CompilerOptions, Context, EntryDependency,
-  Filename, LibIdentOptions, PathData, Plugin, PluginContext, PrefetchExportsInfoMode,
-  ProvidedExports, SourceType,
+  ChunkGraph, Compilation, CompilerEmit, Context, EntryDependency, Filename, LibIdentOptions,
+  PathData, Plugin, PrefetchExportsInfoMode, ProvidedExports, SourceType,
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -45,8 +44,8 @@ impl Plugin for LibManifestPlugin {
     "rspack.LibManifestPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx.context.compiler_hooks.emit.tap(emit::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.emit.tap(emit::new(self));
     Ok(())
   }
 }

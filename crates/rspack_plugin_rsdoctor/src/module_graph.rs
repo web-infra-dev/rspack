@@ -7,7 +7,6 @@ use rspack_core::{
   ModuleIdsArtifact, rspack_sources::MapOptions,
 };
 use rspack_paths::Utf8PathBuf;
-use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -121,7 +120,7 @@ pub fn collect_concatenated_modules(
 
 pub fn collect_module_original_sources(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &FxDashMap<Identifier, ModuleUkey>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) -> Vec<RsdoctorModuleOriginalSource> {
@@ -167,7 +166,7 @@ pub fn collect_module_original_sources(
 
 pub fn collect_module_dependencies(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &FxDashMap<Identifier, ModuleUkey>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
 ) -> HashMap<Identifier, HashMap<Identifier, (DependencyId, RsdoctorDependency)>> {
   let dependency_ukey_counter = Arc::new(AtomicI32::new(0));
@@ -220,7 +219,7 @@ pub fn collect_module_dependencies(
 
 pub fn collect_module_ids(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &FxDashMap<Identifier, ModuleUkey>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_ids: &ModuleIdsArtifact,
 ) -> Vec<RsdoctorModuleId> {
   modules

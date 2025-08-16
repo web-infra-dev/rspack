@@ -61,9 +61,7 @@
 			"!**/packages/rspack-test-tools/template/*",
 			// --- ignore runtime code in browser
 			"!**/packages/rspack/hot",
-			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js",
-			// --- ignore example files with many lint issues
-			"!**/examples/basic/**"
+			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
 		],
 		"ignoreUnknown": true
 	},

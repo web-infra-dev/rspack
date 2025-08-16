@@ -7,19 +7,14 @@ pub use context::*;
 pub use plugin_driver::*;
 use rspack_error::Result;
 
-use crate::{CompilerOptions, compiler::CompilationId};
+use crate::compiler::CompilationId;
 
-#[async_trait::async_trait]
 pub trait Plugin: fmt::Debug + Send + Sync {
   fn name(&self) -> &'static str {
     "unknown"
   }
 
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, _ctx: &mut ApplyContext) -> Result<()> {
     Ok(())
   }
 

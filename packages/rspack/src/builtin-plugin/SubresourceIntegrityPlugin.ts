@@ -255,55 +255,71 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 			typeof this.options.htmlPlugin === "string" &&
 			this.options.htmlPlugin !== NATIVE_HTML_PLUGIN
 		) {
-			nonWebpackRequire()(this.options.htmlPlugin)
-				.then(htmlPlugin => {
-					const getHooks: (compilation: Compilation) => HtmlPluginHooks =
-						htmlPlugin.getCompilationHooks || htmlPlugin.getHooks;
+			const self = this;
+			function bindingHtmlHooks(htmlPlugin: any) {
+				const getHooks: (compilation: Compilation) => HtmlPluginHooks =
+					htmlPlugin.getCompilationHooks || htmlPlugin.getHooks;
 
-					if (typeof getHooks === "function") {
-						compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
-							if (
-								typeof compiler.options.output.chunkLoading === "string" &&
-								["require", "async-node"].includes(
-									compiler.options.output.chunkLoading
-								)
-							) {
-								return;
+				if (typeof getHooks === "function") {
+					compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+						if (
+							typeof compiler.options.output.chunkLoading === "string" &&
+							["require", "async-node"].includes(
+								compiler.options.output.chunkLoading
+							)
+						) {
+							return;
+						}
+						const hwpHooks = getHooks!(compilation);
+						hwpHooks.beforeAssetTagGeneration.tapPromise(
+							PLUGIN_NAME,
+							async data => {
+								self.handleHwpPluginArgs(data);
+								return data;
 							}
-							const hwpHooks = getHooks!(compilation);
-							hwpHooks.beforeAssetTagGeneration.tapPromise(
-								PLUGIN_NAME,
-								async data => {
-									this.handleHwpPluginArgs(data);
-									return data;
-								}
-							);
+						);
 
-							hwpHooks.alterAssetTagGroups.tapPromise(
-								{
-									name: PLUGIN_NAME,
-									stage: 10000
-								},
-								async data => {
-									this.handleHwpBodyTags(
-										data,
-										compiler.outputPath,
-										compiler.options.output.crossOriginLoading
-									);
-									return data;
-								}
-							);
-						});
-					}
-				})
-				.catch(e => {
+						hwpHooks.alterAssetTagGroups.tapPromise(
+							{
+								name: PLUGIN_NAME,
+								stage: 10000
+							},
+							async data => {
+								self.handleHwpBodyTags(
+									data,
+									compiler.outputPath,
+									compiler.options.output.crossOriginLoading
+								);
+								return data;
+							}
+						);
+					});
+				}
+			}
+
+			if (IS_BROWSER) {
+				nonWebpackRequire()(this.options.htmlPlugin)
+					.then(bindingHtmlHooks)
+					.catch(e => {
+						if (
+							!isErrorWithCode(e as Error) ||
+							(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
+						) {
+							throw e;
+						}
+					});
+			} else {
+				try {
+					bindingHtmlHooks(require(this.options.htmlPlugin));
+				} catch (e) {
 					if (
 						!isErrorWithCode(e as Error) ||
 						(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
 					) {
 						throw e;
 					}
-				});
+				}
+			}
 		}
 	}
 }

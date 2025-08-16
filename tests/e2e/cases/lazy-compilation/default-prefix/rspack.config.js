@@ -9,14 +9,16 @@ module.exports = {
   stats: "none",
   mode: "development",
   plugins: [new rspack.HtmlRspackPlugin()],
-  experiments: {
-    lazyCompilation: {
-      entries: true,
-      imports: true
-      // Using default prefix (not specifying prefix option)
-    }
-  },
+	lazyCompilation: {
+		entries: true,
+		imports: true
+		// Using default prefix (not specifying prefix option)
+	},
+	devtool: false,
   devServer: {
-    hot: true
+    hot: true,
+		devMiddleware: {
+			writeToDisk: true
+		}
   }
 };

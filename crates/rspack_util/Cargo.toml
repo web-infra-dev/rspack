@@ -20,6 +20,7 @@ ropey            = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_paths     = { workspace = true }
 rustc-hash       = { workspace = true }
+ryu-js           = { workspace = true }
 serde            = { workspace = true }
 serde_json       = { workspace = true }
 sugar_path       = { workspace = true }
@@ -28,8 +29,16 @@ unicase          = { workspace = true }
 swc_config = { workspace = true }
 swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
 
+# wasm runtime
+anyhow            = { workspace = true, optional = true }
+once_cell         = { workspace = true, optional = true }
+swc_plugin_runner = { workspace = true, optional = true }
+wasi-common       = { workspace = true, optional = true, features = ["sync", "wasmtime"] }
+wasmtime          = { workspace = true, optional = true, features = ["runtime", "cranelift", "threads"] }
+
 rspack_regex = { workspace = true }
 signal-hook  = { workspace = true, optional = true }
 
 [features]
-debug_tool = ["signal-hook"] # only used for local debug and  should not be enabled in production release
+debug_tool = ["signal-hook"]                                                         # only used for local debug and  should not be enabled in production release
+plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner"]

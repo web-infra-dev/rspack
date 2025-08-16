@@ -79,7 +79,7 @@ export interface Asset {
 	info: AssetInfo;
 }
 
-export type PathDataChunkLike = {
+export type ChunkPathData = {
 	id?: string;
 	name?: string;
 	hash?: string;
@@ -93,7 +93,7 @@ export type PathData = {
 	runtime?: string;
 	url?: string;
 	id?: string;
-	chunk?: Chunk | PathDataChunkLike;
+	chunk?: Chunk | ChunkPathData;
 	contentHashType?: string;
 };
 

@@ -1,0 +1,71 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# VirtualModulesPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+`rspack.experiments.VirtualModulesPlugin` 是 Rust 实现的 [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) 插件，它与 Rspack 深度集成，在提供相同功能的同时拥有更好的性能。
+
+## 使用方法
+
+### 基础用法
+
+创建一个新的 VirtualModulesPlugin 实例，可以在构造函数中传入虚拟模块：
+
+```ts
+new rspack.experiments.VirtualModulesPlugin(modules?: Record<string, string>)
+```
+
+**参数：**
+
+- `modules`（可选）：一个对象，其中键是文件路径，值是文件内容。
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new rspack.experiments.VirtualModulesPlugin({
+      'src/generated/config.js': 'export default { version: "1.0.0" };',
+      'src/generated/constants.js': `
+        export const API_URL = "${process.env.API_URL || 'http://localhost:3000'}";
+        export const DEBUG = ${process.env.NODE_ENV !== 'production'};
+      `,
+    }),
+  ],
+};
+```
+
+### 动态模块创建
+
+你可以使用 `writeModule` 方法动态创建或修改虚拟模块：
+
+```ts
+writeModule(filePath: string, contents: string): void
+```
+
+**参数：**
+
+- `filePath`：相对于 `compiler.context` 的虚拟文件路径
+- `contents`：虚拟文件的内容
+
+```js title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+const virtualModulesPlugin = new rspack.experiments.VirtualModulesPlugin();
+
+module.exports = {
+  plugins: [
+    virtualModulesPlugin,
+    {
+      apply(compiler) {
+        compiler.hooks.beforeCompile.tap('MyPlugin', () => {
+          // 动态创建模块
+          const moduleContent = generateSomeContent();
+          virtualModulesPlugin.writeModule('src/dynamic.js', moduleContent);
+        });
+      },
+    },
+  ],
+};
+```

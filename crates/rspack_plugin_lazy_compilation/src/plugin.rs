@@ -4,10 +4,9 @@ use std::{
 };
 
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerId, CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module,
-  ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin, PluginContext,
+  BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
+  DependencyType, EntryDependency, LibIdentOptions, Module, ModuleFactory, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -212,15 +211,10 @@ async fn normal_module_factory_module(
 impl<T: Backend + 'static, F: LazyCompilationTestCheck + 'static> Plugin
   for LazyCompilationPlugin<T, F>
 {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
-      .context
       .normal_module_factory_hooks
       .module
       .tap(normal_module_factory_module::new(self));

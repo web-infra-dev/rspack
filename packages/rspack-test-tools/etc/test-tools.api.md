@@ -949,6 +949,9 @@ export interface INormalProcessorOptions<T extends ECompilerType> extends IBasic
 }
 
 // @public (undocumented)
+export function isCss(filePath: string): boolean;
+
+// @public (undocumented)
 export const isDirectory: (p: string) => boolean;
 
 // @public (undocumented)
@@ -969,6 +972,9 @@ export interface ISimpleProcessorOptions<T extends ECompilerType> {
     // (undocumented)
     options?: (context: ITestContext) => TCompilerOptions<T>;
 }
+
+// @public (undocumented)
+export function isJavaScript(filePath: string): boolean;
 
 // @public (undocumented)
 export interface ISnapshotProcessorOptions<T extends ECompilerType> extends IBasicProcessorOptions<T> {

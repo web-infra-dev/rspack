@@ -60,6 +60,7 @@ jsonc-parser        = { version = "0.26.2", default-features = false, features =
 lightningcss        = { version = "1.0.0-alpha.64", default-features = false, features = ["grid", "serde"] }
 linked_hash_set     = { version = "0.1.5", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
+memchr              = { version = "2.7.5", default-features = false }
 micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.5.0", default-features = false }
 mimalloc            = { version = "0.2.4", package = "mimalloc-rspack", default-features = false }
@@ -85,6 +86,7 @@ ropey               = { version = "1.6.1", default-features = false }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.2", default-features = false }
 rspack_sources      = { version = "0.4.8", default-features = false }
 rustc-hash          = { version = "2.1.0", default-features = false }
+ryu-js              = { version = "1.0.2", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
 serde               = { version = "1.0.217", default-features = false, features = ["derive"] }
 serde_json          = { version = "1.0.134", default-features = false, features = ["std"] }
@@ -110,12 +112,13 @@ url                 = { version = "2.5.4", default-features = false }
 urlencoding         = { version = "2.1.3", default-features = false }
 ustr                = { package = "ustr-fxhash", version = "1.0.1", default-features = false }
 wasmparser          = { version = "0.222.0", default-features = false }
+winnow              = { version = "0.7.12", default-features = false, features = ["std", "simd"] }
 xxhash-rust         = { version = "0.8.14", default-features = false }
 
 # Pinned
-napi        = { version = "3.1.2", default-features = false }
-napi-build  = { version = "2.2.2", default-features = false }
-napi-derive = { version = "3.1.1", default-features = false }
+napi        = { version = "3.1.6", default-features = false }
+napi-build  = { version = "2.2.3", default-features = false }
+napi-derive = { version = "3.1.2", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
@@ -123,15 +126,18 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.1", default-features = false }
-swc                 = { version = "32.0.0", default-features = false }
+swc                 = { version = "34.0.0", default-features = false }
 swc_config          = { version = "3.1.1", default-features = false }
-swc_core            = { version = "33.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_lexer      = { version = "21.0.0", default-features = false }
-swc_ecma_minifier   = { version = "27.0.0", default-features = false }
+swc_core            = { version = "35.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "29.0.0", default-features = false }
 swc_error_reporters = { version = "16.0.1", default-features = false }
 swc_html            = { version = "25.0.0", default-features = false }
-swc_html_minifier   = { version = "27.0.0", default-features = false }
+swc_html_minifier   = { version = "29.0.0", default-features = false }
 swc_node_comments   = { version = "14.0.0", default-features = false }
+swc_plugin_runner   = { version = "18.0.0", default-features = false }
+
+wasi-common = { version = "35.0.0", default-features = false }
+wasmtime    = { version = "35.0.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 
@@ -170,7 +176,6 @@ rspack_paths                           = { version = "=0.4.11", path = "crates/r
 rspack_plugin_asset                    = { version = "=0.4.11", path = "crates/rspack_plugin_asset", default-features = false }
 rspack_plugin_banner                   = { version = "=0.4.11", path = "crates/rspack_plugin_banner", default-features = false }
 rspack_plugin_circular_dependencies    = { version = "=0.4.11", path = "crates/rspack_plugin_circular_dependencies", default-features = false }
-rspack_plugin_context_replacement      = { version = "=0.4.11", path = "crates/rspack_plugin_context_replacement", default-features = false }
 rspack_plugin_copy                     = { version = "=0.4.11", path = "crates/rspack_plugin_copy", default-features = false }
 rspack_plugin_css                      = { version = "=0.4.11", path = "crates/rspack_plugin_css", default-features = false }
 rspack_plugin_css_chunking             = { version = "=0.4.11", path = "crates/rspack_plugin_css_chunking", default-features = false }
@@ -193,6 +198,7 @@ rspack_plugin_limit_chunk_count        = { version = "=0.4.11", path = "crates/r
 rspack_plugin_merge_duplicate_chunks   = { version = "=0.4.11", path = "crates/rspack_plugin_merge_duplicate_chunks", default-features = false }
 rspack_plugin_mf                       = { version = "=0.4.11", path = "crates/rspack_plugin_mf", default-features = false }
 rspack_plugin_module_info_header       = { version = "=0.4.11", path = "crates/rspack_plugin_module_info_header", default-features = false }
+rspack_plugin_module_replacement       = { version = "=0.4.11", path = "crates/rspack_plugin_module_replacement", default-features = false }
 rspack_plugin_no_emit_on_errors        = { version = "=0.4.11", path = "crates/rspack_plugin_no_emit_on_errors", default-features = false }
 rspack_plugin_progress                 = { version = "=0.4.11", path = "crates/rspack_plugin_progress", default-features = false }
 rspack_plugin_real_content_hash        = { version = "=0.4.11", path = "crates/rspack_plugin_real_content_hash", default-features = false }
@@ -249,7 +255,7 @@ strip         = "debuginfo"
 [profile.release]
 codegen-units = 1
 debug         = false
-# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
+# Performs "fat" LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto       = "fat"
 opt-level = 3
 panic     = "abort"
@@ -337,9 +343,6 @@ opt-level = "s"
 
 
 [profile.release.package.swc_error_reporters]
-opt-level = "s"
-
-[profile.release.package.http]
 opt-level = "s"
 
 [profile.release.package.idna]

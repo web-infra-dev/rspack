@@ -1,5 +1,6 @@
 use std::collections::hash_map::Entry;
 
+use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
@@ -8,8 +9,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -1143,5 +1144,149 @@ impl<'a> ModuleGraph<'a> {
     active_partial
       .connections
       .insert(connection.dependency_id, Some(connection));
+  }
+
+  pub fn batch_set_connections_original_module(
+    &mut self,
+    tasks: Vec<(DependencyId, ModuleIdentifier)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(dep_id, original_module_identifier)| {
+        let mut con = self
+          .connection_by_dependency_id(&dep_id)
+          .expect("should have connection")
+          .clone();
+        con.original_module_identifier = Some(original_module_identifier);
+        (dep_id, con)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (dep_id, con) in changed {
+      active_partial.connections.insert(dep_id, Some(con));
+    }
+  }
+
+  pub fn batch_set_connections_module(&mut self, tasks: Vec<(DependencyId, ModuleIdentifier)>) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(dep_id, module_identifier)| {
+        let mut con = self
+          .connection_by_dependency_id(&dep_id)
+          .expect("should have connection")
+          .clone();
+        con.set_module_identifier(module_identifier);
+        (dep_id, con)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (dep_id, con) in changed {
+      active_partial.connections.insert(dep_id, Some(con));
+    }
+  }
+
+  pub fn batch_add_connections(
+    &mut self,
+    tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(mid, outgoings, incomings)| {
+        let mut mgm = self
+          .module_graph_module_by_identifier(&mid)
+          .expect("should have mgm")
+          .clone();
+        for outgoing in outgoings {
+          mgm.add_outgoing_connection(outgoing);
+        }
+        for incoming in incomings {
+          mgm.add_incoming_connection(incoming);
+        }
+        (mid, mgm)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (mid, mgm) in changed {
+      active_partial.module_graph_modules.insert(mid, Some(mgm));
+    }
+  }
+
+  pub fn batch_remove_connections(
+    &mut self,
+    tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(mid, outgoings, incomings)| {
+        let mut mgm = self
+          .module_graph_module_by_identifier(&mid)
+          .expect("should have mgm")
+          .clone();
+        for outgoing in outgoings.iter() {
+          mgm.remove_outgoing_connection(outgoing);
+        }
+        for incoming in incomings.iter() {
+          mgm.remove_incoming_connection(incoming);
+        }
+        (mid, mgm)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (mid, mgm) in changed {
+      active_partial.module_graph_modules.insert(mid, Some(mgm));
+    }
+  }
+
+  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, Atom)>) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (export_info, used_name) in tasks {
+      let ExportInfo {
+        exports_info,
+        export_name,
+      } = export_info;
+
+      let data = active_partial
+        .exports_info_map
+        .get_mut(&exports_info)
+        .expect("should have exports info");
+      match export_name {
+        ExportName::Named(name) => {
+          data
+            .named_exports_mut(&name)
+            .expect("should have named export")
+            .set_used_name(used_name);
+        }
+        ExportName::Other => {
+          data.other_exports_info_mut().set_used_name(used_name);
+        }
+        ExportName::SideEffects => {
+          data.side_effects_only_info_mut().set_used_name(used_name);
+        }
+      }
+    }
   }
 }

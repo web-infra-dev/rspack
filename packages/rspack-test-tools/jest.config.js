@@ -26,7 +26,8 @@ const wasmConfig = process.env.WASM && {
 		"Incremental-watch.test.js",
 		"Incremental-web.test.js",
 		"Incremental-webworker.test.js",
-		"NativeWatcher.test.js"
+		"NativeWatcher.test.js",
+		"NativeWatcher-webpack.test.js"
 	],
 	maxWorkers: 1,
 	maxConcurrency: 1,
