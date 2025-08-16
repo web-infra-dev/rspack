@@ -200,6 +200,45 @@ impl ShareUsagePlugin {
       }
     }
 
+    // IMPORTANT: Also check if this fallback module is used by OTHER modules (including shared modules)
+    // This handles the case where @reduxjs/toolkit (shared) imports from redux (shared)
+    // We need to check ALL incoming connections, not just from ConsumeShared
+    for connection in module_graph.get_incoming_connections(fallback_id) {
+      if let Some(origin_module) = connection.original_module_identifier {
+        // Check if this connection actually references any exports
+        if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
+          let referenced_exports = dependency.get_referenced_exports(
+            module_graph,
+            &ModuleGraphCacheArtifact::default(),
+            None,
+          );
+
+          for export_ref in referenced_exports {
+            let names = match export_ref {
+              ExtendedReferencedExport::Array(names) => {
+                names.into_iter().map(|n| n.to_string()).collect::<Vec<_>>()
+              }
+              ExtendedReferencedExport::Export(export_info) => export_info
+                .name
+                .into_iter()
+                .map(|n| n.to_string())
+                .collect::<Vec<_>>(),
+            };
+
+            for name in names {
+              // Add any export that is referenced from any module
+              if !name.is_empty()
+                && !used_exports.contains(&name)
+                && provided_exports.contains(&name)
+              {
+                used_exports.push(name);
+              }
+            }
+          }
+        }
+      }
+    }
+
     for imported in &all_imported_exports {
       if provided_exports.contains(imported) && !used_exports.contains(imported) {
         used_exports.push(imported.clone());
