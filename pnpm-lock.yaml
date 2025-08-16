@@ -1048,8 +1048,8 @@ importers:
         specifier: 1.0.3
         version: 1.0.3(@rsbuild/core@1.4.14)
       rsbuild-plugin-open-graph:
-        specifier: 1.0.2
-        version: 1.0.2(@rsbuild/core@1.4.14)
+        specifier: 1.1.0
+        version: 1.1.0(@rsbuild/core@1.4.14)
       rspress-plugin-font-open-sans:
         specifier: 1.0.0
         version: 1.0.0
@@ -7218,10 +7218,10 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  rsbuild-plugin-open-graph@1.0.2:
-    resolution: {integrity: sha512-JGBMM9T7GNX47Y3jiSJkhoK2rT1bb7+TOO6yYpMHW+/3PLD9i0vv2S4qfdskTnVo8kTNEAYzTZrd+k+XuWxcNA==}
+  rsbuild-plugin-open-graph@1.1.0:
+    resolution: {integrity: sha512-ETrmQxhs/hW7xFzDGb6CIiZ1tVOrsrGPDgPTC/49bQ+sK75y6LZ3/CvcqPNxMwdnI3Ba79l62FIFvR0uC+UISw==}
     peerDependencies:
-      '@rsbuild/core': 0.x || 1.x || ^1.0.1-beta.0
+      '@rsbuild/core': 1.x
     peerDependenciesMeta:
       '@rsbuild/core':
         optional: true
@@ -16086,7 +16086,7 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 1.4.14
 
-  rsbuild-plugin-open-graph@1.0.2(@rsbuild/core@1.4.14):
+  rsbuild-plugin-open-graph@1.1.0(@rsbuild/core@1.4.14):
     optionalDependencies:
       '@rsbuild/core': 1.4.14
 
