@@ -1,9 +1,0 @@
-{
-  "name": "share-usage-inter-dependency-test",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "redux": "^4.2.0",
-    "@reduxjs/toolkit": "^1.9.5"
-  }
-}

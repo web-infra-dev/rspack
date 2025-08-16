@@ -3,11 +3,13 @@ it("should track inter-shared-library dependencies", async () => {
 	const toolkit = await import("@reduxjs/toolkit");
 	const store = await import("./store.js");
 	
-	// Use configureStore from toolkit
+	// Use configureStore from toolkit (which internally uses redux functions)
 	const myStore = toolkit.configureStore({
 		reducer: {
 			counter: store.counterReducer
-		}
+		},
+		middleware: [],
+		enhancers: []
 	});
 	
 	// The store should work correctly
@@ -31,4 +33,10 @@ it("should track inter-shared-library dependencies", async () => {
 	});
 	expect(slice.name).toBe("test");
 	expect(typeof slice.reducer).toBe("function");
+	expect(typeof slice.actions.testAction).toBe("function");
+	
+	// Test createAction
+	const action = toolkit.createAction("test/action");
+	expect(typeof action).toBe("function");
+	expect(action.type).toBe("test/action");
 });
