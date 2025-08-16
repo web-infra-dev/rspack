@@ -8,7 +8,7 @@ use napi_derive::napi;
 use rspack_core::Resolver;
 use serde::Serialize;
 
-use crate::{ErrorCode, callbackify};
+use crate::{error::ErrorCode, utils::callbackify};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

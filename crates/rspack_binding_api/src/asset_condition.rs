@@ -30,10 +30,6 @@ impl From<RawAssetConditionsWrapper> for AssetConditions {
   }
 }
 
-pub fn into_asset_condition(r: RawAssetCondition) -> AssetCondition {
-  RawAssetConditionWrapper(r).into()
-}
-
 pub fn into_asset_conditions(r: RawAssetConditions) -> AssetConditions {
   RawAssetConditionsWrapper(r).into()
 }

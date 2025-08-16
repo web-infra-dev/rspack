@@ -44,6 +44,6 @@
     "rsbuild-plugin-open-graph": "1.0.2",
     "rspress-plugin-font-open-sans": "1.0.0",
     "rspress-plugin-sitemap": "^1.2.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   }
 }

@@ -1,6 +1,6 @@
 use napi_derive::napi;
 
-use super::AssetInfo;
+use crate::asset::AssetInfo;
 
 #[napi(object)]
 pub struct JsPathData {

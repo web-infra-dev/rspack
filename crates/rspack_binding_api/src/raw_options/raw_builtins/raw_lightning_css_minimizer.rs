@@ -5,7 +5,7 @@ use rspack_plugin_lightning_css_minimizer::{
   Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
 
-use crate::{RawAssetConditions, into_asset_conditions};
+use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
 
 #[derive(Debug)]
 #[napi(object)]

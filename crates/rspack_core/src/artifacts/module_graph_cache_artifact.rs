@@ -3,15 +3,20 @@ use std::sync::{
   atomic::{AtomicBool, Ordering},
 };
 
+use concatenated_module_entries::*;
 pub use determine_export_assignments::DetermineExportAssignmentsKey;
 use determine_export_assignments::*;
 use get_exports_type::*;
 use get_mode::*;
 use get_side_effects_connection_state::*;
+use module_graph_hash::*;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
-use crate::{ConnectionState, DependencyId, ExportInfo, ExportsType, RuntimeKey};
+use crate::{
+  ConcatenationEntry, ConnectionState, DependencyId, ExportInfo, ExportsInfo, ExportsType,
+  ModuleIdentifier, RuntimeKey,
+};
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
 /// This is a rust port of `ModuleGraph.cached` and `ModuleGraph.dependencyCacheProvide` in webpack.
@@ -25,6 +30,8 @@ pub struct ModuleGraphCacheArtifactInner {
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
   get_exports_type_cache: GetExportsTypeCache,
   get_side_effects_connection_state_cache: GetSideEffectsConnectionStateCache,
+  concatenated_module_entries: ConcatenatedModuleEntriesCache,
+  module_graph_hash_cache: ModuleGraphHashCache,
 }
 
 impl ModuleGraphCacheArtifactInner {
@@ -33,6 +40,8 @@ impl ModuleGraphCacheArtifactInner {
     self.determine_export_assignments_cache.freeze();
     self.get_exports_type_cache.freeze();
     self.get_side_effects_connection_state_cache.freeze();
+    self.concatenated_module_entries.freeze();
+    self.module_graph_hash_cache.freeze();
     self.freezed.store(true, Ordering::Release);
   }
 
@@ -101,7 +110,7 @@ impl ModuleGraphCacheArtifactInner {
 
   pub fn cached_get_side_effects_connection_state<F: FnOnce() -> ConnectionState>(
     &self,
-    key: GetSideEffectsConnectionStateCacheKey,
+    key: ModuleIdentifier,
     f: F,
   ) -> ConnectionState {
     if !self.freezed.load(Ordering::Acquire) {
@@ -117,34 +126,117 @@ impl ModuleGraphCacheArtifactInner {
       }
     }
   }
+
+  pub fn cached_concatenated_module_entries<F: FnOnce() -> Vec<ConcatenationEntry>>(
+    &self,
+    key: ConcatenatedModuleEntriesCacheKey,
+    f: F,
+  ) -> Vec<ConcatenationEntry> {
+    if !self.freezed.load(Ordering::Acquire) {
+      return f();
+    }
+
+    match self.concatenated_module_entries.get(&key) {
+      Some(value) => value,
+      None => {
+        let value = f();
+        self.concatenated_module_entries.set(key, value.clone());
+        value
+      }
+    }
+  }
+
+  pub fn cached_module_graph_hash<F: FnOnce() -> (u64, ExportsInfo, Vec<ExportsInfo>)>(
+    &self,
+    key: ModuleIdentifier,
+    f: F,
+  ) -> (u64, ExportsInfo, Vec<ExportsInfo>) {
+    if !self.freezed.load(Ordering::Acquire) {
+      return f();
+    }
+
+    match self.module_graph_hash_cache.get(&key) {
+      Some(value) => value,
+      None => {
+        let value = f();
+        self.module_graph_hash_cache.set(key, value.clone());
+        value
+      }
+    }
+  }
+}
+
+pub(super) mod module_graph_hash {
+  use rspack_collections::IdentifierDashMap;
+
+  use crate::{ExportsInfo, ModuleIdentifier};
+
+  #[derive(Debug, Default)]
+  pub struct ModuleGraphHashCache {
+    cache: IdentifierDashMap<(u64, ExportsInfo, Vec<ExportsInfo>)>,
+  }
+
+  impl ModuleGraphHashCache {
+    pub fn freeze(&self) {
+      self.cache.clear();
+    }
+
+    pub fn get(&self, key: &ModuleIdentifier) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
+      self.cache.get(key).map(|v| v.value().clone())
+    }
+
+    pub fn set(&self, key: ModuleIdentifier, value: (u64, ExportsInfo, Vec<ExportsInfo>)) {
+      self.cache.insert(key, value);
+    }
+  }
+}
+pub(super) mod concatenated_module_entries {
+  use super::*;
+  use crate::ModuleIdentifier;
+
+  pub type ConcatenatedModuleEntriesCacheKey = (ModuleIdentifier, String);
+
+  #[derive(Debug, Default)]
+  pub struct ConcatenatedModuleEntriesCache {
+    cache: dashmap::DashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
+  }
+
+  impl ConcatenatedModuleEntriesCache {
+    pub fn freeze(&self) {
+      self.cache.clear();
+    }
+
+    pub fn get(&self, key: &ConcatenatedModuleEntriesCacheKey) -> Option<Vec<ConcatenationEntry>> {
+      self.cache.get(key).map(|v| v.value().clone())
+    }
+
+    pub fn set(&self, key: ConcatenatedModuleEntriesCacheKey, value: Vec<ConcatenationEntry>) {
+      self.cache.insert(key, value);
+    }
+  }
 }
 
 pub(super) mod get_side_effects_connection_state {
-  use super::*;
+  use rspack_collections::IdentifierDashMap;
+
   use crate::{ConnectionState, ModuleIdentifier};
-  pub type GetSideEffectsConnectionStateCacheKey = ModuleIdentifier;
 
   #[derive(Debug, Default)]
   pub struct GetSideEffectsConnectionStateCache {
-    cache: RwLock<HashMap<GetSideEffectsConnectionStateCacheKey, ConnectionState>>,
+    cache: IdentifierDashMap<ConnectionState>,
   }
 
   impl GetSideEffectsConnectionStateCache {
     pub fn freeze(&self) {
-      self.cache.write().expect("should get lock").clear();
+      self.cache.clear();
     }
 
-    pub fn get(&self, key: &GetSideEffectsConnectionStateCacheKey) -> Option<ConnectionState> {
-      let inner = self.cache.read().expect("should get lock");
-      inner.get(key).copied()
+    pub fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
+      self.cache.get(key).map(|v| *v.value())
     }
 
-    pub fn set(&self, key: GetSideEffectsConnectionStateCacheKey, value: ConnectionState) {
-      self
-        .cache
-        .write()
-        .expect("should get lock")
-        .insert(key, value);
+    pub fn set(&self, key: ModuleIdentifier, value: ConnectionState) {
+      self.cache.insert(key, value);
     }
   }
 }

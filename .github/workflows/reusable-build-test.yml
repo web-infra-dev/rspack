@@ -23,7 +23,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -53,7 +53,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.53.1-jammy
+          image: mcr.microsoft.com/playwright:v1.54.2-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -69,10 +69,9 @@ jobs:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
       matrix:
         node: ${{ fromJSON(
-          inputs.target == 'wasm32-wasip1-threads'
-          && '[20]'
-          || (contains(inputs.target, 'linux') && '[16, 18, 20]'
-          || '[18]') )}}
+          inputs.target == 'wasm32-wasip1-threads'&& '[20]'
+          || contains(inputs.target, 'linux') && '[18, 20, 22]'
+          || '[22]') }}
     name: Test Node ${{ matrix.node }}
     defaults:
       run:
@@ -82,7 +81,7 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}

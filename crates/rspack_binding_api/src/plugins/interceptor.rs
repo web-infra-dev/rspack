@@ -70,19 +70,32 @@ use rspack_plugin_runtime::{
 };
 
 use crate::{
-  ChunkWrapper, JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-  JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
-  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
-  JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
-  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
-  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsCreateScriptData, JsExecuteModuleArg,
-  JsFactorizeArgs, JsFactorizeOutput, JsLinkPrefetchData, JsLinkPreloadData,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph,
-  JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch, JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals,
-  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ModuleObject, ToJsCompatSourceOwned,
+  asset::JsAssetEmittedArgs,
+  chunk::{ChunkWrapper, JsChunkAssetArgs},
+  compilation::JsCompilationWrapper,
+  context_module_factory::{
+    JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
+    JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
+  },
+  html::{
+    JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
+    JsBeforeAssetTagGenerationData, JsBeforeEmitData,
+  },
+  module::{JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ModuleObject},
+  normal_module_factory::{
+    JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
+    JsResolveForSchemeOutput,
+  },
+  rsdoctor::{
+    JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
+    JsRsdoctorModuleSourcesPatch,
+  },
+  runtime::{
+    JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
+    JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
+    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
+  },
+  source::ToJsCompatSourceOwned,
 };
 
 #[napi(object)]
@@ -485,30 +498,30 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction<(), Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
   pub register_normal_module_factory_before_resolve_taps:
-    RegisterFunction<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>>,
+    RegisterFunction<JsResolveData, Promise<(Option<bool>, JsResolveData)>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>"
   )]
   pub register_normal_module_factory_factorize_taps:
-    RegisterFunction<JsFactorizeArgs, Promise<JsFactorizeOutput>>,
+    RegisterFunction<JsResolveData, Promise<JsResolveData>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveArgs) => Promise<JsResolveArgs>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>"
   )]
   pub register_normal_module_factory_resolve_taps:
-    RegisterFunction<JsResolveArgs, Promise<JsResolveOutput>>,
+    RegisterFunction<JsResolveData, Promise<JsResolveData>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>"
   )]
   pub register_normal_module_factory_resolve_for_scheme_taps:
     RegisterFunction<JsResolveForSchemeArgs, Promise<JsResolveForSchemeOutput>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: string) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
   pub register_normal_module_factory_after_resolve_taps:
-    RegisterFunction<String, Promise<JsAfterResolveOutput>>,
+    RegisterFunction<JsResolveData, Promise<(Option<bool>, JsResolveData)>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>"
   )]
@@ -796,21 +809,21 @@ define_register!(
 /* NormalModuleFactory Hooks */
 define_register!(
   RegisterNormalModuleFactoryBeforeResolveTaps,
-  tap = NormalModuleFactoryBeforeResolveTap<JsBeforeResolveArgs, Promise<JsBeforeResolveOutput>> @ NormalModuleFactoryBeforeResolveHook,
+  tap = NormalModuleFactoryBeforeResolveTap<JsResolveData, Promise<(Option<bool>, JsResolveData)>> @ NormalModuleFactoryBeforeResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryBeforeResolve,
   skip = true,
 );
 define_register!(
   RegisterNormalModuleFactoryFactorizeTaps,
-  tap = NormalModuleFactoryFactorizeTap<JsFactorizeArgs, Promise<JsFactorizeOutput>> @ NormalModuleFactoryFactorizeHook,
+  tap = NormalModuleFactoryFactorizeTap<JsResolveData, Promise<JsResolveData>> @ NormalModuleFactoryFactorizeHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryFactorize,
   skip = true,
 );
 define_register!(
   RegisterNormalModuleFactoryResolveTaps,
-  tap = NormalModuleFactoryResolveTap<JsResolveArgs, Promise<JsResolveOutput>> @ NormalModuleFactoryResolveHook,
+  tap = NormalModuleFactoryResolveTap<JsResolveData, Promise<JsResolveData>> @ NormalModuleFactoryResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryResolve,
   skip = true,
@@ -824,7 +837,7 @@ define_register!(
 );
 define_register!(
   RegisterNormalModuleFactoryAfterResolveTaps,
-  tap = NormalModuleFactoryAfterResolveTap<String, Promise<JsAfterResolveOutput>> @ NormalModuleFactoryAfterResolveHook,
+  tap = NormalModuleFactoryAfterResolveTap<JsResolveData, Promise<(Option<bool>, JsResolveData)>> @ NormalModuleFactoryAfterResolveHook,
   cache = true,
   kind = RegisterJsTapKind::NormalModuleFactoryAfterResolve,
   skip = true,
@@ -1443,21 +1456,11 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
   async fn run(&self, data: &mut ModuleFactoryCreateData) -> rspack_error::Result<Option<bool>> {
     match self
       .function
-      .call_with_promise(JsBeforeResolveArgs {
-        request: data.request.clone(),
-        context: data.context.to_string(),
-        issuer: data
-          .issuer
-          .as_ref()
-          .map(|issuer| issuer.to_string())
-          .unwrap_or_default(),
-        issuer_layer: data.issuer_layer.clone(),
-      })
+      .call_with_promise(JsResolveData::from_nmf_data(data, None))
       .await
     {
       Ok((ret, resolve_data)) => {
-        data.request = resolve_data.request;
-        data.context = resolve_data.context.into();
+        resolve_data.update_nmf_data(data, None);
         Ok(ret)
       }
       Err(err) => Err(err),
@@ -1477,22 +1480,11 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
   ) -> rspack_error::Result<Option<BoxModule>> {
     match self
       .function
-      .call_with_promise(JsFactorizeArgs {
-        request: data.request.clone(),
-        context: data.context.to_string(),
-        issuer: data
-          .issuer
-          .as_ref()
-          .map(|issuer| issuer.to_string())
-          .unwrap_or_default(),
-        issuer_layer: data.issuer_layer.clone(),
-      })
+      .call_with_promise(JsResolveData::from_nmf_data(data, None))
       .await
     {
       Ok(resolve_data) => {
-        data.request = resolve_data.request;
-        data.context = resolve_data.context.into();
-        // only supports update resolve request for now
+        resolve_data.update_nmf_data(data, None);
         Ok(None)
       }
       Err(err) => Err(err),
@@ -1512,22 +1504,11 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
   ) -> rspack_error::Result<Option<NormalModuleFactoryResolveResult>> {
     match self
       .function
-      .call_with_promise(JsResolveArgs {
-        request: data.request.clone(),
-        context: data.context.to_string(),
-        issuer: data
-          .issuer
-          .as_ref()
-          .map(|issuer| issuer.to_string())
-          .unwrap_or_default(),
-        issuer_layer: data.issuer_layer.clone(),
-      })
+      .call_with_promise(JsResolveData::from_nmf_data(data, None))
       .await
     {
       Ok(resolve_data) => {
-        data.request = resolve_data.request;
-        data.context = resolve_data.context.into();
-        // only supports update resolve request for now
+        resolve_data.update_nmf_data(data, None);
         Ok(None)
       }
       Err(err) => Err(err),
@@ -1573,63 +1554,13 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
     data: &mut ModuleFactoryCreateData,
     create_data: &mut NormalModuleCreateData,
   ) -> rspack_error::Result<Option<bool>> {
-    let data = JsAfterResolveData {
-      request: create_data.raw_request.to_string(),
-      context: data.context.to_string(),
-      issuer: data
-        .issuer
-        .as_ref()
-        .map(|issuer| issuer.to_string())
-        .unwrap_or_default(),
-      issuer_layer: data.issuer_layer.clone(),
-      file_dependencies: data
-        .file_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
-        .collect::<Vec<_>>(),
-      context_dependencies: data
-        .context_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
-        .collect::<Vec<_>>(),
-      missing_dependencies: data
-        .missing_dependencies
-        .clone()
-        .into_iter()
-        .map(|item| item.to_string_lossy().to_string())
-        .collect::<Vec<_>>(),
-      create_data: Some(JsCreateData {
-        request: create_data.request.to_owned(),
-        user_request: create_data.user_request.to_owned(),
-        resource: create_data.resource_resolve_data.resource.to_owned(),
-      }),
-    };
-    let json = serde_json::to_string(&data).map_err(|e| rspack_error::error!(e.to_string()))?;
-
-    match self.function.call_with_promise(json).await {
-      Ok((ret, resolve_data)) => {
-        if let Some(resolve_data) = resolve_data {
-          fn update_resource_data(old_resource_data: &mut ResourceData, new_resource: String) {
-            if old_resource_data.resource_path.is_some()
-              && let Some(parsed) = parse_resource(&new_resource)
-            {
-              old_resource_data.set_path(parsed.path);
-              old_resource_data.set_query_optional(parsed.query);
-              old_resource_data.set_fragment_optional(parsed.fragment);
-            }
-            old_resource_data.set_resource(new_resource);
-          }
-
-          create_data.request = resolve_data.request;
-          create_data.user_request = resolve_data.user_request;
-          update_resource_data(
-            &mut create_data.resource_resolve_data,
-            resolve_data.resource,
-          );
-        }
-
+    match self
+      .function
+      .call_with_promise(JsResolveData::from_nmf_data(data, Some(create_data)))
+      .await
+    {
+      Ok((ret, new_data)) => {
+        new_data.update_nmf_data(data, Some(create_data));
         Ok(ret)
       }
       Err(err) => Err(err),
