@@ -1,5 +1,4 @@
-const { ModuleFederationPlugin, ShareUsagePlugin } =
-	require("@rspack/core").container;
+const { ModuleFederationPlugin } = require("@rspack/core").container;
 const path = require("path");
 
 /** @type {import("@rspack/core").Configuration} */
@@ -16,9 +15,6 @@ module.exports = {
 		uniqueName: "share_usage_inter_dependency_test"
 	},
 	plugins: [
-		new ShareUsagePlugin({
-			filename: "share-usage.json"
-		}),
 		new ModuleFederationPlugin({
 			name: "share_usage_inter_dependency_test",
 			filename: "remoteEntry.js",
