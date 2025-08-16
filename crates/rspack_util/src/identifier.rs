@@ -111,11 +111,15 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
   SEGMENTS_SPLIT_REGEXP
     .split(identifier)
     .map(|str| request_to_absolute(context, str))
-    .collect()
+    .collect::<Vec<String>>()
+    .join("")
 }
 
+static ZERO_WIDTH_SPACE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
+
 pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
-  s.cow_replace("\u{200b}#", "#")
+  ZERO_WIDTH_SPACE.replace_all(s, "$1")
 }
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {

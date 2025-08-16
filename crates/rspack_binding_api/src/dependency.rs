@@ -13,7 +13,7 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::module::ModuleObject;
+use crate::ModuleObject;
 
 // allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.

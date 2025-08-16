@@ -3,7 +3,8 @@ use derive_more::Debug;
 use napi::{Status, bindgen_prelude::External, threadsafe_function::ThreadsafeFunction};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ApplyContext, CompilationRevokedModules, CompilerId, CompilerOptions, ModuleIdentifier, Plugin,
+  ApplyContext, CompilationRevokedModules, CompilerId, CompilerOptions, ModuleIdentifier,
+  PluginContext,
 };
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_hook::{plugin, plugin_hook};
@@ -31,13 +32,19 @@ impl JsCleanupPlugin {
   }
 }
 
-impl Plugin for JsCleanupPlugin {
+#[async_trait]
+impl rspack_core::Plugin for JsCleanupPlugin {
   fn name(&self) -> &'static str {
     "rspack.JsCleanupPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &CompilerOptions,
+  ) -> rspack_error::Result<()> {
     ctx
+      .context
       .compilation_hooks
       .revoked_modules
       .tap(revoked_modules::new(self));

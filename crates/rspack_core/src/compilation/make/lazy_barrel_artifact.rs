@@ -1,7 +1,3 @@
-use rspack_cacheable::{
-  cacheable,
-  with::{AsMap, AsPreset, AsVec},
-};
 use rspack_collections::IdentifierMap;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -83,14 +79,10 @@ pub enum LazyUntil {
   Local(Atom),
 }
 
-#[cacheable]
 #[derive(Debug, Default)]
 pub struct LazyDependencies {
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   forward_id_to_request: FxHashMap<Atom, Atom>,
-  #[cacheable(with=AsMap<AsPreset>)]
   request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
-  #[cacheable(with=AsVec<AsPreset>)]
   terminal_forward_ids: FxHashSet<Atom>,
   fallback_dependencies: FxHashSet<DependencyId>,
 }

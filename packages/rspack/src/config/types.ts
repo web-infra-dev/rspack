@@ -1059,12 +1059,6 @@ export type JavascriptParserOptions = {
 	exprContextCritical?: boolean;
 
 	/**
-	 * Enable warnings for unknown dynamic dependencies
-	 * @default true
-	 * */
-	unknownContextCritical?: boolean;
-
-	/**
 	 * Enable warnings for partial dynamic dependencies
 	 * @default false
 	 * */
@@ -2648,7 +2642,6 @@ export type Experiments = {
 	cache?: ExperimentCacheOptions;
 	/**
 	 * Enable lazy compilation.
-	 * @deprecated Please use the configuration top-level `lazyCompilation` option instead.
 	 * @default false
 	 */
 	lazyCompilation?: boolean | LazyCompilationOptions;
@@ -2997,12 +2990,6 @@ export type RspackOptions = {
 	 * Performance optimization options.
 	 */
 	performance?: Performance;
-
-	/**
-	 * Enable lazy compilation.
-	 * @default false
-	 */
-	lazyCompilation?: boolean | LazyCompilationOptions;
 };
 
 /** Configuration for Rspack */

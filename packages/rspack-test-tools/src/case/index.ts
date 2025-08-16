@@ -11,7 +11,7 @@ export * from "./hook";
 export * from "./hot";
 export * from "./hot-step";
 export * from "./incremental";
-export * from "./native-watcher";
+export * from "./nativeWatcher";
 export * from "./normal";
 export * from "./serial";
 export * from "./stats-api";

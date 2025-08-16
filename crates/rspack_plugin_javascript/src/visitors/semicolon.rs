@@ -1,9 +1,9 @@
 use rustc_hash::FxHashSet;
 use swc_core::{
-  common::{BytePos, Span},
+  common::{BytePos, Span, Spanned},
   ecma::{
     ast::ClassMember,
-    parser::unstable::{Token, TokenAndSpan},
+    parser::token::{Token, TokenAndSpan},
     visit::{Visit, VisitWith},
   },
 };
@@ -57,7 +57,7 @@ impl InsertedSemicolons<'_> {
     if index > 0 {
       let prev = &self.tokens[index - 1];
       if !matches!(prev.token, Token::Semi) && self.can_insert_semi(index) {
-        self.semicolons.insert(prev.span.hi);
+        self.semicolons.insert(prev.span_hi());
       }
     }
   }
@@ -70,7 +70,7 @@ impl InsertedSemicolons<'_> {
     if index > 0 {
       let prev = &self.tokens[index - 1];
       if !matches!(prev.token, Token::Semi) && self.can_insert_semi(index) {
-        self.semicolons.insert(prev.span.hi);
+        self.semicolons.insert(prev.span_hi());
       }
     }
   }

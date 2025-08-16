@@ -8,7 +8,7 @@ use rspack_plugin_dll::{
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
-use crate::{filename::JsFilename, module::JsBuildMeta};
+use crate::{JsBuildMeta, JsFilename};
 
 #[derive(Debug)]
 #[napi(object)]

@@ -6,7 +6,6 @@ use std::{
 
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeySet};
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -371,7 +370,8 @@ impl Chunk {
       }
 
       for child_group_ukey in group.children.iter() {
-        if visit_chunk_groups.insert(*child_group_ukey) {
+        if !visit_chunk_groups.contains(child_group_ukey) {
+          visit_chunk_groups.insert(*child_group_ukey);
           add_chunks(
             child_group_ukey,
             chunks,
@@ -416,7 +416,8 @@ impl Chunk {
         }
 
         for child_group_ukey in group.children.iter() {
-          if visit_chunk_groups.insert(*child_group_ukey) {
+          if !visit_chunk_groups.contains(child_group_ukey) {
+            visit_chunk_groups.insert(*child_group_ukey);
             add_chunks(
               child_group_ukey,
               chunks,
@@ -460,7 +461,8 @@ impl Chunk {
       }
 
       for child_group_ukey in group.children.iter() {
-        if visit_chunk_groups.insert(*child_group_ukey) {
+        if !visit_chunk_groups.contains(child_group_ukey) {
+          visit_chunk_groups.insert(*child_group_ukey);
           add_async_entrypoints(
             child_group_ukey,
             async_entrypoints,
@@ -826,30 +828,36 @@ impl Chunk {
       })
   }
 
-  pub fn get_child_ids_by_orders_map<F: Fn(&ChunkUkey, &Compilation) -> bool + Sync>(
+  pub fn get_child_ids_by_orders_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
     &self,
     include_direct_children: bool,
     compilation: &Compilation,
     filter_fn: &F,
   ) -> HashMap<ChunkGroupOrderKey, IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>>
   {
+    let mut result = HashMap::default();
+
     fn add_child_ids_by_orders_to_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
       chunk_ukey: &ChunkUkey,
       order: &ChunkGroupOrderKey,
+      result: &mut HashMap<
+        ChunkGroupOrderKey,
+        IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
+      >,
       compilation: &Compilation,
       filter_fn: &F,
-    ) -> Option<(ChunkId, Vec<ChunkId>)> {
+    ) {
       let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
         chunk.id(&compilation.chunk_ids_artifact).cloned(),
         chunk.get_child_ids_by_order(order, compilation, filter_fn),
       ) {
-        return Some((chunk_id, child_chunk_ids));
+        result
+          .entry(order.clone())
+          .or_default()
+          .insert(chunk_id, child_chunk_ids);
       }
-      None
     }
-
-    let mut add_child_ids_task = vec![];
 
     if include_direct_children {
       for chunk_ukey in self
@@ -862,40 +870,44 @@ impl Chunk {
         })
         .flatten()
       {
-        add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Prefetch));
-        add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Preload));
+        add_child_ids_by_orders_to_map(
+          &chunk_ukey,
+          &ChunkGroupOrderKey::Prefetch,
+          &mut result,
+          compilation,
+          filter_fn,
+        );
+        add_child_ids_by_orders_to_map(
+          &chunk_ukey,
+          &ChunkGroupOrderKey::Preload,
+          &mut result,
+          compilation,
+          filter_fn,
+        );
       }
     }
 
     for chunk_ukey in self.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
-      add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Prefetch));
-      add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Preload));
-    }
-
-    let add_child_ids_results = add_child_ids_task
-      .into_par_iter()
-      .filter_map(|(chunk_ukey, order)| {
-        let (chunk_id, child_ids) =
-          add_child_ids_by_orders_to_map(&chunk_ukey, &order, compilation, filter_fn)?;
-        Some((order, chunk_id, child_ids))
-      })
-      .collect::<Vec<_>>();
-
-    let mut result: HashMap<
-      ChunkGroupOrderKey,
-      IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
-    > = HashMap::default();
-    for (order, chunk_ukey, child_chunk_ids) in add_child_ids_results {
-      result
-        .entry(order)
-        .or_default()
-        .insert(chunk_ukey, child_chunk_ids);
+      add_child_ids_by_orders_to_map(
+        &chunk_ukey,
+        &ChunkGroupOrderKey::Prefetch,
+        &mut result,
+        compilation,
+        filter_fn,
+      );
+      add_child_ids_by_orders_to_map(
+        &chunk_ukey,
+        &ChunkGroupOrderKey::Preload,
+        &mut result,
+        compilation,
+        filter_fn,
+      );
     }
 
     result
   }
 
-  pub fn has_child_by_order<F: Fn(&ChunkUkey, &Compilation) -> bool + Sync>(
+  pub fn has_child_by_order<F: Fn(&ChunkUkey, &Compilation) -> bool>(
     &self,
     compilation: &Compilation,
     r#type: &ChunkGroupOrderKey,

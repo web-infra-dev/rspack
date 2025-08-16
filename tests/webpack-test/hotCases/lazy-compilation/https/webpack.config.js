@@ -5,13 +5,15 @@ const path = require("path");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	lazyCompilation: {
-		cacheable: false,
-		entries: false,
-		backend: {
-			server: {
-				key: fs.readFileSync(path.join(__dirname, "key.pem")),
-				cert: fs.readFileSync(path.join(__dirname, "cert.pem"))
+	experiments: {
+		lazyCompilation: {
+			cacheable: false,
+			entries: false,
+			backend: {
+				server: {
+					key: fs.readFileSync(path.join(__dirname, "key.pem")),
+					cert: fs.readFileSync(path.join(__dirname, "cert.pem"))
+				}
 			}
 		}
 	}

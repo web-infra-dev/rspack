@@ -324,7 +324,7 @@ fn to_rspack_resolver_options(
     extension_alias,
     restrictions,
     roots,
-    builtin_modules: options.builtin_modules,
+    builtin_modules: false,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
   }

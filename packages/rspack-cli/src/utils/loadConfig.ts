@@ -69,65 +69,22 @@ const checkIsMultiRspackOptions = (
  * @returns The merged configuration
  */
 export async function loadExtendedConfig(
-	config: RspackOptions,
-	configPath: string,
-	cwd: string,
-	options: RspackCLIOptions
-): Promise<{
-	config: RspackOptions;
-	pathMap: WeakMap<RspackOptions, string[]>;
-}>;
-export async function loadExtendedConfig(
-	config: MultiRspackOptions,
-	configPath: string,
-	cwd: string,
-	options: RspackCLIOptions
-): Promise<{
-	config: MultiRspackOptions;
-	pathMap: WeakMap<RspackOptions, string[]>;
-}>;
-export async function loadExtendedConfig(
 	config: RspackOptions | MultiRspackOptions,
 	configPath: string,
 	cwd: string,
 	options: RspackCLIOptions
-): Promise<{
-	config: RspackOptions | MultiRspackOptions;
-	pathMap: WeakMap<RspackOptions, string[]>;
-}>;
-export async function loadExtendedConfig(
-	config: RspackOptions | MultiRspackOptions,
-	configPath: string,
-	cwd: string,
-	options: RspackCLIOptions
-): Promise<{
-	config: RspackOptions | MultiRspackOptions;
-	pathMap: WeakMap<RspackOptions, string[]>;
-}> {
+): Promise<RspackOptions | MultiRspackOptions> {
 	if (checkIsMultiRspackOptions(config)) {
 		// If the config is an array, we need to handle each item separately
-		const resultPathMap = new WeakMap();
 		const extendedConfigs = (await Promise.all(
-			config.map(async item => {
-				const { config, pathMap } = await loadExtendedConfig(
-					item,
-					configPath,
-					cwd,
-					options
-				);
-				resultPathMap.set(config, pathMap.get(config));
-				return config;
-			})
+			config.map(item => loadExtendedConfig(item, configPath, cwd, options))
 		)) as MultiRspackOptions;
 		extendedConfigs.parallelism = config.parallelism;
-		return { config: extendedConfigs, pathMap: resultPathMap };
+		return extendedConfigs;
 	}
-	// set config path
-	const pathMap: WeakMap<RspackOptions, string[]> = new WeakMap();
-	pathMap.set(config, [configPath]);
 	// If there's no extends property, return the config as is
 	if (!("extends" in config) || !config.extends) {
-		return { config, pathMap };
+		return config;
 	}
 
 	// Convert extends to an array if it's a string
@@ -143,7 +100,6 @@ export async function loadExtendedConfig(
 
 	// Load and merge configurations from right to left
 	let resultConfig = configWithoutExtends;
-	pathMap.set(resultConfig, [configPath]);
 
 	for (const extendPath of extendsList) {
 		let resolvedPath: string;
@@ -190,60 +146,73 @@ export async function loadExtendedConfig(
 		}
 
 		// Load the extended configuration
-		let loadedConfig = await crossImport(resolvedPath, cwd);
+		let extendedConfig = await crossImport(resolvedPath, cwd);
 
 		// If the extended config is a function, execute it
-		if (typeof loadedConfig === "function") {
-			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+		if (typeof extendedConfig === "function") {
+			extendedConfig = extendedConfig(options.argv?.env, options.argv);
 			// if return promise we should await its result
 			if (
-				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
+				typeof (extendedConfig as unknown as Promise<unknown>).then ===
+				"function"
 			) {
-				loadedConfig = await loadedConfig;
+				extendedConfig = await extendedConfig;
 			}
 		}
 
 		// Recursively load extended configurations from the extended config
-		const { config: extendedConfig, pathMap: extendedPathMap } =
-			await loadExtendedConfig(loadedConfig, resolvedPath, cwd, options);
-		// Calc config paths
-		const configPaths = [
-			...(pathMap.get(resultConfig) || []),
-			...(extendedPathMap.get(extendedConfig) || [])
-		];
+		extendedConfig = await loadExtendedConfig(
+			extendedConfig,
+			resolvedPath,
+			cwd,
+			options
+		);
+
 		// Merge the configurations
 		resultConfig = util.cleverMerge(extendedConfig, resultConfig);
-		// Set config paths
-		pathMap.set(resultConfig, configPaths);
 	}
 
-	return { config: resultConfig, pathMap };
+	return resultConfig;
 }
 
 export async function loadRspackConfig(
 	options: RspackCLIOptions,
 	cwd = process.cwd()
-): Promise<{ loadedConfig: LoadedRspackConfig; configPath: string } | null> {
-	// calc config path.
-	let configPath: string = "";
+): Promise<LoadedRspackConfig> {
+	let configPath: string | undefined;
+	let loadedConfig: LoadedRspackConfig;
+
 	if (options.config) {
 		configPath = path.resolve(cwd, options.config);
 		if (!fs.existsSync(configPath)) {
 			throw new Error(`config file "${configPath}" not found.`);
 		}
+		if (isTsFile(configPath) && options.configLoader === "register") {
+			await registerLoader(configPath);
+		}
+		loadedConfig = await crossImport(configPath, cwd);
 	} else {
 		const defaultConfig = findConfig(path.resolve(cwd, DEFAULT_CONFIG_NAME));
-		if (!defaultConfig) {
-			return null;
+		if (defaultConfig) {
+			configPath = defaultConfig;
+			if (isTsFile(defaultConfig) && options.configLoader === "register") {
+				await registerLoader(defaultConfig);
+			}
+			loadedConfig = await crossImport(defaultConfig, cwd);
+		} else {
+			return {};
 		}
-		configPath = defaultConfig;
 	}
 
-	// load config
-	if (isTsFile(configPath) && options.configLoader === "register") {
-		await registerLoader(configPath);
+	// Handle extends property if the loaded config is not a function
+	if (typeof loadedConfig !== "function" && configPath) {
+		loadedConfig = await loadExtendedConfig(
+			loadedConfig as RspackOptions | MultiRspackOptions,
+			configPath,
+			cwd,
+			options
+		);
 	}
-	const loadedConfig = await crossImport(configPath, cwd);
 
-	return { loadedConfig, configPath };
+	return loadedConfig;
 }

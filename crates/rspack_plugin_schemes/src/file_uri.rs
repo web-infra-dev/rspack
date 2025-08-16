@@ -1,5 +1,6 @@
 use rspack_core::{
-  ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme, Plugin, ResourceData, Scheme,
+  ApplyContext, CompilerOptions, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
+  Plugin, PluginContext, ResourceData, Scheme,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hook::{plugin, plugin_hook};
@@ -40,13 +41,15 @@ async fn normal_module_factory_resolve_for_scheme(
   Ok(None)
 }
 
+#[async_trait::async_trait]
 impl Plugin for FileUriPlugin {
   fn name(&self) -> &'static str {
     "rspack.FileUriPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
       .normal_module_factory_hooks
       .resolve_for_scheme
       .tap(normal_module_factory_resolve_for_scheme::new(self));

@@ -4,9 +4,9 @@ use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
   ecma::ast::{
-    AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, ForStmt,
-    IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, SwitchCase,
-    SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
+    AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForInStmt, ForOfStmt, ForStmt, IfStmt,
+    LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, SwitchCase, SwitchStmt,
+    TryStmt, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
   },
 };
 
@@ -14,11 +14,7 @@ use super::{
   DestructuringAssignmentProperty, JavascriptParser,
   estree::{MaybeNamedFunctionDecl, Statement},
 };
-use crate::{
-  parser_plugin::JavascriptParserPlugin,
-  utils::eval,
-  visitors::{VariableDeclaration, VariableDeclarationKind},
-};
+use crate::{parser_plugin::JavascriptParserPlugin, utils::eval};
 
 impl JavascriptParser<'_> {
   pub fn pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
@@ -83,9 +79,8 @@ impl JavascriptParser<'_> {
   pub fn pre_walk_declaration(&mut self, decl: &Decl) {
     match decl {
       Decl::Fn(decl) => self.pre_walk_function_declaration(decl.into()),
-      Decl::Var(decl) => self.pre_walk_variable_declaration(VariableDeclaration::VarDecl(decl)),
-      Decl::Using(decl) => self.pre_walk_variable_declaration(VariableDeclaration::UsingDecl(decl)),
-      Decl::Class(_) => (),
+      Decl::Var(decl) => self.pre_walk_variable_declaration(decl),
+      Decl::Class(_) | Decl::Using(_) => (),
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
         unreachable!()
       }
@@ -143,21 +138,9 @@ impl JavascriptParser<'_> {
 
   fn pre_walk_for_statement(&mut self, stmt: &ForStmt) {
     if let Some(decl) = stmt.init.as_ref().and_then(|init| init.as_var_decl()) {
-      self.pre_walk_statement(Statement::Var(VariableDeclaration::VarDecl(decl)))
+      self.pre_walk_statement(Statement::Var(decl))
     }
     self.pre_walk_statement(stmt.body.as_ref().into());
-  }
-
-  fn pre_walk_for_head(&mut self, head: &ForHead) {
-    match head {
-      ForHead::VarDecl(decl) => {
-        self.pre_walk_variable_declaration(VariableDeclaration::VarDecl(decl))
-      }
-      ForHead::UsingDecl(decl) => {
-        self.pre_walk_variable_declaration(VariableDeclaration::UsingDecl(decl))
-      }
-      ForHead::Pat(_) => {}
-    }
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
@@ -167,7 +150,9 @@ impl JavascriptParser<'_> {
         .clone()
         .top_level_for_of_await_stmt(self, stmt);
     }
-    self.pre_walk_for_head(&stmt.left);
+    if let Some(left) = stmt.left.as_var_decl() {
+      self.pre_walk_variable_declaration(left)
+    }
     self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
@@ -180,18 +165,20 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_for_in_statement(&mut self, stmt: &ForInStmt) {
-    self.pre_walk_for_head(&stmt.left);
+    if let Some(decl) = stmt.left.as_var_decl() {
+      self.pre_walk_variable_declaration(decl);
+    }
     self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
-  fn pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
-    if decl.kind() == VariableDeclarationKind::Var {
+  fn pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
+    if decl.kind == VarDeclKind::Var {
       self._pre_walk_variable_declaration(decl)
     }
   }
 
-  pub(super) fn _pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
-    for declarator in decl.declarators() {
+  pub(super) fn _pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
+    for declarator in &decl.decls {
       self.pre_walk_variable_declarator(declarator);
       if !self
         .plugin_drive

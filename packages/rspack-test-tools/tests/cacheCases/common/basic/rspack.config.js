@@ -4,6 +4,8 @@ module.exports = {
 	experiments: {
 		cache: {
 			type: "persistent"
-		}
-	}
+		},
+		incremental: true
+	},
+	ignoreWarnings: [/not friendly for incremental/]
 };

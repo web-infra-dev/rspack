@@ -10,7 +10,8 @@ use std::{
 };
 
 use rspack_core::{
-  Compilation, CompilationId, CompilationParams, CompilerCompilation, Dependency, Plugin,
+  ApplyContext, Compilation, CompilationId, CompilationParams, CompilerCompilation,
+  CompilerOptions, Dependency, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{define_hook, plugin, plugin_hook};
@@ -95,13 +96,18 @@ async fn compilation(
   Ok(())
 }
 
+#[async_trait::async_trait]
 impl Plugin for FederationModulesPlugin {
   fn name(&self) -> &'static str {
     "rspack.container.FederationModulesPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
     Ok(())
   }
 }

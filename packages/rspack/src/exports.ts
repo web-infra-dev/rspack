@@ -1,6 +1,6 @@
 // this is a hack to be compatible with plugin which detect webpack's version
-const rspackVersion = RSPACK_VERSION;
-const version = WEBPACK_VERSION;
+const rspackVersion = RSPACK_VERSION as string;
+const version = WEBPACK_VERSION as string;
 
 export { rspackVersion, version };
 
@@ -8,10 +8,8 @@ export type {
 	Asset,
 	AssetInfo,
 	Assets,
-	ChunkPathData,
 	CompilationParams,
-	LogEntry,
-	PathData
+	LogEntry
 } from "./Compilation";
 export { Compilation } from "./Compilation";
 export { Compiler } from "./Compiler";
@@ -130,6 +128,7 @@ export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
+export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 export type { OutputFileSystem } from "./util/fs";
 
 import {
@@ -336,7 +335,6 @@ export {
 	EvalSourceMapDevToolPlugin,
 	HtmlRspackPlugin,
 	LightningCssMinimizerRspackPlugin,
-	NormalModuleReplacementPlugin,
 	SourceMapDevToolPlugin,
 	SwcJsMinimizerRspackPlugin
 } from "./builtin-plugin";
@@ -356,7 +354,6 @@ import { createNativePlugin } from "./builtin-plugin";
 ///// Experiments SWC /////
 import { minify, minifySync, transform, transformSync } from "./swc";
 import { JavaScriptTracer } from "./trace";
-import { VirtualModulesPlugin } from "./VirtualModulesPlugin";
 
 interface Experiments {
 	globalTrace: {
@@ -387,7 +384,6 @@ interface Experiments {
 	};
 	CssChunkingPlugin: typeof CssChunkingPlugin;
 	createNativePlugin: typeof createNativePlugin;
-	VirtualModulesPlugin: typeof VirtualModulesPlugin;
 }
 
 export const experiments: Experiments = {
@@ -438,6 +434,5 @@ export const experiments: Experiments = {
 		sync: resolveSync
 	},
 	CssChunkingPlugin,
-	createNativePlugin,
-	VirtualModulesPlugin
+	createNativePlugin
 };

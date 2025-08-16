@@ -2,8 +2,8 @@ use linked_hash_set::LinkedHashSet;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  Compilation, CompilationFinishModules, DependencyType, Logger, ModuleGraph, ModuleIdentifier,
-  Plugin,
+  ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Logger,
+  ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
   incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
@@ -189,8 +189,9 @@ impl Plugin for InferAsyncModulesPlugin {
     "InferAsyncModulesPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));

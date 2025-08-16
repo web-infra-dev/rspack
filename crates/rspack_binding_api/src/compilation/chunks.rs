@@ -4,10 +4,7 @@ use napi::{
 };
 use rspack_core::Compilation;
 
-use crate::{
-  chunk::{Chunk, ChunkWrapper},
-  compilation::JsCompilation,
-};
+use crate::{Chunk, ChunkWrapper, JsCompilation};
 
 #[napi]
 pub struct Chunks {

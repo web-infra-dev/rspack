@@ -13,7 +13,7 @@ use rspack_error::{
 };
 use rspack_napi::napi::check_status;
 
-use crate::{define_symbols, location::DependencyLocation, module::ModuleObject};
+use crate::{DependencyLocation, ModuleObject, define_symbols};
 
 pub enum ErrorCode {
   Napi(napi::Status),

@@ -2,7 +2,7 @@ use napi::{Either, bindgen_prelude::WeakReference};
 use rspack_core::Compilation;
 use rspack_error::RspackSeverity;
 
-use crate::{compilation::JsCompilation, error::RspackError};
+use crate::{JsCompilation, RspackError};
 
 #[napi]
 pub struct Diagnostics {

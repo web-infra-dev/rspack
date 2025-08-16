@@ -1,5 +1,9 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
+use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
@@ -8,7 +12,6 @@ use rspack_paths::Utf8PathBuf;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
 use swc_core::common::Span;
-use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
@@ -75,6 +78,16 @@ impl ModuleFactory for NormalModuleFactory {
     Ok(factory_result)
   }
 }
+
+static MATCH_RESOURCE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
+
+static MATCH_WEBPACK_EXT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r#"\.webpack\[([^\]]+)\]$"#).expect("Failed to initialize `MATCH_WEBPACK_EXT_REGEX`")
+});
+
+static ELEMENT_SPLIT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
 
 const HYPHEN: char = '-';
 const EXCLAMATION: char = '!';
@@ -158,8 +171,9 @@ impl NormalModuleFactory {
     if scheme.is_none() {
       let mut request_without_match_resource = data.request.as_str();
       request_without_match_resource = {
-        if let Ok((resource, full_matched)) = match_resource(request_without_match_resource) {
+        if let Some(m) = MATCH_RESOURCE_REGEX.captures(request_without_match_resource) {
           let match_resource = {
+            let resource = m.get(1).expect("Should have match resource").as_str();
             let mut chars = resource.chars();
             let first_char = chars.next();
             let second_char = chars.next();
@@ -195,7 +209,10 @@ impl NormalModuleFactory {
           );
 
           // e.g. ./index.js!=!
-          let whole_matched = full_matched;
+          let whole_matched = m
+            .get(0)
+            .expect("should guaranteed to return a non-None value.")
+            .as_str();
 
           match request_without_match_resource
             .char_indices()
@@ -242,7 +259,7 @@ impl NormalModuleFactory {
             Some((pos, _)) => &request_without_match_resource[pos..],
             None => request_without_match_resource,
           };
-          split_element(s)
+          ELEMENT_SPLIT_REGEX.split(s).collect::<Vec<_>>()
         };
 
         unresolved_resource = raw_elements
@@ -354,10 +371,15 @@ impl NormalModuleFactory {
     };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Ok((module, module_type)) = match_webpack_ext(&match_resource_data.resource)
+      && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
+      && let Some(module_type) = captures.get(1)
     {
-      match_module_type = Some(module_type.into());
-      match_resource_data.resource = module.into();
+      match_module_type = Some(module_type.as_str().into());
+      match_resource_data.resource = match_resource_data
+        .resource
+        .strip_suffix(&format!(".webpack[{}]", module_type.as_str()))
+        .expect("should success")
+        .to_owned();
 
       vec![]
     } else {
@@ -921,58 +943,12 @@ pub struct NormalModuleCreateData {
   pub context: Option<String>,
 }
 
-fn split_element(mut input: &str) -> Vec<&str> {
-  use winnow::{
-    combinator::separated,
-    error::ContextError,
-    token::{take_till, take_while},
-  };
-
-  separated::<_, _, _, _, ContextError, _, _>(.., take_till(.., '!'), take_while(1.., '!'))
-    .parse_next(&mut input)
-    .expect("split should never fail")
-}
-
-fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{combinator::terminated, token::take_until};
-
-  let backup = input;
-
-  let res = terminated(take_until(1.., '!'), "!=!").parse_next(&mut input)?;
-  let whole_matched = &backup[..backup.len() - input.len()];
-  Ok((res, whole_matched))
-}
-
-fn match_webpack_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{
-    combinator::{delimited, eof, preceded, terminated},
-    token::take_until,
-  };
-
-  let parser = (
-    take_until(0.., ".webpack"),
-    preceded(".webpack", delimited('[', take_until(1.., ']'), ']')),
-  );
-
-  terminated(parser, eof).parse_next(&mut input)
-}
-
 #[test]
-fn test_split_element() {
-  assert_eq!(split_element("a!a"), vec!["a", "a"]);
-  assert_eq!(split_element("a!!a"), vec!["a", "a"]);
-  assert_eq!(split_element("!!a!!a!!"), vec!["", "a", "a", ""]);
-}
+fn match_webpack_ext() {
+  assert!(MATCH_WEBPACK_EXT_REGEX.is_match("foo.webpack[type/javascript]"));
+  let cap = MATCH_WEBPACK_EXT_REGEX
+    .captures("foo.webpack[type/javascript]")
+    .unwrap();
 
-#[test]
-fn test_match_webpack_ext() {
-  assert!(match_webpack_ext("foo.webpack[type/javascript]").is_ok());
-  let cap = match_webpack_ext("foo.webpack[type/javascript]").unwrap();
-
-  assert_eq!(cap, ("foo", "type/javascript"));
-
-  assert_eq!(
-    match_webpack_ext("foo.css.webpack[javascript/auto]"),
-    Ok(("foo.css", "javascript/auto"))
-  );
+  assert_eq!(cap.get(1).unwrap().as_str(), "type/javascript");
 }

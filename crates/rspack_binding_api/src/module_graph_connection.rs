@@ -6,7 +6,7 @@ use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraph};
 use rspack_napi::OneShotRef;
 
-use crate::{dependency::DependencyWrapper, module::ModuleObject};
+use crate::{DependencyWrapper, ModuleObject};
 
 #[napi]
 pub struct ModuleGraphConnection {

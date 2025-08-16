@@ -18,7 +18,6 @@
   "watch",
   "externals",
   "performance",
-  "lazy-compilation",
   "stats",
   "experiments",
   "infrastructure-logging",

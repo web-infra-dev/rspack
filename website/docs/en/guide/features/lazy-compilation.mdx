@@ -12,7 +12,7 @@ Lazy compilation is only effective for dev builds and does not affect production
 
 ### Rspack CLI
 
-For users of `@rspack/cli`, you can enable lazy compilation through [lazyCompilation](/config/lazy-compilation) configuration. Assuming you are developing a multi-page application (MPA), when developing one of these pages, Rspack will only build the entry point you are currently accessing.
+For users of `@rspack/cli`, you can enable lazy compilation through [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration. Assuming you are developing a multi-page application (MPA), when developing one of these pages, Rspack will only build the entry point you are currently accessing.
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
@@ -22,7 +22,9 @@ export default defineConfig({
     Home: './src/Home.js',
     About: './src/About.js',
   },
-  lazyCompilation: true,
+  experiments: {
+    lazyCompilation: true,
+  },
 });
 ```
 
@@ -36,16 +38,18 @@ export default defineConfig({
     Home: './src/Home.js',
     About: './src/About.js',
   },
-  lazyCompilation: {
-    // lazy compile entries
-    entries: true,
-    // lazy compile dynamic imports
-    imports: true,
+  experiments: {
+    lazyCompilation: {
+      // lazy compile entries
+      entries: true,
+      // lazy compile dynamic imports
+      imports: true,
+    },
   },
 });
 ```
 
-> See [lazyCompilation](/config/lazy-compilation) for more details.
+> See [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) for more details.
 
 :::info
 When lazy compilation is enabled for entries, entry modules will actually be asynchronously dynamically imported. Therefore if you have configured [splitChunks](/config/optimization#optimizationsplitchunks), entry modules will be treated as async chunk, which may result in slight differences between development and production artifacts.
@@ -69,12 +73,14 @@ export default defineConfig({
     Home: './src/Home.js',
     About: './src/About.js',
   },
-  lazyCompilation: {
-    entries: true,
-    imports: true,
-    test(module) {
-      const name = module.nameForCondition();
-      return name && !/src\/About/.test(name);
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+      test(module) {
+        const name = module.nameForCondition();
+        return name && !/src\/About/.test(name);
+      },
     },
   },
 });
@@ -128,11 +134,13 @@ By default, the lazy compilation middleware uses the `/lazy-compilation-using-` 
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
-  lazyCompilation: {
-    entries: true,
-    imports: true,
-    // Customize the lazy compilation endpoint prefix
-    prefix: '/custom-lazy-endpoint-',
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+      // Customize the lazy compilation endpoint prefix
+      prefix: '/custom-lazy-endpoint-',
+    },
   },
 });
 ```

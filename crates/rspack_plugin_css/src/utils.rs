@@ -2,7 +2,6 @@ use std::{
   borrow::Cow,
   fmt::Write,
   hash::Hasher,
-  path::Path,
   sync::{Arc, LazyLock},
 };
 
@@ -86,11 +85,6 @@ impl<'a> LocalIdentOptions<'a> {
         )),
       local,
       unique_name: &output.unique_name,
-      folder: Path::new(&self.relative_resource)
-        .parent()
-        .and_then(|p| p.file_name())
-        .and_then(|s| s.to_str())
-        .unwrap_or(""),
     }
     .render_local_ident_name(self.local_name_ident)
     .await
@@ -101,7 +95,6 @@ struct LocalIdentNameRenderOptions<'a> {
   path_data: PathData<'a>,
   local: &'a str,
   unique_name: &'a str,
-  folder: &'a str,
 }
 
 impl LocalIdentNameRenderOptions<'_> {
@@ -115,7 +108,6 @@ impl LocalIdentNameRenderOptions<'_> {
     Ok(
       s.cow_replace("[uniqueName]", self.unique_name)
         .cow_replace("[local]", self.local)
-        .cow_replace("[folder]", self.folder)
         .into_owned(),
     )
   }

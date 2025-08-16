@@ -3,11 +3,12 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use async_trait::async_trait;
 use regex::Regex;
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
-  CompilerFinishMake, DependencyType, EntryOptions, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  ApplyContext, BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
+  CompilerFinishMake, CompilerOptions, DependencyType, EntryOptions, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -230,7 +231,7 @@ async fn normal_module_factory_module(
   &self,
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
-  _module: &mut BoxModule,
+  module: &mut BoxModule,
 ) -> Result<()> {
   let resource = &create_data.resource_resolve_data.resource;
   let resource_data = &create_data.resource_resolve_data;
@@ -243,58 +244,129 @@ async fn normal_module_factory_module(
     return Ok(());
   }
   let request = &create_data.raw_request;
-  {
+
+  // Debug: Print request information
+  // eprintln!("DEBUG ProvideSharedPlugin: request = {}", request);
+  // eprintln!("DEBUG ProvideSharedPlugin: resource = {}", resource);
+
+  // First check match_provides (for package names like 'react', 'lodash-es')
+  let match_config = {
     let match_provides = self.match_provides.read().await;
-    if let Some(config) = match_provides.get(request) {
-      self
-        .provide_shared_module(
-          request,
-          &config.share_key,
-          &config.share_scope,
-          config.version.as_ref(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-          resource,
-          resource_data,
-          |d| data.diagnostics.push(d),
-        )
-        .await;
-    }
+    // eprintln!("DEBUG ProvideSharedPlugin: match_provides keys = {:?}", match_provides.keys().collect::<Vec<_>>());
+    match_provides.get(request).cloned()
+  }; // Read lock is dropped here
+
+  if let Some(config) = match_config {
+    // Set the shared_key in the module's BuildMeta for tree-shaking
+    // eprintln!("DEBUG ProvideSharedPlugin: Setting shared_key = {} for request = {}", config.share_key, request);
+    module.build_meta_mut().shared_key = Some(config.share_key.clone());
+
+    self
+      .provide_shared_module(
+        request,
+        &config.share_key,
+        &config.share_scope,
+        config.version.as_ref(),
+        config.eager,
+        config.singleton,
+        config.required_version.clone(),
+        config.strict_version,
+        resource,
+        resource_data,
+        |d| data.diagnostics.push(d),
+      )
+      .await;
   }
-  for (prefix, config) in self.prefix_match_provides.read().await.iter() {
-    if request.starts_with(prefix) {
-      let remainder = &request[prefix.len()..];
-      self
-        .provide_shared_module(
-          request,
-          &(config.share_key.to_string() + remainder),
-          &config.share_scope,
-          config.version.as_ref(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-          resource,
-          resource_data,
-          |d| data.diagnostics.push(d),
-        )
-        .await;
-    }
+
+  // Second check resolved_provide_map (for relative paths like './cjs-modules/data-processor.js')
+  let resolved_config = {
+    let resolved_provide_map = self.resolved_provide_map.read().await;
+    // eprintln!("DEBUG ProvideSharedPlugin: resolved_provide_map keys = {:?}", resolved_provide_map.keys().collect::<Vec<_>>());
+    resolved_provide_map.get(request).cloned()
+  }; // Read lock is dropped here
+
+  if let Some(config) = resolved_config {
+    // Set the shared_key in the module's BuildMeta for tree-shaking
+    // eprintln!("DEBUG ProvideSharedPlugin: Setting shared_key = {} for resolved request = {}", config.share_key, request);
+    module.build_meta_mut().shared_key = Some(config.share_key.clone());
+
+    self
+      .provide_shared_module(
+        request,
+        &config.share_key,
+        &config.share_scope,
+        Some(&config.version),
+        config.eager,
+        config.singleton,
+        config.required_version.clone(),
+        config.strict_version,
+        resource,
+        resource_data,
+        |d| data.diagnostics.push(d),
+      )
+      .await;
+  }
+
+  // Third check prefix_match_provides (for prefix patterns)
+  let prefix_configs: Vec<(String, ProvideOptions)> = {
+    let prefix_match_provides = self.prefix_match_provides.read().await;
+    prefix_match_provides
+      .iter()
+      .filter_map(|(prefix, config)| {
+        if request.starts_with(prefix) {
+          Some((prefix.clone(), config.clone()))
+        } else {
+          None
+        }
+      })
+      .collect()
+  }; // Read lock is dropped here
+
+  for (prefix, config) in prefix_configs {
+    let remainder = &request[prefix.len()..];
+    let share_key = config.share_key.to_string() + remainder;
+
+    // Set the shared_key in the module's BuildMeta for tree-shaking
+    module.build_meta_mut().shared_key = Some(share_key.clone());
+
+    self
+      .provide_shared_module(
+        request,
+        &share_key,
+        &config.share_scope,
+        config.version.as_ref(),
+        config.eager,
+        config.singleton,
+        config.required_version.clone(),
+        config.strict_version,
+        resource,
+        resource_data,
+        |d| data.diagnostics.push(d),
+      )
+      .await;
   }
   Ok(())
 }
 
+#[async_trait]
 impl Plugin for ProvideSharedPlugin {
   fn name(&self) -> &'static str {
     "rspack.ProvideSharedPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
-    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
+    ctx
+      .context
       .normal_module_factory_hooks
       .module
       .tap(normal_module_factory_module::new(self));

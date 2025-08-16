@@ -4,9 +4,10 @@ use std::{
   hash::{Hash, Hasher},
   ops::Deref,
   ptr,
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
+use regex::Regex;
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, Unsupported},
@@ -31,6 +32,9 @@ pub static HASH_PLACEHOLDER: &str = "[hash]";
 pub static FULL_HASH_PLACEHOLDER: &str = "[fullhash]";
 pub static CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
 pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
+
+static DATA_URI_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
 #[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
@@ -196,8 +200,14 @@ fn render_template(
   let mut t = template;
   // file-level
   if let Some(filename) = options.filename {
-    if let Ok(caps) = data_uri(filename) {
-      let ext = mime_guess::get_mime_extensions_str(caps).map(|exts| exts[0]);
+    if let Some(caps) = DATA_URI_REGEX.captures(filename) {
+      let ext = mime_guess::get_mime_extensions_str(
+        caps
+          .get(1)
+          .expect("should match mime for data uri")
+          .as_str(),
+      )
+      .map(|exts| exts[0]);
 
       let replacer = options
         .content_hash
@@ -336,17 +346,4 @@ fn render_template(
     t = t.map(|t| t.replace_all(URL_PLACEHOLDER, url));
   }
   t.into_owned()
-}
-
-fn data_uri(mut input: &str) -> winnow::ModalResult<&str> {
-  use winnow::{combinator::preceded, prelude::*, token::take_till};
-
-  preceded("data:", take_till(1.., (';', ','))).parse_next(&mut input)
-}
-
-#[test]
-fn test_data_uri() {
-  assert_eq!(data_uri("data:good").ok(), Some("good"));
-  assert_eq!(data_uri("data:g;ood").ok(), Some("g"));
-  assert_eq!(data_uri("data:;ood").ok(), None);
 }

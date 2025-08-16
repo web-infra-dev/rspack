@@ -1,8 +1,9 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
+  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -189,9 +190,14 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

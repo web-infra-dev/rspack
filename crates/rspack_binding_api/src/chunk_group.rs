@@ -6,11 +6,7 @@ use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
-use crate::{
-  chunk::ChunkWrapper,
-  location::RealDependencyLocation,
-  module::{ModuleObject, ModuleObjectRef},
-};
+use crate::{ChunkWrapper, ModuleObject, ModuleObjectRef, location::RealDependencyLocation};
 
 #[napi]
 pub struct ChunkGroup {

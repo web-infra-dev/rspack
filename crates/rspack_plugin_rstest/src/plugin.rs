@@ -3,9 +3,11 @@ use std::{
   time::{Duration, Instant},
 };
 
+use async_trait::async_trait;
 use rspack_core::{
-  Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  ApplyContext, Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation,
+  CompilerOptions, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PluginContext,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -221,21 +223,28 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
   Ok(())
 }
 
+#[async_trait]
 impl Plugin for RstestPlugin {
   fn name(&self) -> &'static str {
     "rstest"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
 
     ctx
+      .context
       .compiler_hooks
       .compilation
       .tap(compilation_stage_9999::new(self));
 
     if self.options.module_path_name {
       ctx
+        .context
         .normal_module_factory_hooks
         .parser
         .tap(nmf_parser::new(self));
@@ -243,6 +252,7 @@ impl Plugin for RstestPlugin {
 
     if self.options.hoist_mock_module {
       ctx
+        .context
         .compilation_hooks
         .process_assets
         .tap(mock_hoist_process_assets::new(self));

@@ -50,8 +50,13 @@ impl Plugin for RemoveEmptyChunksPlugin {
     "rspack.RemoveEmptyChunksPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &rspack_core::CompilerOptions,
+  ) -> Result<()> {
     ctx
+      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

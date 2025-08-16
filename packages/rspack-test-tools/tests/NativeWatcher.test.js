@@ -8,7 +8,6 @@ describeByWalk(
 		createNativeWatcher(name, src, dist, path.join(tempDir, name));
 	},
 	{
-		source: path.join(__dirname, `./watchCases`),
-		dist: path.resolve(__dirname, `./js/native-watcher/watch`)
+		source: path.join(__dirname, `./watchCases`)
 	}
 );

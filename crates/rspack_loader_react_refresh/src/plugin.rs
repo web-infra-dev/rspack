@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  BoxLoader, Context, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, Plugin, Resolver,
+  ApplyContext, BoxLoader, CompilerOptions, Context, ModuleRuleUseLoader,
+  NormalModuleFactoryResolveLoader, Plugin, PluginContext, Resolver,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -29,8 +30,9 @@ impl Plugin for ReactRefreshLoaderPlugin {
     "ReactRefreshLoaderPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
       .normal_module_factory_hooks
       .resolve_loader
       .tap(resolve_loader::new(self));

@@ -1,7 +1,7 @@
 use rspack_core::{
-  BoxModule, Compilation, CompilationParams, CompilerCompilation, Context, DependencyType,
-  LibIdentOptions, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryFactorize,
-  NormalModuleFactoryModule, Plugin,
+  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
+  Context, DependencyType, LibIdentOptions, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -43,15 +43,21 @@ impl Plugin for DelegatedPlugin {
     "rspack.DelegatedPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
 
     ctx
+      .context
       .normal_module_factory_hooks
       .factorize
       .tap(factorize::new(self));
 
     ctx
+      .context
       .normal_module_factory_hooks
       .module
       .tap(nmf_module::new(self));

@@ -1,7 +1,8 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ChunkGraph, Compilation, CompilationModuleIds, Plugin, incremental::IncrementalPasses,
+  ApplyContext, ChunkGraph, Compilation, CompilationModuleIds, CompilerOptions, Plugin,
+  PluginContext, incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -81,8 +82,12 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 impl Plugin for DeterministicModuleIdsPlugin {
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .module_ids
+      .tap(module_ids::new(self));
     Ok(())
   }
 }

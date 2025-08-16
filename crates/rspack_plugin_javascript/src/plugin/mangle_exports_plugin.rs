@@ -4,9 +4,10 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
-  ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState, incremental::IncrementalPasses,
+  ApplyContext, BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration,
+  CompilerOptions, ExportInfo, ExportProvided, ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin,
+  PluginContext, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState,
+  incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -54,6 +55,7 @@ enum Manglable {
 #[derive(Debug)]
 struct ExportInfoCache {
   id: ExportInfo,
+  deterministic: bool,
   exports_info: Option<ExportsInfo>,
   can_mangle: Manglable,
 }
@@ -74,14 +76,19 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
   // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
   // We don't do that cause we don't have this option
   let mut mg = compilation.get_module_graph_mut();
-  let modules = mg.modules();
+  let module_id_list = mg.modules().keys().cloned().collect::<Vec<_>>();
 
   let mut exports_info_cache = FxHashMap::default();
 
-  let mut q = modules
+  let mut q = module_id_list
     .iter()
-    .filter_map(|(mid, module)| {
-      let mgm = mg.module_graph_module_by_identifier(mid)?;
+    .filter_map(|id| {
+      let (Some(mgm), Some(module)) = (
+        mg.module_graph_module_by_identifier(id),
+        mg.module_by_identifier(id),
+      ) else {
+        return None;
+      };
       let is_namespace = matches!(
         module.build_meta().exports_type,
         BuildMetaExportsType::Namespace
@@ -157,6 +164,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
 
               ExportInfoCache {
                 id: export_info_data.id(),
+                deterministic,
                 exports_info: nested_exports_info,
                 can_mangle,
               }
@@ -177,38 +185,28 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     }
   }
 
-  let mut queue = modules
-    .into_iter()
-    .filter_map(|(mid, _)| {
-      let mgm = mg.module_graph_module_by_identifier(&mid)?;
-      Some(mgm.exports)
-    })
-    .collect_vec();
-
-  while !queue.is_empty() {
-    let tasks = std::mem::take(&mut queue);
-    let batch = tasks
-      .into_par_iter()
-      .map(|exports_info| {
-        mangle_exports_info(&mg, self.deterministic, exports_info, &exports_info_cache)
-      })
-      .collect::<Vec<_>>();
-
-    let mut used_name_tasks = vec![];
-    for (changes, nested_exports) in batch {
-      used_name_tasks.extend(changes);
-      queue.extend(nested_exports);
-    }
-
-    mg.batch_set_export_info_used_name(used_name_tasks);
+  for identifier in module_id_list {
+    let (Some(mgm), Some(_)) = (
+      mg.module_graph_module_by_identifier(&identifier),
+      mg.module_by_identifier(&identifier),
+    ) else {
+      continue;
+    };
+    let exports_info = mgm.exports;
+    mangle_exports_info(
+      &mut mg,
+      self.deterministic,
+      exports_info,
+      &exports_info_cache,
+    );
   }
-
   Ok(())
 }
 
 impl Plugin for MangleExportsPlugin {
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
       .compilation_hooks
       .optimize_code_generation
       .tap(optimize_code_generation::new(self));
@@ -228,17 +226,15 @@ static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Function to mangle exports information.
 fn mangle_exports_info(
-  mg: &ModuleGraph,
+  mg: &mut ModuleGraph,
   deterministic: bool,
   exports_info: ExportsInfo,
   exports_info_cache: &FxHashMap<ExportsInfo, Vec<ExportInfoCache>>,
-) -> (Vec<(ExportInfo, Atom)>, Vec<ExportsInfo>) {
-  let mut changes = vec![];
-  let mut nested_exports = vec![];
+) {
   let mut used_names = FxHashSet::default();
   let mut mangleable_exports = Vec::new();
   let Some(export_list) = exports_info_cache.get(&exports_info) else {
-    return (changes, nested_exports);
+    return;
   };
 
   let mut mangleable_export_names = FxHashMap::default();
@@ -246,7 +242,7 @@ fn mangle_exports_info(
   for export_info in export_list {
     match &export_info.can_mangle {
       Manglable::CanNotMangle(name) => {
-        changes.push((export_info.id.clone(), name.clone()));
+        export_info.id.as_data_mut(mg).set_used_name(name.clone());
         used_names.insert(name.to_string());
       }
       Manglable::CanMangle(name) => {
@@ -257,7 +253,12 @@ fn mangle_exports_info(
     }
 
     if let Some(nested_exports_info) = export_info.exports_info {
-      nested_exports.push(nested_exports_info);
+      mangle_exports_info(
+        mg,
+        export_info.deterministic,
+        nested_exports_info,
+        exports_info_cache,
+      );
     }
   }
 
@@ -298,7 +299,7 @@ fn mangle_exports_info(
       0,
     );
     for (export_info, name) in export_info_used_name {
-      changes.push((export_info, name.into()));
+      export_info.as_data_mut(mg).set_used_name(name.into());
     }
   } else {
     let mut used_exports = Vec::new();
@@ -337,9 +338,8 @@ fn mangle_exports_info(
           }
           i += 1;
         }
-        changes.push((export_info, name.into()));
+        export_info.as_data_mut(mg).set_used_name(name.into());
       }
     }
   }
-  (changes, nested_exports)
 }

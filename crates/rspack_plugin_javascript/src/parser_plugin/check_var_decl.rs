@@ -3,13 +3,11 @@ use std::sync::LazyLock;
 use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
-  ecma::ast::{Ident, ObjectPatProp, Pat},
+  ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind},
 };
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{
-  JavascriptParser, VariableDeclaration, VariableDeclarationKind, create_traceable_error,
-};
+use crate::visitors::{JavascriptParser, create_traceable_error};
 
 static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
   [
@@ -97,14 +95,14 @@ impl JavascriptParserPlugin for CheckVarDeclaratorIdent {
     &self,
     parser: &mut JavascriptParser,
     _expr: &swc_core::ecma::ast::VarDeclarator,
-    stmt: VariableDeclaration<'_>,
+    stmt: &swc_core::ecma::ast::VarDecl,
   ) -> Option<bool> {
-    let should_check = match stmt.kind() {
-      VariableDeclarationKind::Var => parser.is_strict(),
+    let should_check = match stmt.kind {
+      VarDeclKind::Var => parser.is_strict(),
       _ => true,
     };
     if should_check {
-      for ele in stmt.declarators() {
+      for ele in &stmt.decls {
         self.check_var_decl_pat(parser, &ele.name);
       }
     }

@@ -1,11 +1,13 @@
 use std::hash::Hash;
 
+use async_trait::async_trait;
 use rspack_core::{
-  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
+  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
+  CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::Result;
+use rspack_error::{Result, miette};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -130,15 +132,16 @@ async fn render_chunk(
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
-
-  let chunk_id_json_string = json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact));
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
+    return Err(miette::miette!(
+      "HMR is not implemented for module chunk format yet"
+    ));
+  }
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_id__ = {chunk_id_json_string} ;\n",
-  )));
-  sources.add(RawStringSource::from(format!(
-    "export const __webpack_ids__ = [{chunk_id_json_string}];\n",
+    "export const __webpack_ids__ = [{}];\n",
+    json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
   )));
   sources.add(RawStringSource::from_static(
     "export const __webpack_modules__ = ",
@@ -155,11 +158,6 @@ async fn render_chunk(
     ));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
-  }
-
-  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
-    render_source.source = sources.boxed();
-    return Ok(());
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
@@ -264,18 +262,25 @@ async fn render_chunk(
   Ok(())
 }
 
+#[async_trait]
 impl Plugin for ModuleChunkFormatPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
     ctx
+      .context
       .compilation_hooks
       .dependent_full_hash
       .tap(compilation_dependent_full_hash::new(self));

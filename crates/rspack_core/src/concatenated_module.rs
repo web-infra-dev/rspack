@@ -40,23 +40,23 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
-  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
-  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
-  ConnectionState, Context, DEFAULT_EXPORT, DependenciesBlock, DependencyId, DependencyType,
-  ErrorSpan, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
-  GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
-  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
+  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
+  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
+  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
+  DependenciesBlock, DependencyId, DependencyType, ErrorSpan, ExportProvided, ExportsArgument,
+  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment,
+  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
   UsedNameItem, define_es_module_flag_statement, escape_identifier, filter_runtime,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
-  reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
-  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name, reserved_names::RESERVED_NAMES,
+  returning_function, runtime_condition_expression, subtract_runtime_condition,
+  to_identifier_with_escaped, to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -126,6 +126,7 @@ pub enum BindingType {
 pub struct ConcatenatedInnerModule {
   pub id: ModuleIdentifier,
   pub size: f64,
+  pub original_source_hash: Option<u64>,
   pub shorten_id: String,
 }
 
@@ -134,8 +135,8 @@ static REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(pattern).expect("should construct the regex")
 });
 
-#[derive(Debug, Clone)]
-pub enum ConcatenationEntry {
+#[derive(Debug)]
+enum ConcatenationEntry {
   Concatenated(ConcatenationEntryConcatenated),
   External(ConcatenationEntryExternal),
 }
@@ -149,13 +150,13 @@ impl ConcatenationEntry {
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct ConcatenationEntryConcatenated {
+#[derive(Debug)]
+struct ConcatenationEntryConcatenated {
   module: ModuleIdentifier,
 }
 
-#[derive(Debug, Clone)]
-pub struct ConcatenationEntryExternal {
+#[derive(Debug)]
+struct ConcatenationEntryExternal {
   dependency: DependencyId,
   runtime_condition: RuntimeCondition,
 }
@@ -223,9 +224,8 @@ pub struct ExternalModuleInfo {
   pub name: Option<Atom>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ConnectionWithRuntimeCondition {
-  pub connection: Arc<ModuleGraphConnection>,
+pub struct ConnectionWithRuntimeCondition<'a> {
+  pub connection: &'a ModuleGraphConnection,
   pub runtime_condition: RuntimeCondition,
 }
 
@@ -738,8 +738,9 @@ impl Module for ConcatenatedModule {
         let mut escaped_names: HashMap<String, String> = HashMap::default();
         let mut escaped_identifiers: HashMap<String, Vec<String>> = HashMap::default();
         let readable_identifier = get_cached_readable_identifier(
-          &info.id(),
-          &module_graph,
+          module_graph
+            .module_by_identifier(&info.id())
+            .expect("should have module identifier"),
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -783,12 +784,8 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
-      let readable_identifier = get_cached_readable_identifier(
-        &info.id(),
-        &module_graph,
-        &compilation.module_static_cache_artifact,
-        &context,
-      );
+      let readable_identifier =
+        get_cached_readable_identifier(module, &compilation.module_static_cache_artifact, &context);
       let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
       let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
       match info {
@@ -1300,8 +1297,7 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(module_info_id)
           .expect("should have box module");
         let module_readable_identifier = get_cached_readable_identifier(
-          module_info_id,
-          &module_graph,
+          box_module,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -1403,9 +1399,11 @@ impl Module for ConcatenatedModule {
       let info = module_to_info_map
         .get(&module_info_id)
         .expect("should have module info");
+      let box_module = module_graph
+        .module_by_identifier(&module_info_id)
+        .expect("should have box module");
       let module_readable_identifier = get_cached_readable_identifier(
-        &module_info_id,
-        &module_graph,
+        box_module,
         &compilation.module_static_cache_artifact,
         &context,
       );
@@ -1555,6 +1553,8 @@ impl Module for ConcatenatedModule {
     };
     let runtime = runtime.as_deref();
     let concatenation_entries = self.create_concatenation_list(
+      self.root_module_ctxt.id,
+      self.modules.iter().map(|item| item.id).collect(),
       runtime,
       &compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
@@ -1675,7 +1675,13 @@ impl ConcatenatedModule {
     Vec<(ModuleIdentifier, Option<RuntimeCondition>)>,
     IdentifierIndexMap<ModuleInfo>,
   ) {
-    let ordered_concatenation_list = self.create_concatenation_list(runtime, mg, mg_cache);
+    let ordered_concatenation_list = self.create_concatenation_list(
+      self.root_module_ctxt.id,
+      self.modules.iter().map(|item| item.id).collect(),
+      runtime,
+      mg,
+      mg_cache,
+    );
     let mut list = vec![];
     let mut map = IdentifierIndexMap::default();
     for (i, concatenation_entry) in ordered_concatenation_list.into_iter().enumerate() {
@@ -1730,55 +1736,43 @@ impl ConcatenatedModule {
 
   fn create_concatenation_list(
     &self,
+    root_module: ModuleIdentifier,
+    module_set: IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ConcatenationEntry> {
-    mg_cache.cached_concatenated_module_entries(
-      (
-        self.id,
-        runtime
-          .map(|r| get_runtime_key(r).to_string())
-          .unwrap_or_default(),
-      ),
-      || {
-        let root_module = self.root_module_ctxt.id;
-        let module_set: IdentifierIndexSet = self.modules.iter().map(|item| item.id).collect();
+    let mut list = vec![];
+    let mut exists_entries = IdentifierMap::default();
+    exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-        let mut list = vec![];
-        let mut exists_entries = IdentifierMap::default();
-        exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
+    let imports_map = module_set
+      .par_iter()
+      .map(|module| {
+        let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+        (*module, imports)
+      })
+      .collect::<IdentifierMap<_>>();
 
-        let imports_map = module_set
-          .par_iter()
-          .map(|module| {
-            let imports =
-              self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
-            (*module, imports)
-          })
-          .collect::<IdentifierMap<_>>();
-
-        let imports = imports_map.get(&root_module).expect("should have imports");
-        for i in imports {
-          self.enter_module(
-            &module_set,
-            runtime,
-            mg,
-            &i.connection,
-            i.runtime_condition.clone(),
-            &mut exists_entries,
-            &mut list,
-            &imports_map,
-          );
-        }
-        list.push(ConcatenationEntry::Concatenated(
-          ConcatenationEntryConcatenated {
-            module: root_module,
-          },
-        ));
-        list
+    let imports = imports_map.get(&root_module).expect("should have imports");
+    for i in imports {
+      self.enter_module(
+        &module_set,
+        runtime,
+        mg,
+        i.connection,
+        i.runtime_condition.clone(),
+        &mut exists_entries,
+        &mut list,
+        &imports_map,
+      );
+    }
+    list.push(ConcatenationEntry::Concatenated(
+      ConcatenationEntryConcatenated {
+        module: root_module,
       },
-    )
+    ));
+    list
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1813,7 +1807,7 @@ impl ConcatenatedModule {
           module_set,
           runtime,
           mg,
-          &import.connection,
+          import.connection,
           import.runtime_condition.clone(),
           exists_entry,
           list,
@@ -1856,14 +1850,14 @@ impl ConcatenatedModule {
     }
   }
 
-  fn get_concatenated_imports(
+  fn get_concatenated_imports<'a>(
     &self,
     module_id: &ModuleIdentifier,
     root_module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
-  ) -> Vec<ConnectionWithRuntimeCondition> {
+    mg: &'a ModuleGraph,
+    mg_cache: &'a ModuleGraphCacheArtifact,
+  ) -> Vec<ConnectionWithRuntimeCondition<'a>> {
     let mut connections: Vec<&ModuleGraphConnection> =
       mg.get_ordered_outgoing_connections(module_id).collect();
     if module_id == root_module_id {
@@ -1936,7 +1930,7 @@ impl ConcatenatedModule {
         }
         indexmap::map::Entry::Vacant(vac) => {
           vac.insert(ConnectionWithRuntimeCondition {
-            connection: Arc::new(reference.connection.clone()),
+            connection: reference.connection,
             runtime_condition,
           });
         }
@@ -2151,16 +2145,14 @@ impl ConcatenatedModule {
           .get(&binding.info_id)
           .and_then(|info| info.try_as_concatenated())
           .expect("should have concatenate module info");
+        let module = module_graph
+          .module_by_identifier(&info.module)
+          .expect("should have module");
         let name = info.internal_names.get(export_id).unwrap_or_else(|| {
           panic!(
             "The export \"{}\" in \"{}\" has no internal name (existing names: {})",
             export_id,
-            get_cached_readable_identifier(
-              &info.module,
-              module_graph,
-              module_static_cache_artifact,
-              context
-            ),
+            get_cached_readable_identifier(module, module_static_cache_artifact, context),
             info
               .internal_names
               .iter()
@@ -2747,13 +2739,11 @@ impl FinalNameResult {
 }
 
 pub fn get_cached_readable_identifier(
-  mid: &ModuleIdentifier,
-  mg: &ModuleGraph,
+  module: &BoxModule,
   module_static_cache_artifact: &ModuleStaticCacheArtifact,
   compilation_context: &Context,
 ) -> String {
-  module_static_cache_artifact.cached_readable_identifier((*mid, None), || {
-    let module = mg.module_by_identifier(mid).expect("should have module");
+  module_static_cache_artifact.cached_readable_identifier((module.identifier(), None), || {
     module.readable_identifier(compilation_context).to_string()
   })
 }
@@ -2762,7 +2752,7 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<String> {
   let extra_info = REGEX.replace_all(extra_info, "");
   let mut splitted_info: Vec<String> = extra_info
     .split('/')
-    .map(|s| escape_identifier(s).into_owned())
+    .map(|s| escape_identifier(s).to_string())
     .collect();
   splitted_info.reverse();
   splitted_info
@@ -2776,5 +2766,5 @@ pub fn escape_name(name: &str) -> String {
     return "namespaceObject".to_string();
   }
 
-  escape_identifier(name).into_owned()
+  escape_identifier(name).to_string()
 }

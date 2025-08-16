@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_core::{AfterResolveData, BeforeResolveData};
 use rspack_regex::RspackRegex;
 
-use crate::dependency::DependencyWrapper;
+use crate::DependencyWrapper;
 
 #[napi]
 pub struct JsContextModuleFactoryBeforeResolveData(Box<BeforeResolveData>);

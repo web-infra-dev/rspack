@@ -1,6 +1,6 @@
 import path from "node:path";
 import { rspack } from "@rspack/core";
-import { isJavaScript } from "../helper";
+
 import { HotUpdatePlugin } from "../helper/hot-update";
 import {
 	ECompilerType,
@@ -65,7 +65,7 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			this._cacheOptions.target === "webworker"
 		) {
 			for (const file of info.entrypoints!.main.assets!) {
-				if (isJavaScript(file.name)) {
+				if (file.name.endsWith(".js")) {
 					files.push(file.name);
 				} else {
 					prefiles.push(file.name);
@@ -73,7 +73,7 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			}
 		} else {
 			const assets = info.entrypoints!.main.assets!.filter(s =>
-				isJavaScript(s.name)
+				s.name.endsWith(".js")
 			);
 			files.push(assets[assets.length - 1].name);
 		}

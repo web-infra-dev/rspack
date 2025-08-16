@@ -3,13 +3,15 @@ mod lockfile;
 
 use std::{fmt::Debug, sync::Arc};
 
+use async_trait::async_trait;
 use http_cache::{ContentFetchResult, FetchResultType, fetch_content};
 pub use http_cache::{HttpClient, HttpResponse};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
-  NormalModuleFactoryResolveInScheme, NormalModuleReadResource, Plugin, ResourceData, Scheme,
+  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
+  NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveInScheme,
+  NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
 use rspack_error::{
   AnyhowResultToRspackResultExt, Result,
@@ -178,21 +180,25 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   Ok(None)
 }
 
+#[async_trait]
 impl Plugin for HttpUriPlugin {
   fn name(&self) -> &'static str {
     "rspack.HttpUriPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
       .normal_module_factory_hooks
       .resolve_for_scheme
       .tap(resolve_for_scheme::new(self));
     ctx
+      .context
       .normal_module_factory_hooks
       .resolve_in_scheme
       .tap(resolve_in_scheme::new(self));
     ctx
+      .context
       .normal_module_hooks
       .read_resource
       .tap(read_resource::new(self));

@@ -53,7 +53,9 @@ module.exports = {
 		type: "filesystem",
 		idleTimeout: 5000
 	},
-	lazyCompilation: true,
+	experiments: {
+		lazyCompilation: true
+	},
 	devServer: {
 		hot: true,
 		devMiddleware: {

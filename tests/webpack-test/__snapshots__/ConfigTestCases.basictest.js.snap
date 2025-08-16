@@ -531,28 +531,6 @@ Object {
 
 exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 8`] = `
 Object {
-  "btn--info_is-disabled_1": "-btn--info_is-disabled_1",
-  "btn-info_is-disabled": "-btn-info_is-disabled",
-  "foo": "bar",
-  "foo_bar": "-foo_bar",
-  "my-btn-info_is-disabled": "value",
-  "simple": "-simple",
-}
-`;
-
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 9`] = `
-Object {
-  "btn--info_is-disabled_1": "nested2-btn--info_is-disabled_1",
-  "btn-info_is-disabled": "nested2-btn-info_is-disabled",
-  "foo": "bar",
-  "foo_bar": "nested2-foo_bar",
-  "my-btn-info_is-disabled": "value",
-  "simple": "nested2-simple",
-}
-`;
-
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 10`] = `
-Object {
   "btn--info_is-disabled_1": "./style.module.less__btn--info_is-disabled_1",
   "btn-info_is-disabled": "./style.module.less__btn-info_is-disabled",
   "foo": "bar",
@@ -562,7 +540,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 11`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 9`] = `
 Object {
   "btn--info_is-disabled_1": "_style_module_css-btn--info_is-disabled_1",
   "btn-info_is-disabled": "_style_module_css-btn-info_is-disabled",
@@ -573,7 +551,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 12`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 10`] = `
 Object {
   "btn--info_is-disabled_1": "feb1ff69382c6202",
   "btn-info_is-disabled": "f9df66ace1f48520",
@@ -584,7 +562,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 13`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 11`] = `
 Object {
   "btn--info_is-disabled_1": "_6fc78548db75122e-btn--info_is-disabled_1",
   "btn-info_is-disabled": "_6fc78548db75122e-btn-info_is-disabled",
@@ -595,7 +573,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 14`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 12`] = `
 Object {
   "btn--info_is-disabled_1": "./style.module__btn--info_is-disabled_1",
   "btn-info_is-disabled": "./style.module__btn-info_is-disabled",
@@ -606,7 +584,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 15`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 13`] = `
 Object {
   "btn--info_is-disabled_1": "./style.module.css__btn--info_is-disabled_1",
   "btn-info_is-disabled": "./style.module.css__btn-info_is-disabled",
@@ -617,7 +595,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 16`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 14`] = `
 Object {
   "btn--info_is-disabled_1": "./style.module.css?q#f__btn--info_is-disabled_1",
   "btn-info_is-disabled": "./style.module.css?q#f__btn-info_is-disabled",
@@ -628,7 +606,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 17`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 15`] = `
 Object {
   "btn--info_is-disabled_1": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
   "btn-info_is-disabled": "-_style_module_css_uniqueName-id-contenthash-[contenthash]",
@@ -639,29 +617,7 @@ Object {
 }
 `;
 
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 18`] = `
-Object {
-  "btn--info_is-disabled_1": "-btn--info_is-disabled_1",
-  "btn-info_is-disabled": "-btn-info_is-disabled",
-  "foo": "bar",
-  "foo_bar": "-foo_bar",
-  "my-btn-info_is-disabled": "value",
-  "simple": "-simple",
-}
-`;
-
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 19`] = `
-Object {
-  "btn--info_is-disabled_1": "nested2-btn--info_is-disabled_1",
-  "btn-info_is-disabled": "nested2-btn-info_is-disabled",
-  "foo": "bar",
-  "foo_bar": "nested2-foo_bar",
-  "my-btn-info_is-disabled": "value",
-  "simple": "nested2-simple",
-}
-`;
-
-exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 20`] = `
+exports[`ConfigTestCases css local-ident-name exported tests should have correct local ident for css export locals 16`] = `
 Object {
   "btn--info_is-disabled_1": "./style.module.less__btn--info_is-disabled_1",
   "btn-info_is-disabled": "./style.module.less__btn-info_is-disabled",

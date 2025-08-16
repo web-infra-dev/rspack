@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
-  ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset, CompilerAfterEmit, Plugin,
+  ApplyContext, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset, CompilerAfterEmit,
+  CompilerOptions, Plugin, PluginContext,
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -259,8 +260,12 @@ impl Plugin for SizeLimitsPlugin {
     "SizeLimitsPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.after_emit.tap(after_emit::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .after_emit
+      .tap(after_emit::new(self));
 
     Ok(())
   }

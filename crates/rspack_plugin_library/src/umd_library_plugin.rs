@@ -1,10 +1,11 @@
 use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
-  Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
-  LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, SourceType,
+  ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
+  Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
+  PluginContext, RuntimeGlobals, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -300,14 +301,20 @@ async fn additional_chunk_runtime_requirements(
   Ok(())
 }
 
+#[async_trait::async_trait]
 impl Plugin for UmdLibraryPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

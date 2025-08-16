@@ -1,3 +1,7 @@
+const path = require("path");
+const assert = require("assert").strict;
+const pluginName = "plugin";
+
 class Plugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("Test", compilation => {

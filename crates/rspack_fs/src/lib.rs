@@ -3,7 +3,7 @@ pub use read::ReadableFileSystem;
 
 mod watcher;
 pub use watcher::{
-  EventAggregateHandler, EventHandler, FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions,
+  EventAggregateHandler, EventHandler, FsWatcher, FsWatcherIgnored, FsWatcherOptions, PathUpdater,
 };
 
 mod write;

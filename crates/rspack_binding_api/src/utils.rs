@@ -3,7 +3,7 @@ use rspack_napi::napi::{
   Result, bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode,
 };
 
-use crate::error::ErrorCode;
+use crate::ErrorCode;
 /**
  *  execution workflow
  *  1. let future_result = fut.await; // get rust future result

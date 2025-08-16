@@ -1,6 +1,6 @@
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals,
-  RuntimeModuleExt,
+  ChunkUkey, Compilation, CompilationRuntimeRequirementInTree, Plugin, PluginContext,
+  RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -11,11 +11,16 @@ use crate::ShareRuntimeModule;
 #[derive(Debug)]
 pub struct ShareRuntimePlugin {
   enhanced: bool,
+  _enable_export_usage_tracking: bool,
 }
 
 impl ShareRuntimePlugin {
   pub fn new(enhanced: bool) -> Self {
-    Self::new_inner(enhanced)
+    Self::new_inner(enhanced, false)
+  }
+
+  pub fn with_export_usage_tracking(enhanced: bool, enable_export_usage_tracking: bool) -> Self {
+    Self::new_inner(enhanced, enable_export_usage_tracking)
   }
 }
 
@@ -39,8 +44,13 @@ impl Plugin for ShareRuntimePlugin {
     "rspack.ShareRuntimePlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &rspack_core::CompilerOptions,
+  ) -> Result<()> {
     ctx
+      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));

@@ -68,7 +68,7 @@ export class JSDOMWebRunner<
 	}
 
 	run(file: string) {
-		if (!file.endsWith(".js") && !file.endsWith(".mjs")) {
+		if (!file.endsWith(".js")) {
 			const cssElement = this.dom.window.document.createElement("link");
 			cssElement.href = file;
 			cssElement.rel = "stylesheet";

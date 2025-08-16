@@ -515,7 +515,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {
       let tag_data = parser.get_tag_data(
-        &self.compose_rstest_import_call_key(call_expr),
+        &Atom::from(self.compose_rstest_import_call_key(call_expr).as_str()),
         RSTEST_MOCK_FIRST_ARG_TAG,
       );
 
@@ -708,18 +708,18 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    for_name: &str,
+    ident: &str,
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
     if self.import_meta_path_name {
-      if for_name == IMPORT_META_DIRNAME {
+      if ident == IMPORT_META_DIRNAME {
         return Some(eval::evaluate_to_string(
           self.process_import_meta(parser, ModulePathType::DirName),
           start,
           end,
         ));
-      } else if for_name == IMPORT_META_FILENAME {
+      } else if ident == IMPORT_META_FILENAME {
         return Some(eval::evaluate_to_string(
           self.process_import_meta(parser, ModulePathType::FileName),
           start,

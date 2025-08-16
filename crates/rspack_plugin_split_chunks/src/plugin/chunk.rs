@@ -1,8 +1,7 @@
-use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, IdentifierMap, UkeySet};
-use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation};
+use rspack_collections::{DatabaseItem, UkeySet};
+use rspack_core::{Chunk, ChunkUkey, Compilation, incremental::Mutation};
 
-use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
+use crate::{SplitChunksPlugin, module_group::ModuleGroup};
 
 fn put_split_chunk_reason(
   chunk_reason: &mut Option<String>,
@@ -22,16 +21,6 @@ fn put_split_chunk_reason(
 }
 
 impl SplitChunksPlugin {
-  pub(crate) fn get_module_chunks(
-    all_modules: &[ModuleIdentifier],
-    compilation: &Compilation,
-  ) -> ModuleChunks {
-    let chunk_graph = &compilation.chunk_graph;
-    all_modules
-      .par_iter()
-      .map(|module| (*module, chunk_graph.get_module_chunks(*module).clone()))
-      .collect::<IdentifierMap<_>>()
-  }
   /// Affected by `splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk`
   ///
   /// If there is a code splitting chunk that the contains the same modules as the current `ModuleGroup`,
@@ -175,31 +164,29 @@ impl SplitChunksPlugin {
     original_chunks: &UkeySet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
-    let modules = item
-      .modules
-      .iter()
-      .filter(|mid| {
-        if let Some(module) = compilation.module_by_identifier(mid)
-          && module
-            .chunk_condition(&new_chunk, compilation)
-            .is_some_and(|condition| !condition)
-        {
-          return false;
-        }
-        true
-      })
-      .copied()
-      .collect::<Vec<_>>();
+    for module_identifier in &item.modules {
+      if let Some(module) = compilation.module_by_identifier(module_identifier)
+        && module
+          .chunk_condition(&new_chunk, compilation)
+          .is_some_and(|condition| !condition)
+      {
+        continue;
+      }
 
-    let chunks = original_chunks.iter().copied().collect::<Vec<_>>();
+      // First, we remove modules from old chunks
 
-    compilation
-      .chunk_graph
-      .disconnect_chunks_and_modules(&chunks, &modules);
+      // Remove module from old chunks
+      for used_chunk in original_chunks {
+        compilation
+          .chunk_graph
+          .disconnect_chunk_and_module(used_chunk, *module_identifier);
+      }
 
-    compilation
-      .chunk_graph
-      .connect_chunk_and_modules(new_chunk, &modules);
+      // Add module to new chunk
+      compilation
+        .chunk_graph
+        .connect_chunk_and_module(new_chunk, *module_identifier);
+    }
   }
 
   /// Since the modules are moved into the `new_chunk`, we should

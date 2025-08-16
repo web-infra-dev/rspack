@@ -5,10 +5,8 @@ use napi::{
 use rspack_core::{ResourceData, ResourceParsedData, parse_resource};
 
 use crate::{
-  impl_module_methods,
-  module::{MODULE_PROPERTIES_BUFFER, Module},
+  MODULE_PROPERTIES_BUFFER, Module, ReadonlyResourceDataWrapper, impl_module_methods,
   plugins::JsLoaderItem,
-  resource_data::ReadonlyResourceDataWrapper,
 };
 
 #[napi]

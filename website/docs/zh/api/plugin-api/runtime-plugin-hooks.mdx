@@ -13,7 +13,7 @@ export default {
   plugins: [
     {
       apply: compiler => {
-        const { RuntimePlugin } = compiler.rspack;
+        const { RuntimePlugin } = compiler.webpack;
         compiler.hooks.compilation.tap('MyPlugin', compilation => {
           const hooks = RuntimePlugin.getCompilationHooks(compilation);
           // ...

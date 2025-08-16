@@ -9,4 +9,24 @@ Rspack is built using [Rust](https://rust-lang.org/) and [NAPI-RS](https://napi.
 
 ## Setup Node.js
 
-Use the latest Node.js LTS version. For installation instructions, see [Install Node.js](https://nodejs.org/en/download).
+### Install Node.js
+
+We recommend using the LTS version of Node.js 20.
+
+Check the current Node.js version with the following command:
+
+```bash
+node -v
+```
+
+If you do not have Node.js installed in your current environment, you can use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) to install it.
+
+Here is an example of how to install via nvm:
+
+```bash
+# Install Node.js LTS
+nvm install 20 --lts
+
+# Switch to Node.js LTS
+nvm use 20
+```

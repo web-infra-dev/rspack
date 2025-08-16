@@ -138,8 +138,6 @@ pub struct Resolve {
   pub enforce_extension: Option<EnforceExtension>,
   /// If set, Yarn PnP resolution will be supported.
   pub pnp: Option<bool>,
-  /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
-  pub builtin_modules: bool,
 }
 
 /// Tsconfig Options

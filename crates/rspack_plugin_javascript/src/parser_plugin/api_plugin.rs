@@ -299,11 +299,11 @@ impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    for_name: &str,
+    ident: &str,
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if for_name == WEBPACK_LAYER {
+    if ident == WEBPACK_LAYER {
       if let Some(layer) = parser.module_layer {
         Some(eval::evaluate_to_string(layer.into(), start, end))
       } else {

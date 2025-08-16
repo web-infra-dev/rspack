@@ -1,8 +1,9 @@
 use std::sync::LazyLock;
 
+use async_trait::async_trait;
 use rspack_core::{
-  BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
-  DependencyType, EntryDependency, EntryOptions, Plugin,
+  ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
+  CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -49,10 +50,15 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[async_trait]
 impl Plugin for EntryPlugin {
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
-    ctx.compiler_hooks.make.tap(make::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx.context.compiler_hooks.make.tap(make::new(self));
     Ok(())
   }
 }

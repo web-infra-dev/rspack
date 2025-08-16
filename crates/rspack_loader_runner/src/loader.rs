@@ -2,13 +2,14 @@ use std::{
   fmt::Display,
   ops::Deref,
   sync::{
-    Arc,
+    Arc, LazyLock,
     atomic::{AtomicBool, Ordering},
   },
 };
 
 use async_trait::async_trait;
 use derive_more::Debug;
+use regex::Regex;
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
@@ -193,16 +194,9 @@ where
     loader_context.current_loader().set_finish_called();
     Ok(())
   }
-
   async fn pitch(&self, _loader_context: &mut LoaderContext<Context>) -> Result<()> {
     // noop
     Ok(())
-  }
-
-  /// Returns the loader type based on the module's package.json type field or file extension.
-  /// This affects how the loader context interprets the module (e.g., "commonjs", "module").
-  fn r#type(&self) -> Option<&str> {
-    None
   }
 }
 
@@ -211,14 +205,12 @@ where
   C: Send,
 {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
-    let ident = &**loader.identifier();
-    if let Some(r#type) = loader.r#type() {
+    if let Some((r#type, ident)) = loader.identifier().split_once('|') {
       let ResourceParsedData {
         path,
         query,
         fragment,
       } = parse_resource(ident).expect("identifier should be valid");
-      let ty = r#type.to_string();
       return Self {
         loader,
         request: ident.into(),
@@ -226,7 +218,7 @@ where
         query,
         fragment,
         data: serde_json::Value::Null,
-        r#type: ty,
+        r#type: r#type.to_string(),
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -261,39 +253,23 @@ pub struct ResourceParsedData {
 }
 
 pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let (path, query, fragment) = path_query_fragment(resource).ok()?;
+  let groups = PATH_QUERY_FRAGMENT_REGEXP.captures(resource)?;
 
   Some(ResourceParsedData {
-    path: strip_zero_width_space_for_fragment(path)
+    path: strip_zero_width_space_for_fragment(groups.get(1)?.as_str())
       .into_owned()
       .into(),
-    query: query.map(|q| strip_zero_width_space_for_fragment(q).into_owned()),
-    fragment: fragment.map(|f| f.to_owned()),
+    query: groups
+      .get(2)
+      .map(|q| strip_zero_width_space_for_fragment(q.as_str()).into_owned()),
+    fragment: groups.get(3).map(|q| q.as_str().to_owned()),
   })
 }
 
-fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  use winnow::{
-    combinator::{alt, opt, repeat},
-    prelude::*,
-    token::{any, none_of, rest},
-  };
-
-  let path = alt((
-    ('\u{200b}', any).take(),
-    none_of(('?', '#', '\u{200b}')).take(),
-  ));
-  let query = alt((('\u{200b}', any).take(), none_of(('#', '\u{200b}')).take()));
-  let fragment = rest;
-
-  let mut parser = (
-    repeat::<_, _, (), _, _>(.., path).take(),
-    opt(('?', repeat::<_, _, (), _, _>(.., query)).take()),
-    opt(('#', fragment).take()),
-  );
-
-  parser.parse_next(&mut input)
-}
+static PATH_QUERY_FRAGMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new("^((?:\u{200b}.|[^?#\u{200b}])*)(\\?(?:\u{200b}.|[^#\u{200b}])*)?(#.*)?$")
+    .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
+});
 
 #[cfg(test)]
 pub(crate) mod test {

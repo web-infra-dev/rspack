@@ -18,7 +18,7 @@ export const CssChunkingPlugin = create(
 	binding.BuiltinPluginName.CssChunkingPlugin,
 	function (
 		options: CssChunkingPluginOptions = {}
-	): binding.RawCssChunkingPluginOptions {
+	): binding.CssChunkingPluginOptions {
 		if (options.nextjs) {
 			return {
 				strict: options.strict,

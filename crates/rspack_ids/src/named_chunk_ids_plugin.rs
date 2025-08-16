@@ -1,7 +1,8 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
 use rspack_core::{
-  ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds, Logger, Plugin,
+  ApplyContext, ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds,
+  CompilerOptions, Logger, Plugin, PluginContext,
   chunk_graph_chunk::ChunkId,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
@@ -304,8 +305,16 @@ impl Plugin for NamedChunkIdsPlugin {
     "rspack.NamedChunkIdsPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
-    ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &CompilerOptions,
+  ) -> rspack_error::Result<()> {
+    ctx
+      .context
+      .compilation_hooks
+      .chunk_ids
+      .tap(chunk_ids::new(self));
     Ok(())
   }
 }

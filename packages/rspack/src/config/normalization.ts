@@ -375,10 +375,7 @@ export const getNormalizedRspackOptions = (
 		devServer: config.devServer,
 		profile: config.profile,
 		amd: config.amd,
-		bail: config.bail,
-		lazyCompilation: optionalNestedConfig(config.lazyCompilation, options =>
-			options === true ? {} : options
-		)
+		bail: config.bail
 	};
 };
 
@@ -631,11 +628,6 @@ export type ExperimentCacheNormalized =
 
 export interface ExperimentsNormalized {
 	cache?: ExperimentCacheNormalized;
-	/**
-	 * @deprecated This option is deprecated and will be removed in future versions.
-	 *
-	 * Please use the Configuration top-level `lazyCompilation` option instead.
-	 */
 	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
@@ -691,7 +683,6 @@ export interface RspackOptionsNormalized {
 	optimization: Optimization;
 	plugins: Plugins;
 	experiments: ExperimentsNormalized;
-	lazyCompilation?: false | LazyCompilationOptions;
 	watch?: Watch;
 	watchOptions: WatchOptions;
 	devServer?: DevServer;

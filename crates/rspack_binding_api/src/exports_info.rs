@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_util::atom::Atom;
 
-use crate::runtime::JsRuntimeSpec;
+use crate::JsRuntimeSpec;
 
 #[napi]
 pub struct JsExportsInfo {

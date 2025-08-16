@@ -2,11 +2,7 @@ use napi::Either;
 use rspack_core::{Reflector, WeakBindingCell};
 use rustc_hash::FxHashMap;
 
-use crate::{
-  module::ModuleObjectRef,
-  runtime::JsRuntimeSpec,
-  source::{JsCompatSourceOwned, ToJsCompatSourceOwned},
-};
+use crate::{JsCompatSourceOwned, JsRuntimeSpec, ModuleObjectRef, ToJsCompatSourceOwned};
 
 // Map<string, Source>
 #[napi]

@@ -1,6 +1,7 @@
 use std::{borrow::Cow, collections::HashSet, hash::Hasher, path::PathBuf};
 
 use asset_exports_dependency::AssetExportsDependency;
+use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
@@ -808,18 +809,24 @@ async fn render_manifest(
   Ok(())
 }
 
+#[async_trait]
 impl Plugin for AssetPlugin {
   fn name(&self) -> &'static str {
     "asset"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &CompilerOptions,
+  ) -> Result<()> {
     ctx
+      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.register_parser_and_generator_builder(
+    ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
       Box::new(move |parser_options, generator_options| {
         let data_url_condition = parser_options
@@ -837,12 +844,12 @@ impl Plugin for AssetPlugin {
       }),
     );
 
-    ctx.register_parser_and_generator_builder(
+    ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetInline,
       Box::new(|_, _| Box::new(AssetParserAndGenerator::with_inline())),
     );
 
-    ctx.register_parser_and_generator_builder(
+    ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetResource,
       Box::new(move |_, generator_options| {
         let emit = generator_options
@@ -853,7 +860,7 @@ impl Plugin for AssetPlugin {
       }),
     );
 
-    ctx.register_parser_and_generator_builder(
+    ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,
       Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_source())),
     );

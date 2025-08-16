@@ -1,7 +1,8 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BoxModule, Compilation, CompilationBuildModule, CompilationId, CompilationOptimizeDependencies,
-  CompilerId, FactoryMeta, Plugin, RuntimeSpec, get_entry_runtime,
+  ApplyContext, BoxModule, Compilation, CompilationBuildModule, CompilationId,
+  CompilationOptimizeDependencies, CompilerId, CompilerOptions, FactoryMeta, Plugin, PluginContext,
+  RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -23,13 +24,15 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
     "rspack:FlagAllModulesAsUsedPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
 
     ctx
+      .context
       .compilation_hooks
       .build_module
       .tap(build_module::new(self));

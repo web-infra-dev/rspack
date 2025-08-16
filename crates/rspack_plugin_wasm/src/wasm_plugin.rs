@@ -1,9 +1,11 @@
 use std::fmt::Debug;
 
+use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  DependencyType, ModuleType, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest,
+  CompilerCompilation, CompilerOptions, DependencyType, ModuleType, ParserAndGenerator, Plugin,
+  PluginContext, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -85,21 +87,27 @@ async fn render_manifest(
   Ok(())
 }
 
+#[async_trait]
 impl Plugin for AsyncWasmPlugin {
   fn name(&self) -> &'static str {
     "rspack.AsyncWebAssemblyModulesPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
     let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
 
-    ctx.register_parser_and_generator_builder(
+    ctx.context.register_parser_and_generator_builder(
       ModuleType::WasmAsync,
       Box::new(move |_, _| {
         Box::new({

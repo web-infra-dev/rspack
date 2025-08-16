@@ -7,6 +7,7 @@ use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAsset,
   ModuleGraph,
 };
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -178,7 +179,7 @@ pub fn collect_assets(
 
 pub fn collect_chunk_modules(
   chunk_by_ukey: &ChunkByUkey,
-  module_ukeys: &HashMap<Identifier, RsdoctorChunkUkey>,
+  module_ukeys: &FxDashMap<Identifier, RsdoctorChunkUkey>,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
 ) -> Vec<RsdoctorChunkModules> {
@@ -202,7 +203,7 @@ pub fn collect_chunk_modules(
               concatenated_module
                 .get_modules()
                 .iter()
-                .filter_map(|m| module_ukeys.get(&m.id).copied()),
+                .filter_map(|m| module_ukeys.get(&m.id).map(|u| *u)),
             );
           }
           res
@@ -237,7 +238,7 @@ pub fn collect_chunk_assets(
 pub fn collect_entrypoint_assets(
   entrypoints: &IndexMap<String, ChunkGroupUkey>,
   rsd_assets: &HashMap<String, RsdoctorAsset>,
-  entrypoint_ukey_map: &HashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
+  entrypoint_ukey_map: &FxDashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,
 ) -> Vec<RsdoctorEntrypointAssets> {

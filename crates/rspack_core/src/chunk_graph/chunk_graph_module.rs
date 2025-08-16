@@ -15,9 +15,9 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, ExportsInfoGetter, Module, ModuleGraph, ModuleIdentifier,
-  ModuleIdsArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
-  RuntimeSpecSet, for_each_runtime,
+  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  for_each_runtime,
 };
 
 #[cacheable]
@@ -312,52 +312,53 @@ impl ChunkGraph {
     runtime: Option<&RuntimeSpec>,
   ) -> u64 {
     let mut hasher = FxHasher::default();
+    self
+      .get_module_graph_hash_without_connections(module, compilation, runtime)
+      .hash(&mut hasher);
     let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
-    self
-      .get_module_graph_hash_without_connections(module, compilation, runtime, strict)
-      .hash(&mut hasher);
-
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
-
-    let hash_modules = mg
+    let mut hash_modules = vec![];
+    for connection in mg
       .get_outgoing_deps_in_order(&module.identifier())
-      .filter_map(|c| {
-        let connection = mg.connection_by_dependency_id(c)?;
-        let module_identifier = connection.module_identifier();
-        if visited_modules.contains(module_identifier) {
-          return None;
-        }
-        let active_state = connection.active_state(&mg, runtime, mg_cache);
-        if active_state.is_false() {
-          return None;
-        }
-        visited_modules.insert(*module_identifier);
-        for_each_runtime(
-          runtime,
-          |runtime| {
-            let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
-            let active_state = connection.active_state(&mg, runtime.as_ref(), mg_cache);
-            active_state.hash(&mut hasher);
-          },
-          true,
-        );
-        Some(module_identifier)
-      })
-      .collect::<Vec<_>>();
-
-    for module_identifier in hash_modules {
+      .filter_map(|c| mg.connection_by_dependency_id(c))
+    {
+      let module_identifier = connection.module_identifier();
+      if visited_modules.contains(module_identifier) {
+        continue;
+      }
+      let active_state = connection.active_state(&mg, runtime, mg_cache);
+      if active_state.is_false() {
+        continue;
+      }
+      visited_modules.insert(*module_identifier);
+      for_each_runtime(
+        runtime,
+        |runtime| {
+          let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
+          let active_state = connection.active_state(&mg, runtime.as_ref(), mg_cache);
+          active_state.hash(&mut hasher);
+        },
+        true,
+      );
       let module = mg
         .module_by_identifier(module_identifier)
         .expect("should have module")
         .as_ref();
-      self
-        .get_module_graph_hash_without_connections(module, compilation, runtime, strict)
+      module
+        .get_exports_type(&mg, &compilation.module_graph_cache_artifact, strict)
         .hash(&mut hasher);
+      hash_modules.push(module);
     }
-
+    let hash_results = hash_modules
+      .into_iter()
+      .map(|module| self.get_module_graph_hash_without_connections(module, compilation, runtime))
+      .collect::<Vec<_>>();
+    for hash_result in hash_results {
+      hash_result.hash(&mut hasher);
+    }
     hasher.finish()
   }
 
@@ -366,33 +367,16 @@ impl ChunkGraph {
     module: &dyn Module,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-    strict: bool,
   ) -> u64 {
-    let mg = compilation.get_module_graph();
     let mut hasher = FxHasher::default();
-
-    let (hash, exports_info_entry, exports_info_exports) = compilation
-      .module_graph_cache_artifact
-      .cached_module_graph_hash(module.identifier(), || {
-        let mut hasher = FxHasher::default();
-        let module_identifier = module.identifier();
-        Self::get_module_id(&compilation.module_ids_artifact, module_identifier)
-          .dyn_hash(&mut hasher);
-        module
-          .get_exports_type(&mg, &compilation.module_graph_cache_artifact, strict)
-          .hash(&mut hasher);
-        module.source_types(&mg).dyn_hash(&mut hasher);
-
-        ModuleGraph::is_async(compilation, &module_identifier).dyn_hash(&mut hasher);
-        let exports_info =
-          mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Full);
-        let (entry, exports) = exports_info.meta();
-        (hasher.finish(), entry, exports)
-      });
-
-    hasher.write_u64(hash);
+    let mg = compilation.get_module_graph();
+    let module_identifier = module.identifier();
+    let module_graph = compilation.get_module_graph();
+    Self::get_module_id(&compilation.module_ids_artifact, module_identifier).dyn_hash(&mut hasher);
+    module.source_types(&module_graph).dyn_hash(&mut hasher);
+    ModuleGraph::is_async(compilation, &module_identifier).dyn_hash(&mut hasher);
     let exports_info =
-      ExportsInfoGetter::from_meta((exports_info_entry, exports_info_exports), &mg);
+      mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Full);
     exports_info.update_hash(&mut hasher, runtime);
     hasher.finish()
   }

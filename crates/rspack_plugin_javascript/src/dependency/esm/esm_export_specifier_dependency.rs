@@ -167,9 +167,17 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       return;
     }
     let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
     let module = module_graph
-      .module_by_identifier(&module.identifier())
+      .module_by_identifier(&module_identifier)
       .expect("should have module graph module");
+
+    // Get shared key from BuildMeta (either ConsumeShared or regular shared module)
+    let meta = module.build_meta();
+    let shared_key = meta
+      .shared_key
+      .as_ref()
+      .or(meta.consume_shared_key.as_ref());
 
     // remove the enum decl if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
@@ -211,9 +219,28 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       }
       UsedName::Inlined(_) => return,
     };
+
+    // Generate export content with tree-shaking macro for shared modules
+    let export_value = if let Some(ref share_key) = shared_key {
+      // Special handling for default export to match test expectations
+      if dep.name == "default" {
+        Atom::from(format!(
+          "/* @common:if [condition=\"treeShake.{share_key}.default\"] */ {} /* @common:endif */",
+          dep.value
+        ))
+      } else {
+        Atom::from(format!(
+          "/* @common:if [condition=\"treeShake.{share_key}.{}\"] */ {} /* @common:endif */",
+          dep.name, dep.value
+        ))
+      }
+    } else {
+      dep.value.clone()
+    };
+
     init_fragments.push(Box::new(ESMExportInitFragment::new(
       module.get_exports_argument(),
-      vec![(used_name, dep.value.clone())],
+      vec![(used_name, export_value)],
     )));
   }
 }

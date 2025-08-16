@@ -1,6 +1,0 @@
-<%- HMR_DOWNLOAD_MANIFEST %> = <%- basicFunction("") %> {
-    return <%- importFunctionName %>(/* webpackIgnore: true */ <%- PUBLIC_PATH %> + <%- GET_UPDATE_MANIFEST_FILENAME %>())
-        .then( <%- basicFunction("obj") %> {
-            return obj.default;
-        })
-}

@@ -1,9 +1,6 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsOption, AsRefStr},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
@@ -17,17 +14,10 @@ use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 #[cacheable]
 #[derive(Debug)]
-pub struct JsLoader(
-  pub Identifier,
-  /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
-);
+pub struct JsLoader(pub Identifier);
 
 #[cacheable_dyn]
-impl Loader<RunnerContext> for JsLoader {
-  fn r#type(&self) -> Option<&str> {
-    self.1.as_deref()
-  }
-}
+impl Loader<RunnerContext> for JsLoader {}
 
 impl Identifiable for JsLoader {
   fn identifier(&self) -> Identifier {
@@ -98,16 +88,13 @@ pub(crate) async fn resolve_loader(
       let path = path.as_str();
 
       let r#type = if path.ends_with(".mjs") {
-        Some(Cow::Borrowed("module"))
+        Some("module")
       } else if path.ends_with(".cjs") {
-        Some(Cow::Borrowed("commonjs"))
+        Some("commonjs")
       } else {
-        description_data.as_ref().and_then(|data| {
-          data
-            .json()
-            .get("type")
-            .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
-        })
+        description_data
+          .as_ref()
+          .and_then(|data| data.json().get("type").and_then(|t| t.as_str()))
       };
       // favor explicit loader query over aliased query, see webpack issue-3320
       let resource = if let Some(rest) = rest
@@ -117,7 +104,12 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader(resource.into(), r#type))))
+      let ident = if let Some(ty) = r#type {
+        format!("{ty}|{resource}")
+      } else {
+        resource
+      };
+      Ok(Some(Arc::new(JsLoader(ident.into()))))
     }
     ResolveResult::Ignored => Ok(None),
   }

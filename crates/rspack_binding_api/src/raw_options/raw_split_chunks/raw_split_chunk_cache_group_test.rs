@@ -6,7 +6,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
 use rspack_regex::RspackRegex;
 
-use crate::module::ModuleObject;
+use crate::ModuleObject;
 
 pub(super) type RawCacheGroupTest =
   Either3<String, RspackRegex, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;

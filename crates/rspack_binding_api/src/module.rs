@@ -15,17 +15,11 @@ use rspack_napi::{
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 
+use super::JsCompatSourceOwned;
 use crate::{
-  COMPILER_REFERENCES, JsCompiler,
-  asset::AssetInfo,
-  async_dependency_block::AsyncDependenciesBlockWrapper,
-  build_info::BuildInfo,
-  chunk::ChunkWrapper,
-  codegen_result::JsCodegenerationResults,
-  define_symbols,
-  dependency::DependencyWrapper,
-  modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
-  source::{JsCompatSource, JsCompatSourceOwned, ToJsCompatSource},
+  AssetInfo, AsyncDependenciesBlockWrapper, BuildInfo, COMPILER_REFERENCES, ChunkWrapper,
+  ConcatenatedModule, ContextModule, DependencyWrapper, ExternalModule, JsCodegenerationResults,
+  JsCompatSource, JsCompiler, NormalModule, ToJsCompatSource, define_symbols,
 };
 
 define_symbols! {
@@ -791,6 +785,8 @@ pub struct JsBuildMeta {
   pub side_effect_free: Option<bool>,
   #[napi(ts_type = "Array<[string, string]> | undefined")]
   pub exports_final_name: Option<Vec<Vec<String>>>,
+  pub is_shared_descendant: Option<bool>,
+  pub effective_shared_key: Option<String>,
 }
 
 impl From<JsBuildMeta> for BuildMeta {
@@ -803,6 +799,8 @@ impl From<JsBuildMeta> for BuildMeta {
       exports_final_name: raw_exports_final_name,
       side_effect_free,
       exports_type: raw_exports_type,
+      is_shared_descendant,
+      effective_shared_key,
     } = value;
 
     let default_object = match raw_default_object {
@@ -850,6 +848,10 @@ impl From<JsBuildMeta> for BuildMeta {
       default_object,
       side_effect_free,
       exports_final_name,
+      consume_shared_key: None,
+      shared_key: None,
+      is_shared_descendant,
+      effective_shared_key,
     }
   }
 }

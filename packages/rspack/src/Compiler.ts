@@ -66,7 +66,6 @@ import type {
 	WatchFileSystem
 } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
-import { VirtualModulesPlugin } from "./VirtualModulesPlugin";
 import { Watching } from "./Watching";
 
 export interface AssetEmittedInfo {
@@ -779,14 +778,6 @@ class Compiler {
 		return compilation;
 	}
 
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 * @internal
-	 */
-	__internal__get_virtual_file_store() {
-		return this.#instance?.getVirtualFileStore();
-	}
-
 	#resetThisCompilation() {
 		// reassign new compilation in thisCompilation
 		this.#compilation = undefined;
@@ -829,8 +820,6 @@ class Compiler {
 		rawOptions.__references = Object.fromEntries(
 			this.#ruleSet.builtinReferences.entries()
 		);
-		rawOptions.__virtual_files =
-			VirtualModulesPlugin.__internal__take_virtual_files(this);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 

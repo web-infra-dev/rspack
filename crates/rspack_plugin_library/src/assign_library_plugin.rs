@@ -4,11 +4,12 @@ use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, UsageState, get_entry_runtime, property_access,
+  CompilerCompilation, CompilerOptions, EntryData, ExportProvided, Filename, LibraryExport,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
+  PluginContext, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, UsageState,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -483,18 +484,25 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[async_trait::async_trait]
 impl Plugin for AssignLibraryPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
     ctx
+      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

@@ -9,11 +9,12 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals, SourceType, get_undo_path,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
+  Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
+  RuntimeGlobals, SourceType, get_undo_path,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -537,9 +538,7 @@ async fn runtime_requirement_in_tree(
         "mini-css",
         SOURCE_TYPE[0],
         "__webpack_require__.miniCssF".into(),
-        move |runtime_requirements| {
-          runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-        },
+        move |_| has_hot_update,
         move |chunk, compilation| {
           chunk
             .content_hash(&compilation.chunk_hashes_artifact)?
@@ -703,23 +702,32 @@ async fn nmf_parser(
   Ok(())
 }
 
+#[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirement_in_tree::new(self));
     ctx
+      .context
       .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
+      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
     ctx
+      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

@@ -25,7 +25,7 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ExportedVariableInfo, JavascriptParser, Statement, context_reg_exp, create_context_dependency,
+    JavascriptParser, Statement, context_reg_exp, create_context_dependency, scope_info::FreeName,
   },
 };
 
@@ -496,8 +496,12 @@ impl AMDDefineDependencyParserPlugin {
           for (name, &rename_identifier) in fn_renames.iter() {
             let variable = parser
               .get_variable_info(rename_identifier)
-              .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
+              .and_then(|info| info.free_name.as_ref())
+              .and_then(|free_name| match free_name {
+                FreeName::String(s) => Some(s.to_string()),
+                FreeName::True => None,
+              })
+              .unwrap_or(rename_identifier.to_string());
             parser.set_variable(name.to_string(), variable);
           }
 
@@ -552,8 +556,12 @@ impl AMDDefineDependencyParserPlugin {
               for (name, &rename_identifier) in fn_renames.iter() {
                 let variable = parser
                   .get_variable_info(rename_identifier)
-                  .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
+                  .and_then(|info| info.free_name.as_ref())
+                  .and_then(|free_name| match free_name {
+                    FreeName::String(s) => Some(s.to_string()),
+                    FreeName::True => None,
+                  })
+                  .unwrap_or(rename_identifier.to_string());
                 parser.set_variable(name.to_string(), variable);
               }
 

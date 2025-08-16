@@ -1,9 +1,11 @@
-use std::sync::{
-  Arc,
-  atomic::{AtomicBool, Ordering},
+use std::{
+  collections::HashSet,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
 };
 
-use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::sync::{
   Mutex,
   mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -249,7 +251,7 @@ fn create_execute_aggregate_task(
           let mut files = files.lock().await;
           if files.is_empty() {
             running.store(false, Ordering::Relaxed);
-            continue;
+            return;
           }
           std::mem::take(&mut *files)
         };

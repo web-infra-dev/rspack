@@ -8,8 +8,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleType,
   RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_raw,
-  module_update_hash,
+  impl_module_meta_info, impl_source_map_config, module_raw, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
   throw_missing_module_error_block,
 };
@@ -190,7 +189,7 @@ impl Module for DelegatedModule {
     Ok(code_generation_result)
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build(&self) -> bool {
     false
   }
 

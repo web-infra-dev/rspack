@@ -460,7 +460,6 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     restrictions: result_entry.restrictions.base,
     roots: result_entry.roots.base,
     pnp: result_entry.pnp.base,
-    builtin_modules: false,
   }
 }
 

@@ -559,7 +559,6 @@ function getRawJavascriptParserOptions(
 		importMeta: parser.importMeta,
 		url: parser.url?.toString(),
 		exprContextCritical: parser.exprContextCritical,
-		unknownContextCritical: parser.unknownContextCritical,
 		wrappedContextCritical: parser.wrappedContextCritical,
 		wrappedContextRegExp: parser.wrappedContextRegExp,
 		exportsPresence:

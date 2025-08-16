@@ -14,6 +14,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
+  PluginContext,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -65,8 +66,13 @@ impl Plugin for RealContentHashPlugin {
     "rspack.RealContentHashPlugin"
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &rspack_core::CompilerOptions,
+  ) -> Result<()> {
     ctx
+      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
@@ -260,7 +266,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("update assets");
-  let mut asset_renames = Vec::with_capacity(updates.len());
+  let mut rename_tasks = vec![];
   for (name, new_source, new_name) in updates {
     compilation.update_asset(&name, |_, old_info| {
       let new_hashes: HashSet<_> = old_info
@@ -280,11 +286,35 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       ))
     })?;
     if let Some(new_name) = new_name {
-      asset_renames.push((name, new_name));
+      rename_tasks.push((name, new_name));
     }
   }
 
-  compilation.par_rename_assets(asset_renames);
+  let assets = compilation.assets_mut();
+  rename_tasks.retain(|(filename, new_name)| {
+    if let Some(asset) = assets.remove(filename) {
+      assets.insert(new_name.clone(), asset);
+      true
+    } else {
+      false
+    }
+  });
+
+  compilation
+    .chunk_by_ukey
+    .values_mut()
+    .par_bridge()
+    .for_each(|chunk| {
+      for (filename, new_name) in rename_tasks.iter() {
+        if chunk.remove_file(filename) {
+          chunk.add_file(new_name.clone());
+        }
+
+        if chunk.remove_auxiliary_file(filename) {
+          chunk.add_auxiliary_file(new_name.clone());
+        }
+      }
+    });
 
   logger.time_end(start);
 

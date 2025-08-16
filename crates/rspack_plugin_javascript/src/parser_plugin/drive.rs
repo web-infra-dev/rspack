@@ -3,7 +3,7 @@ use swc_core::{
   common::Span,
   ecma::ast::{
     BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, IfStmt, MemberExpr, OptChainExpr,
-    UnaryExpr, UnaryOp, VarDeclarator,
+    UnaryExpr, UnaryOp, VarDecl, VarDeclarator,
   },
 };
 
@@ -13,7 +13,7 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-    ExportedVariableInfo, JavascriptParser, Statement, VariableDeclaration,
+    ExportedVariableInfo, JavascriptParser, Statement,
   },
 };
 
@@ -305,7 +305,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     expr: &VarDeclarator,
-    stmt: VariableDeclaration<'_>,
+    stmt: &VarDecl,
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.declarator(parser, expr, stmt);
@@ -449,12 +449,12 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    for_name: &str,
+    ident: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
     for plugin in &self.plugins {
-      let res = plugin.evaluate_identifier(parser, for_name, start, end);
+      let res = plugin.evaluate_identifier(parser, ident, start, end);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -483,7 +483,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     declarator: &VarDeclarator,
-    declaration: VariableDeclaration<'_>,
+    declaration: &VarDecl,
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.pre_declarator(parser, declarator, declaration);

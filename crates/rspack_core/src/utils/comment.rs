@@ -1,4 +1,9 @@
-use cow_utils::CowUtils;
+use std::sync::LazyLock;
+
+use regex::Regex;
+
+static COMMENT_END_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\*\/").expect("should init regex"));
 
 #[inline]
 pub fn to_comment(str: &str) -> String {
@@ -6,7 +11,8 @@ pub fn to_comment(str: &str) -> String {
     return String::new();
   }
 
-  let result = str.cow_replace("*/", "* /");
+  let result = COMMENT_END_REGEX.replace_all(str, "* /");
+
   format!("/*! {result} */")
 }
 
@@ -16,6 +22,7 @@ pub fn to_comment_with_nl(str: &str) -> String {
     return String::new();
   }
 
-  let result = str.cow_replace("*/", "* /");
+  let result = COMMENT_END_REGEX.replace_all(str, "* /");
+
   format!("/*! {result} */\n")
 }

@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin,
+  CompilerCompilation, Plugin, PluginContext,
   diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
@@ -394,9 +394,18 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &rspack_core::CompilerOptions,
+  ) -> Result<()> {
     ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
+    ctx
+      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));

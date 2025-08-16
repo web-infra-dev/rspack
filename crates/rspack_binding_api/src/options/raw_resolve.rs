@@ -174,7 +174,6 @@ impl TryFrom<RawResolveOptions> for Resolve {
       description_files,
       imports_fields,
       pnp,
-      builtin_modules: false,
     })
   }
 }
@@ -305,7 +304,6 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         by_dependency,
         description_files: raw.description_files,
         enforce_extension: raw.enforce_extension,
-        builtin_modules: false,
       };
       Ok(ResolveOptionsWithDependencyType {
         resolve_options: Some(Box::new(resolve_options)),
