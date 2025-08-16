@@ -1,10 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, AssetInfo, ChunkGraph, Compilation, CompilationAfterProcessAssets,
-  CompilationAsset, CompilerOptions, DependenciesBlock, DependencyType, ExtendedReferencedExport,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin, PluginContext,
+  AssetInfo, ChunkGraph, Compilation, CompilationAfterProcessAssets, CompilationAsset,
+  DependenciesBlock, DependencyType, ExtendedReferencedExport, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin,
   rspack_sources::{RawSource, SourceExt},
 };
 use rspack_error::{Error, Result};
@@ -533,15 +532,13 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ShareUsagePlugin {
   fn name(&self) -> &'static str {
     "ShareUsagePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));
