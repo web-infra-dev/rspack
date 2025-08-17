@@ -168,6 +168,10 @@ impl Module for ConsumeSharedModule {
     Some(Box::new(self.context.clone()))
   }
 
+  fn get_consume_shared_key(&self) -> Option<String> {
+    Some(self.options.share_key.clone())
+  }
+
   async fn build(
     &mut self,
     _build_context: BuildContext,

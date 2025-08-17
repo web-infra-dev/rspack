@@ -64,6 +64,98 @@ impl ShareUsagePlugin {
     Self::new_inner(options)
   }
 
+  /// Analyzes CommonJS module by examining dependencies and connections
+  fn analyze_commonjs_exports(
+    &self,
+    module: &dyn rspack_core::Module,
+    module_graph: &ModuleGraph,
+  ) -> HashSet<String> {
+    let mut exports = HashSet::new();
+
+    // 1. Analyze module dependencies for CommonJS export patterns
+    for dep_id in module.get_dependencies() {
+      if let Some(dependency) = module_graph.dependency_by_id(dep_id) {
+        // Check dependency type to identify CommonJS exports
+        match dependency.dependency_type() {
+          DependencyType::CjsExports => {
+            // This is a CommonJS export dependency
+            // Try to downcast to CommonJsExportsDependency to get the names field
+            // Since we can't directly access the CommonJsExportsDependency type from plugin_mf,
+            // we'll try to extract info through the get_referenced_exports method below
+
+            // Also check referenced exports from the dependency
+            let referenced = dependency.get_referenced_exports(
+              module_graph,
+              &ModuleGraphCacheArtifact::default(),
+              None,
+            );
+
+            for export_ref in referenced {
+              let names = match export_ref {
+                ExtendedReferencedExport::Array(names) => names,
+                ExtendedReferencedExport::Export(export_info) => export_info.name,
+              };
+
+              for name in names {
+                let name_str = name.to_string();
+                if !name_str.is_empty() && name_str != "*" && name_str != "__esModule" {
+                  exports.insert(name_str);
+                }
+              }
+            }
+          }
+          DependencyType::CjsExportRequire => {
+            // module.exports = require('...') pattern
+            // This typically means re-exporting another module
+            exports.insert("__reexport__".to_string());
+          }
+          _ => {}
+        }
+      }
+    }
+
+    // 2. Analyze presentational dependencies if available
+    if let Some(presentational_deps) = module.get_presentational_dependencies() {
+      for dep in presentational_deps {
+        // Presentational dependencies don't have as_module_dependency method
+        // They are typically used for runtime requirements and code generation
+        // We can try to extract information from their type or other methods
+      }
+    }
+
+    // 3. Check module blocks for additional export patterns
+    for block_id in module.get_blocks() {
+      if let Some(block) = module_graph.block_by_id(block_id) {
+        for dep_id in block.get_dependencies() {
+          if let Some(dependency) = module_graph.dependency_by_id(dep_id) {
+            // Similar analysis as above but for async blocks
+            let referenced = dependency.get_referenced_exports(
+              module_graph,
+              &ModuleGraphCacheArtifact::default(),
+              None,
+            );
+
+            for export_ref in referenced {
+              let names = match export_ref {
+                ExtendedReferencedExport::Array(names) => names,
+                ExtendedReferencedExport::Export(export_info) => export_info.name,
+              };
+
+              for name in names {
+                let name_str = name.to_string();
+                if !name_str.is_empty() && name_str != "*" && name_str != "__esModule" {
+                  exports.insert(name_str);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    exports
+  }
+
   fn analyze_consume_shared_usage(
     &self,
     compilation: &Compilation,
@@ -131,12 +223,36 @@ impl ShareUsagePlugin {
     fallback_id: &ModuleIdentifier,
     consume_shared_id: &ModuleIdentifier,
   ) -> (Vec<String>, Vec<String>) {
-    use rspack_core::{ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState};
+    use rspack_core::{
+      BuildMetaExportsType, ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState,
+    };
 
     let mut used_exports = Vec::new();
     let mut provided_exports = Vec::new();
     let mut all_imported_exports = HashSet::new();
 
+    // Check if this is a CommonJS module and analyze its exports
+    let (is_commonjs, cjs_exports) =
+      if let Some(module) = module_graph.module_by_identifier(fallback_id) {
+        let build_meta = module.build_meta();
+        let is_cjs = matches!(
+          build_meta.exports_type,
+          BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
+        );
+
+        // Try to extract CommonJS exports from the module source
+        let mut detected_exports = HashSet::new();
+        if is_cjs {
+          // Use our CommonJS export analyzer
+          detected_exports = self.analyze_commonjs_exports(module.as_ref(), module_graph);
+        }
+
+        (is_cjs, detected_exports)
+      } else {
+        (false, HashSet::new())
+      };
+
+    // Get exports info from the module graph - this is the most comprehensive source
     let exports_info = module_graph.get_exports_info(fallback_id);
     let prefetched = ExportsInfoGetter::prefetch(
       &exports_info,
@@ -144,6 +260,7 @@ impl ShareUsagePlugin {
       PrefetchExportsInfoMode::Default,
     );
 
+    // First try to get provided exports from the standard analysis
     match prefetched.get_provided_exports() {
       ProvidedExports::ProvidedNames(names) => {
         provided_exports = names.iter().map(|n| n.to_string()).collect();
@@ -160,10 +277,48 @@ impl ShareUsagePlugin {
           }
         }
       }
-      ProvidedExports::ProvidedAll => provided_exports = vec!["*".to_string()],
-      ProvidedExports::Unknown => {}
+      ProvidedExports::ProvidedAll | ProvidedExports::Unknown => {
+        // For modules with unknown/dynamic exports, try alternative approaches
+
+        // Try to get exports from the ExportsInfo data structure directly
+        if let Some(exports_data) = module_graph.try_get_exports_info_by_id(&exports_info) {
+          // Iterate through all registered exports
+          for (export_name, _export_info_id) in exports_data.exports().iter() {
+            let export_name_str = export_name.to_string();
+            if !export_name_str.is_empty() && export_name_str != "__esModule" {
+              // Add to provided exports if not already there
+              if !provided_exports.contains(&export_name_str) {
+                provided_exports.push(export_name_str.clone());
+              }
+
+              // Check if it's used - we'll check this through the prefetched info
+              // since we already have it
+              let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
+              let export_info_data = prefetched.get_read_only_export_info(&export_atom);
+              let usage = export_info_data.get_used(None);
+              if matches!(usage, UsageState::Used | UsageState::OnlyPropertiesUsed) {
+                if !used_exports.contains(&export_name_str) {
+                  used_exports.push(export_name_str);
+                }
+              }
+            }
+          }
+        }
+
+        // If still no exports found and it's CommonJS, use detected exports or mark as dynamic
+        if provided_exports.is_empty() && is_commonjs {
+          if !cjs_exports.is_empty() {
+            // Use the exports we detected from dependencies
+            provided_exports = cjs_exports.into_iter().collect();
+          } else {
+            // Fall back to dynamic marker
+            provided_exports = vec!["*".to_string(), "__commonjs_module__".to_string()];
+          }
+        }
+      }
     }
 
+    // First, check incoming connections to the ConsumeShared module
     for connection in module_graph.get_incoming_connections(consume_shared_id) {
       if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
         let referenced_exports = dependency.get_referenced_exports(
@@ -185,7 +340,7 @@ impl ShareUsagePlugin {
           };
 
           for name in names {
-            if !used_exports.contains(&name) {
+            if !used_exports.contains(&name) && !name.is_empty() {
               used_exports.push(name);
             }
           }
@@ -196,6 +351,47 @@ impl ShareUsagePlugin {
           module_graph,
           &mut all_imported_exports,
         );
+      }
+    }
+
+    // Also check incoming connections to the fallback module to catch destructured imports
+    if is_commonjs {
+      for connection in module_graph.get_incoming_connections(fallback_id) {
+        if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
+          let referenced_exports = dependency.get_referenced_exports(
+            module_graph,
+            &ModuleGraphCacheArtifact::default(),
+            None,
+          );
+
+          for export_ref in referenced_exports {
+            let names = match export_ref {
+              ExtendedReferencedExport::Array(names) => {
+                names.into_iter().map(|n| n.to_string()).collect::<Vec<_>>()
+              }
+              ExtendedReferencedExport::Export(export_info) => export_info
+                .name
+                .into_iter()
+                .map(|n| n.to_string())
+                .collect::<Vec<_>>(),
+            };
+
+            // For CommonJS, these are the destructured imports
+            for name in names {
+              if !name.is_empty() && name != "*" {
+                // Add to provided_exports if not already there (for CommonJS with dynamic exports)
+                if !provided_exports.contains(&name) && provided_exports.contains(&"*".to_string())
+                {
+                  provided_exports.push(name.clone());
+                }
+                // Mark as used
+                if !used_exports.contains(&name) {
+                  used_exports.push(name);
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -225,14 +421,30 @@ impl ShareUsagePlugin {
             };
 
             for name in names {
-              // Add any export that is referenced from any module
-              if !name.is_empty()
-                && !used_exports.contains(&name)
-                && provided_exports.contains(&name)
-              {
-                used_exports.push(name);
+              if !name.is_empty() && name != "*" {
+                // For CommonJS, add to provided exports if we discovered it through usage
+                if is_commonjs && !provided_exports.contains(&name) {
+                  // Only add if we don't have the wildcard marker
+                  if !provided_exports.contains(&"*".to_string()) {
+                    provided_exports.push(name.clone());
+                  }
+                }
+
+                // Mark as used
+                if !used_exports.contains(&name) {
+                  used_exports.push(name);
+                }
               }
             }
+          }
+
+          // For CommonJS requires, also check the dependency type
+          if matches!(
+            dependency.dependency_type(),
+            DependencyType::CjsRequire | DependencyType::CjsFullRequire
+          ) {
+            // This is a CommonJS require - the referenced exports tell us what's destructured
+            // Already handled above through get_referenced_exports
           }
         }
       }
@@ -272,7 +484,24 @@ impl ShareUsagePlugin {
       }
     }
 
-    if !found_exports {
+    // Also try to extract from dependency type and context
+    match dependency.dependency_type() {
+      DependencyType::CjsRequire | DependencyType::CjsFullRequire => {
+        // For CommonJS requires, we should track what's being destructured
+        if let Some(module_dep) = dependency.as_module_dependency() {
+          // The request tells us what module is being imported
+          let _request = module_dep.request();
+          // But we need the actual usage pattern - this would be in the parent context
+        }
+      }
+      DependencyType::CommonJSRequireContext | DependencyType::RequireContext => {
+        // Dynamic requires
+        imports.insert("*".to_string());
+      }
+      _ => {}
+    }
+
+    if !found_exports && imports.is_empty() {
       imports.insert("default".to_string());
     }
   }
@@ -322,9 +551,33 @@ impl ShareUsagePlugin {
 
     // Create usage map - all provided exports with their usage status
     let mut usage = HashMap::new();
-    for export in &provided_exports {
-      if export != "*" {
-        usage.insert(export.clone(), used_exports.contains(export));
+
+    // Check if this is a module with dynamic/unknown exports (CommonJS)
+    let is_commonjs_module = provided_exports.contains(&"__commonjs_module__".to_string());
+    let has_dynamic_exports = provided_exports.contains(&"*".to_string());
+
+    if is_commonjs_module {
+      // For CommonJS modules, we can at least track what's being imported from them
+      // even if we can't determine all available exports statically
+
+      // Add any detected used exports
+      for export in &used_exports {
+        usage.insert(export.clone(), true);
+      }
+
+      // If no specific exports were detected, mark as having dynamic usage
+      if usage.is_empty() {
+        usage.insert("__dynamic_commonjs__".to_string(), true);
+      }
+    } else if has_dynamic_exports && provided_exports.len() == 1 {
+      // For modules with only dynamic exports (not explicitly CommonJS)
+      usage.insert("__dynamic__".to_string(), true);
+    } else {
+      // For modules with known exports, track each one
+      for export in &provided_exports {
+        if export != "*" && export != "__commonjs_module__" {
+          usage.insert(export.clone(), used_exports.contains(export));
+        }
       }
     }
 
