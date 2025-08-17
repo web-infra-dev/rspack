@@ -260,18 +260,41 @@ impl ShareUsagePlugin {
       PrefetchExportsInfoMode::Default,
     );
 
-    // First try to get provided exports from the standard analysis
+    // ALSO check the ConsumeShared module's exports info - this is where usage is actually tracked!
+    let consume_shared_exports_info = module_graph.get_exports_info(consume_shared_id);
+    let consume_shared_prefetched = ExportsInfoGetter::prefetch(
+      &consume_shared_exports_info,
+      module_graph,
+      PrefetchExportsInfoMode::Default,
+    );
+
+    // Check BOTH fallback and ConsumeShared modules for provided exports and usage
+    // Sometimes the exports are tracked in the ConsumeShared module instead of fallback
+
+    // Try fallback first
     match prefetched.get_provided_exports() {
       ProvidedExports::ProvidedNames(names) => {
         provided_exports = names.iter().map(|n| n.to_string()).collect();
 
         for export_name in names {
           let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
-          let export_info_data = prefetched.get_read_only_export_info(&export_atom);
-          let usage = export_info_data.get_used(None);
 
-          if matches!(usage, UsageState::Used | UsageState::OnlyPropertiesUsed)
-            && export_name != "*"
+          // Check usage in BOTH the fallback AND ConsumeShared modules
+          let fallback_export_info = prefetched.get_read_only_export_info(&export_atom);
+          let fallback_usage = fallback_export_info.get_used(None);
+
+          let consume_shared_export_info =
+            consume_shared_prefetched.get_read_only_export_info(&export_atom);
+          let consume_shared_usage = consume_shared_export_info.get_used(None);
+
+          // Export is used if EITHER module shows usage
+          if (matches!(
+            fallback_usage,
+            UsageState::Used | UsageState::OnlyPropertiesUsed
+          ) || matches!(
+            consume_shared_usage,
+            UsageState::Used | UsageState::OnlyPropertiesUsed
+          )) && export_name != "*"
           {
             used_exports.push(export_name.to_string());
           }
@@ -352,6 +375,35 @@ impl ShareUsagePlugin {
           &mut all_imported_exports,
         );
       }
+    }
+
+    // ALSO check if ConsumeShared module has provided exports that fallback doesn't
+    // This can happen when export info is propagated differently
+    match consume_shared_prefetched.get_provided_exports() {
+      ProvidedExports::ProvidedNames(names) => {
+        for export_name in names {
+          let export_name_str = export_name.to_string();
+          if !provided_exports.contains(&export_name_str) && export_name_str != "*" {
+            provided_exports.push(export_name_str.clone());
+          }
+
+          // Check if this export is used
+          let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
+          let consume_shared_export_info =
+            consume_shared_prefetched.get_read_only_export_info(&export_atom);
+          let consume_shared_usage = consume_shared_export_info.get_used(None);
+
+          if matches!(
+            consume_shared_usage,
+            UsageState::Used | UsageState::OnlyPropertiesUsed
+          ) && !used_exports.contains(&export_name_str)
+            && export_name_str != "*"
+          {
+            used_exports.push(export_name_str);
+          }
+        }
+      }
+      _ => {}
     }
 
     // Also check incoming connections to the fallback module to catch imports
