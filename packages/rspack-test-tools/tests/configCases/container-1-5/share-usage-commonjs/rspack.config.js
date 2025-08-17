@@ -1,6 +1,5 @@
 const { ModuleFederationPlugin } = require("@rspack/core").container;
-const ShareUsagePlugin =
-	require("@rspack/core/dist/builtin-plugin/ShareUsagePlugin").ShareUsagePlugin;
+// ShareUsagePlugin is automatically applied by Module Federation
 
 module.exports = {
 	entry: "./index.js",
@@ -33,9 +32,7 @@ module.exports = {
 					version: "1.0.0"
 				}
 			}
-		}),
-		new ShareUsagePlugin({
-			filename: "share-usage.json"
 		})
+		// ShareUsagePlugin is automatically applied and generates share-usage.json
 	]
 };
