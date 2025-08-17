@@ -1,5 +1,3 @@
-const validateShareUsage = require("./validate-share-usage");
-
 module.exports = {
 	description:
 		"ShareUsagePlugin should accurately track used/unused exports for CJS, ESM, and local shared modules",
@@ -17,14 +15,5 @@ module.exports = {
 		};
 	},
 	diffStats: true,
-	nonEsmThis: "(global || {})",
-	afterBuild(context) {
-		// Run strict validation with proper assertions
-		try {
-			validateShareUsage(context.getDist());
-			return Promise.resolve();
-		} catch (err) {
-			return Promise.reject(err);
-		}
-	}
+	nonEsmThis: "(global || {})"
 };

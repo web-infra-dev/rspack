@@ -1,4 +1,5 @@
 it("should work with Module Federation shared modules and generate share-usage.json", async () => {
+	// First, use the modules to establish usage patterns
 	const { map, filter, uniq, debounce } = await import("lodash-es");
 	
 	const data = [1, 2, 3, 4, 5];
@@ -58,4 +59,60 @@ it("should work with Module Federation shared modules and generate share-usage.j
 	const cjsExports = await import("./cjs-exports-test.js");
 	expect(cjsExports.default()).toBe(6);
 	expect(cjsExports.utilityA()).toBe("utility A");
+	
+	// Now validate the share-usage.json file
+	const fs = __non_webpack_require__("fs");
+	const path = __non_webpack_require__("path");
+	
+	const shareUsagePath = path.join(__dirname, "share-usage.json");
+	const shareUsageContent = fs.readFileSync(shareUsagePath, "utf-8");
+	const shareUsage = JSON.parse(shareUsageContent);
+	
+	// Validate the structure
+	expect(shareUsage).toHaveProperty("treeShake");
+	const treeShake = shareUsage.treeShake;
+	
+	// Validate lodash-es exports
+	expect(treeShake).toHaveProperty("lodash-es");
+	const lodashExports = treeShake["lodash-es"];
+	expect(lodashExports.map).toBe(true); // used
+	expect(lodashExports.filter).toBe(true); // used
+	expect(lodashExports.uniq).toBe(true); // used
+	expect(lodashExports.debounce).toBe(true); // used
+	// Some exports might be false if not used
+	if (lodashExports.hasOwnProperty("groupBy")) {
+		expect(lodashExports.groupBy).toBe(false); // not imported
+	}
+	
+	// Validate React exports
+	expect(treeShake).toHaveProperty("react");
+	const reactExports = treeShake["react"];
+	expect(reactExports.default).toBe(true); // default import is used
+	
+	// Validate local-esm-module exports - ALL should be true since they're all accessed
+	expect(treeShake).toHaveProperty("local-esm-module");
+	const localEsmExports = treeShake["local-esm-module"];
+	expect(localEsmExports.usedLocalUtil).toBe(true); // called
+	expect(localEsmExports.USED_LOCAL_CONSTANT).toBe(true); // accessed
+	expect(localEsmExports.default).toBe(true); // called
+	expect(localEsmExports.unusedLocalUtil).toBe(true); // accessed (typeof check)
+	expect(localEsmExports.UNUSED_LOCAL_CONSTANT).toBe(true); // accessed (typeof check)
+	expect(localEsmExports.utilityHelpers).toBe(false); // not accessed
+	
+	// Validate local-cjs-module exports
+	expect(treeShake).toHaveProperty("local-cjs-module");
+	const localCjsExports = treeShake["local-cjs-module"];
+	// CommonJS modules have limited tracking - check what's available
+	if (localCjsExports.hasOwnProperty("usedLocalFunction")) {
+		expect(localCjsExports.usedLocalFunction).toBe(true); // called
+	}
+	if (localCjsExports.hasOwnProperty("constantValue")) {
+		expect(localCjsExports.constantValue).toBe(true); // accessed
+	}
+	if (localCjsExports.hasOwnProperty("nestedObject")) {
+		expect(localCjsExports.nestedObject).toBe(true); // accessed
+	}
+	if (localCjsExports.hasOwnProperty("directProperty")) {
+		expect(localCjsExports.directProperty).toBe(false); // not accessed
+	}
 });

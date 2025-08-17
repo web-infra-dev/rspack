@@ -354,40 +354,40 @@ impl ShareUsagePlugin {
       }
     }
 
-    // Also check incoming connections to the fallback module to catch destructured imports
-    if is_commonjs {
-      for connection in module_graph.get_incoming_connections(fallback_id) {
-        if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
-          let referenced_exports = dependency.get_referenced_exports(
-            module_graph,
-            &ModuleGraphCacheArtifact::default(),
-            None,
-          );
+    // Also check incoming connections to the fallback module to catch imports
+    // This is needed for both CommonJS and ESM modules
+    for connection in module_graph.get_incoming_connections(fallback_id) {
+      if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
+        let referenced_exports = dependency.get_referenced_exports(
+          module_graph,
+          &ModuleGraphCacheArtifact::default(),
+          None,
+        );
 
-          for export_ref in referenced_exports {
-            let names = match export_ref {
-              ExtendedReferencedExport::Array(names) => {
-                names.into_iter().map(|n| n.to_string()).collect::<Vec<_>>()
+        for export_ref in referenced_exports {
+          let names = match export_ref {
+            ExtendedReferencedExport::Array(names) => {
+              names.into_iter().map(|n| n.to_string()).collect::<Vec<_>>()
+            }
+            ExtendedReferencedExport::Export(export_info) => export_info
+              .name
+              .into_iter()
+              .map(|n| n.to_string())
+              .collect::<Vec<_>>(),
+          };
+
+          for name in names {
+            if !name.is_empty() && name != "*" {
+              // For CommonJS with dynamic exports, add to provided_exports if not already there
+              if is_commonjs
+                && !provided_exports.contains(&name)
+                && provided_exports.contains(&"*".to_string())
+              {
+                provided_exports.push(name.clone());
               }
-              ExtendedReferencedExport::Export(export_info) => export_info
-                .name
-                .into_iter()
-                .map(|n| n.to_string())
-                .collect::<Vec<_>>(),
-            };
-
-            // For CommonJS, these are the destructured imports
-            for name in names {
-              if !name.is_empty() && name != "*" {
-                // Add to provided_exports if not already there (for CommonJS with dynamic exports)
-                if !provided_exports.contains(&name) && provided_exports.contains(&"*".to_string())
-                {
-                  provided_exports.push(name.clone());
-                }
-                // Mark as used
-                if !used_exports.contains(&name) {
-                  used_exports.push(name);
-                }
+              // Mark as used
+              if !used_exports.contains(&name) {
+                used_exports.push(name);
               }
             }
           }
