@@ -1,6 +1,6 @@
-const path = require("node:path");
-const { readFileSync, writeFileSync, renameSync } = require("node:fs");
-const { values, positionals } = require("node:util").parseArgs({
+const path = require("path");
+const { readFileSync, writeFileSync, renameSync } = require("fs");
+const { values, positionals } = require("util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
 		profile: {
@@ -11,7 +11,7 @@ const { values, positionals } = require("node:util").parseArgs({
 	allowPositionals: true
 });
 
-const { spawn } = require("node:child_process");
+const { spawn } = require("child_process");
 
 const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
@@ -77,7 +77,7 @@ async function build() {
 			features.push("info-level");
 		}
 		if (features.length) {
-			args.push(`--features ${features.join(",")}`);
+			args.push("--features " + features.join(","));
 		}
 
 		if (positionals.length > 0

@@ -1,4 +1,4 @@
-const { positionals } = require("node:util").parseArgs({
+const { positionals } = require("util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
 		profile: {
@@ -9,7 +9,7 @@ const { positionals } = require("node:util").parseArgs({
 	allowPositionals: true
 });
 
-const { spawn } = require("node:child_process");
+const { spawn } = require("child_process");
 
 const CARGO_SAFELY_EXIT_CODE = 0;
 
@@ -40,7 +40,7 @@ async function build() {
 		}
 		args.push("--no-dts-cache");
 		if (features.length) {
-			args.push(`--features ${features.join(",")}`);
+			args.push("--features " + features.join(","));
 		}
 
 		if (positionals.length > 0) {
