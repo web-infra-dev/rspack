@@ -10,14 +10,18 @@ module.exports = function validateShareUsage() {
 	const shareUsageFile = path.join(__dirname, "share-usage.json");
 	
 	// Assert file exists
-	expect(fs.existsSync(shareUsageFile)).toBe(true);
+	if (!fs.existsSync(shareUsageFile)) {
+		throw new Error("share-usage.json was not generated");
+	}
 	
 	// Read and parse the JSON
 	const content = fs.readFileSync(shareUsageFile, "utf8");
 	const shareUsageData = JSON.parse(content);
 	
 	// Basic structure validation
-	expect(shareUsageData).toHaveProperty("treeShake");
+	if (!shareUsageData.treeShake) {
+		throw new Error("share-usage.json should have a treeShake property");
+	}
 	
 	const modules = shareUsageData.treeShake;
 	
@@ -37,24 +41,32 @@ module.exports = function validateShareUsage() {
 function validateExportsPattern(modules) {
 	const moduleName = "./cjs-exports-pattern";
 	
-	expect(modules).toHaveProperty(moduleName);
+	if (!modules[moduleName]) {
+		throw new Error(`Module '${moduleName}' not found in share-usage.json`);
+	}
 	
 	const moduleData = modules[moduleName];
 	
 	// Check that used exports are marked as true
-	expect(moduleData.formatDate).toBe(true);
-	expect(moduleData.processData).toBe(true);
+	if (moduleData.formatDate !== true) {
+		throw new Error(`${moduleName}.formatDate should be true, got ${moduleData.formatDate}`);
+	}
+	if (moduleData.processData !== true) {
+		throw new Error(`${moduleName}.processData should be true, got ${moduleData.processData}`);
+	}
 	
 	// Check that unused exports are marked as false (if they are tracked)
-	if (moduleData.hasOwnProperty("unusedFunction")) {
-		expect(moduleData.unusedFunction).toBe(false);
+	if (moduleData.hasOwnProperty("unusedFunction") && moduleData.unusedFunction !== false) {
+		throw new Error(`${moduleName}.unusedFunction should be false, got ${moduleData.unusedFunction}`);
 	}
-	if (moduleData.hasOwnProperty("helperUtil")) {
-		expect(moduleData.helperUtil).toBe(false);
+	if (moduleData.hasOwnProperty("helperUtil") && moduleData.helperUtil !== false) {
+		throw new Error(`${moduleName}.helperUtil should be false, got ${moduleData.helperUtil}`);
 	}
 	
 	// Ensure chunk_characteristics exists
-	expect(moduleData).toHaveProperty("chunk_characteristics");
+	if (!moduleData.chunk_characteristics) {
+		throw new Error(`${moduleName}: Missing chunk_characteristics`);
+	}
 }
 
 /**
@@ -63,30 +75,38 @@ function validateExportsPattern(modules) {
 function validateModuleExportsPattern(modules) {
 	const moduleName = "./cjs-module-exports-pattern";
 	
-	expect(modules).toHaveProperty(moduleName);
+	if (!modules[moduleName]) {
+		throw new Error(`Module '${moduleName}' not found in share-usage.json`);
+	}
 	
 	const moduleData = modules[moduleName];
 	
 	// This pattern might result in __dynamic_commonjs__ if not fully analyzable
 	if (moduleData["__dynamic_commonjs__"] === true) {
 		// Dynamic CommonJS marker is acceptable for module.exports = {...} pattern
-		expect(moduleData["__dynamic_commonjs__"]).toBe(true);
+		// Just check that it exists
 	} else {
 		// Otherwise check that used exports are marked as true
-		expect(moduleData.calculateSum).toBe(true);
-		expect(moduleData.formatCurrency).toBe(true);
+		if (moduleData.calculateSum !== true) {
+			throw new Error(`${moduleName}.calculateSum should be true, got ${moduleData.calculateSum}`);
+		}
+		if (moduleData.formatCurrency !== true) {
+			throw new Error(`${moduleName}.formatCurrency should be true, got ${moduleData.formatCurrency}`);
+		}
 	}
 	
 	// Check for unused exports if they are tracked
-	if (moduleData.hasOwnProperty("calculateAverage")) {
-		expect(moduleData.calculateAverage).toBe(false);
+	if (moduleData.hasOwnProperty("calculateAverage") && moduleData.calculateAverage !== false) {
+		throw new Error(`${moduleName}.calculateAverage should be false, got ${moduleData.calculateAverage}`);
 	}
-	if (moduleData.hasOwnProperty("formatPercentage")) {
-		expect(moduleData.formatPercentage).toBe(false);
+	if (moduleData.hasOwnProperty("formatPercentage") && moduleData.formatPercentage !== false) {
+		throw new Error(`${moduleName}.formatPercentage should be false, got ${moduleData.formatPercentage}`);
 	}
 	
 	// Ensure chunk_characteristics exists
-	expect(moduleData).toHaveProperty("chunk_characteristics");
+	if (!moduleData.chunk_characteristics) {
+		throw new Error(`${moduleName}: Missing chunk_characteristics`);
+	}
 }
 
 /**
@@ -95,21 +115,27 @@ function validateModuleExportsPattern(modules) {
 function validateMixedPattern(modules) {
 	const moduleName = "./cjs-mixed-pattern";
 	
-	expect(modules).toHaveProperty(moduleName);
+	if (!modules[moduleName]) {
+		throw new Error(`Module '${moduleName}' not found in share-usage.json`);
+	}
 	
 	const moduleData = modules[moduleName];
 	
 	// Check that used exports are marked as true
-	expect(moduleData.utilityA).toBe(true);
+	if (moduleData.utilityA !== true) {
+		throw new Error(`${moduleName}.utilityA should be true, got ${moduleData.utilityA}`);
+	}
 	
 	// Check that unused exports are marked as false (if tracked)
-	if (moduleData.hasOwnProperty("utilityB")) {
-		expect(moduleData.utilityB).toBe(false);
+	if (moduleData.hasOwnProperty("utilityB") && moduleData.utilityB !== false) {
+		throw new Error(`${moduleName}.utilityB should be false, got ${moduleData.utilityB}`);
 	}
-	if (moduleData.hasOwnProperty("utilityC")) {
-		expect(moduleData.utilityC).toBe(false);
+	if (moduleData.hasOwnProperty("utilityC") && moduleData.utilityC !== false) {
+		throw new Error(`${moduleName}.utilityC should be false, got ${moduleData.utilityC}`);
 	}
 	
 	// Ensure chunk_characteristics exists
-	expect(moduleData).toHaveProperty("chunk_characteristics");
+	if (!moduleData.chunk_characteristics) {
+		throw new Error(`${moduleName}: Missing chunk_characteristics`);
+	}
 }
