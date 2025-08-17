@@ -116,7 +116,7 @@ impl ShareUsagePlugin {
 
     // 2. Analyze presentational dependencies if available
     if let Some(presentational_deps) = module.get_presentational_dependencies() {
-      for dep in presentational_deps {
+      for _dep in presentational_deps {
         // Presentational dependencies don't have as_module_dependency method
         // They are typically used for runtime requirements and code generation
         // We can try to extract information from their type or other methods
@@ -319,10 +319,10 @@ impl ShareUsagePlugin {
               let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
               let export_info_data = prefetched.get_read_only_export_info(&export_atom);
               let usage = export_info_data.get_used(None);
-              if matches!(usage, UsageState::Used | UsageState::OnlyPropertiesUsed) {
-                if !used_exports.contains(&export_name_str) {
-                  used_exports.push(export_name_str);
-                }
+              if matches!(usage, UsageState::Used | UsageState::OnlyPropertiesUsed)
+                && !used_exports.contains(&export_name_str)
+              {
+                used_exports.push(export_name_str);
               }
             }
           }
@@ -379,31 +379,29 @@ impl ShareUsagePlugin {
 
     // ALSO check if ConsumeShared module has provided exports that fallback doesn't
     // This can happen when export info is propagated differently
-    match consume_shared_prefetched.get_provided_exports() {
-      ProvidedExports::ProvidedNames(names) => {
-        for export_name in names {
-          let export_name_str = export_name.to_string();
-          if !provided_exports.contains(&export_name_str) && export_name_str != "*" {
-            provided_exports.push(export_name_str.clone());
-          }
+    if let ProvidedExports::ProvidedNames(names) = consume_shared_prefetched.get_provided_exports()
+    {
+      for export_name in names {
+        let export_name_str = export_name.to_string();
+        if !provided_exports.contains(&export_name_str) && export_name_str != "*" {
+          provided_exports.push(export_name_str.clone());
+        }
 
-          // Check if this export is used
-          let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
-          let consume_shared_export_info =
-            consume_shared_prefetched.get_read_only_export_info(&export_atom);
-          let consume_shared_usage = consume_shared_export_info.get_used(None);
+        // Check if this export is used
+        let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
+        let consume_shared_export_info =
+          consume_shared_prefetched.get_read_only_export_info(&export_atom);
+        let consume_shared_usage = consume_shared_export_info.get_used(None);
 
-          if matches!(
-            consume_shared_usage,
-            UsageState::Used | UsageState::OnlyPropertiesUsed
-          ) && !used_exports.contains(&export_name_str)
-            && export_name_str != "*"
-          {
-            used_exports.push(export_name_str);
-          }
+        if matches!(
+          consume_shared_usage,
+          UsageState::Used | UsageState::OnlyPropertiesUsed
+        ) && !used_exports.contains(&export_name_str)
+          && export_name_str != "*"
+        {
+          used_exports.push(export_name_str);
         }
       }
-      _ => {}
     }
 
     // Also check incoming connections to the fallback module to catch imports
