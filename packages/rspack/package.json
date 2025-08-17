@@ -43,7 +43,7 @@
   "devDependencies": {
     "@ast-grep/napi": "^0.39.1",
     "@rsbuild/plugin-node-polyfill": "^1.4.1",
-    "@rslib/core": "0.11.0",
+    "@rslib/core": "0.12.1",
     "@swc/types": "0.1.23",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
