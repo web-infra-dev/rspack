@@ -13,7 +13,7 @@ module.exports = {
 	},
 	plugins: [
 		new ModuleFederationPlugin({
-			name: "commonjs-test",
+			name: "commonjs_test",
 			filename: "remoteEntry.js",
 			exposes: {
 				"./exports": "./index.js"
