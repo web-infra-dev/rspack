@@ -2,8 +2,17 @@ use std::borrow::Cow;
 
 use rspack_paths::Utf8Path;
 use rspack_util::identifier::absolute_to_request;
+use swc_core::ecma::utils::is_valid_prop_ident;
 
 use crate::BoxLoader;
+
+pub fn to_module_export_name(name: &str) -> String {
+  if is_valid_prop_ident(name) {
+    name.into()
+  } else {
+    serde_json::to_string(name).expect("json stringify failed")
+  }
+}
 
 pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   let context = context.as_ref();
