@@ -59,13 +59,6 @@ async fn nmf_after_resolve(
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
 ) -> Result<Option<bool>> {
-  dbg!(
-    self,
-    &create_data.resource_resolve_data.resource,
-    self
-      .resource_reg_exp
-      .test(&create_data.resource_resolve_data.resource)
-  );
   if self
     .resource_reg_exp
     .test(&create_data.resource_resolve_data.resource)
