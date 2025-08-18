@@ -1,6 +1,6 @@
 use rspack_core::{ConstDependency, ErrorSpan};
 use rspack_error::{
-  DiagnosticKind, TraceableError,
+  TraceableError,
   miette::{Severity, diagnostic},
 };
 use rspack_regex::RspackRegex;
@@ -305,7 +305,6 @@ pub fn create_traceable_error(
   span: ErrorSpan,
 ) -> TraceableError {
   TraceableError::from_source_file(fm, span.start as usize, span.end as usize, title, message)
-    .with_kind(DiagnosticKind::JavaScript)
 }
 
 pub fn context_reg_exp(

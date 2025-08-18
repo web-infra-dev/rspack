@@ -18,7 +18,7 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{
-  Diagnosable, Diagnostic, DiagnosticKind, Result, ToStringResultToRspackResultExt, TraceableError,
+  Diagnosable, Diagnostic, Result, ToStringResultToRspackResultExt, TraceableError,
 };
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
@@ -2018,7 +2018,6 @@ impl ConcatenatedModule {
               "JavaScript parse error:\n".to_string(),
               err.kind().msg().to_string(),
             )
-            .with_kind(DiagnosticKind::JavaScript)
             .into(),
           );
         }
