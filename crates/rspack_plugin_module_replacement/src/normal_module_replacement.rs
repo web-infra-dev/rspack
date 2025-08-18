@@ -2,7 +2,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
   ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryBeforeResolve, Plugin, ResourceData, parse_resource,
+  NormalModuleFactoryBeforeResolve, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -65,26 +65,12 @@ async fn nmf_after_resolve(
   {
     match &self.new_resource {
       NormalModuleReplacer::String(new_resource) => {
-        // Same as [JsCreateData::update_nmf_data] in crates/rspack_binding_api/src/normal_module_factory.rs
-        fn update_resource_data(old_resource_data: &mut ResourceData, new_resource: String) {
-          if old_resource_data.resource_path.is_some()
-            && let Some(parsed) = parse_resource(&new_resource)
-          {
-            old_resource_data.set_path(parsed.path);
-            old_resource_data.set_query_optional(parsed.query);
-            old_resource_data.set_fragment_optional(parsed.fragment);
-          }
-          old_resource_data.set_resource(new_resource);
-        }
         if Utf8PathBuf::from(new_resource).is_absolute() {
-          update_resource_data(&mut create_data.resource_resolve_data, new_resource.clone());
+          create_data.resource_resolve_data.resource = new_resource.clone();
         } else if let Some(dir) =
           Utf8PathBuf::from(&create_data.resource_resolve_data.resource).parent()
         {
-          update_resource_data(
-            &mut create_data.resource_resolve_data,
-            dir.join(new_resource.clone()).to_string(),
-          );
+          create_data.resource_resolve_data.resource = dir.join(new_resource.clone()).to_string();
         }
       }
       NormalModuleReplacer::Fn(f) => f(data, Some(create_data)).await?,
