@@ -1,14 +1,100 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsModuleDependency, DependencyTemplate, DependencyType, RuntimeGlobals, UsageState,
-  missing_module_promise, module_namespace_promise,
+  AsModuleDependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode,
+  ModuleGraph, RuntimeGlobals, TemplateContext, UsageState, get_exports_type,
+  missing_module_promise, module_id,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
 use crate::EsmLibraryPlugin;
 
 pub static NAMESPACE_SYMBOL: &str = "mod";
+
+fn then_expr(
+  code_generatable_context: &mut TemplateContext,
+  dep_id: &DependencyId,
+  request: &str,
+) -> String {
+  let TemplateContext {
+    runtime_requirements,
+    compilation,
+    module,
+    ..
+  } = code_generatable_context;
+  if compilation
+    .get_module_graph()
+    .module_identifier_by_dependency_id(dep_id)
+    .is_none()
+  {
+    return missing_module_promise(request);
+  };
+
+  let exports_type = get_exports_type(
+    &compilation.get_module_graph(),
+    &compilation.module_graph_cache_artifact,
+    dep_id,
+    &module.identifier(),
+  );
+  let module_id_expr = module_id(compilation, dep_id, request, false);
+
+  let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
+  let mut appending;
+
+  match exports_type {
+    ExportsType::Namespace => {
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      appending = format!(
+        ".then({}.bind({}, {module_id_expr}))",
+        RuntimeGlobals::REQUIRE,
+        RuntimeGlobals::REQUIRE
+      );
+    }
+    _ => {
+      if matches!(exports_type, ExportsType::Dynamic) {
+        fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
+      }
+      if matches!(
+        exports_type,
+        ExportsType::DefaultWithNamed | ExportsType::Dynamic
+      ) {
+        fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
+      }
+      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+      if ModuleGraph::is_async(
+        compilation,
+        compilation
+          .get_module_graph()
+          .module_identifier_by_dependency_id(dep_id)
+          .expect("should have module"),
+      ) {
+        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+        appending = format!(
+          ".then({}.bind({}, {module_id_expr}))",
+          RuntimeGlobals::REQUIRE,
+          RuntimeGlobals::REQUIRE
+        );
+        appending.push_str(
+          format!(
+            ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+          )
+          .as_str(),
+        );
+      } else {
+        fake_type |= FakeNamespaceObjectMode::MODULE_ID;
+        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+        appending = format!(
+          ".then({}.bind({}, {module_id_expr}, {fake_type}))",
+          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          RuntimeGlobals::REQUIRE
+        );
+      }
+    }
+  }
+
+  appending
+}
 
 #[derive(Debug, Default)]
 pub struct DynamicImportDependencyTemplate;
@@ -67,7 +153,15 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       b. if refModule is not scope hoisted
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
-    let block = module_graph.get_parent_block(dep_id);
+    let already_in_chunk = ref_chunk == orig_chunk;
+    let import_promise = if already_in_chunk {
+      Cow::Borrowed("Promise.resolve()")
+    } else {
+      Cow::Owned(format!(
+        "import(\"__RSPACK_ESM_CHUNK_{}\")",
+        ref_chunk.as_u32()
+      ))
+    };
 
     let Some(concatenation_scope) = &mut code_generatable_context.concatenation_scope else {
       // if we are not in a concatenation scope, then all its children are not scope hoisted as well
@@ -75,13 +169,9 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         dep.range.start,
         dep.range.end,
-        &module_namespace_promise(
-          code_generatable_context,
-          dep_id,
-          block,
-          &dep.request,
-          DependencyType::DynamicImport.as_str(),
-          false,
+        &format!(
+          "{import_promise}{}",
+          then_expr(code_generatable_context, dep_id, &dep.request)
         ),
         None,
       );
@@ -97,33 +187,18 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     if !is_ref_module_concatenated {
       // if target is not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __webpack_require__ to fetch module
-
       source.replace(
         dep.range.start,
         dep.range.end,
-        &module_namespace_promise(
-          code_generatable_context,
-          dep_id,
-          block,
-          &dep.request,
-          DependencyType::DynamicImport.as_str(),
-          false,
+        &format!(
+          "{import_promise}{}",
+          then_expr(code_generatable_context, dep_id, &dep.request)
         ),
         None,
       );
 
       return;
     }
-
-    let already_in_chunk = ref_chunk == orig_chunk;
-    let import_promise = if already_in_chunk {
-      Cow::Borrowed("Promise.resolve()")
-    } else {
-      Cow::Owned(format!(
-        "import(\"__RSPACK_ESM_CHUNK_{}\")",
-        ref_chunk.as_u32()
-      ))
-    };
 
     // importer and importee are both scope hoisted
     let render_exports = if let Some(ref_exports) = &dep.referenced_exports {
