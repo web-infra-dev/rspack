@@ -4,7 +4,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} />
 
-`rspack.VirtualModulesPlugin` 是 Rust 实现的 [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) 插件，它与 Rspack 深度集成，在提供相同功能的同时拥有更好的性能。
+`rspack.experiments.VirtualModulesPlugin` 是 Rust 实现的 [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) 插件，它与 Rspack 深度集成，在提供相同功能的同时拥有更好的性能。
 
 ## 使用方法
 
@@ -13,7 +13,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 创建一个新的 VirtualModulesPlugin 实例，可以在构造函数中传入虚拟模块：
 
 ```ts
-new rspack.VirtualModulesPlugin(modules?: Record<string, string>)
+new rspack.experiments.VirtualModulesPlugin(modules?: Record<string, string>)
 ```
 
 **参数：**
@@ -25,7 +25,7 @@ const rspack = require('@rspack/core');
 
 module.exports = {
   plugins: [
-    new rspack.VirtualModulesPlugin({
+    new rspack.experiments.VirtualModulesPlugin({
       'src/generated/config.js': 'export default { version: "1.0.0" };',
       'src/generated/constants.js': `
         export const API_URL = "${process.env.API_URL || 'http://localhost:3000'}";
@@ -52,7 +52,7 @@ writeModule(filePath: string, contents: string): void
 ```js title="rspack.config.js"
 const rspack = require('@rspack/core');
 
-const virtualModulesPlugin = new rspack.VirtualModulesPlugin();
+const virtualModulesPlugin = new rspack.experiments.VirtualModulesPlugin();
 
 module.exports = {
   plugins: [

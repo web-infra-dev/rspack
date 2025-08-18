@@ -268,6 +268,7 @@ pub struct RawJavascriptParserOptions {
   pub dynamic_import_fetch_priority: Option<String>,
   pub url: Option<String>,
   pub expr_context_critical: Option<bool>,
+  pub unknown_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
   #[napi(ts_type = "RegExp")]
   pub wrapped_context_reg_exp: Option<RspackRegex>,
@@ -315,6 +316,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
       expr_context_critical: value.expr_context_critical,
+      unknown_context_critical: value.unknown_context_critical,
       wrapped_context_reg_exp: value.wrapped_context_reg_exp,
       wrapped_context_critical: value.wrapped_context_critical,
       exports_presence: value

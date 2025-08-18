@@ -1,7 +1,7 @@
 use rspack_regex::RspackRegex;
 
 #[napi(object, object_to_js = false)]
-pub struct CssChunkingPluginOptions {
+pub struct RawCssChunkingPluginOptions {
   pub strict: Option<bool>,
   pub min_size: Option<f64>,
   pub max_size: Option<f64>,
@@ -9,8 +9,8 @@ pub struct CssChunkingPluginOptions {
   pub exclude: Option<RspackRegex>,
 }
 
-impl From<CssChunkingPluginOptions> for rspack_plugin_css_chunking::CssChunkingPluginOptions {
-  fn from(options: CssChunkingPluginOptions) -> Self {
+impl From<RawCssChunkingPluginOptions> for rspack_plugin_css_chunking::CssChunkingPluginOptions {
+  fn from(options: RawCssChunkingPluginOptions) -> Self {
     Self {
       strict: options.strict.unwrap_or(false),
       min_size: options.min_size,

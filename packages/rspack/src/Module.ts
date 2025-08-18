@@ -8,20 +8,9 @@ import "./BuildInfo";
 export type ResourceDataWithData = ResourceData & {
 	data?: Record<string, any>;
 };
-export type CreateData = Partial<binding.JsCreateData>;
-export type ContextInfo = {
-	issuer: string;
-	issuerLayer?: string | null;
-};
-export type ResolveData = {
-	contextInfo: ContextInfo;
-	context: string;
-	request: string;
-	fileDependencies: string[];
-	missingDependencies: string[];
-	contextDependencies: string[];
-	createData?: CreateData;
-};
+export type CreateData = binding.JsCreateData;
+export type ContextInfo = binding.ContextInfo;
+export type ResolveData = binding.JsResolveData;
 
 export class ContextModuleFactoryBeforeResolveData {
 	#inner: binding.JsContextModuleFactoryBeforeResolveData;

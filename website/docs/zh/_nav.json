@@ -25,14 +25,43 @@
     "activeMatch": "/blog"
   },
   {
-    "text": "关于",
-    "link": "/misc/faq",
-    "activeMatch": "/misc"
-  },
-  {
-    "text": "贡献",
-    "link": "/contribute/index",
-    "activeMatch": "/contribute"
+    "text": "资源",
+    "items": [
+      {
+        "text": "FAQ",
+        "link": "/misc/faq",
+        "activeMatch": "/misc/faq"
+      },
+      {
+        "text": "团队",
+        "link": "/misc/team/core-team",
+        "activeMatch": "/misc/team"
+      },
+      {
+        "text": "品牌",
+        "link": "/misc/branding/guideline",
+        "activeMatch": "/misc/branding"
+      },
+      {
+        "text": "术语表",
+        "link": "/misc/glossary",
+        "activeMatch": "/misc/glossary"
+      },
+      {
+        "text": "功能规划",
+        "link": "/misc/planning/roadmap",
+        "activeMatch": "/misc/planning"
+      },
+      {
+        "text": "贡献指南",
+        "link": "/contribute/index",
+        "activeMatch": "/contribute"
+      },
+      {
+        "text": "在线体验 ↗",
+        "link": "https://repl.rspack.rs/"
+      }
+    ]
   },
   {
     "text": "版本",

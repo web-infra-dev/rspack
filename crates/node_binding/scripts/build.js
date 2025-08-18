@@ -71,7 +71,7 @@ async function build() {
 			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
 		) {
 			features.push("sftrace-setup");
-			envs.RUSTFLAGS = "-Zinstrument-xray=always";
+			envs.RUSTFLAGS = "-Zinstrument-xray=always -Csymbol-mangling-version=v0";
 		}
 		if (values.profile === "release") {
 			features.push("info-level");

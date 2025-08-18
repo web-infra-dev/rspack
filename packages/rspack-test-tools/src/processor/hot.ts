@@ -175,7 +175,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			};
 		}
 
-		if (options.experiments?.lazyCompilation) {
+		if ((options as TCompilerOptions<ECompilerType.Rspack>).lazyCompilation) {
 			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
 				new LazyCompilationTestPlugin()
 			);

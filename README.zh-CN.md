@@ -73,7 +73,7 @@ Rstack 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优�
 | [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Rspack 的开发服务器                                                          |
 | [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Rstack 的示例项目                                                            |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Rspack Stack 的设计资源                                                      |
+| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Rstack 的设计资源                                                            |
 
 ## 致谢
 

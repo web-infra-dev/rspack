@@ -15,6 +15,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   error::ErrorCode,
+  normal_module_factory::ContextInfo,
   options::raw_resolve::{
     RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
   },
@@ -72,30 +73,6 @@ impl From<RawExternalItemFnResult> for ExternalItemFnResult {
     Self {
       external_type: value.external_type,
       result: value.result.map(|v| RawExternalItemValueWrapper(v).into()),
-    }
-  }
-}
-
-#[derive(Debug, Clone)]
-#[napi(object)]
-pub struct ContextInfo {
-  pub issuer: String,
-  pub issuer_layer: Option<String>,
-}
-
-impl ToNapiValue for &ContextInfo {
-  unsafe fn to_napi_value(
-    env: napi::sys::napi_env,
-    val: Self,
-  ) -> napi::Result<napi::sys::napi_value> {
-    unsafe {
-      let env_wrapper = Env::from(env);
-      let mut obj = Object::new(&env_wrapper)?;
-      obj.set("issuer", &val.issuer)?;
-      if let Some(issuer_layer) = &val.issuer_layer {
-        obj.set("issuerLayer", issuer_layer)?;
-      }
-      ToNapiValue::to_napi_value(env, obj)
     }
   }
 }

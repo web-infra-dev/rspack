@@ -12,7 +12,7 @@ class MyJsMinimizerPlugin {
     compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, compilation => {
       // 用来获取 JavascriptModulesPlugin 的 chunkHash 钩子
       const hooks =
-        compiler.webpack.javascript.JavascriptModulesPlugin.getCompilationHooks(
+        compiler.rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
           compilation,
         );
       // 由于 JS chunk 被优化，内容改变，所以要更新 JS chunk 的 chunk hash

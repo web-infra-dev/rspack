@@ -34,11 +34,10 @@
   "dependencies": {
     "@napi-rs/wasm-runtime": "^1.0.1",
     "@rspack/lite-tapable": "1.0.1",
-    "buffer": "^6.0.3",
-    "memfs": "4.36.0"
-  },
-  "devDependencies": {
-    "@rspack/binding": "workspace:*"
+    "@swc/types": "0.1.23",
+    "@types/watchpack": "^2.4.4",
+    "memfs": "4.36.0",
+    "webpack-sources": "3.3.3"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

@@ -73,7 +73,6 @@ rspack_napi_macros                     = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
 rspack_plugin_circular_dependencies    = { workspace = true }
-rspack_plugin_context_replacement      = { workspace = true }
 rspack_plugin_copy                     = { workspace = true }
 rspack_plugin_css                      = { workspace = true }
 rspack_plugin_css_chunking             = { workspace = true }
@@ -94,6 +93,7 @@ rspack_plugin_limit_chunk_count        = { workspace = true }
 rspack_plugin_merge_duplicate_chunks   = { workspace = true }
 rspack_plugin_mf                       = { workspace = true }
 rspack_plugin_module_info_header       = { workspace = true }
+rspack_plugin_module_replacement       = { workspace = true }
 rspack_plugin_no_emit_on_errors        = { workspace = true }
 rspack_plugin_progress                 = { workspace = true }
 rspack_plugin_real_content_hash        = { workspace = true }
