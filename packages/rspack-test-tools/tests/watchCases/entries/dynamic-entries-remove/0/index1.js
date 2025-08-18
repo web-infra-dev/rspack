@@ -1,1 +1,2 @@
-console.log.bind(console, 1);
+import {value} from './shared'
+console.log.bind(console, value);
