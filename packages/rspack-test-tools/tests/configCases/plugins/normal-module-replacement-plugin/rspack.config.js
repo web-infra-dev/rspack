@@ -1,4 +1,5 @@
 const { NormalModuleReplacementPlugin } = require("@rspack/core");
+const path = require("node:path");
 
 module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 	plugins: [
@@ -18,7 +19,7 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 		),
 		new NormalModuleReplacementPlugin(
 			/\/query\/query.v1(\.|$)/,
-			"./query/query.v2.js"
+			path.resolve(__dirname, "./query/query.v2.js")
 		)
 	]
 });
