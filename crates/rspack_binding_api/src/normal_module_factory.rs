@@ -62,21 +62,12 @@ impl From<&NormalModuleCreateData> for JsCreateData {
 
 impl JsCreateData {
   pub fn update_nmf_data(self, create_data: &mut NormalModuleCreateData) {
-    fn update_resource_data(old_resource_data: &mut ResourceData, new_resource: String) {
-      if old_resource_data.resource_path.is_some()
-        && let Some(parsed) = parse_resource(&new_resource)
-      {
-        old_resource_data.set_path(parsed.path);
-        old_resource_data.set_query_optional(parsed.query);
-        old_resource_data.set_fragment_optional(parsed.fragment);
-      }
-      old_resource_data.set_resource(new_resource);
-    }
-
     create_data.request = self.request;
     create_data.user_request = self.user_request;
     if create_data.resource_resolve_data.resource != self.resource {
-      update_resource_data(&mut create_data.resource_resolve_data, self.resource);
+      create_data
+        .resource_resolve_data
+        .update_resource_data(self.resource);
     }
   }
 }
