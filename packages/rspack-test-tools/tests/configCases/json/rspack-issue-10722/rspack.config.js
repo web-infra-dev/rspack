@@ -1,3 +1,5 @@
+const { CopyRspackPlugin } = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -10,5 +12,10 @@ module.exports = {
 	},
 	experiments: {
 		outputModule: true
-	}
+	},
+	plugins: [
+		new CopyRspackPlugin({
+			patterns: [{ from: "test.mjs" }]
+		})
+	]
 };
