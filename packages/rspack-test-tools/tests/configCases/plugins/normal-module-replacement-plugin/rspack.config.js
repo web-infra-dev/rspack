@@ -18,7 +18,7 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 			}
 		),
 		new NormalModuleReplacementPlugin(
-			/\/query[/\\]query.v1(\.|$)/,
+			/[/\\]query[/\\]query.v1(\.|$)/,
 			path.resolve(__dirname, "./query/query.v2.js")
 		)
 	]
