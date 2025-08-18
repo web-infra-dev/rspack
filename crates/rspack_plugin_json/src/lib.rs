@@ -20,8 +20,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{
-  DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError, miette::diagnostic,
+  DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
+  miette::diagnostic,
 };
 use rspack_util::itoa;
 
@@ -101,7 +101,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               "JSON parse error".to_string(),
               format!("Unexpected character {ch}"),
             )
-            .with_kind(DiagnosticKind::Json)
             .boxed()
           }
           ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
@@ -116,7 +115,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               "JSON parse error".to_string(),
               format!("{e}"),
             )
-            .with_kind(DiagnosticKind::Json)
             .boxed()
           }
         }
