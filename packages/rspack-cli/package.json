@@ -38,7 +38,8 @@
     "colorette": "2.0.20",
     "exit-hook": "^4.0.0",
     "webpack-bundle-analyzer": "4.10.2",
-    "yargs": "17.7.2"
+    "yargs": "17.7.2",
+    "pirates": "^4.0.7"
   },
   "devDependencies": {
     "@rslib/core": "0.12.1",

@@ -6,16 +6,48 @@ import {
 	type RspackOptions,
 	util
 } from "@rspack/core";
+import { addHook } from "pirates";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
 import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";
-import isTsFile from "./isTsFile";
+import isTsFile, { TS_EXTENSION } from "./isTsFile";
 
+const injectInlineSourceMap = ({
+	filename,
+	code,
+	map
+}: {
+	filename: string;
+	code: string;
+	map: string | undefined;
+}): string => {
+	if (map) {
+		const base64Map = Buffer.from(map, "utf8").toString("base64");
+		const sourceMapContent = `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64Map}`;
+		return `${code}\n${sourceMapContent}`;
+	}
+	return code;
+};
+export function compile(sourcecode: string, filename: string) {
+	const { code, map } = experiments.swc.transformSync(sourcecode, {
+		jsc: {
+			parser: {
+				syntax: "typescript",
+				tsx: false,
+				decorators: true,
+				dynamicImport: true
+			}
+		},
+		module: { type: "commonjs" },
+		sourceMaps: false,
+		isModule: true
+	});
+	return injectInlineSourceMap({ filename, code, map });
+}
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
-
+// modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
 const registerLoader = (configPath: string) => {
-	const ext = path.extname(configPath);
 	// TODO implement good `.mts` support after https://github.com/gulpjs/rechoir/issues/43
 	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
 	if (isEsmFile(configPath) && isTsFile(configPath)) {
@@ -26,46 +58,14 @@ const registerLoader = (configPath: string) => {
 	if (!isTsFile(configPath)) {
 		throw new Error(`config file "${configPath}" is not supported.`);
 	}
-	// this is a hack to workaround the issue that require.extensions is compiled to void(0) by rslib
-	// do not change it to require.extensions
-	function unsafeGetRequireExtension() {
-		// @ts-ignore
-		return require["extension" + "s"];
-	}
-
-	const nodeRequireExtensions: NodeJS.RequireExtensions =
-		unsafeGetRequireExtension();
-
-	if (!nodeRequireExtensions[ext]) {
-		nodeRequireExtensions[ext] = function (
-			mod: NodeJS.Module,
-			filename: string
-		) {
-			const source = fs.readFileSync(filename, "utf-8");
-
-			let result;
-			try {
-				result = experiments.swc.transformSync(source, {
-					jsc: {
-						parser: {
-							syntax: "typescript",
-							tsx: false,
-							decorators: true,
-							dynamicImport: true
-						}
-					},
-					module: { type: "commonjs" },
-					sourceMaps: false,
-					isModule: true
-				});
-			} catch (err) {
-				throw new Error(
-					`Failed to transform TypeScript config file "${filename}" with rspack's builtin register: ${err instanceof Error ? err.message : String(err)}`
-				);
-			}
-			(mod as any)._compile(result.code, filename);
-		};
-	}
+	addHook(
+		(code, filename) => {
+			return compile(code, filename);
+		},
+		{
+			exts: TS_EXTENSION
+		}
+	);
 };
 
 export type LoadedRspackConfig =
