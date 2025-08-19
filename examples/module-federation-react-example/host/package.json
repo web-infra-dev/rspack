@@ -1,0 +1,35 @@
+{
+  "name": "@mf-react/host",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build",
+    "serve": "serve dist -p 3001",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.5.2",
+    "@reduxjs/toolkit": "^2.5.0",
+    "antd": "^5.21.8",
+    "axios": "^1.11.0",
+    "chart.js": "^4.4.7",
+    "dayjs": "^1.11.13",
+    "lodash-es": "^4.17.21",
+    "react": "^19.1.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^19.1.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.1.1"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "@swc/core": "^1.10.4",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "html-webpack-plugin": "^5.6.3",
+    "serve": "^14.2.4"
+  }
+}

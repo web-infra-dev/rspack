@@ -15,7 +15,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportsBase, ModuleDecoratorDependency,
+    ConsumeSharedExportsDependency, ExportsBase, ModuleDecoratorDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -268,6 +268,24 @@ impl JavascriptParser<'_> {
 
 pub struct CommonJsExportsParserPlugin;
 
+impl CommonJsExportsParserPlugin {
+  /// Detect if this module should use ConsumeSharedExportsDependency based on Module Federation context
+  fn detect_shared_module_key(parser: &JavascriptParser) -> Option<String> {
+    // Check if this module has a shared_key in BuildMeta (set by ProvideSharedPlugin)
+    if let Some(ref shared_key) = parser.build_meta.shared_key {
+      return Some(shared_key.clone());
+    }
+
+    // Check if this module has consume_shared_key in BuildMeta (set by ConsumeSharedPlugin)
+    if let Some(ref consume_shared_key) = parser.build_meta.consume_shared_key {
+      return Some(consume_shared_key.clone());
+    }
+
+    // No shared context found
+    None
+  }
+}
+
 impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn identifier(
     &self,
@@ -444,14 +462,33 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // exports.a = 1;
       // module.exports.a = 1;
       // this.a = 1;
-      parser
-        .dependencies
-        .push(Box::new(CommonJsExportsDependency::new(
-          left_expr.span().into(),
-          None,
-          base,
-          remaining.to_owned(),
-        )));
+
+      // Check if we're in ConsumeShared OR ProvideShared context
+      let shared_key = Self::detect_shared_module_key(parser);
+
+      if let Some(shared_key) = shared_key {
+        // For assignments, pass the member expression span for now
+        // TODO: We need to figure out why assign_expr.span doesn't include the full assignment
+        parser
+          .dependencies
+          .push(Box::new(ConsumeSharedExportsDependency::new(
+            left_expr.span().into(),
+            Some(assign_expr.span.into()),
+            base,
+            remaining.to_owned(),
+            shared_key,
+          )));
+      } else {
+        // For assignments, pass both member expression and assignment spans
+        parser
+          .dependencies
+          .push(Box::new(CommonJsExportsDependency::new(
+            left_expr.span().into(),
+            Some(assign_expr.span.into()),
+            base,
+            remaining.to_owned(),
+          )));
+      }
       parser.walk_expression(&assign_expr.right);
       Some(true)
     };
@@ -541,14 +578,29 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         } else {
           panic!("Unexpected expr type");
         };
-        parser
-          .dependencies
-          .push(Box::new(CommonJsExportsDependency::new(
-            call_expr.span.into(),
-            Some(arg2.span().into()),
-            base,
-            vec![str.value.clone()],
-          )));
+        // Check if we're in ConsumeShared OR ProvideShared context
+        let shared_key = Self::detect_shared_module_key(parser);
+
+        if let Some(shared_key) = shared_key {
+          parser
+            .dependencies
+            .push(Box::new(ConsumeSharedExportsDependency::new(
+              call_expr.span.into(),
+              Some(arg2.span().into()),
+              base,
+              vec![str.value.clone()],
+              shared_key,
+            )));
+        } else {
+          parser
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              call_expr.span.into(),
+              Some(arg2.span().into()),
+              base,
+              vec![str.value.clone()],
+            )));
+        }
 
         parser.walk_expression(&arg2.expr);
         Some(true)

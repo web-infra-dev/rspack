@@ -8,6 +8,7 @@ packages:
   - "crates/node_binding"
   - "crates/rspack_binding_builder_testing"
   - "examples/**"
+  - "examples/**/*"
   - "!examples/three"
   - "tests/e2e"
   - "tests/webpack-examples"
