@@ -54,7 +54,26 @@ const registerLoader = (configPath: string) => {
 				module: { type: "commonjs" },
 				sourceMaps: false,
 				isModule: true
-			});
+			let result;
+			try {
+				result = experiments.swc.transform(source, {
+					jsc: {
+						parser: {
+							syntax: "typescript",
+							tsx: false,
+							decorators: true,
+							dynamicImport: true
+						}
+					},
+					module: { type: "commonjs" },
+					sourceMaps: false,
+					isModule: true
+				});
+			} catch (err) {
+				throw new Error(
+					`Failed to transform TypeScript config file "${filename}" with SWC: ${err instanceof Error ? err.message : String(err)}`
+				);
+			}
 			(mod as any)._compile(result.code, filename);
 		};
 	}
