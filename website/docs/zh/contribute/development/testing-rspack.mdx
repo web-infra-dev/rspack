@@ -15,6 +15,13 @@ Rspack 的测试用例包括如下：
 - 如需传入特定 jest cli 参数，在 `packages/rspack-test-tools` 目录下运行 `npm run test -- {args}`。
 - 如需过滤特定测试用例，在 `packages/rspack-test-tools` 目录下运行 `npm run test  -- -t path-of-spec`。
   - 如 `npm run test -- -t config/asset` 即可仅运行 `packages/rspack-test-tools/configCases/asset` 文件夹下的用例（config 会自动映射到 configCases，其他文件夹类似）。
+- 如需使用 Rspack Wasm 运行测试用例，需要额外配置以下环境变量：
+  1. `NAPI_RS_FORCE_WASI=1`： 强制使用 Rspack Wasm 而不是原生绑定
+  2. `WASM=1`：启用 Wasm 专用的测试配置
+  3. `NODE_NO_WARNINGS=1`： 关闭 Node.js 的 Wasm 警告。
+  ```bash
+  NAPI_RS_FORCE_WASI=1 WASM=1 NODE_NO_WARNINGS=1 pnpm run test:unit
+  ```
 
 ## 目录规范
 
