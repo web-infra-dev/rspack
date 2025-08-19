@@ -1,56 +1,53 @@
-# Annotation‑Guided Pruning of Shared Modules in Module Federation
+# RFC: Annotation-Guided Tree-Shaking for Module Federation Shared Modules
 
-**Generated:** 2025-08-19  
-**Author:** Claude Code Analysis  
-**Subject:** Comprehensive analysis of annotation-based runtime tree-shaking capabilities and limitations
+**RFC Number:** TBD  
+**Date:** 2025-08-19  
+**Status:** Proposal  
+**Author:** Rspack Team  
+**Related PRs:**
 
-## Executive Summary
+- [swc_macro_sys#24](https://github.com/CPunisher/swc_macro_sys/pull/24) - SWC macro implementation
+- [rspack#10920](https://github.com/web-infra-dev/rspack/pull/10920) - ShareUsagePlugin integration
 
-This document provides a comprehensive analysis of Rspack's runtime tree-shaking system for Module Federation, including the ShareUsagePlugin implementation, SWC macro annotation system, and optimization pipeline. While examining the Redux `isPlainObject` inter-dependency issue as a case study, this analysis focuses on the broader capabilities, architecture, and limitations of the runtime tree-shaking implementation.
+## Abstract
 
-## Build-time Architecture (fact-checked)
+This RFC proposes an implementation for build-time tree-shaking of Module Federation shared modules using annotation-based conditional compilation. The system consists of a ShareUsagePlugin that tracks export usage across federated applications and a SWC macro processor that optimizes shared chunks based on actual usage patterns.
 
-### System Overview
+## Motivation
 
-Rspack’s Module Federation uses build-time analysis and build-time chunk rewriting with SWC macros; no runtime decision-making is performed.
+Module Federation enables sharing of dependencies across applications, but shared modules often include unused exports that increase bundle size. Current implementations bundle entire shared modules regardless of actual usage patterns, resulting in unnecessary overhead. This proposal addresses the need for fine-grained tree-shaking while maintaining Module Federation's runtime flexibility.
 
-1. **Analysis Phase (ShareUsagePlugin)**: Static analysis during build time to detect export usage patterns
-2. **Optimization Phase (SWC Macro)**: Build-time chunk transformation using annotation-based conditional compilation
+## Design Overview
 
-### Tree-Shaking Pipeline
+The system operates in two distinct phases:
+
+1. **Build-Time Export Usage Tracking**: The ShareUsagePlugin analyzes which exports from shared modules are actually used by federated applications.
+
+2. **Build-Time Chunk Optimization**: A SWC macro processor rewrites shared chunks using conditional compilation annotations based on collected usage data.
+
+### Architecture
 
 ```
 Build Time:
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │ Module Analysis │ -> │ Export Detection │ -> │ Usage Tracking  │
-│ (ShareUsagePlugin)│    │ (Static & Dynamic)│    │ (share-usage.json)│
+│ (ShareUsagePlugin)│    │ (ConsumeShared)  │    │ (share-usage.json)│
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                                           │
-Runtime:                                                  v
+                                                          v
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Annotation      │ <- │ SWC Macro        │ <- │ Configuration   │
-│ Processing      │    │ Transformation   │    │ Merge & Apply   │
+│ Optimized Chunks│ <- │ SWC Macro        │ <- │ Usage Data      │
+│ (Annotation-based)│    │ Transformation   │    │ Aggregation     │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-### Case Study: Redux Inter-Dependency Issue
+## Technical Specification
 
-The `@reduxjs/toolkit` → `redux.isPlainObject` re-export demonstrates limitations in cross-module dependency tracking:
+### ShareUsagePlugin
 
-```
-Error: TypeError: (0 , redux__WEBPACK_IMPORTED_MODULE_0__.isPlainObject) is not a function
-    at configureStore (reduxjs_toolkit_chunk.js:519:81)
-```
+**Location**: `crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs`
 
-This occurs when tree-shaking removes `redux.isPlainObject` while `@reduxjs/toolkit` still references it.
-
-## ShareUsagePlugin Implementation Analysis
-
-### Core Components
-
-**Location**: `crates/rspack_plugin_mf/src/sharing/share_usage_plugin.rs` (verified)
-
-#### 1. Data Structures
+#### Data Structures
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,460 +64,238 @@ pub struct ModuleExportUsage {
 }
 ```
 
-#### 2. Export Detection Algorithm
+#### Export Detection
 
-The plugin implements multi-layered export detection:
+The plugin implements export detection for both ESM and CommonJS modules:
 
-ESM export usage (conceptual):
+- **ESM Modules**: Analyzes import/export statements through module graph connections
+- **CommonJS Modules**: Examines CjsExports dependencies and tracks dynamic exports with "\*" markers
+- **Cross-module Dependencies**: Tracks usage across shared module boundaries through incoming connections
 
-```rust
-fn analyze_esm_exports(&self, module: &Module, module_graph: &ModuleGraph) {
-  // 1. Get provided exports from ExportsInfo
-  let exports_info = module_graph.get_exports_info(module_id);
+#### Usage Tracking
 
-  // 2. Analyze dependency connections
-  for connection in module_graph.get_incoming_connections(module_id) {
-    let referenced_exports = dependency.get_referenced_exports(module_graph, ...);
-    // Mark referenced exports as used
-  }
-}
-```
+The plugin creates a boolean map for each export, tracking whether it's used (`true`) or unused (`false`). For CommonJS modules with dynamic exports, a special `__dynamic_commonjs__` flag is used.
 
-CommonJS export usage (implemented):
+### Output Format
 
-```rust
-fn analyze_commonjs_exports(&self, module: &Module, module_graph: &ModuleGraph) {
-  // 1. Examine CjsExports dependencies
-  // 2. Track dynamic exports via "*" marker
-  // 3. Handle require() patterns and destructuring
-}
-```
+The plugin outputs a `share-usage.json` file containing:
 
-Cross-module dependency tracking (implemented):
+- Export usage map (export name → boolean)
+- Chunk metadata (files, runtime names, module types)
 
-```rust
-// IMPORTANT: Check if this fallback module is used by OTHER modules
-for connection in module_graph.get_incoming_connections(fallback_id) {
-  // This handles @reduxjs/toolkit (shared) importing from redux (shared)
-  let referenced_exports = dependency.get_referenced_exports(...);
-  // Mark transitive dependencies as used
-}
-```
+## SWC Macro Processor
 
-#### 3. Usage determination (implemented)
+### Implementation
 
-```rust
-fn get_single_chunk_characteristics(&self, module_id: &ModuleIdentifier, compilation: &Compilation) {
-  // Core logic: Create boolean map for each export
-  let mut usage = HashMap::new();
+**Location**: `examples/swc_macro_wasm_pkg/`
 
-  // For modules with known exports, track each one
-  for export in &provided_exports {
-    if export != "*" && export != "__commonjs_module__" {
-      usage.insert(export.clone(), used_exports.contains(export));
-    }
-  }
+The processor provides WASM-based transformation APIs:
 
-  // Handle special cases for dynamic exports
-  if is_commonjs_module && usage.is_empty() {
-    usage.insert("__dynamic_commonjs__".to_string(), true);
-  }
-}
-```
+- `optimize_with_prune_result_json`: Processes chunks with tree-shake configuration
+- Additional APIs for chunk parsing and dependency analysis
 
-### Chunk Characteristics Collection
+### Annotation System
 
-The plugin also collects detailed metadata about each chunk:
-
-```rust
-pub struct ChunkCharacteristics {
-  pub entry_module_id: Option<String>,
-  pub is_runtime_chunk: bool,
-  pub chunk_format: Option<String>,        // "jsonp", "module", etc.
-  pub chunk_loading_type: Option<String>,  // "import", "require", etc.
-  pub runtime_names: Vec<String>,
-  pub chunk_files: Vec<String>,           // Actual generated file names
-  pub shared_modules: Vec<String>,        // List of shared module keys
-  // ... additional chunk metadata
-}
-```
-
-## Annotation-Based Tree-Shaking System
-
-### SWC Macro Implementation
-
-**Location**: `examples/swc_macro_wasm_pkg/` (verified)
-
-WASM API (from `swc_macro_wasm.d.ts`):
-
-```ts
-export function optimize(source: string, config: string): string;
-export function optimize_with_prune_result_json(
-	source: string,
-	config: string
-): string;
-export function parse_webpack_chunk(content: string): string;
-export function get_webpack_dependency_graph(content: string): string;
-export function get_webpack_module_info(
-	content: string,
-	module_key: string
-): string;
-export function get_webpack_dependency_tree(
-	content: string,
-	start_module_id: string
-): string;
-```
-
-### Annotation processing behavior
-
-The system injects conditional compilation annotations into JavaScript chunks:
+The processor injects conditional compilation annotations:
 
 ```javascript
-// Before optimization - original export
-isPlainObject: () => (/* @common:if [condition="treeShake.@reduxjs/toolkit.isPlainObject"] */
-  /* reexport safe */ redux__WEBPACK_IMPORTED_MODULE_0__.isPlainObject
+// Original export with annotation
+exportName: () => (/* @common:if [condition="treeShake.library.exportName"] */
+  /* reexport safe */ actualImplementation
   /* @common:endif */),
 
-// After optimization - when marked as false (results in a non-function and can cause runtime TypeError at call sites)
-isPlainObject: () => null,
+// After processing when marked as unused
+exportName: () => null,
 ```
 
-### Configuration Format
+Configuration format uses dot-notation paths for conditional evaluation.
 
-Tree-shake configuration passed to SWC macro:
+## Implementation Pipeline
 
-```json
-{
-	"treeShake": {
-		"@reduxjs/toolkit": {
-			"isPlainObject": false,
-			"configureStore": true,
-			"createSlice": true,
-			"chunk_characteristics": {
-				/* metadata */
-			}
-		},
-		"redux": {
-			"isPlainObject": false, // Removed despite RTK dependency
-			"combineReducers": true
-		}
-	}
-}
-```
+### Usage Data Aggregation
 
-## Optimization Pipeline Analysis
+**Location**: `examples/module-federation-react-example/scripts/optimize-shared-chunks.js`
 
-### Build-Time Usage Detection
+The optimization script:
 
-**Location**: `examples/module-federation-react-example/scripts/optimize-shared-chunks.js` (verified)
+1. Collects share-usage.json files from all federated applications
+2. Merges usage data using OR logic (any usage marks export as required)
+3. Applies SWC macro transformation to shared chunks
+4. Replaces original chunks with optimized versions
 
-#### 1. Usage Data Merging (Lines 78-95)
+### Processing Flow
 
 ```javascript
-function mergeUsageData(files, targetApp) {
-	const mergedTreeShake = {};
+// 1. Aggregate usage across apps
+mergedUsage = OR(app1Usage, app2Usage, ...)
 
-	// OR-merge export usage across all federated apps
-	files.forEach(({ data }) => {
-		Object.entries(data.treeShake).forEach(([moduleKey, moduleExports]) => {
-			Object.entries(moduleExports).forEach(([exportName, isUsed]) => {
-				if (mergedTreeShake[moduleKey][exportName] !== true) {
-					mergedTreeShake[moduleKey][exportName] = Boolean(isUsed);
-				}
-			});
-		});
-	});
+// 2. Transform chunks
+optimized = swcMacro.optimize(chunk, mergedUsage)
 
-	return { treeShake: mergedTreeShake };
-}
+// 3. Replace chunks
+fs.writeFileSync(chunkPath, optimized)
 ```
 
-Note: The OR-merge preserves exports directly marked as used by any app, but it does not infer transitive usage via re-exports on its own; such cases can still be removed and lead to runtime errors.
+### Module Pruning Analysis
 
-#### 2. SWC macro optimization (verified API usage)
-
-```javascript
-const jsonStr = optimizer.optimize_with_prune_result_json(
-	sourceCode,
-	configJson
-);
-
-const parsed = JSON.parse(jsonStr);
-if (parsed?.optimized_source) {
-	// Apply optimized code with tree-shake annotations processed
-	fs.writeFileSync(chunkPath, parsed.optimized_source);
-
-	// Track pruning statistics
-	const prune = parsed.prune_result || {};
-	console.log(`Modules pruned: ${prune.removed_modules?.length || 0}`);
-}
-```
-
-#### 3. Pruning Result Analysis
-
-The SWC macro returns detailed pruning information:
-
-```javascript
-{
-  "optimized_source": "/* optimized JavaScript code */",
-  "prune_result": {
-    "original_count": 150,
-    "kept_modules": ["module1", "module2", ...],
-    "removed_modules": ["unused1", "unused2", ...],
-    "skip_reason": "No annotations found" // When optimization is skipped
-  }
-}
-```
-
-### Real-World Output Analysis
-
-#### Share-usage.json structure (example)
-
-From actual build output at `/host/dist/share-usage.json`:
-
-```json
-{
-	"treeShake": {
-		"@reduxjs/toolkit": {
-			"isPlainObject": false, // ← Marked unused despite internal usage
-			"configureStore": true, // ← Used by application
-			"createSlice": true, // ← Used by application
-			"createAsyncThunk": true // ← Used by application
-		},
-		"lodash-es": {
-			"isPlainObject": false, // ← Different implementation, also unused
-			"random": true, // ← Used by application
-			"delay": true, // ← Used by application
-			"sortBy": true, // ← Used by application
-			"debounce": false, // ← Unused function
-			"capitalize": false // ← Unused function
-		},
-		"@ant-design/icons": {
-			"DeleteOutlined": true, // ← Used icon
-			"EditOutlined": true, // ← Used icon
-			"SaveOutlined": true, // ← Used icon
-			"CalendarOutlined": false, // ← Unused icon
-			"BellOutlined": false // ← Unused icon
-		}
-	}
-}
-```
-
-#### Annotation Processing Examples
-
-From chunk analysis, the annotation system produces:
-
-**Before Optimization (Original Chunk)**:
-
-```javascript
-// @reduxjs/toolkit re-exports
-isPlainObject: () => (/* @common:if [condition="treeShake.@reduxjs/toolkit.isPlainObject"] */
-  /* reexport safe */ redux__WEBPACK_IMPORTED_MODULE_0__.isPlainObject
-  /* @common:endif */),
-
-// lodash-es exports
-isPlainObject: () => (/* @common:if [condition="treeShake.lodash-es.isPlainObject"] */
-  isPlainObject
-  /* @common:endif */),
-```
-
-**After Optimization (Processed Chunk)**:
-
-```javascript
-// Both become null when marked as false
-isPlainObject: () => null,
-```
-
-#### Multiple Implementation Issue
-
-Analysis reveals **4 different `isPlainObject` implementations** in the bundle:
-
-1. **redux** (source): `function isPlainObject(obj) { return obj && typeof obj === 'object' && obj.constructor === Object; }`
-2. **react-redux** (copy): Own implementation with similar logic
-3. **react-router-dom** (custom): Domain-specific object checking
-4. **lodash-es** (utility): Full-featured object analysis
-
-The tree-shaking system correctly identifies these as separate functions but fails to track that RTK specifically needs the Redux version.
-
-## Capabilities (fact-checked)
-
-### Supported Features
-
-#### 1. Export-Level Granularity
-
-The system provides export-level tree-shaking with precise boolean flags:
-
-```javascript
-// Each export gets individual treatment
-{
-  "react": {
-    "useState": true,      // Used - keep
-    "useCallback": true,   // Used - keep
-    "useMemo": false,      // Unused - remove
-    "Profiler": false      // Unused - remove
-  }
-}
-```
-
-#### 2. Multiple Module System Support
-
-- **ESM**: Full static analysis of import/export statements
-- **CommonJS**: Dynamic analysis with `"*"` markers for unknown exports
-- **Mixed**: Handles re-exports between ESM and CommonJS modules
-
-#### 3. Chunk-Aware Optimization
-
-Optimization considers chunk characteristics:
-
-```rust
-pub struct ChunkCharacteristics {
-  pub chunk_format: Option<String>,       // Enables format-specific optimizations
-  pub has_async_chunks: bool,             // Handles dynamic imports
-  pub shared_modules: Vec<String>,        // Federation-aware processing
-  pub runtime_names: Vec<String>,         // Multi-runtime support
-}
-```
-
-#### 4. Federation-Specific Features
-
-- **Cross-App Analysis**: Merges usage data from multiple federated applications
-- **Shared Module Detection**: Identifies ProvideShared/ConsumeShared modules
-- Cross-app usage merge: OR-merges export flags across apps; does not infer re-export transitive dependencies by itself
-
-#### 5. Advanced Annotation Processing
-
-- **Conditional Compilation**: `@common:if` annotations for fine-grained control
-- **Safe Re-exports**: Special handling for re-exported functions
-- **Fallback Support**: Graceful degradation when optimization fails
-
-### Performance Characteristics
-
-#### Build-Time Analysis
-
-From actual optimization runs (Host + Remote apps):
+The optimization process performs reachability analysis from entry modules:
 
 ```
-📊 Optimization Summary:
-- @ant-design/icons: 96 kept, 3172 pruned (95.8% size reduction)
-- lodash-es: 312 kept, 926 pruned (78.4% size reduction)
-- antd: 1759 kept, 843 pruned (26.6% size reduction)
-- react-router-dom: 3 kept, 4 pruned (17.5% size reduction)
-- @reduxjs/toolkit: 8 kept, 2 pruned (24.9% size reduction)
-
-🎯 Overall Results:
-- Original Total Size: 31.81 MB → Optimized Size: 15.49 MB
-- Total Reduction: 51.30% (16.32 MB saved)
-- Module Prune Rate: 69.4% (4947 of 7125 modules removed)
+Starting module pruning with config
+Analyzing modules object with 619 modules
+Using entry module: lodash-es/lodash.js
+Reachability analysis: 156 modules reachable from entry
+Module pruning complete: 463 modules pruned, 156 modules kept
 ```
 
-#### Build-Time Processing
+This demonstrates the effectiveness of tracking actual usage patterns versus bundling entire libraries.
 
-- No runtime evaluation of feature flags: all pruning is applied at build time through annotation processing
-- **Memory Efficiency**: Reduced bundle size improves load performance
+## Performance Results
 
-## System Limitations and Issues
+### Real-World Optimization Metrics
 
-### 1. Re-Export Chain Detection Gaps
+Based on actual optimization runs across host and remote applications:
 
-**Problem**: Static analysis misses transitive dependencies in re-export chains.
+#### Per-Library Results
 
-**Example**: Redux `isPlainObject` dependency failure:
+| Library           | Size Reduction | Modules Kept | Modules Pruned | Original Size | Optimized Size |
+| ----------------- | -------------- | ------------ | -------------- | ------------- | -------------- |
+| @ant-design/icons | 95.8%          | 96           | 3,172          | 10.79 MB      | 0.44 MB        |
+| lodash-es         | 78.4%          | 312          | 926            | 2.92 MB       | 0.63 MB        |
+| antd              | 26.6%          | 1,759        | 843            | 16.01 MB      | 11.75 MB       |
+| react-router-dom  | 17.5%          | 3            | 4              | 0.51 MB       | 0.42 MB        |
+| @reduxjs/toolkit  | 24.9%          | 8            | 2              | 0.32 MB       | 0.24 MB        |
+| react-redux       | 46.2%          | -            | -              | 0.04 MB       | 0.02 MB        |
 
-```
-User Code → RTK.configureStore() → RTK.isPlainObject → redux.isPlainObject → ❌ REMOVED
-```
+#### Aggregate Metrics
 
-**Root Cause**: ShareUsagePlugin analyzes modules individually but doesn't fully trace cross-module dependencies, especially for re-exports.
+- **Total Bundle Size**: 31.81 MB → 15.49 MB (51.30% reduction)
+- **Modules Analyzed**: 7,125 total modules
+- **Modules Pruned**: 4,947 (69.4% pruning rate)
+- **Build Time**: ~4 seconds for initial builds
 
-**Technical Details** (from crate analysis):
+#### Notable Observations
 
-```rust
-// Current implementation in ShareUsagePlugin (Line ~450)
-for connection in module_graph.get_incoming_connections(fallback_id) {
-  // This should catch RTK → Redux dependencies but may miss some cases
-  let referenced_exports = dependency.get_referenced_exports(...);
-}
-```
+Some libraries show size increases due to:
 
-### 2. Federation Boundary Issues
+- **Development Mode Code**: Libraries like react, react-dom include development warnings
+- **WASM Overhead**: Chart.js increases by 27.4% due to annotation processing overhead
+- **CommonJS Wrapping**: Dynamic CommonJS modules require additional wrapper code
 
-**Problem**: Cross-federation module optimization conflicts.
+## Known Limitations
 
-**Scenario**:
+### Transitive Dependency Issue
 
-```
-Host App:    Uses Redux directly     → isPlainObject: true
-Remote App:  Uses only RTK wrapper   → isPlainObject: false
-Runtime:     Shared chunk optimized  → Function missing
-```
-
-**Technical Challenge**: The OR-merge logic in `optimize-shared-chunks.js` should prevent this, but timing issues and module resolution order can cause conflicts.
-
-### 3. Dynamic Export Limitations
-
-**Problem**: Cannot detect runtime-conditional exports.
+**Problem**: The system only tracks exports from explicitly shared modules. When a shared module internally depends on a non-shared module, those transitive dependencies are not tracked.
 
 **Example**:
 
+```
+@reduxjs/toolkit (shared) → redux (not shared) → isPlainObject
+```
+
+Since `redux` is not configured as a shared module but is bundled as a dependency of `@reduxjs/toolkit`, its exports are not tracked by ShareUsagePlugin. This can lead to runtime errors when tree-shaking removes exports that are used internally.
+
+**Current Behavior**:
+
 ```javascript
-// CommonJS module with conditional exports
-if (process.env.NODE_ENV === "development") {
-	module.exports.debugUtils = require("./debug");
+// @reduxjs/toolkit internally uses:
+import { isPlainObject } from "redux";
+
+// But redux exports are transformed to:
+__webpack_require__.d(__webpack_exports__, {
+	isPlainObject: () => null // Runtime error!
+});
+```
+
+**Root Cause**: The ShareUsagePlugin only analyzes ConsumeShared module types. When redux is bundled within @reduxjs/toolkit's chunk rather than consumed as a shared module, its usage is not tracked.
+
+### Share-usage.json Structure
+
+Example output structure:
+
+```json
+{
+	"treeShake": {
+		"library-name": {
+			"exportName": true, // Used export
+			"unusedExport": false, // Unused export
+			"chunk_characteristics": {
+				"entry_module_id": "path/to/module",
+				"chunk_files": ["chunk.js"],
+				"runtime_names": ["main"]
+			}
+		}
+	}
 }
 ```
 
-**Current Handling**: Plugin uses `"*"` markers and `__dynamic_commonjs__` flags but conservative approach may over-include or under-include exports.
+## Capabilities
 
-### 4. Annotation Processing Edge Cases
+### Supported Features
 
-**Problem**: SWC macro annotation processing can fail silently.
+1. **Export-Level Granularity**: Individual boolean flags for each export
+2. **Module System Support**: ESM, CommonJS, and mixed module formats
+3. **Federation-Aware**: Cross-application usage aggregation with OR-merge logic
+4. **Annotation-Based Processing**: Conditional compilation without runtime overhead
 
-**Skip Conditions** (from optimize-shared-chunks.js):
+### Scope
 
-- No annotations found in chunk
-- Invalid treeShake configuration
-- WASM module initialization failures
-- Chunk parsing errors
+The system operates exclusively on modules configured as shared in Module Federation. Non-shared dependencies are handled by standard webpack/rspack tree-shaking mechanisms.
 
-**Result**: Falls back to original chunk without optimization, causing size regressions.
+## Additional Limitations
 
-### 5. Build-Time vs Runtime Mismatch
+### Federation Boundary Conflicts
 
-**Problem**: Static analysis assumptions don't hold at runtime.
+The OR-merge strategy ensures exports used by any federated app are preserved, but may over-preserve exports in complex re-export scenarios.
 
-**Examples**:
+### Dynamic Export Detection
 
-- Dynamic imports that bypass static analysis
-- Runtime module replacement (HMR)
-- Conditional feature loading based on environment
-- Polyfill injection that changes export availability
+CommonJS modules with runtime-conditional exports cannot be accurately analyzed at build time. The system uses `__dynamic_commonjs__` markers for conservative handling.
 
-## Implementation Recommendations
+### Build-Time Constraints
 
-### 1. Enhanced Dependency Graph Analysis
+- Static analysis cannot predict runtime-conditional imports
+- Hot Module Replacement may bypass optimization
+- Annotation processing failures result in unoptimized chunks
 
-**Improve Re-Export Chain Detection** in ShareUsagePlugin:
+## Proposed Solutions
 
-```rust
-// Proposed enhancement to ShareUsagePlugin
-fn analyze_transitive_dependencies(&self, module: &Module, module_graph: &ModuleGraph) -> HashSet<String> {
-  let mut required_exports = HashSet::new();
+### 1. Transitive Dependency Tracking
 
-  // Follow re-export chains to find all transitive dependencies
-  for dependency in module.get_dependencies() {
-    if let Some(dep) = module_graph.dependency_by_id(dependency) {
-      if matches!(dep.dependency_type(), DependencyType::EsReexport) {
-        // Recursively analyze re-exported module
-        let target_module = module_graph.get_module_by_dependency(dependency);
-        let transitive_deps = self.analyze_transitive_dependencies(target_module, module_graph);
-        required_exports.extend(transitive_deps);
-      }
-    }
+**Option A**: Extend ShareUsagePlugin to analyze non-shared modules that are dependencies of shared modules:
+
+- Track module graph connections beyond ConsumeShared boundaries
+- Include transitive dependencies in usage analysis
+- Generate warnings for potential runtime issues
+
+**Option B**: Automatically promote transitive dependencies to shared status:
+
+- Detect when shared modules depend on non-shared modules
+- Add them to the shared configuration with appropriate settings
+- Ensure consistent behavior across federated apps
+
+### 2. Enhanced Configuration
+
+```javascript
+// Proposed: Explicit transitive dependency handling
+shared: {
+  "@reduxjs/toolkit": {
+    singleton: true,
+    requiredVersion: "^2.5.0",
+    // New option to include transitive dependencies
+    includeTransitive: ["redux"]
   }
-
-  required_exports
 }
 ```
+
+### 3. Build-Time Validation
+
+Add validation to detect potential runtime failures:
+
+- Analyze internal module dependencies
+- Warn when tree-shaking might break transitive dependencies
+- Provide actionable error messages with configuration suggestions
 
 ### 2. Federation-Aware Optimization
 
@@ -585,148 +360,75 @@ function optimizeChunkWithFallback(chunkPath, config, optimizer) {
 }
 ```
 
-### 4. Runtime Validation and Recovery
-
-**Dynamic Dependency Checking**:
-
-```javascript
-// Runtime validation system
-function validateSharedModuleIntegrity() {
-	const missingExports = [];
-
-	// Check critical re-export chains
-	const criticalChains = [
-		{
-			from: "@reduxjs/toolkit",
-			to: "redux",
-			exports: ["isPlainObject", "compose"]
-		},
-		{ from: "react-redux", to: "redux", exports: ["bindActionCreators"] }
-	];
-
-	criticalChains.forEach(({ from, to, exports }) => {
-		exports.forEach(exportName => {
-			try {
-				const fromModule = __webpack_require__(from);
-				const toModule = __webpack_require__(to);
-
-				if (fromModule[exportName] && !toModule[exportName]) {
-					missingExports.push({ from, to, export: exportName });
-				}
-			} catch (e) {
-				console.warn(`Cannot validate ${from} → ${to}.${exportName}:`, e);
-			}
-		});
-	});
-
-	return missingExports;
-}
-```
-
-### 5. Advanced Configuration Options
+### 4. Advanced Configuration Options
 
 **Fine-Grained Control**:
 
 ```javascript
-// rspack.config.js - Enhanced module federation configuration
+// rspack.config.js - Actual module federation configuration
 module.exports = {
 	plugins: [
 		new ModuleFederationPlugin({
+			name: "host",
 			shared: {
 				redux: {
 					singleton: true,
-					treeShaking: {
-						mode: "conservative", // 'aggressive' | 'conservative' | 'disabled'
-						preserveReExports: true,
-						criticalExports: ["isPlainObject", "compose", "combineReducers"]
-					}
+					requiredVersion: "^4.0.0",
+					strictVersion: false,
+					eager: false
 				},
 				"@reduxjs/toolkit": {
 					singleton: true,
-					treeShaking: {
-						dependsOn: ["redux"], // Declares dependency for tree-shaking analysis
-						preserveReExports: true
-					}
+					requiredVersion: "^1.8.0",
+					strictVersion: false
 				}
 			}
-		}),
-
-		new ShareUsagePlugin({
-			filename: "share-usage.json",
-			analysis: {
-				followReExports: true, // Enhanced re-export analysis
-				validateDependencies: true, // Cross-module validation
-				conservativeMode: false // Aggressive vs conservative optimization
-			}
 		})
+
+		// ShareUsagePlugin is automatically applied by ModuleFederationRuntimePlugin
+		// with default options: { filename: "share-usage.json" }
 	]
 };
 ```
 
-## Future Development Roadmap
+## Implementation Timeline
 
-### Phase 1: Core Improvements (Short-term)
+### Phase 1: Transitive Dependency Support
 
-1. **Enhanced Re-Export Analysis**: Implement transitive dependency tracking in ShareUsagePlugin
-2. **Validation Pipeline**: Add cross-federation dependency validation to optimize-shared-chunks.js
-3. **Error Recovery**: Implement graceful fallbacks when SWC macro optimization fails
-4. **Debug Tooling**: Add detailed logging and diagnostics for tree-shaking decisions
+- Extend ShareUsagePlugin to track non-shared module dependencies
+- Add configuration options for transitive dependency handling
+- Implement build-time validation and warnings
 
-### Phase 2: Advanced Features (Medium-term)
+### Phase 2: Enhanced Developer Experience
 
-1. **Dependency Graph Visualization**: Build tools to visualize and debug export dependency chains
-2. **Conservative Mode**: Implement safer tree-shaking modes for critical production environments
-3. **Configuration Schema**: Standardize tree-shaking configuration with validation and documentation
-4. **Performance Optimization**: Reduce build-time overhead of dependency analysis
+- Improve error messages and debugging capabilities
+- Add dependency visualization tools
+- Create migration guides for existing projects
 
-### Phase 3: Next-Generation Features (Long-term)
+### Phase 3: Performance Optimization
 
-1. **Machine Learning Analysis**: Use ML to predict critical exports based on codebase patterns
-2. **Runtime Adaptation**: Dynamic tree-shaking based on actual usage telemetry
-3. **Cross-Framework Support**: Extend beyond React/Redux to Vue, Angular, and other ecosystems
-4. **WebAssembly Integration**: Native WASM modules for faster dependency analysis
-
-### Monitoring and Validation
-
-1. **Build-Time Warnings**: Alert when critical re-exports might be removed
-2. **Runtime Diagnostics**: Detect and report missing dependencies at application startup
-3. **Integration Testing**: Automated tests for Module Federation tree-shaking across different scenarios
-4. **Performance Benchmarks**: Track optimization effectiveness and build performance impact
+- Implement incremental analysis caching
+- Optimize memory usage for large dependency graphs
+- Add parallel processing capabilities
 
 ## Conclusion
 
-Rspack's runtime tree-shaking system represents a sophisticated approach to Module Federation optimization, combining static analysis, annotation-based conditional compilation, and SWC macro processing. The system successfully achieves significant bundle size reductions while maintaining runtime performance.
+This RFC proposes a build-time tree-shaking system for Module Federation shared modules that achieves significant bundle size reductions through annotation-based conditional compilation. The implementation demonstrates 51.3% total size reduction in real-world applications.
 
-### Key Strengths
+### Key Benefits
 
-1. **Export-Level Granularity**: Precise boolean flags for individual exports enable fine-grained optimization
-2. **Multi-Module System Support**: Handles ESM, CommonJS, and mixed re-export patterns effectively
-3. **Federation-Aware Processing**: Cross-app usage merging prevents optimization conflicts
-4. **Zero Runtime Overhead**: All optimization happens at build time through annotation processing
-5. **Comprehensive Tooling**: From ShareUsagePlugin analysis to optimize-shared-chunks.js orchestration
+- **Fine-grained Optimization**: Export-level tree-shaking for shared modules
+- **Zero Runtime Overhead**: All processing occurs at build time
+- **Federation Compatible**: Maintains consistency across federated applications
 
-### Identified Limitations
+### Critical Issue
 
-1. **Re-Export Chain Detection**: Static analysis can miss transitive dependencies in complex re-export relationships (e.g., Redux `isPlainObject` case)
-2. **Dynamic Export Handling**: Runtime-conditional exports and environment-based feature flags challenge static analysis
-3. **Cross-Federation Coordination**: Timing and module resolution order can cause optimization conflicts despite OR-merge logic
-4. **Error Recovery**: SWC macro failures may fall back to unoptimized chunks without clear diagnostics
+The system currently only tracks exports from explicitly shared modules. This limitation can cause runtime failures when shared modules internally depend on non-shared modules, as demonstrated by the redux/isPlainObject case.
 
-### System Impact
+### Next Steps
 
-Real-world optimization results demonstrate significant effectiveness:
+1. **Immediate**: Document the limitation and provide configuration guidance
+2. **Short-term**: Implement transitive dependency tracking
+3. **Long-term**: Develop automated dependency analysis and promotion
 
-- **Bundle Size Reduction**: 51.3% total reduction across federated applications (31.81 MB → 15.49 MB)
-- **Export Pruning**: 69.4% unused module removal rate (4947 of 7125 modules pruned)
-- **Library-Specific Optimization**: Up to 95.8% size reduction for icon libraries, 78.4% for utility libraries
-- **Federation Compatibility**: Maintains shared module consistency across apps through OR-merge logic
-
-### Technology Innovation
-
-The annotation-based tree-shaking approach (`@common:if` conditionals) provides a novel solution to runtime optimization challenges, enabling:
-
-- **Conditional Compilation**: JavaScript-level feature flags without runtime evaluation
-- **Safe Degradation**: Graceful fallbacks when optimization constraints aren't met
-- **Tool Integration**: Seamless integration with existing webpack/rspack build pipelines
-
-This analysis documents the current design, validated behaviors, and known limitations. The Redux `isPlainObject` case shows that pruning referenced functions can occur and lead to runtime errors; proposals above target safer handling and validation of re-export chains across shared modules. The Redux `isPlainObject` case study illustrates both the system's capabilities and its current limitations, providing a roadmap for continued development.
+This proposal balances optimization benefits with Module Federation's flexibility requirements while acknowledging current limitations that need to be addressed.
