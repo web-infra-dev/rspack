@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+	experiments, 
 	type MultiRspackOptions,
 	type RspackOptions,
-	util,
-	experiments
+	util
 } from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
@@ -26,8 +26,15 @@ const registerLoader = (configPath: string) => {
 	if (!isTsFile(configPath)) {
 		throw new Error(`config file "${configPath}" is not supported.`);
 	}
+	// this is a hack to workaround the issue that require.extensions is compiled to void(0) by rslib
+	// do not change it to require.extensions
+	function unsafeGetRequireExtension() {
+		// @ts-ignore
+		return require["extension" + "s"];
+	}
 
-	const nodeRequireExtensions: NodeJS.RequireExtensions = require.extensions;
+	const nodeRequireExtensions: NodeJS.RequireExtensions =
+		unsafeGetRequireExtension();
 
 	if (!nodeRequireExtensions[ext]) {
 		nodeRequireExtensions[ext] = function (
