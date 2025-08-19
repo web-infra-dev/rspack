@@ -24,6 +24,7 @@ on:
           - latest
           - beta
           - alpha
+          - rc
       test:
         type: boolean
         description: "Run tests before release"
