@@ -19,6 +19,9 @@ Rspack 的测试用例包括如下：
   1. `NAPI_RS_FORCE_WASI=1`： 强制使用 Rspack Wasm 而不是原生绑定
   2. `WASM=1`：启用 Wasm 专用的测试配置
   3. `NODE_NO_WARNINGS=1`： 关闭 Node.js 的 Wasm 警告。
+  ```bash
+  NAPI_RS_FORCE_WASI=1 WASM=1 NODE_NO_WARNINGS=1 pnpm run test:unit
+  ```
 
 ## 目录规范
 

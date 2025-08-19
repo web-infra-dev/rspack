@@ -19,6 +19,9 @@ You can run these test cases in the following ways:
   1. `NAPI_RS_FORCE_WASI=1`: Forces the use of Rspack Wasm instead of native binding
   2. `WASM=1`: Enables Wasm-specific test configurations
   3. `NODE_NO_WARNINGS=1`: Disables Node.js Wasm warnings.
+  ```bash
+  NAPI_RS_FORCE_WASI=1 WASM=1 NODE_NO_WARNINGS=1 pnpm run test:unit
+  ```
 
 ## Directory structure
 
