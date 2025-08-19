@@ -1,11 +1,14 @@
 use rspack_core::{ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals, SpanExt};
 use rspack_util::itoa;
-use swc_core::{common::Spanned, ecma::ast::CallExpr};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{CallExpr, VarDeclarator},
+};
 
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::CommonJsRequireContextDependency,
-  visitors::{JavascriptParser, Statement, TagInfoData, expr_name},
+  visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
 const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
@@ -97,8 +100,8 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   fn pre_declarator(
     &self,
     parser: &mut JavascriptParser,
-    decl: &swc_core::ecma::ast::VarDeclarator,
-    _statement: &swc_core::ecma::ast::VarDecl,
+    decl: &VarDeclarator,
+    _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 

@@ -50,6 +50,12 @@ const common = {
 						generator: {
 							localIdentName: "[uniqueName]-[id]-[contenthash]"
 						}
+					},
+					{
+						resourceQuery: /\?folder-local$/,
+						generator: {
+							localIdentName: "[folder]-[local]"
+						}
 					}
 				]
 			}

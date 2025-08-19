@@ -13,10 +13,7 @@ import fs from "graceful-fs";
 
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
-import {
-	createConsoleLogger,
-	type LoggerConsole
-} from "../logging/createConsoleLogger";
+import { createConsoleLogger } from "../logging/createConsoleLogger";
 import NativeWatchFileSystem from "../NativeWatchFileSystem";
 import type { InputFileSystem } from "../util/fs";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
@@ -40,11 +37,11 @@ export default class NodeEnvironmentPlugin {
 			debug: infrastructureLogging.debug || false,
 			console:
 				infrastructureLogging.console ||
-				(nodeConsole({
+				nodeConsole({
 					colors: infrastructureLogging.colors,
 					appendOnly: infrastructureLogging.appendOnly,
 					stream: infrastructureLogging.stream!
-				}) as LoggerConsole)
+				})
 		});
 
 		const inputFileSystem: InputFileSystem = new CachedInputFileSystem(
@@ -56,7 +53,7 @@ export default class NodeEnvironmentPlugin {
 		compiler.intermediateFileSystem = null;
 
 		if (compiler.options.experiments.nativeWatcher) {
-			compiler.watchFileSystem = new NativeWatchFileSystem();
+			compiler.watchFileSystem = new NativeWatchFileSystem(inputFileSystem);
 		} else {
 			compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
 		}

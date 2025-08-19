@@ -1,5 +1,5 @@
 const path = require("path");
-const { readFileSync, writeFileSync } = require("fs");
+const { readFileSync, writeFileSync, renameSync } = require("fs");
 const { values, positionals } = require("util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
@@ -71,7 +71,7 @@ async function build() {
 			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
 		) {
 			features.push("sftrace-setup");
-			envs.RUSTFLAGS = "-Zinstrument-xray=always";
+			envs.RUSTFLAGS = "-Zinstrument-xray=always -Csymbol-mangling-version=v0";
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
@@ -127,6 +127,11 @@ async function build() {
 						.replaceAll(/export\s+declare\s+class\s+NormalModule\s*\{([\s\S]*?)\}\s*(?=\n\s*(?:export|declare|class|$))/g, "")
 				);
 
+				// For browser wasm, we rename the artifacts to distinguish them from node wasm
+				if (process.env.BROWSER) {
+					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
+					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
+				}
 			}
 			resolve(code);
 		});

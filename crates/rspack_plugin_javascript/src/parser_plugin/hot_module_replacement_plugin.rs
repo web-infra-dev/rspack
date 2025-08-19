@@ -135,11 +135,11 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if ident == expr_name::MODULE_HOT {
+    if for_name == expr_name::MODULE_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::MODULE_HOT.to_string(),
         expr_name::MODULE.to_string(),
@@ -202,11 +202,11 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if ident == expr_name::IMPORT_META_WEBPACK_HOT {
+    if for_name == expr_name::IMPORT_META_WEBPACK_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_WEBPACK_HOT.to_string(),
         expr_name::IMPORT_META.to_string(),

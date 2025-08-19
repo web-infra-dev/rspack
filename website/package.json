@@ -29,11 +29,11 @@
   },
   "devDependencies": {
     "@rsbuild/plugin-sass": "^1.3.3",
-    "@rspress/core": "2.0.0-beta.22",
-    "@rspress/plugin-algolia": "2.0.0-beta.22",
-    "@rspress/plugin-llms": "2.0.0-beta.22",
-    "@rspress/plugin-rss": "2.0.0-beta.22",
-    "@shikijs/transformers": "^3.8.1",
+    "@rspress/core": "2.0.0-beta.25",
+    "@rspress/plugin-algolia": "2.0.0-beta.25",
+    "@rspress/plugin-llms": "2.0.0-beta.25",
+    "@rspress/plugin-rss": "2.0.0-beta.25",
+    "@shikijs/transformers": "^3.9.2",
     "@types/node": "^20.19.9",
     "@types/react": "^19.1.8",
     "@types/semver": "^7.7.0",
@@ -41,9 +41,9 @@
     "heading-case": "^0.1.6",
     "prettier": "3.6.2",
     "rsbuild-plugin-google-analytics": "1.0.3",
-    "rsbuild-plugin-open-graph": "1.0.2",
+    "rsbuild-plugin-open-graph": "1.1.0",
     "rspress-plugin-font-open-sans": "1.0.0",
-    "rspress-plugin-sitemap": "^1.2.0",
-    "typescript": "^5.8.3"
+    "@rspress/plugin-sitemap": "2.0.0-beta.25",
+    "typescript": "^5.9.2"
   }
 }

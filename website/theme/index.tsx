@@ -1,9 +1,17 @@
 import { NoSSR, useLang, usePageData } from '@rspress/core/runtime';
-import { Layout as BaseLayout } from '@rspress/core/theme';
+import {
+  Layout as BaseLayout,
+  getCustomMDXComponent as basicGetCustomMDXComponent,
+} from '@rspress/core/theme';
 import {
   Search as PluginAlgoliaSearch,
   ZH_LOCALES,
 } from '@rspress/plugin-algolia/runtime';
+import {
+  LlmsContainer,
+  LlmsCopyButton,
+  LlmsViewOptions,
+} from '@rspress/plugin-llms/runtime';
 import { Announcement } from '@rstack-dev/doc-ui/announcement';
 import { ConfigProvider } from '@rstack-dev/doc-ui/antd';
 import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
@@ -73,6 +81,26 @@ const Search = () => {
   );
 };
 
-export { Layout, HomeLayout, Search };
+function getCustomMDXComponent() {
+  const { h1: H1, ...components } = basicGetCustomMDXComponent();
+
+  const MyH1 = ({ ...props }) => {
+    return (
+      <>
+        <H1 {...props} />
+        <LlmsContainer>
+          <LlmsCopyButton />
+          <LlmsViewOptions />
+        </LlmsContainer>
+      </>
+    );
+  };
+  return {
+    ...components,
+    h1: MyH1,
+  };
+}
+
+export { Layout, HomeLayout, Search, getCustomMDXComponent };
 
 export * from '@rspress/core/theme';

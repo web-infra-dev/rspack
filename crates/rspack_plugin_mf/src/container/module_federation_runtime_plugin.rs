@@ -3,11 +3,9 @@
 //! Main orchestration plugin for Module Federation runtime functionality.
 //! Coordinates federation plugins, manages runtime dependencies, and adds the base FederationRuntimeModule.
 
-use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, BoxDependency, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilerFinishMake, CompilerOptions, EntryOptions,
-  Plugin, PluginContext, RuntimeGlobals,
+  BoxDependency, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilerFinishMake, EntryOptions, Plugin, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -76,30 +74,22 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ModuleFederationRuntimePlugin {
   fn name(&self) -> &'static str {
     "rspack.container.ModuleFederationRuntimePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
 
-    ctx
-      .context
-      .compiler_hooks
-      .finish_make
-      .tap(finish_make::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     // Apply supporting plugins
-    EmbedFederationRuntimePlugin::default()
-      .apply(PluginContext::with_context(ctx.context), options)?;
-    HoistContainerReferencesPlugin::default()
-      .apply(PluginContext::with_context(ctx.context), options)?;
+    EmbedFederationRuntimePlugin::default().apply(ctx)?;
+    HoistContainerReferencesPlugin::default().apply(ctx)?;
     ShareUsagePlugin::new(ShareUsagePluginOptions::default())
       .apply(PluginContext::with_context(ctx.context), options)?;
 

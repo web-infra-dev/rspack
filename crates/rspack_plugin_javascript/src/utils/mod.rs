@@ -3,7 +3,7 @@ pub mod mangle_exports;
 pub mod object_properties;
 
 use rspack_core::{ErrorSpan, ModuleType};
-use rspack_error::{DiagnosticKind, TraceableError};
+use rspack_error::TraceableError;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
 
@@ -50,10 +50,8 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   fm: &SourceFile,
   module_type: &ModuleType,
 ) -> TraceableError {
-  let (file_type, diagnostic_kind) = match module_type {
-    ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => {
-      ("JavaScript", DiagnosticKind::JavaScript)
-    }
+  let file_type = match module_type {
+    ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => "JavaScript",
     _ => unreachable!("Only JavaScript module type is supported"),
   };
   let span: ErrorSpan = span.into();
@@ -64,5 +62,4 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     format!("{file_type} parse error"),
     message,
   )
-  .with_kind(diagnostic_kind)
 }

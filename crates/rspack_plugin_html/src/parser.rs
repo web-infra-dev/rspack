@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{Compilation, ErrorSpan};
 use rspack_error::{
-  DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  ToStringResultToRspackResultExt,
+  IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, ToStringResultToRspackResultExt,
 };
 use swc_core::common::{FileName, FilePathMapping, GLOBALS, SourceFile, SourceMap, sync::Lrc};
 use swc_html::{
@@ -86,8 +85,7 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
     span.end as usize,
     "HTML parse error".to_string(),
     message.to_string(),
-  )
-  .with_kind(DiagnosticKind::Html);
+  );
   //Use this `Error` conversion could avoid eagerly clone source file.
   traceable_error.into()
 }

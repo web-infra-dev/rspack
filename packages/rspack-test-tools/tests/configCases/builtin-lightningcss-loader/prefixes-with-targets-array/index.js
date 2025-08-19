@@ -12,7 +12,7 @@ it("should transform CSS and add prefixes correctly", () => {
 	expect(css.includes('-webkit-user-select: none;')).toBeTruthy();
 	expect(css.includes('-ms-user-select: none;')).toBeTruthy();
 	expect(css.includes('user-select: none;')).toBeTruthy();
-	expect(css.includes('background: -webkit-linear-gradient(#fff, #000);')).toBeTruthy();
+	expect(css.includes('background: -webkit-linear-gradient(top, #fff, #000);')).toBeTruthy();
 	expect(css.includes('background: linear-gradient(#fff, #000);')).toBeTruthy();
 	expect(css.includes('-webkit-transition: all .5s;')).toBeTruthy();
 	expect(css.includes('transition: all .5s;')).toBeTruthy();

@@ -1,8 +1,8 @@
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
-  ApplyContext, BeforeResolveResult, CompilerOptions, ContextModuleFactoryBeforeResolve,
-  ModuleFactoryCreateData, NormalModuleFactoryBeforeResolve, Plugin, PluginContext,
+  BeforeResolveResult, ContextModuleFactoryBeforeResolve, ModuleFactoryCreateData,
+  NormalModuleFactoryBeforeResolve, Plugin,
 };
 use rspack_error::{Result, miette::Context};
 use rspack_hook::{plugin, plugin_hook};
@@ -88,15 +88,13 @@ impl Plugin for IgnorePlugin {
     "IgnorePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .before_resolve
       .tap(nmf_before_resolve::new(self));
 
     ctx
-      .context
       .context_module_factory_hooks
       .before_resolve
       .tap(cmf_before_resolve::new(self));

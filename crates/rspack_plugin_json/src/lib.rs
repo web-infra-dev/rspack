@@ -12,16 +12,16 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfoGetter,
-  GenerateContext, Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator,
-  Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec,
-  SourceType, UsageState, UsedNameItem,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoGetter, GenerateContext,
+  Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, Plugin,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{
-  DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError, miette::diagnostic,
+  DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
+  miette::diagnostic,
 };
 use rspack_util::itoa;
 
@@ -101,7 +101,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               "JSON parse error".to_string(),
               format!("Unexpected character {ch}"),
             )
-            .with_kind(DiagnosticKind::Json)
             .boxed()
           }
           ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
@@ -116,7 +115,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               "JSON parse error".to_string(),
               format!("{e}"),
             )
-            .with_kind(DiagnosticKind::Json)
             .boxed()
           }
         }
@@ -246,12 +244,8 @@ impl Plugin for JsonPlugin {
     "json"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
-    ctx.context.register_parser_and_generator_builder(
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
       Box::new(|p, g| {
         let p = p

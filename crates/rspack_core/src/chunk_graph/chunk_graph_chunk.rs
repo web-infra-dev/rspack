@@ -353,6 +353,39 @@ impl ChunkGraph {
     }
   }
 
+  pub fn disconnect_chunks_and_modules(
+    &mut self,
+    chunks: &[ChunkUkey],
+    modules: &[ModuleIdentifier],
+  ) {
+    for chunk in chunks.iter() {
+      let cgc = self.expect_chunk_graph_chunk_mut(*chunk);
+      for module in modules.iter() {
+        cgc.modules.remove(module);
+        if let Some(source_types_by_module) = &mut cgc.source_types_by_module {
+          source_types_by_module.remove(module);
+        }
+      }
+    }
+    for module in modules.iter() {
+      let cgm = self.expect_chunk_graph_module_mut(*module);
+      for chunk in chunks.iter() {
+        cgm.chunks.remove(chunk);
+      }
+    }
+  }
+
+  pub fn connect_chunk_and_modules(&mut self, chunk: ChunkUkey, modules: &[ModuleIdentifier]) {
+    for module in modules.iter() {
+      let cgm = self.expect_chunk_graph_module_mut(*module);
+      cgm.chunks.insert(chunk);
+    }
+    let cgc = self.expect_chunk_graph_chunk_mut(chunk);
+    for module in modules.iter() {
+      cgc.modules.insert(*module);
+    }
+  }
+
   pub fn get_chunk_modules<'module>(
     &self,
     chunk: &ChunkUkey,

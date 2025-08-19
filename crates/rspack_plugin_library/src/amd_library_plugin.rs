@@ -1,10 +1,9 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, Filename, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
-  RuntimeGlobals, SourceType,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
+  CompilerCompilation, ExternalModule, Filename, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  LibraryType, PathData, Plugin, RuntimeGlobals, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error_bail};
@@ -213,14 +212,9 @@ impl Plugin for AmdLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));

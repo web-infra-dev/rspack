@@ -47,7 +47,7 @@ use crate::{
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
   RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
@@ -148,8 +148,6 @@ impl Default for CompilationId {
   }
 }
 
-type ValueCacheVersions = HashMap<String, String>;
-
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
 /// Use macro to prevent cargo shear from failing and reporting errors
@@ -225,6 +223,7 @@ pub struct Compilation {
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
+  assets_related_in: HashMap<String, HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
@@ -260,7 +259,7 @@ pub struct Compilation {
   pub chunk_render_artifact: ChunkRenderArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
-  // artiface for caching module static info
+  // artifact for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
 
   // artifact for chunk render cache
@@ -364,6 +363,7 @@ impl Compilation {
       entrypoints: Default::default(),
       async_entrypoints: Default::default(),
       assets: Default::default(),
+      assets_related_in: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging: Default::default(),
@@ -725,6 +725,26 @@ impl Compilation {
     Ok(())
   }
 
+  fn set_asset_info(
+    &mut self,
+    name: &str,
+    new_info: Option<&AssetInfo>,
+    old_info: Option<&AssetInfo>,
+  ) {
+    if let Some(old_info) = old_info
+      && let Some(source_map) = &old_info.related.source_map
+      && let Some(entry) = self.assets_related_in.get_mut(source_map)
+    {
+      entry.remove(name);
+    }
+    if let Some(new_info) = new_info
+      && let Some(source_map) = new_info.related.source_map.clone()
+    {
+      let entry = self.assets_related_in.entry(source_map).or_default();
+      entry.insert(name.to_string());
+    }
+  }
+
   pub fn update_asset(
     &mut self,
     filename: &str,
@@ -735,18 +755,22 @@ impl Compilation {
   ) -> Result<()> {
     let assets = &mut self.assets;
 
-    let (new_source, new_info) = match assets.remove(filename) {
+    let (old_info, new_source, new_info) = match assets.remove(filename) {
       Some(CompilationAsset {
         source: Some(source),
-        info,
-      }) => updater(source, info)?,
+        info: old_info,
+      }) => {
+        let (new_source, new_info) = updater(source, old_info.clone())?;
+        (old_info, new_source, new_info)
+      }
       _ => {
         return Err(error!(
           "Called Compilation.updateAsset for not existing filename {filename}"
         ));
       }
     };
-    self.emit_asset(
+    self.set_asset_info(filename, Some(&new_info), Some(&old_info));
+    self.assets.insert(
       filename.to_owned(),
       CompilationAsset {
         source: Some(new_source),
@@ -777,18 +801,23 @@ impl Compilation {
           )
           .into(),
         );
+        self.set_asset_info(&filename, Some(asset.get_info()), None);
         self.assets.insert(filename, asset);
         return;
       }
+      self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
       original.info = asset.info;
       self.assets.insert(filename, original);
     } else {
+      self.set_asset_info(&filename, Some(asset.get_info()), None);
       self.assets.insert(filename, asset);
     }
   }
 
   pub fn delete_asset(&mut self, filename: &str) {
     if let Some(asset) = self.assets.remove(filename) {
+      self.set_asset_info(filename, None, Some(asset.get_info()));
+
       if let Some(source_map) = &asset.info.related.source_map {
         self.delete_asset(source_map);
       }
@@ -801,7 +830,19 @@ impl Compilation {
 
   pub fn rename_asset(&mut self, filename: &str, new_name: String) {
     if let Some(asset) = self.assets.remove(filename) {
+      // Update related in all other assets
+      if let Some(related_in_info) = self.assets_related_in.get(filename) {
+        for name in related_in_info {
+          if let Some(asset) = self.assets.get_mut(name) {
+            asset.get_info_mut().related.source_map = Some(new_name.to_string());
+          }
+        }
+      }
+      self.set_asset_info(filename, None, Some(asset.get_info()));
+      self.set_asset_info(&new_name, Some(asset.get_info()), None);
+
       self.assets.insert(new_name.clone(), asset);
+
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         if chunk.remove_file(filename) {
           chunk.add_file(new_name.clone());
@@ -811,6 +852,45 @@ impl Compilation {
           chunk.add_auxiliary_file(new_name.clone());
         }
       });
+    }
+  }
+
+  // Batch version of rename_asset with parallel optimization.
+  // Multiple calls to rename_asset would cause performance degradation due to
+  // repeated full traversals of chunk_by_ukey. This method uses parallel iteration
+  // over chunk_by_ukey to reduce traversal frequency and improve performance.
+  pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
+    self
+      .chunk_by_ukey
+      .values_mut()
+      .par_bridge()
+      .for_each(|chunk| {
+        for (old_name, new_name) in renames.iter() {
+          if chunk.remove_file(old_name) {
+            chunk.add_file(new_name.clone());
+          }
+
+          if chunk.remove_auxiliary_file(old_name) {
+            chunk.add_auxiliary_file(new_name.clone());
+          }
+        }
+      });
+
+    for (old_name, new_name) in renames {
+      if let Some(asset) = self.assets.remove(&old_name) {
+        // Update related in all other assets
+        if let Some(related_in_info) = self.assets_related_in.get(&old_name) {
+          for related_in_name in related_in_info {
+            if let Some(asset) = self.assets.get_mut(related_in_name) {
+              asset.get_info_mut().related.source_map = Some(new_name.clone());
+            }
+          }
+        }
+        self.set_asset_info(&old_name, None, Some(asset.get_info()));
+        self.set_asset_info(&new_name, Some(asset.get_info()), None);
+
+        self.assets.insert(new_name, asset);
+      }
     }
   }
 
@@ -2035,23 +2115,29 @@ impl Compilation {
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.chunks");
-    let mut chunk_requirements = HashMap::default();
-    for chunk_ukey in chunks.iter().chain(entries.iter()) {
-      let mut set = RuntimeGlobals::default();
-      for module in self
-        .chunk_graph
-        .get_chunk_modules(chunk_ukey, &self.get_module_graph())
-      {
-        let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
-        if let Some(runtime_requirements) =
-          ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
+    let chunk_requirements = chunks
+      .iter()
+      .chain(entries.iter())
+      .par_bridge()
+      .map(|chunk_ukey| {
+        let mut set = RuntimeGlobals::default();
+        for module in self
+          .chunk_graph
+          .get_chunk_modules(chunk_ukey, &self.get_module_graph())
         {
-          set.insert(*runtime_requirements);
+          let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
+          if let Some(runtime_requirements) =
+            ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
+          {
+            set.insert(*runtime_requirements);
+          }
         }
-      }
-      chunk_requirements.insert(chunk_ukey, set);
-    }
-    for (&chunk_ukey, mut set) in chunk_requirements {
+
+        (*chunk_ukey, set)
+      })
+      .collect::<UkeyMap<_, _>>();
+
+    for (chunk_ukey, mut set) in chunk_requirements {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
@@ -2609,33 +2695,26 @@ impl Compilation {
   #[instrument("Compilation:create_module_hashes", skip_all)]
   pub async fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
     let mg = self.get_module_graph();
+    let chunk_graph = &self.chunk_graph;
+    let chunk_by_ukey = &self.chunk_by_ukey;
+
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
-      modules
-        .into_iter()
-        .map(|module| {
-          (
-            module,
-            self
-              .chunk_graph
-              .get_module_runtimes_iter(module, &self.chunk_by_ukey)
-              .cloned()
-              .collect::<Vec<_>>(),
-          )
-        })
-        .for_each(|(module_identifier, runtimes)| {
-          let s = unsafe { token.used((&*self, &mg)) };
-          s.spawn(move |(compilation, mg)| async move {
+      for module_identifier in modules {
+        let s = unsafe { token.used((&*self, &mg, chunk_graph, chunk_by_ukey)) };
+        s.spawn(
+          move |(compilation, mg, chunk_graph, chunk_by_ukey)| async move {
             let mut hashes = RuntimeSpecMap::new();
-            for runtime in runtimes {
-              let module = mg
-                .module_by_identifier(&module_identifier)
-                .expect("should have module");
-              let hash = module.get_runtime_hash(compilation, Some(&runtime)).await?;
-              hashes.set(runtime, hash);
+            let module = mg
+              .module_by_identifier(&module_identifier)
+              .expect("should have module");
+            for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
+              let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
+              hashes.set(runtime.clone(), hash);
             }
             Ok((module_identifier, hashes))
-          });
-        });
+          },
+        );
+      }
     })
     .await
     .into_iter()

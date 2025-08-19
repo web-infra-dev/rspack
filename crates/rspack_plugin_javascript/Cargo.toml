@@ -35,13 +35,14 @@ rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
-serde_json = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",
   "__utils",
   "common_sourcemap",
+  "ecma_parser_unstable",
   "ecma_preset_env",
   "ecma_transforms_optimization",
   "ecma_transforms_module",
@@ -50,12 +51,11 @@ swc_core = { workspace = true, features = [
   "base",
   "ecma_quote",
 ] }
-swc_ecma_lexer = { workspace = true }
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 url = { workspace = true }
-
+winnow = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

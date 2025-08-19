@@ -80,6 +80,17 @@ impl SwcLoader {
           "`env` and `jsc.target` cannot be used together".to_string(),
         ));
       }
+
+      #[cfg(feature = "plugin")]
+      {
+        swc_options.runtime_options =
+          swc_options
+            .runtime_options
+            .plugin_runtime(std::sync::Arc::new(
+              rspack_util::swc::runtime::WasmtimeRuntime,
+            ));
+      }
+
       swc_options
     };
 

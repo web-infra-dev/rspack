@@ -5,7 +5,7 @@ use rspack_core::DependenciesBlock as _;
 use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::DependencyWrapper;
+use crate::dependency::DependencyWrapper;
 
 #[napi]
 pub struct AsyncDependenciesBlock {

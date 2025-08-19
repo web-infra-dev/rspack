@@ -2,16 +2,15 @@ mod hot_module_replacement;
 
 use std::collections::hash_map;
 
-use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
-  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
-  RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
+  CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
+  ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
+  RuntimeModuleExt, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -385,18 +384,23 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       m.extend(content.removed_modules);
       m.into_iter().collect()
     };
+
+    let manifest_content = serde_json::json!({
+      "c": c,
+      "r": r,
+      "m": m,
+    })
+    .to_string();
+
     compilation.emit_asset(
       filename,
       CompilationAsset::new(
         Some(
-          RawStringSource::from(
-            serde_json::json!({
-              "c": c,
-              "r": r,
-              "m": m,
-            })
-            .to_string(),
-          )
+          RawStringSource::from(if compilation.options.output.module {
+            format!("export default {manifest_content};")
+          } else {
+            manifest_content
+          })
           .boxed(),
         ),
         AssetInfo::default().with_hot_module_replacement(Some(true)),
@@ -461,35 +465,26 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
     ctx
-      .context
       .normal_module_hooks
       .loader
       .tap(normal_module_loader::new(self));
     ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(normal_module_factory_parser::new(self));
     ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));

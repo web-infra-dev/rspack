@@ -50,20 +50,16 @@ describe("with lazy compilation", function () {
 			},
 			{
 				entry: "./esm/b.js",
-				experiments: {
-					lazyCompilation: {
-						entries: true
-					}
+				lazyCompilation: {
+					entries: true
 				},
 				context
 			},
 			{
 				entry: "./esm/d.js",
-				experiments: {
-					lazyCompilation: {
-						entries: false,
-						imports: true
-					}
+				lazyCompilation: {
+					entries: false,
+					imports: true
 				},
 				context
 			}

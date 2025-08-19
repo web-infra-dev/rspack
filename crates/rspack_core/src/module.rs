@@ -35,6 +35,7 @@ use crate::{
   PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
+  value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -59,6 +60,7 @@ pub struct BuildInfo {
   pub context_dependencies: HashSet<ArcPath>,
   pub missing_dependencies: HashSet<ArcPath>,
   pub build_dependencies: HashSet<ArcPath>,
+  pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
@@ -89,6 +91,7 @@ impl Default for BuildInfo {
       context_dependencies: HashSet::default(),
       missing_dependencies: HashSet::default(),
       build_dependencies: HashSet::default(),
+      value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
       need_create_require: false,
@@ -399,8 +402,10 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  fn need_build(&self) -> bool {
-    !self.build_info().cacheable
+  fn need_build(&self, value_cache_version: &ValueCacheVersions) -> bool {
+    let build_info = self.build_info();
+    !build_info.cacheable
+      || value_cache_version.has_diff(&build_info.value_dependencies)
       || self
         .diagnostics()
         .iter()

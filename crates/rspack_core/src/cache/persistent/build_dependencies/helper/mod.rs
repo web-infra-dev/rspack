@@ -6,6 +6,7 @@ use indoc::formatdoc;
 use rspack_fs::ReadableFileSystem;
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_resolver::ResolveError;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   base::config::IsModule,
@@ -14,7 +15,7 @@ use swc_core::{
 };
 
 use self::visitor::DependencyVisitor;
-use crate::{Resolve as ResolveOption, ResolveResult, Resolver};
+use crate::{Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver};
 
 /// A toolkit to recursively calculate files used by build dependencies.
 ///
@@ -33,6 +34,7 @@ impl Helper {
         ResolveOption {
           condition_names: Some(vec!["import".into(), "require".into(), "node".into()]),
           exports_fields: Some(vec![vec!["export".into()]]),
+          builtin_modules: true,
           ..Default::default()
         },
         fs,
@@ -120,6 +122,9 @@ impl Helper {
       match self.resolver.resolve(dirname.as_std_path(), &req).await {
         Ok(ResolveResult::Resource(resource)) => {
           result.insert(resource.path);
+        }
+        Err(ResolveInnerError::RspackResolver(ResolveError::Builtin(_))) => {
+          // builtin module ignore
         }
         Err(err) => {
           self.warnings.push(formatdoc!(

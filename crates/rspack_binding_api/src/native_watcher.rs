@@ -1,8 +1,12 @@
-use std::boxed::Box;
+use std::{
+  boxed::Box,
+  path::{Path, PathBuf},
+};
 
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_fs::{FsWatcher, FsWatcherIgnored, FsWatcherOptions, PathUpdater};
+use rspack_fs::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
@@ -86,29 +90,14 @@ impl NativeWatcher {
     let js_event_handler = JsEventHandler::new(callback)?;
     let js_event_handler_undelayed = JsEventHandlerUndelayed::new(callback_undelayed)?;
 
-    let file_updater = PathUpdater {
-      added: files.0,
-      removed: files.1,
-    };
-
-    let directories_updater = PathUpdater {
-      added: directories.0,
-      removed: directories.1,
-    };
-
-    let missing_updater = PathUpdater {
-      added: missing.0,
-      removed: missing.1,
-    };
-
     reference.share_with(env, |native_watcher| {
       napi::bindgen_prelude::spawn(async move {
         native_watcher
           .watcher
           .watch(
-            file_updater,
-            directories_updater,
-            missing_updater,
+            to_tuple_path_iterator(files),
+            to_tuple_path_iterator(directories),
+            to_tuple_path_iterator(missing),
             Box::new(js_event_handler),
             Box::new(js_event_handler_undelayed),
           )
@@ -118,6 +107,20 @@ impl NativeWatcher {
     })?;
 
     Ok(())
+  }
+
+  #[napi(ts_type = "(kind: 'change' | 'remove' | 'create', path: string): void")]
+  pub fn trigger_event(&self, kind: String, path: String) {
+    if let Some(kind) = match kind.as_str() {
+      "change" => Some(FsEventKind::Change),
+      "remove" => Some(FsEventKind::Remove),
+      "create" => Some(FsEventKind::Create),
+      _ => None,
+    } {
+      self
+        .watcher
+        .trigger_event(&ArcPath::from(AsRef::<Path>::as_ref(&path)), kind);
+    }
   }
 
   #[napi]
@@ -145,6 +148,15 @@ impl NativeWatcher {
 
     Ok(())
   }
+}
+
+fn to_tuple_path_iterator(
+  tuple: (Vec<String>, Vec<String>),
+) -> (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>) {
+  (
+    tuple.0.into_iter().map(|s| ArcPath::from(PathBuf::from(s))),
+    tuple.1.into_iter().map(|s| ArcPath::from(PathBuf::from(s))),
+  )
 }
 
 struct JsEventHandler {
@@ -177,8 +189,8 @@ impl JsEventHandler {
 impl rspack_fs::EventAggregateHandler for JsEventHandler {
   fn on_event_handle(
     &self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: rspack_util::fx_hash::FxHashSet<String>,
+    deleted_files: rspack_util::fx_hash::FxHashSet<String>,
   ) {
     let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
     let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();

@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
 
-use crate::{ChunkWrapper, ModuleObject};
+use crate::{chunk::ChunkWrapper, module::ModuleObject};
 
 pub(super) type RawChunkOptionName =
   Either3<String, bool, ThreadsafeFunction<JsChunkOptionNameCtx, Option<String>>>;

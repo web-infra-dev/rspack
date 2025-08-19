@@ -19,8 +19,8 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationOptimizeChunks, CompilerCompilation, CompilerOptions,
-  Dependency, DependencyId, Module, ModuleIdentifier, Plugin, PluginContext,
+  Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId, Module,
+  ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -303,14 +303,9 @@ impl Plugin for HoistContainerReferencesPlugin {
     "HoistContainerReferencesPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

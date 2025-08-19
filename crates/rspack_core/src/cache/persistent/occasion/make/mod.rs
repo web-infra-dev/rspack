@@ -29,7 +29,7 @@ impl MakeOccasion {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph_partial,
-      module_to_lazy_make: _, // TODO
+      module_to_lazy_make,
       revoked_modules,
       built_modules,
       // skip
@@ -45,6 +45,7 @@ impl MakeOccasion {
 
     module_graph::save_module_graph(
       module_graph_partial,
+      module_to_lazy_make,
       revoked_modules,
       built_modules,
       &self.storage,
@@ -56,9 +57,10 @@ impl MakeOccasion {
   pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 
-    let (partial, force_build_dependencies, isolated_modules) =
+    let (partial, module_to_lazy_make, force_build_dependencies, isolated_modules) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
     artifact.module_graph_partial = partial;
+    artifact.module_to_lazy_make = module_to_lazy_make;
     artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies, isolated_modules);
 
     // regenerate statistical data

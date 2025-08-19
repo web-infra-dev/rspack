@@ -12,7 +12,7 @@ class MyJsMinimizerPlugin {
     compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, compilation => {
       // Access the chunkHash hooks of JavascriptModulesPlugin
       const hooks =
-        compiler.webpack.javascript.JavascriptModulesPlugin.getCompilationHooks(
+        compiler.rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
           compilation,
         );
       // Since the JS chunk has been optimized and its content has changed, the chunk hash for the JS chunk needs to be updated

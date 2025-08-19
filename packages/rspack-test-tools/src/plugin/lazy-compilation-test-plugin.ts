@@ -22,12 +22,12 @@ export class LazyCompilationTestPlugin {
 							: `${protocol}://${addr.address}:${addr.port}`;
 				if (compiler instanceof MultiCompiler) {
 					for (const c of compiler.compilers) {
-						if (c.options.experiments.lazyCompilation) {
-							c.options.experiments.lazyCompilation.serverUrl = urlBase;
+						if (c.options.lazyCompilation) {
+							c.options.lazyCompilation.serverUrl = urlBase;
 						}
 					}
-				} else if (compiler.options.experiments.lazyCompilation) {
-					compiler.options.experiments.lazyCompilation.serverUrl = urlBase;
+				} else if (compiler.options.lazyCompilation) {
+					compiler.options.lazyCompilation.serverUrl = urlBase;
 				}
 				middleware = experiments.lazyCompilationMiddleware(compiler);
 

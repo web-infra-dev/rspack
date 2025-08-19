@@ -54,9 +54,10 @@ impl SplitChunksPlugin {
       .collect::<Vec<_>>();
 
     let module_sizes = Self::get_module_sizes(&all_modules, compilation);
+    let module_chunks = Self::get_module_chunks(&all_modules, compilation);
 
     let mut module_group_map = self
-      .prepare_module_group_map(&all_modules, compilation, &module_sizes)
+      .prepare_module_group_map(&all_modules, compilation, &module_sizes, &module_chunks)
       .await?;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);
@@ -200,13 +201,8 @@ impl Plugin for SplitChunksPlugin {
     "rspack.SplitChunksPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

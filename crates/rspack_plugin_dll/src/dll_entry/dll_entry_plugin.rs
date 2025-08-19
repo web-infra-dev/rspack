@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerMake, CompilerOptions,
-  Context, DependencyType, EntryOptions, Plugin, PluginContext,
+  Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context, DependencyType,
+  EntryOptions, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -30,20 +30,15 @@ impl DllEntryPlugin {
   }
 }
 
-#[async_trait::async_trait]
 impl Plugin for DllEntryPlugin {
   fn name(&self) -> &'static str {
     "rspack.DllEntryPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
-    ctx.context.compiler_hooks.make.tap(make::new(self));
+    ctx.compiler_hooks.make.tap(make::new(self));
 
     Ok(())
   }

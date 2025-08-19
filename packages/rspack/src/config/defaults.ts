@@ -81,6 +81,8 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => (development ? "eval" : false));
 	D(options, "watch", false);
 	D(options, "profile", false);
+	// IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
+	D(options, "lazyCompilation", false);
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
@@ -104,7 +106,8 @@ export const applyRspackOptionsDefaults = (
 		css: options.experiments.css,
 		targetProperties,
 		mode: options.mode,
-		uniqueName: options.output.uniqueName
+		uniqueName: options.output.uniqueName,
+		inlineConst: options.experiments.inlineConst
 	});
 
 	applyOutputDefaults(options.output, {
@@ -210,11 +213,18 @@ const applyExperimentsDefaults = (
 	F(experiments, "cache", () => development);
 
 	D(experiments, "futureDefaults", false);
+	// TODO: lazyCompilation is moving to Configuration top level, we can remove this in future.
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "layers", false);
+
+	if (experiments.topLevelAwait === false) {
+		console.warn(
+			"`experiments.topLevelAwait` config has been deprecated and will be removed in Rspack v2.0. Top-level await will be always enabled. Please remove this option from your Rspack configuration."
+		);
+	}
 	D(experiments, "topLevelAwait", true);
 
 	D(experiments, "buildHttp", undefined);
@@ -291,13 +301,15 @@ const applySnapshotDefaults = (
 ) => {};
 
 const applyJavascriptParserOptionsDefaults = (
-	parserOptions: JavascriptParserOptions
+	parserOptions: JavascriptParserOptions,
+	{ inlineConst }: { inlineConst?: boolean }
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
 	D(parserOptions, "dynamicImportPreload", false);
 	D(parserOptions, "url", true);
 	D(parserOptions, "exprContextCritical", true);
+	D(parserOptions, "unknownContextCritical", true);
 	D(parserOptions, "wrappedContextCritical", false);
 	D(parserOptions, "wrappedContextRegExp", /.*/);
 	D(parserOptions, "strictExportPresence", false);
@@ -307,7 +319,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
-	D(parserOptions, "inlineConst", false);
+	D(parserOptions, "inlineConst", inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
 };
 
@@ -324,13 +336,15 @@ const applyModuleDefaults = (
 		css,
 		targetProperties,
 		mode,
-		uniqueName
+		uniqueName,
+		inlineConst
 	}: {
 		asyncWebAssembly: boolean;
 		css?: boolean;
 		targetProperties: any;
 		mode?: Mode;
 		uniqueName?: string;
+		inlineConst?: boolean;
 	}
 ) => {
 	assertNotNill(module.parser);
@@ -346,7 +360,9 @@ const applyModuleDefaults = (
 
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
-	applyJavascriptParserOptionsDefaults(module.parser.javascript);
+	applyJavascriptParserOptionsDefaults(module.parser.javascript, {
+		inlineConst
+	});
 
 	F(module.parser, JSON_MODULE_TYPE, () => ({}));
 	assertNotNill(module.parser[JSON_MODULE_TYPE]);
@@ -677,7 +693,9 @@ const applyOutputDefaults = (
 		"hotUpdateChunkFilename",
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
-	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	F(output, "hotUpdateMainFilename", () => {
+		return `[runtime].[fullhash].hot-update.${output.module ? "json.mjs" : "json"}`;
+	});
 
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => `webpackHotUpdate${uniqueNameId}`);

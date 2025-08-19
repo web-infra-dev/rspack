@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::visitors::scope_info::{FreeName, VariableInfoId};
+use crate::visitors::scope_info::VariableInfoId;
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
@@ -27,7 +27,7 @@ impl CallHooksName for &str {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
-      // unresolved variable, for example the global `require` in commonjs.
+      // unresolved free variable, for example the global `require` in commonjs.
       hook_call(parser, self)
     }
   }
@@ -135,14 +135,14 @@ where
   }
 
   let info = parser.definitions_db.expect_get_variable(id);
-  if let Some(FreeName::String(free_name)) = &info.free_name {
-    let result = hook_call(parser, &free_name.to_string());
+  if let Some(name) = &info.name
+    && (info.is_free() || info.is_tagged())
+  {
+    let result = hook_call(parser, &name.to_string());
     if result.is_some() {
       return result;
     }
   }
-  // should run `defined ? defined() : None` if `free_name` matched FreeName::Tree?
 
   None
-  // maybe we can support `fallback` here
 }

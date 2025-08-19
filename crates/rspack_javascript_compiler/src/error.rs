@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_cacheable::cacheable;
-use rspack_error::{BatchErrors, DiagnosticKind, TraceableError, error};
+use rspack_error::{BatchErrors, TraceableError, error};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
   SourceFile, SourceMap, Span, Spanned,
@@ -82,7 +82,6 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     "JavaScript parse error".into(),
     message,
   )
-  .with_kind(DiagnosticKind::JavaScript)
 }
 
 // keep this private to make sure with_rspack_error_handler is safety
@@ -90,7 +89,6 @@ struct RspackErrorEmitter {
   tx: mpsc::Sender<rspack_error::Error>,
   source_map: Arc<SourceMap>,
   title: String,
-  kind: DiagnosticKind,
 }
 
 impl Emitter for RspackErrorEmitter {
@@ -110,7 +108,6 @@ impl Emitter for RspackErrorEmitter {
             self.title.to_string(),
             db.message(),
           )
-          .with_kind(self.kind)
           .into(),
         )
         .expect("Sender should drop after emit called");
@@ -142,7 +139,6 @@ impl Emitter for RspackErrorEmitter {
 /// A result containing either the return value of the closure or a BatchErrors if errors occurred.
 pub fn with_rspack_error_handler<F, Ret>(
   title: String,
-  kind: DiagnosticKind,
   cm: Arc<SourceMap>,
   op: F,
 ) -> std::result::Result<Ret, BatchErrors>
@@ -152,7 +148,6 @@ where
   let (tx, rx) = mpsc::channel();
   let emitter = RspackErrorEmitter {
     title,
-    kind,
     source_map: cm,
     tx,
   };

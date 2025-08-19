@@ -4,7 +4,6 @@ use std::{
   sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
-use async_trait::async_trait;
 use camino::Utf8Path;
 use regex::Regex;
 use rspack_cacheable::cacheable;
@@ -1007,19 +1006,16 @@ impl Plugin for ConsumeSharedPlugin {
     "rspack.ConsumeSharedPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compiler_hooks
       .this_compilation
       .tap(this_compilation::new(self));
     ctx
-      .context
       .normal_module_factory_hooks
       .factorize
       .tap(factorize::new(self));
     ctx
-      .context
       .normal_module_factory_hooks
       .create_module
       .tap(create_module::new(self));

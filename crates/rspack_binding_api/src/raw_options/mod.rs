@@ -38,7 +38,8 @@ pub use raw_output::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
 
-pub use crate::raw_resolve::*;
+pub use crate::options::raw_resolve::*;
+use crate::virtual_modules::JsVirtualFile;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -61,6 +62,8 @@ pub struct RawOptions {
   pub bail: bool,
   #[napi(js_name = "__references", ts_type = "Record<string, any>")]
   pub __references: References,
+  #[napi(js_name = "__virtual_files")]
+  pub __virtual_files: Option<Vec<JsVirtualFile>>,
 }
 
 impl TryFrom<RawOptions> for CompilerOptions {

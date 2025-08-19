@@ -243,7 +243,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           //         "LightningCSS minimize warning".to_string(),
           //         e.to_string(),
           //       )
-          //       .with_kind(DiagnosticKind::Css)
           //       .with_severity(RspackSeverity::Warn)) as Box<dyn miette::Diagnostic + Send + Sync>)
           //     } else {
           //       Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
@@ -305,18 +304,9 @@ impl Plugin for LightningCssMinimizerRspackPlugin {
     "rspack.LightningCssMinimizerRspackPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.chunk_hash.tap(chunk_hash::new(self));
     ctx
-      .context
-      .compilation_hooks
-      .chunk_hash
-      .tap(chunk_hash::new(self));
-    ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));

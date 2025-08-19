@@ -1699,6 +1699,7 @@ impl ModuleOptionsBuilder {
           dynamic_import_fetch_priority: None,
           url: Some(JavascriptParserUrl::Enable),
           expr_context_critical: Some(true),
+          unknown_context_critical: Some(true),
           wrapped_context_critical: Some(false),
           wrapped_context_reg_exp: Some(RspackRegex::new(".*").expect("should initialize `Regex`")),
           strict_export_presence: Some(false),
