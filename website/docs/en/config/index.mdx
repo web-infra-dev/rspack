@@ -80,22 +80,12 @@ If your JavaScript runtime already natively supports TypeScript, you can use the
 
 For example, Node.js already natively supports TypeScript, you can use the following command to use the Node.js native loader to load the configuration file:
 
-- For Node.js v22.7.0 to v23.5.0, you need to enable the `--experimental-transform-types` flag:
+- For Node.js v22.18+ and v24.3+ which support native TypeScript by default, you can run the following command to load the TS config:
 
 ```json title="package.json"
 {
   "scripts": {
-    "build": "NODE_OPTIONS='--experimental-transform-types' rspack build"
-  }
-}
-```
-
-- For Node.js v23.6.0+, the `--experimental-transform-types` flag is no longer required:
-
-```json title="package.json"
-{
-  "scripts": {
-    "build": "rspack build"
+    "build": "rspack build --configLoader=native"
   }
 }
 ```
