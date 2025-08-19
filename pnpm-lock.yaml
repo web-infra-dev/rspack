@@ -317,8 +317,8 @@ importers:
         specifier: 0.12.1
         version: 0.12.1(@microsoft/api-extractor@7.52.9(@types/node@24.1.0))(typescript@5.9.2)
       '@swc/types':
-        specifier: 0.1.23
-        version: 0.1.23
+        specifier: 0.1.24
+        version: 0.1.24
       '@types/graceful-fs':
         specifier: 4.1.9
         version: 4.1.9
@@ -377,8 +377,8 @@ importers:
         specifier: '>=0.5.1'
         version: 0.5.17
       '@swc/types':
-        specifier: 0.1.23
-        version: 0.1.23
+        specifier: 0.1.24
+        version: 0.1.24
       '@types/watchpack':
         specifier: ^2.4.4
         version: 2.4.4
@@ -3206,8 +3206,8 @@ packages:
   '@swc/plugin-remove-console@9.0.0':
     resolution: {integrity: sha512-U0mMTrvdZkoD8zEtdRaemehSQoxm6vQvdGhVkfHjRwr1f+DzTXvnGgE5d18nlvSG4gd+qz4hoalupz4tqeFQRQ==}
 
-  '@swc/types@0.1.23':
-    resolution: {integrity: sha512-u1iIVZV9Q0jxY+yM2vw/hZGDNudsN85bBpTqzAQ9rzkxW9D+e3aEM4Han+ow518gSewkXgjmEK0BD79ZcNVgPw==}
+  '@swc/types@0.1.24':
+    resolution: {integrity: sha512-tjTMh3V4vAORHtdTprLlfoMptu1WfTZG9Rsca6yOKyNYsRr+MUXutKmliB17orgSZk5DpnDxs8GUdd/qwYxOng==}
 
   '@taplo/cli@0.7.0':
     resolution: {integrity: sha512-Ck3zFhQhIhi02Hl6T4ZmJsXdnJE+wXcJz5f8klxd4keRYgenMnip3JDPMGDRLbnC/2iGd8P0sBIQqI3KxfVjBg==}
@@ -10878,7 +10878,7 @@ snapshots:
   '@swc/core@1.12.0(@swc/helpers@0.5.17)':
     dependencies:
       '@swc/counter': 0.1.3
-      '@swc/types': 0.1.23
+      '@swc/types': 0.1.24
     optionalDependencies:
       '@swc/core-darwin-arm64': 1.12.0
       '@swc/core-darwin-x64': 1.12.0
@@ -10903,7 +10903,7 @@ snapshots:
     dependencies:
       '@swc/counter': 0.1.3
 
-  '@swc/types@0.1.23':
+  '@swc/types@0.1.24':
     dependencies:
       '@swc/counter': 0.1.3
 
