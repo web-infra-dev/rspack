@@ -70,7 +70,7 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 				path: context.getDist(),
 				filename: "[name].mjs",
 				chunkLoading: "import",
-				chunkFormat: "esm"
+				chunkFormat: false
 			},
 			optimization: {
 				minimize: false,
@@ -80,7 +80,10 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 				concatenateModules: false,
 				splitChunks: false
 			},
-			plugins: [new rspack.experiments.RemoveDuplicateModulesPlugin()],
+			plugins: [
+				new rspack.experiments.RemoveDuplicateModulesPlugin(),
+				new rspack.experiments.EsmLibraryPlugin(),
+			],
 			experiments: {
 				css: true,
 				rspackFuture: {

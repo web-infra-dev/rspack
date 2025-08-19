@@ -287,6 +287,7 @@ async fn concatenation_scope(
   };
 
   Ok(Some(ConcatenationScope::new(
+    current_module.module,
     modules_map.clone(),
     current_module.as_ref().clone(),
   )))
@@ -352,7 +353,7 @@ async fn additional_chunk_runtime_requirements(
 static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"__RSPACK_ESM_CHUNK_(\d*)").expect("should have regex"));
 
-#[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+#[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut replaced = vec![];
 
