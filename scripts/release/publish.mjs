@@ -19,7 +19,7 @@ export async function publish_handler(mode, options) {
 	const parsedVersion = parse(version);
 
 	if (npmTag === "latest" && parsedVersion.prerelease.length > 0) {
-		throw Error("Latest tag can not be prerelease version");
+		throw Error("Latest tag cannot be prerelease version");
 	}
 
 	if (fs.existsSync(npmrcPath)) {
