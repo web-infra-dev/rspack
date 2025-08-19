@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-	experiments, 
+	experiments,
 	type MultiRspackOptions,
 	type RspackOptions,
 	util
@@ -42,21 +42,10 @@ const registerLoader = (configPath: string) => {
 			filename: string
 		) {
 			const source = fs.readFileSync(filename, "utf-8");
-			const result = experiments.swc.transformSync(source, {
-				jsc: {
-					parser: {
-						syntax: "typescript",
-						tsx: false,
-						decorators: true,
-						dynamicImport: true
-					}
-				},
-				module: { type: "commonjs" },
-				sourceMaps: false,
-				isModule: true
+
 			let result;
 			try {
-				result = experiments.swc.transform(source, {
+				result = experiments.swc.transformSync(source, {
 					jsc: {
 						parser: {
 							syntax: "typescript",
@@ -71,7 +60,7 @@ const registerLoader = (configPath: string) => {
 				});
 			} catch (err) {
 				throw new Error(
-					`Failed to transform TypeScript config file "${filename}" with SWC: ${err instanceof Error ? err.message : String(err)}`
+					`Failed to transform TypeScript config file "${filename}" with rspack's builtin register: ${err instanceof Error ? err.message : String(err)}`
 				);
 			}
 			(mod as any)._compile(result.code, filename);
