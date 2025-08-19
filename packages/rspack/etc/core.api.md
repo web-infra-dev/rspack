@@ -2259,6 +2259,7 @@ interface EsParserConfig {
     functionBind?: boolean;
     // @deprecated (undocumented)
     importAssertions?: boolean;
+    // @deprecated (undocumented)
     importAttributes?: boolean;
     // @deprecated (undocumented)
     importMeta?: boolean;
@@ -5259,7 +5260,7 @@ interface Options extends Config_2 {
     filename?: string;
     inputSourceMap?: boolean | string;
     // (undocumented)
-    isModule?: boolean | "unknown";
+    isModule?: boolean | "unknown" | "commonjs";
     outputPath?: string;
     // (undocumented)
     plugin?: Plugin_3;
@@ -8089,6 +8090,8 @@ interface TransformConfig {
     react?: ReactConfig;
     // (undocumented)
     treatConstEnumAsEnum?: boolean;
+    // (undocumented)
+    tsEnumIsMutable?: boolean;
     useDefineForClassFields?: boolean;
     verbatimModuleSyntax?: boolean;
 }
