@@ -10,6 +10,8 @@
   ],
   "scripts": {
     "dev": "bash -c \"pnpm -C host dev & pnpm -C remote dev & wait\"",
+    "dev-server": "node scripts/dev-server.js",
+    "dev-server:optimized": "node scripts/dev-server.js optimized",
     "build": "pnpm -C host build && pnpm -C remote build",
     "optimize": "node --experimental-wasm-modules scripts/optimize-shared-chunks.js",
     "test:e2e": "pnpm run build && pnpm run optimize && npx playwright test",

@@ -45,6 +45,23 @@ module-federation-react-example/
    ```
    This starts both host (port 3001) and remote (port 3002) applications concurrently.
 
+### Alternative: Enhanced Dev Server
+
+For a more integrated development experience with optimization capabilities:
+
+```bash
+# Development mode (similar to pnpm dev)
+pnpm dev-server
+
+# Production mode with optimization
+pnpm dev-server:optimized
+```
+
+The enhanced dev server provides:
+- **Development Mode**: Starts dev servers with better logging and process management
+- **Production Mode**: Builds, optimizes, and serves production bundles for testing
+- **Integrated Workflow**: Single command for the complete build → optimize → serve pipeline
+
 ## 🚀 Build & Optimization Pipeline
 
 For production builds, follow this complete pipeline:
@@ -166,6 +183,34 @@ pnpm build && pnpm optimize
 **Port Conflicts**
 - Host runs on port 3001, Remote on port 3002
 - Change ports in `rspack.config.js` if needed
+
+### Dev Server Script Usage
+
+The `scripts/dev-server.js` provides additional options:
+
+```bash
+# Show help
+node scripts/dev-server.js --help
+
+# Development mode (default)
+node scripts/dev-server.js dev
+
+# Production mode with optimization
+node scripts/dev-server.js optimized
+node scripts/dev-server.js prod  # alias
+```
+
+**Development Mode Features:**
+- Starts both host and remote dev servers
+- Enhanced logging with prefixed output `[HOST]` and `[REMOTE]`
+- Automatic server readiness detection
+- Graceful shutdown with Ctrl+C
+
+**Production Mode Features:**
+- Builds both applications
+- Runs tree-shaking optimization
+- Serves optimized production bundles
+- Shows bundle size reduction metrics
 
 ## 🧪 Testing
 
