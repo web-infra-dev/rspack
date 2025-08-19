@@ -4,6 +4,11 @@ const fs = require('fs');
 const file = path.resolve(__dirname, 'bundle0.js')
 const content = fs.readFileSync(file, 'utf-8');
 
-it ('`require.cache` should be not handled by APIPlugin', () => {
+it ('some expressions should not be handled by APIPlugin', () => {
 	expect(content).toContain('console.log(require.cache)')
+	expect(content).toContain('console.log(require.extensions)')
+	expect(content).toContain('console.log(require.config)')
+	expect(content).toContain('console.log(require.version)')
+	expect(content).toContain('console.log(require.include)')
+	expect(content).toContain('console.log(require.onError)')
 })
