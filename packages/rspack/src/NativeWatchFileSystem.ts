@@ -95,12 +95,24 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			throw new Error("Invalid arguments: 'callbackUndelayed'");
 		}
 
-		const nativeWatcher = this.getNativeWatcher(options);
+		const [nativeWatcher, initialized] = this.getNativeWatcher(options);
+
+		// For an initialized native watcher, we need to pass all dependencies
+		// For a existing watcher, we only pass [added_dependencies, removed_dependencies] that express incremental_dependencies
+		const watchFiles: [string[], string[]] = initialized
+			? [Array.from(files), []]
+			: [Array.from(files.added!), Array.from(files.removed!)];
+		const watchDirectories: [string[], string[]] = initialized
+			? [Array.from(directories), []]
+			: [Array.from(directories.added!), Array.from(directories.removed!)];
+		const watchMissing: [string[], string[]] = initialized
+			? [Array.from(missing), []]
+			: [Array.from(missing.added!), Array.from(missing.removed!)];
 
 		nativeWatcher.watch(
-			[Array.from(files.added!), Array.from(files.removed!)],
-			[Array.from(directories.added!), Array.from(directories.removed!)],
-			[Array.from(missing.added!), Array.from(missing.removed!)],
+			watchFiles,
+			watchDirectories,
+			watchMissing,
 			(err: Error | null, result) => {
 				if (err) {
 					callback(err, new Map(), new Map(), new Set(), new Set());
@@ -163,9 +175,13 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		};
 	}
 
-	getNativeWatcher(options: Watchpack.WatchOptions): binding.NativeWatcher {
+	getNativeWatcher(
+		options: Watchpack.WatchOptions
+	): [binding.NativeWatcher, boolean] {
 		if (this.#inner) {
-			return this.#inner;
+			// Reuse existing watcher, no need to create a new one
+			// Returning [instance, false] indicates that the native watcher is uninitialized
+			return [this.#inner, false];
 		}
 
 		const nativeWatcherOptions: binding.NativeWatcherOptions = {
@@ -176,7 +192,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		};
 		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
 		this.#inner = nativeWatcher;
-		return nativeWatcher;
+
+		// Returning [instance, true] indicates an initialized native watcher.
+		return [nativeWatcher, true];
 	}
 
 	triggerEvent(kind: "change" | "remove" | "create", path: string) {
