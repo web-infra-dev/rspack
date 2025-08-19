@@ -31,7 +31,7 @@ module-federation-react-example/
 └── scripts/            # Build and optimization scripts
 ```
 
-## 🛠️ Setup
+## 🛠️ Setup & Development
 
 1. **Install dependencies:**
    ```bash
@@ -43,11 +43,45 @@ module-federation-react-example/
    ```bash
    pnpm dev
    ```
+   This starts both host (port 3001) and remote (port 3002) applications concurrently.
 
-3. **Build for production:**
-   ```bash
-   pnpm build:optimized
-   ```
+## 🚀 Build & Optimization Pipeline
+
+For production builds, follow this complete pipeline:
+
+### Step 1: Build Applications
+```bash
+pnpm build
+```
+This builds both host and remote applications using Rspack, generating:
+- `host/dist/` - Main application bundle
+- `remote/dist/` - Remote components bundle
+- `share-usage.json` files for optimization analysis
+
+### Step 2: Optimize Shared Chunks (Tree-Shaking)
+```bash
+pnpm optimize
+```
+This runs the advanced tree-shaking optimization that:
+- Analyzes shared module usage across applications
+- Removes unused exports from shared libraries
+- Reduces bundle sizes by 30-70%
+- Generates optimization reports
+
+### Step 3: Serve Production Build
+```bash
+# Start host application
+pnpm -C host serve
+
+# Start remote application (in another terminal)
+pnpm -C remote serve
+```
+
+### Complete Production Pipeline
+```bash
+# One-command production build with optimization
+pnpm build && pnpm optimize
+```
 
 ## 🎯 What's Demonstrated
 
@@ -95,25 +129,43 @@ remotes: {
 }
 ```
 
-## 🚀 Production Optimization
+## 🔧 Advanced Optimization Features
 
-The build process includes automatic optimization:
+The optimization script (`scripts/optimize-shared-chunks.js`) provides:
 
-1. **Tree Shaking**: Removes unused exports from shared libraries
-2. **Bundle Analysis**: Identifies optimization opportunities
-3. **Chunk Optimization**: Reduces bundle sizes by 30-70%
+- **Real-time Usage Analysis**: Scans `share-usage.json` files to identify unused exports
+- **SWC WASM Integration**: Uses high-performance WASM-based tree-shaking
+- **Cross-Application Analysis**: Optimizes shared modules across host and remote apps
+- **Detailed Reporting**: Generate optimization reports with `pnpm optimize --report`
 
-Run optimization:
+### Optimization Results
+- **Before**: ~2MB initial bundle size
+- **After**: ~600KB optimized bundle size
+- **Savings**: 30-70% reduction in shared module sizes
+- **Performance**: Faster load times with reduced network overhead
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**`isPlainObject is not a function` Error**
+This runtime error occurs due to aggressive tree-shaking of transitive dependencies. See detailed analysis in `docs/module-federation-redux-isplainobject-analysis.md`.
+
+**Solution**: The optimization process handles this automatically, but if you encounter issues:
 ```bash
-pnpm optimize
+# Clean and rebuild
+pnpm clean
+pnpm build && pnpm optimize
 ```
 
-## 📊 Performance
+**Build Failures**
+- Ensure all dependencies are installed: `pnpm install`
+- Check that both applications build individually: `pnpm -C host build && pnpm -C remote build`
+- Verify WASM optimizer is available: `ls scripts/optimize-shared-chunks.js`
 
-- Initial bundle: ~2MB
-- After optimization: ~600KB
-- Shared dependencies loaded once
-- Dynamic imports for code splitting
+**Port Conflicts**
+- Host runs on port 3001, Remote on port 3002
+- Change ports in `rspack.config.js` if needed
 
 ## 🧪 Testing
 
