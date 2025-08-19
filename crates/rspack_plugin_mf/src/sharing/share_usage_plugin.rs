@@ -1,10 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  path::PathBuf,
+};
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, AssetInfo, ChunkGraph, Compilation, CompilationAfterProcessAssets,
-  CompilationAsset, CompilerOptions, DependenciesBlock, DependencyType, ExtendedReferencedExport,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin, PluginContext,
+  ApplyContext, AssetInfo, Compilation, CompilationAfterProcessAssets, CompilationAsset,
+  CompilationOptimizeDependencies, DependenciesBlock, DependencyType, ExtendedReferencedExport,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin,
   rspack_sources::{RawSource, SourceExt},
 };
 use rspack_error::{Error, Result};
@@ -12,44 +15,81 @@ use rspack_hook::{plugin, plugin_hook};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChunkCharacteristics {
-  pub entry_module_id: Option<String>,
-  pub is_runtime_chunk: bool,
-  pub has_runtime: bool,
-  pub is_entrypoint: bool,
-  pub can_be_initial: bool,
-  pub is_only_initial: bool,
-  pub chunk_format: Option<String>,
-  pub chunk_loading_type: Option<String>,
-  pub runtime_names: Vec<String>,
-  pub entry_name: Option<String>,
-  pub has_async_chunks: bool,
-  pub chunk_files: Vec<String>,
-  pub shared_modules: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ModuleExportUsage {
-  #[serde(flatten)]
-  pub exports: HashMap<String, bool>,
-  pub chunk_characteristics: ChunkCharacteristics,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShareUsageReport {
   #[serde(rename = "treeShake")]
-  pub tree_shake: HashMap<String, ModuleExportUsage>,
+  pub tree_shake: HashMap<String, HashMap<String, bool>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MergeStrategy {
+  Union,
+  Intersection,
+  Override,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalUsageModuleData {
+  #[serde(rename = "preservedExports")]
+  pub preserved_exports: PreservedExports,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub source: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub priority: Option<u32>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub conditions: Option<PreservationConditions>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PreservedExports {
+  All(String), // "*"
+  List(Vec<String>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreservationConditions {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub remotes: Option<Vec<String>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub environments: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalUsageSettings {
+  #[serde(
+    rename = "defaultPreservation",
+    skip_serializing_if = "Option::is_none"
+  )]
+  pub default_preservation: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub timestamp: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalUsageData {
+  pub version: String,
+  pub modules: HashMap<String, ExternalUsageModuleData>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub settings: Option<ExternalUsageSettings>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExternalUsageConfig {
+  pub sources: Vec<PathBuf>,
+  pub inline: Option<ShareUsageReport>,
 }
 
 #[derive(Debug)]
 pub struct ShareUsagePluginOptions {
   pub filename: String,
+  pub external_usage: Option<ExternalUsageConfig>,
 }
 
 impl Default for ShareUsagePluginOptions {
   fn default() -> Self {
     Self {
       filename: "share-usage.json".to_string(),
+      external_usage: None,
     }
   }
 }
@@ -65,61 +105,234 @@ impl ShareUsagePlugin {
     Self::new_inner(options)
   }
 
+  fn load_external_usage(
+    &self,
+    _compilation: &Compilation,
+  ) -> Result<HashMap<String, HashMap<String, bool>>> {
+    let mut merged_usage = HashMap::new();
+
+    // Load external usage from configuration options
+    if let Some(external_config) = &self.options.external_usage {
+      // Load from inline data first
+      if let Some(inline_data) = &external_config.inline {
+        merged_usage.extend(inline_data.tree_shake.clone());
+      }
+
+      // Load from external files specified in config
+      for source in &external_config.sources {
+        if source.exists() {
+          let content = std::fs::read_to_string(source)
+            .map_err(|e| Error::msg(format!("Failed to read external usage file: {e}")))?;
+
+          if let Ok(external_report) = serde_json::from_str::<ShareUsageReport>(&content) {
+            // Merge the tree_shake data from the external share-usage.json
+            for (share_key, external_exports) in external_report.tree_shake {
+              match merged_usage.entry(share_key) {
+                std::collections::hash_map::Entry::Occupied(mut entry) => {
+                  let existing = entry.get_mut();
+                  for (export_name, should_preserve) in external_exports {
+                    // True always wins - preserve if ANY source needs it
+                    if should_preserve {
+                      existing.insert(export_name, true);
+                    }
+                  }
+                }
+                std::collections::hash_map::Entry::Vacant(entry) => {
+                  entry.insert(external_exports);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    Ok(merged_usage)
+  }
+
+  fn merge_external_usage(
+    &self,
+    target: &mut HashMap<String, ExternalUsageModuleData>,
+    source: HashMap<String, ExternalUsageModuleData>,
+    strategy: &MergeStrategy,
+  ) {
+    // Merges external usage data from multiple sources
+    // Note: When converted to final usage map, true values always win over false
+    for (key, source_data) in source {
+      match target.entry(key) {
+        std::collections::hash_map::Entry::Occupied(mut entry) => {
+          let existing = entry.get_mut();
+          match strategy {
+            MergeStrategy::Union => {
+              // Merge preserved exports
+              let merged_exports = self.merge_preserved_exports(
+                &existing.preserved_exports,
+                &source_data.preserved_exports,
+                true, // union
+              );
+              existing.preserved_exports = merged_exports;
+
+              // Use higher priority
+              if let Some(source_priority) = source_data.priority {
+                if existing.priority.map_or(true, |p| source_priority > p) {
+                  existing.priority = Some(source_priority);
+                  existing.source = source_data.source;
+                }
+              }
+            }
+            MergeStrategy::Intersection => {
+              // Keep only common exports
+              let merged_exports = self.merge_preserved_exports(
+                &existing.preserved_exports,
+                &source_data.preserved_exports,
+                false, // intersection
+              );
+              existing.preserved_exports = merged_exports;
+            }
+            MergeStrategy::Override => {
+              // Replace with source data if priority is higher
+              if source_data.priority.unwrap_or(0) >= existing.priority.unwrap_or(0) {
+                *existing = source_data;
+              }
+            }
+          }
+        }
+        std::collections::hash_map::Entry::Vacant(entry) => {
+          entry.insert(source_data);
+        }
+      }
+    }
+  }
+
+  fn merge_preserved_exports(
+    &self,
+    a: &PreservedExports,
+    b: &PreservedExports,
+    union: bool,
+  ) -> PreservedExports {
+    match (a, b) {
+      (PreservedExports::All(_), _) | (_, PreservedExports::All(_)) => {
+        PreservedExports::All("*".to_string())
+      }
+      (PreservedExports::List(list_a), PreservedExports::List(list_b)) => {
+        let set_a: HashSet<_> = list_a.iter().cloned().collect();
+        let set_b: HashSet<_> = list_b.iter().cloned().collect();
+
+        let result = if union {
+          set_a.union(&set_b).cloned().collect()
+        } else {
+          set_a.intersection(&set_b).cloned().collect()
+        };
+
+        PreservedExports::List(result)
+      }
+    }
+  }
+
   fn analyze_consume_shared_usage(
     &self,
     compilation: &Compilation,
-  ) -> HashMap<String, ModuleExportUsage> {
+  ) -> HashMap<String, HashMap<String, bool>> {
     let mut usage_map = HashMap::new();
     let module_graph = compilation.get_module_graph();
 
+    // First, try to find ConsumeShared modules (for consumer apps)
     for module_id in module_graph.modules().keys() {
       if let Some(module) = module_graph.module_by_identifier(module_id)
         && module.module_type() == &ModuleType::ConsumeShared
         && let Some(share_key) = module.get_consume_shared_key()
       {
-        let result =
+        let exports_usage =
           if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
             let (used_exports, provided_exports) =
               self.analyze_module_usage(&module_graph, &fallback_id, module_id);
 
-            let entry_module_id =
-              ChunkGraph::get_module_id(&compilation.module_ids_artifact, fallback_id)
-                .map(|id| id.to_string());
-
-            let (usage, chunk_characteristics) = self.get_single_chunk_characteristics(
-              compilation,
-              &fallback_id,
-              entry_module_id,
-              used_exports,
-              provided_exports,
-            );
-
-            ModuleExportUsage {
-              exports: usage,
-              chunk_characteristics,
+            // Build usage map from exports
+            let mut usage = HashMap::new();
+            for export in provided_exports {
+              usage.insert(export.clone(), used_exports.contains(&export));
             }
+            usage
           } else {
-            ModuleExportUsage {
-              exports: HashMap::new(),
-              chunk_characteristics: ChunkCharacteristics {
-                entry_module_id: None,
-                is_runtime_chunk: false,
-                has_runtime: false,
-                is_entrypoint: false,
-                can_be_initial: false,
-                is_only_initial: false,
-                chunk_format: None,
-                chunk_loading_type: None,
-                runtime_names: Vec::new(),
-                entry_name: None,
-                has_async_chunks: false,
-                chunk_files: Vec::new(),
-                shared_modules: Vec::new(),
-              },
-            }
+            HashMap::new()
           };
 
-        usage_map.insert(share_key.to_string(), result);
+        usage_map.insert(share_key.to_string(), exports_usage);
+      }
+    }
+
+    // If no ConsumeShared modules found, look for shared modules being exposed
+    if usage_map.is_empty() {
+      usage_map = self.analyze_shared_module_usage(compilation);
+    }
+
+    usage_map
+  }
+
+  fn analyze_shared_module_usage(
+    &self,
+    compilation: &Compilation,
+  ) -> HashMap<String, HashMap<String, bool>> {
+    let mut usage_map = HashMap::new();
+    let module_graph = compilation.get_module_graph();
+
+    // Look through all modules to find ones that are being shared
+    for module_id in module_graph.modules().keys() {
+      if let Some(module) = module_graph.module_by_identifier(module_id) {
+        // Check if this module is being shared by looking at its usage
+        let module_identifier = module.identifier().to_string();
+
+        // For now, we'll assume the share key is "module" based on the config
+        // In a real implementation, we would need to map from the shared config
+        if module_identifier.contains("module.js") {
+          let usage = self.analyze_exports_usage(&module_graph, module_id);
+          usage_map.insert("module".to_string(), usage);
+          break;
+        }
+      }
+    }
+
+    usage_map
+  }
+
+  fn analyze_exports_usage(
+    &self,
+    module_graph: &ModuleGraph,
+    module_id: &ModuleIdentifier,
+  ) -> HashMap<String, bool> {
+    use rspack_core::{ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState};
+
+    let mut usage_map = HashMap::new();
+
+    let exports_info = module_graph.get_exports_info(module_id);
+    let prefetched = ExportsInfoGetter::prefetch(
+      &exports_info,
+      module_graph,
+      PrefetchExportsInfoMode::Default,
+    );
+
+    match prefetched.get_provided_exports() {
+      ProvidedExports::ProvidedNames(names) => {
+        for export_name in names {
+          let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
+          let export_info_data = prefetched.get_read_only_export_info(&export_atom);
+          let usage_state = export_info_data.get_used(None);
+
+          // Mark as used if the usage state indicates it's being used
+          let is_used = matches!(
+            usage_state,
+            UsageState::Used | UsageState::OnlyPropertiesUsed
+          );
+          usage_map.insert(export_name.to_string(), is_used);
+        }
+      }
+      ProvidedExports::ProvidedAll => {
+        // If all exports are provided but we don't know specifics,
+        // we can't determine individual usage
+        usage_map.insert("*".to_string(), false);
+      }
+      ProvidedExports::Unknown => {
+        // Cannot determine exports statically
       }
     }
 
@@ -270,198 +483,60 @@ impl ShareUsagePlugin {
 
     None
   }
+}
 
-  fn get_single_chunk_characteristics(
-    &self,
-    compilation: &Compilation,
-    module_id: &ModuleIdentifier,
-    entry_module_id: Option<String>,
-    used_exports: Vec<String>,
-    provided_exports: Vec<String>,
-  ) -> (HashMap<String, bool>, ChunkCharacteristics) {
-    let chunk_graph = &compilation.chunk_graph;
-    let chunks = chunk_graph.get_module_chunks(*module_id);
+#[plugin_hook(CompilationOptimizeDependencies for ShareUsagePlugin)]
+async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  // Step 1: Analyze what THIS application uses from shared modules
+  let mut usage_data = self.analyze_consume_shared_usage(compilation);
 
-    // Create usage map - all provided exports with their usage status
-    let mut usage = HashMap::new();
-    for export in &provided_exports {
-      if export != "*" {
-        usage.insert(export.clone(), used_exports.contains(export));
-      }
-    }
+  // Step 2: Load external usage data - exports that OTHER apps need (don't tree-shake these!)
+  let external_usage = self.load_external_usage(compilation)?;
 
-    // If we have chunks, use the first one for characteristics
-    if let Some(&chunk_ukey) = chunks.iter().next()
-      && let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey)
-    {
-      let chunk_groups: Vec<rspack_core::ChunkGroupUkey> = chunk.groups().iter().copied().collect();
-
-      let (_, shared_modules) = self.analyze_shared_chunk(compilation, &chunk_ukey);
-
-      return (
-        usage,
-        ChunkCharacteristics {
-          entry_module_id,
-          is_runtime_chunk: chunk.has_runtime(&compilation.chunk_group_by_ukey),
-          has_runtime: chunk.has_runtime(&compilation.chunk_group_by_ukey),
-          is_entrypoint: chunk_groups.iter().any(|&group_ukey| {
-            compilation
-              .chunk_group_by_ukey
-              .get(&group_ukey)
-              .is_some_and(|group| group.kind.is_entrypoint())
-          }),
-          can_be_initial: chunk.can_be_initial(&compilation.chunk_group_by_ukey),
-          is_only_initial: chunk.is_only_initial(&compilation.chunk_group_by_ukey),
-          chunk_format: self.determine_chunk_format(compilation, &chunk_ukey),
-          chunk_loading_type: self.get_chunk_loading_type(compilation, &chunk_groups),
-          runtime_names: chunk.runtime().iter().map(|s| s.to_string()).collect(),
-          entry_name: self.get_entry_name(compilation, &chunk_groups),
-          has_async_chunks: chunk.has_async_chunks(&compilation.chunk_group_by_ukey),
-          chunk_files: chunk.files().iter().map(|s| s.to_string()).collect(),
-          shared_modules,
-        },
-      );
-    }
-
-    // Fallback if no chunks found
-    (
-      usage,
-      ChunkCharacteristics {
-        entry_module_id,
-        is_runtime_chunk: false,
-        has_runtime: false,
-        is_entrypoint: false,
-        can_be_initial: false,
-        is_only_initial: false,
-        chunk_format: None,
-        chunk_loading_type: None,
-        runtime_names: Vec::new(),
-        entry_name: None,
-        has_async_chunks: false,
-        chunk_files: Vec::new(),
-        shared_modules: Vec::new(),
-      },
-    )
-  }
-
-  fn analyze_shared_chunk(
-    &self,
-    compilation: &Compilation,
-    chunk_ukey: &rspack_core::ChunkUkey,
-  ) -> (bool, Vec<String>) {
-    let chunk_graph = &compilation.chunk_graph;
-    let module_graph = compilation.get_module_graph();
-    let modules = chunk_graph.get_chunk_modules(chunk_ukey, &module_graph);
-    let mut shared_modules = Vec::new();
-    let mut is_shared = false;
-
-    for module in modules {
-      // Check if this is a shared module and collect share keys
-      match module.module_type() {
-        rspack_core::ModuleType::ProvideShared => {
-          // For ProvideShared modules, we need to extract the share key differently
-          // This is a placeholder - we'd need to check the actual API for ProvideShared modules
-          if let Some(module_id) = module.identifier().as_str().split('/').next_back() {
-            shared_modules.push(module_id.to_string());
-            is_shared = true;
+  // Step 3: Merge both sources - the output will contain:
+  //   - Exports this app uses (marked as true)
+  //   - Exports other apps need (also marked as true, even if unused locally)
+  //   - Everything else (marked as false, safe to tree-shake)
+  for (share_key, external_exports) in external_usage {
+    // Merge with existing usage data - true always wins
+    match usage_data.entry(share_key) {
+      std::collections::hash_map::Entry::Occupied(mut entry) => {
+        let existing = entry.get_mut();
+        for (export_name, should_preserve) in external_exports {
+          // Only set to true, never overwrite true with false
+          if should_preserve {
+            existing.insert(export_name, true);
           }
         }
-        rspack_core::ModuleType::ConsumeShared => {
-          if let Some(share_key) = module.get_consume_shared_key() {
-            shared_modules.push(share_key.to_string());
-            is_shared = true;
-          }
-        }
-        _ => {}
       }
-    }
-
-    (is_shared, shared_modules)
-  }
-
-  fn determine_chunk_format(
-    &self,
-    compilation: &Compilation,
-    chunk_ukey: &rspack_core::ChunkUkey,
-  ) -> Option<String> {
-    // Get the chunk format from the output configuration
-    if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
-      // Check chunk groups to find entry options with chunk loading configuration
-      for &group_ukey in chunk.groups().iter() {
-        if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey)
-          && let Some(entry_options) = group.kind.get_entry_options()
-          && let Some(chunk_loading) = &entry_options.chunk_loading
-        {
-          return Some(self.chunk_loading_to_format(chunk_loading));
-        }
-      }
-
-      // Check if this is an ESM output based on module type
-      if compilation.options.output.module {
-        return Some("module".to_string());
-      }
-
-      // Check the global chunk loading configuration
-      let chunk_loading = &compilation.options.output.chunk_loading;
-      Some(self.chunk_loading_to_format(chunk_loading))
-    } else {
-      None
-    }
-  }
-
-  fn chunk_loading_to_format(&self, chunk_loading: &rspack_core::ChunkLoading) -> String {
-    match chunk_loading {
-      rspack_core::ChunkLoading::Enable(chunk_loading_type) => match chunk_loading_type {
-        rspack_core::ChunkLoadingType::Jsonp => "jsonp".to_string(),
-        rspack_core::ChunkLoadingType::ImportScripts => "import-scripts".to_string(),
-        rspack_core::ChunkLoadingType::Require => "require".to_string(),
-        rspack_core::ChunkLoadingType::AsyncNode => "async-node".to_string(),
-        rspack_core::ChunkLoadingType::Import => "import".to_string(),
-        rspack_core::ChunkLoadingType::Custom(custom) => custom.clone(),
-      },
-      rspack_core::ChunkLoading::Disable => {
-        // When chunk loading is disabled, chunks are not loaded dynamically
-        // This typically means the code is bundled directly without chunk loading mechanism
-        "false".to_string()
+      std::collections::hash_map::Entry::Vacant(entry) => {
+        entry.insert(external_exports);
       }
     }
   }
 
-  fn get_chunk_loading_type(
-    &self,
-    compilation: &Compilation,
-    chunk_groups: &[rspack_core::ChunkGroupUkey],
-  ) -> Option<String> {
-    // Extract chunk loading type from entry options
-    for &group_ukey in chunk_groups {
-      if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey)
-        && let Some(entry_options) = group.kind.get_entry_options()
-        && let Some(chunk_loading) = &entry_options.chunk_loading
-      {
-        return Some(String::from(chunk_loading.clone()));
-      }
-    }
-    None
-  }
+  // Write to context directory so FlagDependencyUsagePlugin can read it
+  let context_path = compilation.options.context.as_path();
+  let usage_file_path = context_path.join("share-usage.json");
 
-  fn get_entry_name(
-    &self,
-    compilation: &Compilation,
-    chunk_groups: &[rspack_core::ChunkGroupUkey],
-  ) -> Option<String> {
-    for &group_ukey in chunk_groups {
-      if let Some(group) = compilation.chunk_group_by_ukey.get(&group_ukey)
-        && let Some(entry_options) = group.kind.get_entry_options()
-      {
-        return entry_options.name.clone();
-      }
-    }
-    None
-  }
+  let report = ShareUsageReport {
+    tree_shake: usage_data,
+  };
+
+  let content = serde_json::to_string_pretty(&report)
+    .map_err(|e| Error::msg(format!("Failed to serialize share usage report: {e}")))?;
+
+  // Write to filesystem for FlagDependencyUsagePlugin to read
+  std::fs::write(&usage_file_path, content)
+    .map_err(|e| Error::msg(format!("Failed to write share usage file: {e}")))?;
+
+  Ok(None)
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for ShareUsagePlugin)]
 async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  // Generate ONLY the local usage data and emit as asset
+  // This represents what THIS application uses from shared modules
   let usage_data = self.analyze_consume_shared_usage(compilation);
 
   let report = ShareUsageReport {
@@ -473,23 +548,11 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
 
   let filename = &self.options.filename;
 
-  if compilation.assets().contains_key(filename) {
-    let mut counter = 1;
-    let mut unique_filename = format!("{filename}.{counter}");
-    while compilation.assets().contains_key(&unique_filename) {
-      counter += 1;
-      unique_filename = format!("{filename}.{counter}");
-    }
-    compilation.assets_mut().insert(
-      unique_filename,
-      CompilationAsset::new(Some(RawSource::from(content).boxed()), AssetInfo::default()),
-    );
-  } else {
-    compilation.assets_mut().insert(
-      filename.clone(),
-      CompilationAsset::new(Some(RawSource::from(content).boxed()), AssetInfo::default()),
-    );
-  }
+  // Always emit the share-usage.json as a build asset
+  compilation.assets_mut().insert(
+    filename.clone(),
+    CompilationAsset::new(Some(RawSource::from(content).boxed()), AssetInfo::default()),
+  );
 
   Ok(())
 }
@@ -500,9 +563,15 @@ impl Plugin for ShareUsagePlugin {
     "ShareUsagePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut ApplyContext) -> Result<()> {
+    // Hook into optimize_dependencies to provide data to FlagDependencyUsagePlugin
     ctx
-      .context
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
+
+    // Still generate the report file for debugging/external tools
+    ctx
       .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));

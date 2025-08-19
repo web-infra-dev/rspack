@@ -90,8 +90,7 @@ impl Plugin for ModuleFederationRuntimePlugin {
     // Apply supporting plugins
     EmbedFederationRuntimePlugin::default().apply(ctx)?;
     HoistContainerReferencesPlugin::default().apply(ctx)?;
-    ShareUsagePlugin::new(ShareUsagePluginOptions::default())
-      .apply(PluginContext::with_context(ctx.context), options)?;
+    ShareUsagePlugin::new(ShareUsagePluginOptions::default()).apply(ctx)?;
 
     Ok(())
   }

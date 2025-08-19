@@ -4,17 +4,18 @@ use std::{
   sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
+use async_trait::async_trait;
 use camino::Utf8Path;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerOptions, CompilerThisCompilation, Context,
+  BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationFinishModules, CompilationParams, CompilerThisCompilation, Context,
   DependencyCategory, DependencyType, ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData,
   ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleCreateData,
   NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
-  PluginContext, PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, RuntimeGlobals,
+  PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType, ResolveResult,
+  Resolver, RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
@@ -958,10 +959,10 @@ impl ConsumeSharedPlugin {
             shared_descendants.insert(*target_id);
 
             // Inherit parent's shared key if target doesn't have one
-            if !effective_keys.contains_key(target_id) {
-              if let Some(key) = parent_shared_key.clone() {
-                effective_keys.insert(*target_id, key);
-              }
+            if !effective_keys.contains_key(target_id)
+              && let Some(key) = parent_shared_key.clone()
+            {
+              effective_keys.insert(*target_id, key);
             }
 
             queue.push_back(*target_id);
@@ -1020,17 +1021,14 @@ impl Plugin for ConsumeSharedPlugin {
       .create_module
       .tap(create_module::new(self));
     ctx
-      .context
       .normal_module_factory_hooks
       .module
       .tap(normal_module_factory_module::new(self));
     ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
     ctx
-      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
