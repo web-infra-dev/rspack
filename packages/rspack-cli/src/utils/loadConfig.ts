@@ -60,7 +60,13 @@ const registerLoader = (configPath: string) => {
 	}
 	addHook(
 		(code, filename) => {
-			return compile(code, filename);
+			try {
+				return compile(code, filename);
+			} catch (err) {
+				throw new Error(
+					`Failed to transform file "${filename}" when loading TypeScript config file:\n ${err instanceof Error ? err.message : String(err)}`
+				);
+			}
 		},
 		{
 			exts: TS_EXTENSION
