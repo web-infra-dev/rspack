@@ -1,0 +1,9 @@
+{
+  "treeShake": {
+    "module": {
+      "used": true,
+      "unused": false,
+      "chunkCharacteristics": {}
+    }
+  }
+}
