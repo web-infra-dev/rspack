@@ -1,0 +1,17 @@
+{
+  "name": "swc_macro_wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "swc_macro_wasm_bg.wasm",
+    "swc_macro_wasm.js",
+    "swc_macro_wasm_bg.js",
+    "swc_macro_wasm.d.ts"
+  ],
+  "main": "swc_macro_wasm.js",
+  "types": "swc_macro_wasm.d.ts",
+  "sideEffects": [
+    "./swc_macro_wasm.js",
+    "./snippets/*"
+  ]
+}

@@ -63,7 +63,9 @@
 			"!**/packages/rspack/hot",
 			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js",
 			// --- ignore examples/basic test directory
-			"!**/examples/basic/**/*"
+			"!**/examples/basic/**/*",
+			// --- ignore generated WASM files
+			"!**/examples/swc_macro_wasm_pkg/**/*"
 		],
 		"ignoreUnknown": true
 	},
