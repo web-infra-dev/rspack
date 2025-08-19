@@ -9,7 +9,13 @@
 			"allowTrailingCommas": true
 		}
 	},
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
 	"linter": {
 		"enabled": true,
 		"rules": {
@@ -42,7 +48,8 @@
 				"noPrototypeBuiltins": "off",
 				"noAssignInExpressions": "off",
 				"noControlCharactersInRegex": "off",
-				"noExplicitAny": "off"
+				"noExplicitAny": "off",
+				"noImplicitAnyLet": "off"
 			}
 		}
 	},
