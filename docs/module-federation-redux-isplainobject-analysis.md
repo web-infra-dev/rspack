@@ -1,25 +1,63 @@
-# RFC: Annotation-Guided Tree-Shaking for Module Federation Shared Modules
+# RFC: Module Federation Redux isPlainObject Nullification Issue
 
 **RFC Number:** TBD  
 **Date:** 2025-08-19  
-**Status:** Proposal  
+**Status:** Problem Analysis  
 **Author:** Rspack Team  
 **Related PRs:**
 
 - [swc_macro_sys#24](https://github.com/CPunisher/swc_macro_sys/pull/24) - SWC macro implementation
-- [rspack#10920](https://github.com/web-infra-dev/rspack/pull/10920) - ShareUsagePlugin integration
+- [rspack#10920](https://github.com/web-infra-dev/rspack/pull/10920) - ShareUsagePlugin integration  
 
-## Abstract
+## Executive Summary
 
-This RFC proposes an implementation for build-time tree-shaking of Module Federation shared modules using annotation-based conditional compilation. The system consists of a ShareUsagePlugin that tracks export usage across federated applications and a SWC macro processor that optimizes shared chunks based on actual usage patterns.
+When using Module Federation with Rspack, the `isPlainObject` function from Redux is being incorrectly nullified during optimization, causing runtime errors. This occurs because Redux is a non-shared dependency of the shared module @reduxjs/toolkit, and the ShareUsagePlugin doesn't track usage across this boundary.
 
-## Motivation
+## Problem Statement
 
-Module Federation enables sharing of dependencies across applications, but shared modules often include unused exports that increase bundle size. Current implementations bundle entire shared modules regardless of actual usage patterns, resulting in unnecessary overhead. This proposal addresses the need for fine-grained tree-shaking while maintaining Module Federation's runtime flexibility.
+### Runtime Error
+```javascript
+main.js:5040 Error loading bootstrap: TypeError: (0 , redux__WEBPACK_IMPORTED_MODULE_0__.isPlainObject) is not a function
+    at configureStore (vendors-node_modules_pnpm_reduxjs_toolkit_2_8_2_react-redux_9_2_0__types_react_18_3_23_react_-3c49cc.cf30e018de44fba2.js:518:81)
+    at ./src/store/index.js (src_bootstrap_jsx.js:1133:77)
+```
 
-## Design Overview
+This error occurs when @reduxjs/toolkit's `configureStore` function attempts to call `isPlainObject` from Redux, but finds it has been nullified to `()=>null` by the optimizer.
 
-The system operates in two distinct phases:
+## Root Cause Analysis
+
+### Module Dependency Structure
+
+```
+@reduxjs/toolkit (SHARED in Module Federation)
+    └── internally imports → redux (NOT SHARED - internal npm dependency)
+                                └── exports → isPlainObject (gets nullified)
+```
+
+### Why Redux is Missing from share-usage.json
+
+1. **Redux is an internal sub-dependency**: Redux is not configured as shared in Module Federation - it's just an internal npm dependency of @reduxjs/toolkit
+
+2. **ShareUsagePlugin only tracks shared modules**: The plugin's `analyze_consume_shared_usage` function only processes modules where `module.module_type() == &ModuleType::ConsumeShared`
+
+3. **Internal dependencies are invisible**: When @reduxjs/toolkit (shared) internally uses redux (non-shared), this usage pattern is not captured by the current plugin
+
+4. **No usage data leads to nullification**: Without redux appearing in share-usage.json, the optimizer has no information about which redux exports are actually used, so it aggressively nullifies them
+
+## The Problem: Inter-Module Dependencies
+
+### Current Behavior
+The ShareUsagePlugin correctly tracks:
+- ✅ Shared module exports (@reduxjs/toolkit exports like `configureStore`)
+- ✅ Usage of shared modules by the application
+- ❌ Internal dependencies of shared modules (redux used by @reduxjs/toolkit)
+
+### The Gap
+When a shared module has internal npm dependencies that are NOT configured as shared:
+1. These sub-dependencies are bundled into the same chunk as the shared module
+2. But they don't get usage analysis because they're not `ConsumeShared` modules
+3. The optimizer sees them as "unused" and nullifies their exports
+4. Runtime breaks when the shared module tries to use its internal dependency
 
 1. **Build-Time Export Usage Tracking**: The ShareUsagePlugin analyzes which exports from shared modules are actually used by federated applications.
 
@@ -259,176 +297,69 @@ CommonJS modules with runtime-conditional exports cannot be accurately analyzed 
 - Hot Module Replacement may bypass optimization
 - Annotation processing failures result in unoptimized chunks
 
-## Proposed Solutions
+## Evidence from Actual Output
 
-### 1. Transitive Dependency Tracking
-
-**Option A**: Extend ShareUsagePlugin to analyze non-shared modules that are dependencies of shared modules:
-
-- Track module graph connections beyond ConsumeShared boundaries
-- Include transitive dependencies in usage analysis
-- Generate warnings for potential runtime issues
-
-**Option B**: Automatically promote transitive dependencies to shared status:
-
-- Detect when shared modules depend on non-shared modules
-- Add them to the shared configuration with appropriate settings
-- Ensure consistent behavior across federated apps
-
-### 2. Enhanced Configuration
-
+### 1. Redux Module Nullified in Optimized Chunk
 ```javascript
-// Proposed: Explicit transitive dependency handling
-shared: {
-  "@reduxjs/toolkit": {
-    singleton: true,
-    requiredVersion: "^2.5.0",
-    // New option to include transitive dependencies
-    includeTransitive: ["redux"]
+// In vendors-node_modules_pnpm_reduxjs_toolkit_2_8_2...js line 59
+__webpack_require__.d(__webpack_exports__, {
+    isPlainObject: ()=>null,  // <-- Function replaced with null
+    combineReducers: ()=>null,
+    createStore: ()=>null,
+    // All redux exports are nullified
+});
+```
+
+### 2. Redux Completely Missing from share-usage.json
+```json
+{
+  "treeShake": {
+    "@reduxjs/toolkit": { 
+      "configureStore": true,
+      "createSlice": true,
+      "createAsyncThunk": true
+    },
+    "react-redux": {
+      "Provider": true,
+      "useSelector": true,
+      "useDispatch": true
+    }
+    // Redux module is not here - it's not tracked at all
   }
 }
 ```
 
-### 3. Build-Time Validation
-
-Add validation to detect potential runtime failures:
-
-- Analyze internal module dependencies
-- Warn when tree-shaking might break transitive dependencies
-- Provide actionable error messages with configuration suggestions
-
-### 2. Federation-Aware Optimization
-
-**Cross-App Dependency Validation**:
-
-```javascript
-// Enhanced optimize-shared-chunks.js
-function validateCrossFederationDependencies(mergedConfig, apps) {
-	const issues = [];
-
-	// Check for re-export conflicts
-	Object.entries(mergedConfig.treeShake).forEach(([library, exports]) => {
-		Object.entries(exports).forEach(([exportName, isUsed]) => {
-			if (!isUsed) {
-				// Check if any app actually depends on this via re-exports
-				const dependents = findTransitiveDependents(library, exportName, apps);
-				if (dependents.length > 0) {
-					issues.push({
-						library,
-						exportName,
-						dependents,
-						solution: "Mark as required due to transitive dependencies"
-					});
-				}
-			}
-		});
-	});
-
-	return issues;
+### 3. ShareUsagePlugin Code Shows the Gap
+```rust
+// The plugin only processes ConsumeShared modules
+fn analyze_consume_shared_usage(&self, compilation: &Compilation) {
+    for module_id in module_graph.modules().keys() {
+        if module.module_type() == &ModuleType::ConsumeShared {
+            // Only shared modules are analyzed
+            // Redux is NOT ConsumeShared, so it's never analyzed
+        }
+    }
 }
 ```
 
-### 3. Annotation System Improvements
+## Summary
 
-**Graceful Degradation and Debugging**:
+The Redux `isPlainObject` nullification issue demonstrates a critical gap in the current ShareUsagePlugin implementation:
 
-```javascript
-// Enhanced SWC macro error handling
-function optimizeChunkWithFallback(chunkPath, config, optimizer) {
-	try {
-		const result = optimizer.optimize_with_prune_result_json(
-			sourceCode,
-			configJson
-		);
-		const parsed = JSON.parse(result);
+### The Core Problem
+- **Shared modules** (like @reduxjs/toolkit) can have **internal npm dependencies** (like redux) that are NOT configured as shared
+- These sub-dependencies are bundled into the same chunk but receive no usage analysis
+- The optimizer aggressively nullifies their exports, causing runtime failures
 
-		if (parsed?.error) {
-			console.warn(`Optimization failed for ${chunkPath}: ${parsed.error}`);
-			// Fallback to conservative tree-shaking
-			return applyConservativeOptimization(sourceCode, config);
-		}
+### Why It Happens
+1. ShareUsagePlugin only analyzes `ModuleType::ConsumeShared` modules
+2. Internal dependencies are regular modules, not ConsumeShared
+3. Without usage data in share-usage.json, the optimizer assumes exports are unused
+4. Functions get replaced with `()=>null`, breaking runtime execution
 
-		return parsed;
-	} catch (error) {
-		console.error(`WASM optimizer error for ${chunkPath}:`, error);
-		// Return original source with debug annotations
-		return {
-			optimized_source: addDebugAnnotations(sourceCode),
-			skip_reason: error.message
-		};
-	}
-}
-```
+### Impact
+- **Severity**: High - causes production runtime crashes
+- **Scope**: Generic - affects any shared module with non-shared sub-dependencies  
+- **Hidden Nature**: Only appears after optimization, not in development
 
-### 4. Advanced Configuration Options
-
-**Fine-Grained Control**:
-
-```javascript
-// rspack.config.js - Actual module federation configuration
-module.exports = {
-	plugins: [
-		new ModuleFederationPlugin({
-			name: "host",
-			shared: {
-				redux: {
-					singleton: true,
-					requiredVersion: "^4.0.0",
-					strictVersion: false,
-					eager: false
-				},
-				"@reduxjs/toolkit": {
-					singleton: true,
-					requiredVersion: "^1.8.0",
-					strictVersion: false
-				}
-			}
-		})
-
-		// ShareUsagePlugin is automatically applied by ModuleFederationRuntimePlugin
-		// with default options: { filename: "share-usage.json" }
-	]
-};
-```
-
-## Implementation Timeline
-
-### Phase 1: Transitive Dependency Support
-
-- Extend ShareUsagePlugin to track non-shared module dependencies
-- Add configuration options for transitive dependency handling
-- Implement build-time validation and warnings
-
-### Phase 2: Enhanced Developer Experience
-
-- Improve error messages and debugging capabilities
-- Add dependency visualization tools
-- Create migration guides for existing projects
-
-### Phase 3: Performance Optimization
-
-- Implement incremental analysis caching
-- Optimize memory usage for large dependency graphs
-- Add parallel processing capabilities
-
-## Conclusion
-
-This RFC proposes a build-time tree-shaking system for Module Federation shared modules that achieves significant bundle size reductions through annotation-based conditional compilation. The implementation demonstrates 51.3% total size reduction in real-world applications.
-
-### Key Benefits
-
-- **Fine-grained Optimization**: Export-level tree-shaking for shared modules
-- **Zero Runtime Overhead**: All processing occurs at build time
-- **Federation Compatible**: Maintains consistency across federated applications
-
-### Critical Issue
-
-The system currently only tracks exports from explicitly shared modules. This limitation can cause runtime failures when shared modules internally depend on non-shared modules, as demonstrated by the redux/isPlainObject case.
-
-### Next Steps
-
-1. **Immediate**: Document the limitation and provide configuration guidance
-2. **Short-term**: Implement transitive dependency tracking
-3. **Long-term**: Develop automated dependency analysis and promotion
-
-This proposal balances optimization benefits with Module Federation's flexibility requirements while acknowledging current limitations that need to be addressed.
+This is not specific to Redux - it's a systemic issue with how Module Federation tree-shaking handles the boundary between shared and non-shared modules.
