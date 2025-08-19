@@ -2,6 +2,7 @@ mod call_hooks_name;
 pub mod estree;
 mod walk;
 mod walk_block_pre;
+mod walk_module_pre;
 mod walk_pre;
 
 use std::{borrow::Cow, fmt::Display, rc::Rc, sync::Arc};
@@ -982,6 +983,8 @@ impl<'parser> JavascriptParser<'parser> {
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
+          self.prev_statement = None;
+          self.module_pre_walk_module_items(&m.body);
           self.prev_statement = None;
           self.pre_walk_module_items(&m.body);
           self.prev_statement = None;
