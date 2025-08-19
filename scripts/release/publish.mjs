@@ -2,6 +2,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "@actions/core";
 import { getOtp } from "@continuous-auth/client";
+import { parse } from "semver";
 
 import { getLastVersion } from "./version.mjs";
 
@@ -12,6 +13,15 @@ export async function publish_handler(mode, options) {
 	console.log("options:", options);
 	const npmrcPath = `${process.env.HOME}/.npmrc`;
 	const root = process.cwd();
+	const version = await getLastVersion(root);
+
+	const npmTag = options.tag;
+	const parsedVersion = parse(version);
+
+	if (npmTag === "latest" && parsedVersion.prerelease.length > 0) {
+		throw Error("Latest tag can not be prerelease version");
+	}
+
 	if (fs.existsSync(npmrcPath)) {
 		console.info("Found existing .npmrc file");
 	} else {
@@ -29,7 +39,6 @@ export async function publish_handler(mode, options) {
 		await normalPublish(options);
 	}
 
-	const version = await getLastVersion(root);
 	core.setOutput("version", version);
 	core.notice(`Version: ${version}`);
 	// write version to workspace directory
