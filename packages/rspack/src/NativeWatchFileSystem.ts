@@ -180,7 +180,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 	): [binding.NativeWatcher, boolean] {
 		if (this.#inner) {
 			// Reuse existing watcher, no need to create a new one
-			// Returning [instance, false] indicates that the native watcher is uninitialized
+			// Returning [instance, false] indicates that the native watcher is being reused (already initialized)
 			return [this.#inner, false];
 		}
 
