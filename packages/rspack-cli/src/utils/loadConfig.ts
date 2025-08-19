@@ -3,7 +3,8 @@ import path from "node:path";
 import {
 	type MultiRspackOptions,
 	type RspackOptions,
-	util
+	util,
+	experiments
 } from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
@@ -11,14 +12,9 @@ import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";
 import isTsFile from "./isTsFile";
 
-interface RechoirError extends Error {
-	failures: RechoirError[];
-	error: Error;
-}
-
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
 
-const registerLoader = async (configPath: string) => {
+const registerLoader = (configPath: string) => {
 	const ext = path.extname(configPath);
 	// TODO implement good `.mts` support after https://github.com/gulpjs/rechoir/issues/43
 	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
@@ -26,24 +22,34 @@ const registerLoader = async (configPath: string) => {
 		return;
 	}
 
-	const { default: interpret } = await import("interpret");
-	const extensions = Object.fromEntries(
-		Object.entries(interpret.extensions).filter(([key]) => key === ext)
-	);
-	if (Object.keys(extensions).length === 0) {
+	// Only support TypeScript files with a CommonJS loader here
+	if (!isTsFile(configPath)) {
 		throw new Error(`config file "${configPath}" is not supported.`);
 	}
 
-	try {
-		const { default: rechoir } = await import("rechoir");
-		rechoir.prepare(extensions, configPath);
-	} catch (error) {
-		const failures = (error as RechoirError)?.failures;
-		if (failures) {
-			const messages = failures.map(failure => failure.error.message);
-			throw new Error(`${messages.join("\n")}`);
-		}
-		throw error;
+	const nodeRequireExtensions: NodeJS.RequireExtensions = require.extensions;
+
+	if (!nodeRequireExtensions[ext]) {
+		nodeRequireExtensions[ext] = function (
+			mod: NodeJS.Module,
+			filename: string
+		) {
+			const source = fs.readFileSync(filename, "utf-8");
+			const result = experiments.swc.transformSync(source, {
+				jsc: {
+					parser: {
+						syntax: "typescript",
+						tsx: false,
+						decorators: true,
+						dynamicImport: true
+					}
+				},
+				module: { type: "commonjs" },
+				sourceMaps: false,
+				isModule: true
+			});
+			(mod as any)._compile(result.code, filename);
+		};
 	}
 };
 
@@ -186,7 +192,7 @@ export async function loadExtendedConfig(
 
 		// Register loader for TypeScript files
 		if (isTsFile(resolvedPath) && options.configLoader === "register") {
-			await registerLoader(resolvedPath);
+			registerLoader(resolvedPath);
 		}
 
 		// Load the extended configuration
@@ -241,7 +247,7 @@ export async function loadRspackConfig(
 
 	// load config
 	if (isTsFile(configPath) && options.configLoader === "register") {
-		await registerLoader(configPath);
+		registerLoader(configPath);
 	}
 	const loadedConfig = await crossImport(configPath, cwd);
 
