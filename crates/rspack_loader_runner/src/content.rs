@@ -14,7 +14,7 @@ use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap;
 
-use crate::{Scheme, get_scheme};
+use crate::{Scheme, get_scheme, parse_resource};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Content {
@@ -262,6 +262,17 @@ impl ResourceData {
 
   pub fn set_encoded_content(&mut self, v: String) {
     self.encoded_content = Some(v);
+  }
+
+  pub fn update_resource_data(&mut self, new_resource: String) {
+    if self.resource_path.is_some()
+      && let Some(parsed) = parse_resource(&new_resource)
+    {
+      self.set_path(parsed.path);
+      self.set_query_optional(parsed.query);
+      self.set_fragment_optional(parsed.fragment);
+    }
+    self.set_resource(new_resource);
   }
 }
 
