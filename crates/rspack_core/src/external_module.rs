@@ -209,6 +209,7 @@ pub struct ExternalModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
+  place_in_initial: bool,
 }
 
 #[cacheable]
@@ -234,6 +235,7 @@ impl ExternalModule {
     external_type: ExternalType,
     user_request: String,
     dependency_meta: DependencyMeta,
+    place_in_initial: bool,
   ) -> Self {
     Self {
       dependencies: Vec::new(),
@@ -255,6 +257,7 @@ impl ExternalModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
+      place_in_initial,
     }
   }
 
@@ -674,15 +677,15 @@ impl Module for ExternalModule {
   }
 
   fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
-    if self.external_type == "css-import" {
-      return Some(true);
+    match self.external_type.as_str() {
+      "css-import" | "module" | "import" | "module-import" if !self.place_in_initial => Some(true),
+      _ => Some(
+        compilation
+          .chunk_graph
+          .get_number_of_entry_modules(chunk_key)
+          > 0,
+      ),
     }
-    Some(
-      compilation
-        .chunk_graph
-        .get_number_of_entry_modules(chunk_key)
-        > 0,
-    )
   }
 
   fn source(&self) -> Option<&BoxSource> {

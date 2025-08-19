@@ -2644,7 +2644,7 @@ export type Externals = ExternalItem | ExternalItem[];
 
 // @public (undocumented)
 export class ExternalsPlugin extends RspackBuiltinPlugin {
-    constructor(type: string, externals: Externals);
+    constructor(type: string, externals: Externals, placeInInitial?: boolean | undefined);
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
