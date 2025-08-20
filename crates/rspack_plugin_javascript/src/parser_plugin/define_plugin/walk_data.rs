@@ -6,7 +6,7 @@ use std::{
 use itertools::Itertools as _;
 use regex::Regex;
 use rspack_error::{Diagnostic, DiagnosticExt};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
 use swc_core::common::Span;
 
@@ -168,7 +168,7 @@ impl ObjectDefineRecord {
 pub struct WalkData {
   pub tiling_definitions: FxHashMap<String, String>,
   pub diagnostics: Vec<Diagnostic>,
-  pub can_rename: FxHashSet<Arc<str>>,
+  pub can_rename: FxHashMap<Arc<str>, Option<Arc<str>>>,
   pub define_record: FxHashMap<Arc<str>, DefineRecord>,
   pub object_define_record: FxHashMap<Arc<str>, ObjectDefineRecord>,
 }
@@ -219,8 +219,11 @@ impl WalkData {
     fn apply_define_key(prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
       let splitted: Vec<&str> = key.split('.').collect();
       if !splitted.is_empty() {
-        let iter = (0..splitted.len() - 1)
-          .map(|i| Arc::from(format!("{prefix}{}", splitted[0..i + 1].join("."))));
+        let iter = (0..splitted.len() - 1).map(|i| {
+          let full_key = Arc::<str>::from(format!("{prefix}{}", splitted[0..i + 1].join(".")));
+          let first_key = Some(Arc::<str>::from(splitted[0]));
+          (full_key, first_key)
+        });
         walk_data.can_rename.extend(iter)
       }
     }
@@ -236,7 +239,7 @@ impl WalkData {
       let key = Arc::<str>::from(key);
       let mut define_record = DefineRecord::from_code(code.clone());
       if !is_typeof {
-        walk_data.can_rename.insert(key.clone());
+        walk_data.can_rename.insert(key.clone(), None);
         define_record = define_record
           .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
             parser
@@ -315,7 +318,7 @@ impl WalkData {
 
     fn apply_array_define(key: Cow<str>, obj: &[Value], walk_data: &mut WalkData) {
       let key = Arc::<str>::from(key);
-      walk_data.can_rename.insert(key.clone());
+      walk_data.can_rename.insert(key.clone(), None);
       let define_record = ObjectDefineRecord::from_code(Value::Array(obj.to_owned()))
         .with_on_evaluate_identifier(Box::new(move |_, _, _, start, end| {
           Some(object_evaluate_identifier(start, end))
@@ -334,7 +337,7 @@ impl WalkData {
 
     fn apply_object_define(key: Cow<str>, obj: &Map<String, Value>, walk_data: &mut WalkData) {
       let key = Arc::<str>::from(key);
-      walk_data.can_rename.insert(key.clone());
+      walk_data.can_rename.insert(key.clone(), None);
       let define_record = ObjectDefineRecord::from_code(Value::Object(obj.clone()))
         .with_on_evaluate_identifier(Box::new(move |_, _, _, start, end| {
           Some(object_evaluate_identifier(start, end))
