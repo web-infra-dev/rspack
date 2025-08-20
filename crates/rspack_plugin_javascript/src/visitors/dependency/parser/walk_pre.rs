@@ -206,7 +206,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn _pre_walk_object_pattern(
+  pub(crate) fn _pre_walk_object_pattern(
     &mut self,
     obj_pat: &ObjectPat,
   ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
@@ -247,68 +247,20 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_variable_declarator(&mut self, declarator: &VarDeclarator) {
-    if self.destructuring_assignment_properties.is_none() {
-      return;
-    }
-
     let Some(init) = declarator.init.as_ref() else {
       return;
     };
     let Some(obj_pat) = declarator.name.as_object() else {
       return;
     };
-    let Some(keys) = self._pre_walk_object_pattern(obj_pat) else {
-      return;
-    };
-
-    let destructuring_assignment_properties = self
-      .destructuring_assignment_properties
-      .as_mut()
-      .unwrap_or_else(|| unreachable!());
-
-    if let Some(await_expr) = declarator
-      .init
-      .as_ref()
-      .and_then(|decl| decl.as_await_expr())
-    {
-      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
-    } else {
-      destructuring_assignment_properties.insert(declarator.init.span(), keys);
-    }
-
-    if let Some(assign) = init.as_assign() {
-      self.pre_walk_assignment_expression(assign);
-    }
+    self.enter_destructuring_assignment(obj_pat, init);
   }
 
-  pub(super) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
-    if self.destructuring_assignment_properties.is_none() {
-      return;
-    }
-    let Some(left) = assign.left.as_pat().and_then(|pat| pat.as_object()) else {
-      return;
-    };
-    let Some(mut keys) = self._pre_walk_object_pattern(left) else {
-      return;
-    };
-
-    let destructuring_assignment_properties = self
-      .destructuring_assignment_properties
-      .as_mut()
-      .unwrap_or_else(|| unreachable!());
-
-    if let Some(set) = destructuring_assignment_properties.remove(&assign.span()) {
-      keys.extend(set);
-    }
-
-    if let Some(await_expr) = assign.right.as_await_expr() {
-      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
-    } else {
-      destructuring_assignment_properties.insert(assign.right.span(), keys);
-    }
-
-    if let Some(right) = assign.right.as_assign() {
-      self.pre_walk_assignment_expression(right)
+  pub(crate) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
+    if let Some(pat) = assign.left.as_pat()
+      && let Some(obj_pat) = pat.as_object()
+    {
+      self.enter_destructuring_assignment(obj_pat, &assign.right);
     }
   }
 }

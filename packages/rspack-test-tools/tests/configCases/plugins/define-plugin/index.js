@@ -5,13 +5,13 @@ function donotcallme() {
 it("should define FALSE", function() {
 	expect(FALSE).toBe(false);
 	expect(typeof FALSE).toBe("boolean");
-	// var x = require(FALSE ? "fail" : "./dir/a");
+	var x = require(FALSE ? "fail" : "./dir/a");
 	var y = FALSE ? require("fail") : require("./dir/a");
 });
 it("should define TRUE", function() {
 	expect(TRUE).toBe(true);
 	expect(typeof TRUE).toBe("boolean");
-	// var x = require(TRUE ? "./dir/a" : "fail");
+	var x = require(TRUE ? "./dir/a" : "fail");
 	var y = TRUE ? require("./dir/a") : require("fail");
 });
 it("should define CODE", function() {
@@ -71,10 +71,8 @@ it("should define POSITIVE_ZERO", function() {
 	expect(Object.is(POSITIVE_ZERO, -0)).toBe(false);
 	if (POSITIVE_ZERO) require("fail");
 	if (typeof POSITIVE_ZERO !== "number") require("fail");
-	// TODO: support more evaluation types
-	// if (POSITIVE_ZERO !== +0) require("fail");
-	// TODO: support more evaluation types
-	// if (POSITIVE_ZERO != +0) require("fail");
+	if (POSITIVE_ZERO !== +0) require("fail");
+	if (POSITIVE_ZERO != +0) require("fail");
 	if (POSITIVE_ZERO !== 0) require("fail");
 	if (POSITIVE_ZERO != 0) require("fail");
 });
@@ -84,33 +82,25 @@ it("should define NEGATIVE_ZER0", function() {
 	expect(Object.is(NEGATIVE_ZER0, 0)).toBe(false);
 	expect(Object.is(NEGATIVE_ZER0, +0)).toBe(false);
 	expect(Object.is(NEGATIVE_ZER0, -0)).toBe(true);
-	// TODO: support more evaluation types
-	// if (NEGATIVE_ZER0) require("fail");
-	// TODO: support more evaluation types
-	// if (typeof NEGATIVE_ZER0 !== "number") require("fail");
-	// TODO: support more evaluation types
-	// if (NEGATIVE_ZER0 !== +0) require("fail");
-	// TODO: support more evaluation types
-	// if (NEGATIVE_ZER0 != +0) require("fail");
-	// TODO: support more evaluation types
-	// if (NEGATIVE_ZER0 !== 0) require("fail");
-	// TODO: support more evaluation types
-	// if (NEGATIVE_ZER0 != 0) require("fail");
+	if (NEGATIVE_ZER0) require("fail");
+	if (typeof NEGATIVE_ZER0 !== "number") require("fail");
+	if (NEGATIVE_ZER0 !== +0) require("fail");
+	if (NEGATIVE_ZER0 != +0) require("fail");
+	if (NEGATIVE_ZER0 !== 0) require("fail");
+	if (NEGATIVE_ZER0 != 0) require("fail");
 });
 it("should define NEGATIVE_NUMBER", function() {
 	expect(NEGATIVE_NUMBER).toBe(-100.25);
 	expect(typeof NEGATIVE_NUMBER).toBe("number");
 	expect(100.25 / NEGATIVE_NUMBER).toBe(-1);
-	// TODO: support more evaluation types
-	// if (!NEGATIVE_NUMBER) require("fail");
+	if (!NEGATIVE_NUMBER) require("fail");
 	if (typeof NEGATIVE_NUMBER !== "number") require("fail");
 });
 it("should define POSITIVE_NUMBER", function() {
 	expect(POSITIVE_NUMBER).toBe(+100.25);
 	expect(typeof POSITIVE_NUMBER).toBe("number");
 	expect(POSITIVE_NUMBER / 100.25).toBe(1);
-	// TODO: support more evaluation types
-	// if (!POSITIVE_NUMBER) require("fail");
+	if (!POSITIVE_NUMBER) require("fail");
 	if (typeof POSITIVE_NUMBER !== "number") require("fail");
 });
 it("should define STRING", function() {
@@ -178,29 +168,28 @@ it("should define ARRAY[1][0]", function() {
 	expect(ARRAY[1]).toHaveLength(1);
 	expect(ARRAY[1][0]).toBe("six");
 });
-// FIXME:
-// it("should define process.env.DEFINED_NESTED_KEY", function() {
-// 	expect(process.env.DEFINED_NESTED_KEY).toBe(5);
-// 	expect(typeof process.env.DEFINED_NESTED_KEY).toBe("number");
-// 	if (process.env.DEFINED_NESTED_KEY !== 5) require("fail");
-// 	if (typeof process.env.DEFINED_NESTED_KEY !== "number") require("fail");
+it("should define process.env.DEFINED_NESTED_KEY", function() {
+	expect(process.env.DEFINED_NESTED_KEY).toBe(5);
+	expect(typeof process.env.DEFINED_NESTED_KEY).toBe("number");
+	if (process.env.DEFINED_NESTED_KEY !== 5) require("fail");
+	if (typeof process.env.DEFINED_NESTED_KEY !== "number") require("fail");
 
-// 	var x = process.env.DEFINED_NESTED_KEY;
-// 	expect(x).toBe(5);
+	// var x = process.env.DEFINED_NESTED_KEY;
+	// expect(x).toBe(5);
 
-// 	var indirect = process.env;
-// 	expect(indirect.DEFINED_NESTED_KEY).toBe(5);
+	// var indirect = process.env;
+	// expect(indirect.DEFINED_NESTED_KEY).toBe(5);
 
-// 	(function(env) {
-// 		expect(env.DEFINED_NESTED_KEY).toBe(5);
-// 		expect(typeof env.DEFINED_NESTED_KEY).toBe("number");
-// 		if (env.DEFINED_NESTED_KEY !== 5) require("fail");
-// 		if (typeof env.DEFINED_NESTED_KEY !== "number") require("fail");
+	// (function (env) {
+	// 	expect(env.DEFINED_NESTED_KEY).toBe(5);
+	// 	expect(typeof env.DEFINED_NESTED_KEY).toBe("number");
+	// 	if (env.DEFINED_NESTED_KEY !== 5) require("fail");
+	// 	if (typeof env.DEFINED_NESTED_KEY !== "number") require("fail");
 
-// 		var x = env.DEFINED_NESTED_KEY;
-// 		expect(x).toBe(5);
-// 	})(process.env);
-// });
+	// 	var x = env.DEFINED_NESTED_KEY;
+	// 	expect(x).toBe(5);
+	// })(process.env);
+});
 it("should define process.env.DEFINED_NESTED_KEY_STRING", function() {
 	if (process.env.DEFINED_NESTED_KEY_STRING !== "string") require("fail");
 });
@@ -216,10 +205,9 @@ it("should not have brackets on start", function() {
 	OBJECT;
 });
 
-// FIXME:
-// it("should not explode on recursive typeof calls", function() {
-// 	expect(typeof wurst).toEqual("undefined"); // <- is recursively defined in config
-// });
+it("should not explode on recursive typeof calls", function() {
+	expect(typeof wurst).toEqual("undefined"); // <- is recursively defined in config
+});
 
 // FIXME:
 // it("should not explode on recursive statements", function() {
@@ -251,17 +239,73 @@ it("should not have brackets on start", function() {
 // 	expect(RUNTIMEVALUE_CALLBACK_ARGUMENT_IS_A_MODULE).toEqual(true);
 // });
 
-// FIXME:
-// it("should expand properly", function() {
-// 	const a = require("./dir/a");
-// 	var tmp = "";
-// 	expect(require("./dir/" + A_DOT_J + tmp + "s")).toBe(a);
-// 	expect(require("./dir/" + tmp + A_DOT_J + "s")).toBe(a);
-// 	expect(require("./dir/" + tmp + A_DOT_J + tmp + "s")).toBe(a);
-// 	expect(require("./dir/" + tmp + A_DOT_J + (tmp + "s"))).toBe(a);
-// 	expect(require("./dir/" + tmp + (A_DOT_J + tmp + "s"))).toBe(a);
-// 	expect(require("./dir/" + tmp + (A_DOT_J + tmp) + "s")).toBe(a);
-// 	expect(require("./dir/" + (tmp + A_DOT_J + tmp + "s"))).toBe(a);
-// 	expect(require("./dir/" + (tmp + A_DOT_J + tmp) + "s")).toBe(a);
-// 	expect(require("./dir/" + (tmp + A_DOT_J) + tmp + "s")).toBe(a);
-// });
+it("should expand properly", function() {
+	const a = require("./dir/a");
+	var tmp = "";
+	expect(require("./dir/" + A_DOT_J + tmp + "s")).toBe(a);
+	expect(require("./dir/" + tmp + A_DOT_J + "s")).toBe(a);
+	expect(require("./dir/" + tmp + A_DOT_J + tmp + "s")).toBe(a);
+	expect(require("./dir/" + tmp + A_DOT_J + (tmp + "s"))).toBe(a);
+	expect(require("./dir/" + tmp + (A_DOT_J + tmp + "s"))).toBe(a);
+	expect(require("./dir/" + tmp + (A_DOT_J + tmp) + "s")).toBe(a);
+	expect(require("./dir/" + (tmp + A_DOT_J + tmp + "s"))).toBe(a);
+	expect(require("./dir/" + (tmp + A_DOT_J + tmp) + "s")).toBe(a);
+	expect(require("./dir/" + (tmp + A_DOT_J) + tmp + "s")).toBe(a);
+});
+
+it("destructuring assignment", () => {
+	const { used } = OBJECT2;
+	const { ["used"]: used2, used: used3 } = OBJECT2.sub;
+	expect(used).toBe(used2);
+	expect(used).toBe(used3);
+
+	// FIXME: https://github.com/webpack/webpack/pull/19638
+	// const { DEFINED_NESTED_KEY, DEFINED_NESTED_KEY_STRING } = process.env;
+	// expect(DEFINED_NESTED_KEY).toBe(process.env.DEFINED_NESTED_KEY);
+	// expect(DEFINED_NESTED_KEY_STRING).toBe(process.env.DEFINED_NESTED_KEY_STRING);
+
+	// const { BAZ, BAZZ } = FOO.BAR;
+	// expect(BAZ).toBe(FOO.BAR.BAZ);
+	// expect(BAZZ).toBe(FOO.BAR.BAZZ);
+
+	// const { BAZ: BAZ2 } = X.Y;
+	// expect(BAZ2).toBe(X.Y.BAZ);
+});
+
+it("should allow shorthand property (issue #16764)", () => {
+	const simple = { ONE, TRUE, NULL, STRING, BIGINT, NEGATIVE_NUMBER };
+	expect(simple).toStrictEqual({
+		ONE: 1,
+		TRUE: true,
+		NULL: null,
+		STRING: "string",
+		BIGINT: BigInt("9007199254740993"),
+		NEGATIVE_NUMBER: -100.25
+	});
+
+	const func = { FUNCTION };
+	expect(func.FUNCTION(3)).toBe(4);
+	expect(typeof func.FUNCTION).toBe("function");
+
+	const code = { CODE };
+	expect(code.CODE).toBe(3);
+	expect(typeof code.CODE).toBe("number");
+
+	const regex = { REGEXP };
+	expect(regex.REGEXP.toString()).toBe("/abc/i");
+	expect(typeof regex.REGEXP).toBe("object");
+
+	const nested = { OBJECT };
+	expect(nested.OBJECT.SUB.FUNCTION(7)).toBe(8);
+	expect(nested.OBJECT.SUB.CODE).toBe(3);
+	expect(nested.OBJECT.SUB.UNDEFINED).toBeUndefined();
+	expect(nested.OBJECT.SUB.REGEXP.toString()).toBe("/abc/i");
+	expect(nested.OBJECT.SUB.STRING).toBe("string");
+
+	const array = { ARRAY };
+	expect(array).toStrictEqual({ ARRAY: [2, ["six"]] });
+});
+
+it("fails for unknown property", () => {
+	expect(() => ({ UNKNOWN })).toThrow("UNKNOWN is not defined");
+});

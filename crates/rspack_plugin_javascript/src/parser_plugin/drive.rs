@@ -463,6 +463,21 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn collect_destructuring_assignment_properties(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.collect_destructuring_assignment_properties(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn pattern(
     &self,
     parser: &mut JavascriptParser,
