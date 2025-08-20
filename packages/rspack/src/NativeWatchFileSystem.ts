@@ -38,6 +38,7 @@ const toJsWatcherIgnored = (
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
+	#isFirstWatch = true;
 	#inputFileSystem: InputFileSystem;
 
 	constructor(inputFileSystem: InputFileSystem) {
@@ -95,24 +96,12 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			throw new Error("Invalid arguments: 'callbackUndelayed'");
 		}
 
-		const [nativeWatcher, initialized] = this.getNativeWatcher(options);
-
-		// For an initialized native watcher, we need to pass all dependencies
-		// For a existing watcher, we only pass [added_dependencies, removed_dependencies] that express incremental_dependencies
-		const watchFiles: [string[], string[]] = initialized
-			? [Array.from(files), []]
-			: [Array.from(files.added!), Array.from(files.removed!)];
-		const watchDirectories: [string[], string[]] = initialized
-			? [Array.from(directories), []]
-			: [Array.from(directories.added!), Array.from(directories.removed!)];
-		const watchMissing: [string[], string[]] = initialized
-			? [Array.from(missing), []]
-			: [Array.from(missing.added!), Array.from(missing.removed!)];
+		const nativeWatcher = this.getNativeWatcher(options);
 
 		nativeWatcher.watch(
-			watchFiles,
-			watchDirectories,
-			watchMissing,
+			this.formatWatchDependencies(files),
+			this.formatWatchDependencies(directories),
+			this.formatWatchDependencies(missing),
 			(err: Error | null, result) => {
 				if (err) {
 					callback(err, new Map(), new Map(), new Set(), new Set());
@@ -145,6 +134,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			}
 		);
 
+		this.#isFirstWatch = false;
+
 		return {
 			close: () => {
 				nativeWatcher.close().then(
@@ -175,13 +166,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		};
 	}
 
-	getNativeWatcher(
-		options: Watchpack.WatchOptions
-	): [binding.NativeWatcher, boolean] {
+	getNativeWatcher(options: Watchpack.WatchOptions): binding.NativeWatcher {
 		if (this.#inner) {
-			// Reuse existing watcher, no need to create a new one
-			// Returning [instance, false] indicates that the native watcher is being reused (already initialized)
-			return [this.#inner, false];
+			return this.#inner;
 		}
 
 		const nativeWatcherOptions: binding.NativeWatcherOptions = {
@@ -193,11 +180,29 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
 		this.#inner = nativeWatcher;
 
-		// Returning [instance, true] indicates an initialized native watcher.
-		return [nativeWatcher, true];
+		return nativeWatcher;
 	}
 
 	triggerEvent(kind: "change" | "remove" | "create", path: string) {
 		this.#inner?.triggerEvent(kind, path);
+	}
+
+	formatWatchDependencies(
+		dependencies: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		}
+	): [string[], string[]] {
+		if (this.#isFirstWatch) {
+			// if we first watch, we should pass all dependencies
+			return [Array.from(dependencies), []];
+		} else {
+			// On subsequent watches, we only need to pass incremental changes:
+			// [added dependencies, removed dependencies]
+			return [
+				Array.from(dependencies.added ?? []),
+				Array.from(dependencies.removed ?? [])
+			];
+		}
 	}
 }
