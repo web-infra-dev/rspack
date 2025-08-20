@@ -3,6 +3,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use anymap::CloneAny;
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
 use rspack_util::itoa;
@@ -34,19 +35,24 @@ pub struct ModuleReferenceOptions {
 
 #[derive(Debug, Clone)]
 pub struct ConcatenationScope {
+  pub concat_module_id: ModuleIdentifier,
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
+  pub data: anymap::Map<dyn CloneAny + Send + Sync>,
 }
 
 #[allow(unused)]
 impl ConcatenationScope {
   pub fn new(
+    concat_module_id: ModuleIdentifier,
     modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     current_module: ConcatenatedModuleInfo,
   ) -> Self {
     ConcatenationScope {
+      concat_module_id,
       current_module,
       modules_map,
+      data: Default::default(),
     }
   }
 
