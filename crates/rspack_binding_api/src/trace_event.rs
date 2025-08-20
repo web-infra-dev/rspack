@@ -64,7 +64,7 @@ pub(super) fn register_global_trace(
     if let TraceState::Uninitialized = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "logger" => Box::new(StdoutTracer),
-        "perfetto"=> Box::new(PerfettoTracer::default()),
+        "perfetto" => Box::new(PerfettoTracer::default()),
         _ => anyhow::bail!(
           "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
           layer
