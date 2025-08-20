@@ -44,7 +44,7 @@ export type HttpUriPluginOptions = {
 const getHttp = memoize(() => require("node:http"));
 const getHttps = memoize(() => require("node:https"));
 
-function fetch(url: string, options: { headers: Record<string, string> }) {
+function fetch2(url: string, options: { headers: Record<string, string> }) {
 	const parsedURL = new URL(url);
 	const send: typeof import("node:http") =
 		parsedURL.protocol === "https:" ? getHttps() : getHttp();
@@ -91,14 +91,15 @@ function fetch(url: string, options: { headers: Record<string, string> }) {
 		}
 	);
 }
-const defaultHttpClient = async (
+
+const defaultHttpClientForNode = async (
 	url: string,
 	headers: Record<string, string>
 ) => {
 	// Return a promise that resolves to the response
 	// setting redirect: "manual" to prevent automatic redirection which will break the redirect logic in rust plugin
 	// webpack use require('http').get while rspack use fetch which treats redirect differently
-	const { res, body } = await fetch(url, { headers });
+	const { res, body } = await fetch2(url, { headers });
 	const responseHeaders: Record<string, string> = {};
 	for (const [key, value] of Object.entries(res.headers)) {
 		if (Array.isArray(value)) {
@@ -113,6 +114,31 @@ const defaultHttpClient = async (
 		status: res.statusCode!,
 		headers: responseHeaders,
 		body: Buffer.from(body)
+	};
+};
+
+/**
+ * Default HTTP client for browser
+ * We directly use fetch API in browser since we don't need to worry about the compatibility
+ */
+const defaultHttpClientForBrowser = async (
+	url: string,
+	headers: Record<string, string>
+) => {
+	const res = await fetch(url, { headers });
+	const responseHeaders: Record<string, string> = {};
+	for (const [key, value] of Object.entries(res.headers)) {
+		if (Array.isArray(value)) {
+			responseHeaders[key] = value.join(", ");
+		} else {
+			responseHeaders[key] = value!;
+		}
+	}
+
+	return {
+		status: res.status,
+		headers: responseHeaders,
+		body: Buffer.from(await res.arrayBuffer())
 	};
 };
 
@@ -139,6 +165,10 @@ export class HttpUriPlugin extends RspackBuiltinPlugin {
 			options.cacheLocation === false
 				? undefined
 				: (options.cacheLocation ?? `${lockfileLocation}.data`);
+
+		const defaultHttpClient = IS_BROWSER
+			? defaultHttpClientForBrowser
+			: defaultHttpClientForNode;
 
 		const raw: RawHttpUriPluginOptions = {
 			allowedUris: options.allowedUris,
