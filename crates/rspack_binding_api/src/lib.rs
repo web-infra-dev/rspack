@@ -564,10 +564,8 @@ fn register_global_trace(
   output: String,
 ) -> anyhow::Result<()> {
   #[cfg(not(feature = "browser"))]
-  let res = trace_event::register_global_trace(filter, layer, output);
-  #[cfg(feature = "browser")]
-  let res = Ok(());
-  res
+  trace_event::register_global_trace(filter, layer, output)?;
+  Ok(())
 }
 
 #[napi]
