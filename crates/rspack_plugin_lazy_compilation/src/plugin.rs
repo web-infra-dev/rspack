@@ -1,5 +1,6 @@
 use std::{
   fmt::Debug,
+  hash::{Hash, Hasher},
   sync::{Arc, LazyLock},
 };
 
@@ -11,6 +12,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHasher;
 use tokio::sync::Mutex;
 
 use crate::{
@@ -186,18 +188,17 @@ async fn normal_module_factory_module(
   let lib_ident = module.lib_ident(LibIdentOptions {
     context: module_factory_create_data.options.context.as_str(),
   });
+  let activation_trigger = generate_activation_trigger(&module_identifier);
+
   let info = backend
-    .module(
-      module_identifier,
-      create_data.resource_resolve_data.resource.clone(),
-    )
+    .module(module_identifier, activation_trigger.to_string())
     .await?;
 
   *module = Box::new(LazyCompilationProxyModule::new(
     module_identifier,
     lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data.clone(),
-    create_data.resource_resolve_data.resource.clone(),
+    activation_trigger,
     self.cacheable,
     info.active,
     info.data,
@@ -220,4 +221,11 @@ impl<T: Backend + 'static, F: LazyCompilationTestCheck + 'static> Plugin
       .tap(normal_module_factory_module::new(self));
     Ok(())
   }
+}
+
+fn generate_activation_trigger(module_identifier: &str) -> String {
+  let mut hasher = FxHasher::default();
+  module_identifier.hash(&mut hasher);
+  let hash = hasher.finish();
+  format!("/rspack_lazy_compilation/{:x}", hash)
 }
