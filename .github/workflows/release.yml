@@ -7,7 +7,17 @@ on:
         type: choice
         description: "Release Npm Tag"
         required: true
-        default: "latest"
+        options:
+          - canary
+          - nightly
+          - latest
+          - beta
+          - alpha
+          - rc
+      tag_confirm:
+        type: choice
+        description: "Release Npm Tag Double Check"
+        required: true
         options:
           - canary
           - nightly
