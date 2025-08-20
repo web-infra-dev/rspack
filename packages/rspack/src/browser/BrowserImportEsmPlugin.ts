@@ -21,7 +21,7 @@ interface BrowserHttpImportPluginOptions {
 	dependencyVersions?: Record<string, string | undefined>;
 }
 
-export class BrowserHttpImportPlugin {
+export class BrowserImportEsmPlugin {
 	constructor(private options: BrowserHttpImportPluginOptions = {}) {}
 
 	apply(compiler: Compiler) {
