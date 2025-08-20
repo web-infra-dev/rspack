@@ -33,7 +33,7 @@
     "@rspress/plugin-algolia": "2.0.0-beta.25",
     "@rspress/plugin-llms": "2.0.0-beta.25",
     "@rspress/plugin-rss": "2.0.0-beta.25",
-    "@shikijs/transformers": "^3.9.2",
+    "@shikijs/transformers": "^3.11.0",
     "@types/node": "^20.19.9",
     "@types/react": "^19.1.8",
     "@types/semver": "^7.7.0",
