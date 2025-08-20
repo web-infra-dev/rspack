@@ -3,7 +3,7 @@ use rspack_core::{ConstDependency, SpanExt, property_access};
 use rspack_error::miette::Severity;
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::MemberProp,
+  ecma::ast::{Expr, MemberProp},
 };
 use url::Url;
 
@@ -124,6 +124,17 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     } else {
       None
     }
+  }
+
+  fn collect_destructuring_assignment_properties(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    if expr.is_meta_prop() {
+      return Some(true);
+    }
+    None
   }
 
   fn meta_property(

@@ -729,7 +729,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn get_member_expression_info_from_expr(
+  pub fn get_member_expression_info_from_expr(
     &mut self,
     expr: &Expr,
     allowed_types: AllowedMemberTypes,
@@ -975,6 +975,43 @@ impl<'parser> JavascriptParser<'parser> {
     }
     on_statement(self, statement);
     self.prev_statement = self.statement_path.pop();
+  }
+
+  fn enter_destructuring_assignment<'a>(
+    &mut self,
+    pattern: &ObjectPat,
+    expression: &'a Expr,
+  ) -> Option<&'a Expr> {
+    let expr = if let Some(await_expr) = expression.as_await_expr() {
+      &await_expr.arg
+    } else {
+      expression
+    };
+    let destructuring = if let Some(assign) = expr.as_assign()
+      && let Some(pat) = assign.left.as_pat()
+      && let Some(obj_pat) = pat.as_object()
+    {
+      self.enter_destructuring_assignment(obj_pat, &assign.right)
+    } else {
+      let can_collect = self
+        .plugin_drive
+        .clone()
+        .collect_destructuring_assignment_properties(self, expr)
+        .unwrap_or_default();
+      can_collect.then_some(expr)
+    };
+    if let Some(destructuring) = destructuring
+      && let Some(keys) = self._pre_walk_object_pattern(pattern)
+      && let Some(destructuring_assignment_properties) =
+        &mut self.destructuring_assignment_properties
+    {
+      // check multiple assignments
+      let props = destructuring_assignment_properties
+        .entry(destructuring.span())
+        .or_default();
+      props.extend(keys);
+    }
+    destructuring
   }
 
   pub fn walk_program(&mut self, ast: &Program) {

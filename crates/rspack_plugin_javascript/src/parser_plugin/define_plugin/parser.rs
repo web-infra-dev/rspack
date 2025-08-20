@@ -7,13 +7,13 @@ use std::{
 };
 
 use rspack_core::SpanExt as _;
-use swc_core::common::Spanned as _;
+use swc_core::ecma::ast::Expr;
 
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_string},
-  visitors::JavascriptParser,
+  visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
 };
 
 pub struct DefineParserPlugin {
@@ -134,46 +134,23 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     None
   }
 
-  fn call(
+  fn collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::CallExpr,
-    for_name: &str,
+    expr: &Expr,
   ) -> Option<bool> {
-    if let Some(record) = self.walk_data.define_record.get(for_name)
-      && let Some(on_expression) = &record.on_expression
+    if let MemberExpressionInfo::Expression(info) =
+      parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
+      && (self
+        .walk_data
+        .define_record
+        .contains_key(info.name.as_str())
+        || self
+          .walk_data
+          .object_define_record
+          .contains_key(info.name.as_str()))
     {
-      self.add_value_dependency(parser, for_name);
-      return on_expression(
-        record,
-        parser,
-        expr.span,
-        expr.callee.span().real_lo(),
-        expr.callee.span().real_hi(),
-        for_name,
-      )
-      .map(|_| {
-        // FIXME: webpack use `walk_expression` here
-        parser.walk_expr_or_spread(&expr.args);
-        true
-      });
-    } else if let Some(record) = self.walk_data.object_define_record.get(for_name)
-      && let Some(on_expression) = &record.on_expression
-    {
-      self.add_value_dependency(parser, for_name);
-      return on_expression(
-        record,
-        parser,
-        expr.span,
-        expr.callee.span().real_lo(),
-        expr.callee.span().real_hi(),
-        for_name,
-      )
-      .map(|_| {
-        // FIXME: webpack use `walk_expression` here
-        parser.walk_expr_or_spread(&expr.args);
-        true
-      });
+      return Some(true);
     }
     None
   }

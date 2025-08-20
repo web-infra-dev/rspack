@@ -8,7 +8,10 @@ use rspack_error::miette::Severity;
 use rspack_util::swc::get_swc_comments;
 use swc_core::{
   common::Spanned,
-  ecma::{ast::CallExpr, atoms::Atom},
+  ecma::{
+    ast::{CallExpr, Expr},
+    atoms::Atom,
+  },
 };
 
 use super::JavascriptParserPlugin;
@@ -25,6 +28,19 @@ use crate::{
 pub struct ImportParserPlugin;
 
 impl JavascriptParserPlugin for ImportParserPlugin {
+  fn collect_destructuring_assignment_properties(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    if let Some(call) = expr.as_call()
+      && call.callee.is_import()
+    {
+      return Some(true);
+    }
+    None
+  }
+
   fn import_call(&self, parser: &mut JavascriptParser, node: &CallExpr) -> Option<bool> {
     let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {

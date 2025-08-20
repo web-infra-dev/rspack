@@ -108,6 +108,14 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  fn collect_destructuring_assignment_properties(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &Expr,
+  ) -> Option<bool> {
+    None
+  }
+
   fn pattern(
     &self,
     _parser: &mut JavascriptParser,

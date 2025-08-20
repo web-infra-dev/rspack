@@ -9,7 +9,9 @@ use super::{InnerGraphPlugin, JavascriptParserPlugin};
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
   utils::object_properties::get_attributes,
-  visitors::{JavascriptParser, TagInfoData},
+  visitors::{
+    AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, TagInfoData,
+  },
 };
 
 fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
@@ -123,6 +125,24 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       }),
     );
     Some(true)
+  }
+
+  fn collect_destructuring_assignment_properties(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    if let MemberExpressionInfo::Expression(info) =
+      parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
+      && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
+      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
+      && parser
+        .get_tag_data(&name.clone(), ESM_SPECIFIER_TAG)
+        .is_some()
+    {
+      return Some(true);
+    }
+    None
   }
 
   fn identifier(
