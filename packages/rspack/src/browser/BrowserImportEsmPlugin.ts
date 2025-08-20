@@ -21,6 +21,9 @@ interface BrowserHttpImportPluginOptions {
 	dependencyVersions?: Record<string, string | undefined>;
 }
 
+/**
+ * Convert imports of dependencies in node modules to http imports from esm cdn.
+ */
 export class BrowserImportEsmPlugin {
 	constructor(private options: BrowserHttpImportPluginOptions = {}) {}
 
