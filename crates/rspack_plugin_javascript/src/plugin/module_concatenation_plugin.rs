@@ -190,6 +190,10 @@ impl ModuleConcatenationPlugin {
 
     let mut set = IdentifierIndexSet::default();
     for (con, (has_imported_names, cached_active)) in &cached.connections {
+      if set.contains(con.module_identifier()) {
+        continue;
+      }
+
       let is_target_active = if let Some(runtime) = runtime {
         if cached.runtime == *runtime {
           // runtime is same, use cached value
@@ -374,20 +378,25 @@ impl ModuleConcatenationPlugin {
       let mut incoming_connections_from_modules = HashMap::default();
       for (origin_module, connections) in incomings.iter() {
         if let Some(origin_module) = origin_module {
-          if chunk_graph.get_number_of_module_chunks(*origin_module) == 0 {
+          let number_of_chunks = module_cache
+            .get(origin_module)
+            .map(|m| m.number_of_chunks)
+            .unwrap_or_else(|| chunk_graph.get_number_of_module_chunks(*origin_module));
+
+          if number_of_chunks == 0 {
             // Ignore connection from orphan modules
             continue;
           }
 
           let is_intersect = if let Some(runtime) = runtime {
             if let Some(origin_runtime) = module_cache.get(origin_module).map(|m| &m.runtime) {
-              runtime.intersection(origin_runtime).count() > 0
+              !runtime.is_disjoint(origin_runtime)
             } else {
               let mut origin_runtime = RuntimeSpec::default();
               for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
                 origin_runtime.extend(r);
               }
-              runtime.intersection(&origin_runtime).count() > 0
+              !runtime.is_disjoint(&origin_runtime)
             }
           } else {
             false
@@ -1068,6 +1077,9 @@ impl ModuleConcatenationPlugin {
             connection.is_active(&module_graph, Some(&runtime), module_graph_cache),
           );
         }
+        let number_of_chunks = compilation
+          .chunk_graph
+          .get_number_of_module_chunks(*module_id);
         (
           *module_id,
           NoRuntimeModuleCache {
@@ -1076,6 +1088,7 @@ impl ModuleConcatenationPlugin {
             connections,
             incomings,
             active_incomings,
+            number_of_chunks,
           },
         )
       })
@@ -1396,6 +1409,7 @@ pub struct NoRuntimeModuleCache {
   connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>>,
   active_incomings: HashMap<DependencyId, bool>,
+  number_of_chunks: usize,
 }
 
 async fn create_concatenated_module(
