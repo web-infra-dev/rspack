@@ -1,6 +1,14 @@
 import type { Compiler } from ".";
 
+const DOMAIN_ESM_SH = "https://esm.sh";
+
+interface BrowserHttpImportPluginOptions {
+	domain?: string | ((request: string, packageName: string) => string);
+}
+
 export class BrowserHttpImportPlugin {
+	constructor(private options: BrowserHttpImportPluginOptions = {}) {}
+
 	apply(compiler: Compiler) {
 		compiler.hooks.normalModuleFactory.tap("BrowserHttpImportPlugin", nmf => {
 			nmf.hooks.resolve.tap("BrowserHttpImportPlugin", resolveData => {
@@ -28,9 +36,24 @@ export class BrowserHttpImportPlugin {
 		);
 	}
 
-	buildEsmUrl(moduleName: string) {
-		return `https://esm.sh/${moduleName}`;
+	buildEsmUrl(request: string) {
+		let domain = DOMAIN_ESM_SH;
+		if (typeof this.options.domain === "function") {
+			const packageName = getPackageName(request);
+			domain = this.options.domain(request, packageName);
+		} else if (typeof this.options.domain === "string") {
+			domain = this.options.domain;
+		}
+		return `${domain}/${request}`;
 	}
+}
+
+function getPackageName(request: string) {
+	if (request.startsWith("@")) {
+		const parts = request.split("/");
+		return `${parts[0]}/${parts[1]}`;
+	}
+	return request.split("/")[0];
 }
 
 function isUrl(request: string) {
