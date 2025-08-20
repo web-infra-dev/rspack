@@ -63,8 +63,27 @@ pub struct DefineRecord {
 
 impl std::fmt::Debug for DefineRecord {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    macro_rules! debug_fn_field {
+      ($field:expr) => {{
+        if $field.is_some() {
+          &"Some(..)"
+        } else {
+          &"None"
+        }
+      }};
+    }
     f.debug_struct("DefineRecord")
       .field("code", &self.code)
+      .field(
+        "on_evaluate_identifier",
+        debug_fn_field!(self.on_evaluate_identifier),
+      )
+      .field(
+        "on_evaluate_typeof",
+        debug_fn_field!(self.on_evaluate_typeof),
+      )
+      .field("on_expression", debug_fn_field!(self.on_expression))
+      .field("on_typeof", debug_fn_field!(self.on_typeof))
       .finish_non_exhaustive()
   }
 }
@@ -170,6 +189,7 @@ pub struct WalkData {
   pub diagnostics: Vec<Diagnostic>,
   pub can_rename: FxHashMap<Arc<str>, Option<Arc<str>>>,
   pub define_record: FxHashMap<Arc<str>, DefineRecord>,
+  pub typeof_define_record: FxHashMap<Arc<str>, DefineRecord>,
   pub object_define_record: FxHashMap<Arc<str>, ObjectDefineRecord>,
 }
 
@@ -305,7 +325,11 @@ impl WalkData {
             })
         }));
 
-      walk_data.define_record.insert(key, define_record);
+      if is_typeof {
+        walk_data.typeof_define_record.insert(key, define_record);
+      } else {
+        walk_data.define_record.insert(key, define_record);
+      }
     }
 
     fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression<'static> {

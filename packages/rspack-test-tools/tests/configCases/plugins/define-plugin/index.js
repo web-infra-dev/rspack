@@ -212,7 +212,7 @@ it("should not explode on recursive typeof calls", function() {
 it("should not explode on recursive statements", function() {
 	expect(function() {
 		wurst; // <- is recursively defined in config
-	}).toThrowError("suppe is not defined");
+	}).toThrow("suppe is not defined");
 });
 
 it("should evaluate composed expressions (issue 5100)", function() {
