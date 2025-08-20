@@ -980,13 +980,15 @@ impl<'parser> JavascriptParser<'parser> {
   fn enter_destructuring_assignment<'a>(
     &mut self,
     pattern: &ObjectPat,
-    expression: &'a Expr,
+    expr: &'a Expr,
   ) -> Option<&'a Expr> {
-    let expr = if let Some(await_expr) = expression.as_await_expr() {
+    let expr = expr.unwrap_parens();
+    let expr = if let Some(await_expr) = expr.as_await_expr() {
       &await_expr.arg
     } else {
-      expression
+      expr
     };
+    let expr = expr.unwrap_parens();
     let destructuring = if let Some(assign) = expr.as_assign()
       && let Some(pat) = assign.left.as_pat()
       && let Some(obj_pat) = pat.as_object()
