@@ -44,7 +44,10 @@ export type HttpUriPluginOptions = {
 const getHttp = memoize(() => require("node:http"));
 const getHttps = memoize(() => require("node:https"));
 
-function fetch2(url: string, options: { headers: Record<string, string> }) {
+function compatibleFetch(
+	url: string,
+	options: { headers: Record<string, string> }
+) {
 	const parsedURL = new URL(url);
 	const send: typeof import("node:http") =
 		parsedURL.protocol === "https:" ? getHttps() : getHttp();
@@ -99,7 +102,7 @@ const defaultHttpClientForNode = async (
 	// Return a promise that resolves to the response
 	// setting redirect: "manual" to prevent automatic redirection which will break the redirect logic in rust plugin
 	// webpack use require('http').get while rspack use fetch which treats redirect differently
-	const { res, body } = await fetch2(url, { headers });
+	const { res, body } = await compatibleFetch(url, { headers });
 	const responseHeaders: Record<string, string> = {};
 	for (const [key, value] of Object.entries(res.headers)) {
 		if (Array.isArray(value)) {
