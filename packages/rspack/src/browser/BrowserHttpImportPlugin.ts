@@ -3,7 +3,22 @@ import type { Compiler } from ".";
 const DOMAIN_ESM_SH = "https://esm.sh";
 
 interface BrowserHttpImportPluginOptions {
+	/**
+	 * ESM CDN domain
+	 * @default "https://esm.sh"
+	 */
 	domain?: string | ((request: string, packageName: string) => string);
+	/**
+	 * Specify ESM CDN URL for dependencies.
+	 */
+	dependencyUrl?:
+		| Record<string, string | undefined>
+		| ((packageName: string) => string | undefined);
+	/**
+	 * Specify versions for dependencies.
+	 * Default to "latest" if not specified.
+	 */
+	dependencyVersions?: Record<string, string | undefined>;
 }
 
 export class BrowserHttpImportPlugin {
@@ -13,28 +28,56 @@ export class BrowserHttpImportPlugin {
 		compiler.hooks.normalModuleFactory.tap("BrowserHttpImportPlugin", nmf => {
 			nmf.hooks.resolve.tap("BrowserHttpImportPlugin", resolveData => {
 				const request = resolveData.request;
+				const packageName = getPackageName(request);
 
+				// If dependencyUrl is provided, use it to resolve the request
+				if (this.options.dependencyUrl) {
+					if (typeof this.options.dependencyUrl === "function") {
+						const url = this.options.dependencyUrl(packageName);
+						if (url) {
+							resolveData.request = url;
+							return;
+						}
+					} else if (typeof this.options.dependencyUrl === "object") {
+						const url = this.options.dependencyUrl[packageName];
+						if (url) {
+							resolveData.request = url;
+							return;
+						}
+					}
+				}
+
+				// If the issuer is a URL, request must be relative to that URL too
 				const issuerUrl = toUrl(resolveData.contextInfo.issuer);
 				if (issuerUrl) {
-					// If the issuer is a URL, request must be relative to that URL too
-					resolveData.request = this.resolveWithUrlIssuer(issuerUrl, request);
+					resolveData.request = this.resolveWithUrlIssuer(request, issuerUrl);
 					return;
 				}
 
+				// If the request is a node module, resolve it with esm cdn URL
 				if (this.isNodeModule(request)) {
-					resolveData.request = this.resolveNodeModule(request);
+					resolveData.request = this.resolveNodeModule(request, packageName);
 					return;
 				}
 			});
 		});
 	}
 
-	resolveWithUrlIssuer(issuer: URL, request: string) {
+	resolveWithUrlIssuer(request: string, issuer: URL) {
 		return new URL(request, issuer).href;
 	}
 
-	resolveNodeModule(request: string) {
-		return this.buildEsmUrl(request);
+	resolveNodeModule(request: string, packageName: string) {
+		let domain = DOMAIN_ESM_SH;
+		if (typeof this.options.domain === "function") {
+			domain = this.options.domain(request, packageName);
+		} else if (typeof this.options.domain === "string") {
+			domain = this.options.domain;
+		}
+
+		const version = this.options.dependencyVersions?.[packageName] || "latest";
+		const versionedRequest = getRequestWithVersion(request, version);
+		return `${domain}/${versionedRequest}`;
 	}
 
 	isNodeModule(request: string) {
@@ -50,17 +93,6 @@ export class BrowserHttpImportPlugin {
 			!request.startsWith("!")
 		);
 	}
-
-	buildEsmUrl(request: string) {
-		let domain = DOMAIN_ESM_SH;
-		if (typeof this.options.domain === "function") {
-			const packageName = getPackageName(request);
-			domain = this.options.domain(request, packageName);
-		} else if (typeof this.options.domain === "string") {
-			domain = this.options.domain;
-		}
-		return `${domain}/${request}`;
-	}
 }
 
 function getPackageName(request: string) {
@@ -69,6 +101,37 @@ function getPackageName(request: string) {
 		return `${parts[0]}/${parts[1]}`;
 	}
 	return request.split("/")[0];
+}
+
+function getRequestWithVersion(request: string, version: string) {
+	// Handle scoped packages (packages starting with '@')
+	if (request.startsWith("@")) {
+		// Find the position of the second '/' (if exists)
+		const secondSlashIndex = request.indexOf("/", request.indexOf("/") + 1);
+
+		if (secondSlashIndex === -1) {
+			// No second '/', add version at the end
+			return `${request}@${version}`;
+		} else {
+			// Has second '/', add version after the scoped package name
+			const scopedPackage = request.substring(0, secondSlashIndex);
+			const restPath = request.substring(secondSlashIndex);
+			return `${scopedPackage}@${version}${restPath}`;
+		}
+	} else {
+		// Non-scoped packages
+		const firstSlashIndex = request.indexOf("/");
+
+		if (firstSlashIndex === -1) {
+			// No '/', add version at the end
+			return `${request}@${version}`;
+		} else {
+			// Has '/', add version after the first package name
+			const packageName = request.substring(0, firstSlashIndex);
+			const restPath = request.substring(firstSlashIndex);
+			return `${packageName}@${version}${restPath}`;
+		}
+	}
 }
 
 function toUrl(request: string): URL | undefined {
