@@ -808,7 +808,7 @@ class CodeGenerationResult {
 }
 
 // @public (undocumented)
-type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
+type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive | RuntimeValue>;
 
 // @public (undocumented)
 type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
@@ -1709,6 +1709,8 @@ export const DefinePlugin: {
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
+} & {
+    runtimeValue: (fn: RuntimeValueFn, options?: boolean | string[] | RuntimeValueOptions) => RuntimeValue;
 };
 
 // @public (undocumented)
@@ -6974,6 +6976,29 @@ type RuntimePlugins = string[];
 
 // @public (undocumented)
 type RuntimeSpec = string | Set<string> | undefined;
+
+// @public
+class RuntimeValue {
+    constructor(fn: RuntimeValueFn, options?: boolean | string[] | RuntimeValueOptions);
+    fn: RuntimeValueFn;
+    options: boolean | string[] | RuntimeValueOptions;
+}
+
+// @public
+type RuntimeValueFn = (arg: {
+    module?: any;
+    key?: string;
+    version?: string;
+}) => CodeValuePrimitive;
+
+// @public
+interface RuntimeValueOptions {
+    buildDependencies?: string[];
+    contextDependencies?: string[];
+    fileDependencies?: string[];
+    missingDependencies?: string[];
+    version?: string | (() => string);
+}
 
 // @public (undocumented)
 interface Script extends Node_4, HasSpan, HasInterpreter {
