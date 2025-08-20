@@ -674,7 +674,8 @@ impl Module for ConcatenatedModule {
     let tmp = rspack_futures::scope::<_, Result<_>>(|token| {
       arc_map.iter().for_each(|(id, info)| {
         let concatenation_scope = if let ModuleInfo::Concatenated(info) = &info {
-          let concatenation_scope = ConcatenationScope::new(arc_map.clone(), info.as_ref().clone());
+          let concatenation_scope =
+            ConcatenationScope::new(self.id, arc_map.clone(), info.as_ref().clone());
 
           Some(concatenation_scope)
         } else {
