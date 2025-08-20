@@ -84,7 +84,7 @@ export class BrowserImportEsmPlugin {
 	}
 
 	isNodeModule(request: string) {
-		// Skip requess like "http://xxx"
+		// Skip requests like "http://xxx"
 		if (toUrl(request)) {
 			return false;
 		}
