@@ -219,13 +219,8 @@ impl WalkData {
     fn apply_define_key(prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
       let splitted: Vec<&str> = key.split('.').collect();
       if !splitted.is_empty() {
-        let iter = (0..splitted.len() - 1).map(|i| {
-          Arc::from(
-            core::iter::once(&&*prefix)
-              .chain(&splitted[0..i + 1])
-              .join("."),
-          )
-        });
+        let iter = (0..splitted.len() - 1)
+          .map(|i| Arc::from(format!("{prefix}{}", splitted[0..i + 1].join("."))));
         walk_data.can_rename.extend(iter)
       }
     }

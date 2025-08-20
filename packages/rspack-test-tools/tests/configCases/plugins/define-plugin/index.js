@@ -174,21 +174,21 @@ it("should define process.env.DEFINED_NESTED_KEY", function() {
 	if (process.env.DEFINED_NESTED_KEY !== 5) require("fail");
 	if (typeof process.env.DEFINED_NESTED_KEY !== "number") require("fail");
 
-	// var x = process.env.DEFINED_NESTED_KEY;
-	// expect(x).toBe(5);
+	var x = process.env.DEFINED_NESTED_KEY;
+	expect(x).toBe(5);
 
-	// var indirect = process.env;
-	// expect(indirect.DEFINED_NESTED_KEY).toBe(5);
+	var indirect = process.env;
+	expect(indirect.DEFINED_NESTED_KEY).toBe(5);
 
-	// (function (env) {
-	// 	expect(env.DEFINED_NESTED_KEY).toBe(5);
-	// 	expect(typeof env.DEFINED_NESTED_KEY).toBe("number");
-	// 	if (env.DEFINED_NESTED_KEY !== 5) require("fail");
-	// 	if (typeof env.DEFINED_NESTED_KEY !== "number") require("fail");
+	(function (env) {
+		expect(env.DEFINED_NESTED_KEY).toBe(5);
+		expect(typeof env.DEFINED_NESTED_KEY).toBe("number");
+		if (env.DEFINED_NESTED_KEY !== 5) require("fail");
+		if (typeof env.DEFINED_NESTED_KEY !== "number") require("fail");
 
-	// 	var x = env.DEFINED_NESTED_KEY;
-	// 	expect(x).toBe(5);
-	// })(process.env);
+		var x = env.DEFINED_NESTED_KEY;
+		expect(x).toBe(5);
+	})(process.env);
 });
 it("should define process.env.DEFINED_NESTED_KEY_STRING", function() {
 	if (process.env.DEFINED_NESTED_KEY_STRING !== "string") require("fail");
@@ -209,30 +209,27 @@ it("should not explode on recursive typeof calls", function() {
 	expect(typeof wurst).toEqual("undefined"); // <- is recursively defined in config
 });
 
-// FIXME:
-// it("should not explode on recursive statements", function() {
-// 	expect(function() {
-// 		wurst; // <- is recursively defined in config
-// 	}).toThrowError("suppe is not defined");
-// });
+it("should not explode on recursive statements", function() {
+	expect(function() {
+		wurst; // <- is recursively defined in config
+	}).toThrowError("suppe is not defined");
+});
 
-// FIXME:
-// it("should evaluate composed expressions (issue 5100)", function() {
-// 	if (!module.hot && process.env.DEFINED_NESTED_KEY_STRING === "string") {
-// 		// ok
-// 	} else {
-// 		require("fail");
-// 	}
-// });
+it("should evaluate composed expressions (issue 5100)", function() {
+	if (!module.hot && process.env.DEFINED_NESTED_KEY_STRING === "string") {
+		// ok
+	} else {
+		require("fail");
+	}
+});
 
-// FIXME:
-// it("should follow renamings in var (issue 5215)", function() {
-// 	var _process$env = process.env,
-// 		TEST = _process$env.TEST,
-// 		DEFINED_NESTED_KEY = _process$env.DEFINED_NESTED_KEY;
-// 	expect(TEST).toBe("test");
-// 	expect(DEFINED_NESTED_KEY).toBe(5);
-// });
+it("should follow renamings in var (issue 5215)", function() {
+	var _process$env = process.env,
+		TEST = _process$env.TEST,
+		DEFINED_NESTED_KEY = _process$env.DEFINED_NESTED_KEY;
+	expect(TEST).toBe("test");
+	expect(DEFINED_NESTED_KEY).toBe(5);
+});
 
 // FIXME:
 // it("should check that runtimeValue callback argument is a module", function() {
