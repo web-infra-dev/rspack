@@ -1114,7 +1114,6 @@ impl JavascriptParser<'_> {
       Expr::Array(array) => eval::eval_array_expression(self, array),
       Expr::New(new) => eval::eval_new_expression(self, new),
       Expr::Call(call) => eval::eval_call_expression(self, call),
-      Expr::Paren(paren) => self.evaluating(&paren.expr),
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {
