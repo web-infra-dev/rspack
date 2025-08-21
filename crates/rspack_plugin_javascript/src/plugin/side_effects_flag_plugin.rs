@@ -648,8 +648,9 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     std::mem::take(&mut compilation.side_effects_optimize_artifact);
   let module_graph = compilation.get_module_graph();
 
-  let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph
-    .modules()
+  let all_modules = module_graph.modules();
+
+  let side_effects_state_map: IdentifierMap<ConnectionState> = all_modules
     .par_iter()
     .map(|(module_identifier, module)| {
       (
@@ -720,12 +721,12 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      module_graph.modules().len()
+      all_modules.len()
     ));
 
     modules
   } else {
-    module_graph.modules().keys().copied().collect()
+    all_modules.keys().copied().collect()
   };
   logger.time_end(inner_start);
 

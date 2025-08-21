@@ -21,12 +21,19 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     Default::default()
   };
 
-  splitter.prepare(compilation)?;
+  let all_modules = compilation
+    .get_module_graph()
+    .modules()
+    .keys()
+    .copied()
+    .collect::<Vec<_>>();
+
+  splitter.prepare(&all_modules, compilation)?;
 
   splitter.update_with_compilation(compilation)?;
 
   if !enable_incremental || splitter.chunk_group_infos.is_empty() {
-    let inputs = splitter.prepare_input_entrypoints_and_modules(compilation)?;
+    let inputs = splitter.prepare_input_entrypoints_and_modules(&all_modules, compilation)?;
     splitter.prepare_entries(inputs, compilation)?;
   }
 
@@ -36,14 +43,7 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   splitter.remove_orphan(compilation)?;
 
   // make sure all module (weak dependency particularly) has a cgm
-  let ids = compilation
-    .get_module_graph()
-    .modules()
-    .keys()
-    .copied()
-    .collect::<Vec<_>>();
-
-  for module_identifier in ids {
+  for module_identifier in all_modules {
     compilation.chunk_graph.add_module(module_identifier)
   }
 
