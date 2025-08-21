@@ -18,7 +18,7 @@ use rspack_core::{
   rspack_sources::{Mapping, OriginalLocation, SourceMap, encode_mappings},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_loader_runner::{Identifiable, Identifier};
+use rspack_loader_runner::Identifier;
 use tokio::sync::Mutex;
 
 pub mod config;
