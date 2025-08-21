@@ -180,8 +180,7 @@ async fn compilation(
 
   let css_hooks = CssPlugin::get_compilation_hooks_mut(compilation.id());
   css_hooks
-    .write()
-    .await
+    .borrow_mut()
     .render_module_package
     .tap(render_css_module_package::new(self));
 
