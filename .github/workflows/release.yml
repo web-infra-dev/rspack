@@ -99,3 +99,4 @@ jobs:
     with:
       dry_run: ${{ inputs.dry_run }}
       push_tags: ${{ inputs.push_tags }}
+    secrets: inherit
