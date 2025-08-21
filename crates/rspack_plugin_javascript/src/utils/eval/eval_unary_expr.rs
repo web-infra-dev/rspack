@@ -62,7 +62,7 @@ fn eval_typeof<'a>(
 
   let arg = parser.evaluate_expression(&expr.arg);
   if arg.is_unknown() {
-    let arg = expr.arg.unwrap_parens();
+    let arg = &*expr.arg;
     if arg.as_fn_expr().is_some() || arg.as_class().is_some() {
       let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
       res.set_string("function".to_string());
