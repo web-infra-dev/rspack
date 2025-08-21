@@ -2,7 +2,7 @@ mod parser;
 mod utils;
 mod walk_data;
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use parser::DefineParserPlugin;
 use rspack_core::{
@@ -15,6 +15,7 @@ use rspack_error::{
   thiserror::{self, Error},
 };
 use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::FxHashMap;
 use serde_json::Value;
 
 use self::walk_data::WalkData;
@@ -27,7 +28,7 @@ const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
 #[diagnostic(severity(Warning))]
 struct ConflictingValuesError(String, String, String);
 
-pub type DefineValue = HashMap<String, Value>;
+pub type DefineValue = FxHashMap<String, Value>;
 
 #[plugin]
 #[derive(Debug)]

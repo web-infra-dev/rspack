@@ -12,6 +12,7 @@ use swc_core::ecma::ast::Expr;
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
+  define_plugin::walk_data::DefineRecord,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_string},
   visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
 };
@@ -40,12 +41,26 @@ impl DefineParserPlugin {
         .insert(cache_key, value.clone());
     }
   }
+
+  fn get_define_record(&self, for_name: &str) -> Option<&DefineRecord> {
+    self
+      .walk_data
+      .define_record
+      .get(for_name)
+      .or_else(|| self.walk_data.typeof_define_record.get(for_name))
+  }
 }
 
 impl JavascriptParserPlugin for DefineParserPlugin {
   fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
-    if self.walk_data.can_rename.contains(str) {
+    if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);
+      if let Some(first_key) = first_key
+        && let Some(info) = parser.get_variable_info(first_key)
+        && !info.is_free()
+      {
+        return Some(false);
+      }
       return Some(true);
     }
     None
@@ -57,7 +72,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    if let Some(record) = self.walk_data.define_record.get(for_name)
+    if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
       // Avoid endless recursion, for example: new DefinePlugin({ "typeof a": "typeof a" })
@@ -68,7 +83,8 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.hi.0);
       self.recurse_typeof.store(false, Ordering::Release);
       return evaluated;
-    } else if self.walk_data.object_define_record.contains_key(for_name) {
+    }
+    if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       return Some(evaluate_to_string(
         "object".to_string(),
@@ -86,7 +102,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if let Some(record) = self.walk_data.define_record.get(for_name)
+    if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
       // Avoid endless recursion, for example: new DefinePlugin({ "a": "a" })
@@ -112,7 +128,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     expr: &swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if let Some(record) = self.walk_data.define_record.get(for_name)
+    if let Some(record) = self.get_define_record(for_name)
       && let Some(on_typeof) = &record.on_typeof
     {
       self.add_value_dependency(parser, for_name);
@@ -161,7 +177,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if let Some(record) = self.walk_data.define_record.get(for_name)
+    if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);
@@ -195,7 +211,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if let Some(record) = self.walk_data.define_record.get(for_name)
+    if let Some(record) = self.get_define_record(for_name)
       && let Some(on_expression) = &record.on_expression
     {
       self.add_value_dependency(parser, for_name);

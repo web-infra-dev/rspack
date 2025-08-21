@@ -3614,13 +3614,10 @@ impl OptimizationOptionsBuilder {
     if let Some(node_env) = node_env {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::DefinePlugin(
-          [(
-            "process.env.NODE_ENV".to_string(),
-            format!("{}", json!(node_env)).into(),
-          )]
-          .into(),
-        ));
+        .push(BuiltinPluginOptions::DefinePlugin(HashMap::from_iter([(
+          "process.env.NODE_ENV".to_string(),
+          format!("{}", json!(node_env)).into(),
+        )])));
     }
 
     Ok(Optimization {
