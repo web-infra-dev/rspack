@@ -4,7 +4,7 @@ import * as core from "@actions/core";
 import { getOtp } from "@continuous-auth/client";
 import { parse } from "semver";
 
-import { getLastVersion } from "./version.mjs";
+import { getLastVersion, getPkgName } from "./version.mjs";
 
 const __filename = path.resolve(fileURLToPath(import.meta.url));
 const __dirname = path.dirname(__filename);
@@ -14,11 +14,16 @@ export async function publish_handler(mode, options) {
 	const npmrcPath = `${process.env.HOME}/.npmrc`;
 	const root = process.cwd();
 	const version = await getLastVersion(root);
+	const name = await getPkgName(root);
 
 	const npmTag = options.tag;
 	const parsedVersion = parse(version);
 
-	if (npmTag === "latest" && parsedVersion.prerelease.length > 0) {
+	if (
+		npmTag === "latest" &&
+		parsedVersion.prerelease.length > 0 &&
+		name.startsWith("@rspack/")
+	) {
 		throw Error("Latest tag cannot be prerelease version");
 	}
 
