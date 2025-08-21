@@ -223,9 +223,6 @@ importers:
       react-refresh:
         specifier: ^0.17.0
         version: 0.17.0
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@swc/core@1.12.0(@swc/helpers@0.5.17))(@types/node@24.1.0)(typescript@5.9.2)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
@@ -247,9 +244,6 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@swc/core@1.12.0(@swc/helpers@0.5.17))(@types/node@24.1.0)(typescript@5.9.2)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
@@ -282,9 +276,6 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
-      ts-node:
-        specifier: ^10.9.2
-        version: 10.9.2(@swc/core@1.12.0(@swc/helpers@0.5.17))(@types/node@24.1.0)(typescript@5.9.2)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
