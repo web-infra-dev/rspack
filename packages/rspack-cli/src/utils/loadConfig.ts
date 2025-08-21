@@ -39,8 +39,9 @@ export function compile(sourcecode: string, filename: string) {
 				dynamicImport: true
 			}
 		},
+		filename: filename,
 		module: { type: "commonjs" },
-		sourceMaps: false,
+		sourceMaps: true,
 		isModule: true
 	});
 	return injectInlineSourceMap({ filename, code, map });
