@@ -141,7 +141,7 @@ type StatsChunk = {
   // Sibling chunk IDs
   siblings?: Array<string>;
 
-  // Chunk create reason when splitting hunks (need to enable `optimization.splitChunks`).
+  // Chunk create reason when splitting chunks (need to enable `optimization.splitChunks`).
   reason?: string;
   // List of idHints of the cache groups hit when splitting chunks (need to enable `optimization.splitChunks`).
   idHints: Array<string>;
@@ -258,7 +258,7 @@ type StatsModule = {
 
 ## Entry/ChunkGroup Object
 
-Each entrypoint or chunk group object represents an group of chunks and assets, and its structure is as follows:
+Each entrypoint or chunk group object represents a group of chunks and assets, and its structure is as follows:
 
 ```ts
 type StatsEntrypoints = Record<string, StatsChunkGroup>;
@@ -309,7 +309,7 @@ type StatsChunkGroup = {
 
 ## Error/Warning Object
 
-Each error or warning object represents an error/warning threw during the build process, and its structure is as follows:
+Each error or warning object represents an error/warning thrown during the build process, and its structure is as follows:
 
 ```ts
 type StatsError = {
