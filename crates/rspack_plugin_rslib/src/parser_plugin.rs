@@ -1,4 +1,7 @@
-use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
+use rspack_plugin_javascript::{
+  JavascriptParserPlugin,
+  visitors::{JavascriptParser, extract_member_root},
+};
 
 #[derive(PartialEq, Debug, Default)]
 pub struct RslibParserPlugin {
@@ -20,14 +23,21 @@ impl JavascriptParserPlugin for RslibParserPlugin {
     member_expr: &swc_core::ecma::ast::MemberExpr,
     _name: &str,
   ) -> Option<bool> {
-    // Intercept `require.cache` of APIPlugin.
+    let expr = &swc_core::ecma::ast::Expr::Member(member_expr.to_owned());
+    // Intercept APIPlugin.
     if self.intercept_api_plugin
-      && let swc_core::ecma::ast::Expr::Ident(ident) = &*member_expr.obj
+      && let Some(root) = extract_member_root(expr)
     {
       let prop = &member_expr.prop;
       if let swc_core::ecma::ast::MemberProp::Ident(id) = prop
-        && ident.sym == "require"
-        && id.sym == "cache"
+        && root.sym == "require"
+        && (id.sym == "cache"
+          // not_supported_expr
+            || id.sym == "extensions"
+            || id.sym == "config"
+            || id.sym == "version"
+            || id.sym == "include"
+            || id.sym == "onError")
       {
         return Some(true);
       }

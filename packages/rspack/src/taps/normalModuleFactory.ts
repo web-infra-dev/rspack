@@ -1,5 +1,4 @@
 import binding from "@rspack/binding";
-import type { ResolveData } from "../Module";
 import type { NormalModuleCreateData } from "../NormalModuleFactory";
 import type { CreatePartialRegisters } from "./types";
 
@@ -16,21 +15,8 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return async function (resolveData: binding.JsBeforeResolveArgs) {
-					const normalizedResolveData: ResolveData = {
-						contextInfo: {
-							issuer: resolveData.issuer,
-							issuerLayer: resolveData.issuerLayer ?? null
-						},
-						request: resolveData.request,
-						context: resolveData.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
-					};
-					const ret = await queried.promise(normalizedResolveData);
-					resolveData.request = normalizedResolveData.request;
-					resolveData.context = normalizedResolveData.context;
+				return async function (resolveData: binding.JsResolveData) {
+					const ret = await queried.promise(resolveData);
 					return [ret, resolveData];
 				};
 			}
@@ -44,21 +30,8 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return async function (resolveData: binding.JsFactorizeArgs) {
-					const normalizedResolveData: ResolveData = {
-						contextInfo: {
-							issuer: resolveData.issuer,
-							issuerLayer: resolveData.issuerLayer ?? null
-						},
-						request: resolveData.request,
-						context: resolveData.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
-					};
-					await queried.promise(normalizedResolveData);
-					resolveData.request = normalizedResolveData.request;
-					resolveData.context = normalizedResolveData.context;
+				return async function (resolveData: binding.JsResolveData) {
+					await queried.promise(resolveData);
 					return resolveData;
 				};
 			}
@@ -72,21 +45,8 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return async function (resolveData: binding.JsFactorizeArgs) {
-					const normalizedResolveData: ResolveData = {
-						contextInfo: {
-							issuer: resolveData.issuer,
-							issuerLayer: resolveData.issuerLayer ?? null
-						},
-						request: resolveData.request,
-						context: resolveData.context,
-						fileDependencies: [],
-						missingDependencies: [],
-						contextDependencies: []
-					};
-					await queried.promise(normalizedResolveData);
-					resolveData.request = normalizedResolveData.request;
-					resolveData.context = normalizedResolveData.context;
+				return async function (resolveData: binding.JsResolveData) {
+					await queried.promise(resolveData);
 					return resolveData;
 				};
 			}
@@ -115,10 +75,9 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return async function (arg: string) {
-					const data = JSON.parse(arg) as ResolveData;
-					const ret = await queried.promise(data);
-					return [ret, data.createData];
+				return async function (resolveData: binding.JsResolveData) {
+					const ret = await queried.promise(resolveData);
+					return [ret, resolveData];
 				};
 			}
 		),

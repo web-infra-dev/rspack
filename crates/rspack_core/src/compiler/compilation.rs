@@ -47,7 +47,7 @@ use crate::{
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
   RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
@@ -147,8 +147,6 @@ impl Default for CompilationId {
     Self::new()
   }
 }
-
-type ValueCacheVersions = HashMap<String, String>;
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 

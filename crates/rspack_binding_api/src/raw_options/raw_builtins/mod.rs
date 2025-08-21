@@ -1,8 +1,9 @@
-mod css_chunking;
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_circular_dependency;
+mod raw_context_replacement;
 mod raw_copy;
+mod raw_css_chunking;
 mod raw_css_extract;
 mod raw_dll;
 mod raw_html;
@@ -13,6 +14,7 @@ mod raw_lazy_compilation;
 mod raw_lightning_css_minimizer;
 mod raw_limit_chunk_count;
 mod raw_mf;
+mod raw_normal_replacement;
 mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
@@ -40,7 +42,6 @@ use rspack_ids::{
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
-use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
 use rspack_plugin_css_chunking::CssChunkingPlugin;
@@ -75,6 +76,7 @@ use rspack_plugin_mf::{
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
 use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
+use rspack_plugin_module_replacement::{ContextReplacementPlugin, NormalModuleReplacementPlugin};
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
@@ -100,30 +102,32 @@ use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 use rustc_hash::FxHashMap as HashMap;
 
-pub use self::{
-  css_chunking::CssChunkingPluginOptions,
+use self::{
   raw_banner::RawBannerPluginOptions,
+  raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
   raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
+  raw_context_replacement::RawContextReplacementPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
+  raw_css_chunking::RawCssChunkingPluginOptions,
+  raw_css_extract::RawCssExtractPluginOption,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
   raw_ignore::RawIgnorePluginOptions,
-  raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
-  raw_mf::RawContainerPluginOptions,
-  raw_progress::RawProgressPluginOptions,
-  raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
-};
-use self::{
-  raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
-  raw_css_extract::RawCssExtractPluginOption,
   raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
-  raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
+  raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
+  raw_mf::{
+    RawConsumeSharedPluginOptions, RawContainerPluginOptions, RawContainerReferencePluginOptions,
+    RawProvideOptions,
+  },
+  raw_normal_replacement::RawNormalModuleReplacementPluginOptions,
+  raw_progress::RawProgressPluginOptions,
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
+  raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use crate::{
   options::entry::JsEntryPluginOptions,
-  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter, RawContextReplacementPluginOptions},
+  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter},
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
@@ -202,6 +206,7 @@ pub enum BuiltinPluginName {
   RuntimeChunkPlugin,
   SizeLimitsPlugin,
   NoEmitOnErrorsPlugin,
+  NormalModuleReplacementPlugin,
   ContextReplacementPlugin,
   DllEntryPlugin,
   DllReferenceAgencyPlugin,
@@ -720,6 +725,11 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::NoEmitOnErrorsPlugin => {
         plugins.push(NoEmitOnErrorsPlugin::default().boxed());
       }
+      BuiltinPluginName::NormalModuleReplacementPlugin => {
+        let raw_options = downcast_into::<RawNormalModuleReplacementPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(NormalModuleReplacementPlugin::new(raw_options.into()).boxed());
+      }
       BuiltinPluginName::ContextReplacementPlugin => {
         let raw_options = downcast_into::<RawContextReplacementPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
@@ -783,7 +793,7 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
       BuiltinPluginName::CssChunkingPlugin => {
-        let options = downcast_into::<CssChunkingPluginOptions>(self.options)
+        let options = downcast_into::<RawCssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }

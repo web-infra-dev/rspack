@@ -207,7 +207,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
         "\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}\n//# sourceURL=webpack-internal:///{module_id}\n"
       );
       let module_content =
-        simd_json::to_string(&format!("{source}{footer}")).expect("should convert to string");
+        simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("should convert to string");
       RawStringSource::from(format!(
         "eval({});",
         if compilation.options.output.trusted_types.is_some() {

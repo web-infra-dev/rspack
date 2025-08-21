@@ -243,7 +243,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           //         "LightningCSS minimize warning".to_string(),
           //         e.to_string(),
           //       )
-          //       .with_kind(DiagnosticKind::Css)
           //       .with_severity(RspackSeverity::Warn)) as Box<dyn miette::Diagnostic + Send + Sync>)
           //     } else {
           //       Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())

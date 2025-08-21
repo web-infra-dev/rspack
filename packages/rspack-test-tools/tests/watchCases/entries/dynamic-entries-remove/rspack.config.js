@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const rspack = require("@rspack/core");
 
 let compiler;
 let step = 0;
@@ -27,6 +28,7 @@ module.exports = {
 		filename: "[name].js"
 	},
 	plugins: [
+		new rspack.experiments.RemoveDuplicateModulesPlugin(),
 		function (c) {
 			compiler = c;
 			c.hooks.done.tap("test", () => {

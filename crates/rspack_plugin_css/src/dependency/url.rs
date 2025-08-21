@@ -35,11 +35,9 @@ impl CssUrlDependency {
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
   ) -> Option<String> {
-    // Here we need the asset module's runtime to get the code generation result, which is not equal to
-    // the css module's runtime, but actually multiple runtime optimization doesn't affect asset module,
-    // in different runtime asset module will always have the same code generation result, so we use
-    // `runtime: None` to get the only one code generation result
-    let code_gen_result = compilation.code_generation_results.get(identifier, None);
+    // url points to asset modules, and asset modules should have same codegen results for all runtimes
+    let code_gen_result = compilation.code_generation_results.get_one(identifier);
+
     if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
       Some(url.inner().to_string())
     } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {

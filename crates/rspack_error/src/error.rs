@@ -45,7 +45,6 @@ pub struct AnyhowError(#[from] anyhow::Error);
 #[error("{title}: {message}")]
 pub struct TraceableError {
   title: String,
-  kind: DiagnosticKind,
   message: String,
   severity: Severity,
   #[allow(clippy::rc_buffer)]
@@ -99,11 +98,6 @@ impl Diagnostic for TraceableError {
 impl TraceableError {
   pub fn with_severity(mut self, severity: impl Into<Severity>) -> Self {
     self.severity = severity.into();
-    self
-  }
-
-  pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
-    self.kind = kind;
     self
   }
 
@@ -161,7 +155,6 @@ impl TraceableError {
   ) -> Self {
     Self {
       title,
-      kind: Default::default(),
       message,
       severity: Default::default(),
       src,
@@ -304,40 +297,6 @@ macro_rules! impl_error_transparent {
       }
     }
   };
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub enum DiagnosticKind {
-  JavaScript,
-  Typescript,
-  Jsx,
-  Tsx,
-  Scss,
-  Css,
-  #[default]
-  Internal,
-  Io,
-  Json,
-  Html,
-}
-
-/// About the manually implementation,
-/// display string should be snake, for consistency.
-impl std::fmt::Display for DiagnosticKind {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      DiagnosticKind::JavaScript => write!(f, "javascript"),
-      DiagnosticKind::Typescript => write!(f, "typescript"),
-      DiagnosticKind::Jsx => write!(f, "jsx"),
-      DiagnosticKind::Tsx => write!(f, "tsx"),
-      DiagnosticKind::Scss => write!(f, "scss"),
-      DiagnosticKind::Css => write!(f, "css"),
-      DiagnosticKind::Internal => write!(f, "internal"),
-      DiagnosticKind::Io => write!(f, "io"),
-      DiagnosticKind::Json => write!(f, "json"),
-      DiagnosticKind::Html => write!(f, "html"),
-    }
-  }
 }
 
 fn _assert() {

@@ -309,6 +309,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "dynamicImportPreload", false);
 	D(parserOptions, "url", true);
 	D(parserOptions, "exprContextCritical", true);
+	D(parserOptions, "unknownContextCritical", true);
 	D(parserOptions, "wrappedContextCritical", false);
 	D(parserOptions, "wrappedContextRegExp", /.*/);
 	D(parserOptions, "strictExportPresence", false);

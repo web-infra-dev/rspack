@@ -2,10 +2,8 @@
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	experiments: {
-		lazyCompilation: {
-			entries: false,
-			cacheable: false
-		}
+	lazyCompilation: {
+		entries: false,
+		cacheable: false
 	}
 };

@@ -4,9 +4,9 @@ use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
   ecma::ast::{
-    AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForInStmt, ForOfStmt, ForStmt, IfStmt,
-    LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, SwitchCase, SwitchStmt,
-    TryStmt, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
+    AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, ForStmt,
+    IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, SwitchCase,
+    SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
   },
 };
 
@@ -14,7 +14,11 @@ use super::{
   DestructuringAssignmentProperty, JavascriptParser,
   estree::{MaybeNamedFunctionDecl, Statement},
 };
-use crate::{parser_plugin::JavascriptParserPlugin, utils::eval};
+use crate::{
+  parser_plugin::JavascriptParserPlugin,
+  utils::eval,
+  visitors::{VariableDeclaration, VariableDeclarationKind},
+};
 
 impl JavascriptParser<'_> {
   pub fn pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
@@ -79,8 +83,9 @@ impl JavascriptParser<'_> {
   pub fn pre_walk_declaration(&mut self, decl: &Decl) {
     match decl {
       Decl::Fn(decl) => self.pre_walk_function_declaration(decl.into()),
-      Decl::Var(decl) => self.pre_walk_variable_declaration(decl),
-      Decl::Class(_) | Decl::Using(_) => (),
+      Decl::Var(decl) => self.pre_walk_variable_declaration(VariableDeclaration::VarDecl(decl)),
+      Decl::Using(decl) => self.pre_walk_variable_declaration(VariableDeclaration::UsingDecl(decl)),
+      Decl::Class(_) => (),
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
         unreachable!()
       }
@@ -138,9 +143,21 @@ impl JavascriptParser<'_> {
 
   fn pre_walk_for_statement(&mut self, stmt: &ForStmt) {
     if let Some(decl) = stmt.init.as_ref().and_then(|init| init.as_var_decl()) {
-      self.pre_walk_statement(Statement::Var(decl))
+      self.pre_walk_statement(Statement::Var(VariableDeclaration::VarDecl(decl)))
     }
     self.pre_walk_statement(stmt.body.as_ref().into());
+  }
+
+  fn pre_walk_for_head(&mut self, head: &ForHead) {
+    match head {
+      ForHead::VarDecl(decl) => {
+        self.pre_walk_variable_declaration(VariableDeclaration::VarDecl(decl))
+      }
+      ForHead::UsingDecl(decl) => {
+        self.pre_walk_variable_declaration(VariableDeclaration::UsingDecl(decl))
+      }
+      ForHead::Pat(_) => {}
+    }
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
@@ -150,9 +167,7 @@ impl JavascriptParser<'_> {
         .clone()
         .top_level_for_of_await_stmt(self, stmt);
     }
-    if let Some(left) = stmt.left.as_var_decl() {
-      self.pre_walk_variable_declaration(left)
-    }
+    self.pre_walk_for_head(&stmt.left);
     self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
@@ -165,20 +180,18 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_for_in_statement(&mut self, stmt: &ForInStmt) {
-    if let Some(decl) = stmt.left.as_var_decl() {
-      self.pre_walk_variable_declaration(decl);
-    }
+    self.pre_walk_for_head(&stmt.left);
     self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
-  fn pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
-    if decl.kind == VarDeclKind::Var {
+  fn pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
+    if decl.kind() == VariableDeclarationKind::Var {
       self._pre_walk_variable_declaration(decl)
     }
   }
 
-  pub(super) fn _pre_walk_variable_declaration(&mut self, decl: &VarDecl) {
-    for declarator in &decl.decls {
+  pub(super) fn _pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
+    for declarator in decl.declarators() {
       self.pre_walk_variable_declarator(declarator);
       if !self
         .plugin_drive
@@ -193,7 +206,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn _pre_walk_object_pattern(
+  pub(crate) fn _pre_walk_object_pattern(
     &mut self,
     obj_pat: &ObjectPat,
   ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
@@ -234,68 +247,20 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_variable_declarator(&mut self, declarator: &VarDeclarator) {
-    if self.destructuring_assignment_properties.is_none() {
-      return;
-    }
-
     let Some(init) = declarator.init.as_ref() else {
       return;
     };
     let Some(obj_pat) = declarator.name.as_object() else {
       return;
     };
-    let Some(keys) = self._pre_walk_object_pattern(obj_pat) else {
-      return;
-    };
-
-    let destructuring_assignment_properties = self
-      .destructuring_assignment_properties
-      .as_mut()
-      .unwrap_or_else(|| unreachable!());
-
-    if let Some(await_expr) = declarator
-      .init
-      .as_ref()
-      .and_then(|decl| decl.as_await_expr())
-    {
-      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
-    } else {
-      destructuring_assignment_properties.insert(declarator.init.span(), keys);
-    }
-
-    if let Some(assign) = init.as_assign() {
-      self.pre_walk_assignment_expression(assign);
-    }
+    self.enter_destructuring_assignment(obj_pat, init);
   }
 
-  pub(super) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
-    if self.destructuring_assignment_properties.is_none() {
-      return;
-    }
-    let Some(left) = assign.left.as_pat().and_then(|pat| pat.as_object()) else {
-      return;
-    };
-    let Some(mut keys) = self._pre_walk_object_pattern(left) else {
-      return;
-    };
-
-    let destructuring_assignment_properties = self
-      .destructuring_assignment_properties
-      .as_mut()
-      .unwrap_or_else(|| unreachable!());
-
-    if let Some(set) = destructuring_assignment_properties.remove(&assign.span()) {
-      keys.extend(set);
-    }
-
-    if let Some(await_expr) = assign.right.as_await_expr() {
-      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
-    } else {
-      destructuring_assignment_properties.insert(assign.right.span(), keys);
-    }
-
-    if let Some(right) = assign.right.as_assign() {
-      self.pre_walk_assignment_expression(right)
+  pub(crate) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
+    if let Some(pat) = assign.left.as_pat()
+      && let Some(obj_pat) = pat.as_object()
+    {
+      self.enter_destructuring_assignment(obj_pat, &assign.right);
     }
   }
 }

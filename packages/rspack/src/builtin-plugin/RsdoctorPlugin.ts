@@ -32,6 +32,7 @@ import { validate } from "../schema/validate";
 import type { CreatePartialRegisters } from "../taps/types";
 import { create } from "./base";
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace RsdoctorPluginData {
 	export type {
 		JsRsdoctorAsset as RsdoctorAsset,

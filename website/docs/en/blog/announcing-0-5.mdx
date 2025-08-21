@@ -233,7 +233,7 @@ class CustomDevServer {
   enableHMR(compiler) {
 -   compiler.options.devServer ??= {};
 -   compiler.options.devServer.hot = true;
-+   new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
++   new compiler.rspack.HotModuleReplacementPlugin().apply(compiler);
   }
 }
 ```
@@ -255,7 +255,7 @@ function prependEntry(compiler, additionalEntry) {
 -      ...(compiler.options.entry[key].import || []),
 -    ];
 -  }
-+  new compiler.webpack.EntryPlugin(compiler.context, additionalEntry, {
++  new compiler.rspack.EntryPlugin(compiler.context, additionalEntry, {
 +    name: undefined, // `name: undefined` to prepend the it to every entry, or add it to a specified entry with specified entry name
 +  }).apply(compiler);
 }

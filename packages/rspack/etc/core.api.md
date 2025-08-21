@@ -1435,12 +1435,6 @@ export type ContainerReferencePluginOptions = {
 // @public
 export type Context = string;
 
-// @public (undocumented)
-type ContextInfo = {
-    issuer: string;
-    issuerLayer?: string | null;
-};
-
 export { ContextModule }
 
 // @public (undocumented)
@@ -1533,9 +1527,6 @@ export const CopyRspackPlugin: {
 export type CopyRspackPluginOptions = {
     patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
 };
-
-// @public (undocumented)
-type CreateData = Partial<binding.JsCreateData>;
 
 // @public
 function createNativePlugin<T extends any[], R>(name: CustomPluginName, resolve: (this: Compiler, ...args: T) => R, affectedHooks?: AffectedHooks): {
@@ -2268,6 +2259,7 @@ interface EsParserConfig {
     functionBind?: boolean;
     // @deprecated (undocumented)
     importAssertions?: boolean;
+    // @deprecated (undocumented)
     importAttributes?: boolean;
     // @deprecated (undocumented)
     importMeta?: boolean;
@@ -2434,6 +2426,8 @@ interface Experiments_2 {
         transformSync: typeof transformSync;
         minifySync: typeof minifySync;
     };
+    // (undocumented)
+    VirtualModulesPlugin: typeof VirtualModulesPlugin;
 }
 
 // @public (undocumented)
@@ -3376,6 +3370,7 @@ export type JavascriptParserOptions = {
     importMeta?: boolean;
     url?: "relative" | boolean;
     exprContextCritical?: boolean;
+    unknownContextCritical?: boolean;
     wrappedContextCritical?: boolean;
     wrappedContextRegExp?: RegExp;
     exportsPresence?: ExportsPresence;
@@ -4762,9 +4757,6 @@ export interface ModuleOptionsNormalized {
 }
 
 // @public (undocumented)
-type ModuleReplacer = (createData: ResolveData) => void;
-
-// @public (undocumented)
 export class MultiCompiler {
     constructor(compilers: Compiler[] | Record<string, Compiler>, options?: MultiCompilerOptions);
     // (undocumented)
@@ -5065,14 +5057,15 @@ export class NormalModuleFactory {
 }
 
 // @public (undocumented)
-export class NormalModuleReplacementPlugin {
-    constructor(resourceRegExp: RegExp, newResource: string | ModuleReplacer);
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    readonly newResource: string | ModuleReplacer;
-    // (undocumented)
-    readonly resourceRegExp: RegExp;
-}
+export const NormalModuleReplacementPlugin: {
+    new (resourceRegExp: RegExp, newResource: string | ((data: ResolveData) => void)): {
+        name: string;
+        _args: [resourceRegExp: RegExp, newResource: string | ((data: ResolveData) => void)];
+        affectedHooks: "done" | "compilation" | "run" | "afterDone" | "thisCompilation" | "invalid" | "compile" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "emit" | "assetEmitted" | "afterEmit" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "make" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 interface NullLiteral extends Node_4, HasSpan {
@@ -5267,7 +5260,7 @@ interface Options extends Config_2 {
     filename?: string;
     inputSourceMap?: boolean | string;
     // (undocumented)
-    isModule?: boolean | "unknown";
+    isModule?: boolean | "unknown" | "commonjs";
     outputPath?: string;
     // (undocumented)
     plugin?: Plugin_3;
@@ -6009,15 +6002,7 @@ type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?
 type ResolveContext = {};
 
 // @public (undocumented)
-export type ResolveData = {
-    contextInfo: ContextInfo;
-    context: string;
-    request: string;
-    fileDependencies: string[];
-    missingDependencies: string[];
-    contextDependencies: string[];
-    createData?: CreateData;
-};
+export type ResolveData = binding.JsResolveData;
 
 // @public
 export type ResolveOptions = {
@@ -6323,7 +6308,6 @@ declare namespace rspackExports {
         EnvironmentPlugin,
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
-        NormalModuleReplacementPlugin,
         OutputFileSystem,
         web,
         node,
@@ -6394,10 +6378,10 @@ declare namespace rspackExports {
         EvalSourceMapDevToolPlugin,
         HtmlRspackPlugin,
         LightningCssMinimizerRspackPlugin,
+        NormalModuleReplacementPlugin,
         SourceMapDevToolPlugin,
         SwcJsMinimizerRspackPlugin,
         experiments,
-        VirtualModulesPlugin,
         getRawResolve,
         LoaderContext,
         LoaderDefinition,
@@ -8106,6 +8090,8 @@ interface TransformConfig {
     react?: ReactConfig;
     // (undocumented)
     treatConstEnumAsEnum?: boolean;
+    // (undocumented)
+    tsEnumIsMutable?: boolean;
     useDefineForClassFields?: boolean;
     verbatimModuleSyntax?: boolean;
 }
@@ -8894,7 +8880,7 @@ interface VariableDeclarator extends Node_4, HasSpan {
 export const version: string;
 
 // @public (undocumented)
-export class VirtualModulesPlugin {
+class VirtualModulesPlugin {
     constructor(modules?: Record<string, string>);
     // (undocumented)
     static __internal__take_virtual_files(compiler: Compiler): {

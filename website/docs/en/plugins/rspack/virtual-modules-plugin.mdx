@@ -4,7 +4,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} />
 
-The `rspack.VirtualModulesPlugin` is a Rust port of the [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) plugin. It's deeply integrated with Rspack to deliver the same functionality with enhanced performance.
+The `rspack.experiments.VirtualModulesPlugin` is a Rust port of the [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) plugin. It's deeply integrated with Rspack to deliver the same functionality with enhanced performance.
 
 ## Usage
 
@@ -13,7 +13,7 @@ The `rspack.VirtualModulesPlugin` is a Rust port of the [`webpack-virtual-module
 You can pass virtual modules to the constructor when creating a new VirtualModulesPlugin instance:
 
 ```ts
-new rspack.VirtualModulesPlugin(modules?: Record<string, string>)
+new rspack.experiments.VirtualModulesPlugin(modules?: Record<string, string>)
 ```
 
 **Parameters:**
@@ -25,7 +25,7 @@ const rspack = require('@rspack/core');
 
 module.exports = {
   plugins: [
-    new rspack.VirtualModulesPlugin({
+    new rspack.experiments.VirtualModulesPlugin({
       'src/generated/config.js': 'export default { version: "1.0.0" };',
       'src/generated/constants.js': `
         export const API_URL = "${process.env.API_URL || 'http://localhost:3000'}";
@@ -52,7 +52,7 @@ writeModule(filePath: string, contents: string): void
 ```js title="rspack.config.js"
 const rspack = require('@rspack/core');
 
-const virtualModulesPlugin = new rspack.VirtualModulesPlugin();
+const virtualModulesPlugin = new rspack.experiments.VirtualModulesPlugin();
 
 module.exports = {
   plugins: [

@@ -25,14 +25,43 @@
     "activeMatch": "/blog"
   },
   {
-    "text": "About",
-    "link": "/misc/faq",
-    "activeMatch": "/misc"
-  },
-  {
-    "text": "Contribute",
-    "link": "/contribute/index",
-    "activeMatch": "/contribute"
+    "text": "Resources",
+    "items": [
+      {
+        "text": "FAQ",
+        "link": "/misc/faq",
+        "activeMatch": "/misc/faq"
+      },
+      {
+        "text": "Team",
+        "link": "/misc/team/core-team",
+        "activeMatch": "/misc/team"
+      },
+      {
+        "text": "Branding",
+        "link": "/misc/branding/guideline",
+        "activeMatch": "/misc/branding"
+      },
+      {
+        "text": "Glossary",
+        "link": "/misc/glossary",
+        "activeMatch": "/misc/glossary"
+      },
+      {
+        "text": "Roadmap",
+        "link": "/misc/planning/roadmap",
+        "activeMatch": "/misc/planning"
+      },
+      {
+        "text": "Contributing",
+        "link": "/contribute/index",
+        "activeMatch": "/contribute"
+      },
+      {
+        "text": "Playground ↗",
+        "link": "https://repl.rspack.rs/"
+      }
+    ]
   },
   {
     "text": "Version",

@@ -567,6 +567,7 @@ export declare enum BuiltinPluginName {
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
+  NormalModuleReplacementPlugin = 'NormalModuleReplacementPlugin',
   ContextReplacementPlugin = 'ContextReplacementPlugin',
   DllEntryPlugin = 'DllEntryPlugin',
   DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
@@ -596,13 +597,6 @@ export declare function cleanupGlobalTrace(): void
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
-}
-
-export interface CssChunkingPluginOptions {
-  strict?: boolean
-  minSize?: number
-  maxSize?: number
-  exclude?: RegExp
 }
 
 export declare enum EnforceExtension {
@@ -702,13 +696,6 @@ export interface JsBeforeEmitData {
   outputName: string
   compilationId: number
   uid?: number
-}
-
-export interface JsBeforeResolveArgs {
-  request: string
-  context: string
-  issuer: string
-  issuerLayer?: string
 }
 
 export interface JsBuildMeta {
@@ -864,13 +851,6 @@ export interface JsExecuteModuleResult {
   error?: string
 }
 
-export interface JsFactorizeArgs {
-  request: string
-  context: string
-  issuer: string
-  issuerLayer?: string
-}
-
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
 }
@@ -1022,11 +1002,14 @@ export interface JsPathDataChunkLike {
   id?: string
 }
 
-export interface JsResolveArgs {
+export interface JsResolveData {
   request: string
   context: string
-  issuer: string
-  issuerLayer?: string
+  contextInfo: ContextInfo
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  createData?: JsCreateData
 }
 
 export interface JsResolveForSchemeArgs {
@@ -2006,6 +1989,13 @@ export interface RawCssAutoParserOptions {
   url?: boolean
 }
 
+export interface RawCssChunkingPluginOptions {
+  strict?: boolean
+  minSize?: number
+  maxSize?: number
+  exclude?: RegExp
+}
+
 export interface RawCssExtractPluginOption {
   filename: JsFilename
   chunkFilename: JsFilename
@@ -2305,6 +2295,7 @@ export interface RawJavascriptParserOptions {
   dynamicImportFetchPriority?: string
   url?: string
   exprContextCritical?: boolean
+  unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
@@ -2515,6 +2506,11 @@ export interface RawNonStandard {
   deepSelectorCombinator: boolean
 }
 
+export interface RawNormalModuleReplacementPluginOptions {
+  resourceRegExp: RegExp
+  newResource: string | ((data: JsResolveData) => JsResolveData)
+}
+
 export interface RawOccurrenceChunkIdsPluginOptions {
   prioritiseInitial?: boolean
 }
@@ -2708,7 +2704,17 @@ export interface RawRsdoctorPluginOptions {
 }
 
 export interface RawRslibPluginOptions {
-  interceptApiPlugin: boolean
+  /**
+   * Intercept partial parse hooks of APIPlugin, expect some statements not to be parsed as API.
+   * @default `false`
+   */
+  interceptApiPlugin?: boolean
+  /**
+   * Use the compact runtime for dynamic import from `modern-module`, commonly used in CommonJS output.
+   * This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
+   * @default `false`
+   */
+  compactExternalModuleDynamicImport?: boolean
 }
 
 export interface RawRspackFuture {
@@ -2935,11 +2941,11 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
-  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>
-  registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveArgs) => Promise<JsResolveArgs>); stage: number; }>
+  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
+  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
+  registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
-  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: string) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
+  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>

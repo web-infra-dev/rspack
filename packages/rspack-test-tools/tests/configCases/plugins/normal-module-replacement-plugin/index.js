@@ -7,3 +7,7 @@ it("should use replaced resource", function () {
 	expect(require("./resource.foo")).toBe("bar");
 	expect(require("./resource.foo.js")).toBe("bar");
 });
+
+it("should use replaced query", function () {
+	expect(require("./query")).toBe("v2");
+});
