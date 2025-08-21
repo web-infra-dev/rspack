@@ -4,12 +4,12 @@ it('should update alias resolution when a higher-priority file is created in wat
     switch (WATCH_STEP) {
         case "0":
             // Initial build:
-            // `a.js` does not exist, so it should fall back to `a.js`.
+            // `b.js` does not exist, so it should fall back to `b.js`.
             expect(result).toBe("a")
             break;
         case "1":
             // After update (b.js is created):
-            // `a.js` now exists and has higher priority in the alias array.
+            // `b.js` now exists and has higher priority in the alias array.
             // The build should now resolve to `b.js`.
             expect(result).toBe("b")
             break;

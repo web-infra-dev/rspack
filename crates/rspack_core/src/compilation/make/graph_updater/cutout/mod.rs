@@ -79,7 +79,7 @@ impl Cutout {
                     *dependency.id(),
                     module_graph
                       .module_identifier_by_dependency_id(dependency.id())
-                      .cloned(),
+                      .copied(),
                   )
                 })
             })
