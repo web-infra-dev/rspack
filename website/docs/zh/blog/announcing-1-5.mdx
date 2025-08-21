@@ -1,0 +1,399 @@
+---
+date: 2025-8-18 11:00:00
+sidebar: false
+---
+
+_2025 年 8 月 18 日_
+
+# Rspack 1.5 发布公告
+
+![Rspack 1.5](https://assets.rspack.rs/rspack/rspack-banner-v1-5.png)
+
+---
+
+Rspack 1.5 已经正式发布！
+
+值得关注的变更如下：
+
+- 新功能
+- [在浏览器中运行: @rspack/browser](##在浏览器中运行-rspackbrowser)
+- [自定义 Rspack binding](#自定义-rspack-binding)
+- [常量内联](#常量内联)
+- [#barrel files 构建优化](##barrel-files-构建优化)
+- [builtin:swc-loader 增强 TypeScript 支持](#builtinswc-loader-增强-typescript-支持)
+- [增强 lazy compilation](#增强-lazy-compilation)
+- [内置文件系统监听器](#内置文件系统监听器)
+- [内置虚拟模块插件](#内置虚拟模块插件)
+- [Module Federation 运行时提升](#module-federation-运行时提升)
+- Rstack 进展
+- [Rslint 发布](#rslint-发布)
+- [Rsbuild 1.4](#rsbuild-14)
+- [Rslib 0.12](#rslib-012)
+- [Rspress 2.0 beta](#rspress-20-beta)
+- [Rsdoctor](#rsdoctor)
+- [Rstest](#rstest)
+
+## 新功能
+
+### 在浏览器中运行: @rspack/browser
+
+![repack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
+
+[@rspack/browser](https://www.npmjs.com/package/@rspack/browser) 发布，
+能够在任意浏览器项目中使用 Rspack 在线打包。`@rspack/browser` 将为复杂 Web 项目的在线打包提供底层支持。
+除此之外，`@rspack/browser` 还为开发者提供了更轻量的问题复现、配置分享方案，并通过提供在线交互式 Demo 的方式帮助开发者入门和学习 Rspack。
+
+未来我们将持续完善在线打包所需的能力，欢迎前往 [https://repl.rspack.rs/](https://repl.rspack.rs/) 进行体验。
+
+### 自定义 Rspack binding
+
+为了解锁原生 Rust 级别的 Rspack 灵活的高性能插件，我们发布了 **_Rspack Custom Binding_** 一种全新的可扩展机制，
+该功能主要面向需要对构建流程进行精细控制，或希望利用 Rust 生态构建高性能 Rspack 扩展的用户与工具开发者。
+
+Rspack 自定义 Binding 允许开发者在现有 Rust binding 的基础上，直接实现自定义的 Rust Plugin 和 Rust Loader。
+
+该机制在设计上确保了高度的兼容性：
+
+:::warning
+TODO 中文润色通顺
+:::
+
+- 100% 功能继承 —— 完全兼容现有的 JavaScript 与 Rust 能力，保留 JavaScript API，所有核心功能均可使用。
+- 自定义 Rust 扩展 —— 使用 Rust 编写并集成自定义 Loader 和 Plugin，享受与 Rspack 运行时的一流集成体验。
+- 无缝集成 —— 基于现有的 Rspack binding 层构建，与现有 API 与工具链保持良好兼容。
+- 模板默认支持 NPM provenance —— 官方模板内置支持将 Rust 扩展发布为符合 NPM Provenance 标准的包，提升供应链透明性与安全性。
+
+点击查看[官方文档](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html)以了解更多。
+
+### 常量内联
+
+[`experiments.inlineConst`](/config/experiments#experimentsinlineconst) 功能会对模块图的叶子节点中的常量进行 inline 优化，带来更小的产物体积。
+
+比如有以下代码：
+
+```js
+// font-settings.js
+export const bold = 0b001;
+export const italic = 0b010;
+export const underline = 0b100;
+
+// index.js
+import { bold, italic, underline } from './font-settings';
+
+(function setupFont() {
+  const fontStyle = {};
+  // MY_FONT is defined by DefinePlugin({ FONT: 0b001 })
+  if (MY_FONT & bold) fontStyle['font-weight'] = 'bold';
+  if (MY_FONT & italic) fontStyle['font-style'] = 'italic';
+  if (MY_FONT & underline) fontStyle['text-decoration'] = 'underline';
+  applyFont(fontStyle);
+})();
+```
+
+开启 inlineConst 使用 Rspack 打包， 实例中的 `if` 能够更加明确的被压缩器优化，得到更加精简的产物：
+
+```js
+(() => {
+  'use strict';
+  !(function () {
+    let t = {};
+    ((t['font-weight'] = 'bold'), applyFont(t));
+  })(); /* rest of the app... */
+})();
+```
+
+更多可参考 [experiments.inlineConst 文档](/config/experiments#experimentsinlineconst)，计划在 v1.6.0 默认开启该功能。
+
+### barrel files 构建优化
+
+[experiments.lazyBarrel](/config/experiments#experimentslazybarrel) 功能，能够对无副作用的 barrel files 的 `reexports` 进行懒构建，
+避免因重导出引入过多模块到构建过程中，减少模块解析和构建的性能开销，该功能能够大幅提升存在大量 barrel files 项目的构建性能。
+
+[build-tools-performance/ui-components](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)
+在开启 `experiments.lazyBarrel` 后：
+
+- 构建时间由 1.47s 减少到 1.19s，提升约 20%
+- 模块路径解析次数由 39675 次减少到 20071 次
+- 模块构建次数由 9358 次减少到 5062 次
+
+内部某大型项目在开启 `experiments.lazyBarrel` 后:
+
+- 构建时间由 17.943s 减少到 16.004s，提升约 10%
+- 模块路径解析次数由 181078 次减少到 137232 次
+- 模块构建次数由 38046 次减少到 29405 次。
+
+更多可参考 [`experiments.lazyBarrel` 文档](/config/experiments#experimentslazybarrel)， 计划在 v1.6.0 默认开启该功能。
+
+### builtin:swc-loader 增强 TypeScript 支持
+
+开启 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 和
+[experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 来增强 builtin:swc-loader 对 TypeScript 的支持。
+
+`inlineEnum` 会对 TypeScript `enum` 进行 inline 优化，以优化产物体积：
+```ts
+// types.ts
+export enum Kind {
+  A,
+  B,
+}
+// index.ts
+import { Kind } from "./types.ts";
+console.log(Kind.A);
+```
+
+开启 `inlineEnum` 使用 Rspack 打包：
+
+```js
+// Bundled by Rspack (with minimize: true)
+(()=>{"use strict";!function(){console.log(0)}()})();
+```
+
+默认会对所有 `enum` 都进行 inline，可通过 ['const-only'](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 和
+[tsEnumIsMutable: true](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 来仅对 `const enum` 进行 inline 优化，
+更多详情可参考 [experiments.inlineEnum](https://rspack.rs/config/experiments#experimentsinlineenum)。
+
+`typeReexportsPresence` 优化了对 TypeScript 的类型重导出的报错：
+```ts
+// 之前会报 ESModulesLinkingWarning，开启 typeReexportsPresence 后不会报警告
+export { MyType } from "./types.ts";
+```
+更多详情可参考 [experiments.typeReexportsPresence](https://rspack.rs/config/experiments#experimentstypereexportspresence)。
+
+另外 Rspack 正在探索对 TypeScript 一等公民的支持，预计在未来 Rspack v2.0 无需配置即可使用 TypeScript，提供更好的 TypeScript 开发体验。
+
+### 内置文件系统监听器
+在过去，Rspack 使用 [watchpack](https://www.npmjs.com/package/watchpack) 进行文件监听。
+在实践过程中，我们发现了一些问题。 Watchpack 在每次文件变更后会重新创建一个 Watchpack 实例， 并接受全量的文件监听列表，运行一次完整的流程。
+当文件监听列表的数量庞大时，这将占用用户较大比例的 CPU 和内存资源， 例如：[#7490](https://github.com/web-infra-dev/rspack/issues/7490)。
+
+为此，我们设计并实现了基于 Rust 的内置文件系统监听器。
+这个监听器在整个 watch 周期内留存，每次 rebuild 时仅对已变更的文件进行增量更新，且仅监听必要的目录。
+每次重新构建（rebuild）后，监听流程更新可达到毫秒级，在 10000 模块级别的大型项目中，热监听耗时将降低 **52.8%**。
+
+使用配置 `experiments.nativeWatcher` 开启内置文件系统监听器。
+
+```js
+export default {
+    watchOptions: {
+        // Other watch options...
+    },
+    experiments: {
+        nativeWatcher: true
+    }
+};
+```
+
+更多参考 [`experiments.nativeWatcher`](/config/experiments#experimentsnativewatcher) 文档。
+
+### 内置的虚拟模块插件
+在 Rspack@1.4.0 中，我们支持了[自定义的 InputFileSystem](https://rspack.rs/blog/announcing-1-4#custom-input-file-system)。
+配合 Webpack virtual module 插件使用时，在少量虚拟文件的场景下，既兼顾了 Webpack 生态的也保持了 Rspack 的高性能。但是在大量的虚拟文件的场景下性能劣化问题还是存在。
+为了解决大量虚拟文件的场景，新增了[内置的虚拟文件插件](https://github.com/web-infra-dev/rspack/issues/10856)。
+
+内置的虚拟文件插件 VirtualModulesPlugin，首先和 Webpack Virtual Module 保持相同的 API ，使用和替换都非常的方便。
+
+```js
+// rspack.config.js
+const rspack = require('@rspack/core');
+module.exports = {
+  plugins: [
+    new rspack.experiments.VirtualModulesPlugin({
+      'src/generated/config.js': 'export default { version: "1.0.0" };'
+    })
+  ]
+}
+```
+因为将虚拟文件的存储转移到了 Rust 侧，大大降低了虚拟文件的读取和解析的开销。
+
+感谢我的社区伙伴 [@nilptr](https://github.com/nilptr) 的[贡献](https://github.com/web-infra-dev/rspack/pull/11021)。
+
+### Module Federation 运行时提升
+
+之前 Module Federation 的运行时是通过给入口模块打补丁的形式运行起来的；新版的 Module Federation 插件通过将自己的运行时代码和 Rspack 的运行时代码合并，在入口模块执行前就完成初始化。
+同时将 Module Federation 运行时代码提升到了运行时 chunk 中，以保证了它的在应用启动前就已经就绪。
+
+本次改动带来如下收益：
+
+1. 在多入口的场景下产物尺寸减少
+2. 修复了 Module Federation 初始化出错的问题
+3. Module Federation 提取到运行时 chunk 中
+4. 提供一套基于 hook 的插件体系
+
+下面是一个演示项目在使用 Module Federation 作用域提升所带来的产物体积优化对比。
+
+| Configuration                             | Before | After | Reduction |
+|:------------------------------------------|-------:|------:|----------:|
+| Single Entry                              |  140kb | 140kb |        0% |
+| Multiple Entries (default)                |  210kb | 210kb |        0% |
+| Multiple Entries + runtimeChunk: 'single' |  210kb |  70kb |       67% |
+| Multiple Entries + runtimeChunk: true     |  210kb | 150kb |       29% |
+
+## 性能优化
+
+### 二进制产物尺寸优化
+
+自 1.4.0 以来做了一些系列的优化开降低 Rspack 的安装尺寸。其中最重要的便是优化 Rspack node binding 的文件尺寸。
+
+![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-binary-size.png)
+
+二进制产物尺寸优化是从我们的开路先锋 [@quininer](https://github.com/quininer) 优化 Rspack 的依赖
+[browserlist-rs](https://github.com/browserslist/browserslist-rs/pull/32) 尺寸开始的；
+接着各路开花，例如：这个 [Pull Request](https://github.com/web-infra-dev/rspack/pull/11077) 通过修改编译参数足足减少 5M 的产物尺寸；
+还有 @hardfirst 通过控制 [feature 开关](https://github.com/web-infra-dev/rspack/pull/10965) 带来了近2M 的尺寸优化；
+通过优化上游依赖 [wasmer](https://github.com/wasmerio/wasmer/pull/5621/files) 和 [SWC](https://github.com/swc-project/swc/pull/10638) 带来了近3M 的优化。
+细心的读者可能会发现，产物优化不仅仅是在 Rspack 的本身下功夫，还推进我们促进上游软件的优化。
+不仅仅构建一个更快的 bundler ，我们更想构建一个更加美好的社区。
+
+### Seal 阶段性能提升
+
+相较于 1.4.0 版本， 1.5.0 版本在 Seal 阶段践行了大量的优化。
+在不影响产物的情况下，通过优化数据结构、提高代码的并行度、增加热点代码执行缓存等方式，对大型项目的 Seal 阶段有较大的提升。
+
+以内部一个约 40000+ 的模块的项目为例，整体 Seal 阶段耗时降低约 50%。
+
+![seal-performance-before](https://assets.rspack.rs/rspack/assets/rspack-v1-5-seal-phase-before.png)
+
+
+
+![seal-performance-after](https://assets.rspack.rs/rspack/assets/rspack-v1-5-seal-phase-after.png)
+
+其中几个主要的耗时阶段都有一定程度的优化：
+
+| Phase                   | v1.4.0 | v1.5.0 | Reduction |
+|-------------------------|-------:|-------:|----------:|
+| Flag dependency exports |  394ms |  181ms |       54% |
+| Flag dependency usage   | 1828ms |  454ms |       75% |
+| Code Splitting          | 2019ms |  777ms |       62% |
+| Bundle Splitting        | 1588ms |  712ms |       55% |
+| Module Concatenation    | 2645ms |  616ms |       76% |
+| RealContentHashPlugin   |  881ms |  404ms |       54% |
+
+Rspack 团队后续也会继续优化性能，并在不牺牲产物体积的前提下，探索性能更加优秀的算法。
+
+## Rstack 进展
+
+[Rstack](/guide/start/ecosystem#rstack) 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
+
+### Rslint 发布
+
+![rslint-logo](https://assets.rspack.rs/rslint/rslint-logo-256x256.png)
+
+我们很高兴地宣布 [Rslint](https://rslint.rs/) 的发布！
+Rslint 是一个 TypeScript 优先的新一代 Linter，由 Go 编写，并基于 typescript-go 提供的类型检查能力。
+它起源于 [@auvred](https://github.com/auvred) 开发的 [tsgolint](https://github.com/typescript-eslint/tsgolint)，并在此基础上进行了扩展和优化。
+
+Rslint 目前支持如下功能
+- ESLint 风格的配置与指令：几乎无缝上手
+- IDE 支持：提供 VS Code 与 Cursor 插件
+- 自动修复：`rslint --fix` 一键修复代码问题
+- 规则支持：已实现 50+ 条 `@typescript-eslint` 规则
+- 测试验证：运行原始 `typescript-eslint` 测试套件，确保规则正确性
+
+Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支持。
+我们非常欢迎你来尝试，并给予宝贵的反馈，帮助我们一起打磨 Rslint！
+
+### Rsbuild 1.4
+
+#### 默认开启懒编译
+
+针对 `target: web` 和开启 `dev.lazyCompilation.imports` 的项目，Rsbuild 默认开启懒编译。
+如果你的应用中包含大量动态 `import`， 你会发现开发服务器的启动大大提升。
+
+如果你在使用懒编译时遇到任何问题，可以通过将 `dev.lazyCompilation` 设置为 `false` 来禁用它，或者在 GitHub Issues 中反馈。
+
+```js
+// rsbuild.config.mjs
+export default {
+  dev: {
+    lazyCompilation: false
+  }
+};
+```
+
+#### Barrel file 优化
+
+Rspack 的实验特性 barrel file 优化功能（`experiments.lazyBarrel`）现已默认启用。
+在构建包含 barrel 文件的应用时，该优化应能显著加快构建速度。
+
+```txt
+# Without barrel optimization
+Benchmark 1: node --run build:rsbuild
+  Time (mean ± σ):      1.708 s ±  0.040 s
+
+# With barrel optimization
+Benchmark 2: BARREL=true node --run build:rsbuild
+  Time (mean ± σ):      1.253 s ±  0.007 s
+```
+
+该项优化可以通过 `experiments.lazyBarrel` 配置来优化:
+
+```javascript
+// rsbuild.config.mjs
+export default {
+  tools: {
+    rspack: {
+      experiments: {
+        lazyBarrel: false
+      }
+    }
+  }
+};
+```
+
+### Rslib 0.12
+
+Rslib 0.12 版本已发布，主要新增了以下功能：
+
+#### 新的 ESM 产物生成
+
+我们正在积极设计并开发全新的 ESM 产物生成方案，以解决现有 ESM 产物存在的相关问题。目前，绝大部分的 interop 行为与 webpack 保持一致，详见 [interop 测试](https://jserfeng.github.io/interop-test/by-test-case)。
+
+#### 使用 Rstest
+
+在 Rslib v0.12 版本中，我们在模板中添加了 Rstest 作为配套的测试框架，库开发者现在可以使用同一套 Rstack 工具链进行开发与测试。
+
+![Using Rstest](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rslib-using-rstest.png)
+
+### Rspress 2.0 beta
+
+#### @rspress/plugin-llms 支持 UI 展示
+
+现在 Rstack 系列文档站都可以直接复制 Markdown 文本，便于配合大模型阅读文档。
+
+这一能力通过 @rspress/plugin-llms 实现，这个插件会生成 [llms.txt](https://llmstxt.org/) 相关文件，你可以通过最新 beta 版本的 Rspress 来使用，详见 [@rspress/plugin-llms 文档](https://v2.rspress.rs/plugin/official-plugins/llms) 。
+
+![plugin-llms Demo](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspress-plugin-llms-ui.png)
+
+### Rsdoctor MCP
+
+#### 深入 concatenate module 
+Rspack 构建时会将部分模块提升合并为 ***concatenated module***，以优化体积和性能，但此前 Rsdoctor 无法对其内部结构做进一步 AST 拆解与分析。
+
+Rsdoctor 1.2 版本新增对 ***concatenated module*** 的深入分析，帮助开发者准确获知 Tree Shaking 和压缩后子模块的实际体积，便于深入分析产物细节。
+同时，Rspack（>=1.4.11）集成的 Rsdoctor 插件增强了 source map 能力，即使不开启 source map 也能轻松分析 concatenate module。
+
+![Concatenated Module 分析对比](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-comparsion.png)
+
+#### Treemap 视图
+
+Rsdoctor 之前的 Treemap 视图依赖 webpack-bundle-analyzer，导致分析效率和页面加载速度较低，而 Treemap 又是包分析中最常用的可视化工具。
+
+Rsdoctor 1.2 版本新增了 Treemap 视图，是一种经典的构建产物分析视图，能帮助开发者更直观地可视化并分析 bundle 的构成，以及资源（Assets）和模块（Modules）的占比。同时也可以搜索模块资源，锁定模块资源。
+
+![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-treemap.png)
+
+
+### Rstest
+
+#### Mock 模块
+
+Mock 模块是测试中的常见需求，它允许你在测试中替换模块的实现。
+现在，你可以使用 Rstest 的 mock API 对 ES 模块进行 mock。
+
+![Mock 模块](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rstest-mock-modules.png)
+
+#### CLI 快捷键
+
+在 watch 模式下运行 Rstest 时，你可以使用键盘快捷键来执行各种便捷操作。
+
+![Rstest 快捷键](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rstest-cli-shortcuts.png)
