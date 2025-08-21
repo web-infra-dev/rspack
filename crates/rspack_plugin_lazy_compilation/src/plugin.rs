@@ -199,7 +199,7 @@ async fn normal_module_factory_module(
     lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data.clone(),
     activation_trigger,
-    create_data.resource_resolve_data.resource.clone(),
+    create_data.request.to_string(),
     self.cacheable,
     info.active,
     info.data,

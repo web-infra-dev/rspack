@@ -1,7 +1,7 @@
 import { expect, test } from "@/fixtures";
 
 test("lazy compilation handles loader-only entries without resource paths", async ({ page }) => {
-	// Wait for the lazy-compiled content to load
+    // Wait for the lazy-compiled content to load
     const actionButton = page.getByRole("button", { name: "Click me" });
     await expect(actionButton).toBeVisible({ timeout: 1000 });
 
