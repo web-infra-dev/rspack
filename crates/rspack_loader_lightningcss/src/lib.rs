@@ -258,15 +258,13 @@ impl LightningCssLoader {
   }
 }
 
-impl Identifiable for LightningCssLoader {
-  fn identifier(&self) -> rspack_loader_runner::Identifier {
-    self.id
-  }
-}
-
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for LightningCssLoader {
+  fn identifier(&self) -> rspack_loader_runner::Identifier {
+    self.id
+  }
+
   #[tracing::instrument("loader:lightningcss", skip_all, fields(
     perfetto.track_name = "loader:lightningcss",
     perfetto.process_name = "Loader Analysis",

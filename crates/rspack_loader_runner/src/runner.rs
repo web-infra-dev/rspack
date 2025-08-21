@@ -15,7 +15,7 @@ use crate::{
   plugin::LoaderRunnerPlugin,
 };
 
-impl<Context> LoaderContext<Context> {
+impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
     if let Some(plugin) = &self.plugin
       && plugin.should_yield(self).await?
@@ -69,7 +69,7 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   Ok(())
 }
 
-async fn create_loader_context<Context>(
+async fn create_loader_context<Context: Send>(
   loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
@@ -219,7 +219,7 @@ pub struct LoaderResult {
   pub parse_meta: ParseMeta,
 }
 
-impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
+impl<Context: Send> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
   type Error = rspack_error::Error;
   fn try_from(loader_context: LoaderContext<Context>) -> std::result::Result<Self, Self::Error> {
     let content = loader_context.content.ok_or_else(|| {
