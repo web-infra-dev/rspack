@@ -67,18 +67,29 @@ impl Cutout {
               force_build_modules.insert(module.identifier());
             }
           }
-          force_build_deps.extend(
-            module_graph
-              .dependencies()
-              .values()
-              .par_bridge()
-              .filter_map(|dependency| {
-                FactorizeInfo::get_from(dependency)
-                  .filter(|factorize_info| factorize_info.depends_on(&files))
-                  .map(|_| *dependency.id())
-              })
-              .collect::<Vec<_>>(),
-          );
+          let affected_dependencies_and_modules = module_graph
+            .dependencies()
+            .values()
+            .par_bridge()
+            .filter_map(|dependency| {
+              FactorizeInfo::get_from(dependency)
+                .filter(|factorize_info| factorize_info.depends_on(&files))
+                .map(|_| {
+                  (
+                    *dependency.id(),
+                    module_graph
+                      .module_identifier_by_dependency_id(dependency.id())
+                      .cloned(),
+                  )
+                })
+            })
+            .collect::<Vec<_>>();
+          for (dependency_id, module_identifier) in affected_dependencies_and_modules {
+            force_build_deps.insert(dependency_id);
+            if let Some(module_identifier) = module_identifier {
+              force_build_modules.insert(module_identifier);
+            }
+          }
         }
         UpdateParam::ForceBuildDeps(deps) => {
           force_build_deps.extend(deps);
