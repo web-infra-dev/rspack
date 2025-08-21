@@ -1,10 +1,8 @@
 use std::{
   fmt::Debug,
-  hash::Hash,
   sync::{Arc, LazyLock},
 };
 
-use rspack_collections::Identifier;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   DependencyType, EntryDependency, LibIdentOptions, Module, ModuleFactory, ModuleFactoryCreateData,
@@ -188,18 +186,18 @@ async fn normal_module_factory_module(
   let lib_ident = module.lib_ident(LibIdentOptions {
     context: module_factory_create_data.options.context.as_str(),
   });
-  let virtual_trigger_path = create_virtual_trigger_path(&module_identifier);
-
   let info = backend
-    .module(module_identifier, virtual_trigger_path.to_string())
+    .module(
+      module_identifier,
+      create_data.resource_resolve_data.resource.clone(),
+    )
     .await?;
 
   *module = Box::new(LazyCompilationProxyModule::new(
     module_identifier,
     lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data.clone(),
-    create_data.resource_resolve_data.resource.to_string(),
-    virtual_trigger_path,
+    create_data.resource_resolve_data.resource.clone(),
     self.cacheable,
     info.active,
     info.data,
@@ -222,14 +220,4 @@ impl<T: Backend + 'static, F: LazyCompilationTestCheck + 'static> Plugin
       .tap(normal_module_factory_module::new(self));
     Ok(())
   }
-}
-
-// Generates a virtual file path to trigger module graph updates for lazy compilation.
-//
-// This creates a synthetic file path that can be used as a "changed file" parameter
-// to trigger module graph updates, specifically for modules without associated physical
-// files (e.g., loader-only imports like `import("./loader!")`).
-fn create_virtual_trigger_path(module_identifier: &Identifier) -> String {
-  let hash = module_identifier.precomputed_hash();
-  format!("/rspack_lazy_compilation/{:x}", hash)
 }
