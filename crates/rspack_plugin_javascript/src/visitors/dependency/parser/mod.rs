@@ -34,7 +34,7 @@ use swc_core::{
 };
 
 use crate::{
-  BoxJavascriptParserPlugin,
+  BoxJavascriptParserPlugin, ImportsReferencesState,
   dependency::local_module::LocalModule,
   parser_plugin::{self, InnerGraphState, JavaScriptParserPluginDrive, JavascriptParserPlugin},
   utils::eval::{self, BasicEvaluatedExpression},
@@ -255,6 +255,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) is_esm: bool,
   pub(crate) destructuring_assignment_properties:
     Option<FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>>,
+  pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -422,6 +423,7 @@ impl<'parser> JavascriptParser<'parser> {
       module_identifier,
       member_expr_in_optional_chain: false,
       destructuring_assignment_properties: None,
+      dynamic_import_references: Default::default(),
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,

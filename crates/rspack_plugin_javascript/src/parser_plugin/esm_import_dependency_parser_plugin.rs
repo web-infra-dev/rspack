@@ -2,7 +2,7 @@ use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes}
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{Callee, Expr, Ident, ImportDecl, MemberExpr, OptChainBase},
+  ecma::ast::{Callee, Expr, Ident, ImportDecl},
 };
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
@@ -11,50 +11,10 @@ use crate::{
   utils::object_properties::get_attributes,
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, TagInfoData,
+    get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
+    get_non_optional_part,
   },
 };
-
-fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
-  let mut i = 0;
-  while i < members.len() && matches!(members_optionals.get(i), Some(false)) {
-    i += 1;
-  }
-  if i != members.len() {
-    &members[0..i]
-  } else {
-    members
-  }
-}
-
-fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) -> &Expr {
-  while count != 0 {
-    if let Expr::Member(member) = expr {
-      expr = &member.obj;
-      count -= 1;
-    } else if let Expr::OptChain(opt_chain) = expr {
-      expr = match &*opt_chain.base {
-        OptChainBase::Member(member) => &*member.obj,
-        OptChainBase::Call(call) if call.callee.as_member().is_some() => {
-          let member = call
-            .callee
-            .as_member()
-            .expect("`call.callee` is `MemberExpr` in `if_guard`");
-          &*member.obj
-        }
-        _ => unreachable!(),
-      };
-      count -= 1;
-    } else {
-      unreachable!()
-    }
-  }
-  expr
-}
-
-fn get_non_optional_member_chain_from_member(member: &MemberExpr, mut count: i32) -> &Expr {
-  count -= 1;
-  get_non_optional_member_chain_from_expr(&member.obj, count)
-}
 
 pub struct ESMImportDependencyParserPlugin;
 

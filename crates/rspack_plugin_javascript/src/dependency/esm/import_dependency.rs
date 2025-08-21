@@ -15,14 +15,16 @@ use super::create_resource_identifier_for_esm_dependency;
 
 pub fn create_import_dependency_referenced_exports(
   dependency_id: &DependencyId,
-  referenced_exports: &Option<Vec<Atom>>,
+  referenced_exports: &Option<Vec<Vec<Atom>>>,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
 ) -> Vec<ExtendedReferencedExport> {
   if let Some(referenced_exports) = referenced_exports {
     let mut refs = vec![];
     for referenced_export in referenced_exports {
-      if referenced_export == "default" {
+      if let Some(first) = referenced_export.first()
+        && first == "default"
+      {
         let Some(strict) = mg
           .get_parent_module(dependency_id)
           .and_then(|id| mg.module_by_identifier(id))
@@ -45,7 +47,7 @@ pub fn create_import_dependency_referenced_exports(
         }
       }
       refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
-        vec![referenced_export.clone()],
+        referenced_export.clone(),
         false,
         false,
       )));
@@ -63,8 +65,8 @@ pub struct ImportDependency {
   #[cacheable(with=AsPreset)]
   pub request: Atom,
   pub range: DependencyRange,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub referenced_exports: Option<Vec<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub attributes: Option<ImportAttributes>,
   pub comments: Vec<(bool, String)>,
   pub resource_identifier: String,
@@ -76,7 +78,7 @@ impl ImportDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_exports: Option<Vec<Atom>>,
+    referenced_exports: Option<Vec<Vec<Atom>>>,
     attributes: Option<ImportAttributes>,
     optional: bool,
     comments: Vec<(bool, String)>,

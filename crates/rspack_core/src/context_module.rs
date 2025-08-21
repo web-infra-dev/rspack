@@ -134,8 +134,8 @@ pub struct ContextOptions {
   pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub referenced_exports: Option<Vec<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub attributes: Option<ImportAttributes>,
 }
 
@@ -1115,10 +1115,12 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   }
   if let Some(exports) = &options.context_options.referenced_exports {
     id += "|referencedExports: ";
-    id += &format!(
-      "[{}]",
-      exports.iter().map(|x| format!(r#""{x}""#)).join(",")
-    );
+    id += "[";
+    for ids in exports {
+      id += &ids.iter().map(|x| format!(r#""{x}""#)).join(".");
+      id += ", ";
+    }
+    id += "]";
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
