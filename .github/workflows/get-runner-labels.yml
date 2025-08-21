@@ -34,7 +34,7 @@ jobs:
           if ${{ !inputs.force-use-github-runner }}; then
             LINUX_RUNNER_LABELS='${{ vars.LINUX_RUNNER_LABELS }}';
             MACOS_RUNNER_LABELS='${{ vars.MACOS_RUNNER_LABELS }}';
-            WINDOWS_RUNNER_LABELS='${{ vars.WINDOWS_RUNNER_LABELS }}';
+            WINDOWS_RUNNER_LABELS='lynx-windows-2022-large-verify';
           fi
           # set default value
           # use ubuntu 22.04 to be compatible with playwright docker
