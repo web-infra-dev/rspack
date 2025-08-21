@@ -41,17 +41,17 @@ use crate::{
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
   ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult,
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, Filename, ImportVarMap, Logger, MemoryGCStorage,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
+  DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeMode, RuntimeModule,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
-    ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
-    update_module_graph,
+    MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
   },
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
@@ -69,6 +69,7 @@ define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
@@ -100,6 +101,7 @@ pub struct CompilationHooks {
   pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
   pub revoked_modules: CompilationRevokedModulesHook,
+  pub concatenation_scope: CompilationConcatenationScopeHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
@@ -318,6 +320,7 @@ impl Compilation {
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE: i32 = 700;
   pub const PROCESS_ASSETS_STAGE_SUMMARIZE: i32 = 1000;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_HASH: i32 = 2500;
+  pub const PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH: i32 = 2600;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER: i32 = 3000;
   pub const PROCESS_ASSETS_STAGE_ANALYSE: i32 = 4000;
   pub const PROCESS_ASSETS_STAGE_REPORT: i32 = 5000;
@@ -1101,6 +1104,12 @@ impl Compilation {
       for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
         let hash = ChunkGraph::get_module_hash(self, module, runtime)
           .expect("should have cgm.hash in code generation");
+        let scope = self
+          .plugin_driver
+          .compilation_hooks
+          .concatenation_scope
+          .call(self, module)
+          .await?;
         if let Some(job) = map.get_mut(hash) {
           job.runtimes.push(runtime.clone());
         } else {
@@ -1111,6 +1120,7 @@ impl Compilation {
               hash: hash.clone(),
               runtime: runtime.clone(),
               runtimes: vec![runtime.clone()],
+              scope,
             },
           );
         }
@@ -1134,7 +1144,7 @@ impl Compilation {
             .code_generate_occasion
             .use_cache(&job, || async {
               module
-                .code_generation(this, Some(&job.runtime), None)
+                .code_generation(this, Some(&job.runtime), job.scope.clone())
                 .await
                 .map(|mut codegen_res| {
                   codegen_res.set_hash(
@@ -1612,6 +1622,7 @@ impl Compilation {
         .generate_dot(compilation, "after-code-splitting")
         .await;
       logger.time_end(start);
+
       Ok(compilation)
     })
     .await?;

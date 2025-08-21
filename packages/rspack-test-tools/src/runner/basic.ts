@@ -87,6 +87,7 @@ export class BasicRunnerFactory<T extends ECompilerType>
 					this.context.getValue(this.name, "documentType") || EDocumentType.Fake
 			});
 		}
+
 		return new EsmRunner<T>(runnerOptions);
 	}
 }
