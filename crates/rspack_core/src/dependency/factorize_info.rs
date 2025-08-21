@@ -8,10 +8,11 @@ use rustc_hash::FxHashSet as HashSet;
 use super::{BoxDependency, DependencyId};
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub enum FactorizeInfo {
-  #[default]
-  Success,
+  Success {
+    missing_dependencies: HashSet<ArcPath>,
+  },
   Failed {
     related_dep_ids: Vec<DependencyId>,
     file_dependencies: HashSet<ArcPath>,
@@ -23,6 +24,14 @@ pub enum FactorizeInfo {
   },
 }
 
+impl Default for FactorizeInfo {
+  fn default() -> Self {
+    Self::Success {
+      missing_dependencies: Default::default(),
+    }
+  }
+}
+
 impl FactorizeInfo {
   pub fn new(
     diagnostics: Vec<Diagnostic>,
@@ -32,7 +41,9 @@ impl FactorizeInfo {
     missing_dependencies: HashSet<ArcPath>,
   ) -> Self {
     if diagnostics.is_empty() {
-      Self::Success
+      Self::Success {
+        missing_dependencies,
+      }
     } else {
       Self::Failed {
         related_dep_ids,
@@ -55,33 +66,39 @@ impl FactorizeInfo {
   }
 
   pub fn is_success(&self) -> bool {
-    matches!(self, FactorizeInfo::Success)
+    matches!(self, FactorizeInfo::Success { .. })
   }
 
   pub fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
-    if let FactorizeInfo::Failed {
-      file_dependencies,
-      context_dependencies,
-      missing_dependencies,
-      ..
-    } = self
-    {
-      for item in modified_file {
-        if file_dependencies.contains(item)
-          || context_dependencies.contains(item)
-          || missing_dependencies.contains(item)
-        {
-          return true;
+    match self {
+      FactorizeInfo::Success {
+        missing_dependencies,
+      } => missing_dependencies
+        .intersection(modified_file)
+        .next()
+        .is_some(),
+      FactorizeInfo::Failed {
+        file_dependencies,
+        context_dependencies,
+        missing_dependencies,
+        ..
+      } => {
+        for item in modified_file {
+          if file_dependencies.contains(item)
+            || context_dependencies.contains(item)
+            || missing_dependencies.contains(item)
+          {
+            return true;
+          }
         }
+        false
       }
     }
-
-    false
   }
 
   pub fn related_dep_ids(&self) -> Cow<'_, [DependencyId]> {
     match &self {
-      Self::Success => Cow::Owned(vec![]),
+      Self::Success { .. } => Cow::Owned(vec![]),
       Self::Failed {
         related_dep_ids, ..
       } => Cow::Borrowed(related_dep_ids),
@@ -90,7 +107,7 @@ impl FactorizeInfo {
 
   pub fn file_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
     match &self {
-      Self::Success => Cow::Owned(Default::default()),
+      Self::Success { .. } => Cow::Owned(Default::default()),
       Self::Failed {
         file_dependencies, ..
       } => Cow::Borrowed(file_dependencies),
@@ -99,7 +116,7 @@ impl FactorizeInfo {
 
   pub fn context_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
     match &self {
-      Self::Success => Cow::Owned(Default::default()),
+      Self::Success { .. } => Cow::Owned(Default::default()),
       Self::Failed {
         context_dependencies,
         ..
@@ -109,7 +126,9 @@ impl FactorizeInfo {
 
   pub fn missing_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
     match &self {
-      Self::Success => Cow::Owned(Default::default()),
+      Self::Success {
+        missing_dependencies,
+      } => Cow::Borrowed(missing_dependencies),
       Self::Failed {
         missing_dependencies,
         ..
@@ -119,7 +138,7 @@ impl FactorizeInfo {
 
   pub fn diagnostics(&self) -> Cow<'_, [Diagnostic]> {
     match &self {
-      Self::Success => Cow::Owned(vec![]),
+      Self::Success { .. } => Cow::Owned(vec![]),
       Self::Failed { diagnostics, .. } => Cow::Borrowed(diagnostics),
     }
   }

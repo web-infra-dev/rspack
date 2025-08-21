@@ -173,12 +173,13 @@ impl Task<TaskContext> for FactorizeResultTask {
         .context_dependencies
         .add_batch_file(&factorize_info.context_dependencies());
       artifact
-        .missing_dependencies
-        .add_batch_file(&factorize_info.missing_dependencies());
-      artifact
         .make_failed_dependencies
         .insert(*dependencies[0].id());
     }
+    artifact
+      .missing_dependencies
+      .add_batch_file(&factorize_info.missing_dependencies());
+
     // write factorize_info to dependencies[0] and set success factorize_info to others
     for dep in &mut dependencies {
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {

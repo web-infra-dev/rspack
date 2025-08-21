@@ -1,6 +1,7 @@
 mod fix_build_meta;
 mod fix_issuers;
 
+use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -66,16 +67,18 @@ impl Cutout {
               force_build_modules.insert(module.identifier());
             }
           }
-          // only failed dependencies need to check
-          for dep_id in &artifact.make_failed_dependencies {
-            let dep = module_graph
-              .dependency_by_id(dep_id)
-              .expect("should have dependency");
-            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-            if info.depends_on(&files) {
-              force_build_deps.insert(*dep_id);
-            }
-          }
+          force_build_deps.extend(
+            module_graph
+              .dependencies()
+              .values()
+              .par_bridge()
+              .filter_map(|dependency| {
+                FactorizeInfo::get_from(dependency)
+                  .filter(|factorize_info| factorize_info.depends_on(&files))
+                  .map(|_| *dependency.id())
+              })
+              .collect::<Vec<_>>(),
+          );
         }
         UpdateParam::ForceBuildDeps(deps) => {
           force_build_deps.extend(deps);
