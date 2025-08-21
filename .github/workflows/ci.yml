@@ -72,7 +72,7 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: "dev"
-      runner: '"lynx-windows-2022-large-verify"'
+      runner: '"rspack-windows-2022-large-verify"'
       test-runner: '"windows-latest"'
       test: true
 
