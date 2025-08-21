@@ -68,6 +68,7 @@ impl LazyCompilationProxyModule {
     original_module: ModuleIdentifier,
     lib_ident: Option<String>,
     create_data: ModuleFactoryCreateData,
+    activation_trigger: String,
     resource: String,
     cacheable: bool,
     active: bool,
@@ -168,7 +169,7 @@ impl Module for LazyCompilationProxyModule {
 
     let mut files = FxHashSet::default();
     files.extend(self.create_data.file_dependencies.clone());
-    files.insert(Path::new(&self.resource).into());
+    files.insert(Path::new(&self.activation_trigger).into());
 
     self.build_info.cacheable = self.cacheable;
     self.build_info.file_dependencies = files;
