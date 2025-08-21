@@ -2,7 +2,7 @@ import { Stability } from '@components/ApiMeta';
 
 # ESM output
 
-Rspack supports bundling with ESM format output. By default, Rspack generates bundled output that includes Rspack runtime code rather than standard CommonJS or ESM format. You can configure [output.module](/config/output#outputmodule) to generate standard ESM format output. The following sections introduce how to [build application ESM output](#building-application-esm-output) and [build library ESM output](#building-library-esm-output), and finally list the [configuration checklist](#configuration-checklist) related to ESM output.
+Rspack supports building with ESM format output. When building applications, Rspack generates IIFE-based bundled output by default instead of standard CommonJS or ESM format. You can configure [output.module](/config/output#outputmodule) to generate ESM format output. The following sections introduce how to [build application ESM output](#building-application-esm-output) and [build library ESM output](#building-library-esm-output), and finally list the [configuration checklist](#configuration-checklist) related to ESM output.
 
 ## Building application ESM output
 
@@ -70,7 +70,7 @@ Currently, Rspack's ESM support is still being improved. In certain use cases, y
 
 We are continuously improving Rspack's ESM support to provide a comprehensive solution that addresses existing issues and makes ESM usage more simple and intuitive, better embracing the modern JavaScript module system.
 
-## Configuration Checklist
+## Configuration checklist
 
 Below are the main configuration options related to ESM and their descriptions, which are used when building both applications and libraries.
 

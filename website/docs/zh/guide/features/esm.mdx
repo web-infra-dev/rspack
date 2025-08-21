@@ -2,11 +2,11 @@ import { Stability } from '@components/ApiMeta';
 
 # ESM 格式产物
 
-Rspack 支持打包 ESM 格式的产物。默认情况下，Rspack 会生成类似 CommonJS 格式的产物，但你可以通过配置 [output.module](/config/output#outputmodule) 来生成 ESM 格式的产物。下面的章节介绍了如何 [构建应用的 ESM 格式产物](#构建应用的-esm-格式产物) 及 [构建库的 ESM 格式产物](#构建库的-esm-格式产物) 并在最后列出了与 ESM 产物相关的 [配置清单](#配置清单)。
+Rspack 支持使用 ESM 格式输出进行打包。构建应用时，Rspack 默认会生成基于 IIFE 格式代码的打包输出，而不是标准的 CommonJS 或 ESM 格式，你可以通过配置 [output.module](/config/output#outputmodule) 来生成 ESM 格式的产物。下面的章节介绍了如何 [构建应用的 ESM 格式产物](#构建应用的-esm-格式产物) 及 [构建库的 ESM 格式产物](#构建库的-esm-格式产物) 并在最后列出了与 ESM 产物相关的 [配置清单](#配置清单)。
 
 ## 构建应用的 ESM 格式产物
 
-在构建应用时，Rspack 默认生成类似 CommonJS 格式的产物。如果你需要生成 ESM 格式的产物，可以在 `rspack.config.mjs` 中进行如下配置：
+在构建应用时，Rspack 默认依赖 Rspack runtime 的。如果你需要生成 ESM 格式的产物，可以在 `rspack.config.mjs` 中进行如下配置：
 
 ```js title="rspack.config.mjs"
 export default {
