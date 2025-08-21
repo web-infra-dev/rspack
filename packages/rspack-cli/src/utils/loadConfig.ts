@@ -49,7 +49,6 @@ export function compile(sourcecode: string, filename: string) {
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
 // modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
 const registerLoader = (configPath: string) => {
-	// TODO implement good `.mts` support after https://github.com/gulpjs/rechoir/issues/43
 	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
 	if (isEsmFile(configPath) && isTsFile(configPath)) {
 		return;
