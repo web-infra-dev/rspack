@@ -49,7 +49,7 @@ compiler.run((err, stats) => {
   // Deal with the compiler errors
   handleCompilerError(err);
   // Deal with the compilation errors
-  handlerModuleErrors(stats.toJson().errors);
+  handleModuleErrors(stats.toJson().errors);
   // Deal with the result
   handleBuildResult(stats);
   // End this compilation
