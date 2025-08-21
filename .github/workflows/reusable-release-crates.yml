@@ -1,7 +1,7 @@
-name: Release Crates
+name: Reusable Release Crates
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       dry_run:
         type: boolean

@@ -95,11 +95,6 @@ impl JavascriptParser<'_> {
     if let Some(assign) = stmt.expr.as_assign() {
       self.pre_walk_assignment_expression(assign)
     }
-    if let Some(paren) = stmt.expr.as_paren()
-      && let Some(assign) = paren.expr.as_assign()
-    {
-      self.pre_walk_assignment_expression(assign)
-    }
   }
 
   pub(super) fn block_pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {

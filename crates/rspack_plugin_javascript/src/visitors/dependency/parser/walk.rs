@@ -429,9 +429,9 @@ impl JavascriptParser<'_> {
       Expr::Unary(expr) => self.walk_unary_expression(expr),
       Expr::Update(expr) => self.walk_update_expression(expr),
       Expr::Yield(expr) => self.walk_yield_expression(expr),
-      Expr::Paren(expr) => self.walk_expression(&expr.expr),
       Expr::SuperProp(_) | Expr::Lit(_) | Expr::PrivateName(_) | Expr::Invalid(_) => (),
-      Expr::JSXMember(_)
+      Expr::Paren(_)
+      | Expr::JSXMember(_)
       | Expr::JSXNamespacedName(_)
       | Expr::JSXEmpty(_)
       | Expr::JSXElement(_)
@@ -918,8 +918,7 @@ impl JavascriptParser<'_> {
     match &expr.callee {
       Callee::Expr(callee) => {
         if let Expr::Member(member_expr) = &**callee
-          && let Expr::Paren(paren_expr) = &*member_expr.obj
-          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+          && let Expr::Fn(fn_expr) = &*member_expr.obj
           && let MemberProp::Ident(ident) = &member_expr.prop
           && (ident.sym == "call" || ident.sym == "bind")
           && !expr.args.is_empty()
@@ -928,7 +927,7 @@ impl JavascriptParser<'_> {
           // (function(…) { }).call(…)
           let mut params = expr.args.iter().map(|arg| &*arg.expr);
           let this = params.next();
-          self._walk_iife(&paren_expr.expr, params, this)
+          self._walk_iife(&member_expr.obj, params, this)
         } else if let Expr::Member(member_expr) = &**callee
           && let Expr::Fn(fn_expr) = &*member_expr.obj
           && let MemberProp::Ident(ident) = &member_expr.prop
@@ -940,16 +939,11 @@ impl JavascriptParser<'_> {
           let mut params = expr.args.iter().map(|arg| &*arg.expr);
           let this = params.next();
           self._walk_iife(&member_expr.obj, params, this)
-        } else if let Expr::Paren(paren_expr) = &**callee
-          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+        } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { })(…)
-          self._walk_iife(
-            &paren_expr.expr,
-            expr.args.iter().map(|arg| &*arg.expr),
-            None,
-          )
+          self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
@@ -1318,15 +1312,15 @@ impl JavascriptParser<'_> {
     match target {
       SimpleAssignTarget::Ident(ident) => self.walk_identifier(ident),
       SimpleAssignTarget::Member(member) => self.walk_member_expression(member),
-      SimpleAssignTarget::Paren(expr) => self.walk_expression(&expr.expr),
       SimpleAssignTarget::OptChain(expr) => self.walk_chain_expression(expr),
       SimpleAssignTarget::SuperProp(_) => (),
-      SimpleAssignTarget::TsAs(_)
+      SimpleAssignTarget::Paren(_)
+      | SimpleAssignTarget::TsAs(_)
       | SimpleAssignTarget::TsSatisfies(_)
       | SimpleAssignTarget::TsNonNull(_)
       | SimpleAssignTarget::TsTypeAssertion(_)
-      | SimpleAssignTarget::TsInstantiation(_) => (),
-      SimpleAssignTarget::Invalid(_) => (),
+      | SimpleAssignTarget::TsInstantiation(_)
+      | SimpleAssignTarget::Invalid(_) => unreachable!(),
     }
   }
 

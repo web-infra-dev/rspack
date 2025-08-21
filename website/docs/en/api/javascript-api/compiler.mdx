@@ -20,7 +20,7 @@ It provides methods like [run](#run) and [watch](#watch) to start builds, while 
 
 ### run
 
-Start a compilation, and callbacked when the compilation is completed or aborted due to an error.
+Start a compilation, and calls back when the compilation is completed or aborted due to an error.
 
 ```ts
 function run(
@@ -47,9 +47,9 @@ If you need to call the `run` method of the same `compiler` object multiple time
 ```js
 compiler.run((err, stats) => {
   // Deal with the compiler errors
-  handlerCompilerError(err);
+  handleCompilerError(err);
   // Deal with the compilation errors
-  handlerModuleErrors(stats.toJson().errors);
+  handleModuleErrors(stats.toJson().errors);
   // Deal with the result
   handleBuildResult(stats);
   // End this compilation
@@ -68,7 +68,7 @@ compiler.run((err, stats) => {
 
 ### watch
 
-Watching files and directories, start a compilation process after they change, and callbacked every time the compilation is completed or aborted due to an error.
+Watching files and directories, start a compilation process after they change, and calls back every time the compilation is completed or aborted due to an error.
 
 ```ts
 function watch(

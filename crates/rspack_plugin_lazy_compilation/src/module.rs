@@ -43,7 +43,8 @@ pub(crate) struct LazyCompilationProxyModule {
 
   source_map_kind: SourceMapKind,
   create_data: ModuleFactoryCreateData,
-  pub resource: String,
+  resource: String,
+  virtual_trigger_path: String,
 
   pub active: bool,
   pub data: String,
@@ -70,6 +71,7 @@ impl LazyCompilationProxyModule {
     lib_ident: Option<String>,
     create_data: ModuleFactoryCreateData,
     resource: String,
+    virtual_trigger_path: String,
     cacheable: bool,
     active: bool,
     data: String,
@@ -90,6 +92,7 @@ impl LazyCompilationProxyModule {
       create_data,
       readable_identifier,
       lib_ident,
+      virtual_trigger_path,
       resource,
       identifier,
       source_map_kind: SourceMapKind::empty(),
@@ -173,7 +176,7 @@ impl Module for LazyCompilationProxyModule {
     } else {
       let mut files = FxHashSet::default();
       files.extend(self.create_data.file_dependencies.clone());
-      files.insert(Path::new(&self.resource).into());
+      files.insert(Path::new(&self.virtual_trigger_path).into());
       self.build_info.file_dependencies = files;
     }
 
