@@ -278,22 +278,22 @@ module.exports = {
 
 ### 二进制产物尺寸优化
 
-自 1.4.0 以来做了一些系列的优化开降低 Rspack 的安装尺寸。其中最重要的便是优化 Rspack node binding 的文件尺寸。
+自 1.4.0 以来 Rspack 团队做了一些系列的优化来降低 Rspack 的安装尺寸。其中最重要的便是优化 Rspack node binding 的文件尺寸。
 
 ![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-binary-size.png)
 
-二进制产物尺寸优化是从我们的开路先锋 [@quininer](https://github.com/quininer) 优化 Rspack 的依赖
+产物尺寸优化是从我们的开路先锋 [@quininer](https://github.com/quininer) 优化 Rspack 的依赖
 [browserlist-rs](https://github.com/browserslist/browserslist-rs/pull/32) 尺寸开始的；
 接着各路开花，例如：这个 [Pull Request](https://github.com/web-infra-dev/rspack/pull/11077) 通过修改编译参数足足减少 5M 的产物尺寸；
-还有 @hardfirst 通过控制 [feature 开关](https://github.com/web-infra-dev/rspack/pull/10965) 带来了近2M 的尺寸优化；
+还有 [@hardfirst](https://github.com/hardfist) 通过控制 [feature 开关](https://github.com/web-infra-dev/rspack/pull/10965) 带来了近 2M 的尺寸优化；
 通过优化上游依赖 [wasmer](https://github.com/wasmerio/wasmer/pull/5621/files) 和 [SWC](https://github.com/swc-project/swc/pull/10638) 带来了近3M 的优化。
-细心的读者可能会发现，产物优化不仅仅是在 Rspack 的本身下功夫，还推进我们促进上游软件的优化。
-不仅仅构建一个更快的 bundler ，我们更想构建一个更加美好的社区。
+细心的读者可能会发现，产物优化不仅仅要在 Rspack 的本身做优化，还要求我们促进上游软件的优化。
+除了构建一个更快的 bundler ，我们更想构建一个更加美好的社区。
 
 ### Seal 阶段性能提升
 
-相较于 1.4.0 版本， 1.5.0 版本在 Seal 阶段践行了大量的优化。
-在不影响产物的情况下，通过优化数据结构、提高代码的并行度、增加热点代码执行缓存等方式，对大型项目的 Seal 阶段有较大的提升。
+除了二进制产物的尺寸的优化外，构建速度优化我们没有停步。相较于 1.4.0 版本， 1.5.0 版本在 Seal 阶段践行了大量的优化。
+在不影响产物的前提下，通过优化数据结构、提高代码的并行度、增加热点代码执行缓存等方式，对大型项目的 Seal 阶段有较大的提升。
 
 以内部一个约 40000+ 的模块的项目为例，整体 Seal 阶段耗时降低约 50%。
 
@@ -312,7 +312,7 @@ module.exports = {
 | Module Concatenation    | 2645ms |  616ms |       76% |
 | RealContentHashPlugin   |  881ms |  404ms |       54% |
 
-Rspack 团队后续也会继续优化性能，并在不牺牲产物体积的前提下，探索性能更加优秀的算法。
+Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提下，探索性能更加优秀的算法。
 
 ## Rstack 进展
 
