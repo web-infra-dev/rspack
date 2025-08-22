@@ -11,6 +11,7 @@ antfu
 arad
 arewerspackyet
 ɑrespæk
+auvred
 bazel
 behaviour
 behaviours
@@ -188,6 +189,7 @@ Terser
 tiktok
 tokio
 Towhk
+tsgolint
 tuchg
 typeofs
 TypeScript
