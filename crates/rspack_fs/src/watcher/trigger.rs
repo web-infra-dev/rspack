@@ -137,8 +137,6 @@ impl Trigger {
   /// Sends a group of file system events for the given path and event kind.
   /// If the event is successfully sent, it returns true; otherwise, it returns false.
   fn trigger_events(&self, events: Vec<(ArcPath, FsEventKind)>) -> bool {
-  /// Returns `Ok(())` if the event is successfully sent, or an error otherwise.
-  fn trigger_events(&self, events: Vec<(ArcPath, FsEventKind)>) -> Result<(), tokio::sync::mpsc::error::SendError<Vec<FsEvent>>> {
     self
       .tx
       .send(
