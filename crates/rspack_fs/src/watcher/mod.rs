@@ -39,6 +39,8 @@ pub(crate) struct FsEvent {
   pub kind: FsEventKind,
 }
 
+pub(crate) type EventBatch = Vec<FsEvent>;
+
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
 /// It provides methods to handle changes and deletions of files, as well as errors.
 /// Implementors of this trait can define custom behavior for these events.
