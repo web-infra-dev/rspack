@@ -84,29 +84,6 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
-  if let Some(error) = from.error {
-    let details = if let Some(stack) = &error.stack
-      && error.hide_stack.unwrap_or(false)
-    {
-      Some(stack.to_string())
-    } else {
-      None
-    };
-
-    return Err(
-      CapturedLoaderError::new(
-        Box::new(error.with_parent_error_name("ModuleBuildError")),
-        details,
-        from.file_dependencies,
-        from.context_dependencies,
-        from.missing_dependencies,
-        from.build_dependencies,
-        from.cacheable,
-      )
-      .into(),
-    );
-  }
-
   to.cacheable = from.cacheable;
   to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
   to.context_dependencies = from
@@ -124,6 +101,24 @@ pub(crate) fn merge_loader_context(
     .into_iter()
     .map(Into::into)
     .collect();
+
+  if let Some(error) = from.error {
+    let details = if let Some(stack) = &error.stack
+      && error.hide_stack.unwrap_or(false)
+    {
+      Some(stack.to_string())
+    } else {
+      None
+    };
+
+    return Err(
+      CapturedLoaderError::new(
+        Box::new(error.with_parent_error_name("ModuleBuildError")),
+        details,
+      )
+      .into(),
+    );
+  }
 
   let content = match from.content {
     Either::A(_) => None,
