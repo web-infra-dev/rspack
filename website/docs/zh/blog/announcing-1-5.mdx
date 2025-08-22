@@ -81,11 +81,30 @@ export default {
 
 ![rspack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
 
-[@rspack/browser](https://www.npmjs.com/package/@rspack/browser) 发布，
-能够在任意浏览器项目中使用 Rspack 在线打包。`@rspack/browser` 将为复杂 Web 项目的在线打包提供底层支持。
-除此之外，`@rspack/browser` 还为开发者提供了更轻量的问题复现、配置分享方案，并通过提供在线交互式 Demo 的方式帮助开发者入门和学习 Rspack。
+在先前的 Rspack 1.4 中，我们正式引入了 Wasm target 支持，这意味着 Rspack 可以在基于 StackBlitz（WebContainers）的在线平台浏览器环境中运行。
 
-未来我们将持续完善在线打包所需的能力，欢迎前往 [Rspack Playground](https://playground.rspack.rs/) 进行体验。
+在 Rspack 1.5 中，我们正式发布了 [@rspack/browser](https://www.npmjs.com/package/@rspack/browser)，它是专为纯浏览器环境设计的版本，允许你直接在任何现代浏览器中使用 Rspack，而无需依赖 WebContainers 或是特定平台。`@rspack/browser` 为复杂 Web 项目的在线打包提供底层支持，提供了更轻量的问题复现、配置分享方案，并通过提供在线交互式 Demo 的方式帮助开发者入门和学习 Rspack。
+
+`@rspack/browser` 提供的 API 和 `@rspack/core` 的 JavaScript API 是对齐的。在此基础上，额外提供了为适配浏览器环境的特性和 API：
+
+```js
+import { rspack, builtinMemFs } from '@rspack/browser';
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+// Just like using JavaScript API of @rspack/core
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // Get output from memfs after bundling
+  const files = builtinMemFs.volume.toJSON();
+});
+```
+
+目前 `@rspack/browser` 还处于实验性阶段，可能会发生小型的破坏性改动。未来我们将持续完善在线打包所需的能力，欢迎前往 [Rspack Playground](https://playground.rspack.rs/) 进行体验。
 
 ### 自定义 Rspack binding
 
