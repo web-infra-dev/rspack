@@ -15,7 +15,6 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **Bindings**: Node.js bindings through NAPI
 - **Utilities**: Support crates for paths, collections, macros, etc.
 
-
 ### NPM packages  (`packages/`)
 
 - **CLI Tools**: Command-line interface and tooling
