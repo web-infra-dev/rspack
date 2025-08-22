@@ -25,6 +25,10 @@ Rspack 1.5 已经正式发布！
   - [内置文件系统监听器](#内置文件系统监听器)
   - [内置虚拟模块插件](#内置虚拟模块插件)
   - [Module Federation 运行时提升](#module-federation-运行时提升)
+- 其他
+  - [Rspack 停止支持 Node.js 16](#rspack-停止支持-nodejs-16)
+  - [内置 rspack-resolver](#rspack-core-内置-rspack-resolver)
+  - [废弃和稳定](#废弃和稳定)
 - Rstack 进展
   - [Rslint 发布](#rslint-发布)
   - [Rsbuild 1.5](#rsbuild-15)
@@ -318,9 +322,8 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 
 ### Rspack 停止支持 node 16
 
-鉴于 Node.js 16 于 2023 年 9 月 11 已经停止维护，以及众多的社区 npm 包（如：webpack-dev-server, css-loader, sass-loader 等）也停止了对 Node.js 16 的支持，为了减低维护的复杂度，Rspack v1.5 开始将不再支持 Node.js 16。
+鉴于 Node.js 16 于 2023 年 9 月 11 已经停止维护，以及众多的社区 npm 包（如：webpack-dev-server, css-loader, sass-loader 等）也停止了对 Node.js 16 的支持，为了减低维护的复杂度，Rspack v1.5 将不再支持 Node.js 16。
 
-其他 Rspack
 | Package | v1.4 | v1.5 |
 |--------------------|-----------:|-----------:|
 | @rspack/core | >=16.0.0 | >=18.12.0 |
@@ -330,14 +333,14 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 
 ### Rspack core 内置 rspack-resolver
 
-为了 Rspack core 的用户能够更方便地使用 Rspack 的模块解析能力，我们将 [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) 内置到了 Rspack core 中 JavaScript API。
+为了 Rspack core 的用户能够更方便地使用 Rspack 的模块解析能力，我们将 [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) 内置到了 Rspack 的 JavaScript API。
 
-用法参考 [Resolver API 文档](api/javascript-api/resolver#resolver-api)
+用法参考 [Resolver API 文档](/api/javascript-api/resolver#resolver-api)
 
 ### 废弃和稳定
 
 - 稳定 **LazyCompilation** 特性 -- `experiments.lazyCompilation` 配置项已经移动到了 Rspack 配置顶层。
-- 废弃 `experiments.topLevelAwait` 配置 -- 如果将 `experiments.topLevelAwait` 设置为 `false`, Rspack 会打印一条配置的日志。`topLevelAwait` 特性将在 Rspack 2.0 并默认开启, 并移除它的配置项。
+- 废弃 `experiments.topLevelAwait` 配置 -- 当 `experiments.topLevelAwait` 被设置为 `false`时, Rspack 会打印一条废弃该特性的日志。 另外 `topLevelAwait` 特性计划将在 Rspack 2.0 并默认开启, 并移除配置项`experiments.topLevelAwait`。
 
 ## Rstack 进展
 
