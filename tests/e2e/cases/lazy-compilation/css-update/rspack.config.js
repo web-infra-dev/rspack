@@ -16,8 +16,8 @@ module.exports = {
 	plugins: [new rspack.HtmlRspackPlugin(), new rspack.CssExtractRspackPlugin()],
 	experiments: {
 		css: false,
-		lazyCompilation: true
 	},
+	lazyCompilation: true,
 	optimization: {
 		splitChunks: {
 			minSize: 0,

@@ -3,7 +3,7 @@ use rspack_core::{ConstDependency, SpanExt, property_access};
 use rspack_error::miette::Severity;
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::MemberProp,
+  ecma::ast::{Expr, MemberProp},
 };
 use url::Url;
 
@@ -71,13 +71,13 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if ident == expr_name::IMPORT_META_WEBPACK {
+    if for_name == expr_name::IMPORT_META_WEBPACK {
       Some(eval::evaluate_to_number(5_f64, start, end))
-    } else if ident == expr_name::IMPORT_META_URL {
+    } else if for_name == expr_name::IMPORT_META_URL {
       Some(eval::evaluate_to_string(
         self.import_meta_url(parser),
         start,
@@ -124,6 +124,17 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     } else {
       None
     }
+  }
+
+  fn collect_destructuring_assignment_properties(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    if expr.is_meta_prop() {
+      return Some(true);
+    }
+    None
   }
 
   fn meta_property(

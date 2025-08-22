@@ -80,22 +80,12 @@ Rspack 支持以下配置文件格式：
 
 例如，Node.js 已经原生支持 TypeScript，你可以使用以下命令来使用 Node.js 原生加载器来加载配置文件：
 
-- 对于 Node.js v22.7.0 到 v23.5.0，你需要启用 `--experimental-transform-types` 选项：
+- 对于原生支持 TypeScript 的 Node.js v22.18+ 和 v24.3+，你可以运行以下命令来加载 TS 配置：
 
 ```json title="package.json"
 {
   "scripts": {
-    "build": "NODE_OPTIONS='--experimental-transform-types' rspack build"
-  }
-}
-```
-
-- 对于 Node.js v23.6.0+，不再需要 `--experimental-transform-types` 选项：
-
-```json title="package.json"
-{
-  "scripts": {
-    "build": "rspack build"
+    "build": "rspack build --configLoader=native"
   }
 }
 ```

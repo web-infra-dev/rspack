@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { type Edit, Lang, parse } from "@ast-grep/napi";
-import type { RsbuildPlugin } from "@rsbuild/core";
 import { defineConfig, type LibConfig, rsbuild, rspack } from "@rslib/core";
 import prebundleConfig from "./prebundle.config.mjs";
 
@@ -26,7 +25,7 @@ const externalAlias = ({ request }: { request?: string }, callback) => {
 
 const commonLibConfig: LibConfig = {
 	format: "cjs",
-	syntax: ["node 16"],
+	syntax: ["node 18.12"],
 	source: {
 		define: {
 			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
@@ -69,7 +68,7 @@ const commonLibConfig: LibConfig = {
  * do not depend on `zod` types, we add `@ts-ignore` to prevent type errors
  * when users set `skipLibCheck: false` in their tsconfig.json file.
  */
-const fixZodTypePlugin: RsbuildPlugin = {
+const fixZodTypePlugin: rsbuild.RsbuildPlugin = {
 	name: "fix-zod-type",
 	setup(api) {
 		api.onAfterBuild(async () => {
@@ -103,7 +102,7 @@ const fixZodTypePlugin: RsbuildPlugin = {
 	}
 };
 
-const mfRuntimePlugin: RsbuildPlugin = {
+const mfRuntimePlugin: rsbuild.RsbuildPlugin = {
 	name: "mf-runtime",
 	setup(api) {
 		api.onAfterBuild(async () => {
@@ -136,7 +135,7 @@ const mfRuntimePlugin: RsbuildPlugin = {
 	}
 };
 
-const codmodPlugin: RsbuildPlugin = {
+const codmodPlugin: rsbuild.RsbuildPlugin = {
 	name: "codmod",
 	setup(api) {
 		/**

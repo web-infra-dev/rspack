@@ -1,6 +1,6 @@
 import path from "node:path";
 import { rspack } from "@rspack/core";
-
+import { isJavaScript } from "../helper";
 import { TestHotUpdatePlugin } from "../helper/plugins";
 import { LazyCompilationTestPlugin } from "../plugin";
 import {
@@ -64,7 +64,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			this._hotOptions.target === "webworker"
 		) {
 			for (const file of info.entrypoints!.main.assets!) {
-				if (file.name.endsWith(".js")) {
+				if (isJavaScript(file.name)) {
 					files.push(file.name);
 				} else {
 					prefiles.push(file.name);
@@ -72,7 +72,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			}
 		} else {
 			const assets = info.entrypoints!.main.assets!.filter(s =>
-				s.name.endsWith(".js")
+				isJavaScript(s.name)
 			);
 			files.push(assets[assets.length - 1].name);
 		}
@@ -175,7 +175,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			};
 		}
 
-		if (options.experiments?.lazyCompilation) {
+		if ((options as TCompilerOptions<ECompilerType.Rspack>).lazyCompilation) {
 			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
 				new LazyCompilationTestPlugin()
 			);

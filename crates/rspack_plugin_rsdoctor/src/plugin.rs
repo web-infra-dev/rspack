@@ -326,10 +326,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   // 5. Rsdoctor module add issuer_path
-  for module in module_graph.modules() {
+  for (module_id, _) in modules.iter() {
     let mut issuer_path = Vec::new();
-    let (module_id, _) = module;
-    let mut current_issuer = module_graph.get_issuer(&module_id);
+    let mut current_issuer = module_graph.get_issuer(module_id);
 
     while let Some(i) = current_issuer {
       if let Some(rsd_module) = rsd_modules.get_mut(&i.identifier()) {
@@ -343,10 +342,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       current_issuer = module_graph.get_issuer(&i.identifier());
     }
 
-    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+    if let Some(rsd_module) = rsd_modules.get_mut(module_id) {
       rsd_module.issuer_path = Some(issuer_path);
-      let (_, module) = module;
-      let bailout_reason = module_graph.get_optimization_bailout(&module.identifier());
+      let bailout_reason = module_graph.get_optimization_bailout(module_id);
       rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
     }
   }

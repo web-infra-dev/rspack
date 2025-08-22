@@ -18,7 +18,7 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{
-  Diagnosable, Diagnostic, DiagnosticKind, Result, ToStringResultToRspackResultExt, TraceableError,
+  Diagnosable, Diagnostic, Result, ToStringResultToRspackResultExt, TraceableError,
 };
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
@@ -53,10 +53,10 @@ use crate::{
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
   UsedNameItem, define_es_module_flag_statement, escape_identifier, filter_runtime,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, runtime_condition_expression, subtract_runtime_condition,
-  to_identifier_with_escaped, to_normal_comment,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
+  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -134,8 +134,8 @@ static REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(pattern).expect("should construct the regex")
 });
 
-#[derive(Debug)]
-enum ConcatenationEntry {
+#[derive(Debug, Clone)]
+pub enum ConcatenationEntry {
   Concatenated(ConcatenationEntryConcatenated),
   External(ConcatenationEntryExternal),
 }
@@ -149,13 +149,13 @@ impl ConcatenationEntry {
   }
 }
 
-#[derive(Debug)]
-struct ConcatenationEntryConcatenated {
+#[derive(Debug, Clone)]
+pub struct ConcatenationEntryConcatenated {
   module: ModuleIdentifier,
 }
 
-#[derive(Debug)]
-struct ConcatenationEntryExternal {
+#[derive(Debug, Clone)]
+pub struct ConcatenationEntryExternal {
   dependency: DependencyId,
   runtime_condition: RuntimeCondition,
 }
@@ -223,8 +223,9 @@ pub struct ExternalModuleInfo {
   pub name: Option<Atom>,
 }
 
-pub struct ConnectionWithRuntimeCondition<'a> {
-  pub connection: &'a ModuleGraphConnection,
+#[derive(Debug, Clone)]
+pub struct ConnectionWithRuntimeCondition {
+  pub connection: Arc<ModuleGraphConnection>,
   pub runtime_condition: RuntimeCondition,
 }
 
@@ -673,7 +674,8 @@ impl Module for ConcatenatedModule {
     let tmp = rspack_futures::scope::<_, Result<_>>(|token| {
       arc_map.iter().for_each(|(id, info)| {
         let concatenation_scope = if let ModuleInfo::Concatenated(info) = &info {
-          let concatenation_scope = ConcatenationScope::new(arc_map.clone(), info.as_ref().clone());
+          let concatenation_scope =
+            ConcatenationScope::new(self.id, arc_map.clone(), info.as_ref().clone());
 
           Some(concatenation_scope)
         } else {
@@ -1554,8 +1556,6 @@ impl Module for ConcatenatedModule {
     };
     let runtime = runtime.as_deref();
     let concatenation_entries = self.create_concatenation_list(
-      self.root_module_ctxt.id,
-      self.modules.iter().map(|item| item.id).collect(),
       runtime,
       &compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
@@ -1676,13 +1676,7 @@ impl ConcatenatedModule {
     Vec<(ModuleIdentifier, Option<RuntimeCondition>)>,
     IdentifierIndexMap<ModuleInfo>,
   ) {
-    let ordered_concatenation_list = self.create_concatenation_list(
-      self.root_module_ctxt.id,
-      self.modules.iter().map(|item| item.id).collect(),
-      runtime,
-      mg,
-      mg_cache,
-    );
+    let ordered_concatenation_list = self.create_concatenation_list(runtime, mg, mg_cache);
     let mut list = vec![];
     let mut map = IdentifierIndexMap::default();
     for (i, concatenation_entry) in ordered_concatenation_list.into_iter().enumerate() {
@@ -1737,43 +1731,55 @@ impl ConcatenatedModule {
 
   fn create_concatenation_list(
     &self,
-    root_module: ModuleIdentifier,
-    module_set: IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ConcatenationEntry> {
-    let mut list = vec![];
-    let mut exists_entries = IdentifierMap::default();
-    exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
+    mg_cache.cached_concatenated_module_entries(
+      (
+        self.id,
+        runtime
+          .map(|r| get_runtime_key(r).to_string())
+          .unwrap_or_default(),
+      ),
+      || {
+        let root_module = self.root_module_ctxt.id;
+        let module_set: IdentifierIndexSet = self.modules.iter().map(|item| item.id).collect();
 
-    let imports_map = module_set
-      .par_iter()
-      .map(|module| {
-        let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
-        (*module, imports)
-      })
-      .collect::<IdentifierMap<_>>();
+        let mut list = vec![];
+        let mut exists_entries = IdentifierMap::default();
+        exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-    let imports = imports_map.get(&root_module).expect("should have imports");
-    for i in imports {
-      self.enter_module(
-        &module_set,
-        runtime,
-        mg,
-        i.connection,
-        i.runtime_condition.clone(),
-        &mut exists_entries,
-        &mut list,
-        &imports_map,
-      );
-    }
-    list.push(ConcatenationEntry::Concatenated(
-      ConcatenationEntryConcatenated {
-        module: root_module,
+        let imports_map = module_set
+          .par_iter()
+          .map(|module| {
+            let imports =
+              self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+            (*module, imports)
+          })
+          .collect::<IdentifierMap<_>>();
+
+        let imports = imports_map.get(&root_module).expect("should have imports");
+        for i in imports {
+          self.enter_module(
+            &module_set,
+            runtime,
+            mg,
+            &i.connection,
+            i.runtime_condition.clone(),
+            &mut exists_entries,
+            &mut list,
+            &imports_map,
+          );
+        }
+        list.push(ConcatenationEntry::Concatenated(
+          ConcatenationEntryConcatenated {
+            module: root_module,
+          },
+        ));
+        list
       },
-    ));
-    list
+    )
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1808,7 +1814,7 @@ impl ConcatenatedModule {
           module_set,
           runtime,
           mg,
-          import.connection,
+          &import.connection,
           import.runtime_condition.clone(),
           exists_entry,
           list,
@@ -1851,14 +1857,14 @@ impl ConcatenatedModule {
     }
   }
 
-  fn get_concatenated_imports<'a>(
+  fn get_concatenated_imports(
     &self,
     module_id: &ModuleIdentifier,
     root_module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    mg: &'a ModuleGraph,
-    mg_cache: &'a ModuleGraphCacheArtifact,
-  ) -> Vec<ConnectionWithRuntimeCondition<'a>> {
+    mg: &ModuleGraph,
+    mg_cache: &ModuleGraphCacheArtifact,
+  ) -> Vec<ConnectionWithRuntimeCondition> {
     let mut connections: Vec<&ModuleGraphConnection> =
       mg.get_ordered_outgoing_connections(module_id).collect();
     if module_id == root_module_id {
@@ -1931,7 +1937,7 @@ impl ConcatenatedModule {
         }
         indexmap::map::Entry::Vacant(vac) => {
           vac.insert(ConnectionWithRuntimeCondition {
-            connection: reference.connection,
+            connection: Arc::new(reference.connection.clone()),
             runtime_condition,
           });
         }
@@ -2013,7 +2019,6 @@ impl ConcatenatedModule {
               "JavaScript parse error:\n".to_string(),
               err.kind().msg().to_string(),
             )
-            .with_kind(DiagnosticKind::JavaScript)
             .into(),
           );
         }
@@ -2757,7 +2762,7 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<String> {
   let extra_info = REGEX.replace_all(extra_info, "");
   let mut splitted_info: Vec<String> = extra_info
     .split('/')
-    .map(|s| escape_identifier(s).to_string())
+    .map(|s| escape_identifier(s).into_owned())
     .collect();
   splitted_info.reverse();
   splitted_info
@@ -2771,5 +2776,5 @@ pub fn escape_name(name: &str) -> String {
     return "namespaceObject".to_string();
   }
 
-  escape_identifier(name).to_string()
+  escape_identifier(name).into_owned()
 }

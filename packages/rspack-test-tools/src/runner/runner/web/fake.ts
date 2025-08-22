@@ -1,5 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import vm, { SourceTextModule } from "node:vm";
+import { isCss } from "../../../helper";
+import asModule from "../../../helper/legacy/asModule";
 import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import CurrentScript from "../../../helper/legacy/currentScript";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
@@ -8,7 +12,11 @@ import FakeDocument, {
 } from "../../../helper/legacy/FakeDocument";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
-import type { TBasicRunnerFile, TRunnerRequirer } from "../../type";
+import {
+	EEsmMode,
+	type TBasicRunnerFile,
+	type TRunnerRequirer
+} from "../../type";
 import type { IBasicRunnerOptions } from "../basic";
 import { CommonJsRunner } from "../cjs";
 
@@ -17,6 +25,7 @@ export class FakeDocumentWebRunner<
 > extends CommonJsRunner<T> {
 	private document: FakeDocument;
 	private oldCurrentScript: CurrentScript | null = null;
+
 	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
 		super(_webOptions);
 		this.document = new FakeDocument(_webOptions.dist, {
@@ -30,7 +39,7 @@ export class FakeDocumentWebRunner<
 	}
 
 	run(file: string) {
-		if (!file.endsWith(".js")) {
+		if (isCss(file)) {
 			const cssElement = this.document.createElement("link");
 			cssElement.href = file;
 			cssElement.rel = "stylesheet";
@@ -150,13 +159,21 @@ export class FakeDocumentWebRunner<
 	protected createRunner() {
 		super.createRunner();
 		this.requirers.set("cjs", this.getRequire());
+		this.requirers.set("mjs", this.createESMRequirer());
 		this.requirers.set("json", this.createJsonRequirer());
+
 		this.requirers.set("entry", (_, modulePath, context) => {
 			if (Array.isArray(modulePath)) {
 				throw new Error("Array module path is not supported in web runner");
 			}
 			if (modulePath.endsWith(".json")) {
 				return this.requirers.get("json")!(
+					this._options.dist,
+					modulePath,
+					context
+				);
+			} else if (modulePath.endsWith(".mjs")) {
+				return this.requirers.get("mjs")!(
 					this._options.dist,
 					modulePath,
 					context
@@ -180,5 +197,90 @@ export class FakeDocumentWebRunner<
 		super.postExecute(_, file);
 		this.document.currentScript = this.oldCurrentScript;
 		this.oldCurrentScript = null;
+	}
+
+	private createESMRequirer(): TRunnerRequirer {
+		const esmContext = vm.createContext(
+			{
+				...this.baseModuleScope!,
+				...this.globalContext
+			},
+			{
+				name: "context for esm"
+			}
+		);
+		const esmCache = new Map<string, SourceTextModule>();
+
+		return (
+			currentDirectory: string,
+			modulePath: string | string[],
+			context: any = {}
+		) => {
+			const esmIdentifier = `esm-${currentDirectory}-${modulePath}`;
+			if (!SourceTextModule) {
+				throw new Error(
+					"Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/jest-cli/bin/jest'."
+				);
+			}
+			const _require = this.getRequire();
+
+			const file = context.file || this.getFile(modulePath, currentDirectory);
+			if (!file) {
+				return this.requirers.get("miss")!(currentDirectory, modulePath);
+			}
+
+			let esm = esmCache.get(file.path);
+			if (!esm) {
+				esm = new SourceTextModule(file.content, {
+					identifier: `${esmIdentifier}-${file.path}`,
+					// no attribute
+					url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,
+					context: esmContext,
+					initializeImportMeta: (meta: { url: string }, _: any) => {
+						meta.url = pathToFileURL(file!.path).href;
+					},
+					importModuleDynamically: async (
+						specifier: any,
+						module: { context: any }
+					) => {
+						const result = await _require(path.dirname(file!.path), specifier, {
+							esmMode: EEsmMode.Evaluated
+						});
+
+						return await asModule(result, module.context);
+					}
+				} as any);
+				esmCache.set(file.path, esm);
+			}
+			if (context.esmMode === EEsmMode.Unlinked) return esm;
+			return (async () => {
+				await esm.link(async (specifier, referencingModule) => {
+					return await asModule(
+						await _require(
+							path.dirname(
+								referencingModule.identifier
+									? referencingModule.identifier.slice(esmIdentifier.length + 1)
+									: fileURLToPath((referencingModule as any).url)
+							),
+							specifier,
+							{
+								esmMode: EEsmMode.Unlinked
+							}
+						),
+						referencingModule.context,
+						true
+					);
+				});
+				if ((esm as any).instantiate) (esm as any).instantiate();
+				await esm.evaluate();
+				if (context.esmMode === EEsmMode.Evaluated) {
+					return esm;
+				}
+				const ns = esm.namespace as {
+					default: unknown;
+				};
+				return ns.default && ns.default instanceof Promise ? ns.default : ns;
+			})();
+		};
 	}
 }

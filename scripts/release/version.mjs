@@ -7,26 +7,34 @@ async function getCommitId() {
 	return result.stdout.replace("\n", "");
 }
 
-export async function getLastVersion(root) {
-	const pkgPath = path.resolve(root, "./packages/rspack/package.json");
-
+function importPkgJson(pkgPath) {
 	try {
 		// Node >= 20
-		const result = await import(pkgPath, {
+		return import(pkgPath, {
 			with: {
 				type: "json"
 			}
 		});
-		return result.default.version;
-	} catch (_e) {
+	} catch (_) {
 		// Node < 20
-		const result = await import(pkgPath, {
+		return import(pkgPath, {
 			assert: {
 				type: "json"
 			}
 		});
-		return result.default.version;
 	}
+}
+
+export async function getPkgName(root) {
+	const pkgPath = path.resolve(root, "./packages/rspack/package.json");
+	const result = await importPkgJson(pkgPath);
+	return result.default.name;
+}
+
+export async function getLastVersion(root) {
+	const pkgPath = path.resolve(root, "./packages/rspack/package.json");
+	const result = await importPkgJson(pkgPath);
+	return result.default.version;
 }
 
 export function getNextName(name, scopePostfix = "canary") {

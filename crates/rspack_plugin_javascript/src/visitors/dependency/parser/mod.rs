@@ -2,6 +2,7 @@ mod call_hooks_name;
 pub mod estree;
 mod walk;
 mod walk_block_pre;
+mod walk_module_pre;
 mod walk_pre;
 
 use std::{borrow::Cow, fmt::Display, rc::Rc, sync::Arc};
@@ -38,7 +39,7 @@ use crate::{
   parser_plugin::{self, InnerGraphState, JavaScriptParserPluginDrive, JavascriptParserPlugin},
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::scope_info::{
-    FreeName, ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoId,
+    ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
   },
 };
 
@@ -363,11 +364,6 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
-    if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
-        unresolved_mark,
-      )));
-    }
     // disabled by default for now, it's still experimental
     if javascript_options.inline_const.unwrap_or_default() {
       if !compiler_options.experiments.inline_const {
@@ -375,6 +371,11 @@ impl<'parser> JavascriptParser<'parser> {
       } else {
         plugins.push(Box::new(parser_plugin::InlineConstPlugin));
       }
+    }
+    if compiler_options.optimization.inner_graph {
+      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
+        unresolved_mark,
+      )));
     }
 
     if !matches!(
@@ -484,11 +485,6 @@ impl<'parser> JavascriptParser<'parser> {
     self.module_layer
   }
 
-  pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
-    let id = self.definitions_db.get(self.definitions, name)?;
-    Some(self.definitions_db.expect_get_mut_variable(id))
-  }
-
   pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
@@ -518,9 +514,28 @@ impl<'parser> JavascriptParser<'parser> {
     let Some(info) = self.get_variable_info(name) else {
       return Some(FreeInfo { name, info: None });
     };
-    let Some(FreeName::String(name)) = &info.free_name else {
+    let Some(name) = &info.name else {
       return None;
     };
+    if !info.is_free() {
+      return None;
+    }
+    Some(FreeInfo {
+      name,
+      info: Some(info),
+    })
+  }
+
+  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<FreeInfo<'a>> {
+    let Some(info) = self.get_variable_info(name) else {
+      return Some(FreeInfo { name, info: None });
+    };
+    let Some(name) = &info.name else {
+      return None;
+    };
+    if !info.is_free() && !info.is_tagged() {
+      return None;
+    }
     Some(FreeInfo {
       name,
       info: Some(info),
@@ -542,22 +557,36 @@ impl<'parser> JavascriptParser<'parser> {
     {
       return;
     }
-    let info = VariableInfo::create(&mut self.definitions_db, definitions, None, None);
+    let info = VariableInfo::create(
+      &mut self.definitions_db,
+      definitions,
+      None,
+      VariableInfoFlags::NORMAL,
+      None,
+    );
     self.definitions_db.set(definitions, name, info);
   }
 
-  pub fn set_variable(&mut self, name: String, variable: String) {
-    let id = self.definitions;
-    if name == variable {
-      self.definitions_db.delete(id, &name);
-    } else {
-      let variable = VariableInfo::create(
-        &mut self.definitions_db,
-        id,
-        Some(FreeName::String(variable)),
-        None,
-      );
-      self.definitions_db.set(id, name, variable);
+  pub fn set_variable(&mut self, name: String, variable: ExportedVariableInfo) {
+    let scope_id = self.definitions;
+    match variable {
+      ExportedVariableInfo::Name(variable) => {
+        if name == variable {
+          self.definitions_db.delete(scope_id, &name);
+        } else {
+          let variable = VariableInfo::create(
+            &mut self.definitions_db,
+            scope_id,
+            Some(variable),
+            VariableInfoFlags::FREE,
+            None,
+          );
+          self.definitions_db.set(scope_id, name, variable);
+        }
+      }
+      ExportedVariableInfo::VariableInfo(variable) => {
+        self.definitions_db.set(scope_id, name, variable);
+      }
     }
   }
 
@@ -571,13 +600,35 @@ impl<'parser> JavascriptParser<'parser> {
     tag: &'static str,
     data: Option<Data>,
   ) {
+    self.tag_variable_impl(name, tag, data, None);
+  }
+
+  pub fn tag_variable_with_flags<Data: TagInfoData>(
+    &mut self,
+    name: String,
+    tag: &'static str,
+    data: Option<Data>,
+    flags: VariableInfoFlags,
+  ) {
+    self.tag_variable_impl(name, tag, data, Some(flags));
+  }
+
+  fn tag_variable_impl<Data: TagInfoData>(
+    &mut self,
+    name: String,
+    tag: &'static str,
+    data: Option<Data>,
+    flags: Option<VariableInfoFlags>,
+  ) {
+    let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
     let data = data.map(|data| TagInfoData::into_any(data));
     let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
       let old_info = self.definitions_db.expect_get_variable(old_info_id);
       if let Some(old_tag_info) = old_info.tag_info {
         let declared_scope = old_info.declared_scope;
         // FIXME: remove `.clone`
-        let free_name = old_info.free_name.clone();
+        let name = old_info.name.clone();
+        let flags = old_info.flags | flags;
         let tag_info = Some(TagInfo::create(
           &mut self.definitions_db,
           tag,
@@ -587,27 +638,28 @@ impl<'parser> JavascriptParser<'parser> {
         VariableInfo::create(
           &mut self.definitions_db,
           declared_scope,
-          free_name,
+          name,
+          flags,
           tag_info,
         )
       } else {
         let declared_scope = old_info.declared_scope;
-        let free_name = Some(FreeName::True);
         let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
         VariableInfo::create(
           &mut self.definitions_db,
           declared_scope,
-          free_name,
+          Some(name.clone()),
+          flags,
           tag_info,
         )
       }
     } else {
-      let free_name = Some(FreeName::String(name.clone()));
       let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
       VariableInfo::create(
         &mut self.definitions_db,
         self.definitions,
-        free_name,
+        Some(name.clone()),
+        flags,
         tag_info,
       )
     };
@@ -631,7 +683,7 @@ impl<'parser> JavascriptParser<'parser> {
         let FreeInfo {
           name: resolved_root,
           info: root_info,
-        } = self.get_free_info_from_variable(&root_name)?;
+        } = self.get_name_info_from_variable(&root_name)?;
 
         let callee_name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
@@ -657,7 +709,7 @@ impl<'parser> JavascriptParser<'parser> {
         let FreeInfo {
           name: resolved_root,
           info: root_info,
-        } = self.get_free_info_from_variable(&root_name)?;
+        } = self.get_name_info_from_variable(&root_name)?;
 
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
@@ -677,7 +729,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn get_member_expression_info_from_expr(
+  pub fn get_member_expression_info_from_expr(
     &mut self,
     expr: &Expr,
     allowed_types: AllowedMemberTypes,
@@ -925,12 +977,51 @@ impl<'parser> JavascriptParser<'parser> {
     self.prev_statement = self.statement_path.pop();
   }
 
+  fn enter_destructuring_assignment<'a>(
+    &mut self,
+    pattern: &ObjectPat,
+    expr: &'a Expr,
+  ) -> Option<&'a Expr> {
+    let expr = if let Some(await_expr) = expr.as_await_expr() {
+      &await_expr.arg
+    } else {
+      expr
+    };
+    let destructuring = if let Some(assign) = expr.as_assign()
+      && let Some(pat) = assign.left.as_pat()
+      && let Some(obj_pat) = pat.as_object()
+    {
+      self.enter_destructuring_assignment(obj_pat, &assign.right)
+    } else {
+      let can_collect = self
+        .plugin_drive
+        .clone()
+        .collect_destructuring_assignment_properties(self, expr)
+        .unwrap_or_default();
+      can_collect.then_some(expr)
+    };
+    if let Some(destructuring) = destructuring
+      && let Some(keys) = self._pre_walk_object_pattern(pattern)
+      && let Some(destructuring_assignment_properties) =
+        &mut self.destructuring_assignment_properties
+    {
+      // check multiple assignments
+      let props = destructuring_assignment_properties
+        .entry(destructuring.span())
+        .or_default();
+      props.extend(keys);
+    }
+    destructuring
+  }
+
   pub fn walk_program(&mut self, ast: &Program) {
     if self.plugin_drive.clone().program(self, ast).is_none() {
       self.destructuring_assignment_properties = Some(FxHashMap::default());
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
+          self.prev_statement = None;
+          self.module_pre_walk_module_items(&m.body);
           self.prev_statement = None;
           self.pre_walk_module_items(&m.body);
           self.prev_statement = None;
@@ -1023,7 +1114,6 @@ impl JavascriptParser<'_> {
       Expr::Array(array) => eval::eval_array_expression(self, array),
       Expr::New(new) => eval::eval_new_expression(self, new),
       Expr::Call(call) => eval::eval_call_expression(self, call),
-      Expr::Paren(paren) => self.evaluating(&paren.expr),
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {
@@ -1059,7 +1149,9 @@ impl JavascriptParser<'_> {
           .or_else(|| {
             let info = self.get_variable_info(name);
             if let Some(info) = info {
-              if let Some(FreeName::String(name)) = &info.free_name {
+              if let Some(name) = &info.name
+                && (info.is_free() || info.is_tagged())
+              {
                 let mut eval =
                   BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
                 eval.set_identifier(
@@ -1106,7 +1198,9 @@ impl JavascriptParser<'_> {
             .evaluate_identifier(self, "this", this.span.real_lo(), this.span.hi.0)
             .or_else(default_eval);
         };
-        if let Some(FreeName::String(name)) = info.free_name.as_ref() {
+        if let Some(name) = &info.name
+          && (info.is_free() || info.is_tagged())
+        {
           // avoid ownership
           let name = name.to_string();
           return drive

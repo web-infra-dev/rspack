@@ -1,0 +1,21 @@
+[package]
+description       = "rspack module replacement plugin"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_module_replacement"
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[dependencies]
+derive_more  = { workspace = true, features = ["debug"] }
+futures      = { workspace = true }
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_hook  = { workspace = true }
+rspack_paths = { workspace = true }
+rspack_regex = { workspace = true }
+rustc-hash   = { workspace = true }
+tracing      = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

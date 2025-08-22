@@ -5,7 +5,7 @@ use rspack_core::{
   LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, UsedNameItem,
   property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_identifier,
+  to_identifier, to_module_export_name,
 };
 use rspack_error::{Result, error_bail};
 use rspack_hash::RspackHash;
@@ -117,7 +117,10 @@ async fn render_startup(
         }
       )));
     }
-    exports.push(format!("{var_name} as {info_name}"));
+    exports.push(format!(
+      "{var_name} as {}",
+      to_module_export_name(info_name)
+    ));
   }
   if !exports.is_empty() {
     source.add(RawStringSource::from(format!(

@@ -97,8 +97,12 @@ mod stats;
 mod swc;
 mod trace_event;
 mod utils;
+mod virtual_modules;
 
-use std::{cell::RefCell, sync::Arc};
+use std::{
+  cell::RefCell,
+  sync::{Arc, RwLock},
+};
 
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
@@ -109,16 +113,8 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
-use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
-use rspack_util::tracing_preset::{
-  TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
-};
 use rustc_hash::FxHashMap;
 use swc_core::common::util::take::Take;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::{
-  EnvFilter, Layer, Registry, layer::SubscriberExt, reload, util::SubscriberInitExt,
-};
 
 use crate::{
   async_dependency_block::AsyncDependenciesBlockWrapper,
@@ -137,6 +133,9 @@ use crate::{
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
   utils::callbackify,
+  virtual_modules::{
+    JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore, VirtualFileSystem,
+  },
 };
 
 // Export expected @rspack/core version
@@ -166,6 +165,7 @@ struct JsCompiler {
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   compiler_context: Arc<CompilerContext>,
+  virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
 
 #[napi]
@@ -218,12 +218,14 @@ impl JsCompiler {
         bp.append_to(env, &mut this, &mut plugins)?;
       }
 
+      let pnp = options.resolve.pnp.unwrap_or(false);
+      let virtual_files = options.__virtual_files.take();
       let use_input_fs = options.experiments.use_input_file_system.take();
       let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
-      let input_file_system: Option<Arc<dyn ReadableFileSystem>> =
+      let mut input_file_system: Option<Arc<dyn ReadableFileSystem>> =
         input_filesystem.and_then(|fs| {
           use_input_fs.and_then(|use_input_file_system| {
             let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
@@ -244,6 +246,31 @@ impl JsCompiler {
             }
           })
         });
+
+      let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
+      if let Some(list) = virtual_files {
+        let store = {
+          let mut store = TrieVirtualFileStore::new();
+          for f in list {
+            store.write_file(f.path.as_str().into(), f.content.into());
+          }
+          Arc::new(RwLock::new(store))
+        };
+        input_file_system = input_file_system
+          .map(|real_fs| {
+            let binding: Arc<dyn ReadableFileSystem> =
+              Arc::new(VirtualFileSystem::new(real_fs, store.clone()));
+            binding
+          })
+          .or_else(|| {
+            let binding: Arc<dyn ReadableFileSystem> = Arc::new(VirtualFileSystem::new(
+              Arc::new(NativeFileSystem::new(pnp)),
+              store.clone(),
+            ));
+            Some(binding)
+          });
+        virtual_file_store = Some(store);
+      }
 
       resolver_factory_reference.update_options(
         input_file_system.clone(),
@@ -288,6 +315,7 @@ impl JsCompiler {
         include_dependencies_map: Default::default(),
         entry_dependencies_map: Default::default(),
         compiler_context,
+        virtual_file_store,
       })
     })
   }
@@ -368,6 +396,14 @@ impl JsCompiler {
       })?;
     Ok(())
   }
+
+  #[napi]
+  pub fn get_virtual_file_store(&self) -> Option<JsVirtualFileStore> {
+    self
+      .virtual_file_store
+      .as_ref()
+      .map(|store| JsVirtualFileStore::new(store.clone()))
+  }
 }
 
 struct RunGuard {
@@ -444,14 +480,6 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
   )
 }
 
-#[derive(Default)]
-enum TraceState {
-  Uninitialized,                                            // uninitialized
-  On(Box<dyn Tracer>, reload::Handle<EnvFilter, Registry>), // initialized and turned on
-  #[default]
-  Off,                                          // initialized but turned off
-}
-
 #[cfg(target_family = "wasm")]
 const _: () = {
   #[used]
@@ -520,9 +548,6 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
     .expect("should print diagnostics")
 }
 
-thread_local! {
-  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Uninitialized) };
-}
 /**
  * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
@@ -538,91 +563,23 @@ fn register_global_trace(
   #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
-  let filter = match filter.as_str() {
-    "OVERVIEW" => TRACING_OVERVIEW_PRESET,
-    "ALL" => TRACING_ALL_PRESET,
-    "BENCH" => TRACING_BENCH_TARGET,
-    _ => filter.as_str(),
-  };
-  GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.borrow_mut();
-    if let TraceState::Uninitialized = *state {
-      let mut tracer: Box<dyn Tracer> = match layer.as_str() {
-        "logger" => Box::new(StdoutTracer),
-        "perfetto"=> Box::new(PerfettoTracer::default()),
-        _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
-          layer
-        ),
-      };
-      if let Some(layer) = tracer.setup(&output) {
-        // SAFETY: we know that trace_var is `Ok(String)` now,
-        // for the second unwrap, if we can't parse the directive, then the tracing result would be
-        // unexpected, then panic is reasonable
-        let (filter,reload_handle) = reload::Layer::new(EnvFilter::builder()
-          .with_default_directive(LevelFilter::INFO.into())
-          .with_regex(true)
-          .parse(filter)
-          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives")
-      );
-        tracing_subscriber::registry()
-          .with(<_ as Layer<Registry>>::with_filter(layer, filter))
-          .init();
-        let new_state = TraceState::On(tracer, reload_handle);
-        *state = new_state;
-      };
-    }
-    Ok(())
-  })
+  #[cfg(not(feature = "browser"))]
+  trace_event::register_global_trace(filter, layer, output)?;
+  Ok(())
 }
 
 #[napi]
 // only the first call would take effect, the following calls would be ignored
 pub fn cleanup_global_trace() {
-  GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.borrow_mut();
-    match *state {
-      TraceState::Uninitialized => {
-        panic!("Global trace is not initialized, please call register_global_trace first");
-      }
-      TraceState::Off => {
-        // do nothing, already cleaned up
-      }
-      TraceState::On(ref mut tracer, ref mut reload_handle) => {
-        tracer.teardown();
-        // turn off the tracing event
-        let _ = reload_handle.modify(|filter| *filter = EnvFilter::new("off"));
-        *state = TraceState::Off;
-      }
-    }
-  });
+  #[cfg(not(feature = "browser"))]
+  trace_event::cleanup_global_trace();
 }
+
 // sync Node.js event to Rust side
 #[napi]
 fn sync_trace_event(events: Vec<RawTraceEvent>) {
-  use std::borrow::BorrowMut;
-  GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.borrow_mut();
-    if let TraceState::On(tracer, _) = &mut **state.borrow_mut() {
-      tracer.sync_trace(
-        events
-          .into_iter()
-          .map(|event| TraceEvent {
-            name: event.name,
-            track_name: event.track_name,
-            process_name: event.process_name,
-            args: event
-              .args
-              .map(|args| args.into_iter().map(|(k, v)| (k, v.to_string())).collect()),
-            uuid: event.uuid,
-            ts: event.ts.get_u64().1,
-            ph: event.ph,
-            categories: event.categories,
-          })
-          .collect(),
-      );
-    }
-  });
+  #[cfg(not(feature = "browser"))]
+  trace_event::sync_trace_event(events);
 }
 
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {

@@ -1,5 +1,5 @@
 import path from "node:path";
-
+import { isJavaScript } from "../helper";
 import { BuiltinProcessor, type IBuiltinProcessorOptions } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType } from "../type";
@@ -10,8 +10,7 @@ const FILTERS: Record<
 > = {
 	"plugin-css": (file: string) => file.endsWith(".css"),
 	"plugin-css-modules": (file: string) =>
-		file.endsWith(".css") ||
-		(file.endsWith(".js") && !file.includes("runtime")),
+		file.endsWith(".css") || (isJavaScript(file) && !file.includes("runtime")),
 	"plugin-html": (file: string) => file.endsWith(".html")
 };
 

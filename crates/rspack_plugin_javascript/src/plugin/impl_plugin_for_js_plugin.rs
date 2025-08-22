@@ -469,13 +469,13 @@ async fn content_hash(
       }
     });
 
-  for (runtime_module_idenfitier, _) in compilation
+  for (runtime_module_identifier, _) in compilation
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
     if let Some(hash) = compilation
       .runtime_modules_hash
-      .get(runtime_module_idenfitier)
+      .get(runtime_module_identifier)
     {
       hash.hash(&mut hasher);
     }

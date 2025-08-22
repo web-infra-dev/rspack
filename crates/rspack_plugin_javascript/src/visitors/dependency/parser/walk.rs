@@ -11,7 +11,7 @@ use swc_core::{
     NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat, Prop,
     PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget, Stmt,
     SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp,
-    UpdateExpr, VarDecl, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
+    UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
   },
 };
 
@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
   parser_plugin::{JavascriptParserPlugin, is_logic_op},
-  visitors::scope_info::FreeName,
+  visitors::{ExportedVariableInfo, VariableDeclaration},
 };
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -293,6 +293,7 @@ impl JavascriptParser<'_> {
       if let Some(init) = &stmt.init {
         match init {
           VarDeclOrExpr::VarDecl(decl) => {
+            let decl = VariableDeclaration::VarDecl(decl);
             this.block_pre_walk_variable_declaration(decl);
             this.prev_statement = None;
             this.walk_variable_declaration(decl);
@@ -350,16 +351,21 @@ impl JavascriptParser<'_> {
   fn walk_for_head(&mut self, for_head: &ForHead) {
     match &for_head {
       ForHead::VarDecl(decl) => {
+        let decl = VariableDeclaration::VarDecl(decl);
+        self.block_pre_walk_variable_declaration(decl);
+        self.walk_variable_declaration(decl);
+      }
+      ForHead::UsingDecl(decl) => {
+        let decl = VariableDeclaration::UsingDecl(decl);
         self.block_pre_walk_variable_declaration(decl);
         self.walk_variable_declaration(decl);
       }
       ForHead::Pat(pat) => self.walk_pattern(pat),
-      ForHead::UsingDecl(_) => (),
     }
   }
 
-  fn walk_variable_declaration(&mut self, decl: &VarDecl) {
-    for declarator in &decl.decls {
+  fn walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
+    for declarator in decl.declarators() {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
@@ -373,7 +379,10 @@ impl JavascriptParser<'_> {
             .rename(self, init, &renamed_identifier)
             .unwrap_or_default()
           {
-            self.set_variable(ident.sym.to_string(), renamed_identifier);
+            self.set_variable(
+              ident.sym.to_string(),
+              ExportedVariableInfo::Name(renamed_identifier),
+            );
           }
           continue;
         }
@@ -420,9 +429,9 @@ impl JavascriptParser<'_> {
       Expr::Unary(expr) => self.walk_unary_expression(expr),
       Expr::Update(expr) => self.walk_update_expression(expr),
       Expr::Yield(expr) => self.walk_yield_expression(expr),
-      Expr::Paren(expr) => self.walk_expression(&expr.expr),
       Expr::SuperProp(_) | Expr::Lit(_) | Expr::PrivateName(_) | Expr::Invalid(_) => (),
-      Expr::JSXMember(_)
+      Expr::Paren(_)
+      | Expr::JSXMember(_)
       | Expr::JSXNamespacedName(_)
       | Expr::JSXEmpty(_)
       | Expr::JSXElement(_)
@@ -792,7 +801,7 @@ impl JavascriptParser<'_> {
     args: impl Iterator<Item = &'a Expr>,
     current_this: Option<&'a Expr>,
   ) {
-    fn get_var_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<String> {
+    fn get_var_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<ExportedVariableInfo> {
       if let Some(rename_identifier) = parser.get_rename_identifier(expr)
         && let drive = parser.plugin_drive.clone()
         && rename_identifier
@@ -804,13 +813,8 @@ impl JavascriptParser<'_> {
       {
         let variable = parser
           .get_variable_info(&rename_identifier)
-          .map(|info| info.free_name.as_ref())
-          .and_then(|free_name| free_name)
-          .and_then(|free_name| match free_name {
-            FreeName::String(s) => Some(s.to_string()),
-            FreeName::True => None,
-          })
-          .unwrap_or(rename_identifier);
+          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+          .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
         return Some(variable);
       }
       parser.walk_expression(expr);
@@ -831,7 +835,7 @@ impl JavascriptParser<'_> {
         params.push(ident);
         if variable_info_for_args
           .get(i)
-          .and_then(|i| i.as_deref())
+          .and_then(|i| i.as_ref())
           .is_none()
         {
           scope_params.push(Cow::Borrowed(pat));
@@ -844,7 +848,7 @@ impl JavascriptParser<'_> {
         params.push(ident);
         if variable_info_for_args
           .get(i)
-          .and_then(|i| i.as_deref())
+          .and_then(|i| i.as_ref())
           .is_none()
         {
           scope_params.push(Cow::Borrowed(pat));
@@ -914,8 +918,7 @@ impl JavascriptParser<'_> {
     match &expr.callee {
       Callee::Expr(callee) => {
         if let Expr::Member(member_expr) = &**callee
-          && let Expr::Paren(paren_expr) = &*member_expr.obj
-          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+          && let Expr::Fn(fn_expr) = &*member_expr.obj
           && let MemberProp::Ident(ident) = &member_expr.prop
           && (ident.sym == "call" || ident.sym == "bind")
           && !expr.args.is_empty()
@@ -924,7 +927,7 @@ impl JavascriptParser<'_> {
           // (function(…) { }).call(…)
           let mut params = expr.args.iter().map(|arg| &*arg.expr);
           let this = params.next();
-          self._walk_iife(&paren_expr.expr, params, this)
+          self._walk_iife(&member_expr.obj, params, this)
         } else if let Expr::Member(member_expr) = &**callee
           && let Expr::Fn(fn_expr) = &*member_expr.obj
           && let MemberProp::Ident(ident) = &member_expr.prop
@@ -936,16 +939,11 @@ impl JavascriptParser<'_> {
           let mut params = expr.args.iter().map(|arg| &*arg.expr);
           let this = params.next();
           self._walk_iife(&member_expr.obj, params, this)
-        } else if let Expr::Paren(paren_expr) = &**callee
-          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+        } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { })(…)
-          self._walk_iife(
-            &paren_expr.expr,
-            expr.args.iter().map(|arg| &*arg.expr),
-            None,
-          )
+          self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
@@ -1117,13 +1115,8 @@ impl JavascriptParser<'_> {
         {
           let variable = self
             .get_variable_info(&rename_identifier)
-            .map(|info| info.free_name.as_ref())
-            .and_then(|free_name| free_name)
-            .and_then(|free_name| match free_name {
-              FreeName::String(s) => Some(s.to_string()),
-              FreeName::True => None,
-            })
-            .unwrap_or(rename_identifier);
+            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
           self.set_variable(ident.sym.to_string(), variable);
         }
         return;
@@ -1319,15 +1312,15 @@ impl JavascriptParser<'_> {
     match target {
       SimpleAssignTarget::Ident(ident) => self.walk_identifier(ident),
       SimpleAssignTarget::Member(member) => self.walk_member_expression(member),
-      SimpleAssignTarget::Paren(expr) => self.walk_expression(&expr.expr),
       SimpleAssignTarget::OptChain(expr) => self.walk_chain_expression(expr),
       SimpleAssignTarget::SuperProp(_) => (),
-      SimpleAssignTarget::TsAs(_)
+      SimpleAssignTarget::Paren(_)
+      | SimpleAssignTarget::TsAs(_)
       | SimpleAssignTarget::TsSatisfies(_)
       | SimpleAssignTarget::TsNonNull(_)
       | SimpleAssignTarget::TsTypeAssertion(_)
-      | SimpleAssignTarget::TsInstantiation(_) => (),
-      SimpleAssignTarget::Invalid(_) => (),
+      | SimpleAssignTarget::TsInstantiation(_)
+      | SimpleAssignTarget::Invalid(_) => unreachable!(),
     }
   }
 

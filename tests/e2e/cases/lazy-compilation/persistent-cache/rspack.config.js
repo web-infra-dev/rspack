@@ -10,8 +10,8 @@ module.exports = {
 	mode: "production",
 	plugins: [new rspack.HtmlRspackPlugin()],
 	cache: true,
+	lazyCompilation: true,
 	experiments: {
-		lazyCompilation: true,
 		cache: {
 			type: "persistent"
 		}

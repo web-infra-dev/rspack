@@ -1,5 +1,3 @@
-const { supportsImportFn } = require("@rspack/test-tools");
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
@@ -21,6 +19,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: supportsImportFn()
+		parallelLoader: true
 	}
 };

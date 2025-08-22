@@ -8,7 +8,7 @@ use swc_core::{
     DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
     ExportSpecifier, Expr, ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function,
     Ident, IfStmt, LabeledStmt, NamedExport, ObjectLit, ReturnStmt, Stmt, SwitchStmt, ThrowStmt,
-    TryStmt, UsingDecl, VarDecl, WhileStmt, WithStmt,
+    TryStmt, UsingDecl, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
   },
 };
 
@@ -422,8 +422,7 @@ pub enum Statement<'ast> {
   // FnDecl, don't put FnExpr into it, unless it's DefaultDecl::FnExpr
   // which is represented by FnExpr but it actually is a FnDecl without ident
   Fn(MaybeNamedFunctionDecl<'ast>),
-  Var(&'ast VarDecl),
-  Using(&'ast UsingDecl),
+  Var(VariableDeclaration<'ast>),
 }
 
 impl Spanned for Statement<'_> {
@@ -451,7 +450,6 @@ impl Spanned for Statement<'_> {
       Class(d) => d.span(),
       Fn(d) => d.span(),
       Var(d) => d.span(),
-      Using(d) => d.span(),
     }
   }
 }
@@ -489,8 +487,8 @@ impl<'ast> From<&'ast Decl> for Statement<'ast> {
     match value {
       Decl::Class(d) => Class(d.into()),
       Decl::Fn(d) => Fn(d.into()),
-      Decl::Var(d) => Var(d),
-      Decl::Using(d) => Using(d),
+      Decl::Var(d) => Var(VariableDeclaration::VarDecl(d)),
+      Decl::Using(d) => Var(VariableDeclaration::UsingDecl(d)),
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
         unreachable!()
       }
@@ -510,6 +508,56 @@ impl<'ast> Statement<'ast> {
     match self {
       Statement::Class(c) => Some(*c),
       _ => None,
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum VariableDeclaration<'a> {
+  VarDecl(&'a VarDecl),
+  UsingDecl(&'a UsingDecl),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum VariableDeclarationKind {
+  Var,
+  Let,
+  Const,
+  Using,
+  AwaitUsing,
+}
+
+impl Spanned for VariableDeclaration<'_> {
+  fn span(&self) -> Span {
+    match self {
+      VariableDeclaration::VarDecl(var_decl) => var_decl.span(),
+      VariableDeclaration::UsingDecl(using_decl) => using_decl.span(),
+    }
+  }
+}
+
+impl VariableDeclaration<'_> {
+  pub fn kind(&self) -> VariableDeclarationKind {
+    match self {
+      VariableDeclaration::VarDecl(v) => match v.kind {
+        VarDeclKind::Var => VariableDeclarationKind::Var,
+        VarDeclKind::Let => VariableDeclarationKind::Let,
+        VarDeclKind::Const => VariableDeclarationKind::Const,
+      },
+      VariableDeclaration::UsingDecl(u) => {
+        if u.is_await {
+          VariableDeclarationKind::AwaitUsing
+        } else {
+          VariableDeclarationKind::Using
+        }
+      }
+    }
+  }
+
+  pub fn declarators(&self) -> &[VarDeclarator] {
+    match self {
+      VariableDeclaration::VarDecl(v) => &v.decls,
+      VariableDeclaration::UsingDecl(u) => &u.decls,
     }
   }
 }

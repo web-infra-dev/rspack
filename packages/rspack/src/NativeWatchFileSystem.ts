@@ -38,6 +38,7 @@ const toJsWatcherIgnored = (
 
 export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
+	#isFirstWatch = true;
 	#inputFileSystem: InputFileSystem;
 
 	constructor(inputFileSystem: InputFileSystem) {
@@ -98,9 +99,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		const nativeWatcher = this.getNativeWatcher(options);
 
 		nativeWatcher.watch(
-			[Array.from(files.added!), Array.from(files.removed!)],
-			[Array.from(directories.added!), Array.from(directories.removed!)],
-			[Array.from(missing.added!), Array.from(missing.removed!)],
+			this.formatWatchDependencies(files),
+			this.formatWatchDependencies(directories),
+			this.formatWatchDependencies(missing),
 			(err: Error | null, result) => {
 				if (err) {
 					callback(err, new Map(), new Map(), new Set(), new Set());
@@ -132,6 +133,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 				callbackUndelayed(fileName, Date.now());
 			}
 		);
+
+		this.#isFirstWatch = false;
 
 		return {
 			close: () => {
@@ -176,6 +179,30 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 		};
 		const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
 		this.#inner = nativeWatcher;
+
 		return nativeWatcher;
+	}
+
+	triggerEvent(kind: "change" | "remove" | "create", path: string) {
+		this.#inner?.triggerEvent(kind, path);
+	}
+
+	formatWatchDependencies(
+		dependencies: Iterable<string> & {
+			added?: Iterable<string>;
+			removed?: Iterable<string>;
+		}
+	): [string[], string[]] {
+		if (this.#isFirstWatch) {
+			// if we first watch, we should pass all dependencies
+			return [Array.from(dependencies), []];
+		} else {
+			// On subsequent watches, we only need to pass incremental changes:
+			// [added dependencies, removed dependencies]
+			return [
+				Array.from(dependencies.added ?? []),
+				Array.from(dependencies.removed ?? [])
+			];
+		}
 	}
 }

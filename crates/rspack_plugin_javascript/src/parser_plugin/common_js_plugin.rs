@@ -2,11 +2,34 @@ use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency
 use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{JavascriptParser, expr_matcher};
+use crate::{
+  utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
+  visitors::{JavascriptParser, expr_matcher, expr_name},
+};
 
 pub struct CommonJsPlugin;
 
 impl JavascriptParserPlugin for CommonJsPlugin {
+  fn evaluate_identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    for_name: &str,
+    start: u32,
+    end: u32,
+  ) -> Option<BasicEvaluatedExpression<'static>> {
+    if for_name == expr_name::MODULE_HOT {
+      Some(evaluate_to_identifier(
+        expr_name::MODULE_HOT.to_string(),
+        expr_name::MODULE.to_string(),
+        None,
+        start,
+        end,
+      ))
+    } else {
+      None
+    }
+  }
+
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,

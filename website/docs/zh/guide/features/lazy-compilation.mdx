@@ -12,7 +12,7 @@ Lazy compilation 仅在开发阶段有效，对于生产构建不会产生影响
 
 ### Rspack CLI
 
-对于使用 `@rspack/cli` 的用户，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置开启懒编译，假设你正在开发一个包含多页面应用（MPA），当开发其中一个页面时，Rspack 只会构建你当前访问的入口。
+对于使用 `@rspack/cli` 的用户，你可以通过 [lazyCompilation](/config/lazy-compilation) 配置开启懒编译，假设你正在开发一个包含多页面应用（MPA），当开发其中一个页面时，Rspack 只会构建你当前访问的入口。
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
@@ -22,9 +22,7 @@ export default defineConfig({
     Home: './src/Home.js',
     About: './src/About.js',
   },
-  experiments: {
-    lazyCompilation: true,
-  },
+  lazyCompilation: true,
 });
 ```
 
@@ -38,7 +36,7 @@ export default defineConfig({
     Home: './src/Home.js',
     About: './src/About.js',
   },
-  experiments: {
+  lazyCompilation: {
     // 对入口开启懒编译
     entries: true,
     // 对动态引入的模块开启懒编译
@@ -47,7 +45,7 @@ export default defineConfig({
 });
 ```
 
-> 详细配置请参考 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation)。
+> 详细配置请参考 [lazyCompilation](/config/lazy-compilation)。
 
 :::info
 当对入口开启懒编译后，入口模块实际上会被异步地动态引入，因此如果你配置了 [splitChunks](/config/optimization#optimizationsplitchunks)，入口模块会被视为 async chunk，这可能会导致开发环境和生产环境的产物内容有微小差别。
@@ -71,14 +69,12 @@ export default defineConfig({
     Home: './src/Home.js',
     About: './src/About.js',
   },
-  experiments: {
-    lazyCompilation: {
-      entries: true,
-      imports: true,
-      test(module) {
-        const name = module.nameForCondition();
-        return name && !/src\/About/.test(name);
-      },
+  lazyCompilation: {
+    entries: true,
+    imports: true,
+    test(module) {
+      const name = module.nameForCondition();
+      return name && !/src\/About/.test(name);
     },
   },
 });
@@ -134,13 +130,11 @@ server.start();
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
-  experiments: {
-    lazyCompilation: {
-      entries: true,
-      imports: true,
-      // 自定义懒编译端点前缀
-      prefix: '/custom-lazy-endpoint-',
-    },
+  lazyCompilation: {
+    entries: true,
+    imports: true,
+    // 自定义懒编译端点前缀
+    prefix: '/custom-lazy-endpoint-',
   },
 });
 ```

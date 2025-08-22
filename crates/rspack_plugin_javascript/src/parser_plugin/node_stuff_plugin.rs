@@ -166,11 +166,11 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if ident == DIR_NAME {
+    if for_name == DIR_NAME {
       if parser
         .compiler_options
         .node
@@ -184,7 +184,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         start,
         end,
       ))
-    } else if ident == FILE_NAME {
+    } else if for_name == FILE_NAME {
       if parser
         .compiler_options
         .node

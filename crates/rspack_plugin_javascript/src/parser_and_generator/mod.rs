@@ -19,6 +19,7 @@ use swc_core::{
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
+    transforms::base::fixer::paren_remover,
   },
 };
 use swc_node_comments::SwcComments;
@@ -187,6 +188,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto
         ),
+        explicit_resource_management: true,
         import_attributes: true,
         ..Default::default()
       }),
@@ -195,7 +197,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Some(&comments),
     );
 
-    let lexer = swc_ecma_lexer::Lexer::new(
+    let lexer = swc_core::ecma::parser::Lexer::new(
       Syntax::Es(EsSyntax {
         allow_return_outside_function: matches!(
           module_type,
@@ -226,6 +228,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut semicolons = Default::default();
     ast.transform(|program, context| {
+      program.visit_mut_with(&mut paren_remover(Some(&comments)));
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,

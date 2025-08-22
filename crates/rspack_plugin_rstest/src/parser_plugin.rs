@@ -708,18 +708,18 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
     if self.import_meta_path_name {
-      if ident == IMPORT_META_DIRNAME {
+      if for_name == IMPORT_META_DIRNAME {
         return Some(eval::evaluate_to_string(
           self.process_import_meta(parser, ModulePathType::DirName),
           start,
           end,
         ));
-      } else if ident == IMPORT_META_FILENAME {
+      } else if for_name == IMPORT_META_FILENAME {
         return Some(eval::evaluate_to_string(
           self.process_import_meta(parser, ModulePathType::FileName),
           start,

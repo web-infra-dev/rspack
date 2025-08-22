@@ -201,7 +201,7 @@ it("should not have brackets on start", function () {
 	function f() {
 		throw new Error("should not be called");
 	}
-	f; // <- no semicolon here
+	f // <- no semicolon here
 	OBJECT;
 });
 
@@ -212,7 +212,7 @@ it("should not explode on recursive typeof calls", function () {
 it("should not explode on recursive statements", function () {
 	expect(function () {
 		wurst; // <- is recursively defined in config
-	}).toThrowError("suppe is not defined");
+	}).toThrow("suppe is not defined");
 });
 
 it("should evaluate composed expressions (issue 5100)", function () {
@@ -231,7 +231,7 @@ it("should follow renamings in var (issue 5215)", function () {
 	expect(DEFINED_NESTED_KEY).toBe(5);
 });
 
-// it("should check that runtimeValue callback argument is a module", function() {
+// it("should check that runtimeValue callback argument is a module", function () {
 // 	expect(RUNTIMEVALUE_CALLBACK_ARGUMENT_IS_A_MODULE).toEqual(true);
 // });
 
@@ -247,4 +247,61 @@ it("should expand properly", function () {
 	expect(require("./dir/" + (tmp + A_DOT_J + tmp + "s"))).toBe(a);
 	expect(require("./dir/" + (tmp + A_DOT_J + tmp) + "s")).toBe(a);
 	expect(require("./dir/" + (tmp + A_DOT_J) + tmp + "s")).toBe(a);
+});
+
+it("destructuring assignment", () => {
+	const { used } = OBJECT2;
+	const { ["used"]: used2, used: used3 } = OBJECT2.sub;
+	expect(used).toBe(used2);
+	expect(used).toBe(used3);
+
+	// FIXME: https://github.com/webpack/webpack/pull/19638
+	// const { DEFINED_NESTED_KEY, DEFINED_NESTED_KEY_STRING } = process.env;
+	// expect(DEFINED_NESTED_KEY).toBe(process.env.DEFINED_NESTED_KEY);
+	// expect(DEFINED_NESTED_KEY_STRING).toBe(process.env.DEFINED_NESTED_KEY_STRING);
+
+	// const { BAZ, BAZZ } = FOO.BAR;
+	// expect(BAZ).toBe(FOO.BAR.BAZ);
+	// expect(BAZZ).toBe(FOO.BAR.BAZZ);
+
+	// const { BAZ: BAZ2 } = X.Y;
+	// expect(BAZ2).toBe(X.Y.BAZ);
+});
+
+it("should allow shorthand property (issue #16764)", () => {
+	const simple = { ONE, TRUE, NULL, STRING, BIGINT, NEGATIVE_NUMBER };
+	expect(simple).toStrictEqual({
+		ONE: 1,
+		TRUE: true,
+		NULL: null,
+		STRING: "string",
+		BIGINT: BigInt("9007199254740993"),
+		NEGATIVE_NUMBER: -100.25
+	});
+
+	const func = { FUNCTION };
+	expect(func.FUNCTION(3)).toBe(4);
+	expect(typeof func.FUNCTION).toBe("function");
+
+	const code = { CODE };
+	expect(code.CODE).toBe(3);
+	expect(typeof code.CODE).toBe("number");
+
+	const regex = { REGEXP };
+	expect(regex.REGEXP.toString()).toBe("/abc/i");
+	expect(typeof regex.REGEXP).toBe("object");
+
+	const nested = { OBJECT };
+	expect(nested.OBJECT.SUB.FUNCTION(7)).toBe(8);
+	expect(nested.OBJECT.SUB.CODE).toBe(3);
+	expect(nested.OBJECT.SUB.UNDEFINED).toBeUndefined();
+	expect(nested.OBJECT.SUB.REGEXP.toString()).toBe("/abc/i");
+	expect(nested.OBJECT.SUB.STRING).toBe("string");
+
+	const array = { ARRAY };
+	expect(array).toStrictEqual({ ARRAY: [2, ["six"]] });
+});
+
+it("fails for unknown property", () => {
+	expect(() => ({ UNKNOWN })).toThrow("UNKNOWN is not defined");
 });

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use rspack_core::{
   ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ExportsInfo,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, UsageState,
-  UsedByExports,
+  ExportsInfoData, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec,
+  UsageState, UsedByExports,
 };
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
@@ -45,24 +45,25 @@ fn is_connection_active(
 ) -> bool {
   fn is_export_active(
     name: &Atom,
-    exports_info: &ExportsInfo,
+    exports_info: &ExportsInfoData,
     mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    let exports_info = exports_info.as_data(mg);
     if let Some(export_info) = exports_info.named_exports(name) {
       return export_info.get_used(runtime) != UsageState::Unused;
     }
     if let Some(redirect_to) = exports_info.redirect_to() {
-      is_export_active(name, &redirect_to, mg, runtime)
+      let redirect_to = redirect_to.as_data(mg);
+      is_export_active(name, redirect_to, mg, runtime)
     } else {
       exports_info.other_exports_info().get_used(runtime) != UsageState::Unused
     }
   }
 
+  let exports_info = exports_info.as_data(mg);
   used_by_exports
     .iter()
-    .any(|name| is_export_active(name, &exports_info, mg, runtime))
+    .any(|name| is_export_active(name, exports_info, mg, runtime))
 }
 
 // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338

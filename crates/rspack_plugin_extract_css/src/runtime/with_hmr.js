@@ -25,7 +25,12 @@ __HMR_DOWNLOAD__.miniCss = function (chunkIds, removedChunks, removedModules, pr
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = createStylesheet(
 				chunkId,
-				fullhref,
+
+				/**
+					If dynamically add link tag through dom API and there is already a loaded style link, browsers sometimes treats the new link tag as the same link, and won't fetch the new style.
+					Use query to avoid browser cache the link tag, force to re-fetch new style, this is the same strategy as updateCss API, this can happen during lazy compilation
+				 */
+				`${fullhref}?${Date.now()}`,
 				oldTag,
 				function () {
 					tag.as = "style";

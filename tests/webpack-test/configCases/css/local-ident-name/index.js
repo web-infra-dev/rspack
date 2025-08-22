@@ -7,8 +7,21 @@ it("should have correct local ident for css export locals", (done) => {
 		import("./style.module.css?file-local"),
 		import("./style.module.css?q#f"),
 		import("./style.module.css?uniqueName-id-contenthash"),
+		import("./style.module.css?folder-local"),
+		import("./nested1/nested2/style.module.css?folder-local"),
 		import("./style.module.less"),
-	]).then(([idLocal, hash, hashLocal, pathNameLocal, fileLocal, queryFragment, uniqueNameIdContenthash, less]) => {
+	]).then(([
+		idLocal,
+		hash,
+		hashLocal,
+		pathNameLocal,
+		fileLocal,
+		queryFragment,
+		uniqueNameIdContenthash,
+		folderLocalRoot,
+		folderLocal,
+		less
+	]) => {
 		expect(idLocal).toMatchSnapshot();
 		expect(hash).toMatchSnapshot();
 		expect(hashLocal).toMatchSnapshot();
@@ -16,6 +29,8 @@ it("should have correct local ident for css export locals", (done) => {
 		expect(fileLocal).toMatchSnapshot();
 		expect(queryFragment).toMatchSnapshot();
 		expect(uniqueNameIdContenthash).toMatchSnapshot();
+		expect(folderLocalRoot).toMatchSnapshot();
+		expect(folderLocal).toMatchSnapshot();
 		expect(less).toMatchSnapshot();
 		done()
 	}).catch(done)

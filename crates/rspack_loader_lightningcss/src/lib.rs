@@ -18,7 +18,7 @@ use rspack_core::{
   rspack_sources::{Mapping, OriginalLocation, SourceMap, encode_mappings},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_loader_runner::{Identifiable, Identifier};
+use rspack_loader_runner::Identifier;
 use tokio::sync::Mutex;
 
 pub mod config;
@@ -258,15 +258,13 @@ impl LightningCssLoader {
   }
 }
 
-impl Identifiable for LightningCssLoader {
-  fn identifier(&self) -> rspack_loader_runner::Identifier {
-    self.id
-  }
-}
-
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for LightningCssLoader {
+  fn identifier(&self) -> rspack_loader_runner::Identifier {
+    self.id
+  }
+
   #[tracing::instrument("loader:lightningcss", skip_all, fields(
     perfetto.track_name = "loader:lightningcss",
     perfetto.process_name = "Loader Analysis",

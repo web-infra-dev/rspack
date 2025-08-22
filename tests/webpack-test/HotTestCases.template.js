@@ -4,12 +4,11 @@ require("./helpers/warmup-webpack");
 
 const path = require("path");
 const fs = require("graceful-fs");
-const vm = require("vm");
 const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const FakeDocument = require("./helpers/FakeDocument");
-const { createFilteredDescribe } = require("./lib/util/filterUtil")
+const { createFilteredDescribe } = require("./lib/util/filterUtil");
 const { TestRunner } = require("./runner");
 
 const casesPath = path.join(__dirname, "hotCases");

@@ -161,13 +161,13 @@ impl JavascriptParserPlugin for AMDParserPlugin {
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    if ident == DEFINE_AMD {
+    if for_name == DEFINE_AMD {
       return Some(evaluate_to_identifier(
-        ident.to_string(),
+        for_name.to_string(),
         "define".to_string(),
         Some(true),
         start,
@@ -175,9 +175,9 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       ));
     }
 
-    if ident == REQUIRE_AMD {
+    if for_name == REQUIRE_AMD {
       return Some(evaluate_to_identifier(
-        ident.to_string(),
+        for_name.to_string(),
         "require".to_string(),
         Some(true),
         start,

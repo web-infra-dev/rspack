@@ -57,7 +57,9 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
   compiler
     .transform(
       source,
-      Some(swc_core::common::FileName::Anon),
+      Some(swc_core::common::FileName::Real(
+        options.filename.clone().into(),
+      )),
       options,
       Some(module_source_map_kind),
       |_| {},

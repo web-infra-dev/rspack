@@ -47,7 +47,9 @@ module.exports = {
 		-     "hotUpdateChunkFilename": "[id].[fullhash].hot-update.js",
 		+     "hotUpdateChunkFilename": "[id].[fullhash].hot-update.mjs",
 		@@ ... @@
+		-     "hotUpdateMainFilename": "[runtime].[fullhash].hot-update.json",
 		-     "iife": true,
+		+     "hotUpdateMainFilename": "[runtime].[fullhash].hot-update.json.mjs",
 		+     "iife": false,
 		@@ ... @@
 		-     "module": false,

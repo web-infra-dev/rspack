@@ -47,7 +47,7 @@ use crate::{
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
   RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
@@ -147,8 +147,6 @@ impl Default for CompilationId {
     Self::new()
   }
 }
-
-type ValueCacheVersions = HashMap<String, String>;
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
@@ -2697,33 +2695,26 @@ impl Compilation {
   #[instrument("Compilation:create_module_hashes", skip_all)]
   pub async fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
     let mg = self.get_module_graph();
+    let chunk_graph = &self.chunk_graph;
+    let chunk_by_ukey = &self.chunk_by_ukey;
+
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
-      modules
-        .into_iter()
-        .map(|module| {
-          (
-            module,
-            self
-              .chunk_graph
-              .get_module_runtimes_iter(module, &self.chunk_by_ukey)
-              .cloned()
-              .collect::<Vec<_>>(),
-          )
-        })
-        .for_each(|(module_identifier, runtimes)| {
-          let s = unsafe { token.used((&*self, &mg)) };
-          s.spawn(move |(compilation, mg)| async move {
+      for module_identifier in modules {
+        let s = unsafe { token.used((&*self, &mg, chunk_graph, chunk_by_ukey)) };
+        s.spawn(
+          move |(compilation, mg, chunk_graph, chunk_by_ukey)| async move {
             let mut hashes = RuntimeSpecMap::new();
-            for runtime in runtimes {
-              let module = mg
-                .module_by_identifier(&module_identifier)
-                .expect("should have module");
-              let hash = module.get_runtime_hash(compilation, Some(&runtime)).await?;
-              hashes.set(runtime, hash);
+            let module = mg
+              .module_by_identifier(&module_identifier)
+              .expect("should have module");
+            for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
+              let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
+              hashes.set(runtime.clone(), hash);
             }
             Ok((module_identifier, hashes))
-          });
-        });
+          },
+        );
+      }
     })
     .await
     .into_iter()
