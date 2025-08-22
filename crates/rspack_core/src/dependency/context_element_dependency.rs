@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -32,7 +34,7 @@ pub struct ContextElementDependency {
   pub referenced_exports: Option<Vec<Atom>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
-  pub factorize_info: FactorizeInfo,
+  pub factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ContextElementDependency {
@@ -157,11 +159,11 @@ impl ModuleDependency for ContextElementDependency {
     )
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

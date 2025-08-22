@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec, Skip},
@@ -25,7 +27,7 @@ pub struct CommonJsFullRequireDependency {
   asi_safe: bool,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CommonJsFullRequireDependency {
@@ -117,11 +119,11 @@ impl ModuleDependency for CommonJsFullRequireDependency {
     self.optional
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

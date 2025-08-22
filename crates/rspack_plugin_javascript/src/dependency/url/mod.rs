@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
@@ -19,7 +21,7 @@ pub struct URLDependency {
   range_url: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   relative: bool,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl URLDependency {
@@ -78,11 +80,11 @@ impl ModuleDependency for URLDependency {
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

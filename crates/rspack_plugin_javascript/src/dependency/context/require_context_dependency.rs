@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
@@ -8,7 +10,6 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 
 use super::create_resource_identifier_for_context_dependency;
-
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RequireContextDependency {
@@ -18,7 +19,7 @@ pub struct RequireContextDependency {
   resource_identifier: String,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl RequireContextDependency {
@@ -103,11 +104,11 @@ impl ContextDependency for RequireContextDependency {
     &mut self.critical
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

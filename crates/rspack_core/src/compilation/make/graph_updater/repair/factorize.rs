@@ -164,6 +164,8 @@ impl Task<TaskContext> for FactorizeResultTask {
       factorize_info,
     } = *self;
 
+    let factorize_info = Arc::new(factorize_info);
+
     let artifact = &mut context.artifact;
     if !factorize_info.diagnostics().is_empty() {
       artifact

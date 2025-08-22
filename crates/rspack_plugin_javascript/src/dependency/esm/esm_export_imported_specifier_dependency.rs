@@ -1,4 +1,4 @@
-use std::hash::BuildHasherDefault;
+use std::{hash::BuildHasherDefault, sync::Arc};
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
@@ -59,7 +59,7 @@ pub struct ESMExportImportedSpecifierDependency {
   export_presence_mode: ExportPresenceMode,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
   lazy_make: bool,
 }
 
@@ -1430,11 +1430,11 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     ))
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

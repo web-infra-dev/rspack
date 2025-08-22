@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -32,7 +34,7 @@ pub struct CssDependency {
   pub(crate) context_dependencies: FxHashSet<ArcPath>,
   pub(crate) missing_dependencies: FxHashSet<ArcPath>,
   pub(crate) build_dependencies: FxHashSet<ArcPath>,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CssDependency {
@@ -133,11 +135,11 @@ impl ModuleDependency for CssDependency {
     &self.identifier
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

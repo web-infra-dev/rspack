@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
@@ -68,7 +70,7 @@ pub struct ImportDependency {
   pub attributes: Option<ImportAttributes>,
   pub comments: Vec<(bool, String)>,
   pub resource_identifier: String,
-  pub factorize_info: FactorizeInfo,
+  pub factorize_info: Arc<FactorizeInfo>,
   pub optional: bool,
 }
 
@@ -152,11 +154,11 @@ impl ModuleDependency for ImportDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
@@ -20,7 +22,7 @@ pub struct AMDRequireContextDependency {
   options: ContextOptions,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl AMDRequireContextDependency {
@@ -105,11 +107,11 @@ impl ContextDependency for AMDRequireContextDependency {
     &mut self.critical
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

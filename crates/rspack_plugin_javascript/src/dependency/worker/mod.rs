@@ -1,4 +1,7 @@
 mod create_script_url_dependency;
+
+use std::sync::Arc;
+
 pub use create_script_url_dependency::{
   CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
 };
@@ -19,7 +22,7 @@ pub struct WorkerDependency {
   public_path: String,
   range: DependencyRange,
   range_path: DependencyRange,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl WorkerDependency {
@@ -82,11 +85,11 @@ impl ModuleDependency for WorkerDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
@@ -16,7 +18,7 @@ pub struct CssUrlDependency {
   request: String,
   range: DependencyRange,
   replace_function: bool,
-  factorize_info: FactorizeInfo,
+  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CssUrlDependency {
@@ -86,11 +88,11 @@ impl ModuleDependency for CssUrlDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
+  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
     &self.factorize_info
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
     &mut self.factorize_info
   }
 }
