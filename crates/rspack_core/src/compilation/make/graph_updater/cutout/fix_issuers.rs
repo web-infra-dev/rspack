@@ -174,12 +174,12 @@ impl FixIssuers {
       let Some(mgm) =
         module_graph.module_graph_module_by_identifier(connection.module_identifier())
       else {
-        // TODO change to expect is persistent cache support all of module
+        // TODO: change to expect when persistent cache supports all modules
         continue;
       };
 
-      if let ModuleIssuer::Some(i) = mgm.issuer()
-        && i == origin
+      if let ModuleIssuer::Some(issuer) = mgm.issuer()
+        && issuer == origin
       {
         self.need_check_modules.insert(mgm.module_identifier);
       }
