@@ -60,13 +60,20 @@ impl Cutout {
           }));
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
-          for module in module_graph.modules().values() {
-            // check has dependencies modified
-            if module.depends_on(&files) {
-              // add module id
-              force_build_modules.insert(module.identifier());
-            }
-          }
+          force_build_modules.extend(
+            module_graph
+              .modules()
+              .values()
+              .par_bridge()
+              .filter_map(|module| {
+                if module.depends_on(&files) {
+                  Some(module.identifier())
+                } else {
+                  None
+                }
+              })
+              .collect::<Vec<_>>(),
+          );
           force_build_deps.extend(
             module_graph
               .dependencies()
