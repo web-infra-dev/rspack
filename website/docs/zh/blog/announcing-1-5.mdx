@@ -130,6 +130,7 @@ import { bold, italic, underline } from './font-settings';
 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 来增强 builtin:swc-loader 对 TypeScript 的支持。
 
 `inlineEnum` 会对 TypeScript `enum` 进行 inline 优化，以优化产物体积：
+
 ```ts
 // types.ts
 export enum Kind {
@@ -137,7 +138,7 @@ export enum Kind {
   B,
 }
 // index.ts
-import { Kind } from "./types.ts";
+import { Kind } from './types.ts';
 console.log(Kind.A);
 ```
 
@@ -145,7 +146,12 @@ console.log(Kind.A);
 
 ```js
 // Bundled by Rspack (with minimize: true)
-(()=>{"use strict";!function(){console.log(0)}()})();
+(() => {
+  'use strict';
+  !(function () {
+    console.log(0);
+  })();
+})();
 ```
 
 默认会对所有 `enum` 都进行 inline，可通过 ['const-only'](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 和
@@ -153,15 +159,18 @@ console.log(Kind.A);
 更多详情可参考 [experiments.inlineEnum](https://rspack.rs/config/experiments#experimentsinlineenum)。
 
 `typeReexportsPresence` 优化了对 TypeScript 的类型重导出的报错：
+
 ```ts
 // 之前会报 ESModulesLinkingWarning，开启 typeReexportsPresence 后不会报警告
-export { MyType } from "./types.ts";
+export { MyType } from './types.ts';
 ```
+
 更多详情可参考 [experiments.typeReexportsPresence](https://rspack.rs/config/experiments#experimentstypereexportspresence)。
 
 另外 Rspack 正在探索对 TypeScript 一等公民的支持，预计在未来 Rspack v2.0 无需配置即可使用 TypeScript，提供更好的 TypeScript 开发体验。
 
 ### 内置文件系统监听器
+
 在过去，Rspack 使用 [watchpack](https://www.npmjs.com/package/watchpack) 进行文件监听。
 在实践过程中，我们发现了一些问题。 Watchpack 在每次文件变更后会重新创建一个 Watchpack 实例， 并接受全量的文件监听列表，运行一次完整的流程。
 当文件监听列表的数量庞大时，这将占用用户较大比例的 CPU 和内存资源， 例如：[#7490](https://github.com/web-infra-dev/rspack/issues/7490)。
@@ -174,18 +183,19 @@ export { MyType } from "./types.ts";
 
 ```js
 export default {
-    watchOptions: {
-        // Other watch options...
-    },
-    experiments: {
-        nativeWatcher: true
-    }
+  watchOptions: {
+    // Other watch options...
+  },
+  experiments: {
+    nativeWatcher: true,
+  },
 };
 ```
 
 更多参考 [`experiments.nativeWatcher`](/config/experiments#experimentsnativewatcher) 文档。
 
 ### 内置的虚拟模块插件
+
 在 Rspack@1.4.0 中，我们支持了[自定义的 InputFileSystem](https://rspack.rs/blog/announcing-1-4#custom-input-file-system)。
 配合 Webpack virtual module 插件使用时，在少量虚拟文件的场景下，既兼顾了 Webpack 生态的也保持了 Rspack 的高性能。但是在大量的虚拟文件的场景下性能劣化问题还是存在。
 为了解决大量虚拟文件的场景，新增了[内置的虚拟文件插件](https://github.com/web-infra-dev/rspack/issues/10856)。
@@ -198,11 +208,12 @@ const rspack = require('@rspack/core');
 module.exports = {
   plugins: [
     new rspack.experiments.VirtualModulesPlugin({
-      'src/generated/config.js': 'export default { version: "1.0.0" };'
-    })
-  ]
-}
+      'src/generated/config.js': 'export default { version: "1.0.0" };',
+    }),
+  ],
+};
 ```
+
 因为将虚拟文件的存储转移到了 Rust 侧，大大降低了虚拟文件的读取和解析的开销。
 
 感谢我的社区伙伴 [@nilptr](https://github.com/nilptr) 的[贡献](https://github.com/web-infra-dev/rspack/pull/11021)。
@@ -222,7 +233,7 @@ module.exports = {
 下面是一个演示项目在使用 Module Federation 作用域提升所带来的产物体积优化对比。
 
 | Configuration                             | Before | After | Reduction |
-|:------------------------------------------|-------:|------:|----------:|
+| :---------------------------------------- | -----: | ----: | --------: |
 | Single Entry                              |  140kb | 140kb |        0% |
 | Multiple Entries (default)                |  210kb | 210kb |        0% |
 | Multiple Entries + runtimeChunk: 'single' |  210kb |  70kb |       67% |
@@ -253,14 +264,12 @@ module.exports = {
 
 ![seal-performance-before](https://assets.rspack.rs/rspack/assets/rspack-v1-5-seal-phase-before.png)
 
-
-
 ![seal-performance-after](https://assets.rspack.rs/rspack/assets/rspack-v1-5-seal-phase-after.png)
 
 其中几个主要的耗时阶段都有一定程度的优化：
 
 | Phase                   | v1.4.0 | v1.5.0 | Reduction |
-|-------------------------|-------:|-------:|----------:|
+| ----------------------- | -----: | -----: | --------: |
 | Flag dependency exports |  394ms |  181ms |       54% |
 | Flag dependency usage   | 1828ms |  454ms |       75% |
 | Code Splitting          | 2019ms |  777ms |       62% |
@@ -283,6 +292,7 @@ Rslint 是一个 TypeScript 优先的新一代 Linter，由 Go 编写，并基�
 它起源于 [@auvred](https://github.com/auvred) 开发的 [tsgolint](https://github.com/typescript-eslint/tsgolint)，并在此基础上进行了扩展和优化。
 
 Rslint 目前支持如下功能
+
 - ESLint 风格的配置与指令：几乎无缝上手
 - IDE 支持：提供 VS Code 与 Cursor 插件
 - 自动修复：`rslint --fix` 一键修复代码问题
@@ -305,8 +315,8 @@ Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支�
 // rsbuild.config.mjs
 export default {
   dev: {
-    lazyCompilation: false
-  }
+    lazyCompilation: false,
+  },
 };
 ```
 
@@ -333,10 +343,10 @@ export default {
   tools: {
     rspack: {
       experiments: {
-        lazyBarrel: false
-      }
-    }
-  }
+        lazyBarrel: false,
+      },
+    },
+  },
 };
 ```
 
@@ -366,10 +376,11 @@ Rslib 0.12 版本已发布，主要新增了以下功能：
 
 ### Rsdoctor MCP
 
-#### 深入 concatenate module 
-Rspack 构建时会将部分模块提升合并为 ***concatenated module***，以优化体积和性能，但此前 Rsdoctor 无法对其内部结构做进一步 AST 拆解与分析。
+#### 深入 concatenate module
 
-Rsdoctor 1.2 版本新增对 ***concatenated module*** 的深入分析，帮助开发者准确获知 Tree Shaking 和压缩后子模块的实际体积，便于深入分析产物细节。
+Rspack 构建时会将部分模块提升合并为 **_concatenated module_**，以优化体积和性能，但此前 Rsdoctor 无法对其内部结构做进一步 AST 拆解与分析。
+
+Rsdoctor 1.2 版本新增对 **_concatenated module_** 的深入分析，帮助开发者准确获知 Tree Shaking 和压缩后子模块的实际体积，便于深入分析产物细节。
 同时，Rspack（>=1.4.11）集成的 Rsdoctor 插件增强了 source map 能力，即使不开启 source map 也能轻松分析 concatenate module。
 
 ![Concatenated Module 分析对比](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-comparsion.png)
@@ -381,7 +392,6 @@ Rsdoctor 之前的 Treemap 视图依赖 webpack-bundle-analyzer，导致分析�
 Rsdoctor 1.2 版本新增了 Treemap 视图，是一种经典的构建产物分析视图，能帮助开发者更直观地可视化并分析 bundle 的构成，以及资源（Assets）和模块（Modules）的占比。同时也可以搜索模块资源，锁定模块资源。
 
 ![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-treemap.png)
-
 
 ### Rstest
 
