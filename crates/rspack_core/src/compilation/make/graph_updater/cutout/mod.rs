@@ -67,35 +67,18 @@ impl Cutout {
               force_build_modules.insert(module.identifier());
             }
           }
-          let affected_dependencies_and_modules = module_graph
-            .dependencies()
-            .values()
-            .par_bridge()
-            .filter_map(|dependency| {
-              FactorizeInfo::get_from(dependency)
-                .filter(|factorize_info| factorize_info.depends_on(&files))
-                .map(|_| {
-                  (
-                    *dependency.id(),
-                    module_graph
-                      .module_identifier_by_dependency_id(dependency.id())
-                      .copied(),
-                  )
-                })
-            })
-            .collect::<Vec<_>>();
-          for (dependency_id, module_identifier) in affected_dependencies_and_modules {
-            if let Some(module_identifier) = module_identifier {
-              // This dependency was successfully resolved before. A file change might affect
-              // its resolution result.
-              force_build_modules.insert(module_identifier);
-            } else {
-              // This dependency failed to resolve before.
-              // The file change might make it resolvable now. We need to re-process
-              // this specific dependency.
-              force_build_deps.insert(dependency_id);
-            }
-          }
+          force_build_deps.extend(
+            module_graph
+              .dependencies()
+              .values()
+              .par_bridge()
+              .filter_map(|dependency| {
+                FactorizeInfo::get_from(dependency)
+                  .filter(|factorize_info| factorize_info.depends_on(&files))
+                  .map(|_| *dependency.id())
+              })
+              .collect::<Vec<_>>(),
+          );
         }
         UpdateParam::ForceBuildDeps(deps) => {
           force_build_deps.extend(deps);
