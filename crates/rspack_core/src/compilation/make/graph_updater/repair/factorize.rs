@@ -161,7 +161,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       mut dependencies,
       current_profile,
       exports_info_related,
-      mut factorize_info,
+      factorize_info,
     } = *self;
 
     let artifact = &mut context.artifact;
@@ -189,7 +189,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       } else {
         unreachable!("only module dependency and context dependency can factorize")
       };
-      *dep_factorize_info = std::mem::take(&mut factorize_info);
+      *dep_factorize_info = factorize_info.clone();
     }
 
     let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
