@@ -85,9 +85,15 @@ impl Cutout {
             })
             .collect::<Vec<_>>();
           for (dependency_id, module_identifier) in affected_dependencies_and_modules {
-            force_build_deps.insert(dependency_id);
             if let Some(module_identifier) = module_identifier {
+              // This dependency was successfully resolved before. A file change might affect
+              // its resolution result.
               force_build_modules.insert(module_identifier);
+            } else {
+              // This dependency failed to resolve before.
+              // The file change might make it resolvable now. We need to re-process
+              // this specific dependency.
+              force_build_deps.insert(dependency_id);
             }
           }
         }
