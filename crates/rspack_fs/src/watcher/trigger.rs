@@ -91,12 +91,12 @@ pub struct Trigger {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
-  tx: UnboundedSender<FsEvent>,
+  tx: UnboundedSender<Vec<FsEvent>>,
 }
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<FsEvent>) -> Self {
+  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<Vec<FsEvent>>) -> Self {
     Self { path_manager, tx }
   }
 
@@ -116,9 +116,7 @@ impl Trigger {
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
-    for (path, kind) in associated_event {
-      self.trigger_event(path, kind);
-    }
+    self.trigger_events(associated_event);
   }
 
   /// Helper to construct a `DependencyFinder` for the current path register state.
@@ -136,11 +134,19 @@ impl Trigger {
     }
   }
 
-  /// Sends a file system event for the given path and event kind.
-  /// Ignores any error if the receiver has been dropped.
-  fn trigger_event(&self, path: ArcPath, kind: FsEventKind) {
-    let event = FsEvent { path, kind };
-    _ = self.tx.send(event);
+  /// Sends a group file system events for the given path and event kind.
+  /// If the event is successfully sent, it returns true; otherwise, it returns false.
+  fn trigger_events(&self, events: Vec<(ArcPath, FsEventKind)>) -> bool {
+    // TODO: handle a result
+    self
+      .tx
+      .send(
+        events
+          .into_iter()
+          .map(|(path, kind)| FsEvent { path, kind })
+          .collect(),
+      )
+      .is_ok()
   }
 }
 #[cfg(test)]

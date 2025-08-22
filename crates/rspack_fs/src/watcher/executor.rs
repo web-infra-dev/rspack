@@ -32,7 +32,7 @@ impl FilesData {
 /// deleted files, and coordinates the event handling logic.
 pub struct Executor {
   aggregate_timeout: u32,
-  rx: ThreadSafety<UnboundedReceiver<FsEvent>>,
+  rx: ThreadSafety<UnboundedReceiver<Vec<FsEvent>>>,
   files_data: ThreadSafety<FilesData>,
   exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
@@ -65,7 +65,7 @@ enum ExecEvent {
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  pub fn new(rx: UnboundedReceiver<FsEvent>, aggregate_timeout: Option<u32>) -> Self {
+  pub fn new(rx: UnboundedReceiver<Vec<FsEvent>>, aggregate_timeout: Option<u32>) -> Self {
     let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 
@@ -134,24 +134,29 @@ impl Executor {
       let aggregate_running = Arc::clone(&self.aggregate_running);
 
       let future = async move {
-        while let Some(event) = rx.lock().await.recv().await {
-          let path = event.path.to_string_lossy().to_string();
-          match event.kind {
-            FsEventKind::Change => {
-              files_data.lock().await.changed.insert(path);
+        while let Some(events) = rx.lock().await.recv().await {
+          for event in &events {
+            let path = event.path.to_string_lossy().to_string();
+            match event.kind {
+              FsEventKind::Change => {
+                files_data.lock().await.changed.insert(path);
+              }
+              FsEventKind::Remove => {
+                files_data.lock().await.deleted.insert(path);
+              }
+              FsEventKind::Create => {
+                files_data.lock().await.changed.insert(path);
+              }
             }
-            FsEventKind::Remove => {
-              files_data.lock().await.deleted.insert(path);
-            }
-            FsEventKind::Create => {
-              files_data.lock().await.changed.insert(path);
-            }
-          };
+          }
 
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
           }
-          let _ = exec_tx.send(ExecEvent::Execute(event));
+
+          for event in events {
+            let _ = exec_tx.send(ExecEvent::Execute(event));
+          }
         }
 
         let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);

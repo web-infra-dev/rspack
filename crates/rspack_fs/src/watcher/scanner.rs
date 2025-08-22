@@ -7,12 +7,12 @@ use super::{FsEvent, FsEventKind, PathManager};
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
   path_manager: Arc<PathManager>,
-  tx: Option<UnboundedSender<FsEvent>>,
+  tx: Option<UnboundedSender<Vec<FsEvent>>>,
 }
 
 impl Scanner {
   /// Creates a new `Scanner` that will send events to the provided sender when paths are scanned.
-  pub fn new(tx: UnboundedSender<FsEvent>, path_manager: Arc<PathManager>) -> Self {
+  pub fn new(tx: UnboundedSender<Vec<FsEvent>>, path_manager: Arc<PathManager>) -> Self {
     Self {
       path_manager,
       tx: Some(tx),
@@ -33,10 +33,10 @@ impl Scanner {
           && let Some(tx) = &_tx
         {
           // If the file does not exist, send a delete event
-          let _ = tx.send(FsEvent {
+          let _ = tx.send(vec![FsEvent {
             path: filepath.clone(),
             kind: FsEventKind::Remove,
-          });
+          }]);
         }
       }
     });
@@ -50,10 +50,10 @@ impl Scanner {
           && let Some(tx) = &_tx
         {
           // If the directory does not exist, send a delete event
-          let _ = tx.send(FsEvent {
+          let _ = tx.send(vec![FsEvent {
             path: dirpath.clone(),
             kind: FsEventKind::Remove,
-          });
+          }]);
         }
       }
     });
@@ -110,13 +110,13 @@ mod tests {
     let collected_events = collector.await.unwrap();
     assert_eq!(collected_events.len(), 2);
 
-    assert!(collected_events.contains(&FsEvent {
+    assert!(collected_events.contains(&vec![FsEvent {
       path: ArcPath::from(current_dir.join("___test_file.txt")),
       kind: FsEventKind::Remove
-    }));
-    assert!(collected_events.contains(&FsEvent {
+    }]));
+    assert!(collected_events.contains(&vec![FsEvent {
       path: ArcPath::from(current_dir.join("___test_dir/a/b/c")),
       kind: FsEventKind::Remove,
-    }));
+    }]));
   }
 }
