@@ -447,7 +447,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     if let ModuleDecl::ExportDefaultExpr(ExportDefaultExpr { expr, .. }) = export_decl
       && is_pure_expression(expr, self.unresolved_context, parser.comments)
     {
-      let export_part = expr.unwrap_parens();
+      let export_part = &**expr;
       let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
       let export_span = export_decl.span();
       parser
@@ -481,10 +481,9 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     {
       let name = &ident.id.sym;
 
-      let unwrapped_init = init.unwrap_parens();
-      if unwrapped_init.is_class()
+      if init.is_class()
         && is_pure_class(
-          &unwrapped_init.as_class().expect("should be class").class,
+          &init.as_class().expect("should be class").class,
           self.unresolved_context,
           parser.comments,
         )
@@ -502,7 +501,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
           .decl_with_top_level_symbol
           .insert(decl.span(), v);
 
-        if !unwrapped_init.is_fn_expr() && !unwrapped_init.is_arrow() && !unwrapped_init.is_lit() {
+        if !init.is_fn_expr() && !init.is_arrow() && !init.is_lit() {
           parser.inner_graph.pure_declarators.insert(decl.span());
         }
       }

@@ -47,9 +47,9 @@ function run(
 ```js
 compiler.run((err, stats) => {
   // 处理构建器错误
-  handlerCompilerError(err);
+  handleCompilerError(err);
   // 处理编译错误
-  handlerModuleErrors(stats.toJson().errors);
+  handleModuleErrors(stats.toJson().errors);
   // 处理构建结果
   handleBuildResult(stats);
   // 结束本次编译

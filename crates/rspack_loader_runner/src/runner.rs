@@ -15,7 +15,7 @@ use crate::{
   plugin::LoaderRunnerPlugin,
 };
 
-impl<Context> LoaderContext<Context> {
+impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
     if let Some(plugin) = &self.plugin
       && plugin.should_yield(self).await?
@@ -69,7 +69,7 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   Ok(())
 }
 
-async fn create_loader_context<Context>(
+async fn create_loader_context<Context: Send>(
   loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
@@ -219,7 +219,7 @@ pub struct LoaderResult {
   pub parse_meta: ParseMeta,
 }
 
-impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
+impl<Context: Send> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
   type Error = rspack_error::Error;
   fn try_from(loader_context: LoaderContext<Context>) -> std::result::Result<Self, Self::Error> {
     let content = loader_context.content.ok_or_else(|| {
@@ -254,7 +254,7 @@ mod test {
 
   use once_cell::sync::OnceCell;
   use rspack_cacheable::{cacheable, cacheable_dyn};
-  use rspack_collections::{Identifiable, Identifier};
+  use rspack_collections::Identifier;
   use rspack_error::Result;
   use rspack_fs::NativeFileSystem;
 
@@ -289,15 +289,13 @@ mod test {
     #[cacheable]
     struct Pitching;
 
-    impl Identifiable for Pitching {
-      fn identifier(&self) -> Identifier {
-        "/rspack/pitching-loader1".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Pitching {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitching-loader1".into()
+      }
+
       async fn pitch(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch1".to_string()));
         Ok(())
@@ -307,15 +305,13 @@ mod test {
     #[cacheable]
     struct Pitching2;
 
-    impl Identifiable for Pitching2 {
-      fn identifier(&self) -> Identifier {
-        "/rspack/pitching-loader2".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Pitching2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitching-loader2".into()
+      }
+
       async fn pitch(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch2".to_string()));
         Ok(())
@@ -325,15 +321,13 @@ mod test {
     #[cacheable]
     struct Normal;
 
-    impl Identifiable for Normal {
-      fn identifier(&self) -> Identifier {
-        "/rspack/normal-loader1".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader1".into()
+      }
+
       async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("normal1".to_string()));
         Ok(())
@@ -343,15 +337,13 @@ mod test {
     #[cacheable]
     struct Normal2;
 
-    impl Identifiable for Normal2 {
-      fn identifier(&self) -> Identifier {
-        "/rspack/normal-loader2".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader2".into()
+      }
+
       async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("normal2".to_string()));
         Ok(())
@@ -361,15 +353,13 @@ mod test {
     #[cacheable]
     struct PitchNormalBase;
 
-    impl Identifiable for PitchNormalBase {
-      fn identifier(&self) -> Identifier {
-        "/rspack/pitch-normal-base-loader".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for PitchNormalBase {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitch-normal-base-loader".into()
+      }
+
       async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-base-normal".to_string()));
         Ok(())
@@ -384,15 +374,13 @@ mod test {
     #[cacheable]
     struct PitchNormal;
 
-    impl Identifiable for PitchNormal {
-      fn identifier(&self) -> Identifier {
-        "/rspack/pitch-normal-loader".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for PitchNormal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitch-normal-loader".into()
+      }
+
       async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal".to_string()));
         Ok(())
@@ -408,15 +396,13 @@ mod test {
     #[cacheable]
     struct PitchNormal2;
 
-    impl Identifiable for PitchNormal2 {
-      fn identifier(&self) -> Identifier {
-        "/rspack/pitch-normal-2-loader".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for PitchNormal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitch-normal-2-loader".into()
+      }
+
       async fn run(&self, _loader_context: &mut LoaderContext<()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal-2".to_string()));
         Ok(())
@@ -500,15 +486,13 @@ mod test {
     #[cacheable]
     struct Normal;
 
-    impl Identifiable for Normal {
-      fn identifier(&self) -> Identifier {
-        "/rspack/normal-loader1".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader1".into()
+      }
+
       async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         let data = loader_context
           .additional_data
@@ -525,15 +509,13 @@ mod test {
     #[cacheable]
     struct Normal2;
 
-    impl Identifiable for Normal2 {
-      fn identifier(&self) -> Identifier {
-        "/rspack/normal-loader2".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader2".into()
+      }
+
       async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         let mut additional_data: AdditionalData = Default::default();
         additional_data.insert("additional-data");
@@ -572,15 +554,13 @@ mod test {
     #[cacheable]
     struct Normal;
 
-    impl Identifiable for Normal {
-      fn identifier(&self) -> Identifier {
-        "/rspack/normal-loader1".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader1".into()
+      }
+
       async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         assert!(loader_context.content.is_some());
         // Does not call `LoaderContext::finish_with`
@@ -605,15 +585,13 @@ mod test {
     #[cacheable]
     struct Normal2;
 
-    impl Identifiable for Normal2 {
-      fn identifier(&self) -> Identifier {
-        "/rspack/normal-loader2".into()
-      }
-    }
-
     #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader2".into()
+      }
+
       async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         let (content, source_map, additional_data) = loader_context.take_all();
         assert!(content.is_none());

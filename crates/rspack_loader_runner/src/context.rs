@@ -34,7 +34,7 @@ impl State {
 }
 
 #[derive(Debug)]
-pub struct LoaderContext<Context> {
+pub struct LoaderContext<Context: Send> {
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[debug(skip)]
@@ -61,7 +61,7 @@ pub struct LoaderContext<Context> {
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
 
-impl<Context> LoaderContext<Context> {
+impl<Context: Send> LoaderContext<Context> {
   pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
     if self.loader_index >= self.loader_items.len() as i32 - 1 {
       return Default::default();

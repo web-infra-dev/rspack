@@ -245,3 +245,6 @@ trace.json
 
 # Rsapck bench
 .bench
+
+# Claude
+CLAUDE.local.md

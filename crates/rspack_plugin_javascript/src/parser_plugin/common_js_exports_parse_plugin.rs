@@ -75,7 +75,7 @@ fn is_module_exports_member_expr_start<E: ExprLike>(expr: &E) -> bool {
 }
 
 fn get_value_of_property_description(expr_or_spread: &ExprOrSpread) -> Option<&Expr> {
-  if let Expr::Object(ObjectLit { props, .. }) = expr_or_spread.expr.unwrap_parens() {
+  if let Expr::Object(ObjectLit { props, .. }) = &*expr_or_spread.expr {
     for prop in props {
       if let PropOrSpread::Prop(prop) = prop
         && let Prop::KeyValue(key_value_prop) = &**prop

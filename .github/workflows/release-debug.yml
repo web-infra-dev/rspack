@@ -8,7 +8,7 @@ on:
         type: string
         description: "Commit SHA"
   workflow_run:
-    workflows: ["Release Full(OTP)", "Release Full"]
+    workflows: ["Release Full"]
     types:
       - completed
 permissions:

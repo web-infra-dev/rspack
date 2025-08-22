@@ -982,13 +982,11 @@ impl<'parser> JavascriptParser<'parser> {
     pattern: &ObjectPat,
     expr: &'a Expr,
   ) -> Option<&'a Expr> {
-    let expr = expr.unwrap_parens();
     let expr = if let Some(await_expr) = expr.as_await_expr() {
       &await_expr.arg
     } else {
       expr
     };
-    let expr = expr.unwrap_parens();
     let destructuring = if let Some(assign) = expr.as_assign()
       && let Some(pat) = assign.left.as_pat()
       && let Some(obj_pat) = pat.as_object()
@@ -1116,7 +1114,6 @@ impl JavascriptParser<'_> {
       Expr::Array(array) => eval::eval_array_expression(self, array),
       Expr::New(new) => eval::eval_new_expression(self, new),
       Expr::Call(call) => eval::eval_call_expression(self, call),
-      Expr::Paren(paren) => self.evaluating(&paren.expr),
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {

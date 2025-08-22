@@ -19,6 +19,7 @@ use swc_core::{
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
+    transforms::base::fixer::paren_remover,
   },
 };
 use swc_node_comments::SwcComments;
@@ -227,6 +228,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut semicolons = Default::default();
     ast.transform(|program, context| {
+      program.visit_mut_with(&mut paren_remover(Some(&comments)));
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,

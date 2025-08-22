@@ -191,12 +191,11 @@ pub(crate) struct FunctionExpression<'a> {
 
 pub(crate) trait GetFunctionExpression {
   fn get_function_expr(&self) -> Option<FunctionExpression<'_>>;
-  fn inner_paren(&self) -> &Self;
 }
 
 impl GetFunctionExpression for Expr {
   fn get_function_expr(&self) -> Option<FunctionExpression<'_>> {
-    match self.inner_paren() {
+    match self {
       Expr::Fn(fn_expr) => Some(FunctionExpression {
         func: Either::Left(fn_expr),
         expressions: None,
@@ -211,10 +210,8 @@ impl GetFunctionExpression for Expr {
         let first_arg = &call_expr.args.first().expect("should exist").expr;
         let callee = &call_expr.callee;
 
-        if let Some(callee_member_expr) = callee
-          .as_expr()
-          .and_then(|expr| expr.inner_paren().as_member())
-          && let Some(fn_expr) = callee_member_expr.obj.inner_paren().as_fn_expr()
+        if let Some(callee_member_expr) = callee.as_expr().and_then(|expr| expr.as_member())
+          && let Some(fn_expr) = callee_member_expr.obj.as_fn_expr()
           && let Some(ident) = &callee_member_expr.prop.as_ident()
           && ident.sym == "bind"
         {
@@ -225,17 +222,12 @@ impl GetFunctionExpression for Expr {
           });
         }
 
-        if let Some(callee_fn_expr) = callee
-          .as_expr()
-          .and_then(|expr| expr.inner_paren().as_fn_expr())
+        if let Some(callee_fn_expr) = callee.as_expr().and_then(|expr| expr.as_fn_expr())
           && let Some(body_block_stmt) = &callee_fn_expr.function.body
-          && first_arg.inner_paren().is_this()
+          && first_arg.is_this()
           && body_block_stmt.stmts.len() == 1
           && let Some(return_stmt) = &body_block_stmt.stmts[0].as_return_stmt()
-          && let Some(fn_expr) = return_stmt
-            .arg
-            .as_ref()
-            .and_then(|expr| expr.inner_paren().as_fn_expr())
+          && let Some(fn_expr) = return_stmt.arg.as_ref().and_then(|expr| expr.as_fn_expr())
         {
           return Some(FunctionExpression {
             func: Either::Left(fn_expr),
@@ -248,13 +240,5 @@ impl GetFunctionExpression for Expr {
       }
       _ => None,
     }
-  }
-
-  fn inner_paren(&self) -> &Self {
-    let mut cur = self;
-    while let Some(inner) = cur.as_paren() {
-      cur = &inner.expr;
-    }
-    cur
   }
 }
