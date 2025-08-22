@@ -234,10 +234,10 @@ export default {
 ### 内置的虚拟模块插件
 
 在 Rspack@1.4.0 中，我们支持了[自定义的 InputFileSystem](https://rspack.rs/blog/announcing-1-4#custom-input-file-system)。
-配合 Webpack virtual module 插件使用时，在少量虚拟文件的场景下，既兼顾了 Webpack 生态的也保持了 Rspack 的高性能。但是在大量的虚拟文件的场景下性能劣化问题还是存在。
-为了解决大量虚拟文件的场景，新增了[内置的虚拟文件插件](https://github.com/web-infra-dev/rspack/issues/10856)。
+自定义 InputFileSystem 在配合 Webpack Virtual Modules 插件使用时，如果虚拟模块数量较小时，该方案既兼顾了 Webpack 生态, 又保持了 Rspack 的高性能。但是在大量虚拟模块的场景下，性能劣化问题仍然存在。
 
-内置的虚拟文件插件 VirtualModulesPlugin，首先和 Webpack Virtual Module 保持相同的 API ，使用和替换都非常的方便。
+为了解决大量虚拟文件的场景，我们新增内置的基于 Rust 的虚拟模块插件 [VirtualModulesPlugin](https://github.com/web-infra-dev/rspack/issues/10856)。插件将虚拟模块的存储转移到了 Rust 侧，大大降低了模块的读取和解析的开销，让虚拟文件功能在大量虚拟模块的场景下也能保持高性能。
+此外虚拟文件插件 VirtualModulesPlugin 和 Webpack Virtual Modules 插件保持相同的 API ，替换起来非常的方便。
 
 ```js
 // rspack.config.js
@@ -251,9 +251,7 @@ module.exports = {
 };
 ```
 
-因为将虚拟文件的存储转移到了 Rust 侧，大大降低了虚拟文件的读取和解析的开销。
-
-感谢我的社区伙伴 [@nilptr](https://github.com/nilptr) 的[贡献](https://github.com/web-infra-dev/rspack/pull/11021)。
+感谢我们的社区伙伴 [@nilptr](https://github.com/nilptr) 的[贡献](https://github.com/web-infra-dev/rspack/pull/11021)。
 
 ### Module Federation 运行时提升
 
