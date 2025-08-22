@@ -150,6 +150,9 @@ export default defineConfig({
         if (routePath.endsWith('blog/announcing-1-4')) {
           return 'assets/rspack-og-image-v1-4.png';
         }
+        if (routePath.endsWith('blog/announcing-1-5')) {
+          return 'assets/rspack-og-image-v1-5.png';
+        }
         if (routePath.endsWith('blog/rspack-next-partner')) {
           return 'assets/next-rspack-og-image.png';
         }
@@ -167,8 +170,6 @@ export default defineConfig({
       pluginSass(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
-        title: 'Rspack',
-        type: 'website',
         url: PUBLISH_URL,
         description: 'Fast Rust-based web bundler',
         twitter: {

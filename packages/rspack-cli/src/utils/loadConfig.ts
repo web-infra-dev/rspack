@@ -1,50 +1,77 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+	experiments,
 	type MultiRspackOptions,
 	type RspackOptions,
 	util
 } from "@rspack/core";
+import { addHook } from "pirates";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
 import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";
-import isTsFile from "./isTsFile";
+import isTsFile, { TS_EXTENSION } from "./isTsFile";
 
-interface RechoirError extends Error {
-	failures: RechoirError[];
-	error: Error;
+const injectInlineSourceMap = ({
+	filename,
+	code,
+	map
+}: {
+	filename: string;
+	code: string;
+	map: string | undefined;
+}): string => {
+	if (map) {
+		const base64Map = Buffer.from(map, "utf8").toString("base64");
+		const sourceMapContent = `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64Map}`;
+		return `${code}\n${sourceMapContent}`;
+	}
+	return code;
+};
+export function compile(sourcecode: string, filename: string) {
+	const { code, map } = experiments.swc.transformSync(sourcecode, {
+		jsc: {
+			parser: {
+				syntax: "typescript",
+				tsx: false,
+				decorators: true,
+				dynamicImport: true
+			}
+		},
+		filename: filename,
+		module: { type: "commonjs" },
+		sourceMaps: true,
+		isModule: true
+	});
+	return injectInlineSourceMap({ filename, code, map });
 }
-
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
-
-const registerLoader = async (configPath: string) => {
-	const ext = path.extname(configPath);
-	// TODO implement good `.mts` support after https://github.com/gulpjs/rechoir/issues/43
+// modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
+const registerLoader = (configPath: string) => {
 	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
 	if (isEsmFile(configPath) && isTsFile(configPath)) {
 		return;
 	}
 
-	const { default: interpret } = await import("interpret");
-	const extensions = Object.fromEntries(
-		Object.entries(interpret.extensions).filter(([key]) => key === ext)
-	);
-	if (Object.keys(extensions).length === 0) {
+	// Only support TypeScript files with a CommonJS loader here
+	if (!isTsFile(configPath)) {
 		throw new Error(`config file "${configPath}" is not supported.`);
 	}
-
-	try {
-		const { default: rechoir } = await import("rechoir");
-		rechoir.prepare(extensions, configPath);
-	} catch (error) {
-		const failures = (error as RechoirError)?.failures;
-		if (failures) {
-			const messages = failures.map(failure => failure.error.message);
-			throw new Error(`${messages.join("\n")}`);
+	addHook(
+		(code, filename) => {
+			try {
+				return compile(code, filename);
+			} catch (err) {
+				throw new Error(
+					`Failed to transform file "${filename}" when loading TypeScript config file:\n ${err instanceof Error ? err.message : String(err)}`
+				);
+			}
+		},
+		{
+			exts: TS_EXTENSION
 		}
-		throw error;
-	}
+	);
 };
 
 export type LoadedRspackConfig =
@@ -186,7 +213,7 @@ export async function loadExtendedConfig(
 
 		// Register loader for TypeScript files
 		if (isTsFile(resolvedPath) && options.configLoader === "register") {
-			await registerLoader(resolvedPath);
+			registerLoader(resolvedPath);
 		}
 
 		// Load the extended configuration
@@ -241,7 +268,7 @@ export async function loadRspackConfig(
 
 	// load config
 	if (isTsFile(configPath) && options.configLoader === "register") {
-		await registerLoader(configPath);
+		registerLoader(configPath);
 	}
 	const loadedConfig = await crossImport(configPath, cwd);
 

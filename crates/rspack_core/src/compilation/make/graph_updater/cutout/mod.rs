@@ -111,14 +111,16 @@ impl Cutout {
       };
     }
 
-    for module_identifier in &force_build_modules {
-      self
-        .fix_issuers
-        .analyze_force_build_module(artifact, module_identifier);
-      self
-        .fix_build_meta
-        .analyze_force_build_module(artifact, module_identifier);
-    }
+    // analyze force_build_module and force_build_deps
+    self
+      .fix_issuers
+      .analyze_force_build_modules(artifact, &force_build_modules);
+    self
+      .fix_issuers
+      .analyze_force_build_dependencies(artifact, &force_build_deps);
+    self
+      .fix_build_meta
+      .analyze_force_build_modules(artifact, &force_build_modules);
 
     let mut build_deps = HashSet::default();
 

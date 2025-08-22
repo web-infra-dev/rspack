@@ -7,6 +7,8 @@ use swc_core::{
   ecma::{
     ast::EsVersion,
     parser::{EsSyntax, Syntax, parse_file_as_expr},
+    transforms::base::fixer::paren_remover,
+    visit::VisitMutWith,
   },
 };
 
@@ -44,8 +46,11 @@ pub fn eval_source<T: Display>(
       ));
       None
     }
-    Ok(expr) => BasicEvaluatedExpression::with_owned_expression(*expr, |expr| {
-      Some(parser.evaluate_expression(expr))
-    }),
+    Ok(mut expr) => {
+      expr.visit_mut_with(&mut paren_remover(None));
+      BasicEvaluatedExpression::with_owned_expression(*expr, |expr| {
+        Some(parser.evaluate_expression(expr))
+      })
+    }
   }
 }

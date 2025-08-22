@@ -12,7 +12,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext};
 use rspack_error::{Diagnostic, Result, miette};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
-use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
+use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 pub use rspack_workspace::rspack_swc_core_version;
 use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
@@ -151,6 +151,10 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
+  fn identifier(&self) -> Identifier {
+    self.identifier
+  }
+
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
     perfetto.track_name = "loader:builtin-swc",
     perfetto.process_name = "Loader Analysis",
@@ -170,11 +174,5 @@ impl Loader<RunnerContext> for SwcLoader {
     }
     #[cfg(any(not(debug_assertions), target_family = "wasm"))]
     inner()
-  }
-}
-
-impl Identifiable for SwcLoader {
-  fn identifier(&self) -> Identifier {
-    self.identifier
   }
 }

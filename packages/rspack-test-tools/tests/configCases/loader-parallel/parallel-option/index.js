@@ -1,3 +1,3 @@
 it("should run loader in parallel", () => {
-	expect(require("./lib.js")).toBe(SUPPORTS_IMPORT_FN ? true : undefined)
+	expect(require("./lib.js")).toBe(true)
 })

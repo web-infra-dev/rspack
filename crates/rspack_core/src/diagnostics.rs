@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
 use itertools::Itertools;
 use rspack_error::{
@@ -7,7 +7,6 @@ use rspack_error::{
   thiserror::{self, Error},
 };
 use rspack_util::ext::AsAny;
-use rustc_hash::FxHashSet;
 
 use crate::{BoxLoader, DependencyRange};
 
@@ -144,61 +143,12 @@ impl ModuleParseError {
 pub struct CapturedLoaderError {
   pub source: Box<dyn Diagnostic + Send + Sync>,
   pub details: Option<String>,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
-  pub build_dependencies: Vec<String>,
-  pub cacheable: bool,
 }
 
 impl CapturedLoaderError {
   #[allow(clippy::too_many_arguments)]
-  pub fn new(
-    source: Box<dyn Diagnostic + Send + Sync>,
-    details: Option<String>,
-    file_dependencies: Vec<String>,
-    context_dependencies: Vec<String>,
-    missing_dependencies: Vec<String>,
-    build_dependencies: Vec<String>,
-    cacheable: bool,
-  ) -> Self {
-    Self {
-      source,
-      details,
-      file_dependencies,
-      context_dependencies,
-      missing_dependencies,
-      build_dependencies,
-      cacheable,
-    }
-  }
-
-  pub fn take_file_dependencies(&mut self) -> FxHashSet<PathBuf> {
-    std::mem::take(&mut self.file_dependencies)
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  pub fn take_context_dependencies(&mut self) -> FxHashSet<PathBuf> {
-    std::mem::take(&mut self.context_dependencies)
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  pub fn take_missing_dependencies(&mut self) -> FxHashSet<PathBuf> {
-    std::mem::take(&mut self.missing_dependencies)
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  pub fn take_build_dependencies(&mut self) -> FxHashSet<PathBuf> {
-    std::mem::take(&mut self.build_dependencies)
-      .into_iter()
-      .map(Into::into)
-      .collect()
+  pub fn new(source: Box<dyn Diagnostic + Send + Sync>, details: Option<String>) -> Self {
+    Self { source, details }
   }
 }
 

@@ -260,6 +260,39 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main monorepo file/);
 		});
 	});
+	describe("should support loader ts-node register", () => {
+		const cwd = resolve(__dirname, "./ts-node-register");
+		it("should load ts-node-register to support declare const enum", async () => {
+			const { exitCode, stdout, stderr } = await run(
+				cwd,
+				["-c", "rspack.config.ts"],
+				{
+					nodeOptions: ["--require", "ts-node/register"]
+				}
+			);
+			expect(stdout).toBeTruthy();
+			expect(stderr).toBeFalsy();
+			expect(exitCode).toBe(0);
+			expect(
+				readFile(resolve(cwd, `./dist/node-register.bundle.js`), {
+					encoding: "utf-8"
+				})
+			).resolves.toMatch(/Main ts-node-register file: 42/);
+		});
+		it("builtin swc-register can't handle declare const enum", async () => {
+			const { exitCode, stdout, stderr } = await run(
+				cwd,
+				["-c", "rspack.config.ts"],
+				{
+					nodeOptions: []
+				}
+			);
+			expect(stdout).toBeFalsy();
+			expect(stderr).toBeTruthy();
+			expect(stderr).toMatch(/ReferenceError: JSB is not defined/);
+			expect(exitCode).toBe(1);
+		});
+	});
 
 	// describe("loose-unrecognized-keys (default)", () => {
 	// 	const cwd = resolve(__dirname, "./loose-unrecognized-keys");

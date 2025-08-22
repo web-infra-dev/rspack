@@ -10,7 +10,7 @@ use std::{
 use async_trait::async_trait;
 use derive_more::Debug;
 use rspack_cacheable::cacheable_dyn;
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
@@ -18,7 +18,7 @@ use rspack_util::identifier::strip_zero_width_space_for_fragment;
 use super::LoaderContext;
 
 #[derive(Debug)]
-pub struct LoaderItem<Context> {
+pub struct LoaderItem<Context: Send> {
   #[debug("{}", loader.identifier())]
   loader: Arc<dyn Loader<Context>>,
   /// Loader identifier
@@ -50,7 +50,7 @@ pub struct LoaderItem<Context> {
   finish_called: AtomicBool,
 }
 
-impl<C> LoaderItem<C> {
+impl<C: Send> LoaderItem<C> {
   pub fn loader(&self) -> &Arc<dyn Loader<C>> {
     &self.loader
   }
@@ -127,16 +127,16 @@ impl<C> LoaderItem<C> {
   }
 }
 
-impl<C> Display for LoaderItem<C> {
+impl<C: Send> Display for LoaderItem<C> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.loader.identifier())
   }
 }
 
 #[derive(Debug)]
-pub struct LoaderItemList<'a, Context>(pub &'a [LoaderItem<Context>]);
+pub struct LoaderItemList<'a, Context: Send>(pub &'a [LoaderItem<Context>]);
 
-impl<Context> Deref for LoaderItemList<'_, Context> {
+impl<Context: Send> Deref for LoaderItemList<'_, Context> {
   type Target = [LoaderItem<Context>];
 
   fn deref(&self) -> &Self::Target {
@@ -144,7 +144,7 @@ impl<Context> Deref for LoaderItemList<'_, Context> {
   }
 }
 
-impl<Context> Default for LoaderItemList<'_, Context> {
+impl<Context: Send> Default for LoaderItemList<'_, Context> {
   fn default() -> Self {
     Self(&[])
   }
@@ -160,9 +160,9 @@ pub trait DisplayWithSuffix: Display {
   }
 }
 
-impl<Context> DisplayWithSuffix for LoaderItemList<'_, Context> {}
-impl<Context> DisplayWithSuffix for LoaderItem<Context> {}
-impl<Context> Display for LoaderItemList<'_, Context> {
+impl<Context: Send> DisplayWithSuffix for LoaderItemList<'_, Context> {}
+impl<Context: Send> DisplayWithSuffix for LoaderItem<Context> {}
+impl<Context: Send> Display for LoaderItemList<'_, Context> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let s = self
       .0
@@ -175,18 +175,15 @@ impl<Context> Display for LoaderItemList<'_, Context> {
   }
 }
 
-impl<C> Identifiable for LoaderItem<C> {
-  fn identifier(&self) -> Identifier {
-    self.loader.identifier()
-  }
-}
-
 #[cacheable_dyn]
 #[async_trait]
-pub trait Loader<Context = ()>: Identifiable + Send + Sync
+pub trait Loader<Context = ()>: Send + Sync
 where
   Context: Send,
 {
+  /// Returns the unique identifier for this loader
+  fn identifier(&self) -> Identifier;
+
   async fn run(&self, loader_context: &mut LoaderContext<Context>) -> Result<()> {
     // If loader does not implement normal stage,
     // it should inherit the result from the previous loader.
@@ -206,10 +203,7 @@ where
   }
 }
 
-impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C>
-where
-  C: Send,
-{
+impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
     let ident = &**loader.identifier();
     if let Some(r#type) = loader.r#type() {
@@ -300,7 +294,7 @@ pub(crate) mod test {
   use std::{path::PathBuf, sync::Arc};
 
   use rspack_cacheable::{cacheable, cacheable_dyn};
-  use rspack_collections::{Identifiable, Identifier};
+  use rspack_collections::Identifier;
 
   use super::{Loader, LoaderItem};
 
@@ -309,8 +303,7 @@ pub(crate) mod test {
   pub(crate) struct Custom;
   #[cacheable_dyn]
   #[async_trait::async_trait]
-  impl Loader<()> for Custom {}
-  impl Identifiable for Custom {
+  impl Loader<()> for Custom {
     fn identifier(&self) -> Identifier {
       "/rspack/custom-loader-1/index.js?foo=1#baz".into()
     }
@@ -321,8 +314,7 @@ pub(crate) mod test {
   pub(crate) struct Custom2;
   #[cacheable_dyn]
   #[async_trait::async_trait]
-  impl Loader<()> for Custom2 {}
-  impl Identifiable for Custom2 {
+  impl Loader<()> for Custom2 {
     fn identifier(&self) -> Identifier {
       "/rspack/custom-loader-2/index.js?bar=2#baz".into()
     }
@@ -333,8 +325,7 @@ pub(crate) mod test {
   pub(crate) struct Builtin;
   #[cacheable_dyn]
   #[async_trait::async_trait]
-  impl Loader<()> for Builtin {}
-  impl Identifiable for Builtin {
+  impl Loader<()> for Builtin {
     fn identifier(&self) -> Identifier {
       "builtin:test-loader".into()
     }
@@ -345,8 +336,7 @@ pub(crate) mod test {
 
   #[cacheable_dyn]
   #[async_trait::async_trait]
-  impl Loader<()> for PosixNonLenBlankUnicode {}
-  impl Identifiable for PosixNonLenBlankUnicode {
+  impl Loader<()> for PosixNonLenBlankUnicode {
     fn identifier(&self) -> Identifier {
       "/a/b/c.js?{\"c\": \"\u{200b}#foo\"}".into()
     }
@@ -356,8 +346,7 @@ pub(crate) mod test {
   pub(crate) struct WinNonLenBlankUnicode;
   #[cacheable_dyn]
   #[async_trait::async_trait]
-  impl Loader<()> for WinNonLenBlankUnicode {}
-  impl Identifiable for WinNonLenBlankUnicode {
+  impl Loader<()> for WinNonLenBlankUnicode {
     fn identifier(&self) -> Identifier {
       "\\a\\b\\c.js?{\"c\": \"\u{200b}#foo\"}".into()
     }
