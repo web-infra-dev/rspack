@@ -395,22 +395,9 @@ export default {
 
 ### Rsdoctor 1.2
 
-#### 深入 concatenate module
+Rsdoctor 1.2 版本带来了多项重要更新，新增了对聚合模块的精确分析能力，以及带来全新的 Treemap 视图。这些功能提升了构建产物分析的准确性和可视化体验，可以帮助你更好地理解和优化项目的打包产物。
 
-Rspack 构建时会将部分模块提升合并为 **_concatenated module_**，以优化体积和性能，但此前 Rsdoctor 无法对其内部结构做进一步 AST 拆解与分析。
-
-Rsdoctor 1.2 版本新增对 **_concatenated module_** 的深入分析，帮助开发者准确获知 Tree Shaking 和压缩后子模块的实际体积，便于深入分析产物细节。
-同时，Rspack（>=1.4.11）集成的 Rsdoctor 插件增强了 source map 能力，即使不开启 source map 也能轻松分析 concatenate module。
-
-![Concatenated Module 分析对比](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-comparsion.png)
-
-#### Treemap 视图
-
-Rsdoctor 之前的 Treemap 视图依赖 webpack-bundle-analyzer，导致分析效率和页面加载速度较低，而 Treemap 又是包分析中最常用的可视化工具。
-
-Rsdoctor 1.2 版本新增了 Treemap 视图，是一种经典的构建产物分析视图，能帮助开发者更直观地可视化并分析 bundle 的构成，以及资源（Assets）和模块（Modules）的占比。同时也可以搜索模块资源，锁定模块资源。
-
-![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-treemap.png)
+请查看 [Rsdoctor 1.2 发布博客](https://rsdoctor.rs/zh/blog/release/release-note-1_2) 了解更多。
 
 ### Rstest 0.2
 
