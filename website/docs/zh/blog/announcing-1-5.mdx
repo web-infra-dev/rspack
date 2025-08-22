@@ -16,10 +16,10 @@ Rspack 1.5 已经正式发布！
 值得关注的变更如下：
 
 - 新功能
+  - [Barrel files 优化](#barrel-files-优化)
   - [在浏览器中运行: @rspack/browser](##在浏览器中运行-rspackbrowser)
   - [自定义 Rspack binding](#自定义-rspack-binding)
   - [常量内联](#常量内联)
-  - [#barrel files 构建优化](##barrel-files-构建优化)
   - [builtin:swc-loader 增强 TypeScript 支持](#builtinswc-loader-增强-typescript-支持)
   - [增强 lazy compilation](#增强-lazy-compilation)
   - [内置文件系统监听器](#内置文件系统监听器)
@@ -35,6 +35,48 @@ Rspack 1.5 已经正式发布！
 
 ## 新功能
 
+### Barrel files 优化
+
+Barrel file 是一种常见的模块导出模式，它通过创建统一的入口文件来重新导出多个模块，通常命名为 `index.js` 或 `index.ts`，例如：
+
+```js
+export * from './hooks';
+export * from './utils';
+export * from './components';
+```
+
+虽然这种模式简化了模块导入的使用方式，但是在构建过程中会带来性能问题：当导入 barrel file 中的某个模块时，Rspack 需要解析和构建 barrel file 依赖的所有模块，即使实际只使用了其中的一小部分。
+
+为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/config/experiments#experimentslazybarrel) 功能，它能够自动识别无副作用的 barrel files，对其中的 `reexports` 进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel files 的项目尤其有效，能够带来显著的构建性能提升。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyBarrel: true,
+  },
+};
+```
+
+在实际测试中，开启 `experiments.lazyBarrel` 功能后，两个不同规模的应用都获得了显著的性能提升：
+
+- [Benchmark 应用](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)：
+
+| 指标             | 开启前    | 开启后    | 提升幅度 |
+| ---------------- | --------- | --------- | -------- |
+| 构建时间         | 1.47s     | 1.19s     | ~20%     |
+| 模块路径解析次数 | 39,675 次 | 20,071 次 | -49%     |
+| 模块构建次数     | 9,358 次  | 5,062 次  | -46%     |
+
+- 某个内部应用：
+
+| 指标             | 开启前     | 开启后     | 提升幅度 |
+| ---------------- | ---------- | ---------- | -------- |
+| 构建时间         | 17.9s      | 16.0s      | ~10%     |
+| 模块路径解析次数 | 181,078 次 | 137,232 次 | -24%     |
+| 模块构建次数     | 38,046 次  | 29,405 次  | -23%     |
+
+我们已经在 Rsbuild 1.5 中默认开启了 barrel files 优化，并计划在 Rspack 1.6 中对所有项目默认启用该功能。更多可参考 [`experiments.lazyBarrel` 文档](/config/experiments#experimentslazybarrel)。
+
 ### 在浏览器中运行: @rspack/browser
 
 ![rspack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
@@ -43,7 +85,7 @@ Rspack 1.5 已经正式发布！
 能够在任意浏览器项目中使用 Rspack 在线打包。`@rspack/browser` 将为复杂 Web 项目的在线打包提供底层支持。
 除此之外，`@rspack/browser` 还为开发者提供了更轻量的问题复现、配置分享方案，并通过提供在线交互式 Demo 的方式帮助开发者入门和学习 Rspack。
 
-未来我们将持续完善在线打包所需的能力，欢迎前往 [https://repl.rspack.rs/](https://repl.rspack.rs/) 进行体验。
+未来我们将持续完善在线打包所需的能力，欢迎前往 [Rspack Playground](https://playground.rspack.rs/) 进行体验。
 
 ### 自定义 Rspack binding
 
@@ -103,26 +145,6 @@ import { bold, italic, underline } from './font-settings';
 ```
 
 更多可参考 [experiments.inlineConst 文档](/config/experiments#experimentsinlineconst)，计划在 v1.6.0 默认开启该功能。
-
-### Barrel files 构建优化
-
-[experiments.lazyBarrel](/config/experiments#experimentslazybarrel) 功能，能够对无副作用的 barrel files 的 `reexports` 进行懒构建，
-避免因重导出引入过多模块到构建过程中，减少模块解析和构建的性能开销，该功能能够大幅提升存在大量 barrel files 项目的构建性能。
-
-[build-tools-performance/ui-components](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)
-在开启 `experiments.lazyBarrel` 后：
-
-- 构建时间由 1.47s 减少到 1.19s，提升约 20%
-- 模块路径解析次数由 39675 次减少到 20071 次
-- 模块构建次数由 9358 次减少到 5062 次
-
-内部某大型项目在开启 `experiments.lazyBarrel` 后:
-
-- 构建时间由 17.943s 减少到 16.004s，提升约 10%
-- 模块路径解析次数由 181078 次减少到 137232 次
-- 模块构建次数由 38046 次减少到 29405 次。
-
-更多可参考 [`experiments.lazyBarrel` 文档](/config/experiments#experimentslazybarrel)， 计划在 v1.6.0 默认开启该功能。
 
 ### builtin:swc-loader 增强 TypeScript 支持
 
