@@ -10,7 +10,7 @@ use tokio::sync::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::watcher::BatchEvents;
+use crate::watcher::EventBatch;
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -33,7 +33,7 @@ impl FilesData {
 /// deleted files, and coordinates the event handling logic.
 pub struct Executor {
   aggregate_timeout: u32,
-  rx: ThreadSafetyReceiver<BatchEvents>,
+  rx: ThreadSafetyReceiver<EventBatch>,
   files_data: ThreadSafety<FilesData>,
   exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
@@ -60,13 +60,13 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(BatchEvents),
+  Execute(EventBatch),
   Close,
 }
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  pub fn new(rx: UnboundedReceiver<BatchEvents>, aggregate_timeout: Option<u32>) -> Self {
+  pub fn new(rx: UnboundedReceiver<EventBatch>, aggregate_timeout: Option<u32>) -> Self {
     let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 

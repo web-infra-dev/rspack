@@ -5,7 +5,7 @@ use rspack_paths::ArcPath;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind};
-use crate::watcher::{BatchEvents, paths::PathManager};
+use crate::watcher::{EventBatch, paths::PathManager};
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///
@@ -91,12 +91,12 @@ pub struct Trigger {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
-  tx: UnboundedSender<BatchEvents>,
+  tx: UnboundedSender<EventBatch>,
 }
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<BatchEvents>) -> Self {
+  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
     Self { path_manager, tx }
   }
 

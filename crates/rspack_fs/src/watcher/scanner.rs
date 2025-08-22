@@ -3,17 +3,17 @@ use std::{ops::Deref, sync::Arc};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
-use crate::watcher::BatchEvents;
+use crate::watcher::EventBatch;
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
   path_manager: Arc<PathManager>,
-  tx: Option<UnboundedSender<BatchEvents>>,
+  tx: Option<UnboundedSender<EventBatch>>,
 }
 
 impl Scanner {
   /// Creates a new `Scanner` that will send events to the provided sender when paths are scanned.
-  pub fn new(tx: UnboundedSender<BatchEvents>, path_manager: Arc<PathManager>) -> Self {
+  pub fn new(tx: UnboundedSender<EventBatch>, path_manager: Arc<PathManager>) -> Self {
     Self {
       path_manager,
       tx: Some(tx),
