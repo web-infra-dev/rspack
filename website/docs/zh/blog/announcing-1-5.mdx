@@ -44,9 +44,9 @@ Rspack 1.5 已经正式发布！
 Barrel 文件是一种常见的模块导出模式，它通过创建统一的入口文件来重新导出多个模块，通常命名为 `index.js` 或 `index.ts`，例如：
 
 ```js
+export { Button, Tab } from './components';
+export * as utils from './utils';
 export * from './hooks';
-export * from './utils';
-export * from './components';
 ```
 
 虽然这种模式简化了模块导入的使用方式，但是在构建过程中会带来性能问题：当导入 barrel 文件中的某个模块时，Rspack 需要解析和构建 barrel 文件依赖的所有模块，即使实际只使用了其中的一小部分。
@@ -129,7 +129,9 @@ rspack({}, (err, stats) => {
 
 ### 常量内联
 
-[`experiments.inlineConst`](/config/experiments#experimentsinlineconst) 功能会对模块图的叶子节点中的常量进行 inline 优化，带来更小的产物体积。
+在 Web 项目中，通常会将公共常量统一维护在 `constants.js` 文件中，并在多个模块中引用。为优化此类场景，Rspack 提供了 `experiments.inlineConst` 功能。
+
+`inlineConst` 能够对模块图中叶子节点模块中的常量进行跨模块内联优化，帮助压缩工具更进一步的进行静态分析，消除无用代码分支，从而进一步减小最终产物的体积。
 
 比如有以下代码：
 
@@ -150,9 +152,10 @@ import { bold, italic, underline } from './font-settings';
   if (MY_FONT & underline) fontStyle['text-decoration'] = 'underline';
   applyFont(fontStyle);
 })();
+/* rest of the code... */
 ```
 
-开启 inlineConst 使用 Rspack 打包， 实例中的 `if` 能够更加明确的被压缩器优化，得到更加精简的产物：
+开启 `inlineConst` 使用 Rspack 打包，示例中的 `if` 分支能够更加明确的被压缩工具优化，得到更加精简的产物：
 
 ```js
 (() => {
@@ -160,7 +163,8 @@ import { bold, italic, underline } from './font-settings';
   !(function () {
     let t = {};
     ((t['font-weight'] = 'bold'), applyFont(t));
-  })(); /* rest of the app... */
+  })();
+  /* rest of the code... */
 })();
 ```
 
@@ -169,9 +173,9 @@ import { bold, italic, underline } from './font-settings';
 ### 增强 TypeScript 支持
 
 开启 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 和
-[experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 来增强 builtin:swc-loader 对 TypeScript 的支持。
+[experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 来增强 `builtin:swc-loader` 对 TypeScript 的支持。
 
-`inlineEnum` 会对 TypeScript `enum` 进行 inline 优化，以优化产物体积：
+`inlineEnum` 会对 TypeScript `enum` 进行跨模块的内联优化，该功能与 `inlineConst` 类似，能够有效帮助压缩工具更进一步的进行静态分析，消除无用代码分支，从而进一步减小最终产物的体积。
 
 ```ts
 // types.ts
@@ -196,14 +200,16 @@ console.log(Kind.A);
 })();
 ```
 
-默认会对所有 `enum` 都进行 inline，可通过 ['const-only'](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 和
-[tsEnumIsMutable: true](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 来仅对 `const enum` 进行 inline 优化，
+`builtin:swc-loader` 默认会对所有 `enum` 都进行内联，可通过 [`'const-only'` 和 `tsEnumIsMutable: true`](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 来仅对 `const enum` 进行内联优化。
+
 更多详情可参考 [experiments.inlineEnum](https://rspack.rs/config/experiments#experimentsinlineenum)。
 
-`typeReexportsPresence` 优化了对 TypeScript 的类型重导出的报错：
+`typeReexportsPresence` 优化了存在历史包袱而没有使用 [`isolatedModules`](https://www.typescriptlang.org/tsconfig/#isolatedModules) 的项目的开发体验。之前 Rspack 在处理 TypeScript 类型重导出时会报告 `ESModulesLinkingWarning`，这是因为 Rspack 在解析模块时采用独立隔离的方式处理每个模块，导致 `MyType` 被错误识别为一个值而非类型，由于 `./types.ts` 中找不到相应的值导出，因此最终会抛出 `ESModulesLinkingWarning` 警告。
+
+开启 `typeReexportsPresence` 后，Rspack 能够正确识别 `./types.ts` 中存在类型 `MyType` 的导出，从而避免误报警告。
 
 ```ts
-// 之前会报 ESModulesLinkingWarning，开启 typeReexportsPresence 后不会报警告
+// 之前会报 ESModulesLinkingWarning，开启 typeReexportsPresence 后不会误报警告
 export { MyType } from './types.ts';
 ```
 
