@@ -120,7 +120,6 @@ pub async fn run_loaders<Context: Send>(
   (LoaderResult::new(cx), result.err())
 }
 
-#[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 async fn run_loaders_impl<Context: Send>(
   cx: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
