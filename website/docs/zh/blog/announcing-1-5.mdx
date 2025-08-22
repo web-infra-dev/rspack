@@ -104,7 +104,7 @@ import { bold, italic, underline } from './font-settings';
 
 更多可参考 [experiments.inlineConst 文档](/config/experiments#experimentsinlineconst)，计划在 v1.6.0 默认开启该功能。
 
-### barrel files 构建优化
+### Barrel files 构建优化
 
 [experiments.lazyBarrel](/config/experiments#experimentslazybarrel) 功能，能够对无副作用的 barrel files 的 `reexports` 进行懒构建，
 避免因重导出引入过多模块到构建过程中，减少模块解析和构建的性能开销，该功能能够大幅提升存在大量 barrel files 项目的构建性能。
