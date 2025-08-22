@@ -134,7 +134,7 @@ impl Trigger {
     }
   }
 
-  /// Sends a group file system events for the given path and event kind.
+  /// Sends a group of file system events for the given path and event kind.
   /// If the event is successfully sent, it returns true; otherwise, it returns false.
   fn trigger_events(&self, events: Vec<(ArcPath, FsEventKind)>) -> bool {
   /// Returns `Ok(())` if the event is successfully sent, or an error otherwise.
