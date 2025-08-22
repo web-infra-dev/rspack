@@ -1,6 +1,6 @@
 use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
+use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -69,12 +69,12 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   Ok(())
 }
 
-async fn create_loader_context<Context: Send>(
+fn create_loader_context<Context: Send>(
   loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-) -> Result<LoaderContext<Context>> {
+) -> LoaderContext<Context> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
   if let Some(resource_path) = &resource_data.resource_path
     && resource_path.is_absolute()
@@ -82,7 +82,7 @@ async fn create_loader_context<Context: Send>(
     file_dependencies.insert(resource_path.clone().into_std_path_buf());
   }
 
-  let mut loader_context = LoaderContext {
+  LoaderContext {
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),
@@ -100,13 +100,7 @@ async fn create_loader_context<Context: Send>(
     plugin,
     resource_data,
     diagnostics: vec![],
-  };
-
-  if let Some(plugin) = loader_context.plugin.clone() {
-    plugin.before_all(&mut loader_context).await?;
   }
-
-  Ok(loader_context)
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
@@ -116,13 +110,23 @@ pub async fn run_loaders<Context: Send>(
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
-) -> Result<TWithDiagnosticArray<LoaderResult>> {
+) -> (LoaderResult, Option<Error>) {
   let loaders = loaders
     .into_iter()
     .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
+  let mut cx = create_loader_context(loaders, resource_data, plugin, context);
+  let result = run_loaders_impl(&mut cx, fs).await;
+  (LoaderResult::new(cx), result.err())
+}
 
-  let mut cx = create_loader_context(loaders, resource_data, plugin, context).await?;
+async fn run_loaders_impl<Context: Send>(
+  cx: &mut LoaderContext<Context>,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> Result<()> {
+  if let Some(plugin) = cx.plugin.clone() {
+    plugin.before_all(cx).await?;
+  }
   let resource = cx.resource().to_owned();
   let resource = resource.as_str();
   loop {
@@ -152,7 +156,7 @@ pub async fn run_loaders<Context: Send>(
         cx.current_loader().set_pitch_executed();
         let loader = cx.current_loader().loader().clone();
         let span = info_span!("run_loader:pitch", resource);
-        loader.pitch(&mut cx).instrument(span).await?;
+        loader.pitch(cx).instrument(span).await?;
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -161,9 +165,7 @@ pub async fn run_loaders<Context: Send>(
       }
       State::ProcessResource => {
         let span = info_span!("run_loader:process_resource", resource);
-        process_resource(&mut cx, fs.clone())
-          .instrument(span)
-          .await?;
+        process_resource(cx, fs.clone()).instrument(span).await?;
         cx.loader_index = cx.loader_items.len() as i32 - 1;
         cx.state.transition(State::Normal);
       }
@@ -191,7 +193,7 @@ pub async fn run_loaders<Context: Send>(
         let loader = cx.current_loader().loader().clone();
 
         let span = info_span!("run_loader:normal", resource);
-        loader.run(&mut cx).instrument(span).await?;
+        loader.run(cx).instrument(span).await?;
         if !cx.current_loader().finish_called() {
           // If nothing is returned from this loader,
           // we set everything to [None] and move to the next loader.
@@ -203,7 +205,18 @@ pub async fn run_loaders<Context: Send>(
     }
   }
 
-  cx.try_into()
+  if cx.content.is_none() {
+    if !cx.loader_items.is_empty() {
+      let loader = cx.loader_items[0].to_string();
+      return Err(error!(
+        "Final loader({loader}) didn't return a Buffer or String"
+      ));
+    } else {
+      panic!("content should be available");
+    }
+  }
+
+  Ok(())
 }
 
 #[derive(Debug)]
@@ -213,38 +226,29 @@ pub struct LoaderResult {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
+  pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: ParseMeta,
 }
 
-impl<Context: Send> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
-  type Error = rspack_error::Error;
-  fn try_from(loader_context: LoaderContext<Context>) -> std::result::Result<Self, Self::Error> {
-    let content = loader_context.content.ok_or_else(|| {
-      if !loader_context.loader_items.is_empty() {
-        let loader = loader_context.loader_items[0].to_string();
-        error!("Final loader({loader}) didn't return a Buffer or String")
-      } else {
-        panic!("content should be available");
-      }
-    })?;
-
-    Ok(
-      LoaderResult {
-        cacheable: loader_context.cacheable,
-        file_dependencies: loader_context.file_dependencies,
-        context_dependencies: loader_context.context_dependencies,
-        missing_dependencies: loader_context.missing_dependencies,
-        build_dependencies: loader_context.build_dependencies,
-        content,
-        source_map: loader_context.source_map,
-        additional_data: loader_context.additional_data,
-        parse_meta: loader_context.parse_meta,
-      }
-      .with_diagnostic(loader_context.diagnostics),
-    )
+impl LoaderResult {
+  pub fn new<T: Send>(loader_context: LoaderContext<T>) -> Self {
+    LoaderResult {
+      cacheable: loader_context.cacheable,
+      file_dependencies: loader_context.file_dependencies,
+      context_dependencies: loader_context.context_dependencies,
+      missing_dependencies: loader_context.missing_dependencies,
+      build_dependencies: loader_context.build_dependencies,
+      diagnostics: loader_context.diagnostics,
+      content: loader_context
+        .content
+        .unwrap_or(Content::String(String::new())),
+      source_map: loader_context.source_map,
+      additional_data: loader_context.additional_data,
+      parse_meta: loader_context.parse_meta,
+    }
   }
 }
 
@@ -444,7 +448,7 @@ mod test {
         Arc::new(NativeFileSystem::new(false))
       )
       .await
-      .err()
+      .1
       .is_some()
     );
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
@@ -464,7 +468,7 @@ mod test {
         Arc::new(NativeFileSystem::new(false))
       )
       .await
-      .err()
+      .1
       .is_some()
     );
     IDENTS.with(|i| {
@@ -538,15 +542,18 @@ mod test {
       context: None,
     });
 
-    run_loaders(
-      vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
-      rs,
-      Some(Arc::new(TestContentPlugin)),
-      (),
-      Arc::new(NativeFileSystem::new(false)),
-    )
-    .await
-    .unwrap();
+    assert!(
+      run_loaders(
+        vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+        rs,
+        Some(Arc::new(TestContentPlugin)),
+        (),
+        Arc::new(NativeFileSystem::new(false)),
+      )
+      .await
+      .1
+      .is_none()
+    );
   }
 
   #[tokio::test]
@@ -611,7 +618,7 @@ mod test {
         Arc::new(NativeFileSystem::new(false))
       )
       .await
-      .err()
+      .1
       .is_some()
     );
   }
