@@ -16,7 +16,7 @@ Rspack 1.5 已经正式发布！
 值得关注的变更如下：
 
 - 新功能
-  - [Barrel files 优化](#barrel-files-优化)
+  - [Barrel 文件优化](#barrel-文件优化)
   - [@rspack/browser 发布](##@rspack/browser-发布)
   - [自定义 Rspack binding](#自定义-rspack-binding)
   - [常量内联](#常量内联)
@@ -35,9 +35,9 @@ Rspack 1.5 已经正式发布！
 
 ## 新功能
 
-### Barrel files 优化
+### Barrel 文件优化
 
-Barrel file 是一种常见的模块导出模式，它通过创建统一的入口文件来重新导出多个模块，通常命名为 `index.js` 或 `index.ts`，例如：
+Barrel 文件（桶文件）是一种常见的模块导出模式，它通过创建统一的入口文件来重新导出多个模块，通常命名为 `index.js` 或 `index.ts`，例如：
 
 ```js
 export * from './hooks';
@@ -45,9 +45,9 @@ export * from './utils';
 export * from './components';
 ```
 
-虽然这种模式简化了模块导入的使用方式，但是在构建过程中会带来性能问题：当导入 barrel file 中的某个模块时，Rspack 需要解析和构建 barrel file 依赖的所有模块，即使实际只使用了其中的一小部分。
+虽然这种模式简化了模块导入的使用方式，但是在构建过程中会带来性能问题：当导入 barrel 文件中的某个模块时，Rspack 需要解析和构建 barrel 文件依赖的所有模块，即使实际只使用了其中的一小部分。
 
-为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/config/experiments#experimentslazybarrel) 功能，它能够自动识别无副作用的 barrel files，对其中的 `reexports` 进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel files 的项目尤其有效，能够带来显著的构建性能提升。
+为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/config/experiments#experimentslazybarrel) 功能，它能够自动识别无副作用的 barrel 文件，对其中的 `reexports` 进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel 文件的项目尤其有效，能够带来显著的构建性能提升。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -57,7 +57,7 @@ export default {
 };
 ```
 
-在实际测试中，开启 barrel files 优化后，两个不同规模的应用都获得了明显的构建性能提升：
+在实际测试中，开启 barrel 文件优化后，两个不同规模的应用都获得了明显的构建性能提升：
 
 - [Benchmark 应用](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)：
 
@@ -75,7 +75,7 @@ export default {
 | 模块路径解析次数 | 181,078 次 | 137,232 次 | -24%     |
 | 模块构建次数     | 38,046 次  | 29,405 次  | -23%     |
 
-我们已经在 Rsbuild 1.5 中默认开启了 barrel files 优化，并计划在 Rspack 1.6 中对所有项目默认启用该功能。更多可参考 [`experiments.lazyBarrel` 文档](/config/experiments#experimentslazybarrel)。
+我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中对所有项目默认启用该功能。更多可参考 [`experiments.lazyBarrel` 文档](/config/experiments#experimentslazybarrel)。
 
 ### @rspack/browser 发布
 
@@ -350,7 +350,7 @@ Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支�
 开箱即用一直是 Rsbuild 的核心设计理念。在 Rsbuild 1.5 中，我们默认启用了多项 Rspack 的最新特性，带来更优秀的开发体验和构建性能，包括：
 
 - 启用 [lazyCompilation.imports](/config/lazy-compilation) 来按需编译动态导入的模块，这可以提升开发服务器的启动速度。
-- 启用 [experiments.lazyBarrel](/config/experiments#experimentslazybarrel) 来优化 barrel files 的构建速度，减少不必要的模块解析。
+- 启用 [experiments.lazyBarrel](/config/experiments#experimentslazybarrel) 来优化 barrel 文件的构建速度，减少不必要的模块解析。
 - 启用 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
 - 启用 [experiments.typeReexportsPresence](/config/experiments#experimentsinlineenum) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
 
