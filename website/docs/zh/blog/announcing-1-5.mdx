@@ -3,7 +3,7 @@ date: 2025-8-18 11:00:00
 sidebar: false
 ---
 
-_2025 年 8 月 18 日_
+_2025 年 8 月 26 日_
 
 # Rspack 1.5 发布公告
 
@@ -47,7 +47,7 @@ export * from './components';
 
 虽然这种模式简化了模块导入的使用方式，但是在构建过程中会带来性能问题：当导入 barrel file 中的某个模块时，Rspack 需要解析和构建 barrel file 依赖的所有模块，即使实际只使用了其中的一小部分。
 
-为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/config/experiments#experimentslazybarrel) 功能，它能够自动识别无副作用的 barrel files，对其中的 `reexports` 进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel files 的项目尤其有效，能够带来显著的构建性能提升。
+为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/config/experiments#experimentslazybarrel) 功能，它能够自动识别无副作用的 barrel files，对其中的 `reexports` 进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建的开销。这一优化对于包含大量 barrel files 的项目尤其有效，能够带来显著的构建性能提升。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -108,21 +108,17 @@ rspack({}, (err, stats) => {
 
 ### 自定义 Rspack binding
 
-为了解锁原生 Rust 级别的 Rspack 灵活的高性能插件，我们发布了 **_Rspack Custom Binding_** 一种全新的可扩展机制，
+为了满足原生 Rust 高性能 Rspack 插件的研发需求，我们发布了 **_Rspack Custom Binding_** 一种全新的可扩展机制，
 该功能主要面向需要对构建流程进行精细控制，或希望利用 Rust 生态构建高性能 Rspack 扩展的用户与工具开发者。
 
 Rspack 自定义 Binding 允许开发者在现有 Rust binding 的基础上，直接实现自定义的 Rust Plugin 和 Rust Loader。
 
-该机制在设计上确保了高度的兼容性：
+该机制在有以下特点：
 
-:::warning
-TODO 中文润色通顺
-:::
-
-- 100% 功能继承 —— 完全兼容现有的 JavaScript 与 Rust 能力，保留 JavaScript API，所有核心功能均可使用。
+- 100% 功能继承 -- 完全兼容 Rspack 现有的 JavaScript 与 Rust 能力，保留 JavaScript API，所有核心功能均可使用。
 - 自定义 Rust 扩展 —— 使用 Rust 编写并集成自定义 Loader 和 Plugin，享受与 Rspack 运行时的一流集成体验。
-- 无缝集成 —— 基于现有的 Rspack binding 层构建，与现有 API 与工具链保持良好兼容。
-- 模板默认支持 NPM provenance —— 官方模板内置支持将 Rust 扩展发布为符合 NPM Provenance 标准的包，提升供应链透明性与安全性。
+- 无缝集成 -- 基于现有的 Rspack binding 层构建，与现有 API 与工具链保持良好兼容。
+- 安全透明 -- 官方模板内置支持将 Rust 扩展发布为符合 NPM Provenance 标准的包，提升供应链透明性与安全性。
 
 点击查看[官方文档](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html)以了解更多。
 
