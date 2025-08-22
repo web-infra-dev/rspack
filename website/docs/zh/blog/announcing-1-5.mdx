@@ -345,48 +345,28 @@ Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支�
 
 ### Rsbuild 1.5
 
-#### 默认开启懒编译
+#### 启用 Rspack 新特性
 
-针对 `target: web` 和开启 `dev.lazyCompilation.imports` 的项目，Rsbuild 默认开启懒编译。
-如果你的应用中包含大量动态 `import`， 你会发现开发服务器的启动大大提升。
+开箱即用一直是 Rsbuild 的核心设计理念。在 Rsbuild 1.5 中，我们默认启用了多项 Rspack 的最新特性，带来更优秀的开发体验和构建性能，包括：
 
-如果你在使用懒编译时遇到任何问题，可以通过将 `dev.lazyCompilation` 设置为 `false` 来禁用它，或者在 GitHub Issues 中反馈。
+- 启用 [lazyCompilation.imports](/config/lazy-compilation) 来按需编译动态导入的模块，这可以提升开发服务器的启动速度。
+- 启用 [experiments.lazyBarrel](/config/experiments#experimentslazybarrel) 来优化 barrel files 的构建速度，减少不必要的模块解析。
+- 启用 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
+- 启用 [experiments.typeReexportsPresence](/config/experiments#experimentsinlineenum) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
 
-```js
-// rsbuild.config.mjs
+将 Rsbuild 升级至最新版本后，上述特性将默认启用，无需任何额外配置即可获得更好的开发体验。
+
+#### ESM 支持
+
+Rsbuild 1.5 新增了 [output.module](/config/output/module) 选项，用于输出 ES modules 格式的构建产物。
+
+目前该选项针对 Node.js bundles 提供了 ESM 格式支持，未来我们将继续增加对 web 应用 ESM 格式的支持。
+
+```ts title="rsbuild.config.ts"
 export default {
-  dev: {
-    lazyCompilation: false,
-  },
-};
-```
-
-#### Barrel file 优化
-
-Rspack 的实验特性 barrel file 优化功能（`experiments.lazyBarrel`）现已默认启用。
-在构建包含 barrel 文件的应用时，该优化应能显著加快构建速度。
-
-```txt
-# Without barrel optimization
-Benchmark 1: node --run build:rsbuild
-  Time (mean ± σ):      1.708 s ±  0.040 s
-
-# With barrel optimization
-Benchmark 2: BARREL=true node --run build:rsbuild
-  Time (mean ± σ):      1.253 s ±  0.007 s
-```
-
-该项优化可以通过 `experiments.lazyBarrel` 配置来优化:
-
-```javascript
-// rsbuild.config.mjs
-export default {
-  tools: {
-    rspack: {
-      experiments: {
-        lazyBarrel: false,
-      },
-    },
+  output: {
+    target: 'node',
+    module: true,
   },
 };
 ```
@@ -415,22 +395,9 @@ export default {
 
 ### Rsdoctor 1.2
 
-#### 深入 concatenate module
+Rsdoctor 1.2 版本带来了多项重要更新，新增了对聚合模块的精确分析能力，以及带来全新的 Treemap 视图。这些功能提升了构建产物分析的准确性和可视化体验，可以帮助你更好地理解和优化项目的打包产物。
 
-Rspack 构建时会将部分模块提升合并为 **_concatenated module_**，以优化体积和性能，但此前 Rsdoctor 无法对其内部结构做进一步 AST 拆解与分析。
-
-Rsdoctor 1.2 版本新增对 **_concatenated module_** 的深入分析，帮助开发者准确获知 Tree Shaking 和压缩后子模块的实际体积，便于深入分析产物细节。
-同时，Rspack（>=1.4.11）集成的 Rsdoctor 插件增强了 source map 能力，即使不开启 source map 也能轻松分析 concatenate module。
-
-![Concatenated Module 分析对比](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-comparsion.png)
-
-#### Treemap 视图
-
-Rsdoctor 之前的 Treemap 视图依赖 webpack-bundle-analyzer，导致分析效率和页面加载速度较低，而 Treemap 又是包分析中最常用的可视化工具。
-
-Rsdoctor 1.2 版本新增了 Treemap 视图，是一种经典的构建产物分析视图，能帮助开发者更直观地可视化并分析 bundle 的构成，以及资源（Assets）和模块（Modules）的占比。同时也可以搜索模块资源，锁定模块资源。
-
-![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rsdoctor-treemap.png)
+请查看 [Rsdoctor 1.2 发布博客](https://rsdoctor.rs/zh/blog/release/release-note-1_2) 了解更多。
 
 ### Rstest 0.2
 
