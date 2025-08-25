@@ -24,7 +24,7 @@ interface BrowserHttpImportPluginOptions {
 /**
  * Convert imports of dependencies in node modules to http imports from esm cdn.
  */
-export class BrowserImportEsmPlugin {
+export class BrowserHttpImportEsmPlugin {
 	constructor(private options: BrowserHttpImportPluginOptions = {}) {}
 
 	apply(compiler: Compiler) {
