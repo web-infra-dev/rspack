@@ -20,8 +20,8 @@ Rspack 1.5 已经正式发布！
   - [更快的文件系统监听器](#更快的文件系统监听器)
   - [@rspack/browser 发布](#rspackbrowser-发布)
   - [使用 Rust 扩展 Rspack](#使用-rust-扩展-rspack)
-  - [常量内联](#常量内联)
-  - [增强 TypeScript 支持](#增强-typescript-支持)
+  - [常量内联优化](#常量内联优化)
+  - [支持类型重导出](#支持类型重导出)
   - [内置虚拟模块插件](#内置虚拟模块插件)
   - [Module Federation 运行时提升](#module-federation-运行时提升)
   - [安装体积优化](#安装体积优化)
@@ -150,9 +150,11 @@ rspack({}, (err, stats) => {
 
 你可以使用 [官方模板](https://github.com/rspack-contrib/rspack-binding-template) 快速开始，更多信息请参考 [设计理念](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html)。需要注意的是，使用此方案会带来额外的维护成本，建议仅在需要极致性能优化时使用。
 
-### 常量内联
+### 常量内联优化
 
-在 Web 项目中，通常会将公共常量统一维护在 `constants.js` 文件中，并在多个模块中引用。为优化此类场景，Rspack 提供了 `experiments.inlineConst` 功能。
+在组织项目代码结构时，我们经常将常量统一放到单独的模块中进行管理，例如 JavaScript 项目中的 `constants.js` 或者 TypeScript 项目中统一组织 `enum` 的 `types.ts`
+
+Rspack 提供了 [`experiments.inlineConst`](/config/experiments#experimentsinlineconst) 和 [`experiments.inlineEnum`](/config/experiments#experimentsinlineenum) 两个新功能来对这些常量进行跨模块内联优化，帮助压缩工具更加进行准确的静态分析，消除无用代码分支，从而进一步减小产物的体积。
 
 `inlineConst` 能够对模块图中叶子节点模块中的常量进行跨模块内联优化，帮助压缩工具更进一步的进行静态分析，消除无用代码分支，从而进一步减小最终产物的体积。
 
@@ -162,20 +164,15 @@ rspack({}, (err, stats) => {
 // font-settings.js
 export const bold = 0b001;
 export const italic = 0b010;
-export const underline = 0b100;
 
 // index.js
-import { bold, italic, underline } from './font-settings';
+import { bold, italic } from './font-settings';
 
-(function setupFont() {
-  const fontStyle = {};
-  // MY_FONT is defined by DefinePlugin({ FONT: 0b001 })
-  if (MY_FONT & bold) fontStyle['font-weight'] = 'bold';
-  if (MY_FONT & italic) fontStyle['font-style'] = 'italic';
-  if (MY_FONT & underline) fontStyle['text-decoration'] = 'underline';
-  applyFont(fontStyle);
-})();
-/* rest of the code... */
+const fontStyle = {};
+// MY_FONT is defined by DefinePlugin({ FONT: 0b001 })
+if (MY_FONT & bold) fontStyle['font-weight'] = 'bold';
+if (MY_FONT & italic) fontStyle['font-style'] = 'italic';
+applyFont(fontStyle);
 ```
 
 开启 `inlineConst` 使用 Rspack 打包，示例中的 `if` 分支能够更加明确的被压缩工具优化，得到更加精简的产物：
@@ -183,22 +180,15 @@ import { bold, italic, underline } from './font-settings';
 ```js
 (() => {
   'use strict';
-  !(function () {
-    let t = {};
-    ((t['font-weight'] = 'bold'), applyFont(t));
-  })();
-  /* rest of the code... */
+  let t = {};
+  t['font-weight'] = 'bold';
+  applyFont(t);
 })();
 ```
 
 更多可参考 [experiments.inlineConst 文档](/config/experiments#experimentsinlineconst)，计划在 v1.6.0 默认开启该功能。
 
-### 增强 TypeScript 支持
-
-开启 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 和
-[experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 来增强 `builtin:swc-loader` 对 TypeScript 的支持。
-
-`inlineEnum` 会对 TypeScript `enum` 进行跨模块的内联优化，该功能与 `inlineConst` 类似，能够有效帮助压缩工具更进一步的进行静态分析，消除无用代码分支，从而进一步减小最终产物的体积。
+`inlineEnum` 会对 TypeScript `enum` 进行跨模块的内联优化，该功能与 `inlineConst` 类似。
 
 ```ts
 // types.ts
@@ -216,29 +206,33 @@ console.log(Kind.A);
 ```js
 // Bundled by Rspack (with minimize: true)
 (() => {
-  'use strict';
-  !(function () {
-    console.log(0);
-  })();
+  console.log(0);
 })();
 ```
 
-`builtin:swc-loader` 默认会对所有 `enum` 都进行内联，可通过 [`'const-only'` 和 `tsEnumIsMutable: true`](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 来仅对 `const enum` 进行内联优化。
+开启 `inlineEnum`后， `builtin:swc-loader` 默认会对所有 `enum` 都进行内联，可通过 [`'const-only'` 和 `tsEnumIsMutable: true`](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 来控制仅对 `const enum` 进行内联优化。
 
 更多详情可参考 [experiments.inlineEnum](https://rspack.rs/config/experiments#experimentsinlineenum)。
 
-`typeReexportsPresence` 优化了存在历史包袱而没有使用 [`isolatedModules`](https://www.typescriptlang.org/tsconfig/#isolatedModules) 的项目的开发体验。之前 Rspack 在处理 TypeScript 类型重导出时会报告 `ESModulesLinkingWarning`，这是因为 Rspack 在解析模块时采用独立隔离的方式处理每个模块，导致 `MyType` 被错误识别为一个值而非类型，由于 `./types.ts` 中找不到相应的值导出，因此最终会抛出 `ESModulesLinkingWarning` 警告。
+### 支持类型重导出
 
-开启 `typeReexportsPresence` 后，Rspack 能够正确识别 `./types.ts` 中存在类型 `MyType` 的导出，从而避免误报警告。
+在 TypeScript 项目中，类型重导出是一种常见的模式。
 
 ```ts
-// 之前会报 ESModulesLinkingWarning，开启 typeReexportsPresence 后不会误报警告
+// index.ts
 export { MyType } from './types.ts';
+
+// types.ts
+export type MyType = {
+  name: string;
+};
 ```
 
-更多详情可参考 [experiments.typeReexportsPresence](https://rspack.rs/config/experiments#experimentstypereexportspresence)。
+之前 Rspack 在处理 TypeScript 类型重导出时会报 `ESModulesLinkingWarning` 警告，例如 `ESModulesLinkingWarning: export 'MyType' (reexported as 'MyType') was not found`。这是因为 Rspack 在解析模块时采用独立隔离的方式处理每个模块，导致类型的导出(例子中的 `MyType`) 被错误识别为一个值而非类型，由于 `./types.ts` 中找不到相应的值导出，因此最终会抛出 `ESModulesLinkingWarning` 警告。
 
-另外 Rspack 正在探索对 TypeScript 一等公民的支持，预计在未来 Rspack v2.0 无需配置即可使用 TypeScript，提供更好的 TypeScript 开发体验。
+Rspack 1.5 新增 [`experiments.typeReexportsPresence`](/config/experiments#experimentstypereexportspresence) 配置来增强对 Typescript 类型导出的识别。 开启该配置后，Rspack 能够正确识别 `./types.ts` 中存在类型 `MyType` 的导出，从而避免误报警告，提升了 TypeScript 的研发体验。
+
+更多详情可参考 [experiments.typeReexportsPresence](https://rspack.rs/config/experiments#experimentstypereexportspresence)。
 
 ### 内置虚拟模块插件
 
