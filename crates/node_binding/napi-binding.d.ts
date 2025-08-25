@@ -2144,6 +2144,7 @@ export interface RawExternalItemFnResult {
 export interface RawExternalsPluginOptions {
   type: string
   externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
+  placeInInitial: boolean
 }
 
 export interface RawExternalsPresets {
