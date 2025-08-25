@@ -53,7 +53,7 @@ const files = builtinMemFs.volume.toJSON();
 
 ### BrowserHttpImportEsmPlugin
 
-在本地开发环境中，开发者通常通过包管理器将所有依赖下载并存储于项目根目录的 `node_modules` 文件夹。而由于 `@rspack/browser` 的 API 与 `@rspack/core` 保持一致，你也可以将依赖写入内存文件系统的 `node_modules` 文件夹。但如果项目依赖的模块不确定（如允许用户自由选择第三方依赖），预先写入所有依赖就不现实了。
+在本地开发环境中，开发者通常通过包管理器将所有依赖下载并存储于项目根目录的 `node_modules` 文件夹。因为 `@rspack/browser` 的行为也与 `@rspack/core` 保持一致，你可以将依赖写入内存文件系统的 `node_modules` 文件夹。但如果项目依赖的模块不确定（如允许用户自由选择第三方依赖），预先写入所有依赖就不现实了。
 
 ```typescript
 import { builtinMemFs } from '@rspack/browser';
@@ -63,7 +63,7 @@ builtinMemFs.volume.fromJSON({
 });
 ```
 
-为此，`@rspack/browser` 提供了 `BrowserHttpImportEsmPlugin` 插件。该插件在解析模块时，会将第三方依赖的模块名重写为 ESM CDN 的 URL。例如，`import React from "react"` 会被重写为 `import React from "https://esm.sh/react"`。结合 Rspack 的 [buildHttp](/config/experiments#experimentsbuildhttp) 功能，即可在打包时通过 HTTP(S) 动态加载依赖。
+`@rspack/browser` 提供了 `BrowserHttpImportEsmPlugin` 插件。该插件在解析模块时，会将第三方依赖的模块名重写为 ESM CDN 的 URL。例如，`import React from "react"` 会被重写为 `import React from "https://esm.sh/react"`。结合 Rspack 的 [buildHttp](/config/experiments#experimentsbuildhttp) 功能，即可在打包时通过 HTTP 动态加载依赖。
 
 ```js title="rspack.config.mjs"
 import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
@@ -105,7 +105,7 @@ interface BrowserHttpImportPluginOptions {
 
 在 Rspack/Webpack 中，某些场景需要动态加载和执行 JavaScript 代码，如 [Loader](/guide/features/loader) 或 [HtmlRspackPlugin 的模板函数](https://rspack.rs/plugins/rspack/html-rspack-plugin#use-template-function)。这些代码可能由不可信用户创建和分发，直接在浏览器执行存在安全隐患，因此 `@rspack/browser` 默认会在这些场景下抛出错误。
 
-`BrowserRequirePlugin` 插件则开放了此类能力：
+`BrowserRequirePlugin` 插件开放了此类能力：
 
 ```js title="rspack.config.mjs"
 import { BrowserRequirePlugin } from '@rspack/browser';
@@ -117,7 +117,7 @@ export default {
 };
 ```
 
-你需要提供一个 `execute` 函数，用于动态执行和加载 CommonJS 模块，并修改 `runtime.module.exports`。`@rspack/browser` 提供了一个不安全的实现 `BrowserRequirePlugin.unsafeExecute`，其内部直接使用 `new Function` 执行代码。你也可以根据实际需求，基于该 API 封装更安全的实现，例如：
+你需要提供一个 `execute` 函数，用于动态执行和加载 CommonJS 模块，并修改 `runtime.module.exports` 来设置该模块导出的内容。`@rspack/browser` 提供了一个不安全的实现 `BrowserRequirePlugin.unsafeExecute`，其内部直接使用 `new Function` 执行代码。你也可以根据实际需求，基于该 API 封装更安全的实现，例如：
 
 ```typescript
 function safeExecute(code: string, runtime: CommonJsRuntime) {
