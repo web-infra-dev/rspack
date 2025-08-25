@@ -335,6 +335,8 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 
 鉴于 Node.js 16 已于 2023 年 9 月 11 日停止维护，同时众多社区 npm 包（如 `webpack-dev-server`、`css-loader`、`sass-loader` 等）也相继停止了对 Node.js 16 的支持，为了降低维护复杂度，Rspack 1.5 将不再支持 Node.js 16。
 
+各包的 Node.js 版本要求变化：
+
 | 包名               |        v1.4 |        v1.5 |
 | ------------------ | ----------: | ----------: |
 | @rspack/core       |  `>=16.0.0` | `>=18.12.0` |
@@ -348,8 +350,8 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 
 对于当前使用 Node.js 16 的用户，请按照以下步骤进行升级：
 
-1. 升级 Node.js 版本 ：建议升级到 Node.js 18.12.0 或更高版本（我们推荐使用 Node.js 22 LTS）
-2. 更新 CI/CD 配置 ：请相应地更新你的持续集成配置，确保使用新的 Node.js 版本
+1. **升级 Node.js 版本**：建议升级到 Node.js 18.12.0 或更高版本（推荐使用 Node.js 22 LTS）
+2. **更新 CI/CD 配置**：请相应地更新你的持续集成配置，确保使用新的 Node.js 版本
 
 ### Resolver JavaScript API
 
@@ -357,10 +359,26 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 
 使用方法请参阅 [Resolver API 文档](/api/javascript-api/resolver#resolver-api)。
 
-### 废弃和稳定
+### 稳定 lazy compilation
 
-- 稳定 **LazyCompilation** 特性 -- `experiments.lazyCompilation` 配置项已经移动到了 Rspack 配置顶层。
-- 废弃 `experiments.topLevelAwait` 配置 -- 当 `experiments.topLevelAwait` 被设置为 `false`时, Rspack 会打印一条废弃该特性的日志。 另外 `topLevelAwait` 特性计划将在 Rspack 2.0 并默认开启, 并移除配置项`experiments.topLevelAwait`。
+经过充分验证，[experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项已从实验性特性升级为稳定特性，并移动到了 Rspack 配置顶层：
+
+```diff title="rspack.config.mjs"
+export default {
+- experiments: {
+-   lazyCompilation: true,
+- },
++ lazyCompilation: true,
+};
+```
+
+> 原有的 `experiments.lazyCompilation` 配置仍然可以继续使用，但会打印一条废弃警告。
+
+### 废弃 experiments.topLevelAwait
+
+[experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) 用于控制对 top level await 的支持，一直以来都是默认开启的。经过观察，我们发现没有实际场景需要关闭 top level await 支持，因此我们决定废弃这个选项，并计划在 Rspack 2.0 中移除它，届时将无法禁用 top level await 功能。
+
+在当前版本中，如果你手动将 `experiments.topLevelAwait` 设置为 `false`，Rspack 会显示废弃警告。
 
 ## Rstack 进展
 
