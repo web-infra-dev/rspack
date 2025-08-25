@@ -46,8 +46,8 @@ use crate::{
   EntryOptions, EntryRuntime, Entrypoint, Filename, ImportVarMap, Logger, MemoryGCStorage,
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
+  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
@@ -280,7 +280,7 @@ pub struct Compilation {
 
   pub value_cache_versions: ValueCacheVersions,
 
-  import_var_map: IdentifierDashMap<ImportVarMap>,
+  import_var_map: IdentifierDashMap<RuntimeKeyMap<ImportVarMap>>,
 
   // TODO move to MakeArtifact
   pub module_executor: Option<ModuleExecutor>,
@@ -588,7 +588,7 @@ impl Compilation {
   }
 
   // TODO move out from compilation
-  pub fn get_import_var(&self, dep_id: &DependencyId) -> String {
+  pub fn get_import_var(&self, dep_id: &DependencyId, runtime: Option<&RuntimeSpec>) -> String {
     let module_graph = self.get_module_graph();
     let parent_module_id = module_graph
       .get_parent_module(dep_id)
@@ -601,7 +601,10 @@ impl Compilation {
       .and_then(|dep| dep.as_module_dependency())
       .expect("should be module dependency");
     let user_request = to_identifier(module_dep.user_request());
-    let mut import_var_map_of_module = self.import_var_map.entry(*parent_module_id).or_default();
+    let mut runtime_map = self.import_var_map.entry(*parent_module_id).or_default();
+    let import_var_map_of_module = runtime_map
+      .entry(runtime.map(get_runtime_key).unwrap_or_default())
+      .or_default();
     let len = import_var_map_of_module.len();
 
     match import_var_map_of_module.entry(module_id) {
@@ -1782,7 +1785,7 @@ impl Compilation {
             }
 
             for runtime_key in runtime_map.map.keys() {
-              if !module_runtime_keys.contains(&runtime_key.as_str()) {
+              if !module_runtime_keys.contains(runtime_key) {
                 modules.insert(*mi);
                 break;
               }
