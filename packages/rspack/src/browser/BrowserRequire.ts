@@ -4,6 +4,9 @@ import type { Compiler } from "../Compiler";
 
 type BrowserRequire = typeof Compiler.prototype.__internal_browser_require;
 
+/**
+ * Represents the runtime context for CommonJS modules in a browser environment.
+ */
 interface CommonJsRuntime {
 	module: any;
 	exports: any;
@@ -11,6 +14,9 @@ interface CommonJsRuntime {
 }
 
 interface BrowserRequirePluginOptions {
+	/**
+	 * This function defines how to execute CommonJS code.
+	 */
 	execute: (code: string, runtime: CommonJsRuntime) => void;
 }
 
@@ -23,11 +29,15 @@ const unsafeExecute: BrowserRequirePluginOptions["execute"] = (
 };
 
 /**
- * Loading modules in `@rspack/browser` is different from `@rspack/core`.
+ * This plugin inject browser-compatible `require` function to the `Compiler`.
  * 1. It resolves the JavaScript in the memfs with Node.js resolution algorithm rather than in the host filesystem.
- * 2. It customizes how to evaluate CJS/ESM because there's no `require` any more.
+ * 2. It transform ESM to CommonJS which will be executed with a user-defined `execute` function.
  */
 export class BrowserRequirePlugin {
+	/**
+	 * This is an unsafe way to execute code in the browser using `new Function`.
+	 * It is your responsibility to ensure that your application is not vulnerable to attacks due to this function.
+	 */
 	static unsafeExecute = unsafeExecute;
 
 	constructor(private options: BrowserRequirePluginOptions) {}
