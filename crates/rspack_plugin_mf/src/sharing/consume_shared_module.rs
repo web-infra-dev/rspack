@@ -6,10 +6,10 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, async_module_factory,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  sync_module_factory,
+  DependenciesBlock, DependencyId, DependencyType, FactoryMeta, LibIdentOptions, Module,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  async_module_factory, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, sync_module_factory,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -92,6 +92,18 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  pub fn find_fallback_module_id(&self, module_graph: &ModuleGraph) -> Option<ModuleIdentifier> {
+    for dep_id in &self.dependencies {
+      if let Some(dep) = module_graph.dependency_by_id(dep_id)
+        && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+        && let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id)
+      {
+        return Some(*fallback_id);
+      }
+    }
+    None
   }
 }
 

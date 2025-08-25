@@ -14,9 +14,24 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{queue::Queue, swc::join_atom};
 use rustc_hash::FxHashMap as HashMap;
+use serde::Deserialize;
 
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>, bool);
 type NonNestedTask = (Option<RuntimeSpec>, bool, Vec<ExtendedReferencedExport>);
+
+#[derive(Deserialize)]
+struct ShareUsageReport {
+  #[serde(rename = "treeShake", default)]
+  tree_shake: std::collections::HashMap<String, ShareUsageEntry>,
+}
+
+#[derive(Deserialize)]
+struct ShareUsageEntry {
+  #[serde(flatten)]
+  exports: std::collections::HashMap<String, bool>,
+  #[serde(rename = "chunkCharacteristics", default)]
+  _chunk_characteristics: serde_json::Value,
+}
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
@@ -47,7 +62,45 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 
   fn apply(&mut self) {
+    let context_path = self.compilation.options.context.as_path().to_path_buf();
     let mut module_graph = self.compilation.get_module_graph_mut();
+
+    // Apply shared module usage information from share-usage.json if available
+    let usage_path = context_path.join("share-usage.json");
+    if let Ok(content) = std::fs::read_to_string(&usage_path) {
+      if let Ok(report) = serde_json::from_str::<ShareUsageReport>(&content) {
+        let module_ids: Vec<_> = module_graph.modules().keys().copied().collect();
+        for module_id in module_ids {
+          let module = module_graph
+            .module_by_identifier(&module_id)
+            .expect("module not found");
+          let shared_key = {
+            let meta = module.build_meta();
+            meta
+              .effective_shared_key
+              .clone()
+              .or_else(|| meta.shared_key.clone())
+          };
+          if let Some(key) = shared_key {
+            if let Some(usage) = report.tree_shake.get(&key) {
+              let exports_info = module_graph.get_exports_info(&module_id);
+              let exports_info_data = exports_info.as_data_mut(&mut module_graph);
+              for (export_name, used) in &usage.exports {
+                let export_atom = rspack_util::atom::Atom::from(export_name.as_str());
+                let info = exports_info_data.ensure_owned_export_info(&export_atom);
+                let state = if *used {
+                  UsageState::Used
+                } else {
+                  UsageState::Unused
+                };
+                info.set_used(state, None);
+              }
+            }
+          }
+        }
+      }
+    }
+
     for mgm in module_graph.module_graph_modules().values() {
       self
         .exports_info_module_map
