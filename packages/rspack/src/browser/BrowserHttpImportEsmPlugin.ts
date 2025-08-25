@@ -33,6 +33,12 @@ export class BrowserHttpImportEsmPlugin {
 				const request = resolveData.request;
 				const packageName = getPackageName(request);
 
+				// We don't consider match resource and inline loaders
+				// Because usually they are not used with dependent modules like `sass-loader?react`
+				if (request.includes("!=!")) {
+					return;
+				}
+
 				// If dependencyUrl is provided, use it to resolve the request
 				if (this.options.dependencyUrl) {
 					if (typeof this.options.dependencyUrl === "function") {
@@ -51,7 +57,7 @@ export class BrowserHttpImportEsmPlugin {
 				}
 
 				// If the issuer is a URL, request must be relative to that URL too
-				const issuerUrl = toUrl(resolveData.contextInfo.issuer);
+				const issuerUrl = toHttpUrl(resolveData.contextInfo.issuer);
 				if (issuerUrl) {
 					resolveData.request = this.resolveWithUrlIssuer(request, issuerUrl);
 					return;
@@ -85,7 +91,7 @@ export class BrowserHttpImportEsmPlugin {
 
 	isNodeModule(request: string) {
 		// Skip requests like "http://xxx"
-		if (toUrl(request)) {
+		if (toHttpUrl(request)) {
 			return false;
 		}
 
@@ -137,10 +143,12 @@ function getRequestWithVersion(request: string, version: string) {
 	}
 }
 
-function toUrl(request: string): URL | undefined {
+function toHttpUrl(request: string): URL | undefined {
 	try {
 		const url = new URL(request);
-		return url;
+		if (url.protocol === "http:" || url.protocol === "https:") {
+			return url;
+		}
 	} catch {
 		return undefined;
 	}
