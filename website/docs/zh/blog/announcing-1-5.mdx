@@ -277,17 +277,18 @@ export default {
 
 ### 安装体积优化
 
-自 1.4 以来，我们做了一系列的优化来降低 Rspack 的安装体积，其中最重要的便是优化 Rspack node binding 的文件尺寸。
+自 1.4 以来，我们做了一系列的优化来降低 Rspack 的安装体积，目前已经有了显著的效果。
 
-![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-binary-size.png)
+![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspack-install-size.png)
 
-产物尺寸优化是从我们的开路先锋 [@quininer](https://github.com/quininer) 优化 Rspack 的依赖
-[browserlist-rs](https://github.com/browserslist/browserslist-rs/pull/32) 尺寸开始的；
-接着各路开花，例如：这个 [Pull Request](https://github.com/web-infra-dev/rspack/pull/11077) 通过修改编译参数足足减少 5M 的产物尺寸；
-还有 [@hardfirst](https://github.com/hardfist) 通过控制 [feature 开关](https://github.com/web-infra-dev/rspack/pull/10965) 带来了近 2M 的尺寸优化；
-通过优化上游依赖 [wasmer](https://github.com/wasmerio/wasmer/pull/5621/files) 和 [SWC](https://github.com/swc-project/swc/pull/10638) 带来了近3M 的优化。
-细心的读者可能会发现，产物优化不仅仅要在 Rspack 的本身做优化，还要求我们促进上游软件的优化。
-除了构建一个更快的 bundler ，我们更想构建一个更好的社区。
+其中几个效果显著的优化：
+
+- 通过修改 [编译参数](https://github.com/web-infra-dev/rspack/pull/11077) 足足减少 5M 的安装体积
+- 通过优化上游依赖 [wasmer](https://github.com/wasmerio/wasmer/pull/5621/files) 和 [SWC](https://github.com/swc-project/swc/pull/10638) 带来了近 3M 的优化。
+- 通过控制 [feature 开关](https://github.com/web-infra-dev/rspack/pull/10965) 带来了近 2M 的尺寸优化；
+- 通过优化 [browserlist-rs](https://github.com/browserslist/browserslist-rs/pull/32)数据结构，为 Rspack 减少了约 2M 安装体积
+
+目前 Rspack 已经将产物尺寸纳入到日常代码质量[检查](https://github.com/web-infra-dev/rspack/blob/main/.github/actions/binary-limit/action.yml)中，未来我们会持续关注产物尺寸的变化。
 
 ### Seal 阶段性能提升
 
