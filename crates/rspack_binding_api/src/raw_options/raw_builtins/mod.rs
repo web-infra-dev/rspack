@@ -364,7 +364,12 @@ impl<'a> BuiltinPlugin<'a> {
           .map(|e| RawExternalItemWrapper(e).try_into())
           .collect::<Result<Vec<_>>>()
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let plugin = ExternalsPlugin::new(plugin_options.r#type, externals).boxed();
+        let plugin = ExternalsPlugin::new(
+          plugin_options.r#type,
+          externals,
+          plugin_options.place_in_initial,
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),

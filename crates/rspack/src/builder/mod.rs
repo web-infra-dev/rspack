@@ -1084,6 +1084,7 @@ impl CompilerOptionsBuilder {
         .push(BuiltinPluginOptions::ExternalsPlugin((
           expect!(self.externals_type.clone()),
           externals,
+          false,
         )));
     }
 
@@ -1135,6 +1136,7 @@ impl CompilerOptionsBuilder {
         .push(BuiltinPluginOptions::ExternalsPlugin((
           "node-commonjs".to_string(),
           vec!["nw.gui".to_string().into()],
+          false,
         )));
     }
 

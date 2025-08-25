@@ -21,7 +21,7 @@ const { getSerializers } = require(
  * Check if 2 strings or buffer are equal
  */
 const isEqual = (a: string | Buffer, b: string | Buffer): boolean => {
-	// @ts-ignore: TypeScript gives error if we pass string to buffer.equals
+	// @ts-expect-error: TypeScript gives error if we pass string to buffer.equals
 	return Buffer.isBuffer(a) ? a.equals(b) : a === b;
 };
 
