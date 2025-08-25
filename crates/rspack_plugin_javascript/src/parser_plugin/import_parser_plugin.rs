@@ -2,8 +2,8 @@ use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ChunkGroupOptions, ContextDependency,
   ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DynamicImportFetchPriority, DynamicImportMode, GroupOptions, ImportAttributes,
-  SharedSourceMap, SpanExt,
+  DependencyRange, DependencyType, DynamicImportFetchPriority, DynamicImportMode, GroupOptions,
+  ImportAttributes, SharedSourceMap, SpanExt,
 };
 use rspack_error::miette::Severity;
 use rspack_util::swc::get_swc_comments;
@@ -47,24 +47,21 @@ impl ImportsReferencesState {
     references.references.push(reference);
   }
 
-  fn take_import_references_map(&mut self) -> FxHashMap<ImportDependencyLocator, Vec<Vec<Atom>>> {
+  fn take_import_references(
+    &mut self,
+  ) -> impl Iterator<Item = (ImportDependencyLocator, Vec<Vec<Atom>>)> {
     let inner = std::mem::take(&mut self.inner);
     inner
       .into_values()
       .filter_map(|value| value.dep_locator.map(|locator| (locator, value.references)))
-      .collect()
   }
 
   fn get_import(&self, import: &Span) -> Option<&ImportReferences> {
     self.inner.get(import)
   }
 
-  fn set_import_locator(&mut self, import: &Span, locator: ImportDependencyLocator) {
-    let references = self
-      .inner
-      .get_mut(import)
-      .expect("should add_import before");
-    references.dep_locator = Some(locator);
+  fn get_import_mut(&mut self, import: &Span) -> Option<&mut ImportReferences> {
+    self.inner.get_mut(import)
   }
 }
 
@@ -76,8 +73,9 @@ struct ImportReferences {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct ImportDependencyLocator {
-  block: Option<AsyncDependenciesBlockIdentifier>,
-  dep: DependencyId,
+  block: Option<(usize, AsyncDependenciesBlockIdentifier)>,
+  dep: (usize, DependencyId),
+  dep_type: DependencyType,
 }
 
 #[derive(Debug, Clone)]
@@ -260,19 +258,17 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .dynamic_import_references
       .get_import(&import_call_span);
     let is_statical = referenced_in_destructuring.is_some() || referenced_in_member.is_some();
-    if is_statical {
-      if exports.is_some() {
-        parser.warning_diagnostics.push(Box::new(
-          create_traceable_error(
-            "Useless magic comments".into(),
-            "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
-            parser.source_file,
-            import_call_span.into(),
-          )
-          .with_severity(Severity::Warning)
-          .with_hide_stack(Some(true)),
-        ));
-      }
+    if is_statical && exports.is_some() {
+      parser.warning_diagnostics.push(Box::new(
+        create_traceable_error(
+          "Useless magic comments".into(),
+          "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
+          parser.source_file,
+          import_call_span.into(),
+        )
+        .with_severity(Severity::Warning)
+        .with_hide_stack(Some(true)),
+      ));
     }
     if let Some(referenced_properties_in_destructuring) = referenced_in_destructuring {
       exports = Some(
@@ -295,13 +291,16 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           exports,
           attributes,
         );
-        parser.dynamic_import_references.set_import_locator(
-          &import_call_span,
-          ImportDependencyLocator {
+        if let Some(import_references) = parser
+          .dynamic_import_references
+          .get_import_mut(&import_call_span)
+        {
+          import_references.dep_locator = Some(ImportDependencyLocator {
             block: None,
-            dep: *dep.id(),
-          },
-        );
+            dep: (parser.dependencies.len(), *dep.id()),
+            dep_type: DependencyType::DynamicImportEager,
+          });
+        }
         parser.dependencies.push(Box::new(dep));
         return Some(true);
       }
@@ -333,13 +332,16 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         chunk_prefetch,
         fetch_priority,
       )));
-      parser.dynamic_import_references.set_import_locator(
-        &import_call_span,
-        ImportDependencyLocator {
-          block: Some(block.identifier()),
-          dep: dep_id,
-        },
-      );
+      if let Some(import_references) = parser
+        .dynamic_import_references
+        .get_import_mut(&import_call_span)
+      {
+        import_references.dep_locator = Some(ImportDependencyLocator {
+          block: Some((parser.blocks.len(), block.identifier())),
+          dep: (0, dep_id),
+          dep_type: DependencyType::DynamicImport,
+        });
+      }
       parser.blocks.push(Box::new(block));
       Some(true)
     } else {
@@ -389,34 +391,58 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         parser.in_try,
       );
       *dep.critical_mut() = critical;
-      parser.dynamic_import_references.set_import_locator(
-        &import_call_span,
-        ImportDependencyLocator {
+      if let Some(import_references) = parser
+        .dynamic_import_references
+        .get_import_mut(&import_call_span)
+      {
+        import_references.dep_locator = Some(ImportDependencyLocator {
           block: None,
-          dep: *dep.id(),
-        },
-      );
+          dep: (parser.dependencies.len(), *dep.id()),
+          dep_type: DependencyType::ImportContext,
+        });
+      }
       parser.dependencies.push(Box::new(dep));
       Some(true)
     }
   }
 
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    let mut map = parser
-      .dynamic_import_references
-      .take_import_references_map();
-    for block in &mut parser.blocks {
-      let block_id = block.identifier();
-      for dep in block.dependencies_mut() {
-        if let Some(dep) = dep.downcast_mut::<ImportDependency>()
-          && let Some(references) = map.remove(&ImportDependencyLocator {
-            block: Some(block_id),
-            dep: *dep.id(),
-          })
-        {
+    for (locator, references) in parser.dynamic_import_references.take_import_references() {
+      let dependencies = if let Some((block_index, block_id)) = locator.block {
+        let block = &mut parser.blocks[block_index];
+        if block.identifier() != block_id {
+          continue;
+        }
+        block.dependencies_mut()
+      } else {
+        parser.dependencies.as_mut_slice()
+      };
+      let (dep_index, dep_id) = locator.dep;
+      let dep = &mut dependencies[dep_index];
+      if *dep.id() != dep_id {
+        continue;
+      }
+      match locator.dep_type {
+        DependencyType::DynamicImport => {
+          let dep = dep
+            .downcast_mut::<ImportDependency>()
+            .expect("Failed to downcast to ImportDependency");
           dep.referenced_exports = Some(references);
         }
-      }
+        DependencyType::DynamicImportEager => {
+          let dep = dep
+            .downcast_mut::<ImportEagerDependency>()
+            .expect("Failed to downcast to ImportEagerDependency");
+          dep.referenced_exports = Some(references);
+        }
+        DependencyType::ImportContext => {
+          let dep = dep
+            .downcast_mut::<ImportContextDependency>()
+            .expect("Failed to downcast to ImportContextDependency");
+          dep.options.referenced_exports = Some(references);
+        }
+        _ => unreachable!(),
+      };
     }
     None
   }

@@ -23,7 +23,7 @@ pub struct ImportEagerDependency {
   request: Atom,
   range: DependencyRange,
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
-  referenced_exports: Option<Vec<Vec<Atom>>>,
+  pub referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   factorize_info: FactorizeInfo,
