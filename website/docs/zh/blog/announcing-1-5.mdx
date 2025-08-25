@@ -298,10 +298,9 @@ module.exports = {
 
 ### Seal 阶段性能提升
 
-除了二进制产物的尺寸的优化外，构建速度优化我们没有停步。相较于 1.4.0 版本， 1.5.0 版本在 Seal 阶段践行了大量的优化。
-在不影响产物的前提下，通过优化数据结构、提高代码的并行度、增加热点代码执行缓存等方式，对大型项目的 Seal 阶段有较大的提升。
+在构建性能方面，Rspack 1.5 针对 Seal 阶段（代码生成和优化的阶段）进行了大量优化，通过优化数据结构、提升并行度、增加热点代码缓存等手段，提升了大型项目的构建性能。得益于并行化优化，在多核机器上性能提升更为显著。
 
-以一个来自字节跳动的大型应用为例，它包含约 40000 个模块，整体 Seal 阶段耗时降低约 50%。
+以字节跳动某大型应用为例，该项目包含约 40,000 个模块，整体 Seal 阶段耗时降低约 50%。
 
 - 优化前：
 
@@ -311,7 +310,7 @@ module.exports = {
 
 ![seal-performance-after](https://assets.rspack.rs/rspack/assets/rspack-v1-5-seal-phase-after.png)
 
-其中几个主要的耗时阶段都有一定程度的优化：
+各主要阶段均实现显著优化：
 
 | 阶段                     | v1.4.0 | v1.5.0 |   优化 |
 | ------------------------ | -----: | -----: | -----: |
@@ -321,8 +320,6 @@ module.exports = {
 | Bundle splitting         | 1588ms |  712ms | `-55%` |
 | Module concatenation     | 2645ms |  616ms | `-76%` |
 | Content hash calculation |  881ms |  404ms | `-54%` |
-
-Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提下，探索性能更加优秀的算法。
 
 ## 其他
 
@@ -375,7 +372,7 @@ Rspack 的 [experiments.topLevelAwait](/config/experiments#experimentstoplevelaw
 
 ## Rstack 进展
 
-[Rstack](/guide/start/ecosystem#rstack) 是一个围绕 Rspack 打造的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
+[Rstack](/guide/start/ecosystem#rstack) 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
 
 ### Rslint 发布
 
