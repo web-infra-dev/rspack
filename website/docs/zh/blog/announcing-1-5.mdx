@@ -79,7 +79,7 @@ export default {
 | 模块路径解析次数 | 181,078 次 | 137,232 次 | -24%     |
 | 模块构建次数     | 38,046 次  | 29,405 次  | -23%     |
 
-我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中对所有项目默认启用该功能。更多可参考 [`experiments.lazyBarrel` 文档](/config/experiments#experimentslazybarrel)。
+我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中对所有项目默认启用该功能。更多可参考 [experiments.lazyBarrel 文档](/config/experiments#experimentslazybarrel)。
 
 ### 更快的文件系统监听器
 
@@ -152,7 +152,7 @@ rspack({}, (err, stats) => {
 
 ### 常量内联优化
 
-在组织项目代码时，我们通常会将常量集中管理，例如 `constants.js` 或者 TypeScript 项目中包含 `enum` 的 `types.ts` 文件。
+在组织项目代码时，我们通常会将常量集中管理，例如 `constants.js` 或者 TypeScript 项目中包含 enums 的 `types.ts` 文件。
 
 Rspack 引入了 [experiments.inlineConst](/config/experiments#experimentsinlineconst) 和 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 两个实验性功能，用于对常量进行跨模块内联优化。这些优化可以帮助压缩工具更加进行准确的静态分析，消除无用代码分支，从而进一步减小产物的体积。
 
@@ -186,7 +186,7 @@ applyFont(fontStyle);
 
 > 更多可参考 [experiments.inlineConst 文档](/config/experiments#experimentsinlineconst)，该功能计划在 v1.6 中默认启用。
 
-`inlineEnum` 会对 TypeScript 的 `enum` 进行跨模块内联优化，工作原理与 `inlineConst` 类似。
+`inlineEnum` 会对 TypeScript 的 enums 进行跨模块内联优化，工作原理与 `inlineConst` 类似。
 
 ```ts
 // types.ts
@@ -202,19 +202,18 @@ console.log(Kind.A);
 启用 `inlineEnum` 后：
 
 ```js
-// Bundled by Rspack (with minimize: true)
 (() => {
   console.log(0);
 })();
 ```
 
-需要注意的是，启用 `inlineEnum` 后，Rspack 默认会内联所有 `enum`。如果只希望内联 `const enum`，可以通过配置 [`'const-only'` 和 `tsEnumIsMutable: true`](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum) 来实现。
+需要注意的是，启用 `inlineEnum` 后，Rspack 默认会内联所有 enums。如果你希望只内联 const enums，可以参考此 [示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)。
 
-> 更多可参考 [experiments.inlineEnum](https://rspack.rs/config/experiments#experimentsinlineenum)。
+> 更多可参考 [experiments.inlineEnum](/config/experiments#experimentsinlineenum)。
 
 ### 支持类型重导出
 
-在 TypeScript 项目中，类型重导出是一种常见的模式。
+在 TypeScript 项目中，类型重导出是一种常见的模式：
 
 ```ts
 // index.ts
@@ -226,11 +225,13 @@ export type MyType = {
 };
 ```
 
-之前 Rspack 在处理 TypeScript 类型重导出时会报 `ESModulesLinkingWarning` 警告，例如 `ESModulesLinkingWarning: export 'MyType' (reexported as 'MyType') was not found`。这是因为 Rspack 在解析模块时采用独立隔离的方式处理每个模块，导致类型的导出(例子中的 `MyType`) 被错误识别为一个值而非类型，由于 `./types.ts` 中找不到相应的值导出，因此最终会抛出 `ESModulesLinkingWarning` 警告。
+在之前的版本中，如果你在重导出类型时没有添加 `type` 修饰符，Rspack 可能会抛出警告，例如 `export 'MyType' (reexported as 'MyType') was not found`。
 
-Rspack 1.5 新增 [`experiments.typeReexportsPresence`](/config/experiments#experimentstypereexportspresence) 配置来增强对 Typescript 类型导出的识别。 开启该配置后，Rspack 能够正确识别 `./types.ts` 中存在类型 `MyType` 的导出，从而避免误报警告，提升了 TypeScript 的研发体验。
+这是因为 Rspack 在解析模块时，采用独立的方式处理每个模块，导致类型的导出（例子中的 `MyType`）被错误识别为一个值而非类型，由于在 `./types.ts` 中找不到相应的值导出，因此触发了上述警告。
 
-更多详情可参考 [experiments.typeReexportsPresence](https://rspack.rs/config/experiments#experimentstypereexportspresence)。
+Rspack 1.5 引入了 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 配置，用于改进对 Typescript 类型导出的识别。开启此配置后，Rspack 能够正确识别跨模块分析类型重导出，从而避免误报警告。
+
+> 更多可参考 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence)。
 
 ### 内置虚拟模块插件
 
