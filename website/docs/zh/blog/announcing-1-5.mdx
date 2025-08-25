@@ -17,7 +17,7 @@ Rspack 1.5 已经正式发布！
 
 - 新功能
   - [Barrel 文件优化](#barrel-文件优化)
-  - [@rspack/browser 发布](##@rspack/browser-发布)
+  - [@rspack/browser 发布](#rspackbrowser-发布)
   - [使用 Rust 扩展 Rspack](#使用-rust-扩展-rspack)
   - [常量内联](#常量内联)
   - [增强 TypeScript 支持](#增强-typescript-支持)
@@ -83,16 +83,17 @@ export default {
 
 ### @rspack/browser 发布
 
-![rspack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
-
-在先前的 Rspack 1.4 中，我们正式引入了 Wasm target 支持，这意味着 Rspack 可以在基于 StackBlitz（WebContainers）的在线平台浏览器环境中运行。
+在先前的 Rspack 1.4 中，我们正式引入了 Wasm target 支持，这意味着 Rspack 可以在基于 WebContainers 的浏览器环境中运行，例如 [StackBlitz](https://stackblitz.com/)。
 
 现在你可以**直接在任何现代浏览器中使用 Rspack**了。 新发布的 [@rspack/browser](https://www.npmjs.com/package/@rspack/browser) 是专为纯浏览器环境设计的版本，而无需依赖 WebContainers 或是特定平台。`@rspack/browser` 为复杂 Web 项目的在线打包提供底层支持，提供了更轻量的问题复现、配置分享方案，并通过提供在线交互式 Demo 的方式帮助开发者入门和学习 Rspack。
+
+![rspack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
 
 `@rspack/browser` 提供的 API 和 `@rspack/core` 的 JavaScript API 是对齐的。在此基础上，额外提供了为适配浏览器环境的特性和 API：
 
 ```js
 import { rspack, builtinMemFs } from '@rspack/browser';
+
 // Write files to memfs
 builtinMemFs.volume.fromJSON({
   // ...project files
@@ -108,7 +109,7 @@ rspack({}, (err, stats) => {
 });
 ```
 
-目前 `@rspack/browser` 还处于实验性阶段，可能会发生不兼容的改动。未来我们将持续完善在线打包所需的能力，欢迎前往 [Rspack Playground](https://playground.rspack.rs/) 进行体验。
+目前 `@rspack/browser` 还处于实验性阶段，可能会引入不兼容更新。未来我们将持续完善在线打包所需的能力，欢迎前往 [Rspack Playground](https://playground.rspack.rs/) 进行体验。
 
 ### 使用 Rust 扩展 Rspack
 
@@ -244,7 +245,7 @@ export default {
 
 ### 内置的虚拟模块插件
 
-在 Rspack@1.4.0 中，我们支持了[自定义的 InputFileSystem](https://rspack.rs/blog/announcing-1-4#custom-input-file-system)。
+在 Rspack 1.4 中，我们支持了[自定义的 InputFileSystem](https://rspack.rs/blog/announcing-1-4#custom-input-file-system)。
 自定义 InputFileSystem 在配合 Webpack Virtual Modules 插件使用时，如果虚拟模块数量较小时，该方案既兼顾了 Webpack 生态, 又保持了 Rspack 的高性能。但是在大量虚拟模块的场景下，性能劣化问题仍然存在。
 
 为了解决大量虚拟文件的场景，我们新增内置的基于 Rust 的虚拟模块插件 [VirtualModulesPlugin](https://github.com/web-infra-dev/rspack/issues/10856)。插件将虚拟模块的存储转移到了 Rust 侧，大大降低了模块的读取和解析的开销，让虚拟文件功能在大量虚拟模块的场景下也能保持高性能。
@@ -326,7 +327,7 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 
 ## 其他
 
-### Rspack 停止支持 Node.js 16
+### 停止支持 Node.js 16
 
 鉴于 Node.js 16 于 2023 年 9 月 11 已经停止维护，以及众多的社区 npm 包（如：webpack-dev-server, css-loader, sass-loader 等）也停止了对 Node.js 16 的支持，为了减低维护的复杂度，Rspack v1.5 将不再支持 Node.js 16。
 
@@ -337,11 +338,11 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 | @rspack/dev-server | >=18.12.0 | >=18.12.0 |
 | @rsbuild/core      | >=16.10.0 | >=18.12.0 |
 
-### Rspack core 内置 rspack-resolver
+### Resolver JavaScript API
 
-为了 Rspack core 的用户能够更方便地使用 Rspack 的模块解析能力，我们将 [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) 内置到了 Rspack 的 JavaScript API。
+为了让 Rspack 用户能够更便捷地使用 Rspack 的模块解析功能，我们已将 [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) 集成到 Rspack 的 JavaScript API 中，这提供了类似 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 的模块解析能力。
 
-用法参考 [Resolver API 文档](/api/javascript-api/resolver#resolver-api)
+使用方法请参阅 [Resolver API 文档](/api/javascript-api/resolver#resolver-api)。
 
 ### 废弃和稳定
 
