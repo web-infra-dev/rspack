@@ -442,19 +442,13 @@ Rsdoctor 1.2 版本带来了多项重要更新，新增了对聚合模块的精�
 
 ### Rstest 0.2
 
-经过两个月时间、10 多个版本的快速迭代，新版的 Rstest 带来了更高的稳定性和特性：
+经过两个月的持续迭代和 10 多个版本的优化，Rstest 0.2 在功能和稳定性方面都有了显著改进，带来以下新特性：
 
-#### Mock 模块
-
-Mock 模块是测试中的常见需求，它允许你在测试中替换模块的实现。
-现在，你可以使用 Rstest 的 mock API 对 ES 模块进行 mock。
+- **Mock 模块支持**：Rstest 现在提供了完整的 mock API，用于在测试环境中替换模块的实际实现，支持对 ES 模块进行模拟操作。
 
 ![Mock 模块](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rstest-mock-modules.png)
 
-#### Watch 模式增强
-
-Rstest 在 watch 模式下已支持增量 rerun, 这意味着只有当测试文件或关联文件（如被测试的模块）发生变化时才会重新运行该测试文件，从而大幅提升测试效率。
-
-此外，在 watch 模式下运行 Rstest 时，你可以使用键盘快捷键来执行各种便捷操作。
+- **Watch 模式优化**：在 watch 模式下，Rstest 现在支持增量 re-run。当测试文件或其依赖的模块发生变化时，Rstest 会只重新运行相关的测试文件，从而提升测试执行效率。
+- **CLI 快捷键**：watch 模式现在提供了键盘快捷键，你可以使用快捷键来执行各种常用操作。
 
 ![Rstest 快捷键](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rstest-cli-shortcuts.png)
