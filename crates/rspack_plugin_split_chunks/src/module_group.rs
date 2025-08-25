@@ -19,9 +19,8 @@ use crate::{
 /// The original name of `ModuleGroup` is `ChunkInfoItem` borrowed from Webpack
 #[derive(Debug)]
 pub(crate) struct ModuleGroup {
-  /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
-  idx: CacheGroupIdx,
   pub modules: IdentifierSet,
+  /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
   pub cache_group_index: usize,
   pub cache_group_priority: f64,
   pub cache_group_reuse_existing_chunk: bool,
@@ -37,13 +36,11 @@ pub(crate) struct ModuleGroup {
 
 impl ModuleGroup {
   pub fn new(
-    idx: CacheGroupIdx,
     chunk_name: Option<String>,
     cache_group_index: usize,
     cache_group: &CacheGroup,
   ) -> Self {
     Self {
-      idx,
       modules: Default::default(),
       cache_group_index,
       cache_group_priority: cache_group.priority,
@@ -116,20 +113,14 @@ impl ModuleGroup {
   }
 
   pub fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
-    &cache_groups[self.idx.0]
+    &cache_groups[self.cache_group_index]
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct CacheGroupIdx(usize);
-
-impl CacheGroupIdx {
-  pub fn new(idx: usize) -> Self {
-    Self(idx)
-  }
-}
-
-pub(crate) fn compare_entries(a: &ModuleGroup, b: &ModuleGroup) -> f64 {
+pub(crate) fn compare_entries(
+  (a_key, a): (&String, &ModuleGroup),
+  (b_key, b): (&String, &ModuleGroup),
+) -> f64 {
   // 1. by priority
   let diff_priority = a.cache_group_priority - b.cache_group_priority;
   if diff_priority != 0f64 {
@@ -170,7 +161,7 @@ pub(crate) fn compare_entries(a: &ModuleGroup, b: &ModuleGroup) -> f64 {
 
   loop {
     match (modules_a.pop(), modules_b.pop()) {
-      (None, None) => return 0f64,
+      (None, None) => break,
       (Some(a), Some(b)) => {
         let res = a.cmp(b);
         if !res.is_eq() {
@@ -180,6 +171,8 @@ pub(crate) fn compare_entries(a: &ModuleGroup, b: &ModuleGroup) -> f64 {
       _ => unreachable!(),
     }
   }
+
+  a_key.cmp(b_key) as i32 as f64
 }
 
 fn total_size(sizes: &SplitChunkSizes) -> f64 {
