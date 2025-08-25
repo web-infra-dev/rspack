@@ -351,7 +351,7 @@ module.exports = {
 
 使用方法请参阅 [Resolver API 文档](/api/javascript-api/resolver#resolver-api)。
 
-### 稳定 lazy compilation
+### 稳定化 lazy compilation
 
 经过充分验证，[experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项已从实验性特性升级为稳定特性，并移动到了 Rspack 配置顶层：
 
@@ -382,33 +382,30 @@ Rspack 的 [experiments.topLevelAwait](/config/experiments#experimentstoplevelaw
 Rslint 是一个 TypeScript 优先的新一代 Linter，由 Go 编写，并基于 typescript-go 提供的类型检查能力。
 它起源于 [@auvred](https://github.com/auvred) 开发的 [tsgolint](https://github.com/typescript-eslint/tsgolint)，并在此基础上进行了扩展和优化。
 
-Rslint 目前支持如下功能
+Rslint 目前支持如下功能：
 
 - ESLint 风格的配置与指令：几乎无缝上手
-- IDE 支持：提供 VS Code 与 Cursor 插件
+- IDE 支持：提供 VS Code 插件，支持 Cursor、Trae 等 IDE
 - 自动修复：`rslint --fix` 一键修复代码问题
 - 规则支持：已实现 50+ 条 `@typescript-eslint` 规则
 - 测试验证：运行原始 `typescript-eslint` 测试套件，确保规则正确性
 
-Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支持。
-我们非常欢迎你来尝试，并给予宝贵的反馈，帮助我们一起打磨 Rslint！
+Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支持。欢迎大家尝试使用，并给予宝贵的反馈，帮助我们一起打磨 Rslint！
 
 ### Rsbuild 1.5
 
-#### 启用 Rspack 新特性
+开箱即用一直是 Rsbuild 的核心设计理念。在 Rsbuild 1.5 中，我们默认启用了多项 Rspack 的最新特性，带来更优秀的构建性能，包括：
 
-开箱即用一直是 Rsbuild 的核心设计理念。在 Rsbuild 1.5 中，我们默认启用了多项 Rspack 的最新特性，带来更优秀的开发体验和构建性能，包括：
+- 启用 [lazyCompilation](/config/lazy-compilation) 来按需编译动态导入的模块，这可以提升开发服务器的启动速度。
+- 启用 [lazyBarrel](/config/experiments#experimentslazybarrel) 来优化 barrel 文件的构建速度，减少不必要的模块解析。
+- 启用 [inlineEnum](/config/experiments#experimentsinlineenum) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
+- 启用 [typeReexportsPresence](/config/experiments#experimentsinlineenum) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
 
-- 启用 [lazyCompilation.imports](/config/lazy-compilation) 来按需编译动态导入的模块，这可以提升开发服务器的启动速度。
-- 启用 [experiments.lazyBarrel](/config/experiments#experimentslazybarrel) 来优化 barrel 文件的构建速度，减少不必要的模块解析。
-- 启用 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
-- 启用 [experiments.typeReexportsPresence](/config/experiments#experimentsinlineenum) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
+:::tip
+将 Rsbuild 升级至最新版本后，上述特性将默认启用，无需任何额外配置即可获得全新的开发体验。
+:::
 
-将 Rsbuild 升级至最新版本后，上述特性将默认启用，无需任何额外配置即可获得更好的开发体验。
-
-#### ESM 支持
-
-Rsbuild 1.5 新增了 [output.module](https://rsbuild.rs/zh/config/output/module) 选项，用于输出 ES modules 格式的构建产物。
+Rsbuild 1.5 还新增了 [output.module](https://rsbuild.rs/zh/config/output/module) 选项，用于输出 ES modules 格式的构建产物。
 
 目前该选项针对 Node.js bundles 提供了 ESM 格式支持，未来我们将继续增加对 web 应用 ESM 格式的支持。
 
@@ -423,15 +420,11 @@ export default {
 
 ### Rslib 0.12
 
-#### 使用 Rstest
-
-在 v0.12 版本中，我们在模板内添加了 Rstest 作为配套的测试框架，库开发者现在可以使用同一套 Rstack 工具链进行开发与测试。
+在 Rslib 0.12 版本中，我们在项目模板中集成了 Rstest 测试框架。如果需要，你可以使用 Rstest 来测试你的库项目，通过统一的 Rstack 工具链进行开发和测试。
 
 ![Using Rstest](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rslib-using-rstest.png)
 
-#### 新的 ESM 产物生成
-
-我们正在积极设计并开发全新的 ESM 产物生成方案，以解决现有 ESM 产物存在的相关问题。目前，绝大部分的 interop 行为与 webpack 保持一致，详见 [interop 测试](https://jserfeng.github.io/interop-test/by-test-case)。
+此外，我们正在积极设计并开发全新的 ESM 产物生成方案，旨在提供类似 esbuild 和 Rollup 的 ESM 产物质量，同时保持与 webpack 一致的 interop 行为以确保正确性。详见 [interop 测试](https://jserfeng.github.io/interop-test/by-test-case)。
 
 ### Rspress 2.0 beta
 

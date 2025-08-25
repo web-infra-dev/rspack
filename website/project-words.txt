@@ -10,8 +10,8 @@ antd
 antfu
 arad
 arewerspackyet
-ɑrespæk
 auvred
+ɑrespæk
 bazel
 behaviour
 behaviours
@@ -189,6 +189,7 @@ Terser
 tiktok
 tokio
 Towhk
+Trae
 tsgolint
 tuchg
 typeofs
