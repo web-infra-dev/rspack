@@ -64,7 +64,7 @@ export class BrowserRequirePlugin {
 			);
 
 			execute(cjs.code, { exports, module, require: browserRequire });
-			return exports.default || module.exports;
+			return exports.default ?? module.exports;
 		};
 	}
 }
