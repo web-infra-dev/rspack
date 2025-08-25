@@ -239,18 +239,18 @@ export { MyType } from './types.ts';
 
 另外 Rspack 正在探索对 TypeScript 一等公民的支持，预计在未来 Rspack v2.0 无需配置即可使用 TypeScript，提供更好的 TypeScript 开发体验。
 
-### 内置的虚拟模块插件
+### 内置虚拟模块插件
 
-在 Rspack 1.4 中，我们支持了[自定义的 InputFileSystem](https://rspack.rs/blog/announcing-1-4#custom-input-file-system)。
-自定义 InputFileSystem 在配合 Webpack Virtual Modules 插件使用时，如果虚拟模块数量较小时，该方案既兼顾了 Webpack 生态, 又保持了 Rspack 的高性能。但是在大量虚拟模块的场景下，性能劣化问题仍然存在。
+在 Rspack 1.4 中，我们引入了[自定义 InputFileSystem](/blog/announcing-1-4#custom-input-file-system) 功能，配合 `webpack-virtual-modules` 插件可以支持虚拟模块。然而，当虚拟模块数量较大时，该方式仍然存在性能瓶颈。
 
-为了解决大量虚拟文件的场景，我们新增内置的基于 Rust 的虚拟模块插件 [VirtualModulesPlugin](https://github.com/web-infra-dev/rspack/issues/10856)。插件将虚拟模块的存储转移到了 Rust 侧，大大降低了模块的读取和解析的开销，让虚拟文件功能在大量虚拟模块的场景下也能保持高性能。
-此外虚拟文件插件 VirtualModulesPlugin 和 Webpack Virtual Modules 插件保持相同的 API ，替换起来非常的方便。
+为了更好地支持虚拟模块，Rspack 1.5 新增了内置的 [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)，它基于 Rust 实现，将虚拟模块的存储和管理迁移到 Rust 层，有效减少了模块读取和解析的开销，在处理大量虚拟模块时能够保持更好的性能表现。
 
-```js
-// rspack.config.js
-const rspack = require('@rspack/core');
-module.exports = {
+`VirtualModulesPlugin` 与 `webpack-virtual-modules` 保持了一致的 API 设计，以便你可以轻松地迁移：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.experiments.VirtualModulesPlugin({
       'src/generated/config.js': 'export default { version: "1.0.0" };',
@@ -259,7 +259,7 @@ module.exports = {
 };
 ```
 
-感谢我们的社区伙伴 [@nilptr](https://github.com/nilptr) 的[贡献](https://github.com/web-infra-dev/rspack/pull/11021)。
+> 感谢我们的社区伙伴 [@nilptr](https://github.com/nilptr) 的[贡献](https://github.com/web-infra-dev/rspack/pull/11021)。
 
 ### Module Federation 运行时提升
 
