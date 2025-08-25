@@ -24,6 +24,8 @@ Rspack 1.5 已经正式发布！
   - [增强 TypeScript 支持](#增强-typescript-支持)
   - [内置虚拟模块插件](#内置虚拟模块插件)
   - [Module Federation 运行时提升](#module-federation-运行时提升)
+  - [安装体积优化](#安装体积优化)
+  - [Seal 阶段性能提升](#seal-阶段性能提升)
 - 其他
   - [停止支持 Node.js 16](#停止支持-nodejs-16)
   - [Resolver JavaScript API](#resolver-javascript-api)
@@ -279,9 +281,7 @@ export default {
 | Multiple Entries + runtimeChunk: true     |  210kb | 150kb |       29% |
 | Multiple Entries + runtimeChunk: 'single' |  210kb |  70kb |       67% |
 
-## 性能优化
-
-### 二进制产物尺寸优化
+### 安装体积优化
 
 自 1.4 以来，我们做了一系列的优化来降低 Rspack 的安装体积，其中最重要的便是优化 Rspack node binding 的文件尺寸。
 
