@@ -8,7 +8,6 @@ import {
 
 import type { Compilation } from "../../Compilation";
 import type { Compiler } from "../../Compiler";
-import { nonWebpackRequire } from "../../util/require";
 import { create } from "../base";
 import {
 	cleanPluginHooks,
@@ -137,9 +136,11 @@ const HtmlRspackPluginImpl = create(
 						);
 					}
 					try {
-						const renderer = (await nonWebpackRequire()(templateFilePath)) as (
-							data: Record<string, unknown>
-						) => Promise<string> | string;
+						const renderer = (
+							IS_BROWSER
+								? this.__internal_browser_require(templateFilePath)
+								: require(templateFilePath)
+						) as (data: Record<string, unknown>) => Promise<string> | string;
 						if (c.templateParameters === false) {
 							return await renderer({});
 						}
