@@ -134,20 +134,19 @@ rspack({}, (err, stats) => {
 
 ### 使用 Rust 扩展 Rspack
 
-现在你可以直接使用 Rust 来扩展 Rspack 了！在官方提供的模板中，开发者能够轻松编写自定义的 Rust Plugin 和 Rust Loader。
+现在你可以直接使用 Rust 来扩展 Rspack 了！通过我们提供的仓库模板，你能够编写自定义的 Rust plugin 和 Rust loader，并替换 Rspack 默认的原生 binding。
 
-传统的 JavaScript 插件需要在 Rust 和 JavaScript 之间进行数据传递和类型转换，这会带来一定的性能开销。而使用 Custom Binding，你的自定义代码将直接与 Rspack Rust Core 集成，消除了跨语言通信的性能瓶颈，同时支持所有 Rspack JavaScript API。
+在 JavaScript 插件中，Rust 和 JavaScript 之间的数据传递和类型转换会产生一定的性能开销。通过定制 Rspack 的 binding，你的自定义代码将直接与 Rspack Rust Core 集成，消除了跨语言通信的开销，同时保持对所有 Rspack JavaScript API 的支持。
 
-特别适用于替换频繁与 Rust 通信的 Hooks（如 `compilation.hooks.processAssets`）和需要大量计算的自定义 Loader，能够显著提升这些场景下的构建性能。
+这种方式适用于替换频繁与 Rust 通信的 Hooks（如 `compilation.hooks.processAssets`），以及计算密集型的自定义 loader，在这些场景下可以获得更好的构建性能。
 
-主要优势：
+主要特性：
 
 - **原生性能** —— Rust 编写的扩展享受与 Rspack Rust Core 相同的原生性能。
 - **完全兼容** —— 保留所有现有的 JavaScript API，无需修改现有项目。
-- **开发便捷** —— 官方模板提供完整的开发环境和发布流程。
-- **生产就绪** —— 内置 NPM provenance 支持，确保供应链安全。
+- **开发便捷** —— 官方模板提供了完整的开发环境和发布流程。
 
-使用[官方模板](https://github.com/rspack-contrib/rspack-binding-template)快速开始，了解更多请查看[设计理念](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html)。
+你可以使用 [官方模板](https://github.com/rspack-contrib/rspack-binding-template) 快速开始，更多信息请参考 [设计理念](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html)。需要注意的是，使用此方案会带来额外的维护成本，建议仅在需要极致性能优化时使用。
 
 ### 常量内联
 
