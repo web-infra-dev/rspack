@@ -296,6 +296,37 @@ impl EsmLibraryPlugin {
     final_source.add(decl_source);
     final_source.add(render_source);
 
+    // if the entry is wrapped, we should start from entry
+    // and export specifiers in entry
+    for entry_module in compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey) {
+      if matches!(
+        concatenated_modules_map
+          .get(&entry_module)
+          .expect("should have module info"),
+        ModuleInfo::External(_)
+      ) {
+        let required_info = chunk_link
+          .required
+          .get(&entry_module)
+          .expect("should have require info");
+        final_source.add(RawStringSource::from(format!(
+          "{}{}({});\n",
+          if let Some(symbol) = required_info.required_symbol.as_ref() {
+            Cow::Owned(format!("var {symbol} = "))
+          } else {
+            Cow::Borrowed("")
+          },
+          RuntimeGlobals::REQUIRE,
+          serde_json::to_string(
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, entry_module)
+              .expect("should set module id")
+              .as_str()
+          )
+          .expect("should serialize module id to string")
+        )));
+      }
+    }
+
     let mut already_export_default = false;
     for (id, exports) in &chunk_link.exports {
       let info = concatenated_modules_map.get(id).expect("should have info");
@@ -312,6 +343,7 @@ impl EsmLibraryPlugin {
             } else {
               raw_symbol.as_str()
             };
+
             if is_default && !already_export_default {
               export_specifiers.insert(Cow::Owned(format!("{symbol} as default")));
               already_export_default = true;
@@ -322,9 +354,8 @@ impl EsmLibraryPlugin {
         }
         ModuleInfo::External(_info) => {
           // export from external module
-          // const ns = __webpack_require__('module')
-          // export { ns.foo as foo }
-          // for export in exports {}
+          // no need to render, the caller
+          // will get exports by __webpack_require__
         }
       }
     }
@@ -338,27 +369,6 @@ impl EsmLibraryPlugin {
           .collect::<Vec<_>>()
           .join(", ")
       )));
-    }
-
-    // if the entry is wrapped, we should start from entry
-    for entry_module in compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey) {
-      if matches!(
-        concatenated_modules_map
-          .get(&entry_module)
-          .expect("should have module info"),
-        ModuleInfo::External(_)
-      ) {
-        final_source.add(RawStringSource::from(format!(
-          "{}({});\n",
-          RuntimeGlobals::REQUIRE,
-          serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids_artifact, entry_module)
-              .expect("should set module id")
-              .as_str()
-          )
-          .expect("should serialize module id to string")
-        )));
-      }
     }
 
     // render init fragments
@@ -566,6 +576,10 @@ impl EsmLibraryPlugin {
           )
           .expect("module id to string should success")
         )));
+      }
+
+      for s in &interop_info.sources {
+        source.add(RawStringSource::from(s.to_string()));
       }
     }
 

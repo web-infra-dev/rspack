@@ -115,7 +115,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     } else if module_graph
       .get_incoming_connections(module_identifier)
       .filter_map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
-      .any(|dep| !is_esm_dep_like(dep) && !matches!(dep.dependency_type(), DependencyType::Entry))
+      .any(|dep| {
+        !is_esm_dep_like(dep)
+          && !matches!(
+            dep.dependency_type(),
+            DependencyType::Entry | DependencyType::DynamicImport
+          )
+      })
     {
       logger.debug(format!(
         "module {module_identifier} is referenced by non esm dependency"

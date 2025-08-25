@@ -83,6 +83,7 @@ pub struct ExternalInterop {
   pub default_access: Option<Atom>,
   pub namespace_object: Option<Atom>,
   pub namespace_object2: Option<Atom>,
+  pub sources: FxIndexSet<String>,
 }
 
 impl ExternalInterop {
@@ -161,6 +162,10 @@ impl ExternalInterop {
       new_name.clone()
     }
   }
+
+  pub fn add_source(&mut self, source: String) {
+    self.sources.insert(source);
+  }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -168,6 +173,7 @@ pub struct ChunkLinkContext {
   // specifier order doesn't matter, we can sort them based on name
   pub exports: IdentifierMap<HashSet<Atom>>,
 
+  // exports that can be rendered directly
   pub static_exports: FxIndexSet<Atom>,
 
   // import order matters, it affects execution order
@@ -176,18 +182,27 @@ pub struct ChunkLinkContext {
   // const symbol = __webpack_require__(module_id)
   pub required: IdentifierIndexMap<ExternalInterop>,
 
+  // which module needs namespace objects
   pub needed_namespace_objects: IdentifierIndexSet,
+
   pub namespace_object_sources: IdentifierMap<String>,
 
+  // modules that can be scope hoisted
   pub hoisted_modules: IdentifierIndexSet,
+
+  // modules that needs wrapper
   pub decl_modules: IdentifierIndexSet,
 
+  // modules that needs wrapper
   pub refs: HashMap<String, Ref>,
 
-  // Map <module, (is_module_in_chunk, symbol_binding)>
+  // Map::<module, (is_module_in_chunk, symbol_binding)>
   pub dyn_refs: HashMap<String, (bool, Ref)>,
 
+  // all used symbols in current chunk
   pub used_names: HashSet<Atom>,
+
+  pub banner: String,
 }
 
 #[derive(Debug, Clone, Default)]

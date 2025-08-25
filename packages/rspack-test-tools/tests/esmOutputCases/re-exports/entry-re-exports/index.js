@@ -1,6 +1,5 @@
 export * from './foo'
 
-
 it('should have correct output for entry re-exports', () => {
 	const fs = __non_webpack_require__('fs')
 	const path = __non_webpack_require__('path')

@@ -1,7 +1,9 @@
 use std::{borrow::Cow, collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_collections::{
+  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
+};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkInitFragments, ChunkLinkContext, ChunkUkey,
   Compilation, ConcatenatedModuleIdent, ExportProvided, ExportsInfoGetter, ExportsType,
@@ -644,18 +646,15 @@ impl EsmLibraryPlugin {
     Ok(())
   }
 
-  fn add_require(
+  pub(crate) fn add_require<'a>(
     m: ModuleIdentifier,
     symbol: &Atom,
     all_used_names: &mut FxHashSet<Atom>,
-    required: &mut IdentifierIndexMap<ExternalInterop>,
-  ) -> Atom {
-    let require_info: &mut ExternalInterop =
-      required.get_mut(&m).expect("should have external_info");
+    required: &'a mut IdentifierIndexMap<ExternalInterop>,
+  ) -> &'a mut ExternalInterop {
+    let require_info: &mut ExternalInterop = required.entry(m).or_default();
 
-    if let Some(ref name) = require_info.required_symbol {
-      name.clone()
-    } else {
+    if require_info.required_symbol.is_none() {
       let new_name = if all_used_names.contains(symbol) {
         let new_name = find_new_name(symbol, all_used_names, &vec![]);
         all_used_names.insert(new_name.clone());
@@ -666,7 +665,143 @@ impl EsmLibraryPlugin {
       };
 
       require_info.required_symbol = Some(new_name.clone());
-      new_name
+    }
+
+    require_info
+  }
+
+  // export * from 'cjs'
+  // export * as n from 'cjs'
+  // export * from 'esm'
+  // export * as n from 'esm'
+  fn get_star_export(
+    current: ModuleIdentifier,
+    concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
+    required: &mut IdentifierIndexMap<ExternalInterop>,
+    chunk_link: &mut ChunkLinkContext,
+    module_graph: &ModuleGraph,
+    calculated: &mut IdentifierSet,
+  ) {
+    if !calculated.insert(current) {
+      return;
+    }
+
+    let info = concate_modules_map.get(&current).expect("should have info");
+
+    if let Some(info) = info.try_as_concatenated() {
+      for (ref_module, mode) in &info.star_exports {
+        match mode {
+          rspack_core::ExportMode::Missing
+          | rspack_core::ExportMode::LazyMake
+          | rspack_core::ExportMode::Unused(_)
+          | rspack_core::ExportMode::EmptyStar(_)
+          | rspack_core::ExportMode::ReexportDynamicDefault(_)
+          | rspack_core::ExportMode::DynamicReexport(_)
+          | rspack_core::ExportMode::ReexportUndefined(_) => {
+            // ignore empty or dynamic star re-export
+          }
+
+          rspack_core::ExportMode::ReexportNamedDefault(mode) => {
+            dbg!(&mode.name);
+          }
+          rspack_core::ExportMode::ReexportNamespaceObject(mode) => {
+            dbg!(&mode.name);
+          }
+          rspack_core::ExportMode::ReexportFakeNamespaceObject(mode) => {
+            let ref_info = concate_modules_map
+              .get(ref_module)
+              .expect("should have info")
+              .as_external();
+            let required_interop = Self::add_require(
+              *ref_module,
+              ref_info.name.as_ref().expect("should have name"),
+              &mut chunk_link.used_names,
+              required,
+            );
+
+            let namespace_name = required_interop.namespace(&mut chunk_link.used_names);
+            chunk_link
+              .static_exports
+              .insert(format!("{namespace_name} as {}", mode.name).into());
+          }
+          rspack_core::ExportMode::NormalReexport(mode) => {
+            for item in &mode.items {
+              if item.hidden {
+                continue;
+              }
+
+              let export_info = item.export_info.as_data(&module_graph);
+
+              // if item is from other module
+              let ref_info = if let Some(target) = export_info.get_max_target().values().next() {
+                let Some(dep) = target.dependency else {
+                  continue;
+                };
+
+                let Some(module) = module_graph.module_identifier_by_dependency_id(&dep) else {
+                  continue;
+                };
+
+                concate_modules_map.get(module).expect("should have info")
+              } else {
+                concate_modules_map
+                  .get(ref_module)
+                  .expect("should have info")
+              };
+
+              Self::get_star_export(
+                ref_info.id(),
+                concate_modules_map,
+                required,
+                chunk_link,
+                module_graph,
+                calculated,
+              );
+
+              match ref_info {
+                ModuleInfo::External(ref_info) => {
+                  let interop_info = Self::add_require(
+                    ref_info.module,
+                    ref_info.name.as_ref().expect("should have name"),
+                    &mut chunk_link.used_names,
+                    required,
+                  );
+
+                  let variable_to_export =
+                    find_new_name(&item.name, &chunk_link.used_names, &vec![]);
+                  chunk_link.used_names.insert(variable_to_export.clone());
+                  interop_info.add_source(format!(
+                    "var {} = {}.{};\n",
+                    variable_to_export.clone(),
+                    interop_info
+                      .required_symbol
+                      .as_ref()
+                      .expect("should have symbol"),
+                    item.name
+                  ));
+
+                  chunk_link
+                    .static_exports
+                    .insert(format!("{variable_to_export} as {}", item.name).into());
+                }
+                ModuleInfo::Concatenated(ref_info) => {
+                  let Some(internal_name) = ref_info.internal_names.get(&item.name) else {
+                    continue;
+                  };
+
+                  chunk_link
+                    .static_exports
+                    .insert(if internal_name == &item.name {
+                      format!("{}", item.name).into()
+                    } else {
+                      format!("{} as {}", internal_name, item.name).into()
+                    });
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -692,6 +827,8 @@ impl EsmLibraryPlugin {
         continue;
       };
 
+      let required = required.entry(entry_chunk_ukey).or_default();
+
       for entry_module in compilation
         .chunk_graph
         .get_chunk_entry_modules(&entry_chunk_ukey)
@@ -699,45 +836,67 @@ impl EsmLibraryPlugin {
         let info = concate_modules_map
           .get(&entry_module)
           .expect("should have module info");
-        let Some(info) = info.try_as_concatenated() else {
-          continue;
-        };
 
-        if let Some(export_map) = info.export_map.as_ref() {
-          for export_atom in export_map.keys() {
-            let internal_name = info
-              .get_internal_name(export_atom)
-              .expect("should have internal name for exported item");
+        match info {
+          ModuleInfo::Concatenated(info) => {
+            if let Some(export_map) = info.export_map.as_ref() {
+              for export_atom in export_map.keys() {
+                let internal_name = info
+                  .get_internal_name(export_atom)
+                  .expect("should have internal name for exported item");
 
-            chunk_link
-              .exports
-              .entry(entry_module)
-              .or_default()
-              .insert(internal_name.clone());
-          }
-        }
-
-        for (exported_module, _mode) in &info.star_exports {
-          let exports_info = module_graph
-            .get_exports_info(exported_module)
-            .as_data(&module_graph);
-
-          for export in exports_info.exports().values() {
-            if matches!(export.global_used(), Some(UsageState::Unused)) {
-              continue;
+                chunk_link
+                  .static_exports
+                  .insert(if internal_name == export_atom {
+                    internal_name.clone()
+                  } else {
+                    format!("{} as {}", internal_name, export_atom).into()
+                  });
+              }
             }
 
-            if let Some(name) = export.name() {
+            Self::get_star_export(
+              entry_module,
+              &concate_modules_map,
+              required,
+              chunk_link,
+              &module_graph,
+              &mut Default::default(),
+            );
+          }
+          ModuleInfo::External(info) => {
+            // entry is wrapped
+            // should be rendered as
+            //
+            // ```js
+            // var entry_exports = __webpack_require__('entry')
+            // var __export_v = entry_exports.v
+            // export { __export_v as export_symbol }
+            // ```
+            let exports_info = module_graph
+              .get_exports_info(&entry_module)
+              .as_data(&module_graph);
+            let required_interop = Self::add_require(
+              entry_module,
+              info.name.as_ref().expect("should have name"),
+              &mut chunk_link.used_names,
+              required,
+            );
+            for (name, export_info) in exports_info.exports() {
+              if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
+                continue;
+              }
+
+              let new_name = find_new_name(&name, &chunk_link.used_names, &vec![]);
+              chunk_link.used_names.insert(new_name.clone());
+              let required_symbol = required_interop
+                .required_symbol
+                .as_ref()
+                .expect("should have required symbol");
+              required_interop.add_source(format!("var {new_name} = {required_symbol}.{name};\n"));
               chunk_link
-                .exports
-                .entry(*exported_module)
-                .or_default()
-                .insert(
-                  info
-                    .get_internal_name(name)
-                    .expect("should have internal name")
-                    .clone(),
-                );
+                .static_exports
+                .insert(format!("{new_name} as {name}").into());
             }
           }
         }
@@ -791,6 +950,7 @@ impl EsmLibraryPlugin {
                 default_access: None,
                 namespace_object: None,
                 namespace_object2: None,
+                sources: Default::default(),
               });
           }
         }
@@ -994,7 +1154,10 @@ impl EsmLibraryPlugin {
                   &symbol_ref.symbol,
                   all_used_names,
                   required,
-                );
+                )
+                .required_symbol
+                .clone()
+                .expect("should have symbol");
 
                 Cow::Owned(required_symbol)
               }
@@ -1204,7 +1367,10 @@ impl EsmLibraryPlugin {
               info.name.as_ref().expect("should have symbol"),
               all_used_names,
               required,
-            ),
+            )
+            .required_symbol
+            .clone()
+            .expect("should have name"),
             export_name.clone(),
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
           ));
@@ -1387,7 +1553,10 @@ impl EsmLibraryPlugin {
                 info.name.as_ref().expect("should have symbol"),
                 all_used_names,
                 required,
-              ),
+              )
+              .required_symbol
+              .clone()
+              .expect("should have symbol"),
               used_name,
               Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
             )),
