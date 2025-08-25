@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = [
-	[/`webpackExports` could not be used with destructuring assignment./]
+	/You don't need `webpackExports` if the usage of dynamic import is statically analyse-able/
 ];
