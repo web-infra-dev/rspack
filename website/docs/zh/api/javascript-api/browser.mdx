@@ -1,0 +1,157 @@
+# Browser API
+
+`@rspack/browser` 是专为浏览器环境打造的 Rspack 版本，无需依赖 WebContainers 或特定平台。其 API 与 `@rspack/core` 的 [JavaScript API](/api/javascript-api/) 保持一致，并在此基础上，额外提供了适配浏览器环境的特性和接口。
+
+我们将持续完善在线打包相关能力，欢迎前往 [Rspack Playground](https://playground.rspack.rs/) 体验。
+
+:::warning
+目前 `@rspack/browser` 仍处于实验阶段，后续可能会有不兼容的变更。
+:::
+
+## 基本示例
+
+以下示例展示了 `@rspack/browser` 的基本用法。除了需要使用额外的 API 读写项目文件和产物外，其他 API 与 `@rspack/core` 的 [JavaScript API](/api/javascript-api/) 保持一致。
+
+```typescript
+import { rspack, builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // Get output from memfs after bundling
+  const files = builtinMemFs.volume.toJSON();
+});
+```
+
+## 内存文件系统
+
+由于浏览器无法直接访问本地文件系统，`@rspack/browser` 提供了基于 [memfs](https://www.npmjs.com/package/memfs) 的内存文件系统对象 `builtinMemFs`，用于在浏览器环境下读写文件。`@rspack/core` 的 Node.js 和 Rust 层对文件系统的读写均会重定向到该内存文件系统，包括项目配置、源代码、`node_modules` 依赖及产物。
+
+以下是基本用法示例，完整 API 可参考 [memfs 文档](https://github.com/streamich/memfs)：
+
+```typescript
+import { builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+// Read files from memfs
+const files = builtinMemFs.volume.toJSON();
+```
+
+## 浏览器专用插件
+
+为更好地满足浏览器环境下的打包需求，`@rspack/browser` 提供了若干专用插件。
+
+### BrowserHttpImportEsmPlugin
+
+在本地开发环境中，开发者通常通过包管理器将所有依赖下载并存储于项目根目录的 `node_modules` 文件夹。而由于 `@rspack/browser` 的 API 与 `@rspack/core` 保持一致，你也可以将依赖写入内存文件系统的 `node_modules` 文件夹。但如果项目依赖的模块不确定（如允许用户自由选择第三方依赖），预先写入所有依赖就不现实了。
+
+```typescript
+import { builtinMemFs } from '@rspack/browser';
+
+builtinMemFs.volume.fromJSON({
+  '/node_modules/react/index.js': '...',
+});
+```
+
+为此，`@rspack/browser` 提供了 `BrowserHttpImportEsmPlugin` 插件。该插件在解析模块时，会将第三方依赖的模块名重写为 ESM CDN 的 URL。例如，`import React from "react"` 会被重写为 `import React from "https://esm.sh/react"`。结合 Rspack 的 [buildHttp](/config/experiments#experimentsbuildhttp) 功能，即可在打包时通过 HTTP(S) 动态加载依赖。
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  plugins: [new BrowserHttpImportEsmPlugin()],
+  experiments: {
+    buildHttp: {
+      allowedUris: ['https://'],
+    },
+  },
+};
+```
+
+如下所示，`BrowserHttpImportEsmPlugin` 支持通过选项指定 ESM CDN 的域名，或者指定某些依赖的特定版本或 URL。
+
+```typescript
+interface BrowserHttpImportPluginOptions {
+  /**
+   * ESM CDN 域名
+   * @default "https://esm.sh"
+   */
+  domain?: string | ((request: string, packageName: string) => string);
+  /**
+   * 为特定的依赖指定 URL
+   */
+  dependencyUrl?:
+    | Record<string, string | undefined>
+    | ((packageName: string) => string | undefined);
+  /**
+   * 为依赖指定版本。
+   * 如果未指定，默认为 "latest"。
+   */
+  dependencyVersions?: Record<string, string | undefined>;
+}
+```
+
+### BrowserRequirePlugin
+
+在 Rspack/Webpack 中，某些场景需要动态加载和执行 JavaScript 代码，如 [Loader](/guide/features/loader) 或 [HtmlRspackPlugin 的模板函数](https://rspack.rs/plugins/rspack/html-rspack-plugin#use-template-function)。这些代码可能由不可信用户创建和分发，直接在浏览器执行存在安全隐患，因此 `@rspack/browser` 默认会在这些场景下抛出错误。
+
+`BrowserRequirePlugin` 插件则开放了此类能力：
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin } from '@rspack/browser';
+
+export default {
+  plugins: [
+    new BrowserRequirePlugin({ execute: BrowserRequirePlugin.unsafeExecute }),
+  ],
+};
+```
+
+你需要提供一个 `execute` 函数，用于动态执行和加载 CommonJS 模块，并修改 `runtime.module.exports`。`@rspack/browser` 提供了一个不安全的实现 `BrowserRequirePlugin.unsafeExecute`，其内部直接使用 `new Function` 执行代码。你也可以根据实际需求，基于该 API 封装更安全的实现，例如：
+
+```typescript
+function safeExecute(code: string, runtime: CommonJsRuntime) {
+  const safeCode = sanitizeCode(code);
+  BrowserRequirePlugin.unsafeExecute(safeCode, runtime);
+}
+
+function uselessExecute(_code: string, runtime: CommonJsRuntime) {
+  runtime.module.exports.hello = 'rspack';
+}
+```
+
+`BrowserRequirePlugin` 的选项如下：
+
+```typescript
+/**
+ * 加载 CommonJS 模块的运行时上下文
+ */
+interface CommonJsRuntime {
+  module: any;
+  exports: any;
+  require: BrowserRequire;
+}
+
+interface BrowserRequirePluginOptions {
+  /**
+   * 执行动态代码的函数
+   */
+  execute: (code: string, runtime: CommonJsRuntime) => void;
+}
+```
+
+:::tip 如何选择是否使用此插件？
+如果你的项目无需动态加载和执行 JavaScript 代码，则无需使用此插件。
+
+若项目不会分发不可信代码，或即使分发也不会造成安全问题，可直接使用 `BrowserRequirePlugin.unsafeExecute`。例如 [Rspack Playground](https://playground.rspack.rs/) 就不涉及用户隐私或账户安全。
+:::
