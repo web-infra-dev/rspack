@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeySet};
+use rspack_collections::{IdentifierMap, IdentifierSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
   Compilation, ConcatenatedModuleInfo, ConcatenationScope, DEFAULT_EXPORT_ATOM, InitFragment,
@@ -199,6 +199,7 @@ impl EsmLibraryPlugin {
       render_source.add(RawStringSource::from(format!("{namespace}\n")));
     }
 
+    let mut already_rendered = IdentifierSet::default();
     for m in &chunk_link.hoisted_modules {
       let info = concatenated_modules_map.get(m).expect("should have info");
       let info = info.as_concatenated();
@@ -222,7 +223,12 @@ impl EsmLibraryPlugin {
         )));
       }
 
-      render_source.add(Self::render_external_required(*m, compilation, chunk_link));
+      render_source.add(Self::render_external_required(
+        *m,
+        compilation,
+        chunk_link,
+        &mut already_rendered,
+      ));
       render_source.add(source);
       render_source.add(RawSource::from_static("\n"));
     }
@@ -520,10 +526,14 @@ impl EsmLibraryPlugin {
     root: ModuleIdentifier,
     compilation: &Compilation,
     chunk_link: &ChunkLinkContext,
+    already_required: &mut IdentifierSet,
   ) -> ConcatSource {
     let mut source = ConcatSource::default();
 
     for (id, interop_info) in &chunk_link.required {
+      if !already_required.insert(*id) {
+        continue;
+      }
       if !interop_info.from_module.contains(&root) {
         continue;
       }
