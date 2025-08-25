@@ -1115,12 +1115,17 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   }
   if let Some(exports) = &options.context_options.referenced_exports {
     id += "|referencedExports: ";
-    id += "[";
-    for ids in exports {
-      id += &ids.iter().map(|x| format!(r#""{x}""#)).join(".");
-      id += ", ";
-    }
-    id += "]";
+    id += &format!(
+      "[{}]",
+      exports
+        .iter()
+        .map(|ids| if ids.is_empty() {
+          String::from("*")
+        } else {
+          ids.iter().join(".")
+        })
+        .join(", ")
+    );
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
