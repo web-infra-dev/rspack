@@ -324,7 +324,7 @@ impl JavascriptParserPlugin for APIPlugin {
       ($check: ident, $expr: ident, $name: literal) => {
         if expr_matcher::$check($expr) {
           let (warning, dep) = expression_not_supported(&parser.source_file, $name, $expr);
-          parser.warning_diagnostics.push(warning);
+          parser.warning_diagnostics.push(warning.into());
           parser.presentational_dependencies.push(dep);
           return Some(true);
         }
@@ -406,7 +406,7 @@ impl JavascriptParserPlugin for APIPlugin {
             $name,
             &Expr::Call(call_expr.to_owned()),
           );
-          parser.warning_diagnostics.push(warning);
+          parser.warning_diagnostics.push(warning.into());
           parser.presentational_dependencies.push(dep);
           return Some(true);
         }

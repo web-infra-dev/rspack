@@ -6,7 +6,6 @@ mod diagnostic_array;
 mod displayer;
 mod error;
 mod macros;
-mod traceable_error;
 
 pub use self::{
   batch_error::BatchErrors,
@@ -18,7 +17,6 @@ pub use self::{
   diagnostic_array::{IntoTWithDiagnosticArray, TWithDiagnosticArray},
   displayer::{Display, Renderer, StdioDisplayer, StringDisplayer},
   error::{Error, Label, Severity},
-  traceable_error::TraceableError,
 };
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

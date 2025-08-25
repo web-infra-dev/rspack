@@ -1,6 +1,6 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_error::{Result, miette::IntoDiagnostic};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_swc_js_minimizer::{
   ExtractComments, MinimizerOptions, OptionWrapper, PluginOptions,
 };
@@ -44,7 +44,7 @@ fn try_deserialize_into<T>(value: serde_json::Value) -> Result<T>
 where
   T: DeserializeOwned,
 {
-  serde_json::from_value(value).into_diagnostic()
+  serde_json::from_value(value).to_rspack_result()
 }
 
 fn into_extract_comments(c: Option<RawExtractComments>) -> Option<ExtractComments> {

@@ -99,7 +99,7 @@ impl DiskWatcher {
         if let Err(e) = watcher.unwatch(pattern)
           && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
         {
-          return Err(rspack_error::error!(e));
+          return Err(rspack_error::error!(e.to_string()));
         }
       }
     }
@@ -112,7 +112,7 @@ impl DiskWatcher {
       if let Some(watcher) = &mut self.inner {
         watcher
           .watch(&pattern.path, pattern.mode)
-          .map_err(|e| rspack_error::error!(e))?;
+          .map_err(|e| rspack_error::error!(e.to_string()))?;
       }
 
       self.watch_patterns.insert(pattern);

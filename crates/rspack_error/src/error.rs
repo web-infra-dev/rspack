@@ -44,6 +44,43 @@ impl Error {
       ..Default::default()
     }
   }
+
+  pub fn from_file(
+    file_src: String,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    Self::from_string(Some(file_src), start, end, title, message)
+  }
+
+  pub fn from_string(
+    src: Option<String>,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    let mut error = Error::error(format!("{title}: {message}"));
+    error.src = src;
+    error.labels = Some(vec![Label {
+      label: None,
+      offset: start,
+      len: end.saturating_sub(start),
+    }]);
+    error
+  }
+
+  pub fn from_error<T>(value: T) -> Self
+  where
+    T: std::error::Error,
+  {
+    let mut error = Error::error(value.to_string());
+    error.source_error = value.source().map(|e| Box::new(Error::from_error(e)));
+    error
+  }
+
   pub fn is_error(&self) -> bool {
     self.severity == Severity::Error
   }
@@ -131,22 +168,19 @@ impl MietteDiagnostic for Error {
   }
 }
 
-macro_rules! impl_from_error_by_to_string {
+macro_rules! impl_from_error {
   ($($t:ty),*) => {
     $(
       impl From<$t> for Error {
         fn from(value: $t) -> Error {
-          Error::error(value.to_string())
+          Error::from_error(value)
         }
       }
     ) *
   }
 }
 
-impl_from_error_by_to_string! {
-    &'_ str,
-    String,
-    anyhow::Error,
+impl_from_error! {
     std::fmt::Error,
     std::io::Error,
     std::string::FromUtf8Error
@@ -154,6 +188,14 @@ impl_from_error_by_to_string! {
 
 impl<T> From<std::sync::mpsc::SendError<T>> for Error {
   fn from(value: std::sync::mpsc::SendError<T>) -> Self {
-    Error::error(value.to_string())
+    Error::from_error(value)
+  }
+}
+
+impl From<anyhow::Error> for Error {
+  fn from(value: anyhow::Error) -> Self {
+    let mut error = Error::error(value.to_string());
+    error.source_error = value.source().map(|e| Box::new(Error::from_error(e)));
+    error
   }
 }

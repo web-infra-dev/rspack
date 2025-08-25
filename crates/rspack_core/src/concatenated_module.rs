@@ -17,9 +17,7 @@ use rspack_cacheable::{
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
-use rspack_error::{
-  Diagnosable, Diagnostic, Result, ToStringResultToRspackResultExt, TraceableError,
-};
+use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_javascript_compiler::ast::Ast;
@@ -2011,16 +2009,13 @@ impl ConcatenatedModule {
           let span: ErrorSpan = err.span().into();
 
           // return empty error as we already push error to compilation.diagnostics
-          return Err(
-            rspack_error::TraceableError::from_source_file(
-              &fm,
-              span.start as usize,
-              span.end as usize,
-              "JavaScript parse error:\n".to_string(),
-              err.kind().msg().to_string(),
-            )
-            .into(),
-          );
+          return Err(Error::from_string(
+            Some(fm.src.clone().into_string()),
+            span.start as usize,
+            span.end as usize,
+            "JavaScript parse error:\n".to_string(),
+            err.kind().msg().to_string(),
+          ));
         }
       };
       let mut ast = Ast::new(program, cm, Some(comments));
@@ -2642,12 +2637,9 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
 /// Mark boxed errors as [crate::diagnostics::ModuleParseError],
 /// then, map it to diagnostics
 pub fn map_box_diagnostics_to_module_parse_diagnostics(
-  errors: Vec<TraceableError>,
+  errors: Vec<Error>,
 ) -> Vec<rspack_error::Diagnostic> {
-  errors
-    .into_iter()
-    .map(|e| rspack_error::miette::Error::new(e).into())
-    .collect()
+  errors.into_iter().map(|e| e.into()).collect()
 }
 
 pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {

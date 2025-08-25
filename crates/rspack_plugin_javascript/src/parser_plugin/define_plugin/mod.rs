@@ -9,11 +9,7 @@ use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
 };
-use rspack_error::{
-  DiagnosticExt, Result,
-  miette::{self, Diagnostic as MietteDiagnostic},
-  thiserror::{self, Error},
-};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 use serde_json::Value;
@@ -23,10 +19,18 @@ use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
 const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
 
-#[derive(Debug, Error, MietteDiagnostic)]
-#[error("DefinePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
-#[diagnostic(severity(Warning))]
+#[derive(Debug)]
 struct ConflictingValuesError(String, String, String);
+
+impl ConflictingValuesError {
+  fn into_diagnostic(self) -> Diagnostic {
+    Error::warning(format!(
+      "DefinePlugin:\nConflicting values for '{}' ({} !== {})",
+      self.0, self.1, self.2
+    ))
+    .into()
+  }
+}
 
 pub type DefineValue = FxHashMap<String, Value>;
 
@@ -55,9 +59,7 @@ async fn compilation(
       && prev != value
     {
       compilation.push_diagnostic(
-        ConflictingValuesError(key.clone(), prev.clone(), value.clone())
-          .boxed()
-          .into(),
+        ConflictingValuesError(key.clone(), prev.clone(), value.clone()).into_diagnostic(),
       );
     } else {
       compilation

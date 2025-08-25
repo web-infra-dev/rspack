@@ -79,8 +79,8 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
   let message = error.message();
   let error = error.into_inner();
   let span: ErrorSpan = error.0.into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
-    fm,
+  let traceable_error = rspack_error::Error::from_string(
+    Some(fm.src.clone().into_string()),
     span.start as usize,
     span.end as usize,
     "HTML parse error".to_string(),

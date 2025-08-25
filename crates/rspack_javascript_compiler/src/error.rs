@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_cacheable::cacheable;
-use rspack_error::{BatchErrors, TraceableError, error};
+use rspack_error::{BatchErrors, Error, error};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
   SourceFile, SourceMap, Span, Spanned,
@@ -73,10 +73,10 @@ pub trait DedupEcmaErrors {
 pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
   fm: &SourceFile,
-) -> TraceableError {
+) -> Error {
   let span: ErrorSpan = span.into();
-  rspack_error::TraceableError::from_source_file(
-    fm,
+  Error::from_string(
+    Some(fm.src.clone().into_string()),
     span.start as usize,
     span.end as usize,
     "JavaScript parse error".into(),
@@ -86,7 +86,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
 
 // keep this private to make sure with_rspack_error_handler is safety
 struct RspackErrorEmitter {
-  tx: mpsc::Sender<rspack_error::Error>,
+  tx: mpsc::Sender<Error>,
   source_map: Arc<SourceMap>,
   title: String,
 }
@@ -101,8 +101,8 @@ impl Emitter for RspackErrorEmitter {
       self
         .tx
         .send(
-          TraceableError::from_source_file(
-            &source_file_and_byte_pos.sf,
+          Error::from_string(
+            Some(source_file_and_byte_pos.sf.src.clone().into_string()),
             source_file_and_byte_pos.pos.0 as usize,
             source_file_and_byte_pos.pos.0 as usize,
             self.title.to_string(),

@@ -21,9 +21,7 @@ use rspack_core::{
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
-use rspack_error::{
-  IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray, miette::Diagnostic,
-};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -159,7 +157,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       _ => css_module_lexer::Mode::Css,
     };
 
-    let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync + 'static>> = vec![];
+    let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut dependencies: Vec<Box<dyn Dependency>> = vec![];
     let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
     let mut code_generation_dependencies: Vec<BoxModuleDependency> = vec![];
@@ -452,12 +450,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
           warning.kind(),
           css_module_lexer::WarningKind::NotPrecededAtImport
         ) {
-          RspackSeverity::Error
+          Severity::Error
         } else {
-          RspackSeverity::Warn
+          Severity::Warning
         },
       );
-      diagnostics.push(Box::new(error));
+      diagnostics.push(error.into());
     }
 
     Ok(

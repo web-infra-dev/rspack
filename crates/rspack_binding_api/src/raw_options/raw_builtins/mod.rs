@@ -312,9 +312,7 @@ impl<'a> BuiltinPlugin<'a> {
           downcast_into::<RawBannerPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .try_into()
-            .map_err(|report: rspack_error::miette::Error| {
-              napi::Error::from_reason(report.to_string())
-            })?,
+            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
         )
         .boxed();
         plugins.push(plugin);
@@ -634,9 +632,7 @@ impl<'a> BuiltinPlugin<'a> {
           downcast_into::<RawSwcJsMinimizerRspackPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .try_into()
-            .map_err(|report: rspack_error::miette::Error| {
-              napi::Error::from_reason(report.to_string())
-            })?,
+            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
         )
         .boxed();
         plugins.push(plugin);
@@ -646,9 +642,7 @@ impl<'a> BuiltinPlugin<'a> {
           downcast_into::<RawLightningCssMinimizerRspackPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .try_into()
-            .map_err(|report: rspack_error::miette::Error| {
-              napi::Error::from_reason(report.to_string())
-            })?,
+            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
         )
         .boxed(),
       ),
@@ -735,9 +729,7 @@ impl<'a> BuiltinPlugin<'a> {
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options
           .try_into()
-          .map_err(|report: rspack_error::miette::Error| {
-            napi::Error::from_reason(report.to_string())
-          })?;
+          .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ContextReplacementPlugin::new(options).boxed());
       }
       BuiltinPluginName::DllEntryPlugin => {

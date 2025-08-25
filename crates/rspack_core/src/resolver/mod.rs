@@ -9,7 +9,7 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_error::{Error, MietteExt};
+use rspack_error::Error;
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -348,8 +348,11 @@ pub async fn resolve(
   if result.is_err()
     && let Some(hint) = resolve_for_error_hints(args, plugin_driver, resolver.inner_fs()).await
   {
-    result = result.map_err(|err| err.with_help(hint))
+    result = result.map_err(|mut err| {
+      err.help = Some(hint);
+      err
+    })
   };
 
-  result.map_err(Error::new_boxed)
+  result
 }
