@@ -105,6 +105,10 @@ interface BrowserHttpImportPluginOptions {
 
 在 Rspack/Webpack 中，某些场景需要动态加载和执行 JavaScript 代码，如 [Loader](/guide/features/loader) 或 [HtmlRspackPlugin 的模板函数](https://rspack.rs/plugins/rspack/html-rspack-plugin#use-template-function)。这些代码可能由不可信用户创建和分发，直接在浏览器执行存在安全隐患，因此 `@rspack/browser` 默认会在这些场景下抛出错误。
 
+:::warning
+Rspack 在打包过程中不会执行项目的业务代码。对于最终的打包产物，你应该在 iframe 中运行它们。
+:::
+
 `BrowserRequirePlugin` 插件开放了此类能力：
 
 ```js title="rspack.config.mjs"
