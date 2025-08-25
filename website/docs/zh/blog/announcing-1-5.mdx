@@ -17,12 +17,12 @@ Rspack 1.5 已经正式发布！
 
 - 新功能
   - [Barrel 文件优化](#barrel-文件优化)
+  - [更快的文件系统监听器](#更快的文件系统监听器)
   - [@rspack/browser 发布](#rspackbrowser-发布)
   - [使用 Rust 扩展 Rspack](#使用-rust-扩展-rspack)
   - [常量内联](#常量内联)
   - [增强 TypeScript 支持](#增强-typescript-支持)
   - [增强 lazy compilation](#增强-lazy-compilation)
-  - [内置文件系统监听器](#内置文件系统监听器)
   - [内置虚拟模块插件](#内置虚拟模块插件)
   - [Module Federation 运行时提升](#module-federation-运行时提升)
 - 其他
@@ -80,6 +80,29 @@ export default {
 | 模块构建次数     | 38,046 次  | 29,405 次  | -23%     |
 
 我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中对所有项目默认启用该功能。更多可参考 [`experiments.lazyBarrel` 文档](/config/experiments#experimentslazybarrel)。
+
+### 更快的文件系统监听器
+
+此前，Rspack 使用文件系统监听器 [watchpack](https://github.com/webpack/watchpack) 来监听文件变化。在实际使用中，我们发现 `watchpack` 存在性能瓶颈。例如，每次文件变更都会重新创建实例，在大型项目中会消耗大量 CPU 和内存资源（参见 [#7490](https://github.com/web-infra-dev/rspack/issues/7490)）。
+
+为解决这一问题，我们基于 Rust 重新设计和实现了原生的文件系统监听器，新的实现具有以下优势：
+
+- **高性能**：HMR 速度提升至多 50%
+- **增量更新**：只处理实际发生变化的文件
+- **持久化运行**：在整个开发过程中持续工作，无需反复重建
+
+你可以通过配置 [experiments.nativeWatcher](/config/experiments#experimentsnativewatcher) 来尝试新版 watcher：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    nativeWatcher: true,
+  },
+  watchOptions: {
+    // Other watch options...
+  },
+};
+```
 
 ### @rspack/browser 发布
 
@@ -218,31 +241,6 @@ export { MyType } from './types.ts';
 
 另外 Rspack 正在探索对 TypeScript 一等公民的支持，预计在未来 Rspack v2.0 无需配置即可使用 TypeScript，提供更好的 TypeScript 开发体验。
 
-### 内置文件系统监听器
-
-在过去，Rspack 使用 [watchpack](https://www.npmjs.com/package/watchpack) 进行文件监听。
-在实践过程中，我们发现了一些问题。 Watchpack 在每次文件变更后会重新创建一个 Watchpack 实例， 并接受全量的文件监听列表，运行一次完整的流程。
-当文件监听列表的数量庞大时，这将占用用户较大比例的 CPU 和内存资源， 例如：[#7490](https://github.com/web-infra-dev/rspack/issues/7490)。
-
-为此，我们设计并实现了基于 Rust 的内置文件系统监听器。
-这个监听器在整个 watch 周期内留存，每次 rebuild 时仅对已变更的文件进行增量更新，且仅监听必要的目录。
-每次重新构建（rebuild）后，监听流程更新可达到毫秒级，在 10000 模块级别的大型项目中，热监听耗时将降低 **52.8%**。
-
-使用配置 `experiments.nativeWatcher` 开启内置文件系统监听器。
-
-```js
-export default {
-  watchOptions: {
-    // Other watch options...
-  },
-  experiments: {
-    nativeWatcher: true,
-  },
-};
-```
-
-更多参考 [`experiments.nativeWatcher`](/config/experiments#experimentsnativewatcher) 文档。
-
 ### 内置的虚拟模块插件
 
 在 Rspack 1.4 中，我们支持了[自定义的 InputFileSystem](https://rspack.rs/blog/announcing-1-4#custom-input-file-system)。
@@ -376,9 +374,7 @@ export default {
 
 ### 废弃 experiments.topLevelAwait
 
-[experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) 用于控制对 top level await 的支持，一直以来都是默认开启的。经过观察，我们发现没有实际场景需要关闭 top level await 支持，因此我们决定废弃这个选项，并计划在 Rspack 2.0 中移除它，届时将无法禁用 top level await 功能。
-
-在当前版本中，如果你手动将 `experiments.topLevelAwait` 设置为 `false`，Rspack 会显示废弃警告。
+Rspack 的 [experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) 选项用于控制对 top level await 的支持，一直以来都是默认开启的。经过观察，我们发现没有实际场景需要关闭 top level await 支持，因此我们决定废弃这个选项，并计划在 Rspack 2.0 中移除它，届时将无法禁用 top level await 支持。
 
 ## Rstack 进展
 
