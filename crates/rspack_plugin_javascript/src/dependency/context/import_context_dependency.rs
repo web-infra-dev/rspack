@@ -15,7 +15,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
   id: DependencyId,
-  options: ContextOptions,
+  pub options: ContextOptions,
   range: DependencyRange,
   value_range: DependencyRange,
   resource_identifier: String,
