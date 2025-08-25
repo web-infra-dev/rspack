@@ -7,5 +7,6 @@
   "logger",
   "cache",
   "swc",
-  "resolver"
+  "resolver",
+  "browser"
 ]
