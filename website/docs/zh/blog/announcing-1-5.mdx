@@ -376,7 +376,7 @@ Rspack 的 [experiments.topLevelAwait](/config/experiments#experimentstoplevelaw
 
 ### Rslint 发布
 
-![rslint-logo](https://assets.rspack.rs/rslint/rslint-logo-256x256.png)
+![rslint-banner](https://assets.rspack.rs/rslint/rslint-banner.png)
 
 我们很高兴地宣布 [Rslint](https://rslint.rs/) 的发布！
 Rslint 是一个 TypeScript 优先的新一代 Linter，由 Go 编写，并基于 typescript-go 提供的类型检查能力。
@@ -401,9 +401,7 @@ Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支�
 - 启用 [inlineEnum](/config/experiments#experimentsinlineenum) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
 - 启用 [typeReexportsPresence](/config/experiments#experimentsinlineenum) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
 
-:::tip
-将 Rsbuild 升级至最新版本后，上述特性将默认启用，无需任何额外配置即可获得全新的开发体验。
-:::
+> 将 Rsbuild 升级至最新版本后，上述特性将默认启用，无需任何额外配置。
 
 Rsbuild 1.5 还新增了 [output.module](https://rsbuild.rs/zh/config/output/module) 选项，用于输出 ES modules 格式的构建产物。
 
@@ -428,13 +426,13 @@ export default {
 
 ### Rspress 2.0 beta
 
-#### @rspress/plugin-llms 支持 UI 展示
+Rspress 2.0 目前处于 beta 阶段，开发工作接近尾声，我们计划在两个月内发布正式版本。
 
-现在 Rstack 系列文档站都可以直接复制 Markdown 文本，便于配合大模型阅读文档。
-
-这一能力通过 @rspress/plugin-llms 实现，这个插件会生成 [llms.txt](https://llmstxt.org/) 相关文件，你可以通过最新 beta 版本的 Rspress 来使用，详见 [@rspress/plugin-llms 文档](https://v2.rspress.rs/plugin/official-plugins/llms) 。
+最新 beta 版本新增了 Markdown 文本复制组件，方便用户将文档内容提供给大模型进行分析和处理，你可以在各个 Rstack 文档站点体验这个功能：
 
 ![plugin-llms Demo](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspress-plugin-llms-ui.png)
+
+> 该功能基于 @rspress/plugin-llms 插件实现，自动生成符合 [llms.txt](https://llmstxt.org/) 标准的文件，使用方法请参考 [@rspress/plugin-llms 文档](https://v2.rspress.rs/plugin/official-plugins/llms)。
 
 ### Rsdoctor 1.2
 
