@@ -2521,22 +2521,20 @@ custom-chunks-filter:
 
 custom-chunks-filter-in-cache-groups:
   Entrypoint main xx KiB = custom-xxx.js
-  Entrypoint a xx KiB = custom-xxx.js
+  Entrypoint a xx KiB = custom-xxx.js xx KiB
   Entrypoint b xx KiB = custom-xxx.js xx KiB
   Entrypoint c xx KiB = custom-xxx.js xx KiB
-  chunk (runtime: a, main) custom-xxx.js (async-g) xx bytes <{341}> <{545}> <{724}> [rendered]
+  chunk (runtime: a, main) custom-xxx.js (async-g) xx bytes <{341}> <{545}> <{70}> <{724}> [rendered]
     > ./g ./a.js 6:0-47
     dependent modules xx bytes [dependent] 1 module
     ./g.js xx bytes [built] [code generated]
-  chunk (runtime: a) custom-xxx.js (a) xx bytes (javascript) xx KiB (runtime) >{138}< [entry] [rendered]
+  chunk (runtime: a) custom-xxx.js (a) xx bytes (javascript) xx KiB (runtime) ={70}= >{138}< [entry] [rendered]
     > ./a a
     > x a
     > y a
     > z a
-    dependent modules xx bytes [dependent] 3 modules
-    cacheable modules xx bytes
-      ./a.js + 1 modules xx bytes [code generated]
-      ./node_modules/z.js xx bytes [built] [code generated]
+    dependent modules xx bytes [dependent] 1 module
+    ./a.js + 1 modules xx bytes [code generated]
   chunk (runtime: b) custom-xxx.js (b) xx bytes (javascript) xx KiB (runtime) ={545}= [entry] [rendered]
     > ./b b
     > x b
@@ -2556,6 +2554,14 @@ custom-chunks-filter-in-cache-groups:
     > x c
     > y c
     > z c
+    ./node_modules/x.js xx bytes [built] [code generated]
+    ./node_modules/y.js xx bytes [built] [code generated]
+    ./node_modules/z.js xx bytes [built] [code generated]
+  chunk (runtime: a) custom-xxx.js (id hint: vendors) xx bytes ={341}= >{138}< [initial] [rendered] split chunk (cache group: defaultVendors)
+    > ./a a
+    > x a
+    > y a
+    > z a
     ./node_modules/x.js xx bytes [built] [code generated]
     ./node_modules/y.js xx bytes [built] [code generated]
     ./node_modules/z.js xx bytes [built] [code generated]
