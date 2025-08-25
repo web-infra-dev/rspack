@@ -289,7 +289,7 @@ module.exports = {
 
 ### 二进制产物尺寸优化
 
-自 1.4.0 以来 Rspack 团队做了一系列的优化来降低 Rspack 的安装尺寸。其中最重要的便是优化 Rspack node binding 的文件尺寸。
+自 1.4 以来，我们做了一系列的优化来降低 Rspack 的安装体积，其中最重要的便是优化 Rspack node binding 的文件尺寸。
 
 ![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-binary-size.png)
 
@@ -306,22 +306,26 @@ module.exports = {
 除了二进制产物的尺寸的优化外，构建速度优化我们没有停步。相较于 1.4.0 版本， 1.5.0 版本在 Seal 阶段践行了大量的优化。
 在不影响产物的前提下，通过优化数据结构、提高代码的并行度、增加热点代码执行缓存等方式，对大型项目的 Seal 阶段有较大的提升。
 
-以一个来自字节的约 40000 多个模块的项目为例，整体 Seal 阶段耗时降低约 50%。
+以一个来自字节跳动的大型应用为例，它包含约 40000 个模块，整体 Seal 阶段耗时降低约 50%。
+
+- 优化前：
 
 ![seal-performance-before](https://assets.rspack.rs/rspack/assets/rspack-v1-5-seal-phase-before.png)
+
+- 优化后：
 
 ![seal-performance-after](https://assets.rspack.rs/rspack/assets/rspack-v1-5-seal-phase-after.png)
 
 其中几个主要的耗时阶段都有一定程度的优化：
 
-| Phase                   | v1.4.0 | v1.5.0 | Reduction |
-| ----------------------- | -----: | -----: | --------: |
-| Flag dependency exports |  394ms |  181ms |       54% |
-| Flag dependency usage   | 1828ms |  454ms |       75% |
-| Code Splitting          | 2019ms |  777ms |       62% |
-| Bundle Splitting        | 1588ms |  712ms |       55% |
-| Module Concatenation    | 2645ms |  616ms |       76% |
-| RealContentHashPlugin   |  881ms |  404ms |       54% |
+| 阶段                     | v1.4.0 | v1.5.0 |   优化 |
+| ------------------------ | -----: | -----: | -----: |
+| Flag dependency exports  |  394ms |  181ms | `-54%` |
+| Flag dependency usage    | 1828ms |  454ms | `-75%` |
+| Code splitting           | 2019ms |  777ms | `-62%` |
+| Bundle splitting         | 1588ms |  712ms | `-55%` |
+| Module concatenation     | 2645ms |  616ms | `-76%` |
+| Content hash calculation |  881ms |  404ms | `-54%` |
 
 Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提下，探索性能更加优秀的算法。
 
@@ -329,18 +333,27 @@ Rspack 团队后续也会继续优化性能，在不牺牲产物体积的前提�
 
 ### 停止支持 Node.js 16
 
-鉴于 Node.js 16 于 2023 年 9 月 11 已经停止维护，以及众多的社区 npm 包（如：webpack-dev-server, css-loader, sass-loader 等）也停止了对 Node.js 16 的支持，为了减低维护的复杂度，Rspack v1.5 将不再支持 Node.js 16。
+鉴于 Node.js 16 已于 2023 年 9 月 11 日停止维护，同时众多社区 npm 包（如 `webpack-dev-server`、`css-loader`、`sass-loader` 等）也相继停止了对 Node.js 16 的支持，为了降低维护复杂度，Rspack 1.5 将不再支持 Node.js 16。
 
-| Package            |      v1.4 |      v1.5 |
-| ------------------ | --------: | --------: |
-| @rspack/core       |  >=16.0.0 | >=18.12.0 |
-| @rspack/cli        | >=18.12.0 | >=18.12.0 |
-| @rspack/dev-server | >=18.12.0 | >=18.12.0 |
-| @rsbuild/core      | >=16.10.0 | >=18.12.0 |
+| 包名               |        v1.4 |        v1.5 |
+| ------------------ | ----------: | ----------: |
+| @rspack/core       |  `>=16.0.0` | `>=18.12.0` |
+| @rspack/cli        | `>=18.12.0` | `>=18.12.0` |
+| @rspack/dev-server | `>=18.12.0` | `>=18.12.0` |
+| @rsbuild/core      | `>=16.10.0` | `>=18.12.0` |
+
+:::tip
+⚠️ 这是一个破坏性变更。如果你目前使用的是 Node.js 16，需要升级到 Node.js 18.12.0 或更高版本才能使用 Rspack 1.5。
+:::
+
+对于当前使用 Node.js 16 的用户，请按照以下步骤进行升级：
+
+1. 升级 Node.js 版本 ：建议升级到 Node.js 18.12.0 或更高版本（我们推荐使用 Node.js 22 LTS）
+2. 更新 CI/CD 配置 ：请相应地更新你的持续集成配置，确保使用新的 Node.js 版本
 
 ### Resolver JavaScript API
 
-为了让 Rspack 用户能够更便捷地使用 Rspack 的模块解析功能，我们已将 [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) 集成到 Rspack 的 JavaScript API 中，这提供了类似 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 的模块解析能力。
+为了让 Rspack 用户能够更便捷地使用 Rspack 的模块解析功能，我们已将 [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) 集成到 Rspack 的 JavaScript API 中，它提供了类似 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 的模块解析能力。
 
 使用方法请参阅 [Resolver API 文档](/api/javascript-api/resolver#resolver-api)。
 
