@@ -14,14 +14,14 @@ use rspack_core::{
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{fx_hash::FxDashMap, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHasher};
 use tracing::instrument;
 
 use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
   common::{ModuleChunks, ModuleSizes},
-  module_group::{CacheGroupIdx, ModuleGroup, compare_entries},
+  module_group::{ModuleGroup, compare_entries},
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -34,7 +34,6 @@ type ChunksKey = u64;
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
-  idx: CacheGroupIdx,
   module: &'a dyn Module,
   cache_group_index: usize,
   cache_group: &'a CacheGroup,
@@ -303,7 +302,7 @@ impl SplitChunksPlugin {
     let best_entry_key = module_group_map
       .iter()
       .min_by(|a, b| {
-        if compare_entries(a.1, b.1) < 0f64 {
+        if compare_entries(*a, *b) < 0f64 {
           Ordering::Greater
         } else {
           Ordering::Less
@@ -359,9 +358,7 @@ impl SplitChunksPlugin {
           let module = module_graph.module_by_identifier(module).expect("should have module").as_ref();
           let mut temp = Vec::with_capacity(plugin.cache_groups.len());
 
-          for idx in 0..plugin.cache_groups.len() {
-            let cache_group = &plugin.cache_groups[idx];
-
+          for cache_group in plugin.cache_groups.iter() {
             let mut is_match = true;
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
             is_match &= (cache_group.r#type)(module);
@@ -385,17 +382,27 @@ impl SplitChunksPlugin {
           }
           let mut chunk_key_to_string = HashMap::<ChunksKey, String, ChunksKeyHashBuilder>::default();
 
-          let filtered = plugin
+          let mut filtered = plugin
             .cache_groups
             .iter()
             .enumerate()
-            .filter(|(index, _)| temp[*index]);
+            .filter(|(index, _)| temp[*index]).collect::<Vec<_>>();
+
+          filtered.sort_by(|a, b| {
+            b.1.priority.partial_cmp(&a.1.priority).unwrap_or_else(|| {
+              a.0.cmp(&b.0)
+            })
+          });
 
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
-          let mut added_keys = FxHashSet::default();
+          let mut matched_max_priority = None;
 
-          for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
+          for (cache_group_index, cache_group) in filtered.into_iter() {
+            if let Some(matched_max_priority) = matched_max_priority && cache_group.priority < matched_max_priority {
+              break;
+            }
+
             let combs = if cache_group.used_exports {
               if used_exports_combs.is_none() {
                 used_exports_combs = Some(combinator.get_combs(
@@ -473,9 +480,12 @@ impl SplitChunksPlugin {
               let selected_chunks_key =
                 get_key(selected_chunks.iter().copied());
 
+              if matched_max_priority.is_none() {
+                matched_max_priority = Some(cache_group.priority);
+              }
+
               merge_matched_item_into_module_group_map(
                 MatchedItem {
-                  idx: CacheGroupIdx::new(idx),
                   module,
                   cache_group,
                   cache_group_index,
@@ -486,7 +496,6 @@ impl SplitChunksPlugin {
                 &mut chunk_key_to_string,
                 compilation,
                 module_sizes,
-                &mut added_keys,
               ).await?;
             }
           }
@@ -598,10 +607,8 @@ async fn merge_matched_item_into_module_group_map(
   chunk_key_to_string: &mut HashMap<ChunksKey, String, ChunksKeyHashBuilder>,
   compilation: &Compilation,
   module_sizes: &ModuleSizes,
-  added_keys: &mut FxHashSet<String>,
 ) -> Result<()> {
   let MatchedItem {
-    idx,
     module,
     cache_group_index,
     cache_group,
@@ -647,11 +654,9 @@ async fn merge_matched_item_into_module_group_map(
   let mut module_group = {
     module_group_map
       .entry(key.clone())
-      .or_insert_with(|| ModuleGroup::new(idx, chunk_name.clone(), cache_group_index, cache_group))
+      .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group))
   };
-  if chunk_name.is_none() || added_keys.insert(key) {
-    module_group.add_module(module.identifier(), module_sizes);
-  }
+  module_group.add_module(module.identifier(), module_sizes);
   module_group.chunks.extend(selected_chunks.iter().copied());
 
   Ok(())
