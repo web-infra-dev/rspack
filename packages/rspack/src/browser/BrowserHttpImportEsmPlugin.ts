@@ -35,7 +35,7 @@ export class BrowserHttpImportEsmPlugin {
 
 				// We don't consider match resource and inline loaders
 				// Because usually they are not used with dependent modules like `sass-loader?react`
-				if (request.includes("!=!")) {
+				if (request.includes("!")) {
 					return;
 				}
 
