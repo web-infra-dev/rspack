@@ -1,12 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 
-let CONTEXT;
+let MAIN;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
     entry() {
-        if (fs.existsSync(path.join(CONTEXT, "main.js"))) {
+        if (fs.existsSync(MAIN)) {
             return {
                 shared: "./shared.js",
                 main: {
@@ -25,9 +25,12 @@ module.exports = {
     plugins: [
         {
             apply(compiler) {
-                CONTEXT = compiler.context;
+                MAIN = path.join(compiler.context, "main.js");
+
                 compiler.hooks.finishMake.tap("PLUGIN", compilation => {
-                    compilation.missingDependencies.add(path.join(CONTEXT, "main.js"));
+                    if (!fs.existsSync(MAIN)) {
+                        compilation.missingDependencies.add(MAIN);
+                    }
                 });
             }
         }
