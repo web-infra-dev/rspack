@@ -117,7 +117,7 @@ impl AMDDefineDependencyParserPlugin {
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     param: &BasicEvaluatedExpression,
-    identifiers: &mut FxHashMap<usize, &'static str>, // param index => "require" | "module" | "exports"
+    identifiers: &mut FxHashMap<usize, Atom>, // param index => "require" | "module" | "exports"
     named_module: &Option<Atom>,
   ) -> Option<bool> {
     if param.is_array() {
@@ -126,7 +126,7 @@ impl AMDDefineDependencyParserPlugin {
         if item.is_string() {
           let item = item.string();
           if let Some(i) = RESERVED_NAMES.iter().position(|s| s == item) {
-            identifiers.insert(idx, RESERVED_NAMES[i]);
+            identifiers.insert(idx, RESERVED_NAMES[i].into());
           }
         }
         let result = self.process_item(parser, call_expr, item, named_module);
@@ -140,15 +140,15 @@ impl AMDDefineDependencyParserPlugin {
       let array = param.array();
       for (i, request) in array.iter().enumerate() {
         if request == "require" {
-          identifiers.insert(i, REQUIRE);
+          identifiers.insert(i, REQUIRE.into());
           deps.push(AMDRequireArrayItem::String(
             RuntimeGlobals::REQUIRE.name().into(),
           ));
         } else if request == "exports" {
-          identifiers.insert(i, EXPORTS);
+          identifiers.insert(i, EXPORTS.into());
           deps.push(AMDRequireArrayItem::String(request.into()));
         } else if request == "module" {
-          identifiers.insert(i, MODULE);
+          identifiers.insert(i, MODULE.into());
           deps.push(AMDRequireArrayItem::String(request.into()));
         } else if let Some(local_module) = parser.get_local_module_mut(request) {
           local_module.flag_used();
@@ -464,8 +464,8 @@ impl AMDDefineDependencyParserPlugin {
           }
           let idx = i - fn_params_offset;
           i += 1;
-          if let Some(&name) = identifiers.get(&idx) {
-            fn_renames.insert(get_ident_name(param), name);
+          if let Some(name) = identifiers.get(&idx) {
+            fn_renames.insert(get_ident_name(param), name.clone());
             return false;
           }
           true
@@ -480,7 +480,7 @@ impl AMDDefineDependencyParserPlugin {
         let idx = i - fn_params_offset;
         i += 1;
         if idx < RESERVED_NAMES.len() {
-          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx]);
+          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx].into());
           return false;
         }
         true
@@ -493,12 +493,12 @@ impl AMDDefineDependencyParserPlugin {
         true,
         fn_params.expect("fn_params should not be None").into_iter(),
         |parser| {
-          for (name, &rename_identifier) in fn_renames.iter() {
+          for (name, rename_identifier) in fn_renames.iter() {
             let variable = parser
               .get_variable_info(rename_identifier)
               .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
-            parser.set_variable(name.to_string(), variable);
+              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
+            parser.set_variable(name.clone(), variable);
           }
 
           parser.in_try = in_try;
@@ -549,12 +549,12 @@ impl AMDDefineDependencyParserPlugin {
                   .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.sym.as_str()))
               }),
             |parser| {
-              for (name, &rename_identifier) in fn_renames.iter() {
+              for (name, rename_identifier) in fn_renames.iter() {
                 let variable = parser
                   .get_variable_info(rename_identifier)
                   .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
-                parser.set_variable(name.to_string(), variable);
+                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
+                parser.set_variable(name.clone(), variable);
               }
 
               parser.in_try = in_try;

@@ -140,13 +140,13 @@ impl JavascriptParser<'_> {
   }
 
   fn is_module_ident(&mut self, ident: &Ident) -> bool {
-    ident.sym == MODULE_NAME && self.is_unresolved_ident(MODULE_NAME)
+    ident.sym == MODULE_NAME && !self.is_variable_defined(&MODULE_NAME.into())
   }
 
   fn is_exports_ident<E: ExprLike>(&mut self, expr: &E) -> bool {
-    expr
-      .as_ident()
-      .is_some_and(|ident| ident.sym == EXPORTS_NAME && self.is_unresolved_ident(EXPORTS_NAME))
+    expr.as_ident().is_some_and(|ident| {
+      ident.sym == EXPORTS_NAME && !self.is_variable_defined(&EXPORTS_NAME.into())
+    })
   }
 
   fn is_exports_expr<E: ExprLike>(&mut self, expr: &E) -> bool {
@@ -243,7 +243,7 @@ impl JavascriptParser<'_> {
       .map(|expr| {
         if matches!(
           &**expr,
-          Expr::Ident(ident) if &ident.sym == "require" && self.is_unresolved_ident("require")
+          Expr::Ident(ident) if &ident.sym == "require" && !self.is_variable_defined(&ident.sym)
         ) {
           return true;
         }

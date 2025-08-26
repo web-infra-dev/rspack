@@ -15,15 +15,12 @@ pub trait CallHooksName {
     F: Fn(&mut JavascriptParser, &str) -> Option<T>;
 }
 
-impl CallHooksName for &str {
-  fn call_hooks_name<F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
+impl CallHooksName for Atom {
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
-    if let Some(id) = parser
-      .get_variable_info(self.as_ref())
-      .map(|info| info.id())
-    {
+    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
@@ -33,16 +30,16 @@ impl CallHooksName for &str {
   }
 }
 
-impl CallHooksName for String {
-  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
+impl CallHooksName for &str {
+  fn call_hooks_name<F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
-    self.as_str().call_hooks_name(parser, hook_call)
+    Atom::from(*self).call_hooks_name(parser, hook_call)
   }
 }
 
-impl CallHooksName for Atom {
+impl CallHooksName for String {
   fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
@@ -124,9 +121,8 @@ where
   while let Some(tag_info_id) = next_tag_info {
     parser.current_tag_info = Some(tag_info_id);
     let tag_info = parser.definitions_db.expect_get_tag_info(tag_info_id);
-    let tag = tag_info.tag.to_string();
     let next = tag_info.next;
-    let result = hook_call(parser, &tag);
+    let result = hook_call(parser, tag_info.tag);
     parser.current_tag_info = None;
     if result.is_some() {
       return result;
@@ -138,7 +134,7 @@ where
   if let Some(name) = &info.name
     && (info.is_free() || info.is_tagged())
   {
-    let result = hook_call(parser, &name.to_string());
+    let result = hook_call(parser, &name.clone());
     if result.is_some() {
       return result;
     }

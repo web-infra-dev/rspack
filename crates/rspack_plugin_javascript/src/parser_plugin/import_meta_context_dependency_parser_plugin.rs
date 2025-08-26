@@ -118,8 +118,8 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
   ) -> Option<BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::IMPORT_META_WEBPACK_CONTEXT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_WEBPACK_CONTEXT.to_string(),
-        expr_name::IMPORT_META.to_string(),
+        expr_name::IMPORT_META_WEBPACK_CONTEXT.into(),
+        expr_name::IMPORT_META.into(),
         Some(true),
         start,
         end,

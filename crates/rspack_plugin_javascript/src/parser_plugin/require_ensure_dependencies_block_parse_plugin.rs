@@ -14,7 +14,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{RequireEnsureDependency, RequireEnsureItemDependency},
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, Statement, expr_matcher::is_require_ensure},
+  visitors::{JavascriptParser, Statement},
 };
 
 pub struct RequireEnsureDependenciesBlockParserPlugin;
@@ -53,12 +53,8 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     })
   }
 
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, _for_name: &str) -> Option<bool> {
-    if expr
-      .callee
-      .as_expr()
-      .is_none_or(|expr| !is_require_ensure(&**expr))
-    {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
+    if for_name != "require.ensure" {
       return None;
     }
 

@@ -116,15 +116,12 @@ pub struct DestructuringAssignmentProperty {
 
 #[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
-  Name(String),
+  Name(Atom),
   VariableInfo(VariableInfoId),
 }
 
-fn object_and_members_to_name(
-  object: impl AsRef<str>,
-  members_reversed: &[impl AsRef<str>],
-) -> String {
-  let mut name = String::from(object.as_ref());
+fn object_and_members_to_name(object: String, members_reversed: &[impl AsRef<str>]) -> String {
+  let mut name = object;
   let iter = members_reversed.iter();
   for member in iter.rev() {
     name.push('.');
@@ -180,8 +177,8 @@ impl RootName for Callee {
   }
 }
 
-pub struct FreeInfo<'a> {
-  pub name: &'a str,
+pub struct NameInfo<'a> {
+  pub name: &'a Atom,
   pub info: Option<&'a VariableInfo>,
 }
 
@@ -485,12 +482,16 @@ impl<'parser> JavascriptParser<'parser> {
     self.module_layer
   }
 
-  pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
+  pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
     let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
 
-  pub fn get_tag_data(&mut self, name: &str, tag: &str) -> Option<Box<dyn anymap::CloneAny>> {
+  pub fn get_tag_data(
+    &mut self,
+    name: &Atom,
+    tag: &'static str,
+  ) -> Option<Box<dyn anymap::CloneAny>> {
     self
       .get_variable_info(name)
       .and_then(|variable_info| variable_info.tag_info)
@@ -510,9 +511,9 @@ impl<'parser> JavascriptParser<'parser> {
       })
   }
 
-  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<FreeInfo<'a>> {
+  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
-      return Some(FreeInfo { name, info: None });
+      return Some(NameInfo { name, info: None });
     };
     let Some(name) = &info.name else {
       return None;
@@ -520,15 +521,15 @@ impl<'parser> JavascriptParser<'parser> {
     if !info.is_free() {
       return None;
     }
-    Some(FreeInfo {
+    Some(NameInfo {
       name,
       info: Some(info),
     })
   }
 
-  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a str) -> Option<FreeInfo<'a>> {
+  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
-      return Some(FreeInfo { name, info: None });
+      return Some(NameInfo { name, info: None });
     };
     let Some(name) = &info.name else {
       return None;
@@ -536,7 +537,7 @@ impl<'parser> JavascriptParser<'parser> {
     if !info.is_free() && !info.is_tagged() {
       return None;
     }
-    Some(FreeInfo {
+    Some(NameInfo {
       name,
       info: Some(info),
     })
@@ -549,7 +550,7 @@ impl<'parser> JavascriptParser<'parser> {
     scope.variables()
   }
 
-  pub fn define_variable(&mut self, name: String) {
+  pub fn define_variable(&mut self, name: Atom) {
     let definitions = self.definitions;
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()
@@ -567,7 +568,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(definitions, name, info);
   }
 
-  pub fn set_variable(&mut self, name: String, variable: ExportedVariableInfo) {
+  pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
     let scope_id = self.definitions;
     match variable {
       ExportedVariableInfo::Name(variable) => {
@@ -590,13 +591,13 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn undefined_variable(&mut self, name: String) {
+  fn undefined_variable(&mut self, name: &Atom) {
     self.definitions_db.delete(self.definitions, name)
   }
 
   pub fn tag_variable<Data: TagInfoData>(
     &mut self,
-    name: String,
+    name: Atom,
     tag: &'static str,
     data: Option<Data>,
   ) {
@@ -605,7 +606,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn tag_variable_with_flags<Data: TagInfoData>(
     &mut self,
-    name: String,
+    name: Atom,
     tag: &'static str,
     data: Option<Data>,
     flags: VariableInfoFlags,
@@ -615,7 +616,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn tag_variable_impl<Data: TagInfoData>(
     &mut self,
-    name: String,
+    name: Atom,
     tag: &'static str,
     data: Option<Data>,
     flags: Option<VariableInfoFlags>,
@@ -680,12 +681,12 @@ impl<'parser> JavascriptParser<'parser> {
           return None;
         }
         let root_name = expr.callee.get_root_name()?;
-        let FreeInfo {
+        let NameInfo {
           name: resolved_root,
           info: root_info,
         } = self.get_name_info_from_variable(&root_name)?;
 
-        let callee_name = object_and_members_to_name(resolved_root, &members);
+        let callee_name = object_and_members_to_name(resolved_root.to_string(), &members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
@@ -694,7 +695,7 @@ impl<'parser> JavascriptParser<'parser> {
           callee_name,
           root_info: root_info
             .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name.to_string())),
+            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
           members,
           members_optionals,
           member_ranges,
@@ -706,12 +707,12 @@ impl<'parser> JavascriptParser<'parser> {
         }
         let root_name = object.get_root_name()?;
 
-        let FreeInfo {
+        let NameInfo {
           name: resolved_root,
           info: root_info,
         } = self.get_name_info_from_variable(&root_name)?;
 
-        let name = object_and_members_to_name(resolved_root, &members);
+        let name = object_and_members_to_name(resolved_root.to_string(), &members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
@@ -719,7 +720,7 @@ impl<'parser> JavascriptParser<'parser> {
           name,
           root_info: root_info
             .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name.to_string())),
+            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
           members,
           members_optionals,
           member_ranges,
@@ -1068,9 +1069,11 @@ impl<'parser> JavascriptParser<'parser> {
     scope.is_strict
   }
 
-  // TODO: remove
-  pub fn is_unresolved_ident(&mut self, str: &str) -> bool {
-    self.definitions_db.get(self.definitions, str).is_none()
+  pub fn is_variable_defined(&mut self, name: &Atom) -> bool {
+    let Some(info) = self.get_variable_info(name) else {
+      return false;
+    };
+    !info.is_free()
   }
 
   pub fn destructuring_assignment_properties_for(
@@ -1169,8 +1172,8 @@ impl JavascriptParser<'_> {
               let mut eval =
                 BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
               eval.set_identifier(
-                ident.sym.to_string(),
-                ExportedVariableInfo::Name(name.to_string()),
+                ident.sym.clone(),
+                ExportedVariableInfo::Name(name.clone()),
                 None,
                 None,
                 None,
@@ -1184,15 +1187,15 @@ impl JavascriptParser<'_> {
         let default_eval = || {
           let mut eval = BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.hi.0);
           eval.set_identifier(
-            "this".to_string(),
-            ExportedVariableInfo::Name("this".to_string()),
+            "this".into(),
+            ExportedVariableInfo::Name("this".into()),
             None,
             None,
             None,
           );
           Some(eval)
         };
-        let Some(info) = self.get_variable_info("this") else {
+        let Some(info) = self.get_variable_info(&"this".into()) else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
             .evaluate_identifier(self, "this", this.span.real_lo(), this.span.hi.0)
@@ -1201,8 +1204,7 @@ impl JavascriptParser<'_> {
         if let Some(name) = &info.name
           && (info.is_free() || info.is_tagged())
         {
-          // avoid ownership
-          let name = name.to_string();
+          let name = name.clone();
           return drive
             .evaluate_identifier(self, &name, this.span.real_lo(), this.span.hi.0)
             .or_else(default_eval);

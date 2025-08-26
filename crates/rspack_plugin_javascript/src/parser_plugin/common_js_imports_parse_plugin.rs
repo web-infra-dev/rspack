@@ -202,7 +202,7 @@ impl CommonJsImportsParserPlugin {
     let is_require_member_chain = is_require_call_start(&expr)
       && !expr_matcher::is_require(&expr)
       && !expr_matcher::is_module_require(&expr)
-      && parser.is_unresolved_ident("require");
+      && !parser.is_variable_defined(&"require".into());
     if !is_require_member_chain {
       return None;
     }
@@ -383,16 +383,16 @@ impl CommonJsImportsParserPlugin {
 }
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
-  fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
-    if str == expr_name::REQUIRE && parser.is_unresolved_ident(str) {
+  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+    if for_name == expr_name::REQUIRE {
       Some(true)
     } else {
       None
     }
   }
 
-  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, str: &str) -> Option<bool> {
-    if str == expr_name::REQUIRE && parser.is_unresolved_ident(str) {
+  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
+    if for_name == expr_name::REQUIRE {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -433,22 +433,22 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   ) -> Option<BasicEvaluatedExpression<'static>> {
     match for_name {
       expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE.to_string(),
-        expr_name::REQUIRE.to_string(),
+        expr_name::REQUIRE.into(),
+        expr_name::REQUIRE.into(),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE_RESOLVE.to_string(),
-        expr_name::REQUIRE.to_string(),
+        expr_name::REQUIRE_RESOLVE.into(),
+        expr_name::REQUIRE.into(),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE_RESOLVE_WEAK.to_string(),
-        expr_name::REQUIRE.to_string(),
+        expr_name::REQUIRE_RESOLVE_WEAK.into(),
+        expr_name::REQUIRE.into(),
         Some(true),
         start,
         end,
@@ -572,13 +572,15 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &AssignExpr,
-    _for_name: Option<&str>,
+    for_name: Option<&str>,
   ) -> Option<bool> {
-    let AssignTarget::Simple(SimpleAssignTarget::Ident(left_expr)) = &expr.left else {
+    let AssignTarget::Simple(SimpleAssignTarget::Ident(_)) = &expr.left else {
       return None;
     };
 
-    if left_expr.sym == "require" && parser.is_unresolved_ident("require") {
+    if let Some(for_name) = for_name
+      && for_name == expr_name::REQUIRE
+    {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
