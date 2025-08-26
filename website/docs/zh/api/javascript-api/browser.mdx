@@ -69,7 +69,7 @@ builtinMemFs.volume.fromJSON({
 import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
 
 export default {
-  plugins: [new BrowserHttpImportEsmPlugin()],
+  plugins: [new BrowserHttpImportEsmPlugin({ domain: 'https://esm.sh' })],
   experiments: {
     buildHttp: {
       allowedUris: ['https://'],
@@ -84,9 +84,8 @@ export default {
 interface BrowserHttpImportPluginOptions {
   /**
    * ESM CDN 域名
-   * @default "https://esm.sh"
    */
-  domain?: string | ((request: string, packageName: string) => string);
+  domain: string | ((request: string, packageName: string) => string);
   /**
    * 为特定的依赖指定 URL
    */
