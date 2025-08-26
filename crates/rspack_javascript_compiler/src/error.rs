@@ -80,16 +80,13 @@ impl Emitter for RspackErrorEmitter {
     if let Some(source_file_and_byte_pos) = source_file_and_byte_pos {
       self
         .tx
-        .send(
-          Error::from_string(
-            Some(source_file_and_byte_pos.sf.src.clone().into_string()),
-            source_file_and_byte_pos.pos.0 as usize,
-            source_file_and_byte_pos.pos.0 as usize,
-            self.title.to_string(),
-            db.message(),
-          )
-          .into(),
-        )
+        .send(Error::from_string(
+          Some(source_file_and_byte_pos.sf.src.clone().into_string()),
+          source_file_and_byte_pos.pos.0 as usize,
+          source_file_and_byte_pos.pos.0 as usize,
+          self.title.to_string(),
+          db.message(),
+        ))
         .expect("Sender should drop after emit called");
     } else {
       self

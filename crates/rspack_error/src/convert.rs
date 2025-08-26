@@ -33,7 +33,7 @@ impl<T> SerdeResultToRspackResultExt<T> for std::result::Result<T, serde_json::E
         offset: offset.offset(),
         len: 0,
       }]);
-      error.src = Some(content.to_string().into());
+      error.src = Some(content.to_string());
       error
     })
   }

@@ -71,7 +71,7 @@ impl From<BuilderError> for Error {
   fn from(value: BuilderError) -> Error {
     match value {
       BuilderError::Option(accessor, msg) => {
-        Error::error(format!("Invalid option '{}': {}", accessor, msg))
+        Error::error(format!("Invalid option '{accessor}': {msg}"))
       }
     }
   }

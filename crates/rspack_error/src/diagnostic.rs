@@ -12,7 +12,6 @@ pub struct Diagnostic {
 
   // The following fields are only used to restore Diagnostic for Rspack.
   // If the current Diagnostic originates from Rust, these fields will be None.
-  pub details: Option<String>,
   pub module_identifier: Option<Identifier>,
   pub loc: Option<DependencyLocation>,
   pub file: Option<Utf8PathBuf>,

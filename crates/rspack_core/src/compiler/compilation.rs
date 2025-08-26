@@ -2473,8 +2473,7 @@ impl Compilation {
         })
         .join(", ");
       let error = rspack_error::Error::warning(format!(
-        "Circular dependency between chunks with runtime ({})\nThis prevents using hashes of each other and should be avoided.",
-        circular_names
+        "Circular dependency between chunks with runtime ({circular_names})\nThis prevents using hashes of each other and should be avoided."
       ));
       self.push_diagnostic(error.into());
     }

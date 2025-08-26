@@ -41,8 +41,10 @@ impl ModuleBuildError {
 }
 
 impl From<ModuleBuildError> for Error {
-  fn from(value: ModuleBuildError) -> Error {
+  fn from(mut value: ModuleBuildError) -> Error {
     let mut err = Error::error("Module build failed:".into());
+    err.details = std::mem::take(&mut value.0.details);
+    err.severity = value.0.severity;
     err.source_error = Some(Box::new(value.0));
     err.code = Some("ModuleBuildError".into());
     err
@@ -125,6 +127,7 @@ impl From<CapturedLoaderError> for Error {
   fn from(value: CapturedLoaderError) -> Error {
     let mut error = rspack_error::error!(value.source.to_string());
     error.code = Some("CapturedLoaderError".into());
+    error.details = value.details;
     error
   }
 }

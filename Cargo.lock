@@ -3818,7 +3818,6 @@ dependencies = [
  "swc_core",
  "termcolor",
  "textwrap",
- "thiserror 1.0.69",
  "unicode-width 0.2.0",
 ]
 

@@ -373,8 +373,7 @@ fn map_rspack_resolver_error(
             offset,
             "JSON parse error".to_string(),
             format!("BOM character found in '{}'", error.path.display()),
-          )
-          .into();
+          );
         }
 
         Error::from_file(
@@ -384,7 +383,6 @@ fn map_rspack_resolver_error(
           "JSON parse error".to_string(),
           format!("{} in '{}'", error.message, error.path.display()),
         )
-        .into()
       } else {
         rspack_error::error!(format!(
           "JSON parse error: {:?} in '{}'",
@@ -435,5 +433,5 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
   } else {
     Severity::Error
   };
-  error.into()
+  error
 }
