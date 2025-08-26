@@ -142,7 +142,7 @@ rspack({}, (err, stats) => {
 
 ### Extending Rspack with Rust
 
-You can now extend Rspack directly using **Rust**! With our provided repository template, you can build custom Rust plugins and loaders, and even replace Rspack's default native binding.
+You can now extend Rspack directly using Rust! With our provided repository template, you can build custom Rust plugins and loaders, and even replace Rspack's default native binding.
 
 In JavaScript plugins, data transfer and type conversion between Rust and JavaScript can introduce performance overhead. By customizing Rspack's binding, your code can integrate directly with the Rspack Rust core, eliminating cross-language communication costs while retaining full support for all Rspack JavaScript APIs.
 
@@ -160,7 +160,7 @@ You can get started quickly with the [official template](https://github.com/rspa
 
 When organizing project code, it is common to centralize constants into files such as `constants.js` or, in TypeScript projects, into `types.ts` files containing enums.
 
-Rspack introduces two experimental features — [experiments.inlineConst](/config/experiments#experimentsinlineconst) and [experiments.inlineEnum](/config/experiments#experimentsinlineenum) — that perform **cross-module inlining optimizations for constants**. These optimizations help compression tools perform more accurate static analysis, eliminate unused code branches, and further reduce bundle size.
+Rspack introduces two experimental features — [experiments.inlineConst](/config/experiments#experimentsinlineconst) and [experiments.inlineEnum](/config/experiments#experimentsinlineenum) — that perform **cross-module inlining optimizations for constants**. These optimizations help minifiers perform more accurate static analysis, eliminate unused code branches, and further reduce bundle size.
 
 For example, `inlineConst` can inline constants defined in leaf modules of the module graph across modules, as shown below:
 
@@ -177,6 +177,17 @@ const fontStyle = {};
 if (MY_FONT & bold) fontStyle['font-weight'] = 'bold';
 if (MY_FONT & italic) fontStyle['font-style'] = 'italic';
 applyFont(fontStyle);
+```
+
+With `inlineConst` enabled, the if branches in the example can be clearly optimized by minifier, generating more streamlined output:
+
+```js
+(() => {
+  'use strict';
+  let t = {};
+  t['font-weight'] = 'bold';
+  applyFont(t);
+})();
 ```
 
 > For more details, see the [experiments.inlineConst documentation](/config/experiments#experimentsinlineconst). This feature is planned to be enabled by default in v1.6.
@@ -293,10 +304,10 @@ To further optimize installation size, we have integrated [automated size checks
 
 ### Seal phase performance optimization
 
-In terms of build performance, Rspack 1.5 delivers major optimizations to the **Seal phase** (the stage responsible for code generation and optimization).
+In terms of build performance, Rspack 1.5 delivers major optimizations to the Seal phase (the stage responsible for code generation and optimization).
 By improving data structures, increasing parallelism, and introducing hot code caching, Rspack significantly improves build efficiency for large projects. Thanks to parallelization, the performance gains are even more pronounced on multi-core machines.
 
-For example, in a large-scale application at ByteDance containing approximately **40,000 modules**, the overall Seal phase time was reduced by **around 50%**, with substantial improvements observed across all major sub-stages:
+For example, in a large-scale application at ByteDance containing approximately 40,000 modules, the overall Seal phase time was reduced by **around 50%**, with substantial improvements observed across all major sub-stages:
 
 | Phase                    | v1.4.0 | v1.5.0 | Improvement |
 | ------------------------ | -----: | -----: | ----------: |
@@ -323,7 +334,7 @@ Node.js version requirements for each package:
 | @rsbuild/core      | `>=16.10.0` | `>=18.12.0` |
 
 :::tip
-⚠️ This is a breaking change. If you are currently using Node.js 16, you will need to upgrade to Node.js **18.12.0 or higher** in order to use Rspack 1.5.
+⚠️ This is a breaking change. If you are currently using Node.js 16, you will need to upgrade to Node.js 18.12.0 or higher in order to use Rspack 1.5.
 :::
 
 For projects still running on Node.js 16, please follow these steps to upgrade:
@@ -369,7 +380,8 @@ As a result, this option has been deprecated and is planned for removal in Rspac
 ![rslint-banner](https://assets.rspack.rs/rslint/rslint-banner.png)
 
 We are excited to announce the release of [Rslint](https://rslint.rs/)!
-Rslint is a next-generation, **TypeScript-first linter**, written in Go and powered by the type-checking capabilities of **typescript-go**.
+
+Rslint is a next-generation, TypeScript-first linter, written in Go and powered by the type-checking capabilities of typescript-go.
 
 It originates from [tsgolint](https://github.com/typescript-eslint/tsgolint), created by [@auvred](https://github.com/auvred), and has since been extended and optimized to deliver a more powerful linting experience.
 
@@ -426,7 +438,7 @@ The latest beta introduces a Markdown text copy component, making it easier for 
 
 ![plugin-llms Demo](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspress-plugin-llms-ui.png)
 
-> This feature is powered by the **@rspress/plugin-llms** plugin, which automatically generates files compliant with the [llms.txt](https://llmstxt.org/) standard. For usage details, please refer to the [@rspress/plugin-llms documentation](https://v2.rspress.rs/plugin/official-plugins/llms).
+> This feature is powered by the @rspress/plugin-llms plugin, which automatically generates files compliant with the [llms.txt](https://llmstxt.org/) standard. For usage details, please refer to the [@rspress/plugin-llms documentation](https://v2.rspress.rs/plugin/official-plugins/llms).
 
 ### Rsdoctor 1.2
 
@@ -436,7 +448,7 @@ Read more in the [Rsdoctor 1.2 release blog](https://rsdoctor.rs/blog/release/re
 
 ### Rstest 0.2
 
-After two months of continuous iteration and over 10 rounds of optimization, **Rstest 0.2** delivers substantial improvements in both functionality and stability. This release introduces the following key enhancements:
+After two months of continuous iteration and over 10 rounds of optimization, Rstest 0.2 delivers substantial improvements in both functionality and stability. This release introduces the following key enhancements:
 
 - **Mock API**: Rstest now includes a comprehensive [mock API](https://rstest.rs/api/rstest/mockModules), enabling developers to replace actual module implementations in test environments, with full support for mocking ES modules.
 - **Enhanced Watch Mode**: Watch mode now supports incremental re-runs. When a test file or its dependencies change, Rstest intelligently re-executes only the affected tests, significantly improving testing efficiency.

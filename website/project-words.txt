@@ -91,6 +91,7 @@ Llms
 magic-akari
 memfs
 mimalloc
+minifiers
 miro
 modulegeneratorassetdataurl
 modulegeneratorassetdataurlencoding
