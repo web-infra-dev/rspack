@@ -1114,6 +1114,8 @@ export class Compiler {
     get __internal__ruleSet(): RuleSetCompiler;
     // @internal
     __internal__takeModuleExecutionResult(id: number): any;
+    // @internal
+    __internal_browser_require: (id: string) => unknown;
     // (undocumented)
     cache: Cache_2;
     // (undocumented)
