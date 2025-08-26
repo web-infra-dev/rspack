@@ -1,7 +1,7 @@
 use std::{
   collections::HashSet,
   fmt,
-  sync::{Arc, LazyLock, OnceLock, RwLock},
+  sync::{Arc, LazyLock, OnceLock},
 };
 
 use camino::Utf8Path;
@@ -168,7 +168,7 @@ pub struct ConsumeSharedPlugin {
   options: ConsumeSharedPluginOptions,
   resolver: OnceLock<Arc<Resolver>>,
   compiler_context: OnceLock<Context>,
-  matched_consumes: RwLock<Option<Arc<MatchedConsumes>>>,
+  matched_consumes: OnceLock<Arc<MatchedConsumes>>,
 }
 
 impl ConsumeSharedPlugin {
@@ -217,14 +217,18 @@ impl ConsumeSharedPlugin {
 
   async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
     let config = resolve_matched_configs(compilation, resolver, &self.options.consumes).await;
-    let mut lock = self.matched_consumes.write().expect("should lock");
-
-    *lock = Some(Arc::new(config));
+    self
+      .matched_consumes
+      .set(Arc::new(config))
+      .expect("failed to set matched consumes");
   }
 
   fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
-    let lock = self.matched_consumes.read().expect("should lock");
-    lock.clone().expect("init_matched_consumes first")
+    self
+      .matched_consumes
+      .get()
+      .expect("init_matched_consumes first")
+      .clone()
   }
 
   async fn get_required_version(
@@ -385,9 +389,11 @@ async fn this_compilation(
   if self.resolver.get().is_none() {
     self.init_resolver(compilation);
   }
-  self
-    .init_matched_consumes(compilation, self.get_resolver())
-    .await;
+  if self.matched_consumes.get().is_none() {
+    self
+      .init_matched_consumes(compilation, self.get_resolver())
+      .await;
+  }
   Ok(())
 }
 
