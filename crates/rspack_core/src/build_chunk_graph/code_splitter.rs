@@ -812,7 +812,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let start = logger.time("process queue");
     // Iterative traversal of the Module graph
     // Recursive would be simpler to write but could result in Stack Overflows
-    while !self.queue.is_empty() || !self.queue_connect.is_empty() || !self.queue_delayed.is_empty()
+    while !self.queue.is_empty()
+      || !self.queue_connect.is_empty()
+      || !self.queue_delayed.is_empty()
+      || !self.chunk_groups_for_combining.is_empty()
     {
       self.process_queue(compilation);
 
