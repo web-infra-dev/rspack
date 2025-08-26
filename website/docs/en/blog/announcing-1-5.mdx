@@ -11,7 +11,7 @@ _August 26, 2025_
 
 ---
 
-We're thrilled to announce the release of Rspack 1.5!
+We're excited to announce the release of Rspack 1.5!
 
 Notable changes include:
 
@@ -63,7 +63,7 @@ export default {
 };
 ```
 
-In real-world testing, enabling barrel file optimization yielded clear performance gains across applications at different scales:
+In real-world testing, enabling barrel file optimization delivered significant performance improvements across applications at different scales:
 
 - [Benchmark](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components):
 
@@ -278,18 +278,18 @@ More details about this change can be found [here](https://gist.github.com/Scrip
 
 ### Installation size optimization
 
-Since version 1.4, we have implemented a series of optimizations to reduce Rspack's installation size, which have already delivered significant results:
+Since v1.4, we have delivered several key optimizations to reduce Rspack's installation size, which have already delivered significant results:
 
 ![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspack-install-size.png)
 
 Some of the most impactful optimizations include:
 
-- Reducing the install size by **5 MB** through adjustments to [compiler parameters](https://github.com/web-infra-dev/rspack/pull/11077)
-- Optimizing upstream dependencies [wasmer](https://github.com/wasmerio/wasmer/pull/5621/files) and [SWC](https://github.com/swc-project/swc/pull/10638), resulting in nearly **3 MB** saved
-- Leveraging [feature flags](https://github.com/web-infra-dev/rspack/pull/10965) to cut down close to **2 MB**
-- Improving the [browserslist-rs](https://github.com/browserslist/browserslist-rs/pull/32) data structure, saving around **2 MB**
+- **5 MB reduction** through [compiler parameter adjustments](https://github.com/web-infra-dev/rspack/pull/11077)
+- **3 MB reduction** by optimizing upstream dependencies ([wasmer](https://github.com/wasmerio/wasmer/pull/5621/files), [SWC](https://github.com/swc-project/swc/pull/10638))
+- **2 MB reduction** via [feature flag optimization](https://github.com/web-infra-dev/rspack/pull/10965)
+- **2 MB reduction** through [browserslist-rs](https://github.com/browserslist/browserslist-rs/pull/32) data structure improvements
 
-Rspack now integrated artifact size checks into its daily [code quality checks](https://github.com/web-infra-dev/rspack/blob/main/.github/actions/binary-limit/action.yml), and we will continue to closely monitor size changes in future releases.
+To further optimize installation size, we have integrated [automated size checks](https://github.com/web-infra-dev/rspack/blob/main/.github/actions/binary-limit/action.yml) into our daily workflow to continuously monitor changes in this metric.
 
 ### Seal phase performance optimization
 
@@ -311,7 +311,7 @@ For example, in a large-scale application at ByteDance containing approximately 
 
 ### Drop support for Node.js 16
 
-Since Node.js 16 reached its end of life on September 11, 2023, and many community packages (such as `webpack-dev-server`, `css-loader`, `sass-loader`, etc.) have dropped support for Node.js 16, **Rspack 1.5 drops support for Node.js 16** to reduce maintenance cost.
+Since Node.js 16 reached its end of life on September 11, 2023, and many community packages (such as `webpack-dev-server`, `css-loader`, `sass-loader`, etc.) have dropped support for Node.js 16, **Rspack 1.5 drops support for Node.js 16** to reduce maintenance costs.
 
 Node.js version requirements for each package:
 
@@ -353,10 +353,11 @@ export default {
 
 The previous experiments.lazyCompilation option will continue to work, but will emit a deprecation warning.
 
-### Deprecation of experiments.topLevelAwait
+### Deprecated options
 
 The Rspack [experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) option was used to control support for top-level await, and it has always been enabled by default.
 After careful observation, we found no real-world scenarios where disabling top-level await was necessary.
+
 As a result, this option has been deprecated and is planned for removal in Rspack 2.0, at that point top-level await support can no longer be disabled.
 
 ## Rstack progress

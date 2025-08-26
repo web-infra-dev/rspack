@@ -289,7 +289,7 @@ export default {
 - 通过控制 [feature 开关](https://github.com/web-infra-dev/rspack/pull/10965) 减少 2MB。
 - 通过优化 [browserlist-rs](https://github.com/browserslist/browserslist-rs/pull/32) 的数据结构减少 2MB。
 
-为了确保安装体积的持续优化，我们搭建了相关的监控 [CI](https://github.com/web-infra-dev/rspack/blob/main/.github/actions/binary-limit/action.yml)，将其集成到日常的代码质量检查流程中，并将持续关注该指标的变化。
+为了进一步优化安装体积，我们集成了 [自动体积检查](https://github.com/web-infra-dev/rspack/blob/main/.github/actions/binary-limit/action.yml) 到日常工作流中，持续关注该指标变化。
 
 ### Seal 阶段性能优化
 
@@ -351,7 +351,7 @@ export default {
 
 > 原有的 `experiments.lazyCompilation` 配置仍然可以继续使用，但会打印一条废弃警告。
 
-### 废弃 experiments.topLevelAwait
+### 废弃的选项
 
 Rspack 的 [experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) 选项用于控制对 top level await 的支持，一直以来都是默认开启的。经过观察，我们发现没有实际场景需要关闭 top level await 支持，因此我们决定废弃这个选项，并计划在 Rspack 2.0 中移除它，届时将无法禁用 top level await 支持。
 
