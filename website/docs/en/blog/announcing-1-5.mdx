@@ -66,19 +66,19 @@ In real-world testing, enabling barrel file optimization yielded clear performan
 
 - [Benchmark](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)：
 
-| Metric             | Before |     After | Improvement |
-| ------------------ | -----: | --------: | ----------: |
-| Build Time         |  1.47s |     1.19s |        -20% |
-| Module Resolutions | 39,675 | 20,071 次 |        -49% |
-| Module Builds      |  9,358 |  5,062 次 |        -46% |
+| Metric             | Before |  After | Improvement |
+| ------------------ | -----: | -----: | ----------: |
+| Build Time         |  1.47s |  1.19s |      `-20%` |
+| Module Resolutions | 39,675 | 20,071 |      `-49%` |
+| Module Builds      |  9,358 |  5,062 |      `-46%` |
 
 - An Application from ByteDance：
 
 | Metric             |  Before |   After | Improvement |
 | ------------------ | ------: | ------: | ----------: |
-| Build Time         |   17.9s |   16.0s |        -10% |
-| Module Resolutions | 181,078 | 137,232 |        -24% |
-| Module Builds      |  38,046 |  29,405 |        -23% |
+| Build Time         |   17.9s |   16.0s |      `-10%` |
+| Module Resolutions | 181,078 | 137,232 |      `-24%` |
+| Module Builds      |  38,046 |  29,405 |      `-23%` |
 
 Barrel file optimization is enabled by default in Rsbuild 1.5, and we plan to make it the default in Rspack 1.6 for all projects.
 For more details, see the [experiments.lazyBarrel documentation](https://chatgpt.com/config/experiments#experimentslazybarrel).
@@ -108,7 +108,7 @@ export default {
 
 ### Improved browser support
 
-In **Rspack 1.4**, we officially introduced **Wasm target support**, enabling Rspack to run in browser-based environments powered by WebContainers, such as [StackBlitz](https://stackblitz.com/).
+In Rspack 1.4, we officially introduced Wasm target support, enabling Rspack to run in browser-based environments powered by WebContainers, such as [StackBlitz](https://stackblitz.com/).
 
 With the release of [@rspack/browser](/api/javascript-api/browser), you can now **use Rspack directly in any modern browser**—without relying on WebContainers or specific platforms.
 `@rspack/browser` is designed specifically for pure browser environments, providing core bundling capabilities for complex web projects. It offers a lightweight way to reproduce issues, share configurations, and helps developers get started with Rspack through interactive online demos.
@@ -135,8 +135,7 @@ rspack({}, (err, stats) => {
 });
 ```
 
-`@rspack/browser` is currently in an experimental stage and may introduce breaking changes.
-We will continue to enhance its capabilities for online bundling scenarios. In the meantime, Welcome to try it out at the [Rspack Playground](https://playground.rspack.rs/).
+`@rspack/browser` is currently in an experimental stage and may introduce breaking changes. We will continue to enhance its capabilities for online bundling scenarios. In the meantime, Welcome to try it out at the [Rspack Playground](https://playground.rspack.rs/).
 
 ### Extending Rspack with Rust
 
@@ -146,16 +145,13 @@ In JavaScript plugins, data transfer and type conversion between Rust and JavaSc
 
 This approach is particularly suitable for replacing hooks that frequently interact with Rust (such as `compilation.hooks.processAssets`) and for compute-intensive custom loaders, where it can deliver significant build performance improvements.
 
-**Key benefits:**
+Key benefits:
 
 - **Native performance** — Extensions written in Rust run with the same native performance as the Rspack Rust Core.
 - **Full compatibility** — Retains all existing JavaScript APIs without requiring changes to your project.
 - **Developer-friendly** — The official template includes a complete development environment and publishing workflow.
 
-You can get started quickly with the [official template](https://github.com/rspack-contrib/rspack-binding-template).
-For more details, see the [design rationale](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html).
-
-⚠️ Please note: adopting this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
+You can get started quickly with the [official template](https://github.com/rspack-contrib/rspack-binding-template). For more details, see the [design rationale](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html). Note that adopting this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
 
 ### Const inline optimization
 
@@ -271,9 +267,9 @@ Below is a comparison of bundle size optimization achieved in a demo project usi
 
 | Configuration                             | Before | After | Reduction |
 | :---------------------------------------- | -----: | ----: | --------: |
-| Multiple Entries (default)                |  210kb | 210kb |        0% |
-| Multiple Entries + runtimeChunk: true     |  210kb | 150kb |       29% |
-| Multiple Entries + runtimeChunk: 'single' |  210kb |  70kb |       67% |
+| Multiple Entries (default)                |  210kb | 210kb |      `0%` |
+| Multiple Entries + runtimeChunk: true     |  210kb | 150kb |     `29%` |
+| Multiple Entries + runtimeChunk: 'single' |  210kb |  70kb |     `67%` |
 
 More details about this change can be found [here](https://gist.github.com/ScriptedAlchemy/a71ccbdfb933e8a4cd0131801a2c26b5#file-hoisted-runtime-internal-md),
 
@@ -374,7 +370,7 @@ Out-of-the-box usability has always been a core design principle of Rsbuild. In 
 
 > Once you upgrade to the latest version of Rsbuild, these features are enabled by default with no additional configuration required.
 
-Rsbuild 1.5 also introduces the new [output.module](https://rsbuild.rs/zh/config/output/module) option, which allows generating build outputs in the ES modules format.
+Rsbuild 1.5 also introduces the new [output.module](https://rsbuild.rs/config/output/module) option, which allows generating build outputs in the ES modules format.
 
 Currently, this option provides ESM format support for Node.js bundles. We plan to extend support to web applications in future releases.
 
@@ -410,16 +406,13 @@ The latest beta introduces a Markdown text copy component, making it easier for 
 
 Rsdoctor 1.2 introduces several significant updates, including precise analysis of concatenated modules and an all-new Treemap visualization. These enhancements improve both the accuracy of build artifact analysis and the visualization experience, helping you better understand and optimize your project bundles.
 
-Read more in the [Rsdoctor 1.2 Release Note](https://rsdoctor.rs/zh/blog/release/release-note-1_2).
+Read more in the [Rsdoctor 1.2 release blog](https://rsdoctor.rs/blog/release/release-note-1_2).
 
 ### Rstest 0.2
 
 After two months of continuous iteration and over 10 rounds of optimization, **Rstest 0.2** delivers substantial improvements in both functionality and stability. This release introduces the following key enhancements:
 
-- **Mock Module Support**: Rstest now includes a comprehensive mock API, enabling developers to replace actual module implementations in test environments, with full support for mocking ES modules.
-
-![Mock Modules](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rstest-mock-modules.png)
-
+- **Mock API**: Rstest now includes a comprehensive [mock API](https://rstest.rs/api/rstest/mockModules), enabling developers to replace actual module implementations in test environments, with full support for mocking ES modules.
 - **Enhanced Watch Mode**: Watch mode now supports incremental re-runs. When a test file or its dependencies change, Rstest intelligently re-executes only the affected tests, significantly improving testing efficiency.
 - **CLI Shortcuts**: Watch mode also introduces keyboard shortcuts, allowing developers to perform common actions more quickly and seamlessly.
 
