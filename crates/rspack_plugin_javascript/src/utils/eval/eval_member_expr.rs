@@ -28,7 +28,7 @@ pub fn eval_member_expression<'a>(
         let mut eval =
           BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
         eval.set_identifier(
-          info.name,
+          info.name.into(),
           info.root_info,
           Some(info.members),
           Some(info.members_optionals),

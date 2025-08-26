@@ -1,6 +1,7 @@
 use rspack_core::{ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals, SpanExt};
 use rspack_util::itoa;
 use swc_core::{
+  atoms::Atom,
   common::Spanned,
   ecma::ast::{CallExpr, VarDeclarator},
 };
@@ -54,7 +55,7 @@ impl CompatibilityPlugin {
   fn tag_nested_require_data(
     &self,
     parser: &mut JavascriptParser,
-    name: String,
+    name: Atom,
     rename: String,
     in_short_hand: bool,
     start: u32,
@@ -110,7 +111,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -126,7 +127,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     } else if ident.sym == RuntimeGlobals::EXPORTS.name() {
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         "__nested_webpack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
@@ -147,7 +148,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     if for_name == RuntimeGlobals::EXPORTS.name() {
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         "__nested_webpack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
@@ -159,7 +160,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -179,13 +180,13 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
-    let name = ident.sym.as_str();
+    let name = &ident.sym;
     if name != RuntimeGlobals::REQUIRE.name() {
       None
     } else {
       self.tag_nested_require_data(
         parser,
-        name.to_string(),
+        name.clone(),
         {
           let mut lo_buffer = itoa::Buffer::new();
           let lo_str = lo_buffer.format(fn_decl.span().real_lo());

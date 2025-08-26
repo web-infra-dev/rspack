@@ -105,7 +105,7 @@ impl JavascriptParser<'_> {
 
   fn block_pre_walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(ident.sym.to_string())
+      self.define_variable(ident.sym.clone())
     }
   }
 

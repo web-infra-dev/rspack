@@ -114,7 +114,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     name: &Atom,
   ) -> Option<bool> {
     parser.tag_variable::<ESMSpecifierData>(
-      name.to_string(),
+      name.clone(),
       ESM_SPECIFIER_TAG,
       Some(ESMSpecifierData {
         name: name.clone(),

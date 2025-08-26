@@ -283,7 +283,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       && self.pattern_syntax.contains_key(ident.sym.as_str())
     {
       parser.tag_variable(
-        ident.sym.to_string(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),
@@ -297,7 +297,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
     if self.pattern_syntax.contains_key(for_name) {
       parser.tag_variable(
-        ident.sym.to_string(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),

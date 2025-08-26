@@ -310,7 +310,7 @@ impl InnerGraphPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     name: &Atom,
   ) -> TopLevelSymbol {
-    parser.define_variable(name.to_string());
+    parser.define_variable(name.clone());
 
     let existing = parser.get_variable_info(name);
     if let Some(existing) = existing
@@ -324,7 +324,7 @@ impl InnerGraphPlugin {
 
     let symbol = TopLevelSymbol::new(name.clone());
     parser.tag_variable_with_flags(
-      name.to_string(),
+      name.clone(),
       TOP_LEVEL_SYMBOL,
       Some(symbol.clone()),
       VariableInfoFlags::NORMAL,

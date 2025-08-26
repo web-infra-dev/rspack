@@ -1,43 +1,34 @@
 use rspack_core::{ConstDependency, SpanExt};
+use swc_core::{
+  atoms::Atom,
+  common::Span,
+  ecma::ast::{Ident, MemberExpr},
+};
 
 use super::JavascriptParserPlugin;
-use crate::{
-  dependency::ExportInfoDependency,
-  visitors::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo},
-};
+use crate::{dependency::ExportInfoDependency, visitors::JavascriptParser};
 
 const WEBPACK_EXPORTS_INFO: &str = "__webpack_exports_info__";
 
 pub struct ExportsInfoApiPlugin;
 
 impl JavascriptParserPlugin for ExportsInfoApiPlugin {
-  fn member(
+  fn member_chain(
     &self,
     parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
-    _name: &str,
+    member_expr: &MemberExpr,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
   ) -> Option<bool> {
-    let (members, root) = parser
-      .get_member_expression_info(member_expr, AllowedMemberTypes::Expression)
-      .and_then(|info| match info {
-        MemberExpressionInfo::Call(_) => None,
-        MemberExpressionInfo::Expression(info) => {
-          if let ExportedVariableInfo::Name(root) = info.root_info {
-            Some((info.members, root))
-          } else {
-            None
-          }
-        }
-      })?;
-
     let len = members.len();
-    if len >= 1 && root == WEBPACK_EXPORTS_INFO && parser.is_unresolved_ident(WEBPACK_EXPORTS_INFO)
-    {
+    if len >= 1 && for_name == WEBPACK_EXPORTS_INFO {
       let prop = members[len - 1].clone();
       let dep = Box::new(ExportInfoDependency::new(
         member_expr.span.real_lo(),
         member_expr.span.real_hi(),
-        members.into_iter().take(len - 1).collect::<Vec<_>>(),
+        members.iter().take(len - 1).cloned().collect::<Vec<_>>(),
         prop,
       ));
       parser.presentational_dependencies.push(dep);
@@ -50,10 +41,10 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
   fn identifier(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
-    expr: &swc_core::ecma::ast::Ident,
-    _for_name: &str,
+    expr: &Ident,
+    for_name: &str,
   ) -> Option<bool> {
-    if expr.sym == WEBPACK_EXPORTS_INFO {
+    if for_name == WEBPACK_EXPORTS_INFO {
       let dep = Box::new(ConstDependency::new(expr.span.into(), "true".into(), None));
       parser.presentational_dependencies.push(dep);
       Some(true)

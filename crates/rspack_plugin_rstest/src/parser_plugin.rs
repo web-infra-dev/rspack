@@ -208,7 +208,7 @@ impl RstestParserPlugin {
       && import_call.callee.as_import().is_some()
     {
       parser.tag_variable::<bool>(
-        self.compose_rstest_import_call_key(import_call),
+        self.compose_rstest_import_call_key(import_call).into(),
         RSTEST_MOCK_FIRST_ARG_TAG,
         Some(true),
       );
@@ -515,7 +515,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {
       let tag_data = parser.get_tag_data(
-        &self.compose_rstest_import_call_key(call_expr),
+        &self.compose_rstest_import_call_key(call_expr).into(),
         RSTEST_MOCK_FIRST_ARG_TAG,
       );
 
@@ -658,16 +658,11 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   fn identifier(
     &self,
     parser: &mut rspack_plugin_javascript::visitors::JavascriptParser,
-    ident: &Ident,
-    _for_name: &str,
+    _ident: &Ident,
+    for_name: &str,
   ) -> Option<bool> {
-    let str = ident.sym.as_str();
-    if !parser.is_unresolved_ident(str) {
-      return None;
-    }
-
     if self.module_path_name {
-      match str {
+      match for_name {
         DIR_NAME => {
           parser
             .presentational_dependencies

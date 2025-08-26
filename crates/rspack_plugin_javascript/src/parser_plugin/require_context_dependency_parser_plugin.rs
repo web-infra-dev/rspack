@@ -7,7 +7,7 @@ use swc_core::{common::Spanned, ecma::ast::CallExpr};
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::RequireContextDependency,
-  visitors::{JavascriptParser, clean_regexp_in_context_module, expr_matcher::is_require_context},
+  visitors::{JavascriptParser, clean_regexp_in_context_module},
 };
 
 pub struct RequireContextDependencyParserPlugin;
@@ -15,12 +15,8 @@ pub struct RequireContextDependencyParserPlugin;
 const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 
 impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, _name: &str) -> Option<bool> {
-    if expr
-      .callee
-      .as_expr()
-      .is_none_or(|expr| !is_require_context(&**expr))
-    {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
+    if for_name != "require.context" {
       return None;
     }
 

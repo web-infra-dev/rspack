@@ -37,7 +37,7 @@ impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
       .map(|(name, _)| Atom::new(name))
       .collect();
     for name in variables {
-      if parser.get_free_info_from_variable(&name).is_none() {
+      if parser.is_variable_defined(&name) {
         parser
           .build_info
           .top_level_declarations
