@@ -138,10 +138,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ExportMode {
-    let key = (
-      self.id,
-      runtime.map(|runtime| get_runtime_key(runtime).to_owned()),
-    );
+    let key = (self.id, runtime.map(get_runtime_key));
     module_graph_cache.cached_get_mode(key, || {
       self.get_mode_inner(module_graph, module_graph_cache, runtime)
     })
@@ -501,6 +498,7 @@ impl ESMExportImportedSpecifierDependency {
     let TemplateContext {
       module,
       runtime_requirements,
+      runtime,
       ..
     } = ctxt;
     let compilation = ctxt.compilation;
@@ -508,7 +506,7 @@ impl ESMExportImportedSpecifierDependency {
     let mg = &compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
     let module_identifier = module.identifier();
-    let import_var = compilation.get_import_var(&self.id);
+    let import_var = compilation.get_import_var(&self.id, *runtime);
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         fragments.push(

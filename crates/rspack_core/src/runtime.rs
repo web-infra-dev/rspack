@@ -4,7 +4,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
-use rustc_hash::FxHashMap as HashMap;
+use ustr::{Ustr, UstrMap, UstrSet};
 
 use crate::{EntryOptions, EntryRuntime};
 
@@ -12,8 +12,9 @@ use crate::{EntryOptions, EntryRuntime};
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
-  inner: ustr::UstrSet,
-  key: String,
+  inner: UstrSet,
+  #[cacheable(with=AsRefStr)]
+  key: Ustr,
 }
 
 impl std::fmt::Display for RuntimeSpec {
@@ -45,28 +46,28 @@ impl std::cmp::PartialEq for RuntimeSpec {
 impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
-  type Target = ustr::UstrSet;
+  type Target = UstrSet;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
 
-impl From<ustr::UstrSet> for RuntimeSpec {
-  fn from(value: ustr::UstrSet) -> Self {
+impl From<UstrSet> for RuntimeSpec {
+  fn from(value: UstrSet) -> Self {
     Self::new(value)
   }
 }
 
-impl FromIterator<ustr::Ustr> for RuntimeSpec {
-  fn from_iter<T: IntoIterator<Item = ustr::Ustr>>(iter: T) -> Self {
-    Self::new(ustr::UstrSet::from_iter(iter))
+impl FromIterator<Ustr> for RuntimeSpec {
+  fn from_iter<T: IntoIterator<Item = Ustr>>(iter: T) -> Self {
+    Self::new(UstrSet::from_iter(iter))
   }
 }
 
 impl IntoIterator for RuntimeSpec {
-  type Item = ustr::Ustr;
-  type IntoIter = <ustr::UstrSet as IntoIterator>::IntoIter;
+  type Item = Ustr;
+  type IntoIter = <UstrSet as IntoIterator>::IntoIter;
 
   fn into_iter(self) -> Self::IntoIter {
     self.inner.into_iter()
@@ -74,10 +75,10 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: ustr::UstrSet) -> Self {
+  pub fn new(inner: UstrSet) -> Self {
     let mut this = Self {
       inner,
-      key: String::new(),
+      key: Ustr::from(""),
     };
     this.update_key();
     this
@@ -105,7 +106,7 @@ impl RuntimeSpec {
     Self::new(res)
   }
 
-  pub fn insert(&mut self, r: ustr::Ustr) -> bool {
+  pub fn insert(&mut self, r: Ustr) -> bool {
     let update = self.inner.insert(r);
     if update {
       self.update_key();
@@ -126,12 +127,13 @@ impl RuntimeSpec {
       if self.key.is_empty() {
         return;
       }
-      self.key = String::new();
+      self.key = Ustr::from("");
       return;
     }
     let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
     ordered.sort_unstable();
-    self.key = ordered.join("_");
+    let key = ordered.join("_");
+    self.key = Ustr::from(&key);
   }
 
   pub fn as_str(&self) -> &str {
@@ -139,7 +141,9 @@ impl RuntimeSpec {
   }
 }
 
-pub type RuntimeKey = String;
+pub type RuntimeKey = Ustr;
+
+pub type RuntimeKeyMap<T> = UstrMap<T>;
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeMode {
@@ -209,7 +213,7 @@ pub fn filter_runtime(
     Some(runtime) => {
       let mut some = false;
       let mut every = true;
-      let mut result = ustr::UstrSet::default();
+      let mut result = UstrSet::default();
 
       for &r in runtime.iter() {
         let cur = RuntimeSpec::from_iter([r]);
@@ -287,7 +291,7 @@ pub fn subtract_runtime_condition(
       if let Some(a) = runtime {
         a.difference(b).copied().collect()
       } else {
-        ustr::UstrSet::default()
+        UstrSet::default()
       }
     }
   };
@@ -297,8 +301,8 @@ pub fn subtract_runtime_condition(
   RuntimeCondition::Spec(merged.into())
 }
 
-pub fn get_runtime_key(runtime: &RuntimeSpec) -> &str {
-  &runtime.key
+pub fn get_runtime_key(runtime: &RuntimeSpec) -> RuntimeKey {
+  runtime.key
 }
 
 pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
@@ -308,7 +312,7 @@ pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeSpecMap<T> {
   pub mode: RuntimeMode,
-  pub map: HashMap<RuntimeKey, T>,
+  pub map: RuntimeKeyMap<T>,
 
   pub single_runtime: Option<RuntimeSpec>,
   pub single_value: Option<T>,
@@ -342,7 +346,7 @@ impl<T> RuntimeSpecMap<T> {
           None
         }
       }
-      RuntimeMode::Map => self.map.get(get_runtime_key(runtime)),
+      RuntimeMode::Map => self.map.get(&get_runtime_key(runtime)),
     }
   }
 
@@ -358,7 +362,7 @@ impl<T> RuntimeSpecMap<T> {
           None
         }
       }
-      RuntimeMode::Map => self.map.get_mut(get_runtime_key(runtime)),
+      RuntimeMode::Map => self.map.get_mut(&get_runtime_key(runtime)),
     }
   }
 
@@ -388,16 +392,12 @@ impl<T> RuntimeSpecMap<T> {
 
           self
             .map
-            .insert(get_runtime_key(&single_runtime).to_string(), single_value);
-          self
-            .map
-            .insert(get_runtime_key(&runtime).to_string(), value);
+            .insert(get_runtime_key(&single_runtime), single_value);
+          self.map.insert(get_runtime_key(&runtime), value);
         }
       }
       RuntimeMode::Map => {
-        self
-          .map
-          .insert(get_runtime_key(&runtime).to_string(), value);
+        self.map.insert(get_runtime_key(&runtime), value);
       }
     }
   }
@@ -439,22 +439,20 @@ impl<'a, T> Iterator for RuntimeSpecMapValues<'a, T> {
 
 #[derive(Default, Debug)]
 pub struct RuntimeSpecSet {
-  map: HashMap<RuntimeKey, RuntimeSpec>,
+  map: RuntimeKeyMap<RuntimeSpec>,
 }
 
 impl RuntimeSpecSet {
   pub fn get(&self, runtime: &RuntimeSpec) -> Option<&RuntimeSpec> {
-    self.map.get(get_runtime_key(runtime))
+    self.map.get(&get_runtime_key(runtime))
   }
 
   pub fn set(&mut self, runtime: RuntimeSpec) {
-    self
-      .map
-      .insert(get_runtime_key(&runtime).to_string(), runtime);
+    self.map.insert(get_runtime_key(&runtime), runtime);
   }
 
   pub fn contains(&self, runtime: &RuntimeSpec) -> bool {
-    self.map.contains_key(get_runtime_key(runtime))
+    self.map.contains_key(&get_runtime_key(runtime))
   }
 
   pub fn values(&self) -> hash_map::Values<'_, RuntimeKey, RuntimeSpec> {

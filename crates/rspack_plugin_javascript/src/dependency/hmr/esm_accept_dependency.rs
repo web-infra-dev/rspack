@@ -109,6 +109,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       if let Some(request) = request {
         let stmts = import_statement(
           *module,
+          *runtime,
           compilation,
           runtime_requirements,
           id,

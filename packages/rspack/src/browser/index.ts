@@ -1,5 +1,5 @@
 export * from "../index";
-export { BrowserImportEsmPlugin } from "./BrowserImportEsmPlugin";
+export { BrowserHttpImportEsmPlugin } from "./BrowserHttpImportEsmPlugin";
 
 import { fs, volume } from "./fs";
 export const builtinMemFs = {

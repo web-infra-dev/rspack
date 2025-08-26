@@ -1,13 +1,10 @@
 import type { Compiler } from ".";
 
-const DOMAIN_ESM_SH = "https://esm.sh";
-
 interface BrowserHttpImportPluginOptions {
 	/**
 	 * ESM CDN domain
-	 * @default "https://esm.sh"
 	 */
-	domain?: string | ((request: string, packageName: string) => string);
+	domain: string | ((request: string, packageName: string) => string);
 	/**
 	 * Specify ESM CDN URL for dependencies.
 	 */
@@ -24,14 +21,20 @@ interface BrowserHttpImportPluginOptions {
 /**
  * Convert imports of dependencies in node modules to http imports from esm cdn.
  */
-export class BrowserImportEsmPlugin {
-	constructor(private options: BrowserHttpImportPluginOptions = {}) {}
+export class BrowserHttpImportEsmPlugin {
+	constructor(private options: BrowserHttpImportPluginOptions) {}
 
 	apply(compiler: Compiler) {
 		compiler.hooks.normalModuleFactory.tap("BrowserHttpImportPlugin", nmf => {
 			nmf.hooks.resolve.tap("BrowserHttpImportPlugin", resolveData => {
 				const request = resolveData.request;
 				const packageName = getPackageName(request);
+
+				// We don't consider match resource and inline loaders
+				// Because usually they are not used with dependent modules like `sass-loader?react`
+				if (request.includes("!")) {
+					return;
+				}
 
 				// If dependencyUrl is provided, use it to resolve the request
 				if (this.options.dependencyUrl) {
@@ -51,7 +54,7 @@ export class BrowserImportEsmPlugin {
 				}
 
 				// If the issuer is a URL, request must be relative to that URL too
-				const issuerUrl = toUrl(resolveData.contextInfo.issuer);
+				const issuerUrl = toHttpUrl(resolveData.contextInfo.issuer);
 				if (issuerUrl) {
 					resolveData.request = this.resolveWithUrlIssuer(request, issuerUrl);
 					return;
@@ -71,7 +74,7 @@ export class BrowserImportEsmPlugin {
 	}
 
 	resolveNodeModule(request: string, packageName: string) {
-		let domain = DOMAIN_ESM_SH;
+		let domain = "";
 		if (typeof this.options.domain === "function") {
 			domain = this.options.domain(request, packageName);
 		} else if (typeof this.options.domain === "string") {
@@ -85,7 +88,7 @@ export class BrowserImportEsmPlugin {
 
 	isNodeModule(request: string) {
 		// Skip requests like "http://xxx"
-		if (toUrl(request)) {
+		if (toHttpUrl(request)) {
 			return false;
 		}
 
@@ -137,10 +140,12 @@ function getRequestWithVersion(request: string, version: string) {
 	}
 }
 
-function toUrl(request: string): URL | undefined {
+function toHttpUrl(request: string): URL | undefined {
 	try {
 		const url = new URL(request);
-		return url;
+		if (url.protocol === "http:" || url.protocol === "https:") {
+			return url;
+		}
 	} catch {
 		return undefined;
 	}

@@ -382,27 +382,16 @@ impl SplitChunksPlugin {
           }
           let mut chunk_key_to_string = HashMap::<ChunksKey, String, ChunksKeyHashBuilder>::default();
 
-          let mut filtered = plugin
+          let filtered = plugin
             .cache_groups
             .iter()
             .enumerate()
-            .filter(|(index, _)| temp[*index]).collect::<Vec<_>>();
-
-          filtered.sort_by(|a, b| {
-            b.1.priority.partial_cmp(&a.1.priority).unwrap_or_else(|| {
-              a.0.cmp(&b.0)
-            })
-          });
+            .filter(|(index, _)| temp[*index]);
 
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
-          let mut matched_max_priority = None;
 
-          for (cache_group_index, cache_group) in filtered.into_iter() {
-            if let Some(matched_max_priority) = matched_max_priority && cache_group.priority < matched_max_priority {
-              break;
-            }
-
+          for (cache_group_index, cache_group) in filtered {
             let combs = if cache_group.used_exports {
               if used_exports_combs.is_none() {
                 used_exports_combs = Some(combinator.get_combs(
@@ -479,10 +468,6 @@ impl SplitChunksPlugin {
 
               let selected_chunks_key =
                 get_key(selected_chunks.iter().copied());
-
-              if matched_max_priority.is_none() {
-                matched_max_priority = Some(cache_group.priority);
-              }
 
               merge_matched_item_into_module_group_map(
                 MatchedItem {
