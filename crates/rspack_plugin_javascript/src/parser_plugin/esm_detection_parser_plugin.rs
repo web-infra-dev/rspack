@@ -16,12 +16,15 @@ use crate::{
 
 impl JavascriptParser<'_> {
   fn throw_top_level_await_error(&mut self, msg: String, span: Span) {
-    self.errors.push(Box::new(create_traceable_error(
-      "JavaScript parse error".into(),
-      msg,
-      self.source_file,
-      span.into(),
-    )));
+    self.errors.push(
+      create_traceable_error(
+        "JavaScript parse error".into(),
+        msg,
+        self.source_file,
+        span.into(),
+      )
+      .into(),
+    );
   }
 
   fn handle_top_level_await(&mut self, allow_top_level: bool, span: Span) {

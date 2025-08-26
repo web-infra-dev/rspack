@@ -15,7 +15,7 @@ use rspack_cacheable::{
   with::{AsMap, AsOption, AsPreset, Skip},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
-use rspack_error::{Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity, error};
+use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
@@ -40,8 +40,7 @@ use crate::{
   Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType,
   OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
-  diagnostics::{CapturedLoaderError, ModuleBuildError},
-  get_context, impl_module_meta_info, module_update_hash,
+  diagnostics::ModuleBuildError, get_context, impl_module_meta_info, module_update_hash,
 };
 
 #[cacheable]
@@ -292,7 +291,7 @@ impl NormalModule {
     let mut hasher = RspackHash::from(output_options);
     "source".hash(&mut hasher);
     if let Some(error) = self.first_error() {
-      error.message().hash(&mut hasher);
+      error.message.hash(&mut hasher);
     } else if let Some(s) = &self.source {
       s.hash(&mut hasher);
     }
@@ -444,23 +443,7 @@ impl Module for NormalModule {
         .collect();
 
       self.source = None;
-      let diagnostic = if err.is::<CapturedLoaderError>() {
-        let captured_error = err
-          .downcast::<CapturedLoaderError>()
-          .expect("err must be CapturedLoaderError");
-        Diagnostic::from(
-          ModuleBuildError::new(rspack_error::Error::new_boxed(captured_error.source)).boxed(),
-        )
-        .with_details(captured_error.details)
-      } else {
-        let node_error = err.downcast_ref::<NodeError>();
-        let stack = node_error.and_then(|e| e.stack.clone());
-        let hide_stack = node_error.and_then(|e| e.hide_stack);
-        let e = ModuleBuildError::new(err).boxed();
-        Diagnostic::from(e)
-          .with_stack(stack)
-          .with_hide_stack(hide_stack)
-      };
+      let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(err)));
       self.add_diagnostic(diagnostic);
 
       self.build_info.hash =
@@ -567,7 +550,7 @@ impl Module for NormalModule {
       })
       .await?
       .split_into_parts();
-    if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
+    if diagnostics.iter().any(|d| d.is_error()) {
       self.build_meta = Default::default();
     }
     if !diagnostics.is_empty() {

@@ -1,8 +1,5 @@
 use rspack_core::DependencyRange;
-use rspack_error::{
-  TraceableError,
-  miette::{Severity, diagnostic},
-};
+use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use swc_core::{
   common::SourceFile,
@@ -261,8 +258,14 @@ pub fn create_traceable_error(
   message: String,
   fm: &SourceFile,
   span: DependencyRange,
-) -> TraceableError {
-  TraceableError::from_source_file(fm, span.start as usize, span.end as usize, title, message)
+) -> Error {
+  Error::from_string(
+    Some(fm.src.clone().into_string()),
+    span.start as usize,
+    span.end as usize,
+    title,
+    message,
+  )
 }
 
 pub fn context_reg_exp(
@@ -285,24 +288,18 @@ pub fn clean_regexp_in_context_module(
 ) -> Option<RspackRegex> {
   if regexp.sticky() || regexp.global() {
     if let Some(error_span) = error_span {
-      parser.warning_diagnostics.push(Box::new(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "Contexts can't use RegExps with the 'g' or 'y' flags".to_string(),
-          parser.source_file,
-          error_span,
-        )
-        .with_severity(rspack_error::RspackSeverity::Warn),
-      ));
-    } else {
-      parser.warning_diagnostics.push(
-        diagnostic!(
-          severity = Severity::Warning,
-          code = "Critical dependency",
-          "Contexts can't use RegExps with the 'g' or 'y' flags"
-        )
-        .into(),
+      let mut error = create_traceable_error(
+        "Critical dependency".into(),
+        "Contexts can't use RegExps with the 'g' or 'y' flags".to_string(),
+        parser.source_file,
+        error_span,
       );
+      error.severity = Severity::Warning;
+      parser.warning_diagnostics.push(Diagnostic::from(error));
+    } else {
+      let mut err = Error::warning("Contexts can't use RegExps with the 'g' or 'y' flags".into());
+      err.code = Some("Critical dependency".into());
+      parser.warning_diagnostics.push(err.into());
     }
     None
   } else {

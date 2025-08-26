@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use itertools::Itertools;
 use regex::Captures;
 use rspack_core::DependencyRange;
-use rspack_error::miette::{Diagnostic, Severity};
+use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -124,22 +124,21 @@ fn add_magic_comment_warning(
   comment_name: &str,
   comment_type: &str,
   captures: &Captures,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  warning_diagnostics: &mut Vec<Diagnostic>,
   span: DependencyRange,
 ) {
-  warning_diagnostics.push(Box::new(
-    create_traceable_error(
-      "Magic comments parse failed".into(),
-      format!(
-        "`{comment_name}` expected {comment_type}, but received: {}.",
-        captures.get(2).map_or("", |m| m.as_str())
-      ),
-      source_file,
-      span,
-    )
-    .with_severity(Severity::Warning)
-    .with_hide_stack(Some(true)),
-  ))
+  let mut error: Error = create_traceable_error(
+    "Magic comments parse failed".into(),
+    format!(
+      "`{comment_name}` expected {comment_type}, but received: {}.",
+      captures.get(2).map_or("", |m| m.as_str())
+    ),
+    source_file,
+    span,
+  );
+  error.severity = Severity::Warning;
+  error.hide_stack = Some(true);
+  warning_diagnostics.push(error.into())
 }
 
 // Using vm.runInNewContext in webpack
@@ -166,7 +165,7 @@ pub fn try_extract_webpack_magic_comment(
   comments: &Option<&dyn Comments>,
   error_span: Span,
   span: Span,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  warning_diagnostics: &mut Vec<Diagnostic>,
 ) -> WebpackCommentMap {
   let mut result = WebpackCommentMap::new();
   comments.with_leading(span.lo, |comments| {
@@ -275,7 +274,7 @@ fn analyze_comments(
   source_file: &SourceFile,
   comments: &[Comment],
   error_span: Span,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  warning_diagnostics: &mut Vec<Diagnostic>,
   result: &mut WebpackCommentMap,
 ) {
   // TODO: remove this, parser.comments contains two same block comment

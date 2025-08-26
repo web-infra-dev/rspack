@@ -5,12 +5,7 @@ use rayon::iter::{
   ParallelIterator,
 };
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_error::{
-  Diagnostic, Result,
-  emitter::{
-    DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
-  },
-};
+use rspack_error::{Diagnostic, Display, Result, StdioDisplayer, StringDisplayer};
 use rustc_hash::FxHashMap as HashMap;
 
 mod utils;
@@ -36,13 +31,13 @@ impl<'compilation> Stats<'compilation> {
   }
 
   pub fn emit_diagnostics(&self) -> Result<()> {
-    let mut displayer = StdioDiagnosticDisplay::default();
+    let displayer = StdioDisplayer::default();
     displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
     displayer.emit_batch_diagnostic(self.compilation.get_errors())
   }
 
   pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
-    let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
+    let displayer = StringDisplayer::new(false, sorted);
     let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
     let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
     Ok(format!("{warnings}{errors}"))
@@ -618,7 +613,7 @@ impl Stats<'_> {
   }
 
   pub fn get_errors<T>(&self, f: impl Fn(Vec<StatsError>) -> T) -> T {
-    let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
+    let diagnostic_displayer = StringDisplayer::new(self.compilation.options.stats.colors, false);
 
     let module_graph = self.compilation.get_module_graph();
 
@@ -626,7 +621,7 @@ impl Stats<'_> {
       .compilation
       .get_errors_sorted()
       .map(|d| {
-        let module_identifier = d.module_identifier();
+        let module_identifier = d.module_identifier;
         let (module_name, module_id) = module_identifier
           .as_ref()
           .and_then(move |identifier| {
@@ -638,7 +633,7 @@ impl Stats<'_> {
           .unzip();
 
         let chunk = d
-          .chunk()
+          .chunk
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
@@ -648,9 +643,9 @@ impl Stats<'_> {
           self.compilation,
           &self.compilation.options,
         );
-        let code = d.code().map(|code| code.to_string());
+        let code = d.code.clone();
         StatsError {
-          name: d.code().map(|c| c.to_string()),
+          name: code.clone(),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
@@ -658,8 +653,8 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc().map(|loc| loc.to_string()),
-          file: d.file(),
+          loc: d.loc.as_ref().map(|loc| loc.to_string()),
+          file: d.file.as_ref().map(|file| file.as_path()),
 
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
@@ -668,8 +663,8 @@ impl Stats<'_> {
             c.id(&self.compilation.chunk_ids_artifact)
               .map(|id| id.as_str())
           }),
-          details: d.details(),
-          stack: d.stack(),
+          details: d.details.clone(),
+          stack: d.stack.clone(),
           module_trace,
         }
       })
@@ -679,7 +674,7 @@ impl Stats<'_> {
   }
 
   pub fn get_warnings<T>(&self, f: impl Fn(Vec<StatsError>) -> T) -> T {
-    let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
+    let diagnostic_displayer = StringDisplayer::new(self.compilation.options.stats.colors, false);
 
     let module_graph = self.compilation.get_module_graph();
 
@@ -687,7 +682,7 @@ impl Stats<'_> {
       .compilation
       .get_warnings_sorted()
       .map(|d| {
-        let module_identifier = d.module_identifier();
+        let module_identifier = d.module_identifier;
         let (module_name, module_id) = module_identifier
           .as_ref()
           .and_then(|identifier| {
@@ -699,7 +694,7 @@ impl Stats<'_> {
           .unzip();
 
         let chunk = d
-          .chunk()
+          .chunk
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
@@ -710,10 +705,10 @@ impl Stats<'_> {
           &self.compilation.options,
         );
 
-        let code = d.code().map(|code| code.to_string());
+        let code = d.code.clone();
 
         StatsError {
-          name: d.code().map(|c| c.to_string()),
+          name: code.clone(),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
@@ -721,8 +716,8 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc().map(|loc| loc.to_string()),
-          file: d.file(),
+          loc: d.loc.as_ref().map(|loc| loc.to_string()),
+          file: d.file.as_ref().map(|file| file.as_path()),
 
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
@@ -731,8 +726,8 @@ impl Stats<'_> {
             c.id(&self.compilation.chunk_ids_artifact)
               .map(|id| id.as_str())
           }),
-          details: d.details(),
-          stack: d.stack(),
+          details: d.details.clone(),
+          stack: d.stack.clone(),
           module_trace,
         }
       })
@@ -895,13 +890,13 @@ impl Stats<'_> {
       let errors = self
         .compilation
         .get_errors()
-        .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+        .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
       let warnings = self
         .compilation
         .get_warnings()
-        .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+        .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
       let profile = if let Some(p) = mgm.profile()
@@ -1366,7 +1361,7 @@ pub fn create_stats_errors<'a>(
   diagnostics
     .par_iter()
     .map(|d| {
-      let module_identifier = d.module_identifier();
+      let module_identifier = d.module_identifier;
       let (module_name, module_id) = module_identifier
         .as_ref()
         .and_then(|identifier| {
@@ -1378,7 +1373,7 @@ pub fn create_stats_errors<'a>(
         .unzip();
 
       let chunk = d
-        .chunk()
+        .chunk
         .map(ChunkUkey::from)
         .map(|key| compilation.chunk_by_ukey.expect_get(&key));
 
@@ -1389,11 +1384,11 @@ pub fn create_stats_errors<'a>(
         &compilation.options,
       );
 
-      let code = d.code().map(|code| code.to_string());
+      let code = d.code.clone();
 
-      let mut diagnostic_displayer = DiagnosticDisplayer::new(colored);
+      let diagnostic_displayer = StringDisplayer::new(colored, false);
       StatsError {
-        name: d.code().map(|c| c.to_string()),
+        name: code.clone(),
         message: diagnostic_displayer
           .emit_diagnostic(d)
           .expect("should print diagnostics"),
@@ -1401,15 +1396,15 @@ pub fn create_stats_errors<'a>(
         module_identifier,
         module_name,
         module_id: module_id.flatten(),
-        loc: d.loc().map(|loc| loc.to_string()),
-        file: d.file(),
+        loc: d.loc.as_ref().map(|loc| loc.to_string()),
+        file: d.file.as_ref().map(|file| file.as_path()),
 
         chunk_name: chunk.and_then(|c| c.name()),
         chunk_entry: chunk.map(|c| c.has_runtime(&compilation.chunk_group_by_ukey)),
         chunk_initial: chunk.map(|c| c.can_be_initial(&compilation.chunk_group_by_ukey)),
         chunk_id: chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
-        details: d.details(),
-        stack: d.stack(),
+        details: d.details.clone(),
+        stack: d.stack.clone(),
         module_trace,
       }
     })

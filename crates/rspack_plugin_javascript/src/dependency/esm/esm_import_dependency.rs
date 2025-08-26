@@ -15,10 +15,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
   import_statement,
 };
-use rspack_error::{
-  Diagnostic, DiagnosticExt, TraceableError,
-  miette::{MietteDiagnostic, Severity},
-};
+use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -286,31 +283,25 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     } else {
       (Severity::Warning, "ESModulesLinkingWarning")
     };
-    let mut diagnostic = if let Some(span) = module_dependency.range()
+    let mut error = if let Some(span) = module_dependency.range()
       && let Some(source) = parent_module.source()
     {
-      Diagnostic::from(
-        TraceableError::from_file(
-          source.source().into_owned(),
-          span.start as usize,
-          span.end as usize,
-          title.to_string(),
-          message,
-        )
-        .with_severity(severity)
-        .boxed(),
+      Error::from_file(
+        source.source().into_owned(),
+        span.start as usize,
+        span.end as usize,
+        title.to_string(),
+        message,
       )
-      .with_hide_stack(Some(true))
     } else {
-      Diagnostic::from(
-        MietteDiagnostic::new(message)
-          .with_code(title)
-          .with_severity(severity)
-          .boxed(),
-      )
-      .with_hide_stack(Some(true))
+      let mut error = rspack_error::error!(message);
+      error.code = Some(title.into());
+      error
     };
-    diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
+    error.severity = severity;
+    error.hide_stack = Some(true);
+    let mut diagnostic = Diagnostic::from(error);
+    diagnostic.module_identifier = Some(*parent_module_identifier);
     diagnostic
   };
   if matches!(

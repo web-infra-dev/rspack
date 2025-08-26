@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rspack_core::{ConstDependency, property_access};
-use rspack_error::miette::Severity;
+use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
   common::{Span, Spanned},
@@ -203,12 +203,14 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       } else {
         // import.meta
         // warn when access import.meta directly
-        parser.warning_diagnostics.push(Box::new(create_traceable_error(
+        let mut error: Error = create_traceable_error(
           "Critical dependency".into(),
           "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
           parser.source_file,
-          span.into(),
-        ).with_severity(Severity::Warning)));
+          span.into()
+        );
+        error.severity = Severity::Warning;
+        parser.warning_diagnostics.push(error.into());
 
         let content = if parser.is_asi_position(span.lo()) {
           ";({})"

@@ -393,10 +393,7 @@ pub trait Module:
     let build_info = self.build_info();
     !build_info.cacheable
       || value_cache_version.has_diff(&build_info.value_dependencies)
-      || self
-        .diagnostics()
-        .iter()
-        .any(|item| matches!(item.severity(), rspack_error::RspackSeverity::Error))
+      || self.diagnostics().iter().any(|item| item.is_error())
   }
 
   fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {

@@ -15,7 +15,7 @@ use rspack_core::{
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
   ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, TypeReexportPresenceMode,
 };
-use rspack_error::miette::Diagnostic;
+use rspack_error::Diagnostic;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
@@ -214,8 +214,8 @@ impl From<Span> for StatementPath {
 
 pub struct JavascriptParser<'parser> {
   // ===== results =======
-  pub(crate) errors: Vec<Box<dyn Diagnostic + Send + Sync>>,
-  pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub(crate) errors: Vec<Diagnostic>,
+  pub(crate) warning_diagnostics: Vec<Diagnostic>,
   pub dependencies: Vec<BoxDependency>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
@@ -280,7 +280,7 @@ impl<'parser> JavascriptParser<'parser> {
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
   ) -> Self {
-    let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
+    let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
     let mut errors = Vec::with_capacity(4);
     let dependencies = Vec::with_capacity(64);
     let blocks = Vec::with_capacity(64);

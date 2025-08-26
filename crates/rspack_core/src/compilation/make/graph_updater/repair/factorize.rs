@@ -93,9 +93,9 @@ impl Task<TaskContext> for FactorizeTask {
       Err(mut e) => {
         // Wrap source code if available
         if let Some(s) = self.original_module_source {
-          let has_source_code = e.source_code().is_some();
+          let has_source_code = e.src.is_some();
           if !has_source_code {
-            e = e.with_source_code(s.source().to_string());
+            e.src = Some(s.source().to_string().into());
           }
         }
         // Bail out if `options.bail` set to `true`,
@@ -103,10 +103,9 @@ impl Task<TaskContext> for FactorizeTask {
         if self.options.bail {
           return Err(e);
         }
-        create_data.diagnostics.insert(
-          0,
-          Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc()),
-        );
+        let mut diagnostic = Diagnostic::from(e);
+        diagnostic.loc = create_data.dependencies[0].loc();
+        create_data.diagnostics.insert(0, diagnostic);
         None
       }
     };
