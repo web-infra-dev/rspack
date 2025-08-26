@@ -78,13 +78,10 @@ use rspack_plugin_mf::{
 use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_module_replacement::{ContextReplacementPlugin, NormalModuleReplacementPlugin};
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
-use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
-use rspack_plugin_rsdoctor::RsdoctorPlugin;
 use rspack_plugin_rslib::RslibPlugin;
-use rspack_plugin_rstest::RstestPlugin;
 use rspack_plugin_runtime::{
   ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin, ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin, enable_chunk_loading_plugin,
@@ -120,7 +117,6 @@ use self::{
     RawProvideOptions,
   },
   raw_normal_replacement::RawNormalModuleReplacementPluginOptions,
-  raw_progress::RawProgressPluginOptions,
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
@@ -133,9 +129,7 @@ use crate::{
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
     SourceMapDevToolPluginOptions,
   },
-  rsdoctor::RawRsdoctorPluginOptions,
   rslib::RawRslibPluginOptions,
-  rstest::RawRstestPluginOptions,
 };
 
 #[napi(string_enum)]
@@ -329,13 +323,20 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(plugin);
       }
       BuiltinPluginName::ProgressPlugin => {
-        let plugin = ProgressPlugin::new(
-          downcast_into::<RawProgressPluginOptions>(self.options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?
-            .into(),
-        )
-        .boxed();
-        plugins.push(plugin);
+        #[cfg(not(feature = "browser"))]
+        {
+          use rspack_plugin_progress::ProgressPlugin;
+
+          use crate::raw_options::raw_builtins::raw_progress::RawProgressPluginOptions;
+
+          let plugin = ProgressPlugin::new(
+            downcast_into::<RawProgressPluginOptions>(self.options)
+              .map_err(|report| napi::Error::from_reason(report.to_string()))?
+              .into(),
+          )
+          .boxed();
+          plugins.push(plugin);
+        }
       }
       BuiltinPluginName::EntryPlugin => {
         let plugin_options = downcast_into::<JsEntryPluginOptions>(self.options)
@@ -769,16 +770,30 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
       }
       BuiltinPluginName::RsdoctorPlugin => {
-        let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let options = raw_options.into();
-        plugins.push(RsdoctorPlugin::new(options).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          use rspack_plugin_rsdoctor::RsdoctorPlugin;
+
+          use crate::rsdoctor::RawRsdoctorPluginOptions;
+
+          let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          let options = raw_options.into();
+          plugins.push(RsdoctorPlugin::new(options).boxed());
+        }
       }
       BuiltinPluginName::RstestPlugin => {
-        let raw_options = downcast_into::<RawRstestPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let options = raw_options.into();
-        plugins.push(RstestPlugin::new(options).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          use rspack_plugin_rstest::RstestPlugin;
+
+          use crate::rstest::RawRstestPluginOptions;
+
+          let raw_options = downcast_into::<RawRstestPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          let options = raw_options.into();
+          plugins.push(RstestPlugin::new(options).boxed());
+        }
       }
       BuiltinPluginName::RslibPlugin => {
         let raw_options = downcast_into::<RawRslibPluginOptions>(self.options)
