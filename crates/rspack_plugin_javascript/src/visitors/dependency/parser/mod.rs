@@ -430,6 +430,14 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  pub fn is_top_level_scope(&self) -> bool {
+    matches!(self.top_level_scope, TopLevelScope::Top)
+  }
+
+  pub fn is_top_level_this(&self) -> bool {
+    !matches!(self.top_level_scope, TopLevelScope::False)
+  }
+
   pub fn add_local_module(&mut self, name: &str) -> LocalModule {
     let m = LocalModule::new(name.into(), self.local_modules.len());
     self.local_modules.push(m.clone());

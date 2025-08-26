@@ -5,6 +5,7 @@ mod eval_cond_expr;
 mod eval_lit_expr;
 mod eval_member_expr;
 mod eval_new_expr;
+mod eval_prop_name;
 mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
@@ -19,9 +20,10 @@ pub use self::{
   eval_binary_expr::eval_binary_expression,
   eval_call_expr::eval_call_expression,
   eval_cond_expr::eval_cond_expression,
-  eval_lit_expr::{eval_lit_expr, eval_prop_name},
+  eval_lit_expr::{eval_bigint, eval_bool, eval_lit_expr, eval_number, eval_str},
   eval_member_expr::eval_member_expression,
   eval_new_expr::eval_new_expression,
+  eval_prop_name::eval_prop_name,
   eval_source::eval_source,
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,

@@ -1078,7 +1078,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_await_expression(&mut self, expr: &AwaitExpr) {
-    if matches!(self.top_level_scope, TopLevelScope::Top) {
+    if self.is_top_level_scope() {
       self.plugin_drive.clone().top_level_await_expr(self, expr);
     }
     self.walk_expression(&expr.arg);
@@ -1127,7 +1127,7 @@ impl JavascriptParser<'_> {
           if !ident
             .sym
             .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+              this.plugin_drive.clone().assign(this, expr, for_name)
             })
             .unwrap_or_default()
           {
@@ -1144,7 +1144,7 @@ impl JavascriptParser<'_> {
           if !ident
             .sym
             .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+              this.plugin_drive.clone().assign(this, expr, for_name)
             })
             .unwrap_or_default()
           {
@@ -1154,13 +1154,18 @@ impl JavascriptParser<'_> {
       );
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
-      let expr_name = self.get_member_expression_info(member, AllowedMemberTypes::Expression);
-      if let Some(_expr_name) = expr_name
-        && self
-          .plugin_drive
-          .clone()
-          // TODO: assign_member_chain
-          .assign(self, expr, None)
+      if let Some(MemberExpressionInfo::Expression(expr_name)) =
+        self.get_member_expression_info(member, AllowedMemberTypes::Expression)
+        && expr_name
+          .root_info
+          .call_hooks_name(self, |parser, for_name| {
+            parser.plugin_drive.clone().assign_member_chain(
+              parser,
+              expr,
+              &expr_name.members,
+              for_name,
+            )
+          })
           .unwrap_or_default()
       {
         return;

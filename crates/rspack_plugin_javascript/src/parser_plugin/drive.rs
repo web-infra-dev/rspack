@@ -222,10 +222,27 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::AssignExpr,
-    for_name: Option<&str>,
+    for_name: &str,
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.assign(parser, expr, for_name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn assign_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::AssignExpr,
+    members: &[Atom],
+    for_name: &str,
+  ) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.assign_member_chain(parser, expr, members, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;

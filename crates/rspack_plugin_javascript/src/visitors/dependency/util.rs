@@ -167,11 +167,7 @@ pub(crate) mod expr_matcher {
   // - Matching would ignore Span and SyntaxContext
   define_expr_matchers!({
     is_require: "require",
-    is_module_id: "module.id",
-    is_module_loaded: "module.loaded",
-    is_module_exports: "module.exports",
     is_module_require: "module.require",
-    is_object_define_property: "Object.defineProperty",
   });
 }
 
@@ -340,38 +336,5 @@ mod test {
     test!("module.require.a().b", false);
     test!("module.require.a.b", false);
     test!("a.module.require.b", false);
-  }
-
-  #[test]
-  fn supports_expr_like() {
-    let e = MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(
-        Ident {
-          ctxt: Default::default(),
-          span: DUMMY_SP,
-          sym: "module".into(),
-          optional: false,
-        }
-        .into(),
-      ),
-      prop: MemberProp::Ident(
-        Ident {
-          ctxt: Default::default(),
-          span: DUMMY_SP,
-          sym: "exports".into(),
-          optional: false,
-        }
-        .into(),
-      ),
-    };
-    assert!(
-      expr_matcher::is_module_exports(&e),
-      "should support evaluate with `MemberExpr`"
-    );
-    assert!(
-      expr_matcher::is_module_exports(&Expr::Member(e)),
-      "should support evaluate with `Expr::Member(MemberExpr {{ .. }})`"
-    );
   }
 }
