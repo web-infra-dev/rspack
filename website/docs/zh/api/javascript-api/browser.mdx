@@ -53,7 +53,7 @@ const files = builtinMemFs.volume.toJSON();
 
 ### BrowserHttpImportEsmPlugin
 
-在本地开发环境中，开发者通常通过包管理器将项目依赖下载并存储在根目录的 `node_modules` 目录中。在使用 `@rspack/browser ` 时，你可以将依赖项预先写入内存文件系统的 `node_modules` 目录。然而，当项目依赖的模块存在不确定性时（例如允许用户自由选择第三方依赖），预先写入所有依赖就变得不切实际。
+在本地开发环境中，开发者通常通过包管理器将项目依赖下载并存储在根目录的 `node_modules` 目录中。在使用 `@rspack/browser` 时，你可以将依赖项预先写入内存文件系统的 `node_modules` 目录。然而，当项目依赖的模块存在不确定性时（例如允许用户自由选择第三方依赖），预先写入所有依赖就变得不切实际。
 
 ```ts
 import { builtinMemFs } from '@rspack/browser';
