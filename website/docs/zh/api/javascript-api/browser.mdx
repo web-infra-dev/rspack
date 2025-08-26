@@ -35,7 +35,7 @@ rspack({}, (err, stats) => {
 
 以下是基本用法示例，完整 API 可参考 [memfs 文档](https://github.com/streamich/memfs)：
 
-```typescript
+```ts
 import { builtinMemFs } from '@rspack/browser';
 
 // Write files to memfs
@@ -55,7 +55,7 @@ const files = builtinMemFs.volume.toJSON();
 
 在本地开发环境中，开发者通常通过包管理器将项目依赖下载并存储在根目录的 `node_modules` 目录中。在使用 `@rspack/browser ` 时，你可以将依赖项预先写入内存文件系统的 `node_modules` 目录。然而，当项目依赖的模块存在不确定性时（例如允许用户自由选择第三方依赖），预先写入所有依赖就变得不切实际。
 
-```typescript
+```ts
 import { builtinMemFs } from '@rspack/browser';
 
 builtinMemFs.volume.fromJSON({
@@ -80,7 +80,7 @@ export default {
 
 如下所示，`BrowserHttpImportEsmPlugin` 支持通过选项指定 ESM CDN 的域名，或者指定某些依赖的特定版本或 URL。
 
-```typescript
+```ts
 interface BrowserHttpImportPluginOptions {
   /**
    * ESM CDN 域名
@@ -123,7 +123,7 @@ export default {
 
 你需要提供一个 `execute` 函数，用于动态执行和加载 CommonJS 模块，并修改 `runtime.module.exports` 来设置该模块导出的内容。`@rspack/browser` 提供了一个不安全的实现 `BrowserRequirePlugin.unsafeExecute`，其内部直接使用 `new Function` 执行代码。你也可以根据实际需求，基于该 API 封装更安全的实现，例如：
 
-```typescript
+```ts
 function safeExecute(code: string, runtime: CommonJsRuntime) {
   const safeCode = sanitizeCode(code);
   BrowserRequirePlugin.unsafeExecute(safeCode, runtime);
@@ -136,7 +136,7 @@ function uselessExecute(_code: string, runtime: CommonJsRuntime) {
 
 `BrowserRequirePlugin` 的选项如下：
 
-```typescript
+```ts
 /**
  * 加载 CommonJS 模块的运行时上下文
  */
