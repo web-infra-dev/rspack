@@ -11,7 +11,7 @@ _August 26, 2025_
 
 ---
 
-We're excited to announce the release of Rspack 1.5!
+We're excited to announce Rspack 1.5!
 
 Notable changes include:
 
@@ -63,7 +63,7 @@ export default {
 };
 ```
 
-In real-world testing, enabling barrel file optimization delivered significant performance improvements across applications at different scales:
+Real-world benchmarks show that barrel file optimization delivers substantial performance gains across applications at different scales:
 
 - [Benchmark](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components):
 
@@ -89,7 +89,7 @@ For more details, see the [experiments.lazyBarrel documentation](/config/experim
 
 Previously, Rspack relied on the [watchpack](https://github.com/webpack/watchpack) file system watcher to track file changes. However, we identified performance bottlenecks with `watchpack`. For example, each file change triggers the creation of a new instance, consuming significant CPU and memory in large projects (see [#7490](https://github.com/web-infra-dev/rspack/issues/7490)).
 
-To address this, we redesigned and reimplemented a native file system watcher in Rust, offering the following benefits:
+To address this, we built a native file system watcher in Rust, offering the following benefits:
 
 - **High performance**: HMR performance improvements of up to 50%
 - **Incremental updates**: Only processes files that actually change
@@ -266,7 +266,7 @@ This change brings the following benefits:
 3. Support for extracting the Module Federation runtime into the runtime chunk
 4. A new hook-based plugin system for extensibility
 
-Below is a comparison of bundle size optimization achieved in a demo project using the new Module Federation plugin:
+The table below shows bundle size optimizations in a demo project using the new Module Federation plugin:
 
 | Configuration                             | Before | After | Reduction |
 | :---------------------------------------- | -----: | ----: | --------: |
