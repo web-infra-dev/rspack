@@ -18,19 +18,19 @@ Notable changes:
 - New features
   - [Barrel file optimization](#barrel-file-optimization)
   - [Faster file system watcher](#faster-file-system-watcher)
-  - [@rspack/browser Released](#rspackbrowser-released)
+  - [Improved browser support](#improved-browser-support)
   - [Extending Rspack with Rust](#extending-rspack-with-rust)
-  - [Const Inline](#const-inline)
-  - [Support for type Re-exports](#support-for-type-re-exports)
-  - [Built-in Virtual modules plugin](#built-in-virtual-modules-plugin)
+  - [Const inline optimization](#const-inline-optimization)
+  - [Type re-export analysis](#type-re-export-analysis)
+  - [Built-in virtual modules plugin](#built-in-virtual-modules-plugin)
   - [Module Federation runtime hoisting](#module-federation-runtime-hoisting)
   - [Installation size optimization](#installation-size-optimization)
   - [Seal phase performance optimization](#seal-phase-performance-optimization)
 - Misc
-  - [End of Supporting for Node.js 16](#end-of-supporting-for-nodejs-16)
+  - [Drop support for Node.js 16](#drop-support-for-nodejs-16)
   - [Resolver JavaScript API](#resolver-javascript-api)
 - Rstack progress
-  - [Rslint Released](#rslint-released)
+  - [Rslint released](#rslint-released)
   - [Rsbuild 1.5](#rsbuild-15)
   - [Rslib 0.12](#rslib-012)
   - [Rspress 2.0 beta](#rspress-20-beta)
@@ -106,7 +106,7 @@ export default {
 };
 ```
 
-### @rspack/browser Released
+### Improved browser support
 
 In **Rspack 1.4**, we officially introduced **Wasm target support**, enabling Rspack to run in browser-based environments powered by WebContainers, such as [StackBlitz](https://stackblitz.com/).
 
@@ -157,7 +157,7 @@ For more details, see the [design rationale](https://rspack-contrib.github.io/rs
 
 ⚠️ Please note: adopting this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
 
-### Const inline
+### Const inline optimization
 
 When organizing project code, it is common to centralize constants into files such as `constants.js` or, in TypeScript projects, into `types.ts` files containing enums.
 
@@ -209,7 +209,7 @@ If you only want to inline `const enums`, please refer to this [example](https:/
 
 > For more details, see the [experiments.inlineEnum documentation](/config/experiments#experimentsinlineenum).
 
-### Support for type Re-exports
+### Type re-export analysis
 
 In TypeScript projects, type re-exports are a common pattern:
 
@@ -231,7 +231,7 @@ Rspack 1.5 introduces the [experiments.typeReexportsPresence](/config/experiment
 
 > For more details, see the [experiments.typeReexportsPresence documentation](/config/experiments#experimentstypereexportspresence).
 
-### Built-in Virtual modules plugin
+### Built-in virtual modules plugin
 
 In Rspack 1.4, we introduced [custom InputFileSystem](/blog/announcing-1-4#custom-input-file-system), which combined with the `webpack-virtual-modules` plugin, enabled support for virtual modules. However, this approach still had performance bottlenecks when dealing with a large number of virtual modules.
 
@@ -310,7 +310,7 @@ For example, in a large-scale application at ByteDance containing approximately 
 
 ## Misc
 
-### End of supporting for Node.js 16
+### Drop support for Node.js 16
 
 Since Node.js 16 reached its end of life on September 11, 2023, and many community npm packages (such as `webpack-dev-server`, `css-loader`, `sass-loader`, etc.) have stop supporting for Node.js 16, **Rspack 1.5 will no longer support Node.js 16** to reduce maintenance complexity.
 
