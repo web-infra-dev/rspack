@@ -335,6 +335,27 @@ It provides module resolution functionality similar to [enhanced-resolve](https:
 
 For usage details, please refer to the [Resolver API documentation](/api/javascript-api/resolver#resolver-api).
 
+### Stabilization of lazy compilation
+
+After extensive validation, the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) option has been promoted from an experimental feature to a stable feature, and is now available at the top level of the Rspack configuration:
+
+```diff title="rspack.config.mjs"
+export default {
+- experiments: {
+-   lazyCompilation: true,
+- },
++ lazyCompilation: true,
+};
+```
+
+The previous experiments.lazyCompilation option will continue to work, but will emit a deprecation warning.
+
+### Deprecation of experiments.topLevelAwait
+
+The Rspack [experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) option was used to control support for top-level await, and it has always been enabled by default.
+After careful observation, we found no real-world scenarios where disabling top-level await was necessary.
+As a result, this option has been deprecated and is planned for removal in Rspack 2.0, at that point top-level await support can no longer be disabled.
+
 ## Rstack progress
 
 [Rstack](/guide/start/ecosystem#rstack) is a unified JavaScript toolchain centered on Rspack, with high performance and consistent architecture.
