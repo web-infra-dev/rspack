@@ -379,8 +379,12 @@ async fn this_compilation(
     DependencyType::ConsumeSharedFallback,
     params.normal_module_factory.clone(),
   );
-  self.init_context(compilation);
-  self.init_resolver(compilation);
+  if self.compiler_context.get().is_none() {
+    self.init_context(compilation);
+  }
+  if self.resolver.get().is_none() {
+    self.init_resolver(compilation);
+  }
   self
     .init_matched_consumes(compilation, self.get_resolver())
     .await;
