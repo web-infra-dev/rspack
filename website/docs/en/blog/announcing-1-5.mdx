@@ -55,7 +55,7 @@ To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/exp
 
 This is particularly effective for projects with many barrel files, significantly improving build performance.
 
-```javascript
+```js title="rspack.config.mjs"
 export default {
   experiments: {
     lazyBarrel: true,
@@ -73,7 +73,7 @@ Real-world benchmarks show that barrel file optimization delivers substantial pe
 | Module Resolutions | 39,675 | 20,071 |      `-49%` |
 | Module Builds      |  9,358 |  5,062 |      `-46%` |
 
-- An Application from ByteDance:
+- An application from ByteDance:
 
 | Metric             |  Before |   After | Improvement |
 | ------------------ | ------: | ------: | ----------: |
