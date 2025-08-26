@@ -1,10 +1,424 @@
 ---
-date: 2025-8-18 11:00:00
+date: 2025-8-26 11:00:00
 sidebar: false
 ---
 
-_Angular 18, 2025_
+_August 26, 2025_
 
 # Announcing Rspack 1.5
 
 ![Rspack 1.5](https://assets.rspack.rs/rspack/rspack-banner-v1-5.png)
+
+---
+
+Rspack 1.5 has been released!
+
+Notable changes:
+
+- New features
+  - [Barrel file optimization](#barrel-file-optimization)
+  - [Faster file system watcher](#faster-file-system-watcher)
+  - [@rspack/browser Released](#rspackbrowser-released)
+  - [Extending Rspack with Rust](#extending-rspack-with-rust)
+  - [Const Inline](#const-inline)
+  - [Support for type Re-exports](#support-for-type-re-exports)
+  - [Built-in Virtual modules plugin](#built-in-virtual-modules-plugin)
+  - [Module Federation runtime hoisting](#module-federation-runtime-hoisting)
+  - [Installation size optimization](#installation-size-optimization)
+  - [Seal phase performance optimization](#seal-phase-performance-optimization)
+- Misc
+  - [End of Supporting for Node.js 16](#end-of-supporting-for-nodejs-16)
+  - [Resolver JavaScript API](#resolver-javascript-api)
+- Rstack progress
+  - [Rslint Released](#rslint-released)
+  - [Rsbuild 1.5](#rsbuild-15)
+  - [Rslib 0.12](#rslib-012)
+  - [Rspress 2.0 beta](#rspress-20-beta)
+  - [Rsdoctor 1.2](#rsdoctor-12)
+  - [Rstest 0.2](#rstest-02)
+
+## New features
+
+### Barrel file optimization
+
+A **barrel file** is a common module export pattern that re-exports multiple modules through a single entry file, typically named `index.js` or `index.ts`. For example:
+
+```js
+export { Button, Tab } from './components';
+export * as utils from './utils';
+export * from './hooks';
+```
+
+While this pattern simplifies module imports, it can introduce performance overhead during the build process: when importing a single module from a barrel file, Rspack must resolve and build **all** modules referenced in the barrel file, even if only a small subset is actually used.
+
+To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) feature. This optimization automatically detects **side-effect-free barrel files** and applies deferred build optimizations to their `reexports`. Modules are only resolved and built when truly needed, significantly reducing unnecessary module resolution and build costs.
+This is particularly effective in projects with a large number of barrel files, delivering substantial build performance improvements.
+
+```javascript
+export default {
+  experiments: {
+    lazyBarrel: true,
+  },
+};
+```
+
+In real-world testing, enabling barrel file optimization yielded clear performance gains across applications of different scales:
+
+- [Benchmark](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)：
+
+| Metric             | Before |     After | Improvement |
+| ------------------ | -----: | --------: | ----------: |
+| Build Time         |  1.47s |     1.19s |        -20% |
+| Module Resolutions | 39,675 | 20,071 次 |        -49% |
+| Module Builds      |  9,358 |  5,062 次 |        -46% |
+
+- An Application from ByteDance：
+
+| Metric             |  Before |   After | Improvement |
+| ------------------ | ------: | ------: | ----------: |
+| Build Time         |   17.9s |   16.0s |        -10% |
+| Module Resolutions | 181,078 | 137,232 |        -24% |
+| Module Builds      |  38,046 |  29,405 |        -23% |
+
+Barrel file optimization is enabled by default in Rsbuild 1.5, and we plan to make it the default in Rspack 1.6 for all projects.
+For more details, see the [experiments.lazyBarrel documentation](https://chatgpt.com/config/experiments#experimentslazybarrel).
+
+### Faster file system watcher
+
+Previously, Rspack relied on the [watchpack](https://github.com/webpack/watchpack) file system watcher to track file changes. However, we identified performance bottlenecks in `watchpack`. For example, each file change would trigger a new instance creation, consuming significant CPU and memory in large projects (see [#7490](https://github.com/web-infra-dev/rspack/issues/7490)).
+`
+To address this, we redesigned and reimplemented a native file system watcher in Rust, offering the following benefits:
+
+- **High performance**: HMR speed improvements of up to 50%
+- **Incremental updates**: Only processes files that actually change
+- **Persistent runtime**: Runs continuously throughout development without repeated reinitialization
+
+You can try out the new watcher by enabling [experiments.nativeWatcher](/config/experiments#experimentsnativewatcher):
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    nativeWatcher: true,
+  },
+  watchOptions: {
+    // Other watch options...
+  },
+};
+```
+
+### @rspack/browser Released
+
+In **Rspack 1.4**, we officially introduced **Wasm target support**, enabling Rspack to run in browser-based environments powered by WebContainers, such as [StackBlitz](https://stackblitz.com/).
+
+With the release of [@rspack/browser](https://www.npmjs.com/package/@rspack/browser), you can now **use Rspack directly in any modern browser**—without relying on WebContainers or specific platforms.
+`@rspack/browser` is designed specifically for pure browser environments, providing core bundling capabilities for complex web projects. It offers a lightweight way to reproduce issues, share configurations, and helps developers get started with Rspack through interactive online demos.
+
+![rspack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
+
+The API of `@rspack/browser` is aligned with the JavaScript API of `@rspack/core`, with additional features and APIs tailored for browser environments.
+
+```js
+import { rspack, builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+// Just like using JavaScript API of @rspack/core
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // Get output from memfs after bundling
+  const files = builtinMemFs.volume.toJSON();
+});
+```
+
+`@rspack/browser` is currently in an experimental stage and may introduce breaking changes.
+We will continue to enhance its capabilities for online bundling scenarios. In the meantime, Welcome to try it out at the [Rspack Playground](https://playground.rspack.rs/).
+
+### Extending Rspack with Rust
+
+You can now extend Rspack directly using **Rust**! With our provided repository template, you can build custom Rust plugins and loaders, and even replace Rspack’s default native binding.
+
+In JavaScript plugins, data transfer and type conversion between Rust and JavaScript can introduce performance overhead. By customizing Rspack’s binding, your code integrates directly with the Rspack Rust Core, eliminating cross-language communication costs while still retaining full support for all Rspack JavaScript APIs.
+
+This approach is particularly suitable for replacing hooks that frequently interact with Rust (such as `compilation.hooks.processAssets`) and for compute-intensive custom loaders, where it can deliver significant build performance improvements.
+
+**Key benefits:**
+
+- **Native performance** — Extensions written in Rust run with the same native performance as the Rspack Rust Core.
+- **Full compatibility** — Retains all existing JavaScript APIs without requiring changes to your project.
+- **Developer-friendly** — The official template includes a complete development environment and publishing workflow.
+
+You can get started quickly with the [official template](https://github.com/rspack-contrib/rspack-binding-template).
+For more details, see the [design rationale](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html).
+
+⚠️ Please note: adopting this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
+
+### Const inline
+
+When organizing project code, it is common to centralize constants into files such as `constants.js` or, in TypeScript projects, into `types.ts` files containing enums.
+
+Rspack introduces two experimental features — [experiments.inlineConst](/config/experiments#experimentsinlineconst) and [experiments.inlineEnum](/config/experiments#experimentsinlineenum) — that perform **cross-module inlining optimizations for constants**. These optimizations help compression tools perform more accurate static analysis, eliminate unused code branches, and further reduce bundle size.
+
+For example, `inlineConst` can inline constants defined in leaf modules of the module graph across modules, as shown below:
+
+```js
+// font-settings.js
+export const bold = 0b001;
+export const italic = 0b010;
+
+// index.js
+import { bold, italic } from './font-settings';
+
+// MY_FONT is defined by DefinePlugin({ FONT: 0b001 })
+const fontStyle = {};
+if (MY_FONT & bold) fontStyle['font-weight'] = 'bold';
+if (MY_FONT & italic) fontStyle['font-style'] = 'italic';
+applyFont(fontStyle);
+```
+
+> For more details, see the [experiments.inlineConst documentation](/config/experiments#experimentsinlineconst).
+> This feature is planned to be enabled by default in v1.6.
+
+`inlineEnum` performs **cross-module inlining optimization for TypeScript enums**, working in a similar way to `inlineConst`.
+
+```ts
+// types.ts
+export enum Kind {
+  A,
+  B,
+}
+// index.ts
+import { Kind } from './types.ts';
+console.log(Kind.A);
+```
+
+with `inlineEnum` enabled:
+
+```js
+(() => {
+  console.log(0);
+})();
+```
+
+Note that when `inlineEnum` is enabled, Rspack will inline all enums by default.
+If you only want to inline `const enums`, please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum).
+
+> For more details, see the [experiments.inlineEnum documentation](/config/experiments#experimentsinlineenum).
+
+### Support for type Re-exports
+
+In TypeScript projects, type re-exports are a common pattern:
+
+```ts
+// index.ts
+export { MyType } from './types.ts';
+
+// types.ts
+export type MyType = {
+  name: string;
+};
+```
+
+In previous versions, if you re-exported a type without adding the `type` modifier, Rspack could throw a warning such as: `export 'MyType' (reexported as 'MyType') was not found`.
+
+This happened because Rspack processed each module in isolation. As a result, a type export (like `MyType` in the example) could be mistakenly treated as a value. Since no corresponding value export was found in `./types.ts`, the warning was triggered.
+
+Rspack 1.5 introduces the [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) option, which improves the detection of TypeScript type exports. With this option enabled, Rspack can correctly recognize type re-exports across modules, preventing false warnings.
+
+> For more details, see the [experiments.typeReexportsPresence documentation](/config/experiments#experimentstypereexportspresence).
+
+### Built-in Virtual modules plugin
+
+In Rspack 1.4, we introduced [custom InputFileSystem](/blog/announcing-1-4#custom-input-file-system), which combined with the `webpack-virtual-modules` plugin, enabled support for virtual modules. However, this approach still had performance bottlenecks when dealing with a large number of virtual modules.
+
+To address this, Rspack 1.5 adds a built-in [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin).
+Implemented in Rust, this plugin moves the storage and management of virtual modules to the Rust layer, effectively reducing module read and parse overhead. As a result, it delivers significantly better performance when handling large volumes of virtual modules.
+
+The `VirtualModulesPlugin` retains API compatibility with `webpack-virtual-modules`, making migration straightforward:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.experiments.VirtualModulesPlugin({
+      'src/generated/config.js': 'export default { version: "1.0.0" };',
+    }),
+  ],
+};
+```
+
+> Thanks to our contributor [@nilptr](https://github.com/nilptr) for his great [work](https://github.com/web-infra-dev/rspack/pull/11021).
+
+### Module Federation runtime hoisting
+
+Previously, the Module Federation runtime was bootstrapped by patching the entry module.
+In the new version, the Module Federation plugin integrates its runtime code directly with Rspack’s runtime and elevates it into the runtime chunk.
+This ensures that the Module Federation runtime is prepared before the application starts.
+
+This change brings the following benefits:
+
+1. Reduced bundle size in multi-entry scenarios
+2. Fixed initialization errors related to Module Federation
+3. Support for extracting the Module Federation runtime into the runtime chunk
+4. A new hook-based plugin system for extensibility
+
+Below is a comparison of bundle size optimization achieved in a demo project using the new Module Federation plugin:
+
+| Configuration                             | Before | After | Reduction |
+| :---------------------------------------- | -----: | ----: | --------: |
+| Multiple Entries (default)                |  210kb | 210kb |        0% |
+| Multiple Entries + runtimeChunk: true     |  210kb | 150kb |       29% |
+| Multiple Entries + runtimeChunk: 'single' |  210kb |  70kb |       67% |
+
+### Installation size optimization
+
+Since version 1.4, we have implemented a series of optimizations to reduce Rspack’s installation size, which have already delivered significant results:
+
+![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspack-install-size.png)
+
+Some of the most impactful optimizations include:
+
+- Reducing the install size by **5 MB** through adjustments to [compiler parameters](https://github.com/web-infra-dev/rspack/pull/11077)
+- Optimizing upstream dependencies [wasmer](https://github.com/wasmerio/wasmer/pull/5621/files) and [SWC](https://github.com/swc-project/swc/pull/10638), resulting in nearly **3 MB** saved
+- Leveraging [feature flags](https://github.com/web-infra-dev/rspack/pull/10965) to cut down close to **2 MB**
+- Improving the [browserslist-rs](https://github.com/browserslist/browserslist-rs/pull/32) data structure, saving around **2 MB**
+
+Rspack now integrated artifact size checks into its daily [code quality checks](https://github.com/web-infra-dev/rspack/blob/main/.github/actions/binary-limit/action.yml), and we will continue to closely monitor size changes in future releases.
+
+### Seal phase performance optimization
+
+In terms of build performance, Rspack 1.5 delivers major optimizations to the **Seal phase** (the stage responsible for code generation and optimization).
+By improving data structures, increasing parallelism, and introducing hot code caching, Rspack significantly improves build efficiency for large projects. Thanks to parallelization, the performance gains are even more pronounced on multi-core machines.
+
+For example, in a large-scale application at ByteDance containing approximately **40,000 modules**, the overall Seal phase time was reduced by **around 50%**, with substantial improvements observed across all major sub-stages:
+
+| Phase                    | v1.4.0 | v1.5.0 | Improvement |
+| ------------------------ | -----: | -----: | ----------: |
+| Flag dependency exports  |  394ms |  181ms |      `-54%` |
+| Flag dependency usage    | 1828ms |  454ms |      `-75%` |
+| Code splitting           | 2019ms |  777ms |      `-62%` |
+| Bundle splitting         | 1588ms |  712ms |      `-55%` |
+| Module concatenation     | 2645ms |  616ms |      `-76%` |
+| Content hash calculation |  881ms |  404ms |      `-54%` |
+
+## Misc
+
+### End of supporting for Node.js 16
+
+Since Node.js 16 reached its end of life on September 11, 2023, and many community npm packages (such as `webpack-dev-server`, `css-loader`, `sass-loader`, etc.) have stop supporting for Node.js 16, **Rspack 1.5 will no longer support Node.js 16** to reduce maintenance complexity.
+
+Node.js version requirements for each package:
+
+| Package            |        v1.4 |        v1.5 |
+| ------------------ | ----------: | ----------: |
+| @rspack/core       |  `>=16.0.0` | `>=18.12.0` |
+| @rspack/cli        | `>=18.12.0` | `>=18.12.0` |
+| @rspack/dev-server | `>=18.12.0` | `>=18.12.0` |
+| @rsbuild/core      | `>=16.10.0` | `>=18.12.0` |
+
+:::tip
+⚠️ This is a breaking change. If you are currently using Node.js 16, you will need to upgrade to Node.js **18.12.0 or higher** in order to use Rspack 1.5.
+:::
+
+For projects still running on Node.js 16, please follow these steps to upgrade:
+
+1. **Upgrade Node.js version**: We recommend upgrading to Node.js 18.12.0 or later (Node.js 22 LTS is recommended).
+2. **Update CI/CD configuration**: Ensure your continuous integration setup is updated to use a compatible Node.js version.
+
+### Resolver JavaScript API
+
+To make it easier for our users to leverage Rspack's module resolution capabilities, we have integrated [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) into the Rspack JavaScript API.
+It provides module resolution functionality similar to [enhanced-resolve](https://github.com/webpack/enhanced-resolve).
+
+For usage details, please refer to the [Resolver API documentation](/api/javascript-api/resolver#resolver-api).
+
+## Rstack progress
+
+[Rstack](/guide/start/ecosystem#rstack) is a unified JavaScript toolchain centered on Rspack, with high performance and consistent architecture.
+
+### Rslint released
+
+![rslint-banner](https://assets.rspack.rs/rslint/rslint-banner.png)
+
+We are excited to announce the release of [Rslint](https://rslint.rs/)!
+Rslint is a next-generation, **TypeScript-first linter**, written in Go and powered by the type-checking capabilities of **typescript-go**.
+
+It originates from [tsgolint](https://github.com/typescript-eslint/tsgolint), created by [@auvred](https://github.com/auvred), and has since been extended and optimized to deliver a more powerful linting experience.
+
+Key features of Rslint include:
+
+- **ESLint-style configuration and directives**: almost seamless adoption
+- **IDE support**: VS Code extension available, with support for Cursor, Trae, and more
+- **Auto-fix**: resolve issues instantly with `rslint --fix`
+- **Rule support**: 50+ `@typescript-eslint` rules already implemented
+- **Test validation**: runs the original `typescript-eslint` test suite to ensure rule correctness
+
+Rslint is still in its early stage of development, and we are actively working on expanding its feature set and rule support.
+We welcome you to try it out and share feedback to help us refine and improve Rslint together!
+
+### Rsbuild 1.5
+
+Out-of-the-box usability has always been a core design principle of Rsbuild. In Rsbuild 1.5, we have enabled several of Rspack’s latest features by default, delivering improved build performance, including:
+
+- Enabled [lazyCompilation](/config/lazy-compilation) to compile dynamically imported modules on demand, improving development server startup speed.
+- Enabled [lazyBarrel](/config/experiments#experimentslazybarrel) to optimize the build performance of barrel files and reduce unnecessary module resolution.
+- Enabled [inlineEnum](/config/experiments#experimentsinlineenum) to inline TypeScript enums, reducing the bundle size after compilation.
+- Enabled [typeReexportsPresence](/config/experiments#experimentsinlineenum) to correctly detect TypeScript type re-exports, improving type handling accuracy.
+
+> Once you upgrade to the latest version of Rsbuild, these features are enabled by default with no additional configuration required.
+
+Rsbuild 1.5 also introduces the new [output.module](https://rsbuild.rs/zh/config/output/module) option, which allows generating build outputs in the ES modules format.
+
+Currently, this option provides ESM format support for Node.js bundles. We plan to extend support to web applications in future releases.
+
+```ts title="rsbuild.config.ts"
+export default {
+  output: {
+    target: 'node',
+    module: true,
+  },
+};
+```
+
+### Rslib 0.12
+
+In Rslib 0.12, we have integrated the Rstest testing framework into the project template. If needed, you can use Rstest to test your library projects, enabling development and testing through a unified Rstack toolchain.
+
+![Using Rstest](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rslib-using-rstest.png)
+
+In addition, we are actively designing and developing a new ESM output generation strategy, aiming to deliver ESM output quality comparable to tools like esbuild and Rollup, while keeping webpack-compatible interop behavior to ensure correctness.
+See [interop tests](https://jserfeng.github.io/interop-test/by-test-case) for details.
+
+### Rspress 2.0 beta
+
+Rspress 2.0 is now in beta, with development nearing completion. We plan to release the stable version within the next two months.
+
+The latest beta introduces a Markdown text copy component, making it easier for users to provide documentation content to large language models for analysis and processing. You can try out this feature on various Rstack documentation sites:
+
+![plugin-llms Demo](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspress-plugin-llms-ui.png)
+
+> This feature is powered by the **@rspress/plugin-llms** plugin, which automatically generates files compliant with the [llms.txt](https://llmstxt.org/) standard. For usage details, please refer to the [@rspress/plugin-llms documentation](https://v2.rspress.rs/plugin/official-plugins/llms).
+
+### Rsdoctor 1.2
+
+Rsdoctor 1.2 introduces several significant updates, including precise analysis of concatenated modules and an all-new Treemap visualization. These enhancements improve both the accuracy of build artifact analysis and the visualization experience, helping you better understand and optimize your project bundles.
+
+Read more in the [Rsdoctor 1.2 Release Note](https://rsdoctor.rs/zh/blog/release/release-note-1_2).
+
+### Rstest 0.2
+
+After two months of continuous iteration and over 10 rounds of optimization, **Rstest 0.2** delivers substantial improvements in both functionality and stability. This release introduces the following key enhancements:
+
+- **Mock Module Support**: Rstest now includes a comprehensive mock API, enabling developers to replace actual module implementations in test environments, with full support for mocking ES modules.
+
+![Mock Modules](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rstest-mock-modules.png)
+
+- **Enhanced Watch Mode**: Watch mode now supports incremental re-runs. When a test file or its dependencies change, Rstest intelligently re-executes only the affected tests, significantly improving testing efficiency.
+- **CLI Shortcuts**: Watch mode also introduces keyboard shortcuts, allowing developers to perform common actions more quickly and seamlessly.
+
+![Rstest Shortcuts](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rstest-cli-shortcuts.png)
