@@ -3981,6 +3981,7 @@ dependencies = [
  "anymap3",
  "async-trait",
  "derive_more",
+ "memchr",
  "once_cell",
  "rspack_cacheable",
  "rspack_collections",
