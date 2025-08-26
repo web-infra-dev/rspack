@@ -647,10 +647,10 @@ impl CodeSplitter {
 
       let a_depends_on_b = a_depend_on
         .as_deref()
-        .map_or(false, |deps| deps.contains(b_name));
+        .is_some_and(|deps| deps.contains(b_name));
       let b_depends_on_a = b_depend_on
         .as_deref()
-        .map_or(false, |deps| deps.contains(a_name));
+        .is_some_and(|deps| deps.contains(a_name));
 
       // If a depends on b, b must come first (a > b).
       // If b depends on a, a must come first (a < b).
