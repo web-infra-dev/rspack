@@ -13,7 +13,7 @@ _August 26, 2025_
 
 Rspack 1.5 has been released!
 
-Notable changes:
+Notable changes include:
 
 - New features
   - [Barrel file optimization](#barrel-file-optimization)
@@ -51,7 +51,8 @@ export * from './hooks';
 
 While this pattern simplifies module imports, it can introduce performance overhead during the build process: when importing a single module from a barrel file, Rspack must resolve and build **all** modules referenced in the barrel file, even if only a small subset is actually used.
 
-To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) feature. This optimization automatically detects **side-effect-free barrel files** and applies deferred build optimizations to their `reexports`. Modules are only resolved and built when truly needed, significantly reducing unnecessary module resolution and build costs.
+To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) feature. This optimization automatically detects **side-effect-free barrel files** and applies deferred build optimizations to their re-exports. Modules are only resolved and built when truly needed, significantly reducing unnecessary module resolution and build costs.
+
 This is particularly effective in projects with a large number of barrel files, delivering substantial build performance improvements.
 
 ```javascript
@@ -62,9 +63,9 @@ export default {
 };
 ```
 
-In real-world testing, enabling barrel file optimization yielded clear performance gains across applications of different scales:
+In real-world testing, enabling barrel file optimization yielded clear performance gains across applications at different scales:
 
-- [Benchmark](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)：
+- [Benchmark](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components):
 
 | Metric             | Before |  After | Improvement |
 | ------------------ | -----: | -----: | ----------: |
@@ -72,7 +73,7 @@ In real-world testing, enabling barrel file optimization yielded clear performan
 | Module Resolutions | 39,675 | 20,071 |      `-49%` |
 | Module Builds      |  9,358 |  5,062 |      `-46%` |
 
-- An Application from ByteDance：
+- An Application from ByteDance:
 
 | Metric             |  Before |   After | Improvement |
 | ------------------ | ------: | ------: | ----------: |
@@ -80,13 +81,14 @@ In real-world testing, enabling barrel file optimization yielded clear performan
 | Module Resolutions | 181,078 | 137,232 |      `-24%` |
 | Module Builds      |  38,046 |  29,405 |      `-23%` |
 
-Barrel file optimization is enabled by default in Rsbuild 1.5, and we plan to make it the default in Rspack 1.6 for all projects.
+Barrel file optimization is enabled by default in Rsbuild 1.5, and we plan to make it the default for all projects in Rspack 1.6.
+
 For more details, see the [experiments.lazyBarrel documentation](https://chatgpt.com/config/experiments#experimentslazybarrel).
 
 ### Faster file system watcher
 
-Previously, Rspack relied on the [watchpack](https://github.com/webpack/watchpack) file system watcher to track file changes. However, we identified performance bottlenecks in `watchpack`. For example, each file change would trigger a new instance creation, consuming significant CPU and memory in large projects (see [#7490](https://github.com/web-infra-dev/rspack/issues/7490)).
-`
+Previously, Rspack relied on the [watchpack](https://github.com/webpack/watchpack) file system watcher to track file changes. However, we identified performance bottlenecks in `watchpack`. For example, each file change triggers a new instance creation, consuming significant CPU and memory in large projects (see [#7490](https://github.com/web-infra-dev/rspack/issues/7490)).
+
 To address this, we redesigned and reimplemented a native file system watcher in Rust, offering the following benefits:
 
 - **High performance**: HMR speed improvements of up to 50%
@@ -110,8 +112,9 @@ export default {
 
 In Rspack 1.4, we officially introduced Wasm target support, enabling Rspack to run in browser-based environments powered by WebContainers, such as [StackBlitz](https://stackblitz.com/).
 
-With the release of [@rspack/browser](/api/javascript-api/browser), you can now **use Rspack directly in any modern browser**—without relying on WebContainers or specific platforms.
-`@rspack/browser` is designed specifically for pure browser environments, providing core bundling capabilities for complex web projects. It offers a lightweight way to reproduce issues, share configurations, and helps developers get started with Rspack through interactive online demos.
+With the release of [@rspack/browser](/api/javascript-api/browser), you can now **run Rspack directly in any modern browser**—without relying on WebContainers or specific platforms.
+
+`@rspack/browser` is designed specifically for pure browser environments, providing core bundling capabilities for complex web projects. It offers a lightweight way to reproduce issues, share configurations, and help developers get started with Rspack through interactive online demos.
 
 ![rspack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
 
@@ -139,9 +142,9 @@ rspack({}, (err, stats) => {
 
 ### Extending Rspack with Rust
 
-You can now extend Rspack directly using **Rust**! With our provided repository template, you can build custom Rust plugins and loaders, and even replace Rspack’s default native binding.
+You can now extend Rspack directly using **Rust**! With our provided repository template, you can build custom Rust plugins and loaders, and even replace Rspack's default native binding.
 
-In JavaScript plugins, data transfer and type conversion between Rust and JavaScript can introduce performance overhead. By customizing Rspack’s binding, your code integrates directly with the Rspack Rust Core, eliminating cross-language communication costs while still retaining full support for all Rspack JavaScript APIs.
+In JavaScript plugins, data transfer and type conversion between Rust and JavaScript can introduce performance overhead. By customizing Rspack's binding, your code integrates directly with the Rspack Rust Core, eliminating cross-language communication costs while retaining full support for all Rspack JavaScript APIs.
 
 This approach is particularly suitable for replacing hooks that frequently interact with Rust (such as `compilation.hooks.processAssets`) and for compute-intensive custom loaders, where it can deliver significant build performance improvements.
 
@@ -151,7 +154,7 @@ Key benefits:
 - **Full compatibility** — Retains all existing JavaScript APIs without requiring changes to your project.
 - **Developer-friendly** — The official template includes a complete development environment and publishing workflow.
 
-You can get started quickly with the [official template](https://github.com/rspack-contrib/rspack-binding-template). For more details, see the [design rationale](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html). Note that adopting this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
+You can get started quickly with the [official template](https://github.com/rspack-contrib/rspack-binding-template). For more details, see the [design rationale](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html). Note that this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
 
 ### Const inline optimization
 
@@ -176,8 +179,7 @@ if (MY_FONT & italic) fontStyle['font-style'] = 'italic';
 applyFont(fontStyle);
 ```
 
-> For more details, see the [experiments.inlineConst documentation](/config/experiments#experimentsinlineconst).
-> This feature is planned to be enabled by default in v1.6.
+> For more details, see the [experiments.inlineConst documentation](/config/experiments#experimentsinlineconst). This feature is planned to be enabled by default in v1.6.
 
 `inlineEnum` performs **cross-module inlining optimization for TypeScript enums**, working in a similar way to `inlineConst`.
 
@@ -192,7 +194,7 @@ import { Kind } from './types.ts';
 console.log(Kind.A);
 ```
 
-with `inlineEnum` enabled:
+With `inlineEnum` enabled:
 
 ```js
 (() => {
@@ -232,7 +234,8 @@ Rspack 1.5 introduces the [experiments.typeReexportsPresence](/config/experiment
 In Rspack 1.4, we introduced [custom InputFileSystem](/blog/announcing-1-4#custom-input-file-system), which combined with the `webpack-virtual-modules` plugin, enabled support for virtual modules. However, this approach still had performance bottlenecks when dealing with a large number of virtual modules.
 
 To address this, Rspack 1.5 adds a built-in [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin).
-Implemented in Rust, this plugin moves the storage and management of virtual modules to the Rust layer, effectively reducing module read and parse overhead. As a result, it delivers significantly better performance when handling large volumes of virtual modules.
+
+This plugin is implemented in Rust and moves the storage and management of virtual modules to the Rust layer. This effectively reduces module read and parse overhead. As a result, it delivers significantly better performance when handling large volumes of virtual modules.
 
 The `VirtualModulesPlugin` retains API compatibility with `webpack-virtual-modules`, making migration straightforward:
 
@@ -253,7 +256,7 @@ export default {
 ### Module Federation runtime hoisting
 
 Previously, the Module Federation runtime was bootstrapped by patching the entry module.
-In the new version, the Module Federation plugin integrates its runtime code directly with Rspack’s runtime and elevates it into the runtime chunk.
+In the new version, the Module Federation plugin integrates its runtime code directly with Rspack's runtime and elevates it into the runtime chunk.
 This ensures that the Module Federation runtime is prepared before the application starts.
 
 This change brings the following benefits:
@@ -275,7 +278,7 @@ More details about this change can be found [here](https://gist.github.com/Scrip
 
 ### Installation size optimization
 
-Since version 1.4, we have implemented a series of optimizations to reduce Rspack’s installation size, which have already delivered significant results:
+Since version 1.4, we have implemented a series of optimizations to reduce Rspack's installation size, which have already delivered significant results:
 
 ![binary-size-by-dates](https://assets.rspack.rs/rspack/assets/rspack-v1-5-rspack-install-size.png)
 
@@ -382,7 +385,7 @@ We welcome you to try it out and share feedback to help us refine and improve Rs
 
 ### Rsbuild 1.5
 
-Out-of-the-box usability has always been a core design principle of Rsbuild. In Rsbuild 1.5, we have enabled several of Rspack’s latest features by default, delivering improved build performance, including:
+Out-of-the-box usability has always been a core design principle of Rsbuild. In Rsbuild 1.5, we have enabled several of Rspack's latest features by default, delivering improved build performance, including:
 
 - Enabled [lazyCompilation](/config/lazy-compilation) to compile dynamically imported modules on demand, improving development server startup speed.
 - Enabled [lazyBarrel](/config/experiments#experimentslazybarrel) to optimize the build performance of barrel files and reduce unnecessary module resolution.
