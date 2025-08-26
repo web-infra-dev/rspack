@@ -23,6 +23,5 @@ serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
 termcolor          = { workspace = true }
 textwrap           = { workspace = true }
-thiserror          = { workspace = true }
 
 unicode-width = { workspace = true }

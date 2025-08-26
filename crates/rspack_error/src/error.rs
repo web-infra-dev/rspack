@@ -17,9 +17,10 @@ pub struct Label {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Error {
+pub struct ErrorData {
   pub severity: Severity,
   pub message: String,
+  pub details: Option<String>,
   pub src: Option<String>,
   pub code: Option<String>,
   pub help: Option<String>,
@@ -30,19 +31,37 @@ pub struct Error {
   pub hide_stack: Option<bool>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Error(Box<ErrorData>);
+
+impl std::ops::Deref for Error {
+  type Target = ErrorData;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl std::ops::DerefMut for Error {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
 impl Error {
+  #[allow(clippy::self_named_constructors)]
   pub fn error(message: String) -> Self {
-    Self {
+    Self(Box::new(ErrorData {
       message,
       ..Default::default()
-    }
+    }))
   }
   pub fn warning(message: String) -> Self {
-    Self {
+    Self(Box::new(ErrorData {
       severity: Severity::Warning,
       message,
       ..Default::default()
-    }
+    }))
   }
 
   pub fn from_file(
@@ -92,11 +111,11 @@ impl Error {
   where
     D: std::fmt::Display,
   {
-    Self {
+    Self(Box::new(ErrorData {
       message: msg.to_string(),
       source_error: Some(Box::new(self)),
       ..Default::default()
-    }
+    }))
   }
 }
 
