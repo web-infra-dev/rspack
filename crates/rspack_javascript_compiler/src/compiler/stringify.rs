@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{Error, miette::IntoDiagnostic};
+use rspack_error::Result;
 use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -78,7 +78,7 @@ pub struct PrintOptions<'a> {
 }
 
 impl JavaScriptCompiler {
-  pub fn stringify(&self, ast: &Ast, options: CodegenOptions) -> Result<TransformOutput, Error> {
+  pub fn stringify(&self, ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> {
     ast.visit(|program, context| {
       let keep_comments = options.keep_comments;
       let target = options.target.unwrap_or(EsVersion::latest());
@@ -111,11 +111,7 @@ impl JavaScriptCompiler {
     })
   }
 
-  pub fn print(
-    &self,
-    node: &SwcProgram,
-    options: PrintOptions<'_>,
-  ) -> Result<TransformOutput, Error> {
+  pub fn print(&self, node: &SwcProgram, options: PrintOptions<'_>) -> Result<TransformOutput> {
     let PrintOptions {
       source_len,
       source_map,
@@ -148,7 +144,7 @@ impl JavaScriptCompiler {
           source_map_config.enable.then_some(&mut src_map_buf),
         );
 
-        w.preamble(&format.preamble).into_diagnostic()?;
+        w.preamble(&format.preamble)?;
         let mut wr = Box::new(w) as Box<dyn WriteJs>;
 
         if minify {
@@ -165,7 +161,7 @@ impl JavaScriptCompiler {
           cm: source_map.clone(),
           wr,
         };
-        node.emit_with(&mut emitter).into_diagnostic()?;
+        node.emit_with(&mut emitter)?;
       }
       // SAFETY: SWC will emit valid utf8 for sure
       unsafe { String::from_utf8_unchecked(buf) }

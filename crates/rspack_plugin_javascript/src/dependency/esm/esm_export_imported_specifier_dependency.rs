@@ -25,10 +25,7 @@ use rspack_core::{
   create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
   get_terminal_binding, property_access, property_name, to_normal_comment,
 };
-use rspack_error::{
-  Diagnostic, DiagnosticExt, TraceableError,
-  miette::{MietteDiagnostic, Severity},
-};
+use rspack_error::{Diagnostic, Error, Severity};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
@@ -922,32 +919,26 @@ impl ESMExportImportedSpecifierDependency {
       let parent_module_identifier = module_graph
         .get_parent_module(&self.id)
         .expect("should have parent module for dependency");
-      let mut diagnostic = if let Some(span) = self.range()
+      let mut error = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
         && let Some(source) = parent_module.source()
       {
-        Diagnostic::from(
-          TraceableError::from_file(
-            source.source().into_owned(),
-            span.start as usize,
-            span.end as usize,
-            title.to_string(),
-            message,
-          )
-          .with_severity(severity)
-          .boxed(),
+        Error::from_file(
+          source.source().into_owned(),
+          span.start as usize,
+          span.end as usize,
+          title.to_string(),
+          message,
         )
-        .with_hide_stack(Some(true))
       } else {
-        Diagnostic::from(
-          MietteDiagnostic::new(message)
-            .with_code(title)
-            .with_severity(severity)
-            .boxed(),
-        )
-        .with_hide_stack(Some(true))
+        let mut error = rspack_error::error!(message);
+        error.code = Some(title.into());
+        error
       };
-      diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
+      error.severity = severity;
+      error.hide_stack = Some(true);
+      let mut diagnostic = Diagnostic::from(error);
+      diagnostic.module_identifier = Some(*parent_module_identifier);
       diagnostic
     };
 

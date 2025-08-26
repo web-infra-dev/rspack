@@ -7,7 +7,7 @@ use std::{
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_dojang::{Context, Dojang, Operand};
-use rspack_error::{Result, ToStringResultToRspackResultExt, error, miette};
+use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use serde_json::{Map, Value};
 
 use crate::{Environment, RuntimeGlobals};
@@ -90,11 +90,7 @@ impl RuntimeTemplate {
     }
   }
 
-  pub fn render(
-    &self,
-    key: &str,
-    params: Option<serde_json::Value>,
-  ) -> Result<String, miette::Error> {
+  pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
     let mut render_params = Value::Object(RUNTIME_GLOBALS_VALUE.clone());
 
     if let Some(params) = params {

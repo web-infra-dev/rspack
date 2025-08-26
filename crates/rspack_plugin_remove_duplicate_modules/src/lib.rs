@@ -86,7 +86,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 }
 
 impl Plugin for RemoveDuplicateModulesPlugin {
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
       .compilation_hooks
       .optimize_chunks

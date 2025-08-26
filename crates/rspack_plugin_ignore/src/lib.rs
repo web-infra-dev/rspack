@@ -4,7 +4,7 @@ use rspack_core::{
   BeforeResolveResult, ContextModuleFactoryBeforeResolve, ModuleFactoryCreateData,
   NormalModuleFactoryBeforeResolve, Plugin,
 };
-use rspack_error::{Result, miette::Context};
+use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 
@@ -37,14 +37,11 @@ impl IgnorePlugin {
   async fn check_ignore(&self, request: &str, context: &str) -> Result<Option<bool>> {
     if let Some(check_resource) = &self.options.check_resource {
       match check_resource {
-        CheckResourceContent::Fn(check) => {
-          if check(request, context)
-            .await
-            .with_context(|| "IgnorePlugin: failed to call `checkResource`")?
-          {
-            return Ok(Some(false));
-          }
-        }
+        CheckResourceContent::Fn(check) => match check(request, context).await {
+          Ok(true) => return Ok(Some(false)),
+          Err(err) => return Err(err.wrap_err("IgnorePlugin: failed to call `checkResource`")),
+          _ => {}
+        },
       }
     }
 
