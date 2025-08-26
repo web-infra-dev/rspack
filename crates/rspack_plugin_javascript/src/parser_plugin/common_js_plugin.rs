@@ -19,8 +19,8 @@ impl JavascriptParserPlugin for CommonJsPlugin {
   ) -> Option<BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::MODULE_HOT {
       Some(evaluate_to_identifier(
-        expr_name::MODULE_HOT.to_string(),
-        expr_name::MODULE.to_string(),
+        expr_name::MODULE_HOT.into(),
+        expr_name::MODULE.into(),
         None,
         start,
         end,
@@ -34,9 +34,9 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::UnaryExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    if expr_matcher::is_module(&*expr.arg) && parser.is_unresolved_ident("module") {
+    if for_name == expr_name::MODULE {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

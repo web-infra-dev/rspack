@@ -59,7 +59,7 @@ impl JavascriptParser<'_> {
             .import_specifier(self, decl, source, Some(export_name), identifier_name)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.to_string())
+            self.define_variable(identifier_name.clone())
           }
         }
         ImportSpecifier::Default(default) => {
@@ -68,7 +68,7 @@ impl JavascriptParser<'_> {
             .import_specifier(self, decl, source, Some(&"default".into()), identifier_name)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.to_string())
+            self.define_variable(identifier_name.clone())
           }
         }
         ImportSpecifier::Namespace(namespace) => {
@@ -77,7 +77,7 @@ impl JavascriptParser<'_> {
             .import_specifier(self, decl, source, None, identifier_name)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.to_string())
+            self.define_variable(identifier_name.clone())
           }
         }
       }

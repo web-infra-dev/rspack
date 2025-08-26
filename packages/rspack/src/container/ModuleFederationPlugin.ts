@@ -191,7 +191,11 @@ function getDefaultEntryRuntime(
 			options.shareStrategy ?? "version-first"
 		)}`,
 		compiler.webpack.Template.getFunctionContent(
-			require("./moduleFederationDefaultRuntime.js")
+			IS_BROWSER
+				? compiler.__internal_browser_require(
+						"@rspack/browser/moduleFederationDefaultRuntime.js"
+					)
+				: require("./moduleFederationDefaultRuntime.js")
 		)
 	].join(";");
 	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;

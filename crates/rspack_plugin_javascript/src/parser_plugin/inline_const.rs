@@ -93,7 +93,7 @@ impl JavascriptParserPlugin for InlineConstPlugin {
       let evaluated = parser.evaluate_expression(init);
       if let Some(inlinable) = to_evaluated_inlinable_value(&evaluated) {
         parser.tag_variable(
-          name.id.sym.to_string(),
+          name.id.sym.clone(),
           INLINABLE_CONST_TAG,
           Some(InlinableConstData { value: inlinable }),
         );

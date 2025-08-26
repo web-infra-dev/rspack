@@ -56,7 +56,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);
       if let Some(first_key) = first_key
-        && let Some(info) = parser.get_variable_info(first_key)
+        && let Some(info) = parser.get_variable_info(&first_key.as_ref().into())
         && !info.is_free()
       {
         return Some(false);

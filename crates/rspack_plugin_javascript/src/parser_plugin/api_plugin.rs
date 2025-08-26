@@ -1,15 +1,44 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
+use rspack_error::{Severity, TraceableError};
 use swc_core::{
-  common::Spanned,
-  ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr},
+  common::{SourceFile, Span, Spanned},
+  ecma::ast::{CallExpr, Ident, UnaryExpr},
 };
 
 use crate::{
   dependency::ModuleArgumentDependency,
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, expr_matcher, expression_not_supported, extract_member_root},
+  visitors::{JavascriptParser, create_traceable_error},
 };
+
+fn expression_not_supported(
+  file: &SourceFile,
+  name: &str,
+  is_call: bool,
+  expr_span: Span,
+) -> (Box<TraceableError>, Box<ConstDependency>) {
+  (
+    Box::new(
+      create_traceable_error(
+        "Unsupported feature".into(),
+        format!(
+          "{name}{} is not supported by Rspack.",
+          if is_call { "()" } else { "" }
+        ),
+        file,
+        expr_span.into(),
+      )
+      .with_severity(Severity::Warn)
+      .with_hide_stack(Some(true)),
+    ),
+    Box::new(ConstDependency::new(
+      expr_span.into(),
+      "(void 0)".into(),
+      None,
+    )),
+  )
+}
 
 const WEBPACK_HASH: &str = "__webpack_hash__";
 const WEBPACK_LAYER: &str = "__webpack_layer__";
@@ -318,54 +347,42 @@ impl JavascriptParserPlugin for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
-    _name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    macro_rules! not_supported_expr {
-      ($check: ident, $expr: ident, $name: literal) => {
-        if expr_matcher::$check($expr) {
-          let (warning, dep) = expression_not_supported(&parser.source_file, $name, $expr);
-          parser.warning_diagnostics.push(warning);
-          parser.presentational_dependencies.push(dep);
-          return Some(true);
-        }
-      };
-    }
-
-    let expr = &swc_core::ecma::ast::Expr::Member(member_expr.to_owned());
-
-    if let Some(root) = extract_member_root(expr)
-      && let s = root.sym.as_str()
-      && parser.is_unresolved_ident(s)
+    if for_name == "require.extensions"
+      || for_name == "require.config"
+      || for_name == "require.version"
+      || for_name == "require.include"
+      || for_name == "require.onError"
+      || for_name == "require.main.require"
+      || for_name == "module.parent.require"
     {
-      if s == "require" {
-        not_supported_expr!(is_require_extensions, expr, "require.extensions");
-        not_supported_expr!(is_require_config, expr, "require.config");
-        not_supported_expr!(is_require_version, expr, "require.version");
-        not_supported_expr!(is_require_include, expr, "require.include");
-        not_supported_expr!(is_require_onerror, expr, "require.onError");
-        not_supported_expr!(is_require_main_require, expr, "require.main.require");
-      } else if s == "module" {
-        not_supported_expr!(is_module_parent_require, expr, "module.parent.require");
-      }
+      let (warning, dep) =
+        expression_not_supported(parser.source_file, for_name, false, member_expr.span());
+      parser.warning_diagnostics.push(warning);
+      parser.presentational_dependencies.push(dep);
+      return Some(true);
     }
 
-    if expr_matcher::is_require_cache(expr) {
+    if for_name == "require.cache" {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().into(),
+          member_expr.span().into(),
           RuntimeGlobals::MODULE_CACHE.name().into(),
           Some(RuntimeGlobals::MODULE_CACHE),
         )));
-      Some(true)
-    } else if expr_matcher::is_require_main(expr) {
+      return Some(true);
+    }
+
+    if for_name == "require.main" {
       let mut runtime_requirements = RuntimeGlobals::default();
       runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
       runtime_requirements.insert(RuntimeGlobals::ENTRY_MODULE_ID);
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          expr.span().into(),
+          member_expr.span().into(),
           format!(
             "{}[{}]",
             RuntimeGlobals::MODULE_CACHE,
@@ -374,8 +391,10 @@ impl JavascriptParserPlugin for APIPlugin {
           .into(),
           Some(runtime_requirements),
         )));
-      Some(true)
-    } else if expr_matcher::is_webpack_module_id(expr) {
+      return Some(true);
+    }
+
+    if for_name == "__webpack_module__.id" {
       parser
         .presentational_dependencies
         .push(Box::new(RuntimeRequirementsDependency::new(
@@ -385,51 +404,32 @@ impl JavascriptParserPlugin for APIPlugin {
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
           Some("id".into()),
-          expr.span().into(),
+          member_expr.span().into(),
           Some(parser.source_map.clone()),
         )));
-      Some(true)
-    } else {
-      None
+      return Some(true);
     }
+
+    None
   }
 
-  fn call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, _name: &str) -> Option<bool> {
-    macro_rules! not_supported_call {
-      ($check: ident, $name: literal) => {
-        if let Callee::Expr(expr_box) = &call_expr.callee
-          && let Expr::Member(expr) = &**expr_box
-          && expr_matcher::$check(&Expr::Member(expr.to_owned()))
-        {
-          let (warning, dep) = expression_not_supported(
-            &parser.source_file,
-            $name,
-            &Expr::Call(call_expr.to_owned()),
-          );
-          parser.warning_diagnostics.push(warning);
-          parser.presentational_dependencies.push(dep);
-          return Some(true);
-        }
-      };
-    }
-
-    let root = call_expr
-      .callee
-      .as_expr()
-      .and_then(|expr| extract_member_root(expr));
-
-    if let Some(root) = root
-      && let s = root.sym.as_str()
-      && parser.is_unresolved_ident(s)
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == "require.config"
+      || for_name == "require.include"
+      || for_name == "require.onError"
+      || for_name == "require.main.require"
+      || for_name == "module.parent.require"
     {
-      if s == "require" {
-        not_supported_call!(is_require_config, "require.config()");
-        not_supported_call!(is_require_include, "require.include()");
-        not_supported_call!(is_require_onerror, "require.onError()");
-        not_supported_call!(is_require_main_require, "require.main.require()");
-      } else if s == "module" {
-        not_supported_call!(is_module_parent_require, "module.parent.require()");
-      }
+      let (warning, dep) =
+        expression_not_supported(parser.source_file, for_name, true, call_expr.span());
+      parser.warning_diagnostics.push(warning);
+      parser.presentational_dependencies.push(dep);
+      return Some(true);
     }
 
     None

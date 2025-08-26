@@ -18,16 +18,12 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
     let Some(node_option) = parser.compiler_options.node.as_ref() else {
       unreachable!("ensure only invoke `NodeStuffPlugin` when node options is enabled");
     };
-    let str = ident.sym.as_str();
-    if !parser.is_unresolved_ident(str) {
-      return None;
-    }
-    if str == DIR_NAME {
+    if for_name == DIR_NAME {
       let dirname = match node_option.dirname {
         NodeDirnameOption::Mock => Some("/".to_string()),
         NodeDirnameOption::WarnMock => Some("/".to_string()),
@@ -91,7 +87,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           )));
         return Some(true);
       }
-    } else if str == FILE_NAME {
+    } else if for_name == FILE_NAME {
       let filename = match node_option.filename {
         NodeFilenameOption::Mock => Some("/index.js".to_string()),
         NodeFilenameOption::WarnMock => Some("/index.js".to_string()),
@@ -145,7 +141,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           )));
         return Some(true);
       }
-    } else if str == GLOBAL
+    } else if for_name == GLOBAL
       && matches!(
         node_option.global,
         NodeGlobalOption::True | NodeGlobalOption::Warn

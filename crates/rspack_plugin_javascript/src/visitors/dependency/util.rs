@@ -1,11 +1,11 @@
-use rspack_core::{ConstDependency, ErrorSpan};
+use rspack_core::ErrorSpan;
 use rspack_error::{
   TraceableError,
   miette::{Severity, diagnostic},
 };
 use rspack_regex::RspackRegex;
 use swc_core::{
-  common::{SourceFile, Spanned},
+  common::SourceFile,
   ecma::{ast::*, atoms::Atom},
 };
 
@@ -167,25 +167,11 @@ pub(crate) mod expr_matcher {
   // - Matching would ignore Span and SyntaxContext
   define_expr_matchers!({
     is_require: "require",
-    is_require_main: "require.main",
-    is_require_context: "require.context",
-    is_require_cache: "require.cache",
-    is_module: "module",
     is_module_id: "module.id",
     is_module_loaded: "module.loaded",
     is_module_exports: "module.exports",
     is_module_require: "module.require",
-    is_webpack_module_id: "__webpack_module__.id",
     is_object_define_property: "Object.defineProperty",
-    is_require_ensure: "require.ensure",
-    is_require_version: "require.version",
-    is_require_onerror: "require.onError",
-    // unsupported
-    is_require_extensions: "require.extensions",
-    is_require_config: "require.config",
-    is_require_include: "require.include",
-    is_require_main_require: "require.main.require",
-    is_module_parent_require: "module.parent.require",
   });
 }
 
@@ -262,30 +248,6 @@ pub fn is_require_call_start(expr: &Expr) -> bool {
     Expr::Member(MemberExpr { obj, .. }) => is_require_call_start(obj),
     _ => false,
   }
-}
-
-pub fn expression_not_supported(
-  file: &SourceFile,
-  name: &str,
-  expr: &Expr,
-) -> (Box<TraceableError>, Box<ConstDependency>) {
-  (
-    Box::new(
-      create_traceable_error(
-        "Unsupported feature".into(),
-        format!("{name} is not supported by Rspack."),
-        file,
-        expr.span().into(),
-      )
-      .with_severity(Severity::Warning)
-      .with_hide_stack(Some(true)),
-    ),
-    Box::new(ConstDependency::new(
-      expr.span().into(),
-      "(void 0)".into(),
-      None,
-    )),
-  )
 }
 
 pub fn extract_member_root(mut expr: &Expr) -> Option<Ident> {
@@ -410,21 +372,6 @@ mod test {
     assert!(
       expr_matcher::is_module_exports(&Expr::Member(e)),
       "should support evaluate with `Expr::Member(MemberExpr {{ .. }})`"
-    );
-
-    let e = Ident {
-      ctxt: Default::default(),
-      span: DUMMY_SP,
-      sym: "module".into(),
-      optional: false,
-    };
-    assert!(
-      expr_matcher::is_module(&e),
-      "should support evaluate with `Ident`"
-    );
-    assert!(
-      expr_matcher::is_module(&Expr::Ident(e)),
-      "should support evaluate with `Expr::Ident(Ident {{ .. }})`"
     );
   }
 }

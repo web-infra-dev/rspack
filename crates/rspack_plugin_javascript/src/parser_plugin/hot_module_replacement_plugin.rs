@@ -141,8 +141,8 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::MODULE_HOT {
       Some(eval::evaluate_to_identifier(
-        expr_name::MODULE_HOT.to_string(),
-        expr_name::MODULE.to_string(),
+        expr_name::MODULE_HOT.into(),
+        expr_name::MODULE.into(),
         Some(true),
         start,
         end,
@@ -208,8 +208,8 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::IMPORT_META_WEBPACK_HOT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_WEBPACK_HOT.to_string(),
-        expr_name::IMPORT_META.to_string(),
+        expr_name::IMPORT_META_WEBPACK_HOT.into(),
+        expr_name::IMPORT_META.into(),
         Some(true),
         start,
         end,

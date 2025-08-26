@@ -1,7 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
     entry: {
-        main: "./main.js",
         shared: "./shared.js",
         index1: {
             import: "./index1.js",

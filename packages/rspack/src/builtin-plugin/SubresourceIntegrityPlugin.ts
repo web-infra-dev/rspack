@@ -13,7 +13,6 @@ import type { Compiler } from "../Compiler";
 import type { CrossOriginLoading } from "../config/types";
 import { getSRIPluginOptionsSchema } from "../schema/plugins";
 import { validate } from "../schema/validate";
-import { nonWebpackRequire } from "../util/require";
 import { create } from "./base";
 
 const PLUGIN_NAME = "SubresourceIntegrityPlugin";
@@ -297,27 +296,17 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 				}
 			}
 
-			if (IS_BROWSER) {
-				nonWebpackRequire()(this.options.htmlPlugin)
-					.then(bindingHtmlHooks)
-					.catch(e => {
-						if (
-							!isErrorWithCode(e as Error) ||
-							(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
-						) {
-							throw e;
-						}
-					});
-			} else {
-				try {
-					bindingHtmlHooks(require(this.options.htmlPlugin));
-				} catch (e) {
-					if (
-						!isErrorWithCode(e as Error) ||
-						(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
-					) {
-						throw e;
-					}
+			try {
+				const htmlPlugin = IS_BROWSER
+					? compiler.__internal_browser_require(this.options.htmlPlugin)
+					: require(this.options.htmlPlugin);
+				bindingHtmlHooks(htmlPlugin);
+			} catch (e) {
+				if (
+					!isErrorWithCode(e as Error) ||
+					(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
+				) {
+					throw e;
 				}
 			}
 		}

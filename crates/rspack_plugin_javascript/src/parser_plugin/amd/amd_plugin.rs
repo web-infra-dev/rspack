@@ -167,8 +167,8 @@ impl JavascriptParserPlugin for AMDParserPlugin {
   ) -> Option<BasicEvaluatedExpression<'static>> {
     if for_name == DEFINE_AMD {
       return Some(evaluate_to_identifier(
-        for_name.to_string(),
-        "define".to_string(),
+        for_name.into(),
+        "define".into(),
         Some(true),
         start,
         end,
@@ -177,8 +177,8 @@ impl JavascriptParserPlugin for AMDParserPlugin {
 
     if for_name == REQUIRE_AMD {
       return Some(evaluate_to_identifier(
-        for_name.to_string(),
-        "require".to_string(),
+        for_name.into(),
+        "require".into(),
         Some(true),
         start,
         end,
