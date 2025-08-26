@@ -1,7 +1,7 @@
 use std::{
   collections::HashSet,
   fmt,
-  sync::{Arc, LazyLock, Mutex, RwLock},
+  sync::{Arc, LazyLock, OnceLock, RwLock},
 };
 
 use camino::Utf8Path;
@@ -166,8 +166,8 @@ pub struct ConsumeSharedPluginOptions {
 #[derive(Debug)]
 pub struct ConsumeSharedPlugin {
   options: ConsumeSharedPluginOptions,
-  resolver: Mutex<Option<Arc<Resolver>>>,
-  compiler_context: Mutex<Option<Context>>,
+  resolver: OnceLock<Arc<Resolver>>,
+  compiler_context: OnceLock<Context>,
   matched_consumes: RwLock<Option<Arc<MatchedConsumes>>>,
 }
 
@@ -182,31 +182,37 @@ impl ConsumeSharedPlugin {
   }
 
   fn init_context(&self, compilation: &Compilation) {
-    let mut lock = self.compiler_context.lock().expect("should lock");
-    *lock = Some(compilation.options.context.clone());
+    self
+      .compiler_context
+      .set(compilation.options.context.clone())
+      .expect("failed to set compiler context");
   }
 
   fn get_context(&self) -> Context {
-    let lock = self.compiler_context.lock().expect("should lock");
-    lock.clone().expect("init_context first")
+    self
+      .compiler_context
+      .get()
+      .expect("init_context first")
+      .clone()
   }
 
   fn init_resolver(&self, compilation: &Compilation) {
-    let mut lock = self.resolver.lock().expect("should lock");
-    *lock = Some(
-      compilation
-        .resolver_factory
-        .get(ResolveOptionsWithDependencyType {
-          resolve_options: None,
-          resolve_to_context: false,
-          dependency_category: DependencyCategory::Esm,
-        }),
-    );
+    self
+      .resolver
+      .set(
+        compilation
+          .resolver_factory
+          .get(ResolveOptionsWithDependencyType {
+            resolve_options: None,
+            resolve_to_context: false,
+            dependency_category: DependencyCategory::Esm,
+          }),
+      )
+      .expect("failed to set resolver for multiple times");
   }
 
   fn get_resolver(&self) -> Arc<Resolver> {
-    let lock = self.resolver.lock().expect("should lock");
-    lock.clone().expect("init_resolver first")
+    self.resolver.get().expect("init_resolver first").clone()
   }
 
   async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
