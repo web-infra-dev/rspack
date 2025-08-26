@@ -1,13 +1,10 @@
 import type { Compiler } from ".";
 
-const DOMAIN_ESM_SH = "https://esm.sh";
-
 interface BrowserHttpImportPluginOptions {
 	/**
 	 * ESM CDN domain
-	 * @default "https://esm.sh"
 	 */
-	domain?: string | ((request: string, packageName: string) => string);
+	domain: string | ((request: string, packageName: string) => string);
 	/**
 	 * Specify ESM CDN URL for dependencies.
 	 */
@@ -25,7 +22,7 @@ interface BrowserHttpImportPluginOptions {
  * Convert imports of dependencies in node modules to http imports from esm cdn.
  */
 export class BrowserHttpImportEsmPlugin {
-	constructor(private options: BrowserHttpImportPluginOptions = {}) {}
+	constructor(private options: BrowserHttpImportPluginOptions) {}
 
 	apply(compiler: Compiler) {
 		compiler.hooks.normalModuleFactory.tap("BrowserHttpImportPlugin", nmf => {
@@ -77,7 +74,7 @@ export class BrowserHttpImportEsmPlugin {
 	}
 
 	resolveNodeModule(request: string, packageName: string) {
-		let domain = DOMAIN_ESM_SH;
+		let domain = "";
 		if (typeof this.options.domain === "function") {
 			domain = this.options.domain(request, packageName);
 		} else if (typeof this.options.domain === "string") {
