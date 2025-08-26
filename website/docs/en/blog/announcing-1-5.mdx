@@ -11,7 +11,7 @@ _August 26, 2025_
 
 ---
 
-We're excited to announce Rspack 1.5!
+We're thrilled to announce the release of Rspack 1.5!
 
 Notable changes include:
 
@@ -49,7 +49,7 @@ export * as utils from './utils';
 export * from './hooks';
 ```
 
-While this pattern simplifies module imports, it can introduce performance overhead during the build process: when importing a single module from a barrel file, Rspack must resolve and build **all** modules referenced in the barrel file, even if only a small subset is actually used.
+While this pattern simplifies module imports, it can introduce performance overhead during the build process: when importing a single module from a barrel file, Rspack must resolve and build all modules referenced by the barrel file, even if only a small subset is actually used.
 
 To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) feature. This optimization automatically detects side-effect free barrel files and defers building their re-exports until actually needed. Modules are only resolved and built when actually needed, significantly reducing unnecessary module resolution and build costs.
 
@@ -83,7 +83,7 @@ In real-world testing, enabling barrel file optimization yielded clear performan
 
 Barrel file optimization is enabled by default in Rsbuild 1.5, and we plan to make it the default for all projects in Rspack 1.6.
 
-For more details, see the [experiments.lazyBarrel documentation](https://chatgpt.com/config/experiments#experimentslazybarrel).
+For more details, see the [experiments.lazyBarrel documentation](/config/experiments#experimentslazybarrel).
 
 ### Faster file system watcher
 
@@ -91,7 +91,7 @@ Previously, Rspack relied on the [watchpack](https://github.com/webpack/watchpac
 
 To address this, we redesigned and reimplemented a native file system watcher in Rust, offering the following benefits:
 
-- **High performance**: HMR speed improvements of up to 50%
+- **High performance**: HMR performance improvements of up to 50%
 - **Incremental updates**: Only processes files that actually change
 - **Persistent runtime**: Runs continuously throughout development without reinitialization
 
@@ -235,7 +235,7 @@ In Rspack 1.4, we introduced [custom InputFileSystem](/blog/announcing-1-4#custo
 
 To address this, Rspack 1.5 adds a built-in [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin).
 
-This plugin is implemented in Rust and moves the storage and management of virtual modules to the Rust layer. This effectively reduces module read and parse overhead. As a result, it delivers significantly better performance when handling large volumes of virtual modules.
+This plugin is implemented in Rust and moves the storage and management of virtual modules to the Rust layer. This reduces module read and parse overhead. As a result, it delivers significantly better performance when handling large volumes of virtual modules.
 
 The `VirtualModulesPlugin` retains API compatibility with `webpack-virtual-modules`, making migration straightforward:
 
@@ -311,7 +311,7 @@ For example, in a large-scale application at ByteDance containing approximately 
 
 ### Drop support for Node.js 16
 
-Since Node.js 16 reached its end of life on September 11, 2023, and many community npm packages (such as `webpack-dev-server`, `css-loader`, `sass-loader`, etc.) have stop supporting for Node.js 16, **Rspack 1.5 will no longer support Node.js 16** to reduce maintenance complexity.
+Since Node.js 16 reached its end of life on September 11, 2023, and many community packages (such as `webpack-dev-server`, `css-loader`, `sass-loader`, etc.) have dropped support for Node.js 16, **Rspack 1.5 drops support for Node.js 16** to reduce maintenance cost.
 
 Node.js version requirements for each package:
 
@@ -381,11 +381,12 @@ Key features of Rslint include:
 - **Test validation**: runs the original `typescript-eslint` test suite to ensure rule correctness
 
 Rslint is still in its early stage of development, and we are actively working on expanding its feature set and rule support.
-We welcome you to try it out and share feedback to help us refine and improve Rslint together!
+
+We encourage you to try it out and provide feedback to help us improve Rslint together!
 
 ### Rsbuild 1.5
 
-Out-of-the-box usability has always been a core design principle of Rsbuild. In Rsbuild 1.5, we have enabled several of Rspack's latest features by default, delivering improved build performance, including:
+Providing an out-of-the-box experience has always been a core design principle of Rsbuild. In Rsbuild 1.5, we have enabled several of Rspack's latest features by default, delivering improved build performance, including:
 
 - Enabled [lazyCompilation](/config/lazy-compilation) to compile dynamically imported modules on demand, improving development server startup speed.
 - Enabled [lazyBarrel](/config/experiments#experimentslazybarrel) to optimize the build performance of barrel files and reduce unnecessary module resolution.
