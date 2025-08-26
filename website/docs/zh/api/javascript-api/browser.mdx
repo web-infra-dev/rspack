@@ -31,7 +31,7 @@ rspack({}, (err, stats) => {
 
 ## 内存文件系统
 
-由于浏览器无法直接访问本地文件系统，`@rspack/browser` 提供了基于 [memfs](https://www.npmjs.com/package/memfs) 的内存文件系统对象 `builtinMemFs`，用于在浏览器环境下读写文件。`@rspack/core` 的 Node.js 和 Rust 层对文件系统的读写均会重定向到该内存文件系统，包括项目配置、源代码、`node_modules` 依赖及产物。
+由于浏览器无法直接访问本地文件系统，`@rspack/browser` 提供了基于 [memfs](https://www.npmjs.com/package/memfs) 的内存文件系统对象 `builtinMemFs`，用于在浏览器环境下读写文件。Node.js 和 Rust 层对文件系统的读写均会重定向到该内存文件系统，包括项目配置、源代码、`node_modules` 依赖及产物。
 
 以下是基本用法示例，完整 API 可参考 [memfs 文档](https://github.com/streamich/memfs)：
 
