@@ -1,6 +1,7 @@
 mod fix_build_meta;
 mod fix_issuers;
 
+use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -50,22 +51,37 @@ impl Cutout {
           clean_entry_dependencies = true;
         }
         UpdateParam::CheckNeedBuild => {
-          force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
-            if module.need_build(&compilation.value_cache_versions) {
-              Some(module.identifier())
-            } else {
-              None
-            }
-          }));
+          force_build_modules.extend(
+            module_graph
+              .modules()
+              .values()
+              .par_bridge()
+              .filter_map(|module| {
+                if module.need_build(&compilation.value_cache_versions) {
+                  Some(module.identifier())
+                } else {
+                  None
+                }
+              })
+              .collect::<Vec<_>>(),
+          );
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
-          for module in module_graph.modules().values() {
-            // check has dependencies modified
-            if module.depends_on(&files) {
-              // add module id
-              force_build_modules.insert(module.identifier());
-            }
-          }
+          force_build_modules.extend(
+            module_graph
+              .modules()
+              .values()
+              .par_bridge()
+              .filter_map(|module| {
+                // check has dependencies modified
+                if module.depends_on(&files) {
+                  Some(module.identifier())
+                } else {
+                  None
+                }
+              })
+              .collect::<Vec<_>>(),
+          );
           // only failed dependencies need to check
           for dep_id in &artifact.make_failed_dependencies {
             let dep = module_graph
