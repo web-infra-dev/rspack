@@ -11,7 +11,7 @@ _August 26, 2025_
 
 ---
 
-Rspack 1.5 has been released!
+We're excited to announce Rspack 1.5!
 
 Notable changes include:
 
@@ -51,9 +51,9 @@ export * from './hooks';
 
 While this pattern simplifies module imports, it can introduce performance overhead during the build process: when importing a single module from a barrel file, Rspack must resolve and build **all** modules referenced in the barrel file, even if only a small subset is actually used.
 
-To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) feature. This optimization automatically detects **side-effect-free barrel files** and applies deferred build optimizations to their re-exports. Modules are only resolved and built when truly needed, significantly reducing unnecessary module resolution and build costs.
+To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) feature. This optimization automatically detects side-effect free barrel files and defers building their re-exports until actually needed. Modules are only resolved and built when actually needed, significantly reducing unnecessary module resolution and build costs.
 
-This is particularly effective in projects with a large number of barrel files, delivering substantial build performance improvements.
+This is particularly effective for projects with many barrel files, significantly improving build performance.
 
 ```javascript
 export default {
@@ -87,13 +87,13 @@ For more details, see the [experiments.lazyBarrel documentation](https://chatgpt
 
 ### Faster file system watcher
 
-Previously, Rspack relied on the [watchpack](https://github.com/webpack/watchpack) file system watcher to track file changes. However, we identified performance bottlenecks in `watchpack`. For example, each file change triggers a new instance creation, consuming significant CPU and memory in large projects (see [#7490](https://github.com/web-infra-dev/rspack/issues/7490)).
+Previously, Rspack relied on the [watchpack](https://github.com/webpack/watchpack) file system watcher to track file changes. However, we identified performance bottlenecks with `watchpack`. For example, each file change triggers the creation of a new instance, consuming significant CPU and memory in large projects (see [#7490](https://github.com/web-infra-dev/rspack/issues/7490)).
 
 To address this, we redesigned and reimplemented a native file system watcher in Rust, offering the following benefits:
 
 - **High performance**: HMR speed improvements of up to 50%
 - **Incremental updates**: Only processes files that actually change
-- **Persistent runtime**: Runs continuously throughout development without repeated reinitialization
+- **Persistent runtime**: Runs continuously throughout development without reinitialization
 
 You can try out the new watcher by enabling [experiments.nativeWatcher](/config/experiments#experimentsnativewatcher):
 
@@ -112,9 +112,9 @@ export default {
 
 In Rspack 1.4, we officially introduced Wasm target support, enabling Rspack to run in browser-based environments powered by WebContainers, such as [StackBlitz](https://stackblitz.com/).
 
-With the release of [@rspack/browser](/api/javascript-api/browser), you can now **run Rspack directly in any modern browser**—without relying on WebContainers or specific platforms.
+With the release of [@rspack/browser](/api/javascript-api/browser), you can now run Rspack directly in any modern browser without relying on WebContainers or specific platforms.
 
-`@rspack/browser` is designed specifically for pure browser environments, providing core bundling capabilities for complex web projects. It offers a lightweight way to reproduce issues, share configurations, and help developers get started with Rspack through interactive online demos.
+`@rspack/browser` is designed specifically for pure browser environments, providing core bundling capabilities for web projects. It offers a lightweight way to reproduce issues, share configurations, and help developers get started with Rspack through interactive online demos.
 
 ![rspack-web-repl](https://assets.rspack.rs/rspack/assets/rspack-v1-5-repl.rspack.png)
 
@@ -144,13 +144,13 @@ rspack({}, (err, stats) => {
 
 You can now extend Rspack directly using **Rust**! With our provided repository template, you can build custom Rust plugins and loaders, and even replace Rspack's default native binding.
 
-In JavaScript plugins, data transfer and type conversion between Rust and JavaScript can introduce performance overhead. By customizing Rspack's binding, your code integrates directly with the Rspack Rust Core, eliminating cross-language communication costs while retaining full support for all Rspack JavaScript APIs.
+In JavaScript plugins, data transfer and type conversion between Rust and JavaScript can introduce performance overhead. By customizing Rspack's binding, your code can integrate directly with the Rspack Rust core, eliminating cross-language communication costs while retaining full support for all Rspack JavaScript APIs.
 
 This approach is particularly suitable for replacing hooks that frequently interact with Rust (such as `compilation.hooks.processAssets`) and for compute-intensive custom loaders, where it can deliver significant build performance improvements.
 
 Key benefits:
 
-- **Native performance** — Extensions written in Rust run with the same native performance as the Rspack Rust Core.
+- **Native performance** — Extensions written in Rust run with the same native performance as the Rspack Rust core.
 - **Full compatibility** — Retains all existing JavaScript APIs without requiring changes to your project.
 - **Developer-friendly** — The official template includes a complete development environment and publishing workflow.
 
