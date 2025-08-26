@@ -1735,51 +1735,42 @@ impl ConcatenatedModule {
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ConcatenationEntry> {
-    mg_cache.cached_concatenated_module_entries(
-      (
-        self.id,
-        runtime
-          .map(|r| get_runtime_key(r).to_string())
-          .unwrap_or_default(),
-      ),
-      || {
-        let root_module = self.root_module_ctxt.id;
-        let module_set: IdentifierIndexSet = self.modules.iter().map(|item| item.id).collect();
+    mg_cache.cached_concatenated_module_entries((self.id, runtime.map(get_runtime_key)), || {
+      let root_module = self.root_module_ctxt.id;
+      let module_set: IdentifierIndexSet = self.modules.iter().map(|item| item.id).collect();
 
-        let mut list = vec![];
-        let mut exists_entries = IdentifierMap::default();
-        exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
+      let mut list = vec![];
+      let mut exists_entries = IdentifierMap::default();
+      exists_entries.insert(root_module, RuntimeCondition::Boolean(true));
 
-        let imports_map = module_set
-          .par_iter()
-          .map(|module| {
-            let imports =
-              self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
-            (*module, imports)
-          })
-          .collect::<IdentifierMap<_>>();
+      let imports_map = module_set
+        .par_iter()
+        .map(|module| {
+          let imports = self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+          (*module, imports)
+        })
+        .collect::<IdentifierMap<_>>();
 
-        let imports = imports_map.get(&root_module).expect("should have imports");
-        for i in imports {
-          self.enter_module(
-            &module_set,
-            runtime,
-            mg,
-            &i.connection,
-            i.runtime_condition.clone(),
-            &mut exists_entries,
-            &mut list,
-            &imports_map,
-          );
-        }
-        list.push(ConcatenationEntry::Concatenated(
-          ConcatenationEntryConcatenated {
-            module: root_module,
-          },
-        ));
-        list
-      },
-    )
+      let imports = imports_map.get(&root_module).expect("should have imports");
+      for i in imports {
+        self.enter_module(
+          &module_set,
+          runtime,
+          mg,
+          &i.connection,
+          i.runtime_condition.clone(),
+          &mut exists_entries,
+          &mut list,
+          &imports_map,
+        );
+      }
+      list.push(ConcatenationEntry::Concatenated(
+        ConcatenationEntryConcatenated {
+          module: root_module,
+        },
+      ));
+      list
+    })
   }
 
   #[allow(clippy::too_many_arguments)]

@@ -666,6 +666,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   pub fn prepare_input_entrypoints_and_modules(
     &mut self,
+    all_modules: &Vec<ModuleIdentifier>,
     compilation: &mut Compilation,
   ) -> Result<UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
@@ -675,9 +676,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let outgoings = {
       let mg = compilation.get_module_graph();
-      mg.modules()
-        .keys()
-        .par_bridge()
+      all_modules
+        .par_iter()
         .map(|m| {
           (
             *m,
@@ -812,7 +812,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let start = logger.time("process queue");
     // Iterative traversal of the Module graph
     // Recursive would be simpler to write but could result in Stack Overflows
-    while !self.queue.is_empty() || !self.queue_connect.is_empty() || !self.queue_delayed.is_empty()
+    while !self.queue.is_empty()
+      || !self.queue_connect.is_empty()
+      || !self.queue_delayed.is_empty()
+      || !self.chunk_groups_for_combining.is_empty()
     {
       self.process_queue(compilation);
 
@@ -2006,10 +2009,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  pub fn prepare(&mut self, compilation: &Compilation) -> Result<()> {
+  pub fn prepare(
+    &mut self,
+    all_modules: &Vec<ModuleIdentifier>,
+    compilation: &Compilation,
+  ) -> Result<()> {
     let mg = compilation.get_module_graph();
-    let modules = mg.modules().keys().copied().collect::<Vec<_>>();
-    self.prepared_connection_map = modules
+    self.prepared_connection_map = all_modules
       .par_iter()
       .map(|module| {
         let mut connection_map =
@@ -2043,7 +2049,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
       .collect::<IdentifierMap<_>>();
 
-    self.prepared_blocks_map = modules
+    self.prepared_blocks_map = all_modules
       .par_iter()
       .map(|module| {
         let mut map =

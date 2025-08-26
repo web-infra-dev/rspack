@@ -68,7 +68,7 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 				i++;
 			}
 		}
-		new ExternalsPlugin(remoteType, remoteExternals).apply(compiler);
+		new ExternalsPlugin(remoteType, remoteExternals, true).apply(compiler);
 		new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
 
 		const rawOptions: RawContainerReferencePluginOptions = {

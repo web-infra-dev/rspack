@@ -91,6 +91,7 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       runtime_requirements,
       compilation,
       init_fragments,
+      runtime,
       ..
     } = code_generatable_context;
     let dep = dep
@@ -131,6 +132,7 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     {
       let content: (String, String) = import_statement(
         *module,
+        *runtime,
         compilation,
         runtime_requirements,
         &module_dep_id,

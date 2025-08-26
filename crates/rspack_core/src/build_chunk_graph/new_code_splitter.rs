@@ -1774,22 +1774,20 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
 // main entry for code splitting
 pub fn code_split(compilation: &mut Compilation) -> Result<()> {
-  // ensure every module have a cgm, webpack uses the same trick
-  for m in compilation
+  let all_modules = compilation
     .get_module_graph()
     .modules()
     .keys()
     .copied()
-    .collect::<Vec<_>>()
-  {
-    compilation.chunk_graph.add_module(m);
+    .collect::<Vec<_>>();
+
+  // ensure every module have a cgm, webpack uses the same trick
+  for m in all_modules.iter() {
+    compilation.chunk_graph.add_module(*m);
   }
 
-  let outgoings = compilation
-    .get_module_graph()
-    .modules()
-    .keys()
-    .par_bridge()
+  let outgoings = all_modules
+    .par_iter()
     .map(|m| {
       (
         *m,
@@ -1827,7 +1825,7 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     splitter.invalidate(affected.into_iter());
     splitter
   } else {
-    CodeSplitter::new(compilation.get_module_graph().modules().keys().copied())
+    CodeSplitter::new(all_modules.into_iter())
   };
 
   // fill chunks with its modules

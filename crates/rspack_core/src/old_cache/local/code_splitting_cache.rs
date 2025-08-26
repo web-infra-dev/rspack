@@ -1,6 +1,6 @@
 use futures::Future;
 use indexmap::IndexMap;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_error::Result;
 use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use rustc_hash::FxHashMap as HashMap;
@@ -27,7 +27,7 @@ pub struct CodeSplittingCache {
   named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub(crate) new_code_splitter: NewCodeSplitter,
-  pub(crate) module_idx: HashMap<ModuleIdentifier, (u32, u32)>,
+  pub(crate) module_idx: IdentifierMap<(u32, u32)>,
 }
 
 impl CodeSplittingCache {
@@ -347,17 +347,13 @@ where
   });
 
   let mg = compilation.get_module_graph();
-  let mut map = HashMap::default();
-  for m in mg.modules().keys() {
-    let Some(mgm) = mg.module_graph_module_by_identifier(m) else {
-      continue;
-    };
-
+  let mut map = IdentifierMap::default();
+  for (mid, mgm) in mg.module_graph_modules() {
     let (Some(pre), Some(post)) = (mgm.pre_order_index, mgm.post_order_index) else {
       continue;
     };
 
-    map.insert(*m, (pre, post));
+    map.insert(mid, (pre, post));
   }
   let cache = &mut compilation.code_splitting_cache;
   cache.module_idx = map;

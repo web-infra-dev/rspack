@@ -166,6 +166,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
 
   let content: (String, String) = import_statement(
     *module,
+    *runtime,
     compilation,
     runtime_requirements,
     module_dependency.id(),
@@ -176,9 +177,10 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     init_fragments,
     compilation,
     module,
+    runtime,
     ..
   } = code_generatable_context;
-  let import_var = compilation.get_import_var(module_dependency.id());
+  let import_var = compilation.get_import_var(module_dependency.id(), *runtime);
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
   let module_key = ref_module

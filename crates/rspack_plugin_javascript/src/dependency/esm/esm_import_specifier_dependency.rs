@@ -419,7 +419,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         )
       }
     } else {
-      let import_var = compilation.get_import_var(&dep.id);
+      let import_var = compilation.get_import_var(&dep.id, *runtime);
       esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
       export_from_import(
         code_generatable_context,

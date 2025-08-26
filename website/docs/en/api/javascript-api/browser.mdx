@@ -1,0 +1,160 @@
+# Browser API
+
+`@rspack/browser` is a version of Rspack specifically designed for browser environments, without relying on WebContainers or any particular platform. Its API is consistent with the [JavaScript API](/api/javascript-api/) of `@rspack/core`, while additionally providing features and interfaces tailored for the browser environment.
+
+Welcome to try running Rspack in the browser at the [Rspack Playground](https://playground.rspack.rs/).
+
+:::warning
+`@rspack/browser` is currently experimental. We will continue to improve its online bundling capabilities, and future releases may introduce breaking changes.
+:::
+
+## Basic example
+
+The following example demonstrates the basic usage of `@rspack/browser`. Except for the additional APIs used to read and write project files and outputs, other APIs are consistent with the [JavaScript API](/api/javascript-api/) of `@rspack/core`.
+
+```ts
+import { rspack, builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // Get output from memfs after bundling
+  const files = builtinMemFs.volume.toJSON();
+});
+```
+
+## In-Memory File system
+
+Since browsers cannot directly access the local file system, `@rspack/browser` provides an in-memory file system object `builtinMemFs` based on [memfs](https://www.npmjs.com/package/memfs) for reading and writing files in the browser environment. All file system reads and writes in both the Node.js and Rust sides are redirected to this in-memory file system, including reading project configuration, source code, `node_modules` dependencies, and writing output files.
+
+Here is a basic usage example. For the full API, please refer to the [memfs documentation](https://github.com/streamich/memfs):
+
+```ts
+import { builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+// Read files from memfs
+const files = builtinMemFs.volume.toJSON();
+```
+
+## Browser-Specific Plugins
+
+To better meet the bundling needs in browser environments, `@rspack/browser` offers several dedicated plugins.
+
+### BrowserHttpImportEsmPlugin
+
+In local development, developers usually download project dependencies via package managers and store them in the `node_modules` directory at the root of the project. When using `@rspack/browser`, you can pre-write dependencies into the `node_modules` directory within the in-memory file system. However, when the modules your project depends on are uncertain (e.g., allowing users to freely choose third-party dependencies), pre-writing all dependencies becomes impractical.
+
+```ts
+import { builtinMemFs } from '@rspack/browser';
+
+builtinMemFs.volume.fromJSON({
+  '/node_modules/react/index.js': '...',
+});
+```
+
+`@rspack/browser` provides the `BrowserHttpImportEsmPlugin` plugin. This plugin rewrites third-party dependency module specifiers to URLs of ESM CDNs during module resolution. For example, `import React from "react"` will be rewritten as `import React from "https://esm.sh/react"`. Together with Rspack's [buildHttp](/config/experiments#experimentsbuildhttp) feature, dependencies can be dynamically loaded over HTTP during bundling.
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  plugins: [new BrowserHttpImportEsmPlugin({ domain: 'https://esm.sh' })],
+  experiments: {
+    buildHttp: {
+      allowedUris: ['https://'],
+    },
+  },
+};
+```
+
+As shown below, `BrowserHttpImportEsmPlugin` supports options to specify the ESM CDN domain or to specify particular versions or URLs for certain dependencies.
+
+```ts
+interface BrowserHttpImportPluginOptions {
+  /**
+   * ESM CDN domain
+   */
+  domain: string | ((request: string, packageName: string) => string);
+  /**
+   * Specify URLs for particular dependencies
+   */
+  dependencyUrl?:
+    | Record<string, string | undefined>
+    | ((packageName: string) => string | undefined);
+  /**
+   * Specify versions for dependencies.
+   * Defaults to "latest" if not specified.
+   */
+  dependencyVersions?: Record<string, string | undefined>;
+}
+```
+
+### BrowserRequirePlugin
+
+In Rspack, certain scenarios require dynamically loading and executing JavaScript code, such as [Loaders](/guide/features/loader) or the template functions of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin#use-template-function). Since this code may come from untrusted users, executing it directly in the browser environment poses potential security risks. To ensure safety, `@rspack/browser` throws errors by default in such cases to prevent unsafe code execution.
+
+:::warning
+Rspack does not execute user code during bundling. For security, it is recommended to run the final bundled output inside an iframe.
+:::
+
+The `BrowserRequirePlugin` plugin enables this capability:
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin } from '@rspack/browser';
+
+export default {
+  plugins: [
+    new BrowserRequirePlugin({ execute: BrowserRequirePlugin.unsafeExecute }),
+  ],
+};
+```
+
+You need to provide an `execute` function to dynamically run and load CommonJS modules and modify `runtime.module.exports` to set the module's exports. `@rspack/browser` provides an unsafe implementation `BrowserRequirePlugin.unsafeExecute` that internally uses `new Function` to execute code. You can also implement a safer version based on this API according to your needs, for example:
+
+```ts
+function safeExecute(code: string, runtime: CommonJsRuntime) {
+  const safeCode = sanitizeCode(code);
+  BrowserRequirePlugin.unsafeExecute(safeCode, runtime);
+}
+
+function uselessExecute(_code: string, runtime: CommonJsRuntime) {
+  runtime.module.exports.hello = 'rspack';
+}
+```
+
+Options for `BrowserRequirePlugin` are as follows:
+
+```ts
+/**
+ * Runtime context for loading CommonJS modules
+ */
+interface CommonJsRuntime {
+  module: any;
+  exports: any;
+  require: BrowserRequire;
+}
+
+interface BrowserRequirePluginOptions {
+  /**
+   * Function to execute dynamic code
+   */
+  execute: (code: string, runtime: CommonJsRuntime) => void;
+}
+```
+
+:::tip How to decide whether to use this plugin?
+If your project does not require dynamic loading and execution of JavaScript code, you do not need this plugin.
+
+If your project does not distribute untrusted code or distributing such code does not cause security issues, you can directly use `BrowserRequirePlugin.unsafeExecute`. For example, the [Rspack Playground](https://playground.rspack.rs/) does not involve user privacy or account security.
+:::

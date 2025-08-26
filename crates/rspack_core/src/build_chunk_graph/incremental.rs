@@ -9,8 +9,8 @@ use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, GroupOptions,
-  ModuleIdentifier, RuntimeSpec,
+  AsyncDependenciesBlockIdentifier, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
+  GroupOptions, ModuleIdentifier, RuntimeSpec,
   incremental::{IncrementalPasses, Mutation},
   is_runtime_equal,
 };
@@ -249,7 +249,31 @@ impl CodeSplitter {
       && chunk_group.is_initial()
       && chunk_group.parents.is_empty()
     {
-      return Ok(Some(vec![ChunkReCreation::Entry(name)]));
+      edges = vec![ChunkReCreation::Entry(name)];
+    }
+
+    // If the invalidated chunk group is an entrypoint, we must also invalidate any
+    // other entrypoints that depend on it via the `dependOn` option.
+    if matches!(chunk_group.kind, ChunkGroupKind::Entrypoint { .. }) {
+      let dependent_entrypoints_to_invalidate: Vec<_> = compilation
+        .entrypoints
+        .values()
+        .filter_map(|entrypoint_ukey| {
+          compilation
+            .chunk_group_by_ukey
+            .get(entrypoint_ukey)
+            .filter(|entrypoint| entrypoint.parents.contains(&chunk_group_ukey))
+            .map(|_| *entrypoint_ukey)
+        })
+        .collect();
+
+      for entrypoint_ukey in dependent_entrypoints_to_invalidate {
+        if let Some(invalidation_result) =
+          self.invalidate_chunk_group(entrypoint_ukey, compilation)?
+        {
+          edges.extend(invalidation_result);
+        }
+      }
     }
 
     if edges.is_empty() {

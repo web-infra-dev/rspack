@@ -41,6 +41,7 @@ pub fn electron_target_plugin(context: ElectronTargetContext, plugins: &mut Vec<
       .into_iter()
       .map(|i| ExternalItem::String(i.to_string()))
       .collect(),
+      false,
     )
     .boxed(),
   );
@@ -68,6 +69,7 @@ pub fn electron_target_plugin(context: ElectronTargetContext, plugins: &mut Vec<
         .into_iter()
         .map(|i| ExternalItem::String(i.to_string()))
         .collect(),
+        false,
       )
       .boxed(),
     ),
@@ -78,6 +80,7 @@ pub fn electron_target_plugin(context: ElectronTargetContext, plugins: &mut Vec<
           .into_iter()
           .map(|i| ExternalItem::String(i.to_string()))
           .collect(),
+        false,
       )
       .boxed(),
     ),
