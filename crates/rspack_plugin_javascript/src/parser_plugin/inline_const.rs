@@ -13,9 +13,7 @@ use crate::{
     BasicEvaluatedExpression, evaluate_to_boolean, evaluate_to_null, evaluate_to_number,
     evaluate_to_string, evaluate_to_undefined,
   },
-  visitors::{
-    JavascriptParser, TagInfoData, TopLevelScope, VariableDeclaration, VariableDeclarationKind,
-  },
+  visitors::{JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind},
 };
 
 pub const INLINABLE_CONST_TAG: &str = "inlinable const";
@@ -83,7 +81,7 @@ impl JavascriptParserPlugin for InlineConstPlugin {
     declarator: &VarDeclarator,
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if !parser.has_inlinable_const_decls || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.has_inlinable_const_decls || !parser.is_top_level_scope() {
       return None;
     }
     if matches!(declaration.kind(), VariableDeclarationKind::Const)
