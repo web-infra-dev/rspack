@@ -312,8 +312,6 @@ pub fn clean_regexp_in_context_module(
 
 #[cfg(test)]
 mod test {
-  use swc_core::common::DUMMY_SP;
-
   use super::*;
 
   #[test]
