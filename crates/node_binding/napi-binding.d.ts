@@ -2347,11 +2347,11 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  module: ((err: Error | null, arg: RawModuleArg) => RawModuleInfo)
+  currentActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
-  cacheable: boolean
+  client: string
 }
 
 export interface RawLibManifestPluginOptions {
@@ -2407,11 +2407,6 @@ export interface RawLimitChunkCountPluginOptions {
   chunkOverhead?: number
   entryChunkMultiplicator?: number
   maxChunks: number
-}
-
-export interface RawModuleArg {
-  module: string
-  path: string
 }
 
 export interface RawModuleFederationRuntimePluginOptions {

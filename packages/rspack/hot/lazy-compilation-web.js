@@ -1,5 +1,3 @@
-
-
 if (typeof EventSource !== "function") {
 	throw new Error(
 		"Environment doesn't support lazy compilation (requires EventSource)"
@@ -16,7 +14,10 @@ var updateEventSource = function updateEventSource() {
 	if (activeEventSource) activeEventSource.close();
 	if (compiling.size) {
 		activeEventSource = new EventSource(
-			urlBase + Array.from(compiling).join("@")
+			urlBase +
+				Array.from(compiling, function (module) {
+					return encodeURIComponent(module);
+				}).join("@")
 		);
 		/**
 		 * @this {EventSource}
