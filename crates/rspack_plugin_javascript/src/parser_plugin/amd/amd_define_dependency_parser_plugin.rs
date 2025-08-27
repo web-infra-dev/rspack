@@ -95,7 +95,7 @@ fn lookup<'a>(parent: &str, module: &'a str) -> Cow<'a, str> {
 const REQUIRE: &str = "require";
 const MODULE: &str = "module";
 const EXPORTS: &str = "exports";
-const RESERVED_NAMES: [&str; 3] = [REQUIRE, MODULE, EXPORTS];
+const RESERVED_NAMES: [&str; 3] = [REQUIRE, EXPORTS, MODULE];
 
 fn get_lit_str(expr: &Expr) -> Option<Atom> {
   expr.as_lit().and_then(|lit| match lit {
@@ -124,9 +124,9 @@ impl AMDDefineDependencyParserPlugin {
       let items = param.items();
       for (idx, item) in items.iter().enumerate() {
         if item.is_string() {
-          let item = item.string();
-          if let Some(i) = RESERVED_NAMES.iter().position(|s| s == item) {
-            identifiers.insert(idx, RESERVED_NAMES[i].into());
+          let item = item.string().as_str();
+          if RESERVED_NAMES.contains(&item) {
+            identifiers.insert(idx, item.into());
           }
         }
         let result = self.process_item(parser, call_expr, item, named_module);

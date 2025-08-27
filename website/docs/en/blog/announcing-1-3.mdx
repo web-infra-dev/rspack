@@ -156,7 +156,7 @@ By utilizing modern JavaScript features supported by the target environment, Rsp
 
 ### Memory improvements
 
-Rspack now defaults to using [mimalloc](https://github.com/microsoft/mimalloc) v3 on macOS. This mitigates some memory consumption issue on macOS during rebuilding. According to some community and internal projects, this would lift the RSS for rebuilding, based on the size of each project, varying from **10% to 85%**。
+Rspack now defaults to using [mimalloc](https://github.com/microsoft/mimalloc) v3 on macOS. This mitigates some memory consumption issue on macOS during rebuilding. According to some community and internal projects, this would lift the RSS for rebuilding, based on the size of each project, varying from **10% to 85%**.
 
 Rspack 1.3 also implemented an internal mechanism to clean the outdated cache: `maxGenerations`. This controls how many compilations would cache survive if it's not being used by the compiler. Rspack sets the default to `1`. This means that the cache will be purged if it's not being used in the next compilation.
 

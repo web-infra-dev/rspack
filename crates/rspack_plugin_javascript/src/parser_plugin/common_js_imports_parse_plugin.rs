@@ -5,10 +5,7 @@ use rspack_core::{
 use rspack_error::{DiagnosticExt, Severity};
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::{
-    AssignExpr, AssignTarget, CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr,
-    SimpleAssignTarget, UnaryExpr,
-  },
+  ecma::ast::{AssignExpr, CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr},
 };
 
 use super::JavascriptParserPlugin;
@@ -571,16 +568,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn assign(
     &self,
     parser: &mut JavascriptParser,
-    expr: &AssignExpr,
-    for_name: Option<&str>,
+    _expr: &AssignExpr,
+    for_name: &str,
   ) -> Option<bool> {
-    let AssignTarget::Simple(SimpleAssignTarget::Ident(_)) = &expr.left else {
-      return None;
-    };
-
-    if let Some(for_name) = for_name
-      && for_name == expr_name::REQUIRE
-    {
+    if for_name == expr_name::REQUIRE {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

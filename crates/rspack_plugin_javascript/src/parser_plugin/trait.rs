@@ -292,12 +292,21 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  // FIXME: should remove
   fn assign(
     &self,
     _parser: &mut JavascriptParser,
     _expr: &AssignExpr,
-    _for_name: Option<&str>,
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn assign_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &AssignExpr,
+    _members: &[Atom],
+    _for_name: &str,
   ) -> Option<bool> {
     None
   }

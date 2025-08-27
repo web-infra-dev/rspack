@@ -9,7 +9,8 @@ use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
 };
 use crate::{
-  ExportsInfoData, MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsageKey, UsedExports,
+  ExportsInfoData, InlinedUsedName, MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec,
+  UsageKey, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -707,23 +708,14 @@ impl ExportsInfoGetter {
           }
           return Some(UsedName::Normal(vec![]));
         }
-        if names.len() == 1 {
-          let name = &names[0];
-          let info = info.get_read_only_export_info(name);
-          let used_name = info.get_used_name(Some(name), runtime);
-          return used_name.map(|name| match name {
-            UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
-            UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
-          });
-        }
         let export_info = info.get_read_only_export_info(&names[0]);
         let first = export_info.get_used_name(Some(&names[0]), runtime)?;
         let mut arr = match first {
-          UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
-          UsedNameItem::Str(first) => vec![first],
+          UsedNameItem::Str(first) => UsedName::Normal(vec![first]),
+          UsedNameItem::Inlined(inlined) => UsedName::Inlined(InlinedUsedName::new(inlined)),
         };
         if names.len() == 1 {
-          return Some(UsedName::Normal(arr));
+          return Some(arr);
         }
         if let Some(exports_info) = &export_info.exports_info()
           && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
@@ -736,14 +728,14 @@ impl ExportsInfoGetter {
             &names[1..],
           )?;
           let nested = match nested {
-            UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+            UsedName::Inlined(_) => return Some(nested),
             UsedName::Normal(names) => names,
           };
-          arr.extend(nested);
-          return Some(UsedName::Normal(arr));
+          arr.append(nested);
+          return Some(arr);
         }
-        arr.extend(names.iter().skip(1).cloned());
-        Some(UsedName::Normal(arr))
+        arr.append(names.iter().skip(1).cloned());
+        Some(arr)
       }
     }
   }

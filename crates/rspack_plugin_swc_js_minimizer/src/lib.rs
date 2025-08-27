@@ -368,10 +368,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str) {
+      return false;
+    }
   } else if !JAVASCRIPT_ASSET_REGEXP.is_match(str) {
     return false;
   }

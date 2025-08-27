@@ -6,7 +6,6 @@ const path = require("path");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	lazyCompilation: {
-		cacheable: false,
 		entries: false,
 		backend: {
 			server: {

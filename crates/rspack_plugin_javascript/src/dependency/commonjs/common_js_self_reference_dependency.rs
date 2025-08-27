@@ -195,7 +195,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
         UsedName::Normal(used) => format!("{}{}", base, property_access(used, 0)),
         // Export a inlinable const from cjs is not possible for now, so self reference a inlinable
         // const is also not possible for now, but we compat it here
-        UsedName::Inlined(inlined) => inlined.render().into_owned(),
+        UsedName::Inlined(inlined) => inlined.render(),
       },
       None,
     )

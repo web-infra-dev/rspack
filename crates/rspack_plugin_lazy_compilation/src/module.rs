@@ -7,8 +7,8 @@ use rspack_core::{
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
   LibIdentOptions, Module, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, impl_module_meta_info,
-  module_namespace_promise, module_update_hash,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, ValueCacheVersions,
+  impl_module_meta_info, module_namespace_promise, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -32,8 +32,6 @@ pub(crate) struct LazyCompilationProxyModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   factory_meta: Option<FactoryMeta>,
-  cacheable: bool,
-
   readable_identifier: String,
   identifier: ModuleIdentifier,
   lib_ident: Option<String>,
@@ -46,11 +44,13 @@ pub(crate) struct LazyCompilationProxyModule {
   pub resource: String,
 
   pub active: bool,
-  pub data: String,
+
   // TODO:
   // The client field may be refreshed when rspack restart,
   // so this is not safe to cache at the moment
   pub client: String,
+
+  pub need_build: bool,
 }
 
 impl ModuleSourceMapConfig for LazyCompilationProxyModule {
@@ -70,9 +70,7 @@ impl LazyCompilationProxyModule {
     lib_ident: Option<String>,
     create_data: ModuleFactoryCreateData,
     resource: String,
-    cacheable: bool,
     active: bool,
-    data: String,
     client: String,
   ) -> Self {
     let readable_identifier = format!(
@@ -86,7 +84,6 @@ impl LazyCompilationProxyModule {
     Self {
       build_info: Default::default(),
       build_meta: Default::default(),
-      cacheable,
       create_data,
       readable_identifier,
       lib_ident,
@@ -97,8 +94,8 @@ impl LazyCompilationProxyModule {
       blocks: vec![],
       dependencies: vec![],
       active,
+      need_build: false,
       client,
-      data,
     }
   }
 }
@@ -136,6 +133,10 @@ impl Module for LazyCompilationProxyModule {
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
+  }
+
+  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+    self.need_build
   }
 
   async fn build(
@@ -177,8 +178,6 @@ impl Module for LazyCompilationProxyModule {
       self.build_info.file_dependencies = files;
     }
 
-    self.build_info.cacheable = self.cacheable;
-
     Ok(BuildResult {
       dependencies,
       blocks,
@@ -208,10 +207,10 @@ impl Module for LazyCompilationProxyModule {
     let block = self.blocks.first();
 
     let client = format!(
-      "var client = __webpack_require__(\"{}\");\nvar data = \"{}\"",
+      "var client = __webpack_require__(\"{}\");\nvar data = {};",
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
         .expect("should have module id"),
-      self.data
+      serde_json::to_string(&self.identifier).expect("should serialize identifier")
     );
 
     let keep_active = format!(
@@ -296,7 +295,7 @@ impl Module for LazyCompilationProxyModule {
     let mut hasher = RspackHash::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.active.dyn_hash(&mut hasher);
-    self.data.dyn_hash(&mut hasher);
+    self.identifier.dyn_hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }

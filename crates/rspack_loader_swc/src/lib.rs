@@ -3,7 +3,7 @@ mod options;
 mod plugin;
 mod transformer;
 
-use std::default::Default;
+use std::{default::Default, path::Path};
 
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
@@ -14,6 +14,7 @@ use rspack_error::{Diagnostic, Result, miette};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 pub use rspack_workspace::rspack_swc_core_version;
+use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
@@ -95,7 +96,7 @@ impl SwcLoader {
     };
 
     let javascript_compiler = JavaScriptCompiler::new();
-    let filename = FileName::Real(resource_path.into_std_path_buf());
+    let filename = FileName::Real(resource_path.clone().into_std_path_buf());
 
     let source = content.into_string_lossy();
     let is_typescript =
@@ -104,7 +105,7 @@ impl SwcLoader {
 
     let TransformOutput {
       code,
-      map,
+      mut map,
       diagnostics,
     } = javascript_compiler.transform(
       source,
@@ -137,6 +138,29 @@ impl SwcLoader {
       loader_context.parse_meta.insert(
         COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY.to_string(),
         Box::new(collected_ts_info),
+      );
+    }
+
+    // When compiling target modules, SWC retrieves the source map via sourceMapUrl.
+    // The sources paths in the source map are relative to the target module. We need to resolve these paths
+    // to absolute paths using the resource path to avoid incorrect project path references.
+    if let (Some(map), Some(resource_dir)) = (map.as_mut(), resource_path.parent()) {
+      map.set_sources(
+        map
+          .sources()
+          .iter()
+          .map(|source| {
+            let source_path = Path::new(source);
+            if source_path.is_relative() {
+              source_path
+                .absolutize_with(resource_dir.as_std_path())
+                .to_string_lossy()
+                .into_owned()
+            } else {
+              source.to_string()
+            }
+          })
+          .collect::<Vec<_>>(),
       );
     }
 

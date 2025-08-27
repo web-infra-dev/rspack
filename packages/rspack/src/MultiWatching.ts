@@ -25,7 +25,7 @@ class MultiWatching {
 		this.watchings = watchings;
 		this.compiler = compiler;
 	}
-	invalidate(callback: Callback<Error, void>) {
+	invalidate(callback?: Callback<Error, void>) {
 		if (callback) {
 			asyncLib.each(
 				this.watchings,

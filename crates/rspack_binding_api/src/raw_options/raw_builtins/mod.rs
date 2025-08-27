@@ -720,11 +720,11 @@ impl<'a> BuiltinPlugin<'a> {
         let js_backend = JsBackend::from(&options);
         plugins.push(Box::new(
           rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
-            options.cacheable,
             js_backend,
             options.test.map(|test| test.into()),
             options.entries,
             options.imports,
+            options.client,
           ),
         ) as Box<dyn Plugin>)
       }

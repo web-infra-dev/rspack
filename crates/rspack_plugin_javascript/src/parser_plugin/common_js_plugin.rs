@@ -1,10 +1,10 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
-use swc_core::ecma::ast::{Expr, MemberExpr};
+use swc_core::ecma::ast::MemberExpr;
 
 use super::JavascriptParserPlugin;
 use crate::{
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
-  visitors::{JavascriptParser, expr_matcher, expr_name},
+  visitors::{JavascriptParser, expr_name},
 };
 
 pub struct CommonJsPlugin;
@@ -50,19 +50,23 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     }
   }
 
-  fn member(&self, parser: &mut JavascriptParser, expr: &MemberExpr, _name: &str) -> Option<bool> {
-    // FIXME: delete this `.clone` after extract expression
-    let expr = Expr::Member(expr.clone());
-    if expr_matcher::is_module_id(&expr) {
+  fn member(
+    &self,
+    parser: &mut JavascriptParser,
+    _expr: &MemberExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == "module.id" {
       parser
         .presentational_dependencies
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
-
       parser.build_info.module_concatenation_bailout = Some(RuntimeGlobals::MODULE_ID.to_string());
-      Some(true)
-    } else if expr_matcher::is_module_loaded(&expr) {
+      return Some(true);
+    }
+
+    if for_name == "module.loaded" {
       parser
         .presentational_dependencies
         .push(Box::new(RuntimeRequirementsDependency::new(
@@ -70,9 +74,9 @@ impl JavascriptParserPlugin for CommonJsPlugin {
         )));
       parser.build_info.module_concatenation_bailout =
         Some(RuntimeGlobals::MODULE_LOADED.to_string());
-      Some(true)
-    } else {
-      None
+      return Some(true);
     }
+
+    None
   }
 }

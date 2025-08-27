@@ -1179,7 +1179,7 @@ export default {
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
-- **Supported Template string：** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
+- **Supported Template string:** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
 Same as `output.assetModuleFilename`. Overrides `output.assetModuleFilename` and only works for `asset` and `asset/resource` module types.
 
@@ -2309,11 +2309,28 @@ There are two phases that all loaders enter one after the other:
 
 ### Rule.type
 
-- **Type:** `'javascript/auto' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`
+- **Type:**
+
+```ts
+type RuleType =
+  | 'asset'
+  | 'css'
+  | 'css/auto'
+  | 'css/module'
+  | 'javascript/auto'
+  | 'javascript/dynamic'
+  | 'javascript/esm'
+  | 'json';
+```
 
 Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing.
 
-By default, Rspack will determine the type of the module based on the file extension. For example, `.js` and `.mjs` files will be treated as `javascript/auto` modules, and `.json` files will be treated as `json` modules.
+By default, Rspack will determine the type of the module based on the file extension. For example:
+
+- `.js` files will be treated as `javascript/auto` modules.
+- `.mjs` files, as well as `.js` files in packages with `type="module"` in package.json, will be treated as `javascript/esm` modules.
+- `.json` files will be treated as `json` modules.
+- `.css` files will be treated as `css/auto` modules.
 
 For example, if you want to load a `.json` file through a custom loader, you'd need to set the type to `javascript/auto` to bypass Rspack's built-in JSON importing.
 
@@ -2332,13 +2349,13 @@ export default {
 };
 ```
 
-All `type` options are as follows:
+The meanings of all `type` options are as follows:
 
-- `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ES modules.
-- `'javascript/esm'`：JavaScript modules, treated as ES modules.
-- `'javascript/dynamic'`：JavaScript modules, treated as Script.
+- `'javascript/auto'`: JavaScript modules. Rspack automatically determines the module type based on file content, providing the best compatibility.
+- `'javascript/esm'`: JavaScript modules, treated as strict ES modules.
+- `'javascript/dynamic'`: JavaScript modules, treated as Script.
 - `'json'`: JSON data module, see [JSON](/guide/tech/json).
-- `'css' | 'css/module' | 'css/auto'`: CSS module, see [Native CSS Support](/guide/tech/css#native-css-support).
+- `'css' | 'css/module' | 'css/auto'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ### Rule.layer

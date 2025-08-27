@@ -1,7 +1,7 @@
 use napi::{
   Env, JsValue,
   bindgen_prelude::{
-    Array, Either, FromNapiValue, JsObjectValue, Object, ToNapiValue, TypeName, Unknown,
+    Array, Either, FromNapiValue, JsObjectValue, Null, Object, ToNapiValue, TypeName, Unknown,
     ValidateNapiValue,
   },
   sys,
@@ -13,14 +13,20 @@ use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
 
 #[napi(object)]
-pub struct JsAssetInfoRelated {
-  pub source_map: Option<String>,
+pub struct AssetInfoRelated {
+  pub source_map: Option<Either<String, Null>>,
 }
 
-impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
-  fn from(i: JsAssetInfoRelated) -> Self {
+impl From<AssetInfoRelated> for rspack_core::AssetInfoRelated {
+  fn from(i: AssetInfoRelated) -> Self {
     Self {
-      source_map: i.source_map,
+      source_map: match i.source_map {
+        Some(either) => match either {
+          Either::A(string) => Some(string),
+          Either::B(_) => None,
+        },
+        None => None,
+      },
     }
   }
 }
@@ -53,7 +59,7 @@ pub struct KnownAssetInfo {
   /// when asset is javascript and an ESM
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
-  pub related: Option<JsAssetInfoRelated>,
+  pub related: Option<AssetInfoRelated>,
   /// unused css local ident for the css chunk
   pub css_unused_idents: Option<Vec<String>>,
   /// whether this asset is over the size limit
@@ -190,10 +196,10 @@ pub struct JsAsset {
   pub info: Reflector,
 }
 
-impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {
+impl From<rspack_core::AssetInfoRelated> for AssetInfoRelated {
   fn from(related: rspack_core::AssetInfoRelated) -> Self {
     Self {
-      source_map: related.source_map,
+      source_map: related.source_map.map(Either::A),
     }
   }
 }

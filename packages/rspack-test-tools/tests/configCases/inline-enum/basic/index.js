@@ -13,8 +13,8 @@ it("should inline enums", () => {
   expect(enums.E.B).toBe(1);
   // END:A
   const block = generated.match(/\/\/ START:A([\s\S]*)\/\/ END:A/)[1];
-  expect(block.includes(`(/* inlined export .E.A */ 0).toBe(0)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E.B */ 1).toBe(1)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .E.A */ (0)).toBe(0)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .E.B */ (1)).toBe(1)`)).toBe(true);
 })
 
 it("should inline enums with re-export", () => {
@@ -23,8 +23,8 @@ it("should inline enums with re-export", () => {
   expect(reexported.E.B).toBe(1);
   // END:B
   const block = generated.match(/\/\/ START:B([\s\S]*)\/\/ END:B/)[1];
-  expect(block.includes(`(/* inlined export .E.A */ 0).toBe(0)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E.B */ 1).toBe(1)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .E.A */ (0)).toBe(0)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .E.B */ (1)).toBe(1)`)).toBe(true);
 })
 
 it("should not inline enums with destructing", () => {
@@ -45,8 +45,8 @@ it("should allow inline enums if the rest exports is not used with destructing",
   expect(destructing.E.D).toBe(3);
   // END:D
   const block = generated.match(/\/\/ START:D([\s\S]*)\/\/ END:D/)[1];
-  expect(block.includes(`(/* inlined export .E.C */ 2).toBe(2)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E.D */ 3).toBe(3)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .E.C */ (2)).toBe(2)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .E.D */ (3)).toBe(3)`)).toBe(true);
 })
 
 it("should respect side effects when inline enums", () => {
@@ -55,7 +55,7 @@ it("should respect side effects when inline enums", () => {
   expect(globalThis.__sideEffects).toBe("enum.side-effects.ts");
   // END:E
   const block = generated.match(/\/\/ START:E([\s\S]*)\/\/ END:E/)[1];
-  expect(block.includes(`(/* inlined export .E.A */ 0).toBe(0)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .E.A */ (0)).toBe(0)`)).toBe(true);
 })
 
 it("should respect side effects when inline enums with re-exports", () => {

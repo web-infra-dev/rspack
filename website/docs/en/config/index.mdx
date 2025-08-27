@@ -72,11 +72,17 @@ See [Extending Configurations](./extends.mdx) for details on how to extend confi
 
 ## TypeScript configuration file
 
-When using `rspack.config.ts`, you need to use a runtime that supports TypeScript, or install additional dependencies to resolve TypeScript files. You can choose one of the following:
+When using `rspack.config.ts`, you can choose from one of the following approaches:
+
+### Default behavior
+
+Starting from v1.5.0, Rspack CLI has built-in support for TypeScript configuration, using SWC by default to transform TypeScript code into CommonJS format JavaScript code.
+
+If you're using a Rspack CLI earlier than v1.5.0, it's recommended to upgrade to the latest version. You no longer need to load configuration files through `ts-node` or `esbuild-register`, and these dependencies can be removed.
 
 ### Native support
 
-If your JavaScript runtime already natively supports TypeScript, you can use the built-in TS transformation to load the configuration file without needing to install additional dependencies.
+If your JavaScript runtime already natively supports TypeScript, you can use the built-in TS transformation to load the configuration file, ensuring that module resolution behavior is consistent with native behavior.
 
 For example, Node.js already natively supports TypeScript, you can use the following command to use the Node.js native loader to load the configuration file:
 

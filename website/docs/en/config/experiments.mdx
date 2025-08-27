@@ -833,7 +833,7 @@ Please refer to [type reexports presence example](https://github.com/rspack-cont
 
 By default, Rspack uses Watchpack to monitor file changes, which generally works well in most scenarios.
 However, in certain specific environments, issues may arise. For example, Watchpack may experience performance problems when there are a large number of file changes.
-More detail see: [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223)。
+More detail see: [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223).
 
 If you encounter performance issues with the default watcher, you can try enabling nativeWatcher.
 
@@ -859,6 +859,14 @@ export default {
 
 Whether to skip building unused re-export modules in side-effect-free barrel files to optimize build performance.
 
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyBarrel: true,
+  },
+};
+```
+
 A side-effect-free module is a module that meets one of the following conditions:
 
 - The `package.json` file of its package declares `"sideEffects": false`, see [Side effects analysis](/guide/optimization/tree-shaking#side-effects-analysis)
@@ -880,6 +888,6 @@ A side-effect-free module is a module that meets one of the following conditions
    1. barrel file is not side effects free
    2. the star re-export is used
 
-> For more details please checkout: [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
-
 :::
+
+> For more details, see [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
