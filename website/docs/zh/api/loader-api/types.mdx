@@ -92,12 +92,31 @@ ESM loader 和 CommonJS loader 的功能完全相同，只是使用了不同的�
 
 ## 使用 TypeScript 编写
 
-如果你使用 TypeScript 来编写 Rspack loader，可以引入 `LoaderContext` 来为 loader 添加类型：
+如果你使用 TypeScript 编写 Rspack loader，可以使用 `LoaderDefinition` 为你的 loader 提供完整的类型定义。
+
+```ts title="my-loader.ts"
+import type { LoaderDefinition } from '@rspack/core';
+
+// 声明 loader 选项的类型
+type MyLoaderOptions = {
+  foo: string;
+};
+
+const myLoader: LoaderDefinition<MyLoaderOptions> = function (source) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  // Transform the source code
+  return `// Processed by my-loader\n${source}`;
+};
+
+export default myLoader;
+```
+
+或者，你也可以导入 `LoaderContext` 为 loader 上下文添加类型：
 
 ```ts title="my-loader.ts"
 import type { LoaderContext } from '@rspack/core';
 
-// 声明 loader 选项的类型
 type MyLoaderOptions = {
   foo: string;
 };
@@ -108,7 +127,7 @@ export default function myLoader(
 ) {
   const options = this.getOptions();
   console.log(options); // { foo: 'bar' }
-  return source;
+  return `// Processed by my-loader\n${source}`;
 }
 ```
 

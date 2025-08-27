@@ -394,7 +394,7 @@ export type LoaderDefinitionFunction<
 	content: string,
 	sourceMap?: string | SourceMap,
 	additionalData?: AdditionalData
-) => string | void | Buffer | Promise<string | Buffer>;
+) => string | void | Buffer | Promise<string | Buffer | void>;
 
 export type PitchLoaderDefinitionFunction<
 	OptionsType = {},
@@ -404,8 +404,28 @@ export type PitchLoaderDefinitionFunction<
 	remainingRequest: string,
 	previousRequest: string,
 	data: object
-) => string | void | Buffer | Promise<string | Buffer>;
+) => string | void | Buffer | Promise<string | Buffer | void>;
 
+/**
+ * Defines a loader for Rspack.
+ * A loader is a transformer that converts various types of modules into Rspack
+ * supported types. By using different kinds of loaders, you can extend Rspack to
+ * process additional module types, including JSX, Markdown, Sass, Less, and more.
+ *
+ * @template OptionsType - The type of options that the loader accepts
+ * @template ContextAdditions - Additional properties to add to the loader context
+ *
+ * @example
+ * ```ts
+ * import type { LoaderDefinition } from '@rspack/core';
+ *
+ * const myLoader: LoaderDefinition = function(source) {
+ *   return someOperation(source);
+ * };
+ *
+ * export default myLoader;
+ * ```
+ */
 export type LoaderDefinition<
 	OptionsType = {},
 	ContextAdditions = {}
