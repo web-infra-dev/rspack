@@ -852,7 +852,7 @@ impl ESMExportImportedSpecifierDependency {
       ValueKey::Name => name,
       ValueKey::UsedName(used) => match used {
         UsedName::Normal(used) => format!("{}{}", name, property_access(used, 0)),
-        UsedName::Inlined(inlined) => inlined.render().into_owned(),
+        UsedName::Inlined(inlined) => inlined.render(),
       },
     }
   }
