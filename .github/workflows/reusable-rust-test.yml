@@ -104,7 +104,7 @@ jobs:
           cargo xtask deny-ext
 
       - uses: cargo-bins/cargo-binstall@79e4beb1e02f733a26129a6bf26c37dab4ab3307 # v1.14.4
-      - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
+      - run: cargo binstall --no-confirm cargo-shear@1.5.1 --force
       - run: cargo shear
 
   rust_test:
