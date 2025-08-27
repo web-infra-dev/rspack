@@ -850,6 +850,10 @@ impl From<JsBuildMeta> for BuildMeta {
       default_object,
       side_effect_free,
       exports_final_name,
+      consume_shared_key: None,
+      shared_key: None,
+      is_shared_descendant: None,
+      effective_shared_key: None,
     }
   }
 }

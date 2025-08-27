@@ -1,0 +1,15 @@
+{
+  "treeShake": {
+    "module": {
+      "sharedUtility": false,
+      "unused": false,
+      "alsoUnused": false,
+      "alsoUsed": false,
+      "usedBoth": false,
+      "externallyUsed1": false,
+      "used": false,
+      "neverUsed": false,
+      "externallyUsed2": false
+    }
+  }
+}

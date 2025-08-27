@@ -35,6 +35,7 @@ rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
