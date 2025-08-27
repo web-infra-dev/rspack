@@ -419,7 +419,11 @@ export type PitchLoaderDefinitionFunction<
  * ```ts
  * import type { LoaderDefinition } from '@rspack/core';
  *
- * const myLoader: LoaderDefinition = function(source) {
+ * type MyLoaderOptions = {
+ *   foo: string;
+ * };
+ *
+ * const myLoader: LoaderDefinition<MyLoaderOptions> = function(source) {
  *   return someOperation(source);
  * };
  *
