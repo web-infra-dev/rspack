@@ -4479,6 +4479,7 @@ dependencies = [
  "rspack_regex",
  "rspack_util",
  "rustc-hash",
+ "serde_json",
  "tokio",
  "tracing",
 ]

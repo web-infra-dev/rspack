@@ -4850,7 +4850,7 @@ class MultiWatching {
     // (undocumented)
     compiler: MultiCompiler;
     // (undocumented)
-    invalidate(callback: Callback<Error, void>): void;
+    invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
     invalidateWithChangesAndRemovals(changedFiles?: Set<string>, removedFiles?: Set<string>, callback?: Callback<Error, void>): void;
     // (undocumented)
