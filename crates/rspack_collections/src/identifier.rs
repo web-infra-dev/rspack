@@ -83,6 +83,10 @@ impl Identifier {
   pub fn to_string(&self) -> String {
     self.0.to_owned()
   }
+
+  pub fn precomputed_hash(&self) -> u64 {
+    self.0.precomputed_hash()
+  }
 }
 
 impl fmt::Display for Identifier {
