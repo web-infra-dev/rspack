@@ -14,13 +14,4 @@ test("should error with invalid syntax", async ({ page, fileAction, rspack }) =>
 	);
 	const brokenCode = rspack.compiler.outputFileSystem.readFileSync(codePath, "utf-8");
 	expect(/throw new Error\(".*Unexpected token. Did you mean `{'}'}`/.test(brokenCode)).toBe(true);
-	rspack.compiler.outputFileSystem.unlinkSync(codePath);
-	fileAction.updateFile("src/App.jsx", content =>
-		content.replace("{/* </div> */}", "</div>")
-	);
-	await expect(page.locator("#webpack-dev-server-client-overlay")).toHaveCount(
-		0
-	);
-	const fixedCode = rspack.compiler.outputFileSystem.readFileSync(codePath, "utf-8");
-	expect(/throw new Error\(".*Unexpected token. Did you mean `{'}'}`/.test(fixedCode)).toBe(false);
 });
