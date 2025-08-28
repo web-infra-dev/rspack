@@ -176,11 +176,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         // import.meta
         // warn when access import.meta directly
         parser.warning_diagnostics.push(Box::new(create_traceable_error(
-      "Critical dependency".into(),
-      "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
-      parser.source_file,
-      span.into()
-    ).with_severity(Severity::Warning)));
+          "Critical dependency".into(),
+          "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
+          parser.source_file,
+          span.into(),
+        ).with_severity(Severity::Warning)));
 
         let content = if parser.is_asi_position(span.lo()) {
           ";({})"
