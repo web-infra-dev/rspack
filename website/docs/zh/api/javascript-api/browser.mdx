@@ -29,6 +29,39 @@ rspack({}, (err, stats) => {
 });
 ```
 
+## 响应头设置
+
+`@rspack/browser` 内部使用了 [SharedArrayBuffer](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) 来实现多线程的共享内存，因此你需要为开发服务器或线上部署环境设置响应头。
+
+如果你正在使用 Rspack 作为项目的打包器，可以通过 [devServer.headers](/config/dev-server#devserverheaders) 设置：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  devServer: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+如果你正在使用 Rsbuild 作为项目的打包器，可以通过 [server.headers](https://rsbuild.rs/config/server/headers#serverheaders) 设置：
+
+```ts title="rsbuild.config.ts"
+export default {
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+对于线上环境，请参考你的项目部署平台的相关文档。
+
 ## 内存文件系统
 
 由于浏览器无法直接访问本地文件系统，`@rspack/browser` 提供了基于 [memfs](https://www.npmjs.com/package/memfs) 的内存文件系统对象 `builtinMemFs`，用于在浏览器环境下读写文件。Node.js 和 Rust 层对文件系统的读写均会重定向到该内存文件系统，包括项目配置、源代码、`node_modules` 依赖及产物。
@@ -158,3 +191,26 @@ interface BrowserRequirePluginOptions {
 
 若项目不会分发不可信代码，或即使分发也不会造成安全问题，可直接使用 `BrowserRequirePlugin.unsafeExecute`。例如 [Rspack Playground](https://playground.rspack.rs/) 就不涉及用户隐私或账户安全。
 :::
+
+## 已知问题
+
+- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867)： 目前你需要在使用了 `@rspack/browser` 的项目中注入 `process.env.NODE_DEBUG_NATIVE`。
+  如果你正在使用 Rspack 打包你的项目，那么可以使用 [DefinePlugin](/plugins/webpack/define-plugin)：
+
+  ```js title="rspack.config.mjs"
+  new rspack.DefinePlugin({
+    'process.env.NODE_DEBUG_NATIVE': JSON.stringify(false),
+  });
+  ```
+
+  如果你正在使用 Rsbuild 打包你的项目，那么可以使用 [source.define](https://rsbuild.rs/config/source/define#sourcedefine)：
+
+  ```ts title="rsbuild.config.ts"
+  export default {
+    source: {
+      define: {
+        'process.env.NODE_DEBUG_NATIVE': JSON.stringify(false),
+      },
+    },
+  };
+  ```
