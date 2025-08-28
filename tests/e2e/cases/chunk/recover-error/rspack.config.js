@@ -1,5 +1,3 @@
-const path = require("path");
-
 const { rspack } = require("@rspack/core");
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
@@ -46,19 +44,19 @@ module.exports = {
 	],
 	optimization: {
 		runtimeChunk: {
-      name: 'builder-runtime'
-    },
-    splitChunks: {
-      chunks: 'all',
+			name: "builder-runtime"
+		},
+		splitChunks: {
+			chunks: "all",
 			minSize: 0,
-      cacheGroups: {
-        react: {
-          name: 'lib-react',
-          test: /node_modules[\\/](?:react|react-dom|scheduler|react-refresh|@rspack[\\/]plugin-react-refresh)[\\/]/,
-          priority: 0
-        },
-      }
-    }
+			cacheGroups: {
+				react: {
+					name: "lib-react",
+					test: /node_modules[\\/](?:react|react-dom|scheduler|react-refresh|@rspack[\\/]plugin-react-refresh)[\\/]/,
+					priority: 0
+				},
+			}
+		}
 	},
 	devServer: {
 		hot: true,
