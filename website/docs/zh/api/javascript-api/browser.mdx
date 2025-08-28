@@ -163,4 +163,4 @@ interface BrowserRequirePluginOptions {
 
 ## 已知问题
 
-- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867)： 目前你需要在使用了 `@rspack/browser` 的项目中，通过 [DefinePlugin](/plugins/webpack/define-plugin) 或其他等价方式设置 `process.env.NODE_DEBUG_NATIVE`。参考 [Rspack Playground 的做法](https://github.com/rspack-contrib/rspack-playground/blob/main/rsbuild.config.ts)。
+- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867)： 目前你需要在使用了 `@rspack/browser` 的项目中注入 `process.env.NODE_DEBUG_NATIVE`。如果你使用 Rspack 来打包项目，你可以参考 [DefinePlugin](/plugins/webpack/define-plugin)。

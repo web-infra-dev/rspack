@@ -163,4 +163,4 @@ If your project does not distribute untrusted code or distributing such code doe
 
 ## Known issues
 
-- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867): Currently, in projects using `@rspack/browser`, you need to set `process.env.NODE_DEBUG_NATIVE` using [DefinePlugin](/plugins/webpack/define-plugin) or an equivalent method. You can refer to the approach used in [Rspack Playground](https://github.com/rspack-contrib/rspack-playground/blob/main/rsbuild.config.ts).
+- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867): Currently, in projects using `@rspack/browser`, you need to inject `process.env.NODE_DEBUG_NATIVE`. If your are using Rspack to bundle your project, refer to [DefinePlugin](/plugins/webpack/define-plugin).
