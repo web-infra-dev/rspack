@@ -202,7 +202,7 @@ rspackCommand
 	.action(async ({ debug }) => {
 		try {
 			if (!debug) {
-				await $`pnpx rspack ${getVariadicArgs()}`;
+				await $`pnpm rspack ${getVariadicArgs()}`;
 				return;
 			}
 			await launchRspackCli(getVariadicArgs());
