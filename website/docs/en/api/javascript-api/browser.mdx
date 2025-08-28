@@ -29,6 +29,8 @@ rspack({}, (err, stats) => {
 });
 ```
 
+Note that `@rspack/browser` internally uses [SharedArrayBuffer](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) to implement shared memory across multiple threads. Therefore, you need to set response headers for both your development server and production deployment environment. You can refer to [Rspack](/config/dev-server#devserverheaders) for configuration methods.
+
 ## In-Memory File system
 
 Since browsers cannot directly access the local file system, `@rspack/browser` provides an in-memory file system object `builtinMemFs` based on [memfs](https://www.npmjs.com/package/memfs) for reading and writing files in the browser environment. All file system reads and writes in both the Node.js and Rust sides are redirected to this in-memory file system, including reading project configuration, source code, `node_modules` dependencies, and writing output files.
@@ -158,3 +160,7 @@ If your project does not require dynamic loading and execution of JavaScript cod
 
 If your project does not distribute untrusted code or distributing such code does not cause security issues, you can directly use `BrowserRequirePlugin.unsafeExecute`. For example, the [Rspack Playground](https://playground.rspack.rs/) does not involve user privacy or account security.
 :::
+
+## Known issues
+
+- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867): Currently, in projects using `@rspack/browser`, you need to set `process.env.NODE_DEBUG_NATIVE` using [DefinePlugin](/plugins/webpack/define-plugin) or an equivalent method. You can refer to the approach used in [Rspack Playground](https://github.com/rspack-contrib/rspack-playground/blob/main/rsbuild.config.ts).
