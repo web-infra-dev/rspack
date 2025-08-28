@@ -92,12 +92,31 @@ ESM loader and CommonJS loader have the same functionality, but use different mo
 
 ## Write with TypeScript
 
-If you write Rspack loader using TypeScript, you can import `LoaderContext` to add types to the loader:
+If you write Rspack loader using TypeScript, you can use `LoaderDefinition` to provide complete type definitions for your loader.
+
+```ts title="my-loader.ts"
+import type { LoaderDefinition } from '@rspack/core';
+
+// Declare the type of loader options
+type MyLoaderOptions = {
+  foo: string;
+};
+
+const myLoader: LoaderDefinition<MyLoaderOptions> = function (source) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  // Transform the source code
+  return `// Processed by my-loader\n${source}`;
+};
+
+export default myLoader;
+```
+
+Alternatively, you can import `LoaderContext` to add types to the loader context:
 
 ```ts title="my-loader.ts"
 import type { LoaderContext } from '@rspack/core';
 
-// Declare the type of loader options
 type MyLoaderOptions = {
   foo: string;
 };
@@ -108,7 +127,7 @@ export default function myLoader(
 ) {
   const options = this.getOptions();
   console.log(options); // { foo: 'bar' }
-  return source;
+  return `// Processed by my-loader\n${source}`;
 }
 ```
 
