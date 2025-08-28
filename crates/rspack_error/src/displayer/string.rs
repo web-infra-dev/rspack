@@ -38,12 +38,12 @@ impl Display for StringDisplayer {
         writer.write_all(s.as_bytes())?;
         writer.reset()?;
       }
-      return Ok(String::from_utf8_lossy(writer.as_slice()).to_string());
+      return Ok(String::from_utf8(writer.into_inner())?);
     }
     Ok(diagnostic_strings.join(""))
   }
 
   fn emit_diagnostic(&self, diagnostic: &Diagnostic) -> Self::Output {
-    self.emit_batch_diagnostic(vec![diagnostic].into_iter())
+    self.emit_batch_diagnostic(std::iter::once(diagnostic))
   }
 }
