@@ -29,7 +29,37 @@ rspack({}, (err, stats) => {
 });
 ```
 
-Note that `@rspack/browser` internally uses [SharedArrayBuffer](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) to implement shared memory across multiple threads. Therefore, you need to set response headers for both your development server and production deployment environment. You can refer to [Rspack](/config/dev-server#devserverheaders) for configuration methods.
+## Response header settings
+
+Note that `@rspack/browser` internally uses [SharedArrayBuffer](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) to implement shared memory across multiple threads. Therefore, you need to set response headers for both your development server and production deployment environment.
+
+If you are using Rspack as your project's bundler, you can set it through [devServer.headers](/config/dev-server#devserverheaders):
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+If you are using Rsbuild as your project's bundler, you can set it through [server.headers](https://rsbuild.rs/config/server/headers#serverheaders):
+
+```ts title="rsbuild.config.ts"
+export default {
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+For production environments, please refer to the documentation of your project's deployment platform.
 
 ## In-Memory File system
 
@@ -163,4 +193,23 @@ If your project does not distribute untrusted code or distributing such code doe
 
 ## Known issues
 
-- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867): Currently, in projects using `@rspack/browser`, you need to inject `process.env.NODE_DEBUG_NATIVE`. If your are using Rspack to bundle your project, refer to [DefinePlugin](/plugins/webpack/define-plugin).
+- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867): Currently, in projects using `@rspack/browser`, you need to inject `process.env.NODE_DEBUG_NATIVE`.
+  If you are using Rspack to bundle your project, you can set it with [DefinePlugin](/plugins/webpack/define-plugin):
+
+  ```js title="rspack.config.mjs"
+  new rspack.DefinePlugin({
+    'process.env.NODE_DEBUG_NATIVE': JSON.stringify(false),
+  });
+  ```
+
+  if you are using Rsbuild to bundle your project, you can set it with [source.define](https://rsbuild.rs/config/source/define#sourcedefine):
+
+  ```ts title="rsbuild.config.ts"
+  export default {
+    source: {
+      define: {
+        'process.env.NODE_DEBUG_NATIVE': JSON.stringify(false),
+      },
+    },
+  };
+  ```
