@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use rspack_util::atom::Atom;
 
 use super::{ExportInfoData, ExportInfoTargetValue, Inlinable, UsageFilterFnTy, UsageState};
-use crate::{DependencyId, ExportsInfo, Nullable, RuntimeSpec};
+use crate::{DependencyId, Nullable, RuntimeSpec};
 
 impl ExportInfoData {
   pub fn reset_provide_info(&mut self) {
@@ -212,17 +212,12 @@ impl ExportInfoData {
     changed
   }
 
-  pub fn set_has_use_info(&mut self, nested_exports_info: &mut Vec<ExportsInfo>) {
+  pub fn set_has_use_info(&mut self) {
     if !self.has_use_in_runtime_info() {
       self.set_has_use_in_runtime_info(true);
     }
     if self.can_mangle_use().is_none() {
       self.set_can_mangle_use(Some(true));
-    }
-    if self.exports_info_owned()
-      && let Some(exports_info) = self.exports_info()
-    {
-      nested_exports_info.push(exports_info);
     }
   }
 }
