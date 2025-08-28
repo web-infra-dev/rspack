@@ -97,7 +97,7 @@ impl Combinator {
       let chunk = chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime = chunk.runtime();
       let usage_key = runtime_key_map
-        .entry(get_runtime_key(runtime))
+        .entry(get_runtime_key(runtime).to_string())
         .or_insert_with(|| exports_info.get_usage_key(Some(runtime)))
         .clone();
 
