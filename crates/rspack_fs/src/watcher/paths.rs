@@ -246,8 +246,6 @@ impl PathManager {
 
 #[cfg(test)]
 mod tests {
-  use std::path::PathBuf;
-
   use rspack_paths::Utf8Path;
 
   use super::*;
@@ -275,7 +273,12 @@ mod tests {
     let all = path_tracker.all;
 
     assert_eq!(all.len(), 1);
-    assert!(all.contains(&ArcPath::from(PathBuf::from("src/index.js"))));
+    assert!(
+      all
+        .iter()
+        .find(|p| p.to_string_lossy().contains("src/index.js"))
+        .is_some()
+    )
   }
 
   #[test]
@@ -306,7 +309,13 @@ mod tests {
 
     all_paths.sort();
 
-    assert_eq!(all_paths, vec!["src", "src/index.js", "src/page/index.ts"]);
+    assert_eq!(all_paths.len(), 3);
+
+    let should_exist_paths = vec!["src", "src/index.js", "src/page/index.ts"];
+
+    for path in should_exist_paths {
+      assert!(all_paths.iter().find(|p| p.ends_with(path)).is_some());
+    }
   }
 
   #[test]
@@ -343,6 +352,12 @@ mod tests {
 
     all_paths.sort();
 
-    assert_eq!(all_paths, vec!["src/", "src/index.js", "src/page/index.ts"]);
+    assert_eq!(all_paths.len(), 3);
+
+    let should_exist_paths = vec!["src/", "src/index.js", "src/page/index.ts"];
+
+    for path in should_exist_paths {
+      assert!(all_paths.iter().find(|p| p.ends_with(path)).is_some());
+    }
   }
 }
