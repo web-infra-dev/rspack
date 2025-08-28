@@ -12,7 +12,8 @@
   "files": [
     "binding.js",
     "binding.d.ts",
-    "napi-binding.d.ts"
+    "napi-binding.d.ts",
+    "webcontainer-fallback.cjs"
   ],
   "scripts": {
     "build:dev": "node scripts/build.js",
