@@ -7,7 +7,6 @@ type FileAction = {
 	renameFile(oldPath: string, newPath: string): void;
 	updateFile(relativePath: string, fn: (content: string) => string): void;
 	deleteFile(relativePath: string): void;
-	readDistFile(relativePath: string): string | void;
 };
 
 type FileActionFixtures = {
@@ -52,14 +51,6 @@ export const fileActionFixtures: Fixtures<
 				}
 
 				fs.unlinkSync(filePath);
-			},
-			readDistFile(relativePath) {
-				const filePath = path.resolve(rspack.outDir, relativePath);
-				const fileExists = fs.existsSync(filePath);
-				if (!fileExists) {
-					return;
-				}
-				return fs.readFileSync(filePath, "utf-8");
 			}
 		});
 
