@@ -276,8 +276,7 @@ mod tests {
     assert!(
       all
         .iter()
-        .find(|p| p.to_string_lossy().contains("src/index.js"))
-        .is_some()
+        .any(|p| p.to_string_lossy().contains("src/index.js"))
     )
   }
 
@@ -314,7 +313,7 @@ mod tests {
     let should_exist_paths = vec!["src", "src/index.js", "src/page/index.ts"];
 
     for path in should_exist_paths {
-      assert!(all_paths.iter().find(|p| p.ends_with(path)).is_some());
+      assert!(all_paths.iter().any(|p| p.ends_with(path)));
     }
   }
 
@@ -357,7 +356,7 @@ mod tests {
     let should_exist_paths = vec!["src/", "src/index.js", "src/page/index.ts"];
 
     for path in should_exist_paths {
-      assert!(all_paths.iter().find(|p| p.ends_with(path)).is_some());
+      assert!(all_paths.iter().any(|p| p.ends_with(path)));
     }
   }
 }
