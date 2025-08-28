@@ -603,7 +603,11 @@ impl Compilation {
     let user_request = to_identifier(module_dep.user_request());
     let mut runtime_map = self.import_var_map.entry(*parent_module_id).or_default();
     let import_var_map_of_module = runtime_map
-      .entry(runtime.map(get_runtime_key).unwrap_or_default())
+      .entry(
+        runtime
+          .map(|r| get_runtime_key(r).to_string())
+          .unwrap_or_default(),
+      )
       .or_default();
     let len = import_var_map_of_module.len();
 
@@ -1751,7 +1755,7 @@ impl Compilation {
         let module_runtime_keys = module_runtimes
           .values()
           .map(get_runtime_key)
-          .collect::<Vec<_>>();
+          .collect::<HashSet<_>>();
 
         if let Some(runtime_map) = self.cgm_hash_artifact.get_runtime_map(mi) {
           if module_runtimes.is_empty() {
