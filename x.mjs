@@ -202,7 +202,7 @@ rspackCommand
 	.action(async ({ debug }) => {
 		try {
 			if (!debug) {
-				await $`pnpm rspack ${getVariadicArgs()}`;
+				await $`pnpx rspack ${getVariadicArgs()}`;
 				return;
 			}
 			await launchRspackCli(getVariadicArgs());
@@ -234,7 +234,7 @@ jestCommand
 	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async ({ debug }) => {
 		if (!debug) {
-			await $`pnpm jest ${getVariadicArgs()}`;
+			await $`pnpx jest ${getVariadicArgs()}`;
 			return;
 		}
 		await launchJestWithArgs(getVariadicArgs());
