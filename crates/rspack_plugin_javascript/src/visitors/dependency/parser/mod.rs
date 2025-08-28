@@ -1141,9 +1141,9 @@ impl JavascriptParser<'_> {
             eval::eval_call_expression(parser, call_expr)
           })
         },
-        |parser, member| eval::eval_member_expression(parser, member),
+        |parser, member| eval::eval_member_expression(parser, member, expr),
       ),
-      Expr::Member(member) => eval::eval_member_expression(self, member),
+      Expr::Member(member) => eval::eval_member_expression(self, member, expr),
       Expr::Ident(ident) => {
         let name = &ident.sym;
         if name.eq("undefined") {

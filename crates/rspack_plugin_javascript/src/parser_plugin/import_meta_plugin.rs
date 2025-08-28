@@ -3,7 +3,7 @@ use rspack_core::{ConstDependency, SpanExt, property_access};
 use rspack_error::miette::Severity;
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::{Expr, MemberProp},
+  ecma::ast::{Expr, MemberProp, MetaPropKind},
 };
 use url::Url;
 
@@ -44,7 +44,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     _parser: &mut JavascriptParser,
     expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'a>> {
+  ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
     if for_name == expr_name::IMPORT_META {
       evaluated = Some("object".to_string());
@@ -86,6 +86,33 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     } else {
       None
     }
+  }
+
+  fn evaluate<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &'a Expr,
+  ) -> Option<eval::BasicEvaluatedExpression<'a>> {
+    if let Some(member) = expr.as_member()
+      && let Some(meta_prop) = member.obj.as_meta_prop()
+      && meta_prop.kind == MetaPropKind::ImportMeta
+    {
+      if member.prop.is_ident() {
+        return Some(eval::evaluate_to_undefined(
+          member.span().real_lo(),
+          member.span().real_hi(),
+        ));
+      }
+      if let Some(computed) = member.prop.as_computed()
+        && computed.expr.is_lit()
+      {
+        return Some(eval::evaluate_to_undefined(
+          member.span().real_lo(),
+          member.span().real_hi(),
+        ));
+      }
+    }
+    None
   }
 
   fn r#typeof(
