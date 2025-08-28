@@ -48,6 +48,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
   fn apply(&mut self) {
     let mut module_graph = self.compilation.get_module_graph_mut();
+    module_graph.active_all_exports_info();
+    module_graph.reset_all_exports_info_used();
+
     for mgm in module_graph.module_graph_modules().values() {
       self
         .exports_info_module_map
@@ -55,9 +58,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     let mut q = Queue::new();
     let mg = &mut module_graph;
-    for exports_info in self.exports_info_module_map.keys() {
-      exports_info.set_has_use_info(mg);
-    }
 
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;

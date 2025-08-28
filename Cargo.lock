@@ -4802,6 +4802,7 @@ dependencies = [
  "dashmap 6.1.0",
  "derive_more",
  "futures",
+ "itertools 0.14.0",
  "rayon",
  "regex",
  "rspack_collections",

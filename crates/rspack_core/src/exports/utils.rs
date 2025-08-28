@@ -168,7 +168,7 @@ pub enum ExportProvided {
   Unknown,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Default)]
+#[derive(Debug, Hash, PartialEq, Eq, Default, Clone)]
 pub struct UsageKey(pub Vec<Either<Box<UsageKey>, UsageState>>);
 
 impl UsageKey {
