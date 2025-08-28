@@ -9,13 +9,13 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
 mod connection;
 pub use connection::*;
+mod exports_info;
 
 use crate::{
   BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfo, ExportsInfoData,
@@ -1026,62 +1026,6 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.add_incoming_connection(*dep_id);
   }
 
-  pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have mgm")
-      .exports
-  }
-
-  pub fn get_prefetched_exports_info_optional<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
-  }
-
-  pub fn get_prefetched_exports_info<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> PrefetchedExportsInfoWrapper<'b> {
-    let exports_info = self.get_exports_info(module_identifier);
-    ExportsInfoGetter::prefetch(&exports_info, self, mode)
-  }
-
-  pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
-    self
-      .try_get_exports_info_by_id(id)
-      .expect("should have exports info")
-  }
-
-  pub fn try_get_exports_info_by_id(&self, id: &ExportsInfo) -> Option<&ExportsInfoData> {
-    self.loop_partials(|p| p.exports_info_map.get(id))
-  }
-
-  pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {
-    self
-      .loop_partials_mut(
-        |p| p.exports_info_map.contains_key(id),
-        |p, search_result| {
-          p.exports_info_map.insert(*id, search_result);
-        },
-        |p| p.exports_info_map.get(id).cloned(),
-        |p| p.exports_info_map.get_mut(id),
-      )
-      .expect("should have exports info")
-  }
-
-  pub fn set_exports_info(&mut self, id: ExportsInfo, info: ExportsInfoData) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial.exports_info_map.insert(id, info);
-  }
-
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
     let mgm = self
       .module_graph_module_by_identifier_mut(id)
@@ -1106,22 +1050,6 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.connection_to_condition.get(&connection.dependency_id))
       .expect("should have condition");
     condition.get_connection_state(connection, runtime, self, module_graph_cache)
-  }
-
-  // returns: Option<bool>
-  //   - None: it's unknown
-  //   - Some(true): provided
-  //   - Some(false): not provided
-  pub fn is_export_provided(
-    &self,
-    id: &ModuleIdentifier,
-    names: &[Atom],
-  ) -> Option<ExportProvided> {
-    self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info =
-        ExportsInfoGetter::prefetch(&mgm.exports, self, PrefetchExportsInfoMode::Nested(names));
-      exports_info.is_export_provided(names)
-    })
   }
 
   // todo remove it after module_graph_partial remove all of dependency_id_to_*
