@@ -74,6 +74,9 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
 
 	try {
 		const result = (function LOADER_EXECUTION() {
+			// This is a trick to prevent SWC's minifier from optimizing away
+			// this named function.
+			LOADER_EXECUTION.name;
 			return fn.apply(context, args);
 		})();
 		if (isSync) {
