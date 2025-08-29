@@ -82,6 +82,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
             .profile
             .then(Box::<ModuleProfile>::default),
           resolver_factory: origin_context.resolver_factory.clone(),
+          from_unlazy: false,
         })]));
         (*v.insert(dep_id), true)
       }

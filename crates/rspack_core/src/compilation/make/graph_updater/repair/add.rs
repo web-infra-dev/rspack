@@ -15,6 +15,7 @@ pub struct AddTask {
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub from_unlazy: bool,
 }
 
 #[async_trait::async_trait]
@@ -64,6 +65,10 @@ impl Task<TaskContext> for AddTask {
       )?;
 
       if context.compiler_options.experiments.lazy_barrel {
+        if self.from_unlazy {
+          context.artifact.built_modules.insert(module_identifier);
+        }
+
         if module_graph
           .module_by_identifier(&module_identifier)
           .is_some()

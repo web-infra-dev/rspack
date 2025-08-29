@@ -15,6 +15,7 @@ const allModules = fs
 const lazyModules = new Set(
 	[
 		"named-barrel/b.js",
+		"named-barrel/d.js",
 		"mixed-barrel/a.js",
 		"mixed-barrel/b.js",
 		"star-barrel/c.js",
