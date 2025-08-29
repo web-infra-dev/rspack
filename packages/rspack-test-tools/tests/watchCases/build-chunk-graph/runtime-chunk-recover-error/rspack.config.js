@@ -10,7 +10,10 @@ const config = (index, parallelCodeSplitting) => ({
 		runtimeChunk: "single"
 	},
 	experiments: {
-		parallelCodeSplitting
+		parallelCodeSplitting,
+		incremental: {
+			buildChunkGraph: true
+		}
 	}
 });
 
