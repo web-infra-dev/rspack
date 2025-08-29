@@ -189,6 +189,14 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
   4 chunks (Rspack x.x.x) compiled successfully in X s
 `;
 
+exports[`statsOutput statsOutput/loader-throw-error should print correct stats for 1`] = `
+asset bundle.js 49 bytes [emitted] (name: main)
+
+ERROR in × Module not found: Can't resolve './index.js' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/loader-throw-error'
+
+Rspack x.x.x compiled with 1 error in X s
+`;
+
 exports[`statsOutput statsOutput/logging-loader should print correct stats for 1`] = `
 DEBUG LOG from TestLoader|<TEST_TOOLS_ROOT>/tests/statsOutputCases/logging-loader/index.js
 <-> group

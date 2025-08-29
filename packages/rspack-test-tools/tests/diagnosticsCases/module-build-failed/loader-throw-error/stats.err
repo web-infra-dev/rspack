@@ -1,4 +1,4 @@
 ERROR in ./lib.js
   × Module build failed:
   ╰─▶   × Error: Failed to load
-        │     at xxx
+        │     at Object.<anonymous>.module.exports (<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-throw-error/my-loader.js<LINE_COL>)

@@ -14,9 +14,7 @@ const creator = new BasicCaseCreator({
 			configFiles: ["rspack.config.js", "webpack.config.js"],
 			compilerType: ECompilerType.Rspack,
 			format: (output: string) => {
-				// TODO: change to stats.errorStack
-				// TODO: add `errorStack: false`
-				return output.replace(/(│.* at ).*/g, "$1xxx");
+				return output;
 			}
 		})
 	],

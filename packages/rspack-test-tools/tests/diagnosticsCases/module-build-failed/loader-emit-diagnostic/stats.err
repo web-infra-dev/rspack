@@ -51,14 +51,8 @@ ERROR in (./with-multi-byte-char.js!) 1:0-13
 ERROR in (./with-multi-byte-char.js!)
   × Module build failed:
   ╰─▶   × Error: Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
+        │     at Object.emitDiagnostic (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+        │     at Object.<anonymous>.module.exports (<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-multi-byte-char.js<LINE_COL>)
 
 ERROR in (./with-multiple-line.js!) 1:0-2:4
   × ModuleError: Multiple line error
@@ -78,14 +72,8 @@ ERROR in (./with-multiple-line.js!) 1:0-2:4
 ERROR in (./with-multiple-line.js!)
   × Module build failed:
   ╰─▶   × Error: Format diagnostic failed: Invalid `length` in location.
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
+        │     at Object.emitDiagnostic (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+        │     at Object.<anonymous>.module.exports (<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-multiple-line.js<LINE_COL>)
 
 ERROR in (./with-multiple-line.js!) 3:4
   × ModuleError: Multiple line snippet
