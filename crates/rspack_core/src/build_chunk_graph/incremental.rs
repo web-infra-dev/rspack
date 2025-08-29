@@ -529,6 +529,15 @@ impl CodeSplitter {
       }
     }
 
+    for m in affected_modules {
+      for module_map in self.block_modules_runtime_map.values_mut() {
+        module_map.remove(&DependenciesBlockIdentifier::Module(m));
+      }
+
+      let more_edges = self.invalidate_from_module(m, compilation)?;
+      edges.extend(more_edges);
+    }
+
     if !removed_modules.is_empty() {
       // TODO:
       // if we have removed module, we should invalidate its
@@ -538,15 +547,6 @@ impl CodeSplitter {
       for m in removed_modules {
         self.invalidate_from_module(m, compilation)?;
       }
-    }
-
-    for m in affected_modules {
-      for module_map in self.block_modules_runtime_map.values_mut() {
-        module_map.remove(&DependenciesBlockIdentifier::Module(m));
-      }
-
-      let more_edges = self.invalidate_from_module(m, compilation)?;
-      edges.extend(more_edges);
     }
 
     self.stat_invalidated_caches = dirty_blocks.len() as u32;

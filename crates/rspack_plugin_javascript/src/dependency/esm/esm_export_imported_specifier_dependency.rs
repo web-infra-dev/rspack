@@ -138,7 +138,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ExportMode {
-    let key = (self.id, runtime.map(get_runtime_key));
+    let key = (self.id, runtime.map(|r| get_runtime_key(r).to_string()));
     module_graph_cache.cached_get_mode(key, || {
       self.get_mode_inner(module_graph, module_graph_cache, runtime)
     })

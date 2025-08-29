@@ -3446,7 +3446,7 @@ dependencies = [
 
 [[package]]
 name = "rspack"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "bitflags 2.9.1",
  "enum-tag",
@@ -3502,7 +3502,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_allocator"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "mimalloc-rspack",
  "sftrace-setup",
@@ -3510,7 +3510,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_base64"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "base64-simd 0.8.0",
  "regex",
@@ -3518,7 +3518,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_benchmark"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion2",
  "rspack",
@@ -3533,7 +3533,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_api"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3635,21 +3635,21 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_build"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "napi-build",
 ]
 
 [[package]]
 name = "rspack_binding_builder"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_binding_api",
 ]
 
 [[package]]
 name = "rspack_binding_builder_macros"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3659,7 +3659,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_builder_testing"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "napi",
  "napi-derive",
@@ -3673,11 +3673,11 @@ dependencies = [
 
 [[package]]
 name = "rspack_browser"
-version = "0.5.0"
+version = "0.5.1"
 
 [[package]]
 name = "rspack_browserslist"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "browserslist-rs",
  "lightningcss",
@@ -3686,7 +3686,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -3709,7 +3709,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable_test"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -3728,7 +3728,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_collections"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "dashmap 6.1.0",
  "hashlink",
@@ -3741,7 +3741,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_core"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anymap3",
  "async-recursion",
@@ -3816,7 +3816,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_error"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "cow-utils",
@@ -3839,7 +3839,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_fs"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -3859,7 +3859,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_futures"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_tasks",
  "tokio",
@@ -3867,7 +3867,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hash"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "md4",
  "rspack_cacheable",
@@ -3878,7 +3878,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hook"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "rspack_error",
@@ -3889,7 +3889,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_ids"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "itertools 0.14.0",
  "rayon",
@@ -3905,7 +3905,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_javascript_compiler"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -3930,7 +3930,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_lightningcss"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "derive_more",
@@ -3950,7 +3950,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_preact_refresh"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -3963,7 +3963,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_react_refresh"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -3976,7 +3976,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_runner"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anymap3",
  "async-trait",
@@ -3999,7 +3999,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_swc"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "either",
@@ -4027,7 +4027,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_testing"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4039,7 +4039,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_location"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "itoa",
  "rspack_cacheable",
@@ -4048,7 +4048,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_macros"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4057,7 +4057,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_macros_test"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4075,7 +4075,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "napi",
  "oneshot",
@@ -4087,7 +4087,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi_macros"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4096,7 +4096,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_node"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "napi-derive",
  "rspack_binding_api",
@@ -4106,7 +4106,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_paths"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "camino",
  "rspack_cacheable",
@@ -4114,7 +4114,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_asset"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "mime_guess",
@@ -4133,7 +4133,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_banner"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cow-utils",
  "futures",
@@ -4147,7 +4147,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_circular_dependencies"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cow-utils",
  "derive_more",
@@ -4164,7 +4164,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_copy"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "dashmap 6.1.0",
  "derive_more",
@@ -4184,7 +4184,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4212,7 +4212,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css_chunking"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "indexmap",
  "rspack_collections",
@@ -4227,7 +4227,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_devtool"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
@@ -4254,7 +4254,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dll"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4274,7 +4274,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dynamic_entry"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "derive_more",
  "futures",
@@ -4287,7 +4287,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ensure_chunk_conditions"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4298,7 +4298,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_entry"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4308,7 +4308,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_externals"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "regex",
  "rspack_core",
@@ -4321,7 +4321,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_extract_css"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4346,7 +4346,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_hmr"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4367,7 +4367,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_html"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "atomic_refcell",
@@ -4396,7 +4396,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ignore"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "derive_more",
  "futures",
@@ -4409,7 +4409,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_javascript"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anymap3",
  "async-trait",
@@ -4452,7 +4452,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_json"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4466,7 +4466,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lazy_compilation"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4486,7 +4486,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_library"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "futures",
  "regex",
@@ -4505,7 +4505,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lightning_css_minimizer"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "lightningcss",
  "parcel_sourcemap",
@@ -4522,7 +4522,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_limit_chunk_count"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_collections",
  "rspack_core",
@@ -4533,7 +4533,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_merge_duplicate_chunks"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rayon",
  "rspack_collections",
@@ -4546,7 +4546,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_mf"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "camino",
@@ -4574,7 +4574,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_info_header"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "regex",
  "rspack_cacheable",
@@ -4591,7 +4591,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_replacement"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "derive_more",
  "futures",
@@ -4606,7 +4606,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_no_emit_on_errors"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4616,7 +4616,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_progress"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "futures",
  "indicatif",
@@ -4630,7 +4630,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_real_content_hash"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "aho-corasick",
  "atomic_refcell",
@@ -4651,7 +4651,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_duplicate_modules"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4662,7 +4662,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_empty_chunks"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_collections",
  "rspack_core",
@@ -4673,7 +4673,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsdoctor"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "atomic_refcell",
  "futures",
@@ -4693,7 +4693,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rslib"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4706,7 +4706,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rstest"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "camino",
  "regex",
@@ -4722,7 +4722,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_runtime"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4747,7 +4747,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_runtime_chunk"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "futures",
  "rspack_core",
@@ -4758,7 +4758,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_schemes"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4783,7 +4783,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_size_limits"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "derive_more",
  "futures",
@@ -4797,7 +4797,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_split_chunks"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "dashmap 6.1.0",
  "derive_more",
@@ -4819,7 +4819,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_sri"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4853,7 +4853,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_swc_js_minimizer"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cow-utils",
  "once_cell",
@@ -4875,7 +4875,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_warn_sensitive_module"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cow-utils",
  "rspack_collections",
@@ -4888,7 +4888,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_wasm"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4911,7 +4911,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_web_worker_template"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_core",
  "rspack_plugin_runtime",
@@ -4919,7 +4919,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_worker"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4929,7 +4929,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_regex"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cow-utils",
  "napi",
@@ -4981,7 +4981,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_storage"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4998,7 +4998,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_import"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cow-utils",
  "handlebars",
@@ -5010,7 +5010,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_ts_collector"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "glob",
  "rspack_javascript_compiler",
@@ -5021,14 +5021,14 @@ dependencies = [
 
 [[package]]
 name = "rspack_tasks"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "tokio",
 ]
 
 [[package]]
 name = "rspack_tracing"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rspack_tracing_perfetto",
  "tracing-subscriber",
@@ -5036,7 +5036,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_tracing_perfetto"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "bytes",
  "micromegas-perfetto",
@@ -5047,7 +5047,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_util"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
@@ -5078,7 +5078,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_workspace"
-version = "0.5.0"
+version = "0.5.1"
 
 [[package]]
 name = "rustc-demangle"

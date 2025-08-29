@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::Deref};
+use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
 use dashmap::{DashSet as HashSet, setref::multiple::RefMulti};
 use rspack_error::Result;
@@ -110,6 +110,7 @@ impl<'a> PathAccessor<'a> {
 struct PathUpdater {
   pub added: Vec<ArcPath>,
   pub removed: Vec<ArcPath>,
+  base_dir: PathBuf,
 }
 
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater
@@ -121,6 +122,7 @@ where
     Self {
       added: added.collect(),
       removed: removed.collect(),
+      base_dir: std::env::current_dir().unwrap_or_default(),
     }
   }
 }
@@ -136,11 +138,25 @@ impl PathUpdater {
         continue; // Skip ignored paths
       }
 
-      watch_tracker.add(added);
+      if added.is_absolute() {
+        watch_tracker.add(added);
+        continue;
+      }
+
+      let added_absolute_path = self.base_dir.join(added.as_ref());
+
+      watch_tracker.add(ArcPath::from(added_absolute_path));
     }
 
     for removed in removed_paths {
-      watch_tracker.remove(removed);
+      if removed.is_absolute() {
+        watch_tracker.remove(removed);
+        continue;
+      }
+
+      let removed_absolute_path = self.base_dir.join(removed.as_ref());
+
+      watch_tracker.remove(ArcPath::from(removed_absolute_path));
     }
     Ok(())
   }
@@ -230,8 +246,6 @@ impl PathManager {
 
 #[cfg(test)]
 mod tests {
-  use std::path::PathBuf;
-
   use rspack_paths::Utf8Path;
 
   use super::*;
@@ -259,7 +273,11 @@ mod tests {
     let all = path_tracker.all;
 
     assert_eq!(all.len(), 1);
-    assert!(all.contains(&ArcPath::from(PathBuf::from("src/index.js"))));
+    assert!(
+      all
+        .iter()
+        .any(|p| p.to_string_lossy().contains("src/index.js"))
+    )
   }
 
   #[test]
@@ -290,7 +308,13 @@ mod tests {
 
     all_paths.sort();
 
-    assert_eq!(all_paths, vec!["src", "src/index.js", "src/page/index.ts"]);
+    assert_eq!(all_paths.len(), 3);
+
+    let should_exist_paths = vec!["src", "src/index.js", "src/page/index.ts"];
+
+    for path in should_exist_paths {
+      assert!(all_paths.iter().any(|p| p.ends_with(path)));
+    }
   }
 
   #[test]
@@ -327,6 +351,12 @@ mod tests {
 
     all_paths.sort();
 
-    assert_eq!(all_paths, vec!["src/", "src/index.js", "src/page/index.ts"]);
+    assert_eq!(all_paths.len(), 3);
+
+    let should_exist_paths = vec!["src/", "src/index.js", "src/page/index.ts"];
+
+    for path in should_exist_paths {
+      assert!(all_paths.iter().any(|p| p.ends_with(path)));
+    }
   }
 }
