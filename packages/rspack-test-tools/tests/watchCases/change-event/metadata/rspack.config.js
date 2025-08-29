@@ -3,7 +3,6 @@ const fs = require("node:fs");
 
 class ShouldRebuildPlugin {
 	constructor() {
-		this.assetName = "bundle.js";
 		this.compileCount = 0;
 	}
 	apply(compiler) {
@@ -31,7 +30,6 @@ class ShouldRebuildPlugin {
  * @type {import('@rspack/core').Configuration}
  */
 const config = {
-	cache: false,
 	plugins: [new ShouldRebuildPlugin()]
 };
 
