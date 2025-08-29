@@ -27,6 +27,7 @@ pub struct FactorizeTask {
   pub options: Arc<CompilerOptions>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub from_unlazy: bool,
 }
 
 #[async_trait::async_trait]
@@ -133,6 +134,7 @@ impl Task<TaskContext> for FactorizeTask {
       current_profile: self.current_profile,
       exports_info_related: exports_info,
       factorize_info,
+      from_unlazy: self.from_unlazy,
     })])
   }
 }
@@ -147,6 +149,7 @@ pub struct FactorizeResultTask {
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
+  pub from_unlazy: bool,
 }
 
 #[async_trait::async_trait]
@@ -162,6 +165,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       current_profile,
       exports_info_related,
       mut factorize_info,
+      from_unlazy,
     } = *self;
 
     let artifact = &mut context.artifact;
@@ -224,6 +228,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       module_graph_module: Box::new(mgm),
       dependencies,
       current_profile,
+      from_unlazy,
     })])
   }
 }
