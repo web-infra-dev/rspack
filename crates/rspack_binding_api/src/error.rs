@@ -261,6 +261,18 @@ impl FromNapiValue for RspackError {
 
 impl napi::bindgen_prelude::ValidateNapiValue for RspackError {}
 
+fn cut_off_by_flag(stack: &str, flag: &str) -> String {
+  if let Some(pos) = stack.lines().position(|line| line.contains(flag)) {
+    stack.lines().take(pos).collect::<Vec<&str>>().join("\n")
+  } else {
+    stack.to_string()
+  }
+}
+
+fn cut_off_loader_execution(stack: &str) -> String {
+  cut_off_by_flag(stack, "LOADER_EXECUTION")
+}
+
 // The error printing logic here is consistent with Webpack Stats.
 impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -268,7 +280,7 @@ impl std::fmt::Display for RspackError {
       // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
       if let Some(stack) = &self.stack {
         if self.hide_stack != Some(true) {
-          write!(f, "{stack}")
+          write!(f, "{}", cut_off_loader_execution(stack))
         } else {
           write!(f, "{}", self.message)
         }
