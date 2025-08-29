@@ -35,6 +35,7 @@ color-backtrace     = { version = "0.7.0", default-features = false, features = 
 concat-string       = { version = "1.0.1", default-features = false }
 cow-utils           = { version = "0.1.3", default-features = false }
 criterion2          = { default-features = false, version = "2.0.0", features = ["async_tokio"] }
+crossbeam-channel   = { version = "0.5.15", default-features = false }
 css-module-lexer    = { version = "0.0.15", default-features = false }
 dashmap             = { version = "6.1.0", default-features = false }
 derive_more         = { version = "2.0.1", default-features = false }

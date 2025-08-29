@@ -12,6 +12,7 @@ async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
+crossbeam-channel = { workspace = true, features = ["std"] }
 dashmap = { workspace = true, features = ["rayon"] }
 derive_more = { workspace = true, features = ["debug"] }
 dyn-clone = { workspace = true }
