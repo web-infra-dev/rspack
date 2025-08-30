@@ -40,9 +40,9 @@ impl DiskWatcher {
 
           let kind = match event.kind {
             EventKind::Create(_) => FsEventKind::Create,
-            EventKind::Modify(ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_)) => {
-              FsEventKind::Change
-            }
+            EventKind::Modify(
+              ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
+            ) => FsEventKind::Change,
             EventKind::Remove(_) => FsEventKind::Remove,
             // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
             // path/to/index.js should be removed, and path/to/index.js.map should be changed
