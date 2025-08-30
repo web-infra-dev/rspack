@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use either::Either;
 use itertools::Itertools;
+use rspack_collections::UkeyMap;
 use rspack_util::{atom::Atom, ext::DynHash};
-use rustc_hash::FxHashMap as HashMap;
 
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
@@ -31,7 +31,7 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  exports: Arc<HashMap<ExportsInfo, &'a ExportsInfoData>>,
+  exports: Arc<UkeyMap<ExportsInfo, &'a ExportsInfoData>>,
   /**
    * The entry of the current exports info
    */
@@ -569,7 +569,7 @@ impl ExportsInfoGetter {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
       mg: &'a ModuleGraph,
-      res: &mut HashMap<ExportsInfo, &'a ExportsInfoData>,
+      res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
       if res.contains_key(id) {
@@ -581,15 +581,12 @@ impl ExportsInfoGetter {
       match mode {
         PrefetchExportsInfoMode::Default => {}
         PrefetchExportsInfoMode::Nested(names) => {
-          for (key, export_info) in exports_info.exports().iter() {
-            if names.first().is_some_and(|name| name == key)
-              && let Some(nested_exports_info) = export_info.exports_info()
-            {
-              nested_exports.push((
-                nested_exports_info,
-                PrefetchExportsInfoMode::Nested(&names[1..]),
-              ));
-            }
+          if let Some(nested) = names
+            .first()
+            .and_then(|name| exports_info.exports().get(name))
+            .and_then(|export_info| export_info.exports_info())
+          {
+            nested_exports.push((nested, PrefetchExportsInfoMode::Nested(&names[1..])));
           }
         }
         PrefetchExportsInfoMode::Full => {
@@ -620,7 +617,7 @@ impl ExportsInfoGetter {
       }
     }
 
-    let mut res = HashMap::default();
+    let mut res = UkeyMap::default();
     prefetch_exports(id, mg, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
@@ -748,7 +745,7 @@ impl ExportsInfoGetter {
     let exports = exports
       .into_iter()
       .map(|e| (e, mg.get_exports_info_by_id(&e)))
-      .collect::<HashMap<_, _>>();
+      .collect::<UkeyMap<_, _>>();
 
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(exports),
