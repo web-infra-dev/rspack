@@ -4,7 +4,7 @@
   "version": "0.1.8",
   "scripts": {
     "test": "playwright test",
-    "test:CI": "CI=1 npm run test"
+    "test:CI": "CI=1 pnpm run test"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",
