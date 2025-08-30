@@ -170,7 +170,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       files.push(file.clone());
     }
   }
-  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK)_(.*?):(.*?) \*\/")
+  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE)_(.*?):(.*?) \*\/")
     .expect("should initialize `Regex`");
 
   for file in files {
