@@ -9,7 +9,7 @@ use rspack_core::{
   CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
   ParserOptions, ResourceData,
 };
-use rspack_error::miette::Diagnostic;
+use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
 use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, comments::Comments};
@@ -29,7 +29,7 @@ pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
+  pub warning_diagnostics: Vec<Diagnostic>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -50,7 +50,7 @@ pub fn scan_dependencies(
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
-) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
+) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
     source_map,
     source_file,

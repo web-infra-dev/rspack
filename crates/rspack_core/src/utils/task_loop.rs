@@ -172,7 +172,7 @@ pub async fn run_task_loop<Ctx: 'static>(
 
 #[cfg(test)]
 mod test {
-  use rspack_error::miette::miette;
+  use rspack_error::error;
   use rspack_tasks::within_compiler_context_for_testing;
 
   use super::*;
@@ -194,7 +194,7 @@ mod test {
     }
     async fn main_run(self: Box<Self>, context: &mut Context) -> TaskResult<Context> {
       if context.sync_return_error {
-        return Err(miette!("throw sync error"));
+        return Err(error!("throw sync error"));
       }
 
       let async_return_error = context.async_return_error;
@@ -221,7 +221,7 @@ mod test {
     async fn background_run(self: Box<Self>) -> TaskResult<Context> {
       tokio::time::sleep(std::time::Duration::from_millis(10)).await;
       if self.async_return_error {
-        Err(miette!("throw async error"))
+        Err(error!("throw async error"))
       } else {
         Ok(vec![Box::new(SyncTask)])
       }

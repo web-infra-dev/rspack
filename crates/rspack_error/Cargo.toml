@@ -9,20 +9,14 @@ version.workspace = true
 
 [dependencies]
 anyhow             = { workspace = true, features = ["backtrace"] }
-cow-utils          = { workspace = true }
-derive_more        = { workspace = true, features = ["debug"] }
-futures            = { workspace = true }
 miette             = { workspace = true, features = ["fancy", "derive"] }
-once_cell          = { workspace = true }
 owo-colors         = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_location    = { workspace = true }
 rspack_paths       = { workspace = true }
 serde_json         = { workspace = true }
-swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
 termcolor          = { workspace = true }
 textwrap           = { workspace = true }
-thiserror          = { workspace = true }
 
 unicode-width = { workspace = true }

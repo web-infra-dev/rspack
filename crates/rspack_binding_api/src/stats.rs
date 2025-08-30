@@ -11,7 +11,7 @@ use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
   rspack_sources::{RawBufferSource, RawSource, Source},
 };
-use rspack_error::RspackSeverity;
+use rspack_error::Severity;
 use rspack_napi::napi::{
   Either,
   bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
@@ -1262,7 +1262,7 @@ pub fn create_stats_warnings<'a>(
 
   let mut diagnostics = warnings
     .into_iter()
-    .map(|warning| warning.into_diagnostic(RspackSeverity::Warn))
+    .map(|warning| warning.into_diagnostic(Severity::Warning))
     .collect::<Vec<_>>();
 
   let stats_warnings = rspack_core::create_stats_errors(

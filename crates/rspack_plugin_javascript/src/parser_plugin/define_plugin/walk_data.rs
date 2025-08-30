@@ -5,7 +5,7 @@ use std::{
 
 use itertools::Itertools as _;
 use regex::Regex;
-use rspack_error::{Diagnostic, DiagnosticExt};
+use rspack_error::Diagnostic;
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
 use swc_core::common::Span;
@@ -214,8 +214,7 @@ impl WalkData {
       {
         self.diagnostics.push(
           ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .boxed()
-            .into(),
+            .into_diagnostic(),
         );
       } else {
         self.tiling_definitions.insert(name, value_str);

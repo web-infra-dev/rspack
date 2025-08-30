@@ -11,10 +11,7 @@ use rspack_core::{
   Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryResolveInScheme, NormalModuleReadResource, Plugin, ResourceData, Scheme,
 };
-use rspack_error::{
-  AnyhowResultToRspackResultExt, Result,
-  miette::{self, diagnostic},
-};
+use rspack_error::{AnyhowResultToRspackResultExt, Result, error};
 use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
@@ -29,26 +26,20 @@ pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
 }
 
-async fn get_info(url: &str, options: &HttpUriPluginOptions) -> miette::Result<ContentFetchResult> {
+async fn get_info(url: &str, options: &HttpUriPluginOptions) -> Result<ContentFetchResult> {
   // Check if the URL is allowed
   if !options.allowed_uris.is_allowed(url) {
-    return Err(
-      diagnostic!(
-        "{} doesn't match the allowedUris policy. These URIs are allowed:\n{}",
-        url,
-        options.allowed_uris.get_allowed_uris_description(),
-      )
-      .into(),
-    );
+    return Err(error!(
+      "{} doesn't match the allowedUris policy. These URIs are allowed:\n{}",
+      url,
+      options.allowed_uris.get_allowed_uris_description(),
+    ));
   }
   resolve_content(url, options).await
 }
 
 // recursively handle http redirect
-async fn resolve_content(
-  url: &str,
-  options: &HttpUriPluginOptions,
-) -> miette::Result<ContentFetchResult> {
+async fn resolve_content(url: &str, options: &HttpUriPluginOptions) -> Result<ContentFetchResult> {
   let result = fetch_content(url, options)
     .await
     .to_rspack_result_from_anyhow()?;

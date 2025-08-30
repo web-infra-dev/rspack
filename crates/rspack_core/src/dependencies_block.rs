@@ -2,10 +2,6 @@ use std::{borrow::Cow, hash::Hash};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
-use rspack_error::{
-  miette::{self, Diagnostic},
-  thiserror::{self, Error},
-};
 use rspack_util::ext::DynHash;
 
 use crate::{
@@ -209,9 +205,16 @@ impl DependenciesBlock for AsyncDependenciesBlock {
   }
 }
 
-#[derive(Debug, Error, Diagnostic)]
-#[diagnostic(code(AsyncDependencyToInitialChunkError))]
-#[error(
-  "It's not allowed to load an initial chunk on demand. The chunk name \"{0}\" is already used by an entrypoint."
-)]
+#[derive(Debug)]
 pub struct AsyncDependenciesToInitialChunkError(pub String, pub Option<DependencyLocation>);
+
+impl From<AsyncDependenciesToInitialChunkError> for rspack_error::Error {
+  fn from(value: AsyncDependenciesToInitialChunkError) -> rspack_error::Error {
+    let mut error = rspack_error::error!(
+      "It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.",
+      value.0
+    );
+    error.code = Some("AsyncDependencyToInitialChunkError".into());
+    error
+  }
+}
