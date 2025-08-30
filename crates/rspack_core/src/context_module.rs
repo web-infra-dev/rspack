@@ -134,8 +134,8 @@ pub struct ContextOptions {
   pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub referenced_exports: Option<Vec<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub attributes: Option<ImportAttributes>,
 }
 
@@ -1117,7 +1117,14 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     id += "|referencedExports: ";
     id += &format!(
       "[{}]",
-      exports.iter().map(|x| format!(r#""{x}""#)).join(",")
+      exports
+        .iter()
+        .map(|ids| if ids.is_empty() {
+          String::from("*")
+        } else {
+          ids.iter().join(".")
+        })
+        .join(", ")
     );
   }
 
