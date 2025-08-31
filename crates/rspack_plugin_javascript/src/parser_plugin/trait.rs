@@ -79,14 +79,6 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn evaluate<'a>(
-    &self,
-    _parser: &mut JavascriptParser,
-    _expr: &'a Expr,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
-    None
-  }
-
   fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,

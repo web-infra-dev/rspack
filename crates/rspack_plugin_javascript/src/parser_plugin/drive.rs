@@ -430,21 +430,6 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate<'a>(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &'a Expr,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
-    for plugin in &self.plugins {
-      let res = plugin.evaluate(parser, expr);
-      // `SyncBailHook`
-      if res.is_some() {
-        return res;
-      }
-    }
-    None
-  }
-
   fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
