@@ -109,11 +109,12 @@ function getCurrentScriptUrl(moduleId: string) {
 function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 	let normalizedUrl: string;
 	if (!url) {
-		if (!el.href) {
+		const href = el.getAttribute("href");
+		if (!href) {
 			return;
 		}
 
-		normalizedUrl = el.href.split("?")[0];
+		normalizedUrl = href.split("?")[0];
 	} else {
 		normalizedUrl = url;
 	}
