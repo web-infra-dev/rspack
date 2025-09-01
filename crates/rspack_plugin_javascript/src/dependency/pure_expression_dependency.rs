@@ -63,8 +63,8 @@ impl Dependency for PureExpressionDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {

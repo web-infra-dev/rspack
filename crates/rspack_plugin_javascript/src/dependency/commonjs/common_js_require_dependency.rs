@@ -57,8 +57,8 @@ impl Dependency for CommonJsRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    self.range_expr.as_ref()
+  fn range(&self) -> Option<DependencyRange> {
+    self.range_expr
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -124,7 +124,7 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
 
     source.replace(
       dep.range.start,
-      dep.range.end - 1,
+      dep.range.end,
       module_id(
         code_generatable_context.compilation,
         &dep.id,

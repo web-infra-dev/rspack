@@ -1,6 +1,6 @@
 Array [
   Object {
-    loc: 1:8-20,
+    loc: 1:8-19,
     moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-bom/index.js,
     moduleName: ./index.js,
   },

@@ -237,7 +237,7 @@ ERROR in ./index.js 1:0-19
   × Module not found: Can't resolve 'not-exist' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/nonexistent-import-source-error'
    ╭────
  1 │ import "not-exist";
-   ·        ───────────
+   · ───────────────────
    ╰────
 
 Rspack compiled with 1 error
@@ -384,7 +384,7 @@ exports[`statsOutput statsOutput/reasons should print correct stats for 1`] = `
   entry ./index
 ./a.js 55 bytes [built] [code generated]
   cjs self exports reference self ./a.js
-  cjs require ./a ./index.js 1:18-24
+  cjs require ./a ./index.js 1:18-23
 `;
 
 exports[`statsOutput statsOutput/resolve-overflow-error should print correct stats for 1`] = `
@@ -393,9 +393,9 @@ assets by status 348 bytes [cached] 1 asset
 
 ERROR in ./index.js 1:0-34
   × Module not found: Can't resolve 'cycle-alias/a' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/resolve-overflow-error'
-   ╭─[1:18]
+   ╭─[1:0]
  1 │ import { a } from "cycle-alias/a";
-   ·                   ───────────────
+   · ──────────────────────────────────
  2 │ console.log(a);
    ╰────
   help: maybe it had cyclic aliases
@@ -470,7 +470,7 @@ Rspack compiled successfully
 `;
 
 exports[`statsOutput statsOutput/try-require-module should print correct stats for 1`] = `
-WARNING in ./index.js 2:12-31
+WARNING in ./index.js 2:12-30
   ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-module'
    ╭─[2:4]
  1 │ try {

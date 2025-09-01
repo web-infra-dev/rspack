@@ -1,4 +1,5 @@
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::ConstDependency;
+use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
   common::Span,

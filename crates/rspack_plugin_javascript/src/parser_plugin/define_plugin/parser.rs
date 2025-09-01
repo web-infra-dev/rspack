@@ -6,7 +6,7 @@ use std::{
   },
 };
 
-use rspack_core::SpanExt as _;
+use rspack_util::SpanExt;
 use swc_core::ecma::ast::Expr;
 
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
@@ -80,7 +80,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
         return None;
       }
       self.add_value_dependency(parser, for_name);
-      let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.hi.0);
+      let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.real_hi());
       self.recurse_typeof.store(false, Ordering::Release);
       return evaluated;
     }
@@ -89,7 +89,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       return Some(evaluate_to_string(
         "object".to_string(),
         expr.span.real_lo(),
-        expr.span.hi.0,
+        expr.span.real_hi(),
       ));
     }
     None

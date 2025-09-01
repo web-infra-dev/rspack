@@ -3911,7 +3911,6 @@ dependencies = [
  "base64",
  "indoc",
  "jsonc-parser",
- "rspack_cacheable",
  "rspack_error",
  "rspack_sources",
  "rspack_util",

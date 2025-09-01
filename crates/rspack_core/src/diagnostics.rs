@@ -3,7 +3,7 @@ use std::fmt::Display;
 use itertools::Itertools;
 use rspack_error::{
   DiagnosticExt, Error, TraceableError, error, impl_diagnostic_transparent,
-  miette::{self, Diagnostic},
+  miette::{self, Diagnostic, diagnostic},
   thiserror::{self, Error},
 };
 use rspack_util::ext::AsAny;
@@ -17,16 +17,19 @@ use crate::{BoxLoader, DependencyRange};
 pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
 
 impl EmptyDependency {
-  pub fn new(span: DependencyRange) -> Self {
-    Self(
+  pub fn new(span: Option<DependencyRange>) -> Self {
+    let err = if let Some(span) = span {
       TraceableError::from_lazy_file(
         span.start as usize,
         span.end as usize,
         "Empty dependency".to_string(),
         "Expected a non-empty request".to_string(),
       )
-      .boxed(),
-    )
+      .boxed()
+    } else {
+      diagnostic!(code = "Empty dependency", "Expected a non-empty request").into()
+    };
+    Self(err)
   }
 }
 

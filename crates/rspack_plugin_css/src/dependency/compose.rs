@@ -46,8 +46,8 @@ impl Dependency for CssComposeDependency {
     &DependencyType::CssCompose
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

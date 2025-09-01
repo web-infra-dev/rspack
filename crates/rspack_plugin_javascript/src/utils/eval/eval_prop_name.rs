@@ -1,4 +1,4 @@
-use rspack_core::SpanExt;
+use rspack_util::SpanExt;
 use swc_core::{common::Spanned, ecma::ast::PropName};
 
 use crate::{
@@ -17,7 +17,7 @@ pub fn eval_prop_name<'a>(
     PropName::BigInt(bigint) => eval_bigint(bigint),
     PropName::Ident(ident) => {
       let mut evaluated =
-        BasicEvaluatedExpression::with_range(ident.span().real_lo(), ident.span_hi().0);
+        BasicEvaluatedExpression::with_range(ident.span().real_lo(), ident.span().real_hi());
       evaluated.set_string(ident.sym.to_string());
       evaluated
     }

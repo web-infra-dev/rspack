@@ -1,6 +1,5 @@
-use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals, SpanExt,
-};
+use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals};
+use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},

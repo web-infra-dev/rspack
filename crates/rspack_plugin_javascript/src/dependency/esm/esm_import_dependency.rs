@@ -8,7 +8,7 @@ use rspack_core::{
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
+  ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
@@ -522,8 +522,8 @@ impl Dependency for ESMImportSideEffectDependency {
     self.range.to_loc(self.source_map.as_ref())
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn source_order(&self) -> Option<i32> {
@@ -634,10 +634,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn source_span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range_src.start, self.range_src.end))
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {

@@ -1,5 +1,6 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
+use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_error::{Severity, TraceableError};
+use rspack_util::SpanExt;
 use swc_core::{
   common::{SourceFile, Span, Spanned},
   ecma::ast::{CallExpr, Ident, UnaryExpr},

@@ -1,4 +1,5 @@
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::ConstDependency;
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{CallExpr, UnaryExpr},
@@ -25,7 +26,7 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
     parser
       .dependencies
       .push(Box::new(WebpackIsIncludedDependency::new(
-        (expr.span().real_lo(), expr.span().hi().0 - 1).into(),
+        (expr.span().real_lo(), expr.span().real_hi()).into(),
         request.string().to_string(),
       )));
 
@@ -42,7 +43,7 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          (expr.span().real_lo(), expr.span().hi().0 - 1).into(),
+          (expr.span().real_lo(), expr.span().real_hi()).into(),
           "'function'".into(),
           None,
         )));

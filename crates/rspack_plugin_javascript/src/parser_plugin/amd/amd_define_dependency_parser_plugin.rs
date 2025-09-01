@@ -2,9 +2,9 @@ use std::borrow::Cow;
 
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, ContextDependency, ContextMode,
-  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals, SpanExt,
+  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals,
 };
-use rspack_util::atom::Atom;
+use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::Spanned,
@@ -162,8 +162,7 @@ impl AMDDefineDependencyParserPlugin {
           parser.dependencies.push(Box::new(dep));
         }
       }
-      let range = param.range();
-      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1).into());
+      let dep = AMDRequireArrayDependency::new(deps, param.range().into());
       parser.presentational_dependencies.push(Box::new(dep));
       return Some(true);
     }
@@ -190,10 +189,7 @@ impl AMDDefineDependencyParserPlugin {
       return Some(true);
     } else if param.is_string() {
       let param_str = param.string();
-      let range = {
-        let (l, h) = param.range();
-        (l, h - 1)
-      };
+      let range = param.range();
 
       let dep = if param_str == "require" {
         Box::new(ConstDependency::new(
@@ -251,7 +247,7 @@ impl AMDDefineDependencyParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     let call_span = call_expr.span();
-    let param_range = (param.range().0, param.range().1 - 1);
+    let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
 

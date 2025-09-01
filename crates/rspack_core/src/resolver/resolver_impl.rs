@@ -414,11 +414,18 @@ fn map_resolver_error(
     return diagnostic!("Module not found: Can't resolve '{request}' in '{context}'").boxed();
   }
 
-  let span = args.span.unwrap_or_default();
   let message = format!("Can't resolve '{request}' in '{context}'");
   TraceableError::from_lazy_file(
-    span.start as usize,
-    span.end as usize,
+    args
+      .span
+      .as_ref()
+      .map(|span| span.start as usize)
+      .unwrap_or_default(),
+    args
+      .span
+      .as_ref()
+      .map(|span| span.end as usize)
+      .unwrap_or_default(),
     "Module not found".to_string(),
     message,
   )
