@@ -12,7 +12,8 @@ class ShouldRebuildPlugin {
 			// After first compilation, touch the file to trigger a rebuild
 			if (this.compileCount === 0) {
 				setTimeout(() => {
-					fs.utimes(targetFile, Date.now(), Date.now(), err => {
+					const now = new Date();
+					fs.utimes(targetFile, now, now, err => {
 						if (err) {
 							console.error("Error updating file timestamps:", err);
 							return;
