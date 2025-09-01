@@ -34,8 +34,8 @@ impl Dependency for WebpackIsIncludedDependency {
     &DependencyType::WebpackIsIncluded
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn id(&self) -> &DependencyId {

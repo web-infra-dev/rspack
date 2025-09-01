@@ -70,8 +70,8 @@ impl Dependency for CommonJsFullRequireDependency {
     self.range.to_loc(self.source_map.as_ref())
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(

@@ -79,10 +79,10 @@ pub fn create_context_dependency(
               TemplateStringKind::Raw => "String.raw`",
             }
           );
-          replaces.push((value, param.range().0, part.range().1 - 1));
+          replaces.push((value, param.range().0, part.range().1));
         } else if i == parts.len() - 1 {
           let value = format!("{postfix}`");
-          replaces.push((value, part.range().0, param.range().1 - 1));
+          replaces.push((value, part.range().0, param.range().1));
         } else {
           let value = match param.template_string_kind() {
             TemplateStringKind::Cooked => {
@@ -91,7 +91,7 @@ pub fn create_context_dependency(
             TemplateStringKind::Raw => part.string().to_owned(),
           };
           let range = part.range();
-          replaces.push((value, range.0, range.1 - 1));
+          replaces.push((value, range.0, range.1));
         }
       } else if let Some(expr) = part.expression() {
         parser.walk_expression(expr);
@@ -99,12 +99,11 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let range = param.range();
       let warn: Diagnostic = create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
         parser.source_file,
-        rspack_core::ErrorSpan::new(range.0, range.1),
+        param.range().into(),
       )
       .with_severity(Severity::Warn)
       .boxed()
@@ -163,23 +162,18 @@ pub fn create_context_dependency(
 
     let mut replaces = Vec::new();
     if let Some(prefix_range) = prefix_range {
-      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1 - 1))
+      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1))
     }
     if let Some(postfix_range) = postfix_range {
-      replaces.push((
-        json_stringify(&postfix),
-        postfix_range.0,
-        postfix_range.1 - 1,
-      ))
+      replaces.push((json_stringify(&postfix), postfix_range.0, postfix_range.1))
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let range = param.range();
       let warn: Diagnostic = create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
         parser.source_file,
-        rspack_core::ErrorSpan::new(range.0, range.1),
+        param.range().into(),
       )
       .with_severity(Severity::Warn)
       .boxed()
@@ -206,12 +200,11 @@ pub fn create_context_dependency(
     }
   } else {
     if let Some(true) = parser.javascript_options.expr_context_critical {
-      let range = param.range();
       let warn: Diagnostic = create_traceable_error(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),
         parser.source_file,
-        rspack_core::ErrorSpan::new(range.0, range.1),
+        param.range().into(),
       )
       .with_severity(Severity::Warn)
       .boxed()

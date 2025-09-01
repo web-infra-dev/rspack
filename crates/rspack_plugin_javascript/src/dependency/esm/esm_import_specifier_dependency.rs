@@ -150,8 +150,8 @@ impl Dependency for ESMImportSpecifierDependency {
     self.range.to_loc(self.source_map.as_ref())
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn source_order(&self) -> Option<i32> {

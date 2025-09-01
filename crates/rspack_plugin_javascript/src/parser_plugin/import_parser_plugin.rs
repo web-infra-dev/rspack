@@ -2,10 +2,10 @@ use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap, SpanExt,
+  DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap,
 };
 use rspack_error::miette::Severity;
-use rspack_util::swc::get_swc_comments;
+use rspack_util::{SpanExt, swc::get_swc_comments};
 use swc_core::{
   common::Spanned,
   ecma::{

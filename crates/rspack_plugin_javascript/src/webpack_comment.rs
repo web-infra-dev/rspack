@@ -2,9 +2,10 @@ use std::sync::LazyLock;
 
 use itertools::Itertools;
 use regex::Captures;
-use rspack_core::{ErrorSpan, SpanExt};
+use rspack_core::DependencyRange;
 use rspack_error::miette::{Diagnostic, Severity};
 use rspack_regex::RspackRegex;
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::{
   SourceFile, Span,
@@ -124,7 +125,7 @@ fn add_magic_comment_warning(
   comment_type: &str,
   captures: &Captures,
   warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  span: impl Into<ErrorSpan>,
+  span: DependencyRange,
 ) {
   warning_diagnostics.push(Box::new(
     create_traceable_error(
@@ -134,7 +135,7 @@ fn add_magic_comment_warning(
         captures.get(2).map_or("", |m| m.as_str())
       ),
       source_file,
-      span.into(),
+      span,
     )
     .with_severity(Severity::Warning)
     .with_hide_stack(Some(true)),
@@ -252,7 +253,7 @@ fn match_item_to_error_span(
   comment_text: &str,
   match_start: usize,
   match_end: usize,
-) -> ErrorSpan {
+) -> DependencyRange {
   let s = ropey::Rope::from_str(source);
   // SAFETY: `comment_span` is always within the bound of `source`.
   let s_loc = byte_offset_to_location(
@@ -267,7 +268,7 @@ fn match_item_to_error_span(
   let Location { sl, sc, el, ec } = s_loc.merge_with_block_comment_location(&c_loc);
   let start = s.line_to_byte(sl as usize) + sc as usize;
   let end = s.line_to_byte(el as usize) + ec as usize;
-  ErrorSpan::new(start as u32, end as u32)
+  DependencyRange::new(start as u32, end as u32)
 }
 
 fn analyze_comments(

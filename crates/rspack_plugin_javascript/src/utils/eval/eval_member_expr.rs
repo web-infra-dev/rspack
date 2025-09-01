@@ -1,4 +1,4 @@
-use rspack_core::SpanExt;
+use rspack_util::SpanExt;
 use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use super::BasicEvaluatedExpression;
@@ -22,13 +22,13 @@ pub fn eval_member_expression<'a>(
         parser,
         &info.name,
         member.span.real_lo(),
-        member.span.hi().0,
+        member.span.real_hi(),
       )
       .or_else(|| parser.plugin_drive.clone().evaluate(parser, expr))
       .or_else(|| {
         // TODO: fallback with `evaluateDefinedIdentifier`
         let mut eval =
-          BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
+          BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.real_hi());
         eval.set_identifier(
           info.name.into(),
           info.root_info,

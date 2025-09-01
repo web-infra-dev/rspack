@@ -1,8 +1,9 @@
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyLocation, DependencyRange, SpanExt,
+  DependencyCategory, DependencyLocation, DependencyRange,
 };
 use rspack_error::{DiagnosticExt, Severity};
+use rspack_util::SpanExt;
 use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{AssignExpr, CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr},
@@ -159,12 +160,11 @@ impl CommonJsImportsParserPlugin {
     weak: bool,
   ) -> bool {
     if param.is_string() {
-      let (start, end) = param.range();
       parser
         .dependencies
         .push(Box::new(RequireResolveDependency::new(
           param.string().to_string(),
-          (start, end - 1).into(),
+          param.range().into(),
           weak,
           parser.in_try,
         )));
@@ -181,9 +181,7 @@ impl CommonJsImportsParserPlugin {
     param: &BasicEvaluatedExpression,
     weak: bool,
   ) {
-    let (start, end) = param.range();
-    let dep =
-      create_require_resolve_context_dependency(parser, param, (start, end - 1).into(), weak);
+    let dep = create_require_resolve_context_dependency(parser, param, param.range().into(), weak);
 
     parser.dependencies.push(Box::new(dep));
   }

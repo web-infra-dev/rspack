@@ -1,4 +1,5 @@
-use rspack_core::{BoxDependency, DependencyRange, SpanExt};
+use rspack_core::{BoxDependency, DependencyRange};
+use rspack_util::SpanExt;
 use swc_core::{
   common::{Span, Spanned},
   ecma::{ast::CallExpr, atoms::Atom},
@@ -29,7 +30,7 @@ fn extract_deps(
     if expr.is_string() {
       dependencies.push(create_dependency(
         expr.string().as_str().into(),
-        (expr.range().0, expr.range().1 - 1).into(),
+        expr.range().into(),
       ));
     } else if expr.is_array() {
       expr
@@ -39,7 +40,7 @@ fn extract_deps(
         .for_each(|expr| {
           dependencies.push(create_dependency(
             expr.string().as_str().into(),
-            (expr.range().0, expr.range().1 - 1).into(),
+            expr.range().into(),
           ));
         });
     }

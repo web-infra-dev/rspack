@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_core::{Dependency, SpanExt, UsedByExports};
+use rspack_core::{Dependency, UsedByExports};
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,

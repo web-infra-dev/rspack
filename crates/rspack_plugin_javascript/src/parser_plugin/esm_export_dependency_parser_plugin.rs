@@ -1,5 +1,6 @@
 use itertools::Itertools;
-use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType};
+use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned, comments::CommentKind},

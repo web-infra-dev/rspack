@@ -5,10 +5,10 @@ use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ConstDependency, ContextDependency, ContextMode,
   ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyRange,
-  RuntimeGlobals, SharedSourceMap, SpanExt,
+  RuntimeGlobals, SharedSourceMap,
 };
 use rspack_error::miette::Severity;
-use rspack_util::atom::Atom;
+use rspack_util::{SpanExt, atom::Atom};
 use swc_core::{
   common::Spanned,
   ecma::ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, Pat},
@@ -94,7 +94,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         }
       }
       let range = param.range();
-      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1).into());
+      let dep = AMDRequireArrayDependency::new(deps, range.into());
       parser.presentational_dependencies.push(Box::new(dep));
       return Some(true);
     }
@@ -121,10 +121,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       return Some(true);
     } else if param.is_string() {
       let param_str = param.string();
-      let range = {
-        let (l, h) = param.range();
-        (l, h - 1)
-      };
+      let range = param.range();
 
       if param_str == "require" {
         let dep = Box::new(ConstDependency::new(
@@ -178,7 +175,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     let call_span = call_expr.span();
-    let param_range = (param.range().0, param.range().1 - 1);
+    let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
 

@@ -540,7 +540,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn range(&self) -> (u32, u32) {
-    let range = self.range.clone().expect("range should not empty");
+    let range = self.range.expect("range should not empty");
     (range.start, range.end)
   }
 

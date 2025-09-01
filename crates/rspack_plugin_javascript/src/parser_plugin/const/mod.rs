@@ -33,7 +33,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            (param.range().0, param.range().1 - 1).into(),
+            param.range().into(),
             format!(" {bool}").into(),
             None,
           )));

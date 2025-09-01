@@ -44,8 +44,8 @@ impl Dependency for RequireEnsureDependency {
     &DependencyType::RequireEnsure
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {

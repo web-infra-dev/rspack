@@ -1,4 +1,4 @@
-use rspack_core::ErrorSpan;
+use rspack_core::DependencyRange;
 use rspack_error::{
   TraceableError,
   miette::{Severity, diagnostic},
@@ -260,7 +260,7 @@ pub fn create_traceable_error(
   title: String,
   message: String,
   fm: &SourceFile,
-  span: ErrorSpan,
+  span: DependencyRange,
 ) -> TraceableError {
   TraceableError::from_source_file(fm, span.start as usize, span.end as usize, title, message)
 }
@@ -268,7 +268,7 @@ pub fn create_traceable_error(
 pub fn context_reg_exp(
   expr: &str,
   flags: &str,
-  error_span: Option<ErrorSpan>,
+  error_span: Option<DependencyRange>,
   parser: &mut JavascriptParser,
 ) -> Option<RspackRegex> {
   if expr.is_empty() {
@@ -280,7 +280,7 @@ pub fn context_reg_exp(
 
 pub fn clean_regexp_in_context_module(
   regexp: RspackRegex,
-  error_span: Option<ErrorSpan>,
+  error_span: Option<DependencyRange>,
   parser: &mut JavascriptParser,
 ) -> Option<RspackRegex> {
   if regexp.sticky() || regexp.global() {

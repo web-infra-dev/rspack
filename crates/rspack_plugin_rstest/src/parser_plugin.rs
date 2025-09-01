@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, Dependency, DependencyRange, ImportAttributes,
-  SharedSourceMap, SpanExt,
+  SharedSourceMap,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -12,7 +12,7 @@ use rspack_plugin_javascript::{
   },
   visitors::JavascriptParser,
 };
-use rspack_util::{atom::Atom, json_stringify, swc::get_swc_comments};
+use rspack_util::{SpanExt, atom::Atom, json_stringify, swc::get_swc_comments};
 use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{CallExpr, Ident, MemberExpr, UnaryExpr},
@@ -81,8 +81,7 @@ impl RstestParserPlugin {
         if let Some(lit) = first_arg.expr.as_lit()
           && let Some(lit) = lit.as_str()
         {
-          let mut range_expr: DependencyRange = first_arg.span().into();
-          range_expr.end += 1; // TODO:
+          let range_expr: DependencyRange = first_arg.span().into();
           let dep = CommonJsRequireDependency::new(
             lit.value.to_string(),
             range_expr,
@@ -96,7 +95,7 @@ impl RstestParserPlugin {
           parser
             .presentational_dependencies
             .push(Box::new(RequireHeaderDependency::new(
-              range.clone(),
+              range,
               Some(parser.source_map.clone()),
             )));
 

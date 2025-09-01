@@ -1,7 +1,6 @@
-use rspack_core::{
-  ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
-};
+use rspack_core::{ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory};
 use rspack_regex::RspackRegex;
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{CallExpr, Lit},
