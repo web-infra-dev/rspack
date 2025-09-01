@@ -59,6 +59,16 @@ async fn resolve_content(
     }
   }
 }
+
+/// Scheme only for http and https
+fn parse_url_as_http(url: &str) -> Option<Url> {
+  let url = Url::parse(url).ok()?;
+  if url.scheme() != "http" && url.scheme() != "https" {
+    return None;
+  }
+  Some(url)
+}
+
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
     Self::new_inner(options)
@@ -108,16 +118,17 @@ async fn resolve_for_scheme(
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
   // Try to parse the URL and handle it
-  match Url::parse(&resource_data.resource) {
-    Ok(url) => match self
-      .respond_with_url_module(resource_data, &url, None)
-      .await
-    {
-      Ok(true) => Ok(Some(true)),
-      Ok(false) => Ok(None),
-      Err(e) => Err(e),
-    },
-    Err(_) => Ok(None),
+  let Some(url) = parse_url_as_http(&resource_data.resource) else {
+    return Ok(None);
+  };
+
+  match self
+    .respond_with_url_module(resource_data, &url, None)
+    .await
+  {
+    Ok(true) => Ok(Some(true)),
+    Ok(false) => Ok(None),
+    Err(e) => Err(e),
   }
 }
 
@@ -147,9 +158,8 @@ async fn resolve_in_scheme(
   }
 
   // Parse the base URL from context
-  let base_url = match Url::parse(&format!("{}/", data.context)) {
-    Ok(url) => url,
-    Err(_) => return Ok(None),
+  let Some(base_url) = parse_url_as_http(&format!("{}/", data.context)) else {
+    return Ok(None);
   };
 
   // Join the base URL with the resource
@@ -237,20 +247,20 @@ impl HttpUriOptionsAllowedUris {
 // set
 fn get_resource_context(result_entry_resolved: &str) -> Option<String> {
   // Parse the resolved URL
-  if let Ok(base_url) = Url::parse(result_entry_resolved) {
-    // Resolve the relative path "." against the base URL
-    if let Ok(resolved_url) = base_url.join(".") {
-      // Convert the resolved URL to a string
-      let mut href = resolved_url.to_string();
+  let base_url = parse_url_as_http(result_entry_resolved)?;
 
-      // Remove the trailing slash if it exists
-      if href.ends_with('/') {
-        href.pop();
-      }
+  // Resolve the relative path "." against the base URL
+  if let Ok(resolved_url) = base_url.join(".") {
+    // Convert the resolved URL to a string
+    let mut href = resolved_url.to_string();
 
-      // Return the context as a string
-      return Some(href);
+    // Remove the trailing slash if it exists
+    if href.ends_with('/') {
+      href.pop();
     }
+
+    // Return the context as a string
+    return Some(href);
   }
 
   // Return None if parsing or joining fails
