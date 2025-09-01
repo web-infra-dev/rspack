@@ -142,6 +142,14 @@ function getRuntimePlugins(options: ModuleFederationPluginOptions) {
 }
 
 function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
+	if (IS_BROWSER) {
+		return {
+			runtimeTools: "@module-federation/runtime-tools",
+			bundlerRuntime: "@module-federation/webpack-bundler-runtime",
+			runtime: "@module-federation/runtime"
+		};
+	}
+
 	const runtimeToolsPath =
 		options.implementation ??
 		require.resolve("@module-federation/runtime-tools");
