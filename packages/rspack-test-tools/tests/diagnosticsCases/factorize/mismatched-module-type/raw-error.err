@@ -45,7 +45,7 @@ Array [
     moduleName: ./app.ts,
   },
   Object {
-    loc: 34:14-26,
+    loc: 34:14-25,
     moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/mismatched-module-type/index.js,
     moduleName: ./index.js,
   },

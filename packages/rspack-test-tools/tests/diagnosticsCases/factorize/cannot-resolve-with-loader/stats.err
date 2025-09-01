@@ -1,4 +1,4 @@
-ERROR in ./index.js 2:8-14
+ERROR in ./index.js 2:8-13
   × Module not found: Can't resolve './a' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-loader'
    ╭─[2:0]
  1 │ // THIS SHOULD BE INCLUDED IN THE DIAGNOSTIC
