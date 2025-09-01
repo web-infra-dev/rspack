@@ -923,8 +923,8 @@ impl ESMExportImportedSpecifierDependency {
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
         && let Some(source) = parent_module.source()
       {
-        Error::from_file(
-          source.source().into_owned(),
+        Error::from_string(
+          Some(source.source().into_owned()),
           span.start as usize,
           span.end as usize,
           title.to_string(),

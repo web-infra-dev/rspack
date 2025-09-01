@@ -83,7 +83,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
         ));
       }
       error.labels = Some(vec![Label {
-        label: location.text,
+        name: location.text,
         offset,
         len: length,
       }]);

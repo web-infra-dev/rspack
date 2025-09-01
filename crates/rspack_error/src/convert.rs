@@ -29,7 +29,7 @@ impl<T> SerdeResultToRspackResultExt<T> for std::result::Result<T, serde_json::E
       let offset = SourceOffset::from_location(content, e.line(), e.column());
       let mut error = Error::error(msg.into());
       error.labels = Some(vec![Label {
-        label: Some(e.to_string()),
+        name: Some(e.to_string()),
         offset: offset.offset(),
         len: 0,
       }]);

@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
 
+/// Error severity. Defaults to [`Severity::Error`].
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum Severity {
   #[default]
@@ -9,28 +10,56 @@ pub enum Severity {
   Warning,
 }
 
+/// Label for source code.
 #[derive(Debug, Clone, Default)]
 pub struct Label {
-  pub label: Option<String>,
+  /// Label name.
+  pub name: Option<String>,
+  /// Source code offset.
   pub offset: usize,
+  /// Length of impact.
   pub len: usize,
 }
 
+/// Core error type.
+///
+/// See the test case for specific usage.
 #[derive(Debug, Clone, Default)]
 pub struct ErrorData {
+  /// Error severity.
   pub severity: Severity,
+  /// Message.
   pub message: String,
-  pub details: Option<String>,
+  /// Source code.
   pub src: Option<String>,
-  pub code: Option<String>,
-  pub help: Option<String>,
-  pub url: Option<String>,
+  /// Labels displayed in source code.
+  ///
+  /// The source code block will be displayed only if both source code and labels exist.
   pub labels: Option<Vec<Label>>,
+  /// Help text.
+  pub help: Option<String>,
+  /// Source error.
   pub source_error: Option<Box<Error>>,
+  /// Error Code.
+  ///
+  /// This field is used to distinguish error types and will not be used for error display.
+  pub code: Option<String>,
+  /// Detail info.
+  ///
+  /// This field is used to save extra info when hide stack and will not be used for error display.
+  /// TODO: remove this field and hide stack, just use stack field.
+  pub details: Option<String>,
+  /// Error stack.
   pub stack: Option<String>,
+  /// Whether to hide the stack.
+  ///
+  /// TODO: replace Option<bool> to bool.
   pub hide_stack: Option<bool>,
 }
 
+/// ErrorData wrapper type.
+///
+/// Wrap ErrorData to avoid result_large_err.
 #[derive(Debug, Clone, Default)]
 pub struct Error(Box<ErrorData>);
 
@@ -64,16 +93,6 @@ impl Error {
     }))
   }
 
-  pub fn from_file(
-    file_src: String,
-    start: usize,
-    end: usize,
-    title: String,
-    message: String,
-  ) -> Self {
-    Self::from_string(Some(file_src), start, end, title, message)
-  }
-
   pub fn from_string(
     src: Option<String>,
     start: usize,
@@ -84,7 +103,7 @@ impl Error {
     let mut error = Error::error(format!("{title}: {message}"));
     error.src = src;
     error.labels = Some(vec![Label {
-      label: None,
+      name: None,
       offset: start,
       len: end.saturating_sub(start),
     }]);
@@ -158,14 +177,6 @@ impl MietteDiagnostic for Error {
       .map(|c| c as Box<dyn Display>)
   }
 
-  fn url(&self) -> Option<Box<dyn Display + '_>> {
-    self
-      .url
-      .as_ref()
-      .map(Box::new)
-      .map(|c| c as Box<dyn Display>)
-  }
-
   fn source_code(&self) -> Option<&dyn miette::SourceCode> {
     self.src.as_ref().map(|s| s as &dyn miette::SourceCode)
   }
@@ -175,7 +186,7 @@ impl MietteDiagnostic for Error {
       return None;
     };
     Some(Box::new(labels.iter().map(|item| {
-      LabeledSpan::new(item.label.clone(), item.offset, item.len)
+      LabeledSpan::new(item.name.clone(), item.offset, item.len)
     })))
   }
 
@@ -216,5 +227,91 @@ impl From<anyhow::Error> for Error {
     let mut error = Error::error(value.to_string());
     error.source_error = value.source().map(|e| Box::new(Error::from_error(e)));
     error
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::{Error, ErrorData, Label};
+  use crate::{Renderer, Severity};
+  #[test]
+  fn should_error_display() {
+    let renderer = Renderer::new(false);
+    let sub_err = Error(Box::new(ErrorData {
+      severity: Severity::Warning,
+      message: "An unexpected keyword.".into(),
+      src: Some("const a = { const };\nconst b = { var };".into()),
+      labels: Some(vec![
+        Label {
+          name: Some("keyword 1".into()),
+          offset: 12,
+          len: 5,
+        },
+        Label {
+          name: Some("keyword 2".into()),
+          offset: 33,
+          len: 3,
+        },
+      ]),
+      help: Some("Maybe you should remove it.".into()),
+      source_error: None,
+      code: Some("ModuleAnalysisWarning".into()),
+      details: Some("detail info".into()),
+      stack: Some("stack info".into()),
+      hide_stack: None,
+    }));
+    let mid_err = Error(Box::new(ErrorData {
+      severity: Severity::Error,
+      message: "Can not parse current module.".into(),
+      src: Some("const a = { const };".into()),
+      labels: Some(vec![Label {
+        name: Some("parse failed".into()),
+        offset: 0,
+        len: 1,
+      }]),
+      help: Some("See follow info.".into()),
+      source_error: Some(Box::new(sub_err)),
+      code: Some("ModuleParseError".into()),
+      details: Some("detail info".into()),
+      stack: Some("stack info".into()),
+      hide_stack: None,
+    }));
+    let root_err = Error(Box::new(ErrorData {
+      severity: Severity::Error,
+      message: "Build Module Failed".into(),
+      src: None,
+      labels: None,
+      help: None,
+      source_error: Some(Box::new(mid_err)),
+      code: Some("ModuleBuildError".into()),
+      details: Some("detail info".into()),
+      stack: Some("stack info".into()),
+      hide_stack: None,
+    }));
+    let expect_display = r#"
+ × Build Module Failed
+  ├─▶   × Can not parse current module.
+  │      ╭────
+  │    1 │ const a = { const };
+  │      · ┬
+  │      · ╰── parse failed
+  │      ╰────
+  │     help: See follow info.
+  │   
+  ╰─▶   ⚠ An unexpected keyword.
+         ╭─[1:12]
+       1 │ const a = { const };
+         ·             ──┬──
+         ·               ╰── keyword 1
+       2 │ const b = { var };
+         ·             ─┬─
+         ·              ╰── keyword 2
+         ╰────
+        help: Maybe you should remove it.
+"#;
+    assert_eq!(
+      renderer.render(&root_err).unwrap().trim(),
+      expect_display.trim()
+    );
   }
 }

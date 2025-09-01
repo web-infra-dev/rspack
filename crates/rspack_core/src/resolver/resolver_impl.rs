@@ -367,8 +367,8 @@ fn map_rspack_resolver_error(
         let offset = ceil_char_boundary(content, offset);
 
         if content[offset..].starts_with('\u{feff}') {
-          return Error::from_file(
-            content.clone(),
+          return Error::from_string(
+            Some(content.clone()),
             offset,
             offset,
             "JSON parse error".to_string(),
@@ -376,8 +376,8 @@ fn map_rspack_resolver_error(
           );
         }
 
-        Error::from_file(
-          content.clone(),
+        Error::from_string(
+          Some(content.clone()),
           offset,
           offset,
           "JSON parse error".to_string(),

@@ -90,8 +90,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             } else {
               start_offset
             };
-            Error::from_file(
-              source.into_owned(),
+            Error::from_string(
+              Some(source.into_owned()),
               // one character offset
               start_offset,
               start_offset + 1,
@@ -104,8 +104,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             // End offset of json file
             let length = source.len();
             let offset = if length > 0 { length - 1 } else { length };
-            Error::from_file(
-              source.into_owned(),
+            Error::from_string(
+              Some(source.into_owned()),
               offset,
               offset,
               "JSON parse error".to_string(),
