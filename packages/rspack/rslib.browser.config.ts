@@ -1,10 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import vm from "node:vm";
 import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill";
 import { defineConfig, type rsbuild, rspack } from "@rslib/core";
 
 const bindingDir = path.resolve("../../crates/node_binding");
 const distDir = path.resolve("../rspack-browser/dist");
+
+const MF_RUNTIME_CODE = await getModuleFederationRuntimeCode();
 
 export default defineConfig({
 	resolve: {
@@ -72,8 +75,7 @@ export default defineConfig({
 				buffer: path.resolve("./src/browser/buffer")
 			}
 		}),
-		replaceDtsPlugin(),
-		mfRuntimePlugin()
+		replaceDtsPlugin()
 	],
 	source: {
 		tsconfigPath: "./tsconfig.browser.json",
@@ -83,7 +85,9 @@ export default defineConfig({
 			IS_BROWSER: JSON.stringify(true),
 			// In `@rspack/browser`, runtime code like loaders and hmr should be written into something like memfs ahead of time.
 			// Requiring these files should resolve to `@rspack/browser/xx`
-			__dirname: JSON.stringify("@rspack/browser")
+			__dirname: JSON.stringify("@rspack/browser"),
+			// Runtime code
+			MF_RUNTIME_CODE: JSON.stringify(MF_RUNTIME_CODE)
 		}
 	},
 	tools: {
@@ -164,37 +168,32 @@ function replaceDtsPlugin(): rsbuild.RsbuildPlugin {
 	};
 }
 
-function mfRuntimePlugin(): rsbuild.RsbuildPlugin {
-	return {
-		name: "mf-runtime",
-		setup(api) {
-			api.onAfterBuild(async () => {
-				const { swc } = rspack.experiments;
-				const runtime = await fs.readFile(
-					path.resolve(
-						__dirname,
-						"src/runtime/moduleFederationDefaultRuntime.js"
-					),
-					"utf-8"
-				);
+async function getModuleFederationRuntimeCode() {
+	const { swc } = rspack.experiments;
+	const runtime = await fs.readFile(
+		path.resolve(__dirname, "src/runtime/moduleFederationDefaultRuntime.js"),
+		"utf-8"
+	);
 
-				const { code: downgradedRuntime } = await swc.transform(runtime, {
-					jsc: {
-						target: "es2015"
-					}
-				});
-
-				const minimizedRuntime = await swc.minify(downgradedRuntime, {
-					compress: false,
-					mangle: false,
-					ecma: 2015
-				});
-
-				await fs.writeFile(
-					path.resolve(__dirname, distDir, "moduleFederationDefaultRuntime.js"),
-					minimizedRuntime.code
-				);
-			});
+	const { code: downgradedRuntime } = await swc.transform(runtime, {
+		jsc: {
+			target: "es2015"
 		}
-	};
+	});
+
+	const minimizedRuntime = await swc.minify(downgradedRuntime, {
+		compress: false,
+		mangle: false,
+		ecma: 2015
+	});
+
+	const sandbox = { module: { exports: undefined } } as any;
+	vm.createContext(sandbox);
+	vm.runInContext(minimizedRuntime.code, sandbox);
+
+	const functionContent = rspack.Template.getFunctionContent(
+		sandbox.module.exports
+	);
+	console.log(functionContent);
+	return functionContent;
 }
