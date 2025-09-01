@@ -19,7 +19,7 @@ class ShouldRebuildPlugin {
 						}
 						// Touch file to trigger rebuild
 					});
-				}, 1000);
+				}, 1500);
 			}
 			this.compileCount++;
 		});
