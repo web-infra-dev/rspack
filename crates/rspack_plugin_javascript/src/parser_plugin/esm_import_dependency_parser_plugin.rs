@@ -78,7 +78,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
-    let mut dependency = ESMImportSideEffectDependency::new(
+    let dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
       import_decl.span.into(),
@@ -88,14 +88,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       Some(parser.source_map.clone()),
       false,
     );
-    if parser.compiler_options.experiments.lazy_barrel
-      && parser
-        .factory_meta
-        .and_then(|meta| meta.side_effect_free)
-        .unwrap_or_default()
-    {
-      dependency.set_lazy();
-    }
+
     parser.dependencies.push(Box::new(dependency));
 
     parser
