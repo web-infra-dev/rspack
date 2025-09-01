@@ -27,7 +27,7 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt, basic_function,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, basic_function,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -38,7 +38,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_javascript_compiler::ast::Ast;
-use rspack_util::{diff_mode, fx_hash::FxDashMap};
+use rspack_util::{SpanExt, diff_mode, fx_hash::FxDashMap};
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,

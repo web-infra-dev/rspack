@@ -1,7 +1,8 @@
 use rspack_core::{
-  ContextMode, ContextOptions, DependencyCategory, SpanExt, try_convert_str_to_context_mode,
+  ContextMode, ContextOptions, DependencyCategory, try_convert_str_to_context_mode,
 };
 use rspack_regex::RspackRegex;
+use rspack_util::SpanExt;
 use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
 use super::JavascriptParserPlugin;

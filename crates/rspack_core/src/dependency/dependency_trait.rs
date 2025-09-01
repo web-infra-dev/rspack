@@ -83,7 +83,7 @@ pub trait Dependency:
     None
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
+  fn range(&self) -> Option<DependencyRange> {
     None
   }
 

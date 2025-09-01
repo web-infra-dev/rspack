@@ -2,7 +2,7 @@ ERROR in ./index.js 1:0-14
   × Module not found: Can't resolve './foo' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/fully-specified-resolve-suggestions'
    ╭────
  1 │ import "./foo"
-   ·        ───────
+   · ──────────────
    ╰────
   help: Did you mean './foo.js'?
         

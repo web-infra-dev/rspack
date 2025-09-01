@@ -1,4 +1,5 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, SpanExt};
+use rspack_core::{ConstDependency, RuntimeGlobals};
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{CallExpr, Expr, MemberExpr, UnaryExpr},

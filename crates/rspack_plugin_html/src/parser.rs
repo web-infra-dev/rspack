@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use rspack_core::{Compilation, ErrorSpan};
+use rspack_core::Compilation;
 use rspack_error::{
   IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, ToStringResultToRspackResultExt,
 };
+use rspack_util::SpanExt;
 use swc_core::common::{FileName, FilePathMapping, GLOBALS, SourceFile, SourceMap, sync::Lrc};
 use swc_html::{
   ast::Document,
@@ -78,11 +79,11 @@ impl<'a> HtmlCompiler<'a> {
 pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rspack_error::Error {
   let message = error.message();
   let error = error.into_inner();
-  let span: ErrorSpan = error.0.into();
+  let span = error.0;
   let traceable_error = rspack_error::TraceableError::from_source_file(
     fm,
-    span.start as usize,
-    span.end as usize,
+    span.real_lo() as usize,
+    span.real_hi() as usize,
     "HTML parse error".to_string(),
     message.to_string(),
   );

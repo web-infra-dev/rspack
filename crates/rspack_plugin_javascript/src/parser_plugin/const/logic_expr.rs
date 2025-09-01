@@ -1,4 +1,5 @@
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::ConstDependency;
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{BinExpr, BinaryOp},
@@ -27,7 +28,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
       scanner
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          (param.range().0, param.range().1 - 1).into(),
+          param.range().into(),
           format!(" {boolean}").into(),
           None,
         )));
@@ -39,7 +40,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
       scanner
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
-          (expr.right.span().real_lo(), expr.right.span().hi().0 - 1).into(),
+          (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
           "0".into(),
           None,
         )));
@@ -52,7 +53,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
         scanner
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            (param.range().0, param.range().1 - 1).into(),
+            param.range().into(),
             " null".into(),
             None,
           )));
@@ -60,7 +61,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
         scanner
           .presentational_dependencies
           .push(Box::new(ConstDependency::new(
-            (expr.right.span().real_lo(), expr.right.span().hi().0 - 1).into(),
+            (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
             "0".into(),
             None,
           )));

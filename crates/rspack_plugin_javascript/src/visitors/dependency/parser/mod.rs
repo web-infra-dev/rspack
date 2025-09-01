@@ -13,10 +13,10 @@ use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, SpanExt,
-  TypeReexportPresenceMode,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, TypeReexportPresenceMode,
 };
 use rspack_error::miette::Diagnostic;
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
@@ -1099,7 +1099,7 @@ impl JavascriptParser<'_> {
   pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr) -> BasicEvaluatedExpression<'a> {
     match self.evaluating(expr) {
       Some(evaluated) => evaluated.with_expression(Some(expr)),
-      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0)
+      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi())
         .with_expression(Some(expr)),
     }
   }
@@ -1148,14 +1148,14 @@ impl JavascriptParser<'_> {
         let name = &ident.sym;
         if name.eq("undefined") {
           let mut eval =
-            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+            BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
           eval.set_undefined();
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
         name
           .call_hooks_name(self, |parser, name| {
-            drive.evaluate_identifier(parser, name, ident.span.real_lo(), ident.span.hi.0)
+            drive.evaluate_identifier(parser, name, ident.span.real_lo(), ident.span.real_hi())
           })
           .or_else(|| {
             let info = self.get_variable_info(name);
@@ -1164,7 +1164,7 @@ impl JavascriptParser<'_> {
                 && (info.is_free() || info.is_tagged())
               {
                 let mut eval =
-                  BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+                  BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
                 eval.set_identifier(
                   name.to_owned(),
                   ExportedVariableInfo::VariableInfo(info.id()),
@@ -1178,7 +1178,7 @@ impl JavascriptParser<'_> {
               }
             } else {
               let mut eval =
-                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
               eval.set_identifier(
                 ident.sym.clone(),
                 ExportedVariableInfo::Name(name.clone()),
@@ -1193,7 +1193,8 @@ impl JavascriptParser<'_> {
       Expr::This(this) => {
         let drive = self.plugin_drive.clone();
         let default_eval = || {
-          let mut eval = BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.hi.0);
+          let mut eval =
+            BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.real_hi());
           eval.set_identifier(
             "this".into(),
             ExportedVariableInfo::Name("this".into()),
@@ -1206,7 +1207,7 @@ impl JavascriptParser<'_> {
         let Some(info) = self.get_variable_info(&"this".into()) else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
-            .evaluate_identifier(self, "this", this.span.real_lo(), this.span.hi.0)
+            .evaluate_identifier(self, "this", this.span.real_lo(), this.span.real_hi())
             .or_else(default_eval);
         };
         if let Some(name) = &info.name
@@ -1214,7 +1215,7 @@ impl JavascriptParser<'_> {
         {
           let name = name.clone();
           return drive
-            .evaluate_identifier(self, &name, this.span.real_lo(), this.span.hi.0)
+            .evaluate_identifier(self, &name, this.span.real_lo(), this.span.real_hi())
             .or_else(default_eval);
         }
         None

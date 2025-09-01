@@ -3,9 +3,10 @@ use std::hash::Hash;
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
-  SharedSourceMap, SpanExt,
+  SharedSourceMap,
 };
 use rspack_hash::RspackHash;
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,

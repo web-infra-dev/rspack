@@ -1,6 +1,7 @@
 use std::ops::Add;
 
-use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType, SpanExt};
+use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType};
+use rspack_util::SpanExt;
 use swc_core::{
   common::{BytePos, Span, Spanned},
   ecma::ast::{Ident, ModuleItem, Program, UnaryExpr},
@@ -107,7 +108,7 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     (parser.is_esm && is_non_esm_identifier(for_name))
-      .then(|| BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0))
+      .then(|| BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi()))
   }
 
   fn r#typeof(

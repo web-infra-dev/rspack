@@ -1,5 +1,5 @@
-use rspack_core::{ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals, SpanExt};
-use rspack_util::itoa;
+use rspack_core::{ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals};
+use rspack_util::{SpanExt, itoa};
 use swc_core::{
   atoms::Atom,
   common::Spanned,
@@ -219,7 +219,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
       deps.push(ConstDependency::new(
-        nested_require_data.loc.clone(),
+        nested_require_data.loc,
         if shorthand {
           format!("{}: {}", ident.sym, name.clone()).into()
         } else {

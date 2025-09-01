@@ -1075,8 +1075,8 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     self.range.to_loc(self.source_map.as_ref())
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn category(&self) -> &DependencyCategory {

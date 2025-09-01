@@ -14,7 +14,6 @@ mod loader_import;
 mod module_dependency;
 mod runtime_requirements_dependency;
 mod runtime_template;
-mod span;
 mod static_exports_dependency;
 
 use std::sync::Arc;
@@ -39,7 +38,6 @@ pub use runtime_requirements_dependency::{
 pub use runtime_template::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
-pub use span::SpanExt;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 

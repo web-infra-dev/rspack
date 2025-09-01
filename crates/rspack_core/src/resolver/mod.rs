@@ -22,7 +22,7 @@ pub use self::{
   resolver_impl::{ResolveInnerError, ResolveInnerOptions, Resolver},
 };
 use crate::{
-  Context, DependencyCategory, DependencyType, ErrorSpan, ModuleIdentifier, Resolve,
+  Context, DependencyCategory, DependencyRange, DependencyType, ModuleIdentifier, Resolve,
   SharedPluginDriver,
 };
 
@@ -43,7 +43,7 @@ pub struct ResolveArgs<'a> {
   pub specifier: &'a str,
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,
-  pub span: Option<ErrorSpan>,
+  pub span: Option<DependencyRange>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,

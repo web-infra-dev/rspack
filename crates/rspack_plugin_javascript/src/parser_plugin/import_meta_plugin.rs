@@ -1,6 +1,7 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, SpanExt, property_access};
+use rspack_core::{ConstDependency, property_access};
 use rspack_error::miette::Severity;
+use rspack_util::SpanExt;
 use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{Expr, MemberProp, MetaPropKind},
@@ -100,7 +101,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       if member.prop.is_ident() {
         return Some(eval::evaluate_to_undefined(
           member.span().real_lo(),
-          member.span().hi().0,
+          member.span().real_hi(),
         ));
       }
       if let Some(computed) = member.prop.as_computed()
@@ -108,7 +109,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       {
         return Some(eval::evaluate_to_undefined(
           member.span().real_lo(),
-          member.span().hi().0,
+          member.span().real_hi(),
         ));
       }
     }

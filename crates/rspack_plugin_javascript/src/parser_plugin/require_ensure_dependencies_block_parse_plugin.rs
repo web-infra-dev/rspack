@@ -3,8 +3,9 @@ use std::borrow::Cow;
 use either::Either;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
-  GroupOptions, SharedSourceMap, SpanExt,
+  GroupOptions, SharedSourceMap,
 };
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, UnaryExpr},
