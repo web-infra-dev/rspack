@@ -194,6 +194,5 @@ async function getModuleFederationRuntimeCode() {
 	const functionContent = rspack.Template.getFunctionContent(
 		sandbox.module.exports
 	);
-	console.log(functionContent);
 	return functionContent;
 }
