@@ -20,7 +20,7 @@ class ShouldRebuildPlugin {
 						}
 						// Touch file to trigger rebuild
 					});
-				}, 1500);
+				}, 1000);
 			}
 			this.compileCount++;
 		});
@@ -31,7 +31,10 @@ class ShouldRebuildPlugin {
  * @type {import('@rspack/core').Configuration}
  */
 const config = {
-	plugins: [new ShouldRebuildPlugin()]
+	plugins: [new ShouldRebuildPlugin()],
+	watchOptions: {
+		aggregateTimeout: 1000
+	}
 };
 
 module.exports = config;
