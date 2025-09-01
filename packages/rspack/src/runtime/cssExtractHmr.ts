@@ -119,7 +119,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 		normalizedUrl = url;
 	}
 
-	if (!isUrlRequest(normalizedUrl)) {
+	if (!isUrlRequest(el.href)) {
 		return;
 	}
 
