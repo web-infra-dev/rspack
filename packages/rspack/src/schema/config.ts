@@ -1370,6 +1370,7 @@ export const getRspackOptionsSchema = memoize(() => {
 
 	const incremental = z
 		.strictObject({
+			silent: z.boolean(),
 			make: z.boolean(),
 			inferAsyncModules: z.boolean(),
 			providedExports: z.boolean(),

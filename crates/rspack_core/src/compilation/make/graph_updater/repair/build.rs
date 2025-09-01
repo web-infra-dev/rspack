@@ -229,6 +229,7 @@ impl Task<TaskContext> for BuildResultTask {
     tasks.push(Box::new(ProcessDependenciesTask {
       dependencies: dependencies_to_process,
       original_module_identifier: module_identifier,
+      from_unlazy: false,
     }));
 
     Ok(tasks)

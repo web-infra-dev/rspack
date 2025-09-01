@@ -96,7 +96,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     }
     let dep = if let Some(settings) = parser.get_tag_data(local_id, ESM_SPECIFIER_TAG) {
       let settings = ESMSpecifierData::downcast(settings);
-      Box::new(ESMExportImportedSpecifierDependency::new(
+      let mut dep = ESMExportImportedSpecifierDependency::new(
         settings.source,
         settings.source_order,
         settings.ids,
@@ -108,7 +108,16 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         ),
         settings.attributes,
         Some(parser.source_map.clone()),
-      )) as BoxDependency
+      );
+      if parser.compiler_options.experiments.lazy_barrel
+        && parser
+          .factory_meta
+          .and_then(|meta| meta.side_effect_free)
+          .unwrap_or_default()
+      {
+        dep.set_lazy();
+      }
+      Box::new(dep) as BoxDependency
     } else {
       let inlinable = parser
         .get_tag_data(export_name, INLINABLE_CONST_TAG)

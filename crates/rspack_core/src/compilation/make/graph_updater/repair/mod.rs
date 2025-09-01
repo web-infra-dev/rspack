@@ -35,6 +35,7 @@ pub async fn repair(
         return vec![Box::new(process_dependencies::ProcessDependenciesTask {
           original_module_identifier,
           dependencies,
+          from_unlazy: false,
         }) as Box<dyn Task<TaskContext>>];
       }
       // entry dependencies
@@ -62,6 +63,7 @@ pub async fn repair(
             options: compilation.options.clone(),
             current_profile,
             resolver_factory: compilation.resolver_factory.clone(),
+            from_unlazy: false,
           }) as Box<dyn Task<TaskContext>>
         })
         .collect::<Vec<_>>()

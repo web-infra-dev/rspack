@@ -100,7 +100,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       if member.prop.is_ident() {
         return Some(eval::evaluate_to_undefined(
           member.span().real_lo(),
-          member.span().real_hi(),
+          member.span().hi().0,
         ));
       }
       if let Some(computed) = member.prop.as_computed()
@@ -108,7 +108,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       {
         return Some(eval::evaluate_to_undefined(
           member.span().real_lo(),
-          member.span().real_hi(),
+          member.span().hi().0,
         ));
       }
     }
