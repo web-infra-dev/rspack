@@ -1498,6 +1498,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               compilation
                 .named_chunk_groups
                 .insert(name.to_owned(), entrypoint.ukey);
+              compilation
+                .named_chunks
+                .insert(name.to_owned(), chunk.ukey());
             }
 
             entrypoint.connect_chunk(chunk);

@@ -1713,41 +1713,10 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.cgm_hash_artifact.remove(&revoked_module);
       }
-      let mg = self.get_module_graph();
-      let mut modules = mutations.get_affected_modules_with_module_graph(&mg);
-      for mutation in mutations.iter() {
-        match mutation {
-          Mutation::ModuleSetAsync { module } => {
-            modules.insert(*module);
-          }
-          Mutation::ModuleSetId { module } => {
-            modules.insert(*module);
-            modules.extend(
-              mg.get_incoming_connections(module)
-                .filter_map(|c| c.original_module_identifier),
-            );
-          }
-          Mutation::ChunkAdd { chunk } => {
-            modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
-          }
-          Mutation::ChunkSetId { chunk } => {
-            let chunk = self.chunk_by_ukey.expect_get(chunk);
-            modules.extend(
-              chunk
-                .groups()
-                .iter()
-                .flat_map(|group| {
-                  let group = self.chunk_group_by_ukey.expect_get(group);
-                  group.origins()
-                })
-                .filter_map(|origin| origin.module),
-            );
-          }
-          _ => {}
-        }
-      }
+      let mut modules = mutations.get_affected_modules_with_chunk_graph(self);
 
       // check if module runtime changes
+      let mg = self.get_module_graph();
       for mi in mg.modules().keys() {
         let module_runtimes = self
           .chunk_graph
