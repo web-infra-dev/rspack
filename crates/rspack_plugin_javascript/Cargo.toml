@@ -50,6 +50,7 @@ swc_core = { workspace = true, features = [
   "base",
   "ecma_quote",
 ] }
+swc_ecma_lexer = { version = "=23.0.1" }
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }

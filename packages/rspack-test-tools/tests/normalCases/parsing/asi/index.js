@@ -31,3 +31,7 @@ function bb() {
 function d() {}
 export function c() {}
 d(), foo();
+
+const tpl = `${1}tpl`
+const arr = []
+foo(arr, tpl)
