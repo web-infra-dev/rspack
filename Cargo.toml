@@ -129,6 +129,7 @@ pnp                 = { version = "0.12.1", default-features = false }
 swc                 = { version = "36.0.0", default-features = false }
 swc_config          = { version = "3.1.1", default-features = false }
 swc_core            = { version = "37.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_lexer      = { version = "=23.0.1", default-features = false }
 swc_ecma_minifier   = { version = "30.0.1", default-features = false }
 swc_error_reporters = { version = "16.0.1", default-features = false }
 swc_html            = { version = "26.0.0", default-features = false }
