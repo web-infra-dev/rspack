@@ -6,6 +6,8 @@ import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
 
+declare const MF_RUNTIME_CODE: string;
+
 export interface ModuleFederationPluginOptions
 	extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
 	runtimePlugins?: RuntimePlugins;
@@ -142,6 +144,14 @@ function getRuntimePlugins(options: ModuleFederationPluginOptions) {
 }
 
 function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
+	if (IS_BROWSER) {
+		return {
+			runtimeTools: "@module-federation/runtime-tools",
+			bundlerRuntime: "@module-federation/webpack-bundler-runtime",
+			runtime: "@module-federation/runtime"
+		};
+	}
+
 	const runtimeToolsPath =
 		options.implementation ??
 		require.resolve("@module-federation/runtime-tools");
@@ -175,6 +185,7 @@ function getDefaultEntryRuntime(
 		);
 		runtimePluginVars.push(`${runtimePluginVar}()`);
 	}
+
 	const content = [
 		`import __module_federation_bundler_runtime__ from ${JSON.stringify(
 			paths.bundlerRuntime
@@ -190,13 +201,11 @@ function getDefaultEntryRuntime(
 		`const __module_federation_share_strategy__ = ${JSON.stringify(
 			options.shareStrategy ?? "version-first"
 		)}`,
-		compiler.webpack.Template.getFunctionContent(
-			IS_BROWSER
-				? compiler.__internal_browser_require(
-						"@rspack/browser/moduleFederationDefaultRuntime.js"
-					)
-				: require("./moduleFederationDefaultRuntime.js")
-		)
+		IS_BROWSER
+			? MF_RUNTIME_CODE
+			: compiler.webpack.Template.getFunctionContent(
+					require("./moduleFederationDefaultRuntime.js")
+				)
 	].join(";");
 	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
 }
