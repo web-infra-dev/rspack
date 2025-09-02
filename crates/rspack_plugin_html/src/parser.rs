@@ -79,7 +79,7 @@ impl<'a> HtmlCompiler<'a> {
 pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rspack_error::Error {
   let message = error.message();
   let error = error.into_inner();
-  let span: ErrorSpan = error.0.into();
+  let span = error.0;
   rspack_error::Error::from_string(
     Some(fm.src.clone().into_string()),
     span.real_lo() as usize,

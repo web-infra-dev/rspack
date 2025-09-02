@@ -99,7 +99,6 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let range = param.range();
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
@@ -168,7 +167,6 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let range = param.range();
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
@@ -198,7 +196,6 @@ pub fn create_context_dependency(
     }
   } else {
     if let Some(true) = parser.javascript_options.expr_context_critical {
-      let range = param.range();
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),

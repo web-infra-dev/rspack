@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_error::{Diagnostic, Error};
+use rspack_error::{Diagnostic, Error, Label};
 
 use crate::{BoxLoader, DependencyRange};
 
@@ -9,14 +9,14 @@ use crate::{BoxLoader, DependencyRange};
 pub struct EmptyDependency(Error);
 
 impl EmptyDependency {
-  pub fn new(span: DependencyRange) -> Self {
-    let mut err = Error::error("Expected a non-empty request".to_string());
+  pub fn new(span: Option<DependencyRange>) -> Self {
+    let mut err = Error::error("Empty dependency: Expected a non-empty request".to_string());
     err.code = Some("Empty dependency".to_string());
     if let Some(span) = span {
       err.labels = Some(vec![Label {
         name: None,
-        offset: start,
-        len: end.saturating_sub(start),
+        offset: span.start as usize,
+        len: span.end.saturating_sub(span.start) as usize,
       }])
     }
     Self(err)

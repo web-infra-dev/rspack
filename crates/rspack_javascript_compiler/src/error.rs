@@ -54,7 +54,6 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
   fm: &SourceFile,
 ) -> Error {
-  let span: ErrorSpan = span.into();
   Error::from_string(
     Some(fm.src.clone().into_string()),
     span.real_lo() as usize,
