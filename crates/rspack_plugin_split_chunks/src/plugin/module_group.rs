@@ -308,18 +308,18 @@ impl SplitChunksPlugin {
     let module_graph = compilation.get_module_graph();
     let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
     let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
-      all_modules.iter().for_each(|module| {
-        let s = unsafe { token.used((&cache_groups, module, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks)) };
-        s.spawn(|(cache_groups, module, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks)| async move {
-          let belong_to_chunks = module_chunks.get(module).expect("should have module chunks");
+      all_modules.iter().for_each(|mid| {
+        let s = unsafe { token.used((&cache_groups, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks)) };
+        s.spawn(|(cache_groups, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks)| async move {
+          let belong_to_chunks = module_chunks.get(mid).expect("should have module chunks");
           if belong_to_chunks.is_empty() {
             return Ok(());
           }
 
-          if let Some(removed_chunks) = removed_module_chunks.get(module) && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
+          if let Some(removed_chunks) = removed_module_chunks.get(mid) && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
             return Ok(());
           }
-          let module = module_graph.module_by_identifier(module).expect("should have module").as_ref();
+          let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
           let mut filtered = vec![];
 
           for cache_group in cache_groups.iter() {
@@ -359,7 +359,7 @@ impl SplitChunksPlugin {
             let combs = if cache_group.used_exports {
               if used_exports_combs.is_none() {
                 used_exports_combs = Some(combinator.get_combs(
-                  module.identifier(),
+                  *mid,
                   true,
                   module_chunks,
                 ));
@@ -368,7 +368,7 @@ impl SplitChunksPlugin {
             } else {
               if non_used_exports_combs.is_none() {
                 non_used_exports_combs = Some(combinator.get_combs(
-                  module.identifier(),
+                  *mid,
                   false,
                   module_chunks,
                 ));
@@ -385,7 +385,7 @@ impl SplitChunksPlugin {
               if chunk_combination.len() < cache_group.min_chunks as usize {
                 tracing::trace!(
                   "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
-                  module.identifier(),
+                  mid,
                   cache_group.key,
                   chunk_combination.len(),
                   cache_group.min_chunks,
@@ -422,7 +422,7 @@ impl SplitChunksPlugin {
               if selected_chunks.len() < cache_group.min_chunks as usize {
                 tracing::trace!(
                   "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
-                  module.identifier(),
+                  mid,
                   cache_group.key,
                   selected_chunks.len(),
                   cache_group.min_chunks,
@@ -430,7 +430,7 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              if selected_chunks.iter().any(|c| removed_module_chunks.get(&module.identifier()).is_some_and(|chunks| chunks.contains(c))) {
+              if selected_chunks.iter().any(|c| removed_module_chunks.get(mid).is_some_and(|chunks| chunks.contains(c))) {
                 continue;
               }
 
