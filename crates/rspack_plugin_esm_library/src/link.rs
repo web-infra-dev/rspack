@@ -984,17 +984,17 @@ impl EsmLibraryPlugin {
         match info {
           ModuleInfo::Concatenated(info) => {
             if let Some(export_map) = info.export_map.as_ref() {
-              for export_atom in export_map.keys() {
-                let internal_name = info
-                  .get_internal_name(export_atom)
-                  .expect("should have internal name for exported item");
+              for (export_name, export_atom) in export_map {
+                let internal_name = info.get_internal_name(export_atom).unwrap_or_else(|| {
+                  panic!("{} should have internal name for exported member: {export_atom}, internal_names: {:?}", info.module, &info.internal_names)
+                });
 
                 exports
                   .entry(chunk_link.chunk)
                   .or_default()
                   .entry(entry_module)
                   .or_default()
-                  .insert(internal_name.clone(), export_atom.clone());
+                  .insert(internal_name.clone(), export_name.clone());
               }
             }
 

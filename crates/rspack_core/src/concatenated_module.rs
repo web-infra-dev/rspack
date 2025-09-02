@@ -197,7 +197,7 @@ pub struct ConcatenatedModuleInfo {
   pub source: Option<ReplaceSource<Arc<dyn Source>>>,
   pub internal_source: Option<Arc<dyn Source>>,
   pub internal_names: HashMap<Atom, Atom>,
-  pub export_map: Option<HashMap<Atom, String>>,
+  pub export_map: Option<HashMap<Atom, Atom>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub import_map: ConcatenatedImportMap,
   pub namespace_object_name: Option<Atom>,

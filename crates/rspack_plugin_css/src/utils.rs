@@ -316,7 +316,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
       "var {identifier} = {content};\n"
     )));
     used_identifiers.insert(identifier.clone());
-    scope.register_export(key.into(), identifier.into_owned());
+    scope.register_export(key.into(), identifier.into_owned().into());
   }
   Ok(())
 }

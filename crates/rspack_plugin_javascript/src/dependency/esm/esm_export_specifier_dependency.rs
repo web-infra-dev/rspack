@@ -160,7 +160,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope {
-      scope.register_export(dep.name.clone(), dep.value.to_string());
+      scope.register_export(dep.name.clone(), dep.value.clone());
       return;
     }
     let module_graph = compilation.get_module_graph();
