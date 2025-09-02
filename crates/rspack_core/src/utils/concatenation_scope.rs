@@ -76,7 +76,7 @@ impl ConcatenationScope {
     self.modules_map.contains_key(module)
   }
 
-  pub fn register_export(&mut self, export_name: Atom, symbol: String) {
+  pub fn register_export(&mut self, export_name: Atom, symbol: Atom) {
     let export_map = self.current_module.export_map.get_or_insert_default();
     match export_map.entry(export_name) {
       Entry::Occupied(mut occ) => {
