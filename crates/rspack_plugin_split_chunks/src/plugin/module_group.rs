@@ -21,7 +21,7 @@ use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
   common::{ModuleChunks, ModuleSizes},
-  module_group::{ModuleGroup, compare_entries},
+  module_group::{IndexedCacheGroup, ModuleGroup, compare_entries},
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -76,7 +76,7 @@ fn get_key<I: Iterator<Item = ChunkUkey>>(chunks: I) -> ChunksKey {
 }
 
 #[derive(Default)]
-struct Combinator {
+pub(crate) struct Combinator {
   combinations: FxHashMap<ChunksKey, Vec<UkeySet<ChunkUkey>>>,
   used_exports_combinations: FxHashMap<ChunksKey, Vec<UkeySet<ChunkUkey>>>,
   grouped_by_exports: IdentifierMap<Vec<ChunksKey>>,
@@ -171,7 +171,7 @@ impl Combinator {
       .collect::<FxHashMap<_, _>>()
   }
 
-  fn prepare_group_by_chunks(
+  pub(crate) fn prepare_group_by_chunks(
     &mut self,
     all_modules: &[ModuleIdentifier],
     module_chunks: &ModuleChunks,
@@ -205,7 +205,7 @@ impl Combinator {
     self.combinations = Self::get_combinations(chunk_sets_in_graph, chunk_sets_by_count);
   }
 
-  fn prepare_group_by_used_exports(
+  pub(crate) fn prepare_group_by_used_exports(
     &mut self,
     all_modules: &[ModuleIdentifier],
     module_graph: &ModuleGraph,
@@ -298,58 +298,39 @@ impl SplitChunksPlugin {
   #[instrument(name = "Compilation:SplitChunks:prepare_module_group_map",target=TRACING_BENCH_TARGET, skip_all)]
   pub(crate) async fn prepare_module_group_map(
     &self,
+    combinator: &Combinator,
     all_modules: &[ModuleIdentifier],
+    cache_groups: Vec<IndexedCacheGroup<'_>>,
+    removed_module_chunks: &IdentifierMap<UkeySet<ChunkUkey>>,
     compilation: &Compilation,
     module_chunks: &ModuleChunks,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
-
     let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
-
-    let mut combinator = Combinator::default();
-
-    if self
-      .cache_groups
-      .iter()
-      .any(|cache_group| !cache_group.used_exports)
-    {
-      combinator.prepare_group_by_chunks(all_modules, module_chunks);
-    }
-
-    if self
-      .cache_groups
-      .iter()
-      .any(|cache_group| cache_group.used_exports)
-    {
-      combinator.prepare_group_by_used_exports(
-        all_modules,
-        &module_graph,
-        &compilation.chunk_by_ukey,
-        module_chunks,
-      );
-    }
-
     let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
       all_modules.iter().for_each(|module| {
-        let s = unsafe { token.used((&self, module, &module_graph, compilation, &module_group_map, &combinator, module_chunks)) };
-        s.spawn(|(plugin, module, module_graph, compilation, module_group_map, combinator, module_chunks)| async move {
+        let s = unsafe { token.used((&cache_groups, module, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks)) };
+        s.spawn(|(cache_groups, module, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks)| async move {
           let belong_to_chunks = module_chunks.get(module).expect("should have module chunks");
           if belong_to_chunks.is_empty() {
             return Ok(());
           }
 
+          if let Some(removed_chunks) = removed_module_chunks.get(module) && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
+            return Ok(());
+          }
           let module = module_graph.module_by_identifier(module).expect("should have module").as_ref();
-          let mut temp = Vec::with_capacity(plugin.cache_groups.len());
+          let mut filtered = vec![];
 
-          for cache_group in plugin.cache_groups.iter() {
+          for cache_group in cache_groups.iter() {
             let mut is_match = true;
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
-            is_match &= (cache_group.r#type)(module);
+            is_match &= (cache_group.cache_group.r#type)(module);
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            is_match &= (cache_group.layer)(module.get_layer().map(ToString::to_string)).await?;
+            is_match &= (cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await?;
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-            is_match &= match &cache_group.test {
+            is_match &= match &cache_group.cache_group.test {
               CacheGroupTest::String(str) => module
                 .name_for_condition().is_some_and(|name| name.starts_with(str)),
               CacheGroupTest::RegExp(regexp) => module
@@ -361,20 +342,20 @@ impl SplitChunksPlugin {
               CacheGroupTest::Enabled => true,
             };
 
-            temp.push(is_match);
+            if is_match {
+              filtered.push(cache_group);
+            }
           }
           let mut chunk_key_to_string = HashMap::<ChunksKey, String, ChunksKeyHashBuilder>::default();
-
-          let filtered = plugin
-            .cache_groups
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| temp[*index]);
 
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
 
-          for (cache_group_index, cache_group) in filtered {
+          for cache_group in filtered {
+            let IndexedCacheGroup {
+              cache_group_index,
+              cache_group,
+            } = cache_group;
             let combs = if cache_group.used_exports {
               if used_exports_combs.is_none() {
                 used_exports_combs = Some(combinator.get_combs(
@@ -449,6 +430,10 @@ impl SplitChunksPlugin {
                 continue;
               }
 
+              if selected_chunks.iter().any(|c| removed_module_chunks.get(&module.identifier()).is_some_and(|chunks| chunks.contains(c))) {
+                continue;
+              }
+
               let selected_chunks_key =
                 get_key(selected_chunks.iter().copied());
 
@@ -456,7 +441,7 @@ impl SplitChunksPlugin {
                 MatchedItem {
                   module,
                   cache_group,
-                  cache_group_index,
+                  cache_group_index: *cache_group_index,
                   selected_chunks,
                   selected_chunks_key,
                 },
