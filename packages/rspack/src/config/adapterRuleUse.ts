@@ -34,14 +34,36 @@ export interface ComposeJsUseOptions {
 	compiler: Compiler;
 }
 
-export interface SourceMap {
+export interface RawSourceMap {
+	/**
+	 * The version of the source map format, always 3
+	 */
 	version: number;
+	/**
+	 * A list of original sources used by the mappings field
+	 */
 	sources: string[];
+	/**
+	 * A string with the encoded mapping data
+	 */
 	mappings: string;
-	file?: string;
+	/**
+	 * The filename of the generated code that this source map is associated with
+	 */
+	file: string;
+	/**
+	 * An optional source root string, used for relocating source files on a server or
+	 * removing repeated values in the sources entry.
+	 */
 	sourceRoot?: string;
+	/**
+	 * An array containing the actual content of the original source files
+	 */
 	sourcesContent?: string[];
-	names?: string[];
+	/**
+	 * A list of symbol names which may be used by the mappings field.
+	 */
+	names: string[];
 }
 
 export interface AdditionalData {
@@ -51,7 +73,7 @@ export interface AdditionalData {
 export type LoaderContextCallback = (
 	err?: Error | null,
 	content?: string | Buffer,
-	sourceMap?: string | SourceMap,
+	sourceMap?: string | RawSourceMap,
 	additionalData?: AdditionalData
 ) => void;
 
@@ -392,7 +414,7 @@ export type LoaderDefinitionFunction<
 > = (
 	this: LoaderContext<OptionsType> & ContextAdditions,
 	content: string,
-	sourceMap?: string | SourceMap,
+	sourceMap?: string | RawSourceMap,
 	additionalData?: AdditionalData
 ) => string | void | Buffer | Promise<string | Buffer | void>;
 
