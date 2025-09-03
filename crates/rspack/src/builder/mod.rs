@@ -3675,7 +3675,7 @@ impl From<Experiments> for ExperimentsBuilder {
       parallel_code_splitting: Some(value.parallel_code_splitting),
       output_module: None,
       future_defaults: None,
-      css: None,
+      css: Some(value.css),
       async_web_assembly: None,
     }
   }
@@ -3793,6 +3793,7 @@ impl ExperimentsBuilder {
       rspack_future,
       parallel_code_splitting,
       cache,
+      css: d!(self.css, false),
       inline_const: false,
       inline_enum: false,
       type_reexports_presence: false,

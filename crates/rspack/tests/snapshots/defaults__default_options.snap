@@ -1477,6 +1477,7 @@ CompilerOptions {
         top_level_await: true,
         rspack_future: RspackFuture,
         cache: Disabled,
+        css: false,
         inline_const: false,
         inline_enum: false,
         type_reexports_presence: false,
