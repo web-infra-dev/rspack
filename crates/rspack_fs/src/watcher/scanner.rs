@@ -1,5 +1,6 @@
-use std::{ops::Deref, sync::Arc};
+use std::{ops::Deref, sync::Arc, time::SystemTime};
 
+use rspack_paths::ArcPath;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
@@ -22,39 +23,60 @@ impl Scanner {
 
   /// Scans the registered paths and sends delete events for any files or directories that no longer exist.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
-  pub fn scan(&self) {
+  pub fn scan(&self, start_time: SystemTime) {
     let accessor = self.path_manager.access();
 
-    let files = accessor.files().0.clone();
+    // only apply for added files
+    let files = accessor.files().1.clone();
+    let missing = accessor.missing().0.clone();
+    let start_time = Arc::new(start_time);
+    let start_time_clone = Arc::clone(&start_time);
     let _tx = self.tx.clone();
     tokio::spawn(async move {
       for file in files.iter() {
         let filepath = file.deref();
-        if !filepath.exists()
-          && let Some(tx) = &_tx
-        {
-          // If the file does not exist, send a delete event
-          let _ = tx.send(vec![FsEvent {
-            path: filepath.clone(),
-            kind: FsEventKind::Remove,
-          }]);
+        if let Some(tx) = &_tx {
+          if !filepath.exists() && !missing.contains(filepath) {
+            // If the file does not exist, send a delete event
+            let _ = tx.send(vec![FsEvent {
+              path: filepath.clone(),
+              kind: FsEventKind::Remove,
+            }]);
+          }
+
+          if check_path_metadata(filepath, &start_time_clone) {
+            // If the file has been modified since the start time, send a change event
+            let _ = tx.send(vec![FsEvent {
+              path: filepath.clone(),
+              kind: FsEventKind::Change,
+            }]);
+          }
         }
       }
     });
 
-    let directories = accessor.directories().0.clone();
+    let directories = accessor.directories().1.clone();
+    let missing = accessor.missing().0.clone();
     let _tx = self.tx.clone();
     tokio::spawn(async move {
       for dir in directories.iter() {
         let dirpath = dir.deref();
-        if !dirpath.exists()
-          && let Some(tx) = &_tx
-        {
-          // If the directory does not exist, send a delete event
-          let _ = tx.send(vec![FsEvent {
-            path: dirpath.clone(),
-            kind: FsEventKind::Remove,
-          }]);
+        if let Some(tx) = &_tx {
+          if !dirpath.exists() && !missing.contains(dirpath) {
+            // If the directory does not exist, send a delete event
+            let _ = tx.send(vec![FsEvent {
+              path: dirpath.clone(),
+              kind: FsEventKind::Remove,
+            }]);
+          }
+
+          if check_path_metadata(dirpath, &start_time) {
+            // If the directory has been modified since the start time, send a change event
+            let _ = tx.send(vec![FsEvent {
+              path: dirpath.clone(),
+              kind: FsEventKind::Change,
+            }]);
+          }
         }
       }
     });
@@ -63,6 +85,17 @@ impl Scanner {
   pub fn close(&mut self) {
     // Close the scanner by dropping the sender
     self.tx.take();
+  }
+}
+
+fn check_path_metadata(filepath: &ArcPath, start_time: &SystemTime) -> bool {
+  if let Ok(m_time) = filepath
+    .metadata()
+    .and_then(|metadata| metadata.modified().or(metadata.created()))
+  {
+    *start_time < m_time
+  } else {
+    false
   }
 }
 
@@ -104,7 +137,7 @@ mod tests {
       collected_events
     });
 
-    scanner.scan();
+    scanner.scan(SystemTime::now());
     // Simulate scanner dropping to trigger the end of the channel
     scanner.close();
 

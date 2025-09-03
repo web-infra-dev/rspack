@@ -443,7 +443,7 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
-  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**
    * # Safety

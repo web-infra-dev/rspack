@@ -6,7 +6,7 @@ mod paths;
 mod scanner;
 mod trigger;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::SystemTime};
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
@@ -131,12 +131,13 @@ impl FsWatcher {
     files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
   ) {
     self.path_manager.reset();
-    self.scanner.scan();
-    if let Err(e) = self.wait_for_event(files, directories, missing) {
+
+    if let Err(e) = self.wait_for_event(files, directories, missing, start_time) {
       event_aggregate_handler.on_error(e);
       return;
     };
@@ -175,8 +176,10 @@ impl FsWatcher {
     files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    start_time: SystemTime,
   ) -> Result<()> {
     self.path_manager.update(files, directories, missing)?;
+    self.scanner.scan(start_time);
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;
