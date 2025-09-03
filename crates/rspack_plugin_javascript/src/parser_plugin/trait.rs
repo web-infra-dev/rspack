@@ -184,19 +184,29 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &MemberExpr,
+    _member_expr: &MemberExpr,
+    _callee_members: &[Atom],
+    _call_expr: &CallExpr,
+    _members: &[Atom],
+    _member_ranges: &[Span],
     _for_name: &str,
   ) -> Option<bool> {
     None
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn call_member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &CallExpr,
+    _call_expr: &CallExpr,
+    _callee_members: &[Atom],
+    _inner_call_expr: &CallExpr,
+    _members: &[Atom],
+    _member_ranges: &[Span],
     _for_name: &str,
   ) -> Option<bool> {
     None

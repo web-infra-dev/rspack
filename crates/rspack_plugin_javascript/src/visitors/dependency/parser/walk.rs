@@ -725,10 +725,15 @@ impl JavascriptParser<'_> {
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
-              this
-                .plugin_drive
-                .clone()
-                .member_chain_of_call_member_chain(this, expr, for_name)
+              this.plugin_drive.clone().member_chain_of_call_member_chain(
+                this,
+                expr,
+                &expr_info.callee_members,
+                &expr_info.call,
+                &expr_info.members,
+                &expr_info.member_ranges,
+                for_name,
+              )
             })
             .unwrap_or_default()
           {
@@ -960,7 +965,15 @@ impl JavascriptParser<'_> {
                 this
                   .plugin_drive
                   .clone()
-                  .call_member_chain_of_call_member_chain(this, expr, for_name)
+                  .call_member_chain_of_call_member_chain(
+                    this,
+                    expr,
+                    &expr_info.callee_members,
+                    &expr_info.call,
+                    &expr_info.members,
+                    &expr_info.member_ranges,
+                    for_name,
+                  )
               })
               .unwrap_or_default()
           {

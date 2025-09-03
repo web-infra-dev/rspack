@@ -25,7 +25,7 @@ use swc_core::{
   },
   ecma::{
     ast::{
-      ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, Ident, Lit, MemberExpr,
+      ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
       MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr,
       Pat, Program, RestPat, Stmt, ThisExpr,
     },
@@ -91,6 +91,7 @@ pub struct CallExpressionInfo {
   pub call: CallExpr,
   pub callee_name: String,
   pub root_info: ExportedVariableInfo,
+  pub callee_members: Vec<Atom>,
   pub members: Vec<Atom>,
   pub members_optionals: Vec<bool>,
   pub member_ranges: Vec<Span>,
@@ -164,15 +165,6 @@ impl RootName for MetaPropExpr {
     match self.kind {
       MetaPropKind::NewTarget => Some("new.target".into()),
       MetaPropKind::ImportMeta => Some("import.meta".into()),
-    }
-  }
-}
-
-impl RootName for Callee {
-  fn get_root_name(&self) -> Option<Atom> {
-    match self {
-      Callee::Expr(e) => e.get_root_name(),
-      _ => None,
     }
   }
 }
@@ -688,13 +680,21 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
-        let root_name = expr.callee.get_root_name()?;
+        let callee = expr.callee.as_expr()?;
+        let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
+          let extracted = self.extract_member_expression_chain(member);
+          let root_name = extracted.object.get_root_name()?;
+          (root_name, extracted.members)
+        } else {
+          (callee.get_root_name()?, vec![])
+        };
         let NameInfo {
           name: resolved_root,
           info: root_info,
         } = self.get_name_info_from_variable(&root_name)?;
 
-        let callee_name = object_and_members_to_name(resolved_root.to_string(), &members);
+        let callee_name = object_and_members_to_name(resolved_root.to_string(), &root_members);
+        root_members.reverse();
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
@@ -704,6 +704,7 @@ impl<'parser> JavascriptParser<'parser> {
           root_info: root_info
             .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
             .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
+          callee_members: root_members,
           members,
           members_optionals,
           member_ranges,
