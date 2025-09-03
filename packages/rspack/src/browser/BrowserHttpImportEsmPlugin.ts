@@ -1,16 +1,23 @@
 import type { Compiler } from ".";
 
+interface RequestInfo {
+	request: string;
+	packageName: string;
+	issuer: string;
+}
+
 interface BrowserHttpImportPluginOptions {
 	/**
 	 * ESM CDN domain
 	 */
-	domain: string | ((request: string, packageName: string) => string);
+	domain: string | ((info: RequestInfo) => string);
 	/**
 	 * Specify ESM CDN URL for dependencies.
+	 * If a record is provided, it will be used to map package names to their CDN URLs.
 	 */
 	dependencyUrl?:
 		| Record<string, string | undefined>
-		| ((packageName: string) => string | undefined);
+		| ((info: RequestInfo) => string | undefined);
 	/**
 	 * Specify versions for dependencies.
 	 * Default to "latest" if not specified.
@@ -28,7 +35,6 @@ export class BrowserHttpImportEsmPlugin {
 		compiler.hooks.normalModuleFactory.tap("BrowserHttpImportPlugin", nmf => {
 			nmf.hooks.resolve.tap("BrowserHttpImportPlugin", resolveData => {
 				const request = resolveData.request;
-				const packageName = getPackageName(request);
 
 				// We don't consider match resource and inline loaders
 				// Because usually they are not used with dependent modules like `sass-loader?react`
@@ -36,10 +42,17 @@ export class BrowserHttpImportEsmPlugin {
 					return;
 				}
 
+				const packageName = getPackageName(request);
+				const requestInfo: RequestInfo = {
+					request,
+					packageName,
+					issuer: resolveData.contextInfo.issuer
+				};
+
 				// If dependencyUrl is provided, use it to resolve the request
 				if (this.options.dependencyUrl) {
 					if (typeof this.options.dependencyUrl === "function") {
-						const url = this.options.dependencyUrl(packageName);
+						const url = this.options.dependencyUrl(requestInfo);
 						if (url) {
 							resolveData.request = url;
 							return;
@@ -62,7 +75,7 @@ export class BrowserHttpImportEsmPlugin {
 
 				// If the request is a node module, resolve it with esm cdn URL
 				if (this.isNodeModule(request)) {
-					resolveData.request = this.resolveNodeModule(request, packageName);
+					resolveData.request = this.resolveNodeModule(requestInfo);
 					return;
 				}
 			});
@@ -73,16 +86,20 @@ export class BrowserHttpImportEsmPlugin {
 		return new URL(request, issuer).href;
 	}
 
-	resolveNodeModule(request: string, packageName: string) {
+	resolveNodeModule(requestInfo: RequestInfo) {
 		let domain = "";
 		if (typeof this.options.domain === "function") {
-			domain = this.options.domain(request, packageName);
+			domain = this.options.domain(requestInfo);
 		} else if (typeof this.options.domain === "string") {
 			domain = this.options.domain;
 		}
 
-		const version = this.options.dependencyVersions?.[packageName] || "latest";
-		const versionedRequest = getRequestWithVersion(request, version);
+		const version =
+			this.options.dependencyVersions?.[requestInfo.packageName] || "latest";
+		const versionedRequest = getRequestWithVersion(
+			requestInfo.request,
+			version
+		);
 		return `${domain}/${versionedRequest}`;
 	}
 
