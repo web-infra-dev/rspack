@@ -100,7 +100,6 @@ sugar_path          = { version = "1.2.0", default-features = false, features = 
 syn                 = { version = "2.0.95", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
-thiserror           = { version = "1.0.69", default-features = false }
 tokio               = { version = "1.42.0", default-features = false, features = ["rt", "rt-multi-thread"] }
 toml                = { version = "0.8.19", default-features = false, features = ["parse", "display"] }
 tracing             = { version = "0.1.41", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }

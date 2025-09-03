@@ -88,12 +88,15 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .esm_named_exports
       .insert(export_name.clone())
     {
-      parser.errors.push(Box::new(create_traceable_error(
-        "JavaScript parse error".into(),
-        format!("Duplicate export of '{export_name}'"),
-        parser.source_file,
-        export_name_span.into(),
-      )));
+      parser.errors.push(
+        create_traceable_error(
+          "JavaScript parse error".into(),
+          format!("Duplicate export of '{export_name}'"),
+          parser.source_file,
+          export_name_span.into(),
+        )
+        .into(),
+      );
     }
     let dep = if let Some(settings) = parser.get_tag_data(local_id, ESM_SPECIFIER_TAG) {
       let settings = ESMSpecifierData::downcast(settings);
@@ -164,12 +167,15 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .esm_named_exports
         .insert(export_name.clone())
       {
-        parser.errors.push(Box::new(create_traceable_error(
-          "JavaScript parse error".into(),
-          format!("Duplicate export of '{export_name}'"),
-          parser.source_file,
-          export_name_span.expect("should exist").into(),
-        )));
+        parser.errors.push(
+          create_traceable_error(
+            "JavaScript parse error".into(),
+            format!("Duplicate export of '{export_name}'"),
+            parser.source_file,
+            export_name_span.expect("should exist").into(),
+          )
+          .into(),
+        );
       }
       None
     } else {

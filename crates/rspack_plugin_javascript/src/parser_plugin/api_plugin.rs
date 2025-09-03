@@ -1,5 +1,5 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
-use rspack_error::{Severity, TraceableError};
+use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
   common::{SourceFile, Span, Spanned},
@@ -18,21 +18,20 @@ fn expression_not_supported(
   name: &str,
   is_call: bool,
   expr_span: Span,
-) -> (Box<TraceableError>, Box<ConstDependency>) {
-  (
-    Box::new(
-      create_traceable_error(
-        "Unsupported feature".into(),
-        format!(
-          "{name}{} is not supported by Rspack.",
-          if is_call { "()" } else { "" }
-        ),
-        file,
-        expr_span.into(),
-      )
-      .with_severity(Severity::Warn)
-      .with_hide_stack(Some(true)),
+) -> (Error, Box<ConstDependency>) {
+  let mut error = create_traceable_error(
+    "Unsupported feature".into(),
+    format!(
+      "{name}{} is not supported by Rspack.",
+      if is_call { "()" } else { "" }
     ),
+    file,
+    expr_span.into(),
+  );
+  error.severity = Severity::Warning;
+  error.hide_stack = Some(true);
+  (
+    error,
     Box::new(ConstDependency::new(
       expr_span.into(),
       "(void 0)".into(),
@@ -360,7 +359,7 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       let (warning, dep) =
         expression_not_supported(parser.source_file, for_name, false, member_expr.span());
-      parser.warning_diagnostics.push(warning);
+      parser.warning_diagnostics.push(warning.into());
       parser.presentational_dependencies.push(dep);
       return Some(true);
     }
@@ -428,7 +427,7 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       let (warning, dep) =
         expression_not_supported(parser.source_file, for_name, true, call_expr.span());
-      parser.warning_diagnostics.push(warning);
+      parser.warning_diagnostics.push(warning.into());
       parser.presentational_dependencies.push(dep);
       return Some(true);
     }

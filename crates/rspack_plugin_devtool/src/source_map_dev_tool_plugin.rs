@@ -17,7 +17,7 @@ use rspack_core::{
   Logger, ModuleIdentifier, PathData, Plugin,
   rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, error, miette::IntoDiagnostic};
+use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{asset_condition::AssetConditions, identifier::make_paths_absolute};
@@ -461,7 +461,7 @@ impl SourceMapDevToolPlugin {
                     debug_id
                   });
 
-                  (Some(map.to_json().into_diagnostic()?), debug_id)
+                  (Some(map.to_json().map_err(|e| error!(e.to_string()))?), debug_id)
                 }
                 None => (None, None),
               };

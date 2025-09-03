@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::LazyLock};
 use itertools::Itertools;
 use regex::Regex;
 use rspack_core::parse_resource;
-use rspack_error::{Diagnostic, DiagnosticExt, Severity};
+use rspack_error::{Diagnostic, Severity};
 use rspack_util::json_stringify;
 
 use super::create_traceable_error;
@@ -99,16 +99,14 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let warn: Diagnostic = create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
         parser.source_file,
         param.range().into(),
-      )
-      .with_severity(Severity::Warn)
-      .boxed()
-      .into();
-      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      ));
+      warn.severity = Severity::Warning;
+      warn.module_identifier = Some(*parser.module_identifier);
       critical = Some(warn);
     }
 
@@ -169,16 +167,14 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let warn: Diagnostic = create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
         parser.source_file,
         param.range().into(),
-      )
-      .with_severity(Severity::Warn)
-      .boxed()
-      .into();
-      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      ));
+      warn.severity = Severity::Warning;
+      warn.module_identifier = Some(*parser.module_identifier);
       critical = Some(warn);
     }
 
@@ -200,16 +196,14 @@ pub fn create_context_dependency(
     }
   } else {
     if let Some(true) = parser.javascript_options.expr_context_critical {
-      let warn: Diagnostic = create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),
         parser.source_file,
         param.range().into(),
-      )
-      .with_severity(Severity::Warn)
-      .boxed()
-      .into();
-      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+      ));
+      warn.severity = Severity::Warning;
+      warn.module_identifier = Some(*parser.module_identifier);
       critical = Some(warn);
     }
 

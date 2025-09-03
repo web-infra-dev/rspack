@@ -2,7 +2,7 @@ use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
   DependencyCategory, DependencyLocation, DependencyRange,
 };
-use rspack_error::{DiagnosticExt, Severity};
+use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
@@ -346,18 +346,15 @@ impl CommonJsImportsParserPlugin {
       parser.in_try,
     );
     if let Some(true) = parser.javascript_options.unknown_context_critical {
-      *dep.critical_mut() = Some(
-        create_traceable_error(
-          "Critical dependency".into(),
-          "require function is used in a way in which dependencies cannot be statically extracted"
-            .to_string(),
-          parser.source_file,
-          ident.span().into(),
-        )
-        .with_severity(Severity::Warn)
-        .boxed()
-        .into(),
+      let mut error = create_traceable_error(
+        "Critical dependency".into(),
+        "require function is used in a way in which dependencies cannot be statically extracted"
+          .to_string(),
+        parser.source_file,
+        ident.span().into(),
       );
+      error.severity = Severity::Warning;
+      *dep.critical_mut() = Some(Diagnostic::from(error));
     }
     parser.dependencies.push(Box::new(dep));
     Some(true)

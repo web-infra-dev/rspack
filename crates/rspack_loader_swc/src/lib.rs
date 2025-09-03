@@ -10,7 +10,7 @@ pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext};
-use rspack_error::{Diagnostic, Result, miette};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 pub use rspack_workspace::rspack_swc_core_version;
@@ -129,9 +129,7 @@ impl SwcLoader {
     )?;
 
     for diagnostic in diagnostics {
-      loader_context.emit_diagnostic(
-        miette::miette! { severity = miette::Severity::Warning, "{}", diagnostic }.into(),
-      );
+      loader_context.emit_diagnostic(Error::warning(diagnostic).into());
     }
 
     if let Some(collected_ts_info) = collected_ts_info {

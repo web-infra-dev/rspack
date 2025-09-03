@@ -1,4 +1,4 @@
-use std::{fmt::Display, ptr};
+use std::{fmt::Display, ops::Deref, ptr};
 
 use napi::{
   Env, JsValue, Property, PropertyAttributes, Status, Unknown, ValueType,
@@ -7,10 +7,7 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::Compilation;
-use rspack_error::{
-  Diagnostic, DiagnosticExt, Error, Result, RspackSeverity,
-  miette::{self, Severity},
-};
+use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_napi::napi::check_status;
 
 use crate::{define_symbols, location::DependencyLocation, module::ModuleObject};
@@ -53,20 +50,11 @@ pub enum JsRspackSeverity {
   Warn,
 }
 
-impl From<JsRspackSeverity> for RspackSeverity {
+impl From<JsRspackSeverity> for Severity {
   fn from(value: JsRspackSeverity) -> Self {
     match value {
-      JsRspackSeverity::Error => RspackSeverity::Error,
-      JsRspackSeverity::Warn => RspackSeverity::Warn,
-    }
-  }
-}
-
-impl From<JsRspackSeverity> for miette::Severity {
-  fn from(value: JsRspackSeverity) -> Self {
-    match value {
-      JsRspackSeverity::Error => miette::Severity::Error,
-      JsRspackSeverity::Warn => miette::Severity::Warning,
+      JsRspackSeverity::Error => Severity::Error,
+      JsRspackSeverity::Warn => Severity::Warning,
     }
   }
 }
@@ -284,25 +272,15 @@ impl std::fmt::Display for RspackError {
 
 impl std::error::Error for RspackError {}
 
-impl miette::Diagnostic for RspackError {
-  fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-    Some(Box::new(&self.name))
-  }
-
-  fn severity(&self) -> Option<Severity> {
-    self.severity
-  }
-}
-
-// for error chain
-impl From<&dyn miette::Diagnostic> for RspackError {
-  fn from(value: &dyn miette::Diagnostic) -> Self {
+impl From<&Error> for RspackError {
+  fn from(value: &Error) -> Self {
     let mut name = "Error".to_string();
-    if let Some(code) = value.code() {
+    if let Some(code) = &value.code {
       name = code.to_string();
     }
 
     let mut message = value.to_string();
+    // TODO: Delete it after all errors match the message specification
     let prefix = format!("{name}: ");
     if message.starts_with(&prefix) {
       message = message[prefix.len()..].to_string();
@@ -340,8 +318,8 @@ impl RspackError {
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     let mut module = None;
-    if let Some(module_identifier) = diagnostic.module_identifier()
-      && let Some(m) = compilation.module_by_identifier(&module_identifier)
+    if let Some(module_identifier) = &diagnostic.module_identifier
+      && let Some(m) = compilation.module_by_identifier(module_identifier)
     {
       module = Some(ModuleObject::with_ref(
         m.as_ref(),
@@ -349,48 +327,49 @@ impl RspackError {
       ));
     }
 
-    let error: Option<RspackError> = diagnostic.diagnostic_source().map(Into::into);
+    let rust_diagnostic = Some(diagnostic.clone());
+    let name = diagnostic
+      .code
+      .as_ref()
+      .cloned()
+      .unwrap_or("Error".to_string());
+    let source_error: Option<Box<RspackError>> = diagnostic
+      .source_error
+      .as_ref()
+      .map(|error| Box::new(error.clone().deref().into()));
 
     Ok(Self {
       severity: None,
-      name: diagnostic
-        .code()
-        .map(|n| n.to_string())
-        .unwrap_or_else(|| "Error".to_string()),
+      name,
       message,
-      details: diagnostic.details(),
-      stack: diagnostic.stack(),
+      details: diagnostic.details.as_ref().cloned(),
+      stack: diagnostic.stack.as_ref().cloned(),
       module,
-      loc: diagnostic.loc().map(Into::into),
-      file: diagnostic.file().map(|f| f.as_str().to_string()),
-      hide_stack: diagnostic.hide_stack(),
-      error: error.map(Box::new),
+      loc: diagnostic.loc.as_ref().map(Into::into),
+      file: diagnostic.file.as_ref().map(|f| f.as_str().to_string()),
+      hide_stack: diagnostic.hide_stack,
+      error: source_error,
       parent_error_name: None,
-      rust_diagnostic: Some(diagnostic.clone()),
+      rust_diagnostic,
     })
   }
 
-  pub fn into_diagnostic(mut self, severity: RspackSeverity) -> Diagnostic {
-    self.severity = Some(severity.into());
-
-    let details = self.details.clone();
-    let file = self.file.clone();
-    let loc = self.loc.as_ref().map(Into::into);
-    let module = self.module.as_ref().map(|module| *module.identifier());
-    let stack = self.stack.clone();
-    let hide_stack = self.hide_stack;
-
+  pub fn into_diagnostic(mut self, severity: Severity) -> Diagnostic {
     if let Some(rust_diagnostic) = self.rust_diagnostic {
-      rust_diagnostic
-    } else {
-      Diagnostic::from(self.boxed())
-        .with_details(details)
-        .with_file(file.map(Into::into))
-        .with_loc(loc)
-        .with_module_identifier(module)
-        .with_stack(stack)
-        .with_hide_stack(hide_stack)
+      return rust_diagnostic;
     }
+
+    let mut error = rspack_error::error!(self.message);
+    error.severity = severity;
+    error.code = Some(self.name);
+    error.stack = self.stack;
+    error.hide_stack = self.hide_stack;
+    let mut diagnostic = Diagnostic::from(error);
+    diagnostic.details = self.details;
+    diagnostic.file = self.file.map(Into::into);
+    diagnostic.loc = self.loc.as_ref().map(Into::into);
+    diagnostic.module_identifier = self.module.map(|module| *module.identifier());
+    diagnostic
   }
 }
 
@@ -412,7 +391,8 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   fn to_napi_result(self) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code()
+        e.code
+          .as_ref()
           .map(|code| ErrorCode::Custom(code.to_string()))
           .unwrap_or_else(|| ErrorCode::Napi(napi::Status::GenericFailure)),
         e.to_string(),
@@ -425,7 +405,8 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   ) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code()
+        e.code
+          .as_ref()
           .map(|code| ErrorCode::Custom(code.to_string()))
           .unwrap_or_else(|| ErrorCode::Napi(napi::Status::GenericFailure)),
         f(e),

@@ -7,7 +7,7 @@ use rspack_core::{
   ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyRange,
   RuntimeGlobals, SharedSourceMap,
 };
-use rspack_error::miette::Severity;
+use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
 use swc_core::{
   common::Spanned,
@@ -343,16 +343,15 @@ impl AMDRequireDependenciesBlockParserPlugin {
           call_expr.span.into(),
         ));
         parser.presentational_dependencies.push(dep);
-        parser.warning_diagnostics.push(Box::new(
-          create_traceable_error(
-            "UnsupportedFeatureWarning".into(),
-            "Cannot statically analyse 'require(…, …)'".into(),
-            parser.source_file,
-            call_expr.span.into(),
-          )
-          .with_severity(Severity::Warning)
-          .with_hide_stack(Some(true)),
-        ));
+        let mut error: Error = create_traceable_error(
+          "UnsupportedFeatureWarning".into(),
+          "Cannot statically analyse 'require(…, …)'".into(),
+          parser.source_file,
+          call_expr.span.into(),
+        );
+        error.severity = Severity::Warning;
+        error.hide_stack = Some(true);
+        parser.warning_diagnostics.push(error.into());
         return Some(true);
       }
 

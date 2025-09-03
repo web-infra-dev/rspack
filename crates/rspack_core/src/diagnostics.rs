@@ -1,44 +1,38 @@
-use std::fmt::Display;
-
 use itertools::Itertools;
-use rspack_error::{
-  DiagnosticExt, Error, TraceableError, error, impl_diagnostic_transparent,
-  miette::{self, Diagnostic, diagnostic},
-  thiserror::{self, Error},
-};
-use rspack_util::ext::AsAny;
+use rspack_error::{Diagnostic, Error, Label};
 
 use crate::{BoxLoader, DependencyRange};
 
 ///////////////////// Module Factory /////////////////////
 
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
+#[derive(Debug)]
+pub struct EmptyDependency(Error);
 
 impl EmptyDependency {
   pub fn new(span: Option<DependencyRange>) -> Self {
-    let err = if let Some(span) = span {
-      TraceableError::from_lazy_file(
-        span.start as usize,
-        span.end as usize,
-        "Empty dependency".to_string(),
-        "Expected a non-empty request".to_string(),
-      )
-      .boxed()
-    } else {
-      diagnostic!(code = "Empty dependency", "Expected a non-empty request").into()
-    };
+    let mut err = Error::error("Empty dependency: Expected a non-empty request".to_string());
+    err.code = Some("Empty dependency".to_string());
+    if let Some(span) = span {
+      err.labels = Some(vec![Label {
+        name: None,
+        offset: span.start as usize,
+        len: span.end.saturating_sub(span.start) as usize,
+      }])
+    }
     Self(err)
   }
 }
 
-impl_diagnostic_transparent!(EmptyDependency);
+impl From<EmptyDependency> for Error {
+  fn from(value: EmptyDependency) -> Error {
+    value.0
+  }
+}
 
 ///////////////////// Module /////////////////////
 
 #[derive(Debug)]
-pub struct ModuleBuildError(Error);
+pub struct ModuleBuildError(pub Error);
 
 impl ModuleBuildError {
   pub fn new(error: Error) -> Self {
@@ -46,27 +40,14 @@ impl ModuleBuildError {
   }
 }
 
-impl std::error::Error for ModuleBuildError {
-  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    Some(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
-  }
-}
-
-impl std::fmt::Display for ModuleBuildError {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Module build failed:")
-  }
-}
-
-impl miette::Diagnostic for ModuleBuildError {
-  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    Some(Box::new("ModuleBuildError"))
-  }
-  fn severity(&self) -> Option<miette::Severity> {
-    self.0.severity()
-  }
-  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-    Some(self.0.as_ref())
+impl From<ModuleBuildError> for Error {
+  fn from(mut value: ModuleBuildError) -> Error {
+    let mut err = Error::error("Module build failed:".into());
+    err.details = std::mem::take(&mut value.0.details);
+    err.severity = value.0.severity;
+    err.source_error = Some(Box::new(value.0));
+    err.code = Some("ModuleBuildError".into());
+    err
   }
 }
 
@@ -74,48 +55,36 @@ impl miette::Diagnostic for ModuleBuildError {
 ///
 /// This does NOT aligned with webpack as webpack does not have parse warning.
 /// However, rspack may create warning during parsing stage, taking CSS as an example.
-#[derive(Debug, Error)]
-#[error("{title}")]
+#[derive(Debug)]
 pub struct ModuleParseError {
-  message: String,
   title: &'static str,
   help: String,
-  #[source]
-  source: Box<dyn Diagnostic + Send + Sync>,
+  source: Error,
 }
 
-impl miette::Diagnostic for ModuleParseError {
-  // Passthrough the severity
-  fn severity(&self) -> Option<miette::Severity> {
-    self.source.severity()
-  }
-
-  fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-    match self.severity().unwrap_or(miette::Severity::Error) {
-      miette::Severity::Advice => unreachable!("miette::Severity::Advice should not be used"),
-      miette::Severity::Warning => Some(Box::new("ModuleParseWarning")),
-      miette::Severity::Error => Some(Box::new("ModuleParseError")),
+impl From<ModuleParseError> for Error {
+  fn from(value: ModuleParseError) -> Error {
+    let mut error = rspack_error::Error::default();
+    error.message = value.title.to_string();
+    error.severity = value.source.severity;
+    error.code = if value.source.is_warn() {
+      Some("ModuleParseWarning".into())
+    } else {
+      Some("ModuleParseError".into())
+    };
+    error.source_error = Some(Box::new(value.source));
+    if !value.help.is_empty() {
+      error.help = Some(value.help);
     }
-  }
-
-  fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-    if self.help.is_empty() {
-      return None;
-    }
-    Some(Box::new(&self.help))
-  }
-
-  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-    Some(&*self.source)
+    error
   }
 }
 
 impl ModuleParseError {
-  pub fn new(source: Box<dyn Diagnostic + Send + Sync>, loaders: &[BoxLoader]) -> Self {
-    let message = source.to_string();
+  pub fn new(source: Error, loaders: &[BoxLoader]) -> Self {
     let mut help = String::new();
     let mut title = "Module parse failed:";
-    if source.severity().unwrap_or(miette::Severity::Error) >= miette::Severity::Error {
+    if source.is_error() {
       if loaders.is_empty() {
         help = format!("{help}\nYou may need an appropriate loader to handle this file type.");
       } else {
@@ -134,7 +103,6 @@ impl ModuleParseError {
       title = "Module parse warning:"
     }
     Self {
-      message,
       title,
       help,
       source,
@@ -144,52 +112,35 @@ impl ModuleParseError {
 
 #[derive(Debug)]
 pub struct CapturedLoaderError {
-  pub source: Box<dyn Diagnostic + Send + Sync>,
+  pub source: Box<dyn std::error::Error>,
   pub details: Option<String>,
 }
 
 impl CapturedLoaderError {
   #[allow(clippy::too_many_arguments)]
-  pub fn new(source: Box<dyn Diagnostic + Send + Sync>, details: Option<String>) -> Self {
+  pub fn new(source: Box<dyn std::error::Error>, details: Option<String>) -> Self {
     Self { source, details }
   }
 }
 
-impl std::error::Error for CapturedLoaderError {
-  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    None
-  }
-}
-
-impl std::fmt::Display for CapturedLoaderError {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "CapturedLoaderError: {}", self.source)
-  }
-}
-
-impl rspack_error::miette::Diagnostic for CapturedLoaderError {
-  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    Some(Box::new("CapturedLoaderError"))
+impl From<CapturedLoaderError> for Error {
+  fn from(value: CapturedLoaderError) -> Error {
+    let mut error = rspack_error::error!(value.source.to_string());
+    error.code = Some("CapturedLoaderError".into());
+    error.details = value.details;
+    error
   }
 }
 
 /// Mark boxed errors as [crate::diagnostics::ModuleParseError],
 /// then, map it to diagnostics
 pub fn map_box_diagnostics_to_module_parse_diagnostics(
-  errors: Vec<Box<dyn Diagnostic + Send + Sync + 'static>>,
+  diagnostic: Vec<rspack_error::Diagnostic>,
   loaders: &[BoxLoader],
 ) -> Vec<rspack_error::Diagnostic> {
-  errors
+  diagnostic
     .into_iter()
-    .map(|e| {
-      let hide_stack = e
-        .as_any()
-        .downcast_ref::<TraceableError>()
-        .and_then(|e| e.hide_stack());
-      let diagnostic: rspack_error::Diagnostic =
-        rspack_error::miette::Error::new(ModuleParseError::new(e, loaders)).into();
-      diagnostic.with_hide_stack(hide_stack)
-    })
+    .map(|d| Error::from(ModuleParseError::new(d.error, loaders)).into())
     .collect()
 }
 
@@ -198,30 +149,22 @@ pub fn map_box_diagnostics_to_module_parse_diagnostics(
 #[derive(Debug)]
 pub struct MinifyError(pub Error);
 
-impl std::error::Error for MinifyError {
-  fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-    Some(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
+impl From<MinifyError> for Error {
+  fn from(value: MinifyError) -> Error {
+    let mut error = rspack_error::error!("Chunk minification failed:");
+    error.code = if value.0.is_warn() {
+      Some("ChunkMinificationWarning".into())
+    } else {
+      Some("ChunkMinificationError".into())
+    };
+    error.source_error = Some(Box::new(value.0));
+    error
   }
 }
 
-impl std::fmt::Display for MinifyError {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Chunk minification failed:")
-  }
-}
-
-impl miette::Diagnostic for MinifyError {
-  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    match self.severity().unwrap_or(miette::Severity::Error) {
-      miette::Severity::Advice => unreachable!("miette::Severity::Advice should not be used"),
-      miette::Severity::Warning => Some(Box::new("ChunkMinificationWarning")),
-      miette::Severity::Error => Some(Box::new("ChunkMinificationError")),
-    }
-  }
-  fn severity(&self) -> Option<miette::Severity> {
-    self.0.severity()
-  }
-  fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-    Some(self.0.as_ref())
+impl From<MinifyError> for Diagnostic {
+  fn from(value: MinifyError) -> Diagnostic {
+    let error: Error = value.into();
+    error.into()
   }
 }

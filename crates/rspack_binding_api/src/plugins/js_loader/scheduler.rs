@@ -3,7 +3,7 @@ use rspack_core::{
   AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, diagnostics::CapturedLoaderError,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, miette::IntoDiagnostic};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
@@ -59,14 +59,14 @@ pub(crate) async fn loader_yield(
       self.runner_getter.call(compiler_id).await
     })
     .await
-    .into_diagnostic()?;
+    .to_rspack_result()?;
 
   let new_cx = runner
     .call_async(loader_context.try_into()?)
     .await
-    .into_diagnostic()?
+    .to_rspack_result()?
     .await
-    .into_diagnostic()?;
+    .to_rspack_result()?;
 
   if loader_context.state() == LoaderState::Pitching {
     let list = collect_loaders_without_pitch(loader_context, &new_cx);

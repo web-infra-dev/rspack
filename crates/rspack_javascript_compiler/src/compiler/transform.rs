@@ -16,7 +16,7 @@ use anyhow::{Context, bail};
 use base64::prelude::*;
 use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
-use rspack_error::{AnyhowResultToRspackResultExt, Error, miette::MietteDiagnostic};
+use rspack_error::Result;
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
 use swc_config::{is_module::IsModule, merge::Merge};
@@ -62,7 +62,7 @@ impl JavaScriptCompiler {
     module_source_map_kind: Option<SourceMapKind>,
     inspect_parsed_ast: impl FnOnce(&Program),
     before_pass: impl FnOnce(&Program) -> P + 'a,
-  ) -> Result<TransformOutput, Error>
+  ) -> Result<TransformOutput>
   where
     P: Pass + 'a,
     S: Into<String>,
@@ -262,7 +262,7 @@ impl<'a> JavaScriptTransformer<'a> {
     fm: Arc<SourceFile>,
     compiler: &'a JavaScriptCompiler,
     mut options: SwcOptions,
-  ) -> Result<Self, Error> {
+  ) -> Result<Self> {
     GLOBALS.set(&compiler.globals, || {
       let top_level_mark = Mark::new();
       let unresolved_mark = Mark::new();
@@ -271,8 +271,7 @@ impl<'a> JavaScriptTransformer<'a> {
     });
 
     let comments = SingleThreadedComments::default();
-    let config = read_config(&options, &fm.name)
-      .to_rspack_result_from_anyhow()?
+    let config = read_config(&options, &fm.name)?
       .ok_or_else(|| rspack_error::error!("cannot process file because it's ignored by .swcrc"))?;
 
     let helpers = GLOBALS.set(&compiler.globals, || {
@@ -297,7 +296,7 @@ impl<'a> JavaScriptTransformer<'a> {
     inspect_parsed_ast: impl FnOnce(&Program),
     before_pass: impl FnOnce(&Program) -> P + 'a,
     module_source_map_kind: Option<SourceMapKind>,
-  ) -> Result<TransformOutput, Error>
+  ) -> Result<TransformOutput>
   where
     P: Pass + 'a,
   {
@@ -316,9 +315,7 @@ impl<'a> JavaScriptTransformer<'a> {
       names: Default::default(),
     };
 
-    let input_source_map = self
-      .input_source_map(&built_input.input_source_map)
-      .to_rspack_result_from_anyhow()?;
+    let input_source_map = self.input_source_map(&built_input.input_source_map)?;
 
     inspect_parsed_ast(&built_input.program);
 
@@ -397,7 +394,7 @@ impl<'a> JavaScriptTransformer<'a> {
   fn parse_built_input<P>(
     &'a self,
     before_pass: impl FnOnce(&Program) -> P + 'a,
-  ) -> Result<BuiltInput<impl Pass + 'a>, Error>
+  ) -> Result<BuiltInput<impl Pass + 'a>>
   where
     P: Pass + 'a,
   {
@@ -426,8 +423,7 @@ impl<'a> JavaScriptTransformer<'a> {
           before_pass,
         )
       })
-      .map_err(|e| e.to_pretty_error())
-      .to_rspack_result_from_anyhow()
+      .map_err(|e| e.to_pretty_error().into())
     })
   }
 
@@ -438,7 +434,7 @@ impl<'a> JavaScriptTransformer<'a> {
   fn transform_with_built_input(
     &self,
     built_input: &mut BuiltInput<impl Pass>,
-  ) -> Result<Vec<String>, Error> {
+  ) -> Result<Vec<String>> {
     let mut diagnostics = vec![];
     let result = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
@@ -476,10 +472,14 @@ impl<'a> JavaScriptTransformer<'a> {
               The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
               Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
               See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.rs/errors/swc-plugin-version"};
-            MietteDiagnostic::new(format!("{error_msg}{help_msg}")).with_code(SWC_MIETTE_DIAGNOSTIC_CODE)
+            let mut error = rspack_error::error!(format!("{error_msg}{help_msg}"));
+            error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
+            error
           } else {
             let error_msg = err.to_pretty_string();
-            MietteDiagnostic::new(error_msg).with_code(SWC_MIETTE_DIAGNOSTIC_CODE)
+            let mut error = rspack_error::error!(error_msg);
+            error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
+            error
           }
         })
       })
@@ -500,7 +500,7 @@ impl<'a> JavaScriptTransformer<'a> {
       );
     }
 
-    result.map(|_| diagnostics).map_err(|e| e.into())
+    result.map(|_| diagnostics)
   }
 
   pub fn input_source_map(

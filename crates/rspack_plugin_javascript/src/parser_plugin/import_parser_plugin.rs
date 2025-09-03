@@ -4,7 +4,7 @@ use rspack_core::{
   ContextOptions, DependencyCategory, DependencyRange, DynamicImportFetchPriority,
   DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap,
 };
-use rspack_error::miette::Severity;
+use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
 use swc_core::{
   common::Spanned,
@@ -104,16 +104,15 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser.destructuring_assignment_properties_for(&node.span())
     {
       if exports.is_some() {
-        parser.warning_diagnostics.push(Box::new(
-          create_traceable_error(
-            "Magic comments parse failed".into(),
-            "`webpackExports` could not be used with destructuring assignment.".into(),
-            parser.source_file,
-            node.span().into(),
-          )
-          .with_severity(Severity::Warning)
-          .with_hide_stack(Some(true)),
-        ));
+        let mut error: Error = create_traceable_error(
+          "Magic comments parse failed".into(),
+          "`webpackExports` could not be used with destructuring assignment.".into(),
+          parser.source_file,
+          node.span().into(),
+        );
+        error.severity = Severity::Warning;
+        error.hide_stack = Some(true);
+        parser.warning_diagnostics.push(error.into());
       }
       exports = Some(
         referenced_properties_in_destructuring
