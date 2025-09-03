@@ -6,12 +6,11 @@ use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
-use rspack_regex::RspackRegex;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{helper::Helper, utils::is_node_package_path};
 use super::{
-  snapshot::{PathMatcher, Snapshot, SnapshotOptions},
+  snapshot::{Snapshot, SnapshotOptions},
   storage::Storage,
 };
 
@@ -114,7 +113,7 @@ mod test {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_storage::Storage;
 
-  use super::{super::storage::MemoryStorage, BuildDeps, SCOPE};
+  use super::{super::storage::MemoryStorage, BuildDeps, SCOPE, SnapshotOptions};
   #[tokio::test]
   async fn build_dependencies_test() {
     let fs = Arc::new(MemoryFileSystem::default());
@@ -151,14 +150,15 @@ mod test {
       .unwrap();
 
     let options = vec![PathBuf::from("/index.js"), PathBuf::from("/configs")];
+    let snapshot_options = SnapshotOptions::default();
     let storage = Arc::new(MemoryStorage::default());
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
     let data = storage.load(SCOPE).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
     fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
       .await
       .unwrap();
