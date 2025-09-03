@@ -500,7 +500,7 @@ impl<'a> JavaScriptTransformer<'a> {
       );
     }
 
-    result.map(|_| diagnostics).map_err(|e| e.into())
+    result.map(|_| diagnostics)
   }
 
   pub fn input_source_map(

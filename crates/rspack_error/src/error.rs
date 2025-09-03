@@ -1,8 +1,10 @@
 use std::fmt::Display;
 
 use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
+use rspack_cacheable::cacheable;
 
 /// Error severity. Defaults to [`Severity::Error`].
+#[cacheable]
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum Severity {
   #[default]
@@ -11,6 +13,7 @@ pub enum Severity {
 }
 
 /// Label for source code.
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct Label {
   /// Label name.
@@ -24,6 +27,7 @@ pub struct Label {
 /// Core error type.
 ///
 /// See the test case for specific usage.
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct ErrorData {
   /// Error severity.
@@ -39,6 +43,7 @@ pub struct ErrorData {
   /// Help text.
   pub help: Option<String>,
   /// Source error.
+  #[cacheable(omit_bounds)]
   pub source_error: Option<Box<Error>>,
   /// Error Code.
   ///
@@ -60,6 +65,7 @@ pub struct ErrorData {
 /// ErrorData wrapper type.
 ///
 /// Wrap ErrorData to avoid result_large_err.
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct Error(Box<ErrorData>);
 

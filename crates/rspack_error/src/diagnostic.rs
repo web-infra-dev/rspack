@@ -1,11 +1,14 @@
-use rspack_cacheable::{cacheable, with::Unsupported};
+use rspack_cacheable::{
+  cacheable,
+  with::{AsOption, AsPreset},
+};
 use rspack_collections::Identifier;
 use rspack_location::DependencyLocation;
 use rspack_paths::Utf8PathBuf;
 
 use crate::{Result, displayer::Renderer, error::Error};
 
-#[cacheable(with=Unsupported)]
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct Diagnostic {
   pub error: Error,
@@ -14,6 +17,7 @@ pub struct Diagnostic {
   // If the current Diagnostic originates from Rust, these fields will be None.
   pub module_identifier: Option<Identifier>,
   pub loc: Option<DependencyLocation>,
+  #[cacheable(with=AsOption<AsPreset>)]
   pub file: Option<Utf8PathBuf>,
   pub chunk: Option<u32>,
 }
