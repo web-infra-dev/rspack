@@ -327,8 +327,7 @@ impl<'a> JavaScriptTransformer<'a> {
       .output
       .charset
       .as_ref()
-      .map(|v| matches!(v, OutputCharset::Ascii))
-      .unwrap_or(false);
+      .is_some_and(|v| matches!(v, OutputCharset::Ascii));
 
     let print_options = PrintOptions {
       source_len: self.fm.byte_length(),
