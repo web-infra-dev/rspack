@@ -4287,7 +4287,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_esm_library"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "rayon",
  "regex",
@@ -4655,6 +4655,7 @@ dependencies = [
 name = "rspack_plugin_remove_duplicate_modules"
 version = "0.5.2"
 dependencies = [
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",

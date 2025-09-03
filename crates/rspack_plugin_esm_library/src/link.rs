@@ -31,6 +31,23 @@ use swc_core::{
 use crate::{EsmLibraryPlugin, debug::get_debug_info};
 
 impl EsmLibraryPlugin {
+  fn add_export(
+    chunk: ChunkUkey,
+    module: ModuleIdentifier,
+    local: Atom,
+    exported: Atom,
+    chunk_exports: &mut UkeyMap<ChunkUkey, IdentifierMap<FxHashMap<Atom, Atom>>>,
+  ) -> &Atom {
+    let chunk_link = chunk_exports
+      .get_mut(&chunk)
+      .expect("should have chunk link");
+    chunk_link
+      .entry(module)
+      .or_default()
+      .entry(local)
+      .or_insert(exported)
+  }
+
   pub(crate) async fn link(&self, compilation: &mut Compilation) -> Result<()> {
     let module_graph = compilation.get_module_graph();
 
@@ -98,12 +115,7 @@ impl EsmLibraryPlugin {
           m1_index.cmp(&m2_index)
         });
 
-        let chunk_link = ChunkLinkContext {
-          chunk: *ukey,
-          hoisted_modules,
-          decl_modules,
-          ..Default::default()
-        };
+        let chunk_link = ChunkLinkContext::new(*ukey, hoisted_modules, decl_modules);
 
         (*ukey, chunk_link)
       })
@@ -290,7 +302,7 @@ impl EsmLibraryPlugin {
     }
 
     if chunks.len() > 1 {
-      unimplemented!("module is in multiple chunks");
+      panic!("module {m} is in multiple chunks");
     }
 
     *chunks.iter().next().expect("at least one chunk")
@@ -689,6 +701,7 @@ impl EsmLibraryPlugin {
     concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     chunk_link: &mut ChunkLinkContext,
+    entry_module_chunk: ChunkUkey,
     module_graph: &ModuleGraph,
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
@@ -725,12 +738,17 @@ impl EsmLibraryPlugin {
                 let default_access_symbol = interop_info.default_access(&mut chunk_link.used_names);
                 // ensure we import this chunk
                 entry_imports.entry(*ref_module).or_default();
-                exports
-                  .entry(chunk_link.chunk)
-                  .or_default()
-                  .entry(*ref_module)
-                  .or_default()
-                  .insert(default_access_symbol, mode.name.clone());
+                let exported = Self::add_export(
+                  entry_module_chunk,
+                  *ref_module,
+                  default_access_symbol,
+                  mode.name.clone(),
+                  exports,
+                );
+
+                if entry_module_chunk != chunk_link.chunk {
+                  chunk_link.add_re_export(entry_module_chunk, exported.clone(), mode.name.clone());
+                }
               }
             }
 
@@ -752,12 +770,22 @@ impl EsmLibraryPlugin {
                   let default_access_symbol =
                     interop_info.default_access(&mut chunk_link.used_names);
                   entry_imports.entry(*ref_module).or_default();
-                  exports
-                    .entry(chunk_link.chunk)
-                    .or_default()
-                    .entry(*ref_module)
-                    .or_default()
-                    .insert(default_access_symbol, mode.name.clone());
+
+                  let exported = Self::add_export(
+                    entry_module_chunk,
+                    *ref_module,
+                    default_access_symbol,
+                    mode.name.clone(),
+                    exports,
+                  );
+
+                  if entry_module_chunk != chunk_link.chunk {
+                    chunk_link.add_re_export(
+                      entry_module_chunk,
+                      exported.clone(),
+                      mode.name.clone(),
+                    );
+                  }
                 }
                 ModuleInfo::Concatenated(_) => {
                   // TODO: not found any case for now
@@ -780,12 +808,21 @@ impl EsmLibraryPlugin {
 
                   let namespace = interop_info.namespace(&mut chunk_link.used_names);
                   entry_imports.entry(*ref_module).or_default();
-                  exports
-                    .entry(chunk_link.chunk)
-                    .or_default()
-                    .entry(*ref_module)
-                    .or_default()
-                    .insert(namespace, mode.name.clone());
+                  let exported = Self::add_export(
+                    entry_module_chunk,
+                    *ref_module,
+                    namespace,
+                    mode.name.clone(),
+                    exports,
+                  );
+
+                  if entry_module_chunk != chunk_link.chunk {
+                    chunk_link.add_re_export(
+                      entry_module_chunk,
+                      exported.clone(),
+                      mode.name.clone(),
+                    );
+                  }
                 }
                 ModuleInfo::Concatenated(ref_info) => {
                   // should render ref_info's namespace
@@ -799,26 +836,16 @@ impl EsmLibraryPlugin {
 
                   let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
                   let curr_chunk = Self::get_module_chunk(current, compilation);
-                  if ref_chunk == curr_chunk {
-                    // ref chunk should expose exported symbol
-                    exports
-                      .entry(chunk_link.chunk)
-                      .or_default()
-                      .entry(*ref_module)
-                      .or_default()
-                      .insert(namespace.clone(), mode.name.clone());
-                  } else {
-                    exports
-                      .entry(ref_chunk)
-                      .or_default()
-                      .entry(*ref_module)
-                      .or_default()
-                      .insert(namespace.clone(), namespace.clone());
-                    chunk_link
-                      .re_exports
-                      .entry(ref_chunk)
-                      .or_default()
-                      .insert(namespace.clone(), mode.name.clone());
+                  // ref chunk should expose exported symbol
+                  let exported = Self::add_export(
+                    ref_chunk,
+                    *ref_module,
+                    namespace.clone(),
+                    mode.name.clone(),
+                    exports,
+                  );
+                  if ref_chunk != curr_chunk {
+                    chunk_link.add_re_export(ref_chunk, exported.clone(), mode.name.clone());
                   }
                 }
               }
@@ -838,12 +865,17 @@ impl EsmLibraryPlugin {
 
               let namespace_name = required_interop.namespace(&mut chunk_link.used_names);
               entry_imports.entry(*ref_module).or_default();
-              exports
-                .entry(chunk_link.chunk)
-                .or_default()
-                .entry(*ref_module)
-                .or_default()
-                .insert(namespace_name, mode.name.clone());
+              let exported = Self::add_export(
+                entry_module_chunk,
+                *ref_module,
+                namespace_name,
+                mode.name.clone(),
+                exports,
+              );
+
+              if entry_module_chunk != chunk_link.chunk {
+                chunk_link.add_re_export(entry_module_chunk, exported.clone(), mode.name.clone());
+              }
             }
             rspack_core::ExportMode::NormalReexport(mode) => {
               for item in &mode.items {
@@ -876,6 +908,7 @@ impl EsmLibraryPlugin {
                   concate_modules_map,
                   required,
                   chunk_link,
+                  entry_module_chunk,
                   module_graph,
                   needed_namespace_objects,
                   entry_imports,
@@ -899,30 +932,42 @@ impl EsmLibraryPlugin {
 
                     let variable_to_export =
                       interop_info.property_access(&item.name, &mut chunk_link.used_names);
-                    exports
-                      .entry(chunk_link.chunk)
-                      .or_default()
-                      .entry(*ref_module)
-                      .or_default()
-                      .insert(variable_to_export, item.name.clone());
+                    let exported = Self::add_export(
+                      entry_module_chunk,
+                      *ref_module,
+                      variable_to_export,
+                      item.name.clone(),
+                      exports,
+                    );
+
+                    if entry_module_chunk != chunk_link.chunk {
+                      chunk_link.add_re_export(
+                        entry_module_chunk,
+                        exported.clone(),
+                        item.name.clone(),
+                      );
+                    }
                   }
                   ModuleInfo::Concatenated(ref_info) => {
-                    if current.contains("src/jsc/index") {
-                      dbg!(&item.ids[0]);
-                    }
                     let Some(internal_name) = ref_info
                       .internal_names
                       .get(&item.ids.get(0).unwrap_or_else(|| &item.name))
                     else {
                       continue;
                     };
-
                     let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
-                    chunk_link
-                      .re_exports
-                      .entry(ref_chunk)
-                      .or_default()
-                      .insert(internal_name.clone(), item.name.clone());
+
+                    let exported = Self::add_export(
+                      ref_chunk,
+                      *ref_module,
+                      internal_name.clone(),
+                      internal_name.clone(),
+                      exports,
+                    );
+
+                    if ref_chunk != chunk_link.chunk {
+                      chunk_link.add_re_export(ref_chunk, exported.clone(), item.name.clone());
+                    }
                   }
                 }
               }
@@ -941,35 +986,58 @@ impl EsmLibraryPlugin {
     needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
   ) {
     let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
-    let mut exports = UkeyMap::<ChunkUkey, IdentifierMap<FxHashMap<Atom, Atom>>>::default();
-    let mut imports = UkeyMap::<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>::default();
+
+    // we don't modify exports and imports in chunk_link directly to avoid borrow checker issue
+    let mut exports = compilation
+      .chunk_by_ukey
+      .keys()
+      .map(|chunk| (*chunk, Default::default()))
+      .collect::<UkeyMap<ChunkUkey, IdentifierMap<FxHashMap<Atom, Atom>>>>();
+    let mut imports = compilation
+      .chunk_by_ukey
+      .keys()
+      .map(|chunk| (*chunk, Default::default()))
+      .collect::<UkeyMap<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>>();
 
     // const symbol = __webpack_require__(module);
     let mut required = UkeyMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
     // link entry direct exports
-    for entrypoint_ukey in compilation.entrypoints.values() {
+    for (entry_name, entrypoint_ukey) in compilation.entrypoints.iter() {
       let entrypoint = compilation.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       let entry_chunk_ukey = entrypoint.get_entrypoint_chunk();
       let needed_namespace = needed_namespace_objects_by_ukey
         .entry(entry_chunk_ukey)
         .or_default();
-      let entry_imports = imports.entry(entry_chunk_ukey).or_default();
+
+      let entry_imports = imports
+        .get_mut(&entry_chunk_ukey)
+        .unwrap_or_else(|| panic!("should set imports for chunk {:?}", entry_chunk_ukey));
 
       let Some(chunk_link) = link.get_mut(&entry_chunk_ukey) else {
-        continue;
+        unreachable!();
       };
 
       let required = required.entry(entry_chunk_ukey).or_default();
 
-      for entry_module in compilation
-        .chunk_graph
-        .get_chunk_entry_modules(&entry_chunk_ukey)
+      // the entry modules may be moved to other chunks, in that case, we should re-export the entry exports from
+      // other chunks
+      let entry_data = compilation
+        .entries
+        .get(entry_name)
+        .expect("should have entry data");
+
+      for entry_module in entry_data
+        .all_dependencies()
+        .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+        .copied()
       {
+        let entry_module_chunk = Self::get_module_chunk(entry_module, compilation);
+        let needs_reexport = entry_module_chunk != entry_chunk_ukey;
+
         let info = concate_modules_map
           .get(&entry_module)
-          .expect("should have module info");
-
+          .unwrap_or_else(|| panic!("should have module info for entry module: {entry_module}"));
         match info {
           ModuleInfo::Concatenated(info) => {
             if let Some(export_map) = info.export_map.as_ref() {
@@ -978,12 +1046,17 @@ impl EsmLibraryPlugin {
                   panic!("{} should have internal name for exported member: {export_atom}, internal_names: {:?}", info.module, &info.internal_names)
                 });
 
-                exports
-                  .entry(chunk_link.chunk)
-                  .or_default()
-                  .entry(entry_module)
-                  .or_default()
-                  .insert(internal_name.clone(), export_name.clone());
+                let exported = Self::add_export(
+                  entry_module_chunk,
+                  entry_module,
+                  internal_name.clone(),
+                  export_name.clone(),
+                  &mut exports,
+                );
+
+                if needs_reexport {
+                  chunk_link.add_re_export(entry_module_chunk, exported.clone(), exported.clone());
+                }
               }
             }
 
@@ -993,6 +1066,7 @@ impl EsmLibraryPlugin {
               concate_modules_map,
               required,
               chunk_link,
+              entry_module_chunk,
               &module_graph,
               needed_namespace,
               entry_imports,
@@ -1019,20 +1093,22 @@ impl EsmLibraryPlugin {
               required,
             );
 
-            let entry_exports = exports
-              .entry(entry_chunk_ukey)
-              .or_default()
-              .entry(entry_module)
-              .or_default();
             for (name, export_info) in exports_info.exports() {
               if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
                 continue;
               }
 
-              entry_exports.insert(
+              let exported = Self::add_export(
+                entry_module_chunk,
+                entry_module,
                 required_interop.property_access(name, &mut chunk_link.used_names),
                 name.clone(),
+                &mut exports,
               );
+
+              if needs_reexport {
+                chunk_link.add_re_export(entry_module_chunk, exported.clone(), name.clone());
+              }
             }
           }
         }
@@ -1105,7 +1181,7 @@ impl EsmLibraryPlugin {
               continue;
             }
 
-            let mut binding = Self::get_binding(
+            let binding = Self::get_binding(
               &module_graph,
               &compilation.module_graph_cache_artifact,
               ref_module,
@@ -1120,25 +1196,6 @@ impl EsmLibraryPlugin {
               required,
               &mut chunk_link.used_names,
             );
-
-            if let Ref::Symbol(symbol_binding) = &mut binding {
-              let module_id = symbol_binding.module;
-              let ref_chunk = Self::get_module_chunk(module_id, compilation);
-              if &ref_chunk != chunk {
-                // ref chunk should expose the symbol
-                imports
-                  .entry(*chunk)
-                  .or_default()
-                  .entry(*ref_module)
-                  .or_default();
-                exports
-                  .entry(ref_chunk)
-                  .or_default()
-                  .entry(module_id)
-                  .or_default()
-                  .insert(symbol_binding.symbol.clone(), symbol_binding.symbol.clone());
-              }
-            }
 
             refs.insert(
               ref_string
@@ -1178,8 +1235,12 @@ impl EsmLibraryPlugin {
             if let Ref::Symbol(symbol_binding) = &mut binding {
               let module_id = symbol_binding.module;
               let ref_chunk = Self::get_module_chunk(module_id, compilation);
+              let ref_external = concate_modules_map
+                .get(ref_module)
+                .expect("should have module")
+                .is_external();
 
-              if from_other_chunk {
+              if from_other_chunk && !ref_external {
                 exports
                   .entry(ref_chunk)
                   .or_default()
@@ -1241,10 +1302,19 @@ impl EsmLibraryPlugin {
             (symbol.clone(), symbol.clone())
           };
 
+          // ref_chunk should export orig_symbol
+          Self::add_export(
+            ref_chunk,
+            m,
+            orig_symbol.clone(),
+            orig_symbol.clone(),
+            &mut exports,
+          );
+
           // import symbol from that chunk
           imports
-            .entry(*chunk)
-            .or_default()
+            .get_mut(chunk)
+            .expect("should have imports")
             .entry(m)
             .or_default()
             .insert(orig_symbol, local_symbol);
@@ -1259,8 +1329,8 @@ impl EsmLibraryPlugin {
       chunk_link.refs = refs;
       chunk_link.dyn_refs = dyn_refs;
 
-      // ensure imports in external module
-      let imports = imports.entry(*chunk).or_default();
+      // ensure imports external module
+      let imports = imports.get_mut(chunk).expect("should have imports");
 
       for m in &chunk_link.decl_modules {
         let module = module_graph
@@ -1277,13 +1347,16 @@ impl EsmLibraryPlugin {
 
     // put result into chunk_link context
     for (chunk, exports) in exports {
-      link.entry(chunk).or_default().exports = exports;
+      *link
+        .get_mut(&chunk)
+        .expect("should have chunk")
+        .exports_mut() = exports;
     }
     for (chunk, imports) in imports {
-      link.entry(chunk).or_default().imports = imports;
+      link.get_mut(&chunk).expect("should have chunk").imports = imports;
     }
     for (chunk, required) in required {
-      link.entry(chunk).or_default().required = required;
+      link.get_mut(&chunk).expect("should have chunk").required = required;
     }
   }
 

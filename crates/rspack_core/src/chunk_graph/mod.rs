@@ -243,17 +243,17 @@ impl ExternalInterop {
   }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
 
   // specifier order doesn't matter, we can sort them based on name
   // Map<module_id, Map<local_name, export_name>>
-  pub exports: IdentifierMap<HashMap<Atom, Atom>>,
+  exports: IdentifierMap<HashMap<Atom, Atom>>,
 
   // exports that need to be re-exported
   // Map<chunk, Map<local_name, export_name>>
-  pub re_exports: UkeyMap<ChunkUkey, HashMap<Atom, Atom>>,
+  re_exports: UkeyMap<ChunkUkey, HashMap<Atom, Atom>>,
 
   // import order matters, it affects execution order
   pub imports: IdentifierIndexMap<HashMap<Atom, Atom>>,
@@ -280,8 +280,69 @@ pub struct ChunkLinkContext {
 
   // all used symbols in current chunk
   pub used_names: HashSet<Atom>,
+}
 
-  pub banner: String,
+impl ChunkLinkContext {
+  pub fn new(
+    chunk_ukey: ChunkUkey,
+    hoisted_modules: IdentifierIndexSet,
+    decl_modules: IdentifierIndexSet,
+  ) -> Self {
+    ChunkLinkContext {
+      chunk: chunk_ukey,
+      hoisted_modules,
+      decl_modules,
+      exports: Default::default(),
+      re_exports: Default::default(),
+      imports: Default::default(),
+      required: Default::default(),
+      needed_namespace_objects: Default::default(),
+      namespace_object_sources: Default::default(),
+      refs: Default::default(),
+      dyn_refs: Default::default(),
+      used_names: Default::default(),
+    }
+  }
+
+  pub fn add_export(
+    &mut self,
+    module_id: ModuleIdentifier,
+    local_name: Atom,
+    export_name: Atom,
+  ) -> &mut Atom {
+    self
+      .exports
+      .entry(module_id)
+      .or_default()
+      .entry(local_name)
+      .or_insert(export_name)
+  }
+
+  pub fn add_re_export(
+    &mut self,
+    chunk: ChunkUkey,
+    local_name: Atom,
+    export_name: Atom,
+  ) -> &mut Atom {
+    self
+      .re_exports
+      .entry(chunk)
+      .or_default()
+      .entry(local_name)
+      .or_insert(export_name)
+  }
+
+  pub fn exports(&self) -> &IdentifierMap<HashMap<Atom, Atom>> {
+    &self.exports
+  }
+
+  pub fn exports_mut(&mut self) -> &mut IdentifierMap<HashMap<Atom, Atom>> {
+    &mut self.exports
+  }
+
+  pub fn re_exports(&self) -> &UkeyMap<ChunkUkey, HashMap<Atom, Atom>> {
+    &self.re_exports
+  }
 }
 
 #[derive(Debug, Clone, Default)]
