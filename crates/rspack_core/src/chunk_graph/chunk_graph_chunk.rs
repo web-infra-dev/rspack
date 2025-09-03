@@ -12,8 +12,9 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
+  ChunkIdsArtifact, ChunkUkey, Compilation, DependencyType, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
+  find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -412,6 +413,27 @@ impl ChunkGraph {
     modules
   }
 
+  pub fn get_ordered_chunk_normal_modules_identifier(
+    &self,
+    chunk: &ChunkUkey,
+  ) -> Vec<ModuleIdentifier> {
+    let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
+    let runtime_modules = chunk_graph_chunk
+      .runtime_modules
+      .iter()
+      .copied()
+      .collect::<IdentifierSet>();
+    let mut modules: Vec<ModuleIdentifier> = chunk_graph_chunk
+      .modules
+      .iter()
+      .filter(|m| !runtime_modules.contains(m))
+      .copied()
+      .collect();
+    // SAFETY: module identifier is unique
+    modules.sort_unstable_by_key(|m| m.as_str());
+    modules
+  }
+
   pub fn get_ordered_chunk_modules<'module>(
     &self,
     chunk: &ChunkUkey,
@@ -662,9 +684,7 @@ impl ChunkGraph {
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.expect_chunk_graph_chunk(chunk);
-    let mut input = cgc.modules.iter().copied().collect::<Vec<_>>();
-    input.sort_unstable();
-    let mut modules = find_graph_roots(input, |module| {
+    let mut modules = find_graph_roots(cgc.modules.iter().copied().collect::<Vec<_>>(), |module| {
       let mut set: IdentifierSet = Default::default();
       fn add_dependencies(
         module: ModuleIdentifier,
@@ -674,6 +694,14 @@ impl ChunkGraph {
       ) {
         for connection in module_graph.get_outgoing_connections(&module) {
           // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
+          if set.contains(connection.module_identifier()) {
+            let maybe_transitive = module_graph
+              .dependency_by_id(&connection.dependency_id)
+              .is_some_and(|dep| matches!(dep.dependency_type(), DependencyType::ExtractCSS));
+            if !maybe_transitive {
+              continue;
+            }
+          }
           let active_state = connection.active_state(module_graph, None, module_graph_cache);
           match active_state {
             crate::ConnectionState::Active(false) => {
