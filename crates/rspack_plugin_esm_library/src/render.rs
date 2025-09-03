@@ -4,11 +4,9 @@ use rspack_collections::{IdentifierMap, IdentifierSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
   Compilation, ConcatenatedModuleInfo, ConcatenationScope, DEFAULT_EXPORT_ATOM, InitFragment,
-  ModuleIdentifier, ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals, SourceType, SpanExt,
+  ModuleIdentifier, ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals, SourceType,
   get_js_chunk_filename_template, render_init_fragments,
-  rspack_sources::{
-    BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt,
-  },
+  rspack_sources::{BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -16,6 +14,7 @@ use rspack_plugin_javascript::{
   runtime::{render_module, render_runtime_modules},
 };
 use rspack_util::{
+  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxIndexSet},
 };
@@ -238,6 +237,13 @@ impl EsmLibraryPlugin {
       render_source.add(RawSource::from_static("\n"));
     }
 
+    for (m, required_info) in &chunk_link.required {
+      if already_rendered.insert(*m) {
+        render_source.add(required_info.render(compilation));
+        render_source.add(RawSource::from_static("\n"));
+      }
+    }
+
     // render imports and exports to other chunks
     let mut final_source = ConcatSource::default();
 
@@ -258,13 +264,15 @@ impl EsmLibraryPlugin {
       for (id, imports) in &chunk_link.imports {
         let chunk = Self::get_module_chunk(*id, compilation);
         if &chunk == chunk_ukey {
-          continue;
-        }
-        if imports.is_empty() {
+          // ignore self import
           continue;
         }
 
         let imported_symbols = imported_chunks.entry(chunk).or_default();
+        if imports.is_empty() {
+          continue;
+        }
+
         for (imported, local) in imports {
           imported_symbols.insert(imported.clone(), local.clone());
         }
@@ -322,7 +330,7 @@ impl EsmLibraryPlugin {
       }
     }
 
-    for (id, exports) in &chunk_link.exports {
+    for (id, exports) in chunk_link.exports() {
       let info = concatenated_modules_map.get(id).expect("should have info");
 
       match info {
@@ -337,10 +345,6 @@ impl EsmLibraryPlugin {
             } else {
               raw_symbol.as_str()
             };
-
-            if id.contains("src/jsx/index") {
-              dbg!(&symbol, exported, &export_default);
-            }
 
             if is_default {
               if export_default.is_none() {
@@ -379,7 +383,7 @@ impl EsmLibraryPlugin {
     }
 
     // render re-exports
-    for (chunk, export_symbols) in &chunk_link.re_exports {
+    for (chunk, export_symbols) in chunk_link.re_exports() {
       final_source.add(RawStringSource::from(format!(
         "export {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
         export_symbols

@@ -58,7 +58,7 @@ pub fn get_debug_info(
           chunk_ukey.as_u32(),
           DebugChunkLinkJson {
             exports: context
-              .exports
+              .exports()
               .into_iter()
               .map(|(id, exports)| {
                 (

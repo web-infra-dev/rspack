@@ -379,7 +379,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .files()
             .iter()
             .next()
-            .expect("at least one path")
+            .unwrap_or_else(|| {
+              panic!(
+                "at least one path for chunk: {:?}",
+                chunk
+                  .id(&compilation.chunk_ids_artifact)
+                  .map(|id| { id.as_str() })
+              )
+            })
             .as_str(),
         );
         let relative = chunk_path.relative(self_path.as_path());
