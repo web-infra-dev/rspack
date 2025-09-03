@@ -1,7 +1,6 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, Dependency, DependencyRange, ImportAttributes,
-  SharedSourceMap,
+  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, SharedSourceMap,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -10,7 +9,7 @@ use rspack_plugin_javascript::{
     self,
     eval::{self},
   },
-  visitors::JavascriptParser,
+  visitors::{JavascriptParser, Statement, VariableDeclaration},
 };
 use rspack_util::{SpanExt, atom::Atom, json_stringify, swc::get_swc_comments};
 use swc_core::{
@@ -21,7 +20,7 @@ use swc_core::{
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
 
 use crate::{
-  mock_method_dependency::{MockMethod, MockMethodDependency, Position},
+  mock_method_dependency::{MockMethod, MockMethodDependency},
   mock_module_id_dependency::MockModuleIdDependency,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
 };
@@ -242,7 +241,6 @@ impl RstestParserPlugin {
     is_esm: bool,
     method: MockMethod,
     has_b: bool,
-    async_factory: bool,
   ) {
     match call_expr.args.len() {
       1 => {
@@ -266,10 +264,7 @@ impl RstestParserPlugin {
                 rspack_core::DependencyCategory::CommonJS
               },
               if has_b { Some(", ".to_string()) } else { None },
-              hoist,
-              async_factory,
             );
-            let id = *dep.id();
             parser.dependencies.push(Box::new(dep));
 
             parser
@@ -280,8 +275,6 @@ impl RstestParserPlugin {
                 lit_str,
                 hoist,
                 method,
-                Some(id),
-                Position::Before,
               )));
 
             if has_b {
@@ -302,8 +295,6 @@ impl RstestParserPlugin {
                     rspack_core::DependencyCategory::CommonJS
                   },
                   None,
-                  hoist,
-                  false,
                 )));
             }
           }
@@ -336,8 +327,6 @@ impl RstestParserPlugin {
               rspack_core::DependencyCategory::CommonJS
             },
             None,
-            hoist,
-            true,
           );
 
           parser
@@ -348,8 +337,6 @@ impl RstestParserPlugin {
               lit_str,
               hoist,
               method,
-              Some(*module_dep.id()),
-              Position::After,
             )));
           parser.dependencies.push(Box::new(module_dep));
         } else {
@@ -373,8 +360,6 @@ impl RstestParserPlugin {
             call_expr.span().real_lo().to_string(),
             true,
             MockMethod::Hoisted,
-            None,
-            Position::Before,
           )));
       }
       _ => {
@@ -445,12 +430,9 @@ impl RstestParserPlugin {
 
                 return Some(true);
               } else {
-                // add CommonJsRequireDependency
-                let mut range_expr: DependencyRange = first_arg.span().into();
-                range_expr.end += 1; // TODO:
                 let dep: CommonJsRequireDependency = CommonJsRequireDependency::new(
                   mocked_target.to_string(),
-                  range_expr,
+                  first_arg.span().into(),
                   Some(call_expr.span.into()),
                   parser.in_try,
                   Some(parser.source_map.clone()),
@@ -507,9 +489,134 @@ impl RstestParserPlugin {
       call_expr.span.real_hi(),
     )
   }
+
+  fn handle_rstest_method_call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    ident: &Ident,
+    prop: &swc_core::ecma::ast::IdentName,
+  ) -> Option<bool> {
+    match (ident.sym.as_str(), prop.sym.as_str()) {
+      // rs.mock
+      ("rs", "mock") | ("rstest", "mock") => {
+        self.process_mock(parser, call_expr, true, true, MockMethod::Mock, true);
+        Some(false)
+      }
+      // rs.mockRequire
+      ("rs", "mockRequire") | ("rstest", "mockRequire") => {
+        self.process_mock(parser, call_expr, true, false, MockMethod::Mock, true);
+        Some(false)
+      }
+      // rs.doMock
+      ("rs", "doMock") | ("rstest", "doMock") => {
+        self.process_mock(parser, call_expr, false, true, MockMethod::DoMock, true);
+        Some(false)
+      }
+      // rs.doMockRequire
+      ("rs", "doMockRequire") | ("rstest", "doMockRequire") => {
+        self.process_mock(
+          parser,
+          call_expr,
+          false,
+          false,
+          MockMethod::DoMockRequire,
+          true,
+        );
+        Some(false)
+      }
+      // rs.importActual
+      ("rs", "importActual") | ("rstest", "importActual") => {
+        self.process_import_actual(parser, call_expr)
+      }
+      // rs.requireActual
+      ("rs", "requireActual") | ("rstest", "requireActual") => {
+        self.process_require_actual(parser, call_expr);
+        Some(false)
+      }
+      // rs.importMock
+      ("rs", "importMock") | ("rstest", "importMock") => self.load_mock(parser, call_expr, true),
+      // rs.requireMock
+      ("rs", "requireMock") | ("rstest", "requireMock") => self.load_mock(parser, call_expr, false),
+      // rs.unmock
+      ("rs", "unmock") | ("rstest", "unmock") => {
+        self.process_mock(parser, call_expr, true, true, MockMethod::Unmock, false);
+        Some(true)
+      }
+      // rs.doUnmock
+      ("rs", "doUnmock") | ("rstest", "doUnmock") => {
+        self.process_mock(parser, call_expr, false, true, MockMethod::Unmock, false);
+        Some(true)
+      }
+      // rs.resetModules
+      ("rs", "resetModules") | ("rstest", "resetModules") => self.reset_modules(parser, call_expr),
+      // rs.hoisted
+      ("rs", "hoisted") | ("rstest", "hoisted") => {
+        self.hoisted(parser, call_expr);
+        Some(true)
+      }
+      _ => {
+        // Not a mock module, continue.
+        None
+      }
+    }
+  }
 }
 
 impl JavascriptParserPlugin for RstestParserPlugin {
+  fn declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    _expr: &swc_core::ecma::ast::VarDeclarator,
+    stmt: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    for decl in stmt.declarators() {
+      if let Some(init) = &decl.init {
+        let call_expr = match init.as_call() {
+          Some(call) => Some(call),
+          None => init
+            .as_await_expr()
+            .and_then(|await_expr| await_expr.arg.as_call()),
+        };
+
+        if let Some(call_expr) = call_expr
+          && let Some(callee_expr) = call_expr.callee.as_expr()
+          && let Some(member_expr) = callee_expr.as_member()
+          && let Some(obj_ident) = member_expr.obj.as_ident()
+          && let Some(prop_ident) = member_expr.prop.as_ident()
+        {
+          return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident);
+        }
+      }
+    }
+
+    None
+  }
+
+  fn statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    let call_expr = match stmt {
+      Statement::Expr(expr_stmt) if expr_stmt.expr.as_call().is_some() => expr_stmt
+        .expr
+        .as_call()
+        .expect("call expression should exist after checking with is_some()"),
+      _ => return None,
+    };
+
+    if !self.hoist_mock_module {
+      return None;
+    }
+
+    if let Some(callee_expr) = call_expr.callee.as_expr()
+      && let Some(member_expr) = callee_expr.as_member()
+      && let Some(obj_ident) = member_expr.obj.as_ident()
+      && let Some(prop_ident) = member_expr.prop.as_ident()
+    {
+      return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident);
+    }
+
+    None
+  }
+
   fn import_call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {
@@ -523,134 +630,6 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       }
     }
 
-    None
-  }
-
-  fn call_member_chain(
-    &self,
-    parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
-    _for_name: &str,
-    _members: &[Atom],
-    _members_optionals: &[bool],
-    _member_ranges: &[Span],
-  ) -> Option<bool> {
-    if self.hoist_mock_module {
-      let expr = call_expr.callee.as_expr();
-      if let Some(expr) = expr {
-        let q = expr.as_member();
-        if let Some(q) = q {
-          if let Some(ident) = q.obj.as_ident()
-            && let Some(prop) = q.prop.as_ident()
-          {
-            match (ident.sym.as_str(), prop.sym.as_str()) {
-              // rs.mock
-              ("rs", "mock") | ("rstest", "mock") => {
-                self.process_mock(parser, call_expr, true, true, MockMethod::Mock, true, true);
-                return Some(false);
-              }
-              // rs.mockRequire
-              ("rs", "mockRequire") | ("rstest", "mockRequire") => {
-                self.process_mock(
-                  parser,
-                  call_expr,
-                  true,
-                  false,
-                  MockMethod::Mock,
-                  true,
-                  false,
-                );
-                return Some(false);
-              }
-              // rs.doMock
-              ("rs", "doMock") | ("rstest", "doMock") => {
-                self.process_mock(
-                  parser,
-                  call_expr,
-                  false,
-                  true,
-                  MockMethod::DoMock,
-                  true,
-                  false,
-                );
-                return Some(false);
-              }
-              // rs.doMockRequire
-              ("rs", "doMockRequire") | ("rstest", "doMockRequire") => {
-                self.process_mock(
-                  parser,
-                  call_expr,
-                  false,
-                  false,
-                  MockMethod::Mock,
-                  true,
-                  false,
-                );
-                return Some(false);
-              }
-              // rs.importActual
-              ("rs", "importActual") | ("rstest", "importActual") => {
-                return self.process_import_actual(parser, call_expr);
-              }
-              // rs.requireActual
-              ("rs", "requireActual") | ("rstest", "requireActual") => {
-                return self.process_require_actual(parser, call_expr);
-              }
-              // rs.importMock
-              ("rs", "importMock") | ("rstest", "importMock") => {
-                return self.load_mock(parser, call_expr, true);
-              }
-              // rs.requireMock
-              ("rs", "requireMock") | ("rstest", "requireMock") => {
-                return self.load_mock(parser, call_expr, false);
-              }
-              // rs.unmock
-              ("rs", "unmock") | ("rstest", "unmock") => {
-                self.process_mock(
-                  parser,
-                  call_expr,
-                  true,
-                  true,
-                  MockMethod::Unmock,
-                  false,
-                  false,
-                );
-                return Some(true);
-              }
-              // rs.doUnmock
-              ("rs", "doUnmock") | ("rstest", "doUnmock") => {
-                // return self.unmock_method(parser, call_expr, true);
-                self.process_mock(
-                  parser,
-                  call_expr,
-                  false,
-                  true,
-                  MockMethod::Unmock,
-                  false,
-                  false,
-                );
-                return Some(true);
-              }
-              // rs.resetModules
-              ("rs", "resetModules") | ("rstest", "resetModules") => {
-                return self.reset_modules(parser, call_expr);
-              }
-              // rs.hoisted
-              ("rs", "hoisted") | ("rstest", "hoisted") => {
-                self.hoisted(parser, call_expr);
-                return Some(true);
-              }
-              _ => {
-                // Not a mock module, continue.
-                return None;
-              }
-            }
-          }
-        } else {
-          return None;
-        }
-      }
-    }
     None
   }
 
