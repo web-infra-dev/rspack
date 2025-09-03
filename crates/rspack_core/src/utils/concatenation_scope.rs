@@ -77,7 +77,8 @@ impl ConcatenationScope {
   }
 
   pub fn register_export(&mut self, export_name: Atom, symbol: Atom) {
-    let export_map = self.current_module.export_map.get_or_insert_default();
+    let export_map: &mut std::collections::HashMap<Atom, Atom, rustc_hash::FxBuildHasher> =
+      self.current_module.export_map.get_or_insert_default();
     match export_map.entry(export_name) {
       Entry::Occupied(mut occ) => {
         occ.insert(symbol);
