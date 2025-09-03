@@ -193,14 +193,14 @@ impl CommonJsImportsParserPlugin {
     call_expr: &CallExpr,
     members: &[Atom],
     is_call: bool,
-  ) -> Option<bool> {
+  ) -> Option<CommonJsFullRequireDependency> {
     if call_expr.args.len() != 1 {
       return None;
     }
     let arg = &call_expr.args[0];
     let param = parser.evaluate_expression(&arg.expr);
-    if param.is_string() {
-      let dep = CommonJsFullRequireDependency::new(
+    param.is_string().then(|| {
+      CommonJsFullRequireDependency::new(
         param.string().to_owned(),
         members.to_vec(),
         member_expr.span().into(),
@@ -208,15 +208,8 @@ impl CommonJsImportsParserPlugin {
         parser.in_try,
         !parser.is_asi_position(member_expr.span_lo()),
         Some(parser.source_map.clone()),
-      );
-      parser.dependencies.push(Box::new(dep));
-      if is_call {
-        parser.walk_expression(&arg.expr);
-      }
-      Some(true)
-    } else {
-      None
-    }
+      )
+    })
   }
 
   fn process_require_item(
@@ -516,8 +509,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     _member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE {
-      return self.chain_handler(parser, member_expr, call_expr, members, false);
+    if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
+      && let Some(dep) = self.chain_handler(parser, member_expr, call_expr, members, false)
+    {
+      parser.dependencies.push(Box::new(dep));
+      return Some(true);
     }
     None
   }
@@ -535,8 +531,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && let Some(callee) = call_expr.callee.as_expr()
       && let Some(member) = callee.as_member()
+      && let Some(dep) = self.chain_handler(parser, member, inner_call_expr, members, true)
     {
-      return self.chain_handler(parser, member, inner_call_expr, members, true);
+      parser.dependencies.push(Box::new(dep));
+      parser.walk_expr_or_spread(&call_expr.args);
+      return Some(true);
     }
     None
   }
