@@ -13,7 +13,7 @@
     "core-js": "3.45.0",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.1.3",
-    "@rspack/plugin-react-refresh": "^1.4.3",
+    "@rspack/plugin-react-refresh": "^1.5.0",
     "@swc/helpers": "0.5.17",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.0.0",
