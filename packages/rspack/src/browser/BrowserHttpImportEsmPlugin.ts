@@ -82,11 +82,11 @@ export class BrowserHttpImportEsmPlugin {
 		});
 	}
 
-	resolveWithUrlIssuer(request: string, issuer: URL) {
+	private resolveWithUrlIssuer(request: string, issuer: URL) {
 		return new URL(request, issuer).href;
 	}
 
-	resolveNodeModule(requestInfo: RequestInfo) {
+	private resolveNodeModule(requestInfo: RequestInfo) {
 		let domain = "";
 		if (typeof this.options.domain === "function") {
 			domain = this.options.domain(requestInfo);
@@ -103,7 +103,7 @@ export class BrowserHttpImportEsmPlugin {
 		return `${domain}/${versionedRequest}`;
 	}
 
-	isNodeModule(request: string) {
+	private isNodeModule(request: string) {
 		// Skip requests like "http://xxx"
 		if (toHttpUrl(request)) {
 			return false;
