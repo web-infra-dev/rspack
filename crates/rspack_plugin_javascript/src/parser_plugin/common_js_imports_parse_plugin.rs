@@ -5,6 +5,7 @@ use rspack_core::{
 use rspack_error::{DiagnosticExt, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
+  atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{AssignExpr, CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr},
 };
@@ -18,8 +19,7 @@ use crate::{
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    JavascriptParser, context_reg_exp, create_context_dependency, create_traceable_error,
-    expr_matcher, expr_name, extract_require_call_info, is_require_call_start,
+    JavascriptParser, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
   },
 };
 
@@ -189,34 +189,34 @@ impl CommonJsImportsParserPlugin {
   fn chain_handler(
     &self,
     parser: &mut JavascriptParser,
-    mem_expr: &MemberExpr,
+    member_expr: &MemberExpr,
+    call_expr: &CallExpr,
+    members: &[Atom],
     is_call: bool,
-  ) -> Option<CommonJsFullRequireDependency> {
-    let expr = Expr::Member(mem_expr.to_owned());
-
-    let is_require_member_chain = is_require_call_start(&expr)
-      && !expr_matcher::is_require(&expr)
-      && !expr_matcher::is_module_require(&expr)
-      && !parser.is_variable_defined(&"require".into());
-    if !is_require_member_chain {
+  ) -> Option<bool> {
+    if call_expr.args.len() != 1 {
       return None;
     }
-
-    let (members, first_arg) = extract_require_call_info(parser, mem_expr)?;
-
-    let range: DependencyRange = mem_expr.span.into();
-    let param = parser.evaluate_expression(&first_arg.expr);
-    param.is_string().then(|| {
-      CommonJsFullRequireDependency::new(
+    let arg = &call_expr.args[0];
+    let param = parser.evaluate_expression(&arg.expr);
+    if param.is_string() {
+      let dep = CommonJsFullRequireDependency::new(
         param.string().to_owned(),
-        members,
-        range,
+        members.to_vec(),
+        member_expr.span().into(),
         is_call,
         parser.in_try,
-        !parser.is_asi_position(mem_expr.span_lo()),
+        !parser.is_asi_position(member_expr.span_lo()),
         Some(parser.source_map.clone()),
-      )
-    })
+      );
+      parser.dependencies.push(Box::new(dep));
+      if is_call {
+        parser.walk_expression(&arg.expr);
+      }
+      Some(true)
+    } else {
+      None
+    }
   }
 
   fn process_require_item(
@@ -253,17 +253,11 @@ impl CommonJsImportsParserPlugin {
     Some(true)
   }
 
-  fn require_handler(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: CallOrNewExpr,
-    for_name: &str,
-  ) -> Option<bool> {
+  fn require_handler(&self, parser: &mut JavascriptParser, expr: CallOrNewExpr) -> Option<bool> {
     let callee = expr.callee()?;
-    let is_require_expr = for_name == expr_name::REQUIRE || expr_matcher::is_module_require(callee); // FIXME: remove `module.require`
     let args = expr.args()?;
 
-    if !is_require_expr || args.len() != 1 {
+    if args.len() != 1 {
       return None;
     }
 
@@ -476,36 +470,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
   }
 
-  fn call_member_chain_of_call_member_chain(
-    &self,
-    parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
-    _for_name: &str,
-  ) -> Option<bool> {
-    if let Some(dep) = call_expr
-      .callee
-      .as_expr()
-      .and_then(|expr| expr.as_member())
-      .and_then(|mem| self.chain_handler(parser, mem, true))
-    {
-      parser.dependencies.push(Box::new(dep));
-      parser.walk_expr_or_spread(&call_expr.args);
-      return Some(true);
-    }
-    None
-  }
-
   fn call(
     &self,
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if self
-      .require_handler(parser, CallOrNewExpr::Call(call_expr), for_name)
-      .unwrap_or_default()
-    {
-      Some(true)
+    if for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE {
+      self.require_handler(parser, CallOrNewExpr::Call(call_expr))
     } else if for_name == expr_name::REQUIRE_RESOLVE {
       if matches!(parser.javascript_options.require_resolve, Some(false)) {
         return None;
@@ -527,11 +499,8 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     new_expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if self
-      .require_handler(parser, CallOrNewExpr::New(new_expr), for_name)
-      .unwrap_or_default()
-    {
-      Some(true)
+    if for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE {
+      self.require_handler(parser, CallOrNewExpr::New(new_expr))
     } else {
       None
     }
@@ -540,15 +509,36 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn member_chain_of_call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    expr: &MemberExpr,
-    _for_name: &str,
+    member_expr: &MemberExpr,
+    _callee_members: &[Atom],
+    call_expr: &CallExpr,
+    members: &[Atom],
+    _member_ranges: &[Span],
+    for_name: &str,
   ) -> Option<bool> {
-    if let Some(dep) = self.chain_handler(parser, expr, false) {
-      parser.dependencies.push(Box::new(dep));
-      Some(true)
-    } else {
-      None
+    if for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE {
+      return self.chain_handler(parser, member_expr, call_expr, members, false);
     }
+    None
+  }
+
+  fn call_member_chain_of_call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    _callee_members: &[Atom],
+    inner_call_expr: &CallExpr,
+    members: &[Atom],
+    _member_ranges: &[Span],
+    for_name: &str,
+  ) -> Option<bool> {
+    if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
+      && let Some(callee) = call_expr.callee.as_expr()
+      && let Some(member) = callee.as_member()
+    {
+      return self.chain_handler(parser, member, inner_call_expr, members, true);
+    }
+    None
   }
 
   fn identifier(
