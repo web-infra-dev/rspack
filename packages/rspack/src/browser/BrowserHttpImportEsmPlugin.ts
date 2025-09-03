@@ -10,19 +10,53 @@ interface BrowserHttpImportPluginOptions {
 	/**
 	 * ESM CDN domain
 	 */
-	domain: string | ((info: ResolvedRequest) => string);
+	domain: string | ((resolvedRequest: ResolvedRequest) => string);
 	/**
 	 * Specify ESM CDN URL for dependencies.
 	 * If a record is provided, it will be used to map package names to their CDN URLs.
+	 *
+	 * Once this function resolves a dependency, other options are ignored.
 	 */
 	dependencyUrl?:
 		| Record<string, string | undefined>
-		| ((info: ResolvedRequest) => string | undefined);
+		| ((resolvedRequest: ResolvedRequest) => string | undefined);
 	/**
 	 * Specify versions for dependencies.
 	 * Default to "latest" if not specified.
 	 */
 	dependencyVersions?: Record<string, string | undefined>;
+	/**
+	 * Specify whether to bundle the dependencies. This option will attach `?bundle=<value>` query to the final URL.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#bundling-strategy
+	 */
+	bundle?: (resolvedRequest: ResolvedRequest) => boolean;
+	/**
+	 * Specify which exported members to include from the dependency if you want to import only a specific set of members.
+	 * This option will attach `?exports=<value>` query to the final URL.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#tree-shaking
+	 */
+	exports?: (resolvedRequest: ResolvedRequest) => string[];
+	/**
+	 * Specify which packages to be bundled under development mode.
+	 * This option will attach `?dev` query to the final URL if true.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#development-build
+	 */
+	dev?: string[] | ((resolvedRequest: ResolvedRequest) => boolean);
+	/**
+	 * Specify external dependencies.
+	 * This is useful if you don't want to include multiple instances of a package introduced by different dependencies.
+	 * This option will attach `?external=<value>` query to the final URL.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#using-import-maps
+	 */
+	externals?: string[];
 }
 
 /**
@@ -70,13 +104,19 @@ export class BrowserHttpImportEsmPlugin {
 
 				// If the issuer is a URL, request should base on that
 				if (issuerUrl) {
-					resolveData.request = this.resolveWithUrlIssuer(request, issuerUrl);
+					resolveData.request = this.parameterize(
+						this.resolveWithUrlIssuer(request, issuerUrl),
+						resolvedRequest
+					);
 					return;
 				}
 
 				// If the request is a node module, resolve it with esm cdn URL
 				if (this.isNodeModule(request)) {
-					resolveData.request = this.resolveNodeModule(resolvedRequest);
+					resolveData.request = this.parameterize(
+						this.resolveNodeModule(resolvedRequest),
+						resolvedRequest
+					);
 					return;
 				}
 			});
@@ -103,6 +143,37 @@ export class BrowserHttpImportEsmPlugin {
 			version
 		);
 		return `${domain}/${versionedRequest}`;
+	}
+
+	private parameterize(requestUrl: string, resolvedRequest: ResolvedRequest) {
+		const url = new URL(requestUrl);
+		if (this.options.bundle) {
+			const bundle = this.options.bundle(resolvedRequest);
+			url.searchParams.set("bundle", bundle.toString());
+		}
+		if (this.options.exports) {
+			const exports = this.options.exports(resolvedRequest);
+			if (exports.length > 0) {
+				url.searchParams.set("exports", exports.join(","));
+			}
+		}
+		if (this.options.dev) {
+			if (typeof this.options.dev === "function") {
+				const dev = this.options.dev(resolvedRequest);
+				if (dev) {
+					url.searchParams.set("dev", "");
+				}
+			} else {
+				const dev = this.options.dev.includes(resolvedRequest.packageName);
+				if (dev) {
+					url.searchParams.set("dev", "");
+				}
+			}
+		}
+		if (this.options.externals && this.options.externals.length > 0) {
+			url.searchParams.set("external", this.options.externals.join(","));
+		}
+		return url.toString();
 	}
 
 	private isNodeModule(request: string) {
@@ -174,6 +245,10 @@ function resolveRequest(
 	};
 }
 
+/**
+ * This function is called only when the request is a node module specifier,
+ * i.e. isNodeModule(request) === true
+ */
 function getRequestWithVersion(request: string, version: string) {
 	// Handle scoped packages (packages starting with '@')
 	if (request.startsWith("@")) {
