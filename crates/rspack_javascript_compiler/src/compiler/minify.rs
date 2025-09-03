@@ -170,7 +170,7 @@ impl JavaScriptCompiler {
 
         minify_file_comments(
           &comments,
-          opts
+          &opts
             .format
             .comments
             .clone()
@@ -192,7 +192,9 @@ impl JavaScriptCompiler {
           input_source_map: None,
           minify: opts.minify,
           comments: Some(&comments),
-          format: &opts.format,
+          preamble: &opts.format.preamble,
+          ascii_only: opts.format.ascii_only,
+          inline_script: opts.format.inline_script,
         };
 
         self.print(&program, print_options).map_err(|e| e.into())

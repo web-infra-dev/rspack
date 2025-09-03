@@ -25,8 +25,8 @@ use swc_core::{
   base::{
     BoolOr,
     config::{
-      BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, JsMinifyFormatOptions,
-      Rc, RootMode, SourceMapsConfig,
+      BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, OutputCharset, Rc,
+      RootMode, SourceMapsConfig,
     },
     sourcemap,
   },
@@ -301,7 +301,7 @@ impl<'a> JavaScriptTransformer<'a> {
   where
     P: Pass + 'a,
   {
-    let built_input = self.parse_built_input(before_pass)?;
+    let mut built_input = self.parse_built_input(before_pass)?;
 
     let target = built_input.target;
     let source_map_kind: SourceMapKind = match self.options.config.source_maps {
@@ -322,12 +322,12 @@ impl<'a> JavaScriptTransformer<'a> {
 
     inspect_parsed_ast(&built_input.program);
 
-    let (program, diagnostics) = self.transform_with_built_input(built_input)?;
-    let format_opt = JsMinifyFormatOptions {
-      inline_script: false,
-      ascii_only: true,
-      ..Default::default()
-    };
+    let diagnostics = self.transform_with_built_input(&mut built_input)?;
+    let ascii_only = built_input
+      .output
+      .charset
+      .as_ref()
+      .is_some_and(|v| matches!(v, OutputCharset::Ascii));
 
     let print_options = PrintOptions {
       source_len: self.fm.byte_length(),
@@ -337,12 +337,14 @@ impl<'a> JavaScriptTransformer<'a> {
       input_source_map: input_source_map.as_ref(),
       minify,
       comments: Some(&self.comments as &dyn Comments),
-      format: &format_opt,
+      preamble: &built_input.output.preamble,
+      ascii_only,
+      inline_script: built_input.codegen_inline_script,
     };
 
     self
       .javascript_compiler
-      .print(&program, print_options)
+      .print(&built_input.program, print_options)
       .map(|o| o.with_diagnostics(diagnostics))
   }
 
@@ -435,21 +437,19 @@ impl<'a> JavaScriptTransformer<'a> {
 
   fn transform_with_built_input(
     &self,
-    built_input: BuiltInput<impl Pass>,
-  ) -> Result<(Program, Vec<String>), Error> {
-    let program = built_input.program;
-    let mut pass = built_input.pass;
+    built_input: &mut BuiltInput<impl Pass>,
+  ) -> Result<Vec<String>, Error> {
     let mut diagnostics = vec![];
-    let program = self.run(|| {
+    let result = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
         let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
           // Apply external plugin passes to the Program AST.
           // External plugins may emit warnings or inject helpers,
           // so we need a handler to properly process them.
-          let program = program.apply(&mut pass);
+          built_input.pass.process(&mut built_input.program);
           diagnostics.extend(handler.take_diagnostics());
 
-          Ok(program)
+          Ok(())
         });
 
         result.map_err(|err| {
@@ -495,14 +495,12 @@ impl<'a> JavaScriptTransformer<'a> {
 
       minify_file_comments(
         comments,
-        built_input.preserve_comments,
+        &built_input.preserve_comments,
         preserve_annotations,
       );
     }
 
-    program
-      .map(|program| (program, diagnostics))
-      .map_err(|e| e.into())
+    result.map(|_| diagnostics).map_err(|e| e.into())
   }
 
   pub fn input_source_map(

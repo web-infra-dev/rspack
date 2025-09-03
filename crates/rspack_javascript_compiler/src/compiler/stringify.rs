@@ -74,7 +74,9 @@ pub struct PrintOptions<'a> {
   pub input_source_map: Option<&'a sourcemap::SourceMap>,
   pub minify: bool,
   pub comments: Option<&'a dyn Comments>,
-  pub format: &'a JsMinifyFormatOptions,
+  pub preamble: &'a str,
+  pub ascii_only: bool,
+  pub inline_script: bool,
 }
 
 impl JavaScriptCompiler {
@@ -105,7 +107,9 @@ impl JavaScriptCompiler {
           .unwrap_or_default()
           .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
           .flatten(),
-        format: &format_opt,
+        preamble: &format_opt.preamble,
+        ascii_only: format_opt.ascii_only,
+        inline_script: format_opt.inline_script,
       };
       self.print(program.get_inner_program(), print_options)
     })
@@ -124,7 +128,9 @@ impl JavaScriptCompiler {
       input_source_map,
       minify,
       comments,
-      format,
+      preamble,
+      ascii_only,
+      inline_script,
     } = options;
     let mut src_map_buf = vec![];
 
@@ -148,7 +154,7 @@ impl JavaScriptCompiler {
           source_map_config.enable.then_some(&mut src_map_buf),
         );
 
-        w.preamble(&format.preamble).into_diagnostic()?;
+        w.preamble(preamble).into_diagnostic()?;
         let mut wr = Box::new(w) as Box<dyn WriteJs>;
 
         if minify {
@@ -159,8 +165,8 @@ impl JavaScriptCompiler {
           cfg: codegen::Config::default()
             .with_minify(minify)
             .with_target(target)
-            .with_ascii_only(format.ascii_only)
-            .with_inline_script(format.inline_script),
+            .with_ascii_only(ascii_only)
+            .with_inline_script(inline_script),
           comments,
           cm: source_map.clone(),
           wr,
