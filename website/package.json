@@ -6,13 +6,13 @@
   "scripts": {
     "build": "rspress build",
     "check": "pnpm run check:lint && pnpm run check:format && pnpm run check:spell",
-    "check:case": "pnpx case-police@0.7 docs/**/*.{md,mdx}",
+    "check:case": "case-police docs/**/*.{md,mdx}",
     "check:ci": "pnpm run check:lint-ci && pnpm run check:format-ci && pnpm run check:spell",
     "check:format": "prettier . --write && heading-case --write",
     "check:format-ci": "prettier . --check && heading-case",
     "check:lint": "biome check --diagnostic-level=warn --write",
     "check:lint-ci": "biome check --diagnostic-level=warn",
-    "check:spell": "pnpx cspell@8",
+    "check:spell": "cspell",
     "dev": "rspress dev",
     "preview": "rspress preview",
     "sort-projects-words": "node ./sortProjectWords.js"
@@ -33,17 +33,19 @@
     "@rspress/plugin-algolia": "2.0.0-beta.28",
     "@rspress/plugin-llms": "2.0.0-beta.28",
     "@rspress/plugin-rss": "2.0.0-beta.28",
+    "@rspress/plugin-sitemap": "2.0.0-beta.28",
     "@shikijs/transformers": "^3.12.1",
     "@types/node": "^20.19.9",
     "@types/react": "^19.1.8",
     "@types/semver": "^7.7.0",
+    "case-police": "~0.7.2",
+    "cspell": "^8.19.4",
     "cspell-ban-words": "0.0.4",
     "heading-case": "^0.1.6",
     "prettier": "3.6.2",
     "rsbuild-plugin-google-analytics": "1.0.3",
     "rsbuild-plugin-open-graph": "1.1.0",
     "rspress-plugin-font-open-sans": "1.0.0",
-    "@rspress/plugin-sitemap": "2.0.0-beta.28",
     "typescript": "^5.9.2"
   }
 }
