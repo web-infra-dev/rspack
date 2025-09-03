@@ -39,6 +39,7 @@ pub struct BuildDeps {
 impl BuildDeps {
   pub fn new(
     options: &BuildDepsOptions,
+    snapshot_options: &SnapshotOptions,
     fs: Arc<dyn ReadableFileSystem>,
     storage: Arc<dyn Storage>,
   ) -> Self {
@@ -47,13 +48,7 @@ impl BuildDeps {
       pending: options.iter().map(|v| ArcPath::from(v.as_path())).collect(),
       snapshot: Snapshot::new_with_scope(
         SCOPE,
-        SnapshotOptions::new(
-          Default::default(),
-          Default::default(),
-          vec![PathMatcher::Regexp(
-            RspackRegex::new("[/\\\\]node_modules[/\\\\]").expect("should generate regex"),
-          )],
-        ),
+        snapshot_options.clone(),
         fs.clone(),
         storage.clone(),
       ),
