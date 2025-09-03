@@ -6,7 +6,9 @@ use rspack_core::{
   Compilation, ConcatenatedModuleInfo, ConcatenationScope, DEFAULT_EXPORT_ATOM, InitFragment,
   ModuleIdentifier, ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals, SourceType, SpanExt,
   get_js_chunk_filename_template, render_init_fragments,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, SourceExt},
+  rspack_sources::{
+    BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt,
+  },
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -177,6 +179,7 @@ impl EsmLibraryPlugin {
     let mut runtime_source = ConcatSource::default();
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
+    let mut export_default = None;
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
@@ -208,7 +211,7 @@ impl EsmLibraryPlugin {
 
       let source = Self::render_module(info, chunk_link)?;
 
-      if matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
+      if !matches!(compilation.options.output.pathinfo, PathInfo::Bool(false)) {
         render_source.add(RawStringSource::from(format!(
           "// {}\n",
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m).map_or_else(
@@ -319,14 +322,13 @@ impl EsmLibraryPlugin {
       }
     }
 
-    let mut already_export_default = false;
     for (id, exports) in &chunk_link.exports {
       let info = concatenated_modules_map.get(id).expect("should have info");
 
       match info {
         ModuleInfo::Concatenated(info) => {
           for (raw_symbol, exported) in exports {
-            let is_default = raw_symbol.as_str() == "default";
+            let is_default = exported.as_str() == "default";
             let symbol = if is_default {
               info
                 .get_internal_name(&DEFAULT_EXPORT_ATOM)
@@ -336,9 +338,17 @@ impl EsmLibraryPlugin {
               raw_symbol.as_str()
             };
 
-            if is_default && !already_export_default {
-              export_specifiers.insert(Cow::Owned(format!("{symbol} as default")));
-              already_export_default = true;
+            if id.contains("src/jsx/index") {
+              dbg!(&symbol, exported, &export_default);
+            }
+
+            if is_default {
+              if export_default.is_none() {
+                export_default = Some(symbol);
+              } else {
+                // multiple export default
+                export_specifiers.insert(Cow::Borrowed(symbol));
+              }
             } else if symbol == exported {
               export_specifiers.insert(Cow::Borrowed(symbol));
             } else {
@@ -384,6 +394,13 @@ impl EsmLibraryPlugin {
           .collect::<Vec<_>>()
           .join(", "),
         chunk.as_u32()
+      )));
+    }
+
+    if let Some(default_export) = export_default {
+      final_source.add(RawStringSource::from(format!(
+        "export default {};\n",
+        default_export
       )));
     }
 

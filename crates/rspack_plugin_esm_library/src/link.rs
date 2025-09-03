@@ -907,33 +907,22 @@ impl EsmLibraryPlugin {
                       .insert(variable_to_export, item.name.clone());
                   }
                   ModuleInfo::Concatenated(ref_info) => {
-                    let Some(internal_name) = ref_info.internal_names.get(&item.name) else {
+                    if current.contains("src/jsc/index") {
+                      dbg!(&item.ids[0]);
+                    }
+                    let Some(internal_name) = ref_info
+                      .internal_names
+                      .get(&item.ids.get(0).unwrap_or_else(|| &item.name))
+                    else {
                       continue;
                     };
 
                     let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
-                    let curr_chunk = Self::get_module_chunk(current, compilation);
-
-                    if ref_chunk == curr_chunk {
-                      exports
-                        .entry(chunk_link.chunk)
-                        .or_default()
-                        .entry(*ref_module)
-                        .or_default()
-                        .insert(internal_name.clone(), item.name.clone());
-                    } else {
-                      exports
-                        .entry(ref_chunk)
-                        .or_default()
-                        .entry(*ref_module)
-                        .or_default()
-                        .insert(internal_name.clone(), internal_name.clone());
-                      chunk_link
-                        .re_exports
-                        .entry(ref_chunk)
-                        .or_default()
-                        .insert(internal_name.clone(), item.name.clone());
-                    }
+                    chunk_link
+                      .re_exports
+                      .entry(ref_chunk)
+                      .or_default()
+                      .insert(internal_name.clone(), item.name.clone());
                   }
                 }
               }
