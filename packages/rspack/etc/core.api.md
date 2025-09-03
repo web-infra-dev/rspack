@@ -4321,7 +4321,7 @@ export interface LoaderContext<OptionsType = {}> {
 }
 
 // @public (undocumented)
-type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
+type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | RawSourceMap, additionalData?: AdditionalData) => void;
 
 // @public
 export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
@@ -4330,7 +4330,7 @@ export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDe
 };
 
 // @public (undocumented)
-export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer | void>;
+export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | RawSourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer | void>;
 
 // @public (undocumented)
 interface LoaderExperiments {
@@ -5762,7 +5762,20 @@ export type PublicPath = "auto" | Filename;
 type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
-interface RawSourceMap {
+export interface RawSourceMap {
+    debugId?: string;
+    file: string;
+    ignoreList?: number[];
+    mappings: string;
+    names: string[];
+    sourceRoot?: string;
+    sources: string[];
+    sourcesContent?: string[];
+    version: number;
+}
+
+// @public (undocumented)
+interface RawSourceMap_2 {
     	debugId?: string;
 
     	file: string;
@@ -6384,6 +6397,7 @@ declare namespace rspackExports {
         SourceMapDevToolPlugin,
         SwcJsMinimizerRspackPlugin,
         experiments,
+        RawSourceMap,
         getRawResolve,
         LoaderContext,
         LoaderDefinition,
@@ -7143,7 +7157,7 @@ class Source {
     	// (undocumented)
     buffer(): Buffer_2;
     	// (undocumented)
-    map(options?: MapOptions): null | RawSourceMap;
+    map(options?: MapOptions): null | RawSourceMap_2;
     	// (undocumented)
     size(): number;
     	// (undocumented)
@@ -7156,27 +7170,9 @@ class Source {
 
 // @public (undocumented)
 interface SourceAndMap {
-    	map: null | RawSourceMap;
+    	map: null | RawSourceMap_2;
 
     	source: SourceValue;
-}
-
-// @public (undocumented)
-interface SourceMap {
-    // (undocumented)
-    file?: string;
-    // (undocumented)
-    mappings: string;
-    // (undocumented)
-    names?: string[];
-    // (undocumented)
-    sourceRoot?: string;
-    // (undocumented)
-    sources: string[];
-    // (undocumented)
-    sourcesContent?: string[];
-    // (undocumented)
-    version: number;
 }
 
 // @public (undocumented)

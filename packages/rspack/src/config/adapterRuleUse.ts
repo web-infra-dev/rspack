@@ -52,8 +52,8 @@ export interface RawSourceMap {
 	 */
 	file: string;
 	/**
-	 * An optional source root string, used for relocating source files on a server or
-	 * removing repeated values in the sources entry.
+	 * An optional source root string, used for relocating source files on a server
+	 * or removing repeated values in the sources entry.
 	 */
 	sourceRoot?: string;
 	/**
@@ -64,6 +64,15 @@ export interface RawSourceMap {
 	 * A list of symbol names which may be used by the mappings field.
 	 */
 	names: string[];
+	/**
+	 * A unique identifier for debugging purposes
+	 */
+	debugId?: string;
+	/**
+	 * An array of indices into the sources array, indicating which sources
+	 * should be ignored by debuggers
+	 */
+	ignoreList?: number[];
 }
 
 export interface AdditionalData {
