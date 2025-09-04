@@ -58,7 +58,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			added?: Iterable<string>;
 			removed?: Iterable<string>;
 		},
-		_startTime: number,
+		startTime: number,
 		options: Watchpack.WatchOptions,
 		callback: (
 			error: Error | null,
@@ -102,6 +102,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 			this.formatWatchDependencies(files),
 			this.formatWatchDependencies(directories),
 			this.formatWatchDependencies(missing),
+			BigInt(startTime),
 			(err: Error | null, result) => {
 				if (err) {
 					callback(err, new Map(), new Map(), new Set(), new Set());

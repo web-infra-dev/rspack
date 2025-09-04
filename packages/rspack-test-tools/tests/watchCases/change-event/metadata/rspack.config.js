@@ -11,16 +11,14 @@ class ShouldRebuildPlugin {
 		compiler.hooks.done.tap(ShouldRebuildPlugin.name, _ => {
 			// After first compilation, touch the file to trigger a rebuild
 			if (this.compileCount === 0) {
-				setTimeout(() => {
-					const now = new Date();
-					fs.utimes(targetFile, now, now, err => {
-						if (err) {
-							console.error("Error updating file timestamps:", err);
-							return;
-						}
-						// Touch file to trigger rebuild
-					});
-				}, 1000);
+				const now = new Date();
+				fs.utimes(targetFile, now, now, err => {
+					if (err) {
+						console.error("Error updating file timestamps:", err);
+						return;
+					}
+					// Touch file to trigger rebuild
+				});
 			}
 			this.compileCount++;
 		});

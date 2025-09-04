@@ -1,5 +1,7 @@
-use std::{ops::Deref, sync::Arc};
+use std::{ops::Deref, sync::Arc, time::SystemTime};
 
+use dashmap::DashSet;
+use rspack_paths::ArcPath;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
@@ -22,47 +24,93 @@ impl Scanner {
 
   /// Scans the registered paths and sends delete events for any files or directories that no longer exist.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
-  pub fn scan(&self) {
-    let accessor = self.path_manager.access();
+  pub fn scan(&self, start_time: SystemTime) {
+    if let Some(tx) = self.tx.clone() {
+      let accessor = self.path_manager.access();
+      // only apply for added files
+      let files = accessor
+        .files()
+        .1
+        .iter()
+        .map(|file| file.deref().clone())
+        .collect::<Vec<_>>();
+      let missing = accessor.missing().0.clone();
+      let _tx = tx.clone();
+      tokio::spawn(async move {
+        _ = scan_path_missing(&files, &missing, &_tx);
+        _ = scan_path_changed(&files, &start_time, &_tx);
+      });
 
-    let files = accessor.files().0.clone();
-    let _tx = self.tx.clone();
-    tokio::spawn(async move {
-      for file in files.iter() {
-        let filepath = file.deref();
-        if !filepath.exists()
-          && let Some(tx) = &_tx
-        {
-          // If the file does not exist, send a delete event
-          let _ = tx.send(vec![FsEvent {
-            path: filepath.clone(),
-            kind: FsEventKind::Remove,
-          }]);
-        }
-      }
-    });
-
-    let directories = accessor.directories().0.clone();
-    let _tx = self.tx.clone();
-    tokio::spawn(async move {
-      for dir in directories.iter() {
-        let dirpath = dir.deref();
-        if !dirpath.exists()
-          && let Some(tx) = &_tx
-        {
-          // If the directory does not exist, send a delete event
-          let _ = tx.send(vec![FsEvent {
-            path: dirpath.clone(),
-            kind: FsEventKind::Remove,
-          }]);
-        }
-      }
-    });
+      let directories = accessor
+        .directories()
+        .1
+        .iter()
+        .map(|file| file.deref().clone())
+        .collect::<Vec<_>>();
+      let missing = accessor.missing().0.clone();
+      let _tx = self.tx.clone();
+      tokio::spawn(async move {
+        _ = scan_path_missing(&directories, &missing, &tx);
+        _ = scan_path_changed(&directories, &start_time, &tx);
+      });
+    }
   }
 
   pub fn close(&mut self) {
     // Close the scanner by dropping the sender
     self.tx.take();
+  }
+}
+
+fn scan_path_missing(
+  paths: &[ArcPath],
+  missing: &DashSet<ArcPath>,
+  tx: &UnboundedSender<EventBatch>,
+) -> bool {
+  let remove_event = paths
+    .iter()
+    .filter(|path| !path.exists() && !missing.contains(*path))
+    .cloned()
+    .map(|path| FsEvent {
+      path,
+      kind: FsEventKind::Remove,
+    })
+    .collect::<Vec<_>>();
+  if remove_event.is_empty() {
+    return true;
+  }
+  tx.send(remove_event).is_ok()
+}
+
+fn scan_path_changed(
+  paths: &[ArcPath],
+  start_time: &SystemTime,
+  tx: &UnboundedSender<EventBatch>,
+) -> bool {
+  let changed_event = paths
+    .iter()
+    .filter(|path| check_path_metadata(path, start_time))
+    .cloned()
+    .map(|path| FsEvent {
+      path,
+      kind: FsEventKind::Change,
+    })
+    .collect::<Vec<_>>();
+
+  if changed_event.is_empty() {
+    return true;
+  }
+  tx.send(changed_event).is_ok()
+}
+
+fn check_path_metadata(filepath: &ArcPath, start_time: &SystemTime) -> bool {
+  if let Ok(m_time) = filepath
+    .metadata()
+    .and_then(|metadata| metadata.modified().or(metadata.created()))
+  {
+    *start_time < m_time
+  } else {
+    false
   }
 }
 
@@ -104,11 +152,12 @@ mod tests {
       collected_events
     });
 
-    scanner.scan();
+    scanner.scan(SystemTime::now());
     // Simulate scanner dropping to trigger the end of the channel
     scanner.close();
 
     let collected_events = collector.await.unwrap();
+    println!("Collected events: {:?}", collected_events);
     assert_eq!(collected_events.len(), 2);
 
     assert!(collected_events.contains(&vec![FsEvent {
