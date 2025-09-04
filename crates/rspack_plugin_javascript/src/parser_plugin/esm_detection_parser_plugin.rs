@@ -16,7 +16,7 @@ use crate::{
 
 impl JavascriptParser<'_> {
   fn throw_top_level_await_error(&mut self, msg: String, span: Span) {
-    self.errors.push(
+    self.add_error(
       create_traceable_error(
         "JavaScript parse error".into(),
         msg,
@@ -64,9 +64,7 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
       || matches!(ast, Program::Module(module) if module.body.iter().any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
 
     if is_esm {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ESMCompatibilityDependency));
+      parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
       parser.build_meta.esm = true;
       parser.build_meta.exports_type = BuildMetaExportsType::Namespace;
       parser.build_info.strict = true;

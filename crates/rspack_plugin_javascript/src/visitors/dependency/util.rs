@@ -73,11 +73,11 @@ pub fn clean_regexp_in_context_module(
         error_span,
       );
       error.severity = Severity::Warning;
-      parser.warning_diagnostics.push(Diagnostic::from(error));
+      parser.add_warning(Diagnostic::from(error));
     } else {
       let mut err = Error::warning("Contexts can't use RegExps with the 'g' or 'y' flags".into());
       err.code = Some("Critical dependency".into());
-      parser.warning_diagnostics.push(err.into());
+      parser.add_warning(err.into());
     }
     None
   } else {

@@ -34,7 +34,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       statement.declaration_span().map(|span| span.into()),
       Some(parser.source_map.clone()),
     );
-    parser.presentational_dependencies.push(Box::new(dep));
+    parser.add_presentational_dependency(Box::new(dep));
     Some(true)
   }
 
@@ -45,14 +45,12 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     source: &Atom,
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
-    let span = statement.span();
-    let clean_dep = ConstDependency::new(span.into(), "".into(), None);
-    parser.presentational_dependencies.push(Box::new(clean_dep));
+    let clean_dep = ConstDependency::new(statement.span().into(), "".into(), None);
+    parser.add_presentational_dependency(Box::new(clean_dep));
     let mut side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
-      span.into(),
-      statement.source_span().into(),
+      statement.span().into(),
       DependencyType::EsmExport,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
@@ -66,7 +64,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     {
       side_effect_dep.set_lazy();
     }
-    parser.dependencies.push(Box::new(side_effect_dep));
+    parser.add_dependency(Box::new(side_effect_dep));
     Some(true)
   }
 
@@ -88,7 +86,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       .esm_named_exports
       .insert(export_name.clone())
     {
-      parser.errors.push(
+      parser.add_error(
         create_traceable_error(
           "JavaScript parse error".into(),
           format!("Duplicate export of '{export_name}'"),
@@ -133,7 +131,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .as_ref()
         .and_then(|info| info.exported_enums.get(export_name).cloned());
       if enum_value.is_some() && !parser.compiler_options.experiments.inline_enum {
-        parser.errors.push(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
+        parser.add_error(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
       }
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
@@ -148,7 +146,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     if !is_asi_safe {
       parser.set_asi_position(statement.span_hi());
     }
-    parser.dependencies.push(dep);
+    parser.add_dependency(dep);
     Some(true)
   }
 
@@ -167,7 +165,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .esm_named_exports
         .insert(export_name.clone())
       {
-        parser.errors.push(
+        parser.add_error(
           create_traceable_error(
             "JavaScript parse error".into(),
             format!("Duplicate export of '{export_name}'"),
@@ -207,7 +205,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     {
       dep.set_lazy();
     }
-    parser.dependencies.push(Box::new(dep));
+    parser.add_dependency(Box::new(dep));
     Some(true)
   }
 
@@ -270,7 +268,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       },
       Some(parser.source_map.clone()),
     );
-    parser.dependencies.push(Box::new(dep));
+    parser.add_dependency(Box::new(dep));
     InnerGraphPlugin::add_variable_usage(
       parser,
       expr.ident().unwrap_or_else(|| &DEFAULT_STAR_JS_WORD),

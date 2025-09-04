@@ -1,4 +1,6 @@
-use rspack_core::{ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals};
+use rspack_core::{
+  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals,
+};
 use rspack_util::{SpanExt, itoa};
 use swc_core::{
   atoms::Atom,
@@ -38,17 +40,17 @@ impl CompatibilityPlugin {
       return None;
     }
     let dep = ConstDependency::new(expr.callee.span().into(), "require".into(), None);
-    if let Some(last) = parser.dependencies.last()
-      && let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
-      && let options = last.options()
-      && options.recursive
-      && options.request == "."
-    {
-      parser.dependencies.pop();
-      // TODO: dependency getWarnings getErrors
-      parser.warning_diagnostics.pop();
+    if let Some(last) = parser.pop_dependency() {
+      if let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
+        && let options = last.options()
+        && options.recursive
+        && options.request == "."
+      {
+      } else {
+        parser.add_dependency(last);
+      }
     }
-    parser.presentational_dependencies.push(Box::new(dep));
+    parser.add_presentational_dependency(Box::new(dep));
     Some(true)
   }
 
@@ -86,13 +88,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       .or_else(|| ast.as_script().and_then(|s| s.shebang.as_ref()))
       .is_some()
     {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          (0, 0).into(),
-          "//".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        (0, 0).into(),
+        "//".into(),
+        None,
+      )));
     }
 
     None
@@ -214,11 +214,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       .expect_get_mut_tag_info(parser.current_tag_info?);
 
     let mut nested_require_data = NestedRequireData::downcast(tag_info.data.take()?);
-    let mut deps = Vec::with_capacity(2);
+    let mut deps: Vec<BoxDependencyTemplate> = Vec::with_capacity(2);
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
-      deps.push(ConstDependency::new(
+      deps.push(Box::new(ConstDependency::new(
         nested_require_data.loc,
         if shorthand {
           format!("{}: {}", ident.sym, name.clone()).into()
@@ -226,12 +226,12 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           name.clone().into()
         },
         None,
-      ));
+      )));
       nested_require_data.update = true;
     }
     tag_info.data = Some(NestedRequireData::into_any(nested_require_data));
 
-    deps.push(ConstDependency::new(
+    deps.push(Box::new(ConstDependency::new(
       ident.span.into(),
       if parser.in_short_hand {
         format!("{}: {}", ident.sym, name.clone()).into()
@@ -239,10 +239,8 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         name.clone().into()
       },
       None,
-    ));
-    for dep in deps {
-      parser.presentational_dependencies.push(Box::new(dep));
-    }
+    )));
+    parser.add_presentational_dependencies(deps);
     Some(true)
   }
 

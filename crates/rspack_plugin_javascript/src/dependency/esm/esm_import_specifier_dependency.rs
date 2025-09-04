@@ -138,6 +138,10 @@ impl ESMImportSpecifierDependency {
         ExportPresenceMode::Auto
       })
   }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
+  }
 }
 
 #[cacheable_dyn]
@@ -160,10 +164,6 @@ impl Dependency for ESMImportSpecifierDependency {
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     self.attributes.as_ref()
-  }
-
-  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
-    self.used_by_exports = used_by_exports;
   }
 
   fn category(&self) -> &DependencyCategory {

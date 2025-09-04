@@ -37,13 +37,11 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span.into(),
-          "'object'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        expr.span.into(),
+        "'object'".into(),
+        None,
+      )));
       Some(true)
     } else {
       None
@@ -57,21 +55,17 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "module.id" {
-      parser
-        .presentational_dependencies
-        .push(Box::new(RuntimeRequirementsDependency::new(
-          RuntimeGlobals::MODULE_ID,
-        )));
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        RuntimeGlobals::MODULE_ID,
+      )));
       parser.build_info.module_concatenation_bailout = Some(RuntimeGlobals::MODULE_ID.to_string());
       return Some(true);
     }
 
     if for_name == "module.loaded" {
-      parser
-        .presentational_dependencies
-        .push(Box::new(RuntimeRequirementsDependency::new(
-          RuntimeGlobals::MODULE_LOADED,
-        )));
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        RuntimeGlobals::MODULE_LOADED,
+      )));
       parser.build_info.module_concatenation_bailout =
         Some(RuntimeGlobals::MODULE_LOADED.to_string());
       return Some(true);

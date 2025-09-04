@@ -159,11 +159,11 @@ impl AMDDefineDependencyParserPlugin {
           let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
           dep.set_optional(parser.in_try);
           deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
-          parser.dependencies.push(Box::new(dep));
+          parser.add_dependency(Box::new(dep));
         }
       }
       let dep = AMDRequireArrayDependency::new(deps, param.range().into());
-      parser.presentational_dependencies.push(Box::new(dep));
+      parser.add_presentational_dependency(Box::new(dep));
       return Some(true);
     }
     None
@@ -221,7 +221,7 @@ impl AMDDefineDependencyParserPlugin {
           Some(range.into()),
           false,
         ));
-        parser.presentational_dependencies.push(dep);
+        parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
         let mut dep = Box::new(AMDRequireItemDependency::new(
@@ -229,12 +229,12 @@ impl AMDDefineDependencyParserPlugin {
           Some(range.into()),
         ));
         dep.set_optional(parser.in_try);
-        parser.dependencies.push(dep);
+        parser.add_dependency(dep);
         return Some(true);
       };
       // TODO: how to implement this?
       // dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-      parser.presentational_dependencies.push(dep);
+      parser.add_presentational_dependency(dep);
       return Some(true);
     }
     None
@@ -270,7 +270,7 @@ impl AMDDefineDependencyParserPlugin {
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;
-    parser.dependencies.push(Box::new(dep));
+    parser.add_dependency(Box::new(dep));
     Some(true)
   }
 
@@ -574,9 +574,10 @@ impl AMDDefineDependencyParserPlugin {
       parser.walk_expression(expr);
     }
 
-    let local_module = named_module
-      .as_ref()
-      .map(|name| parser.add_local_module(name.as_str()));
+    if let Some(name) = &named_module {
+      let dep_idx = parser.next_presentational_dependency_idx();
+      parser.add_local_module(name, dep_idx);
+    }
 
     let dep = Box::new(AMDDefineDependency::new(
       call_expr.span.into(),
@@ -584,10 +585,9 @@ impl AMDDefineDependencyParserPlugin {
       func.map(|expr| expr.span().into()),
       obj.map(|expr| expr.span().into()),
       named_module,
-      local_module,
     ));
 
-    parser.presentational_dependencies.push(dep);
+    parser.add_presentational_dependency(dep);
 
     Some(true)
   }
@@ -607,21 +607,13 @@ impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
     }
   }
 
-  /**
-   * unlike js, it's hard to share the LocalModule instance in Rust.
-   * so the AMDDefineDependency will get a clone of LocalModule in parser.local_modules.
-   * synchronize the used flag to the AMDDefineDependency's local_module at the end of the parse.
-   */
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    for dep in parser.presentational_dependencies.iter_mut() {
-      if let Some(define_dep) = dep.as_any_mut().downcast_mut::<AMDDefineDependency>()
-        && let Some(local_module) = define_dep.get_local_module_mut()
-        && parser
-          .local_modules
-          .get(local_module.get_idx())
-          .is_some_and(|m| m.is_used())
+    for local_module in std::mem::take(&mut parser.local_modules) {
+      let dep_idx = local_module.amd_dep_idx();
+      if let Some(dep) = parser.get_presentational_dependency_mut(dep_idx)
+        && let Some(dep) = dep.as_any_mut().downcast_mut::<AMDDefineDependency>()
       {
-        local_module.flag_used();
+        dep.set_local_module(local_module);
       }
     }
     None
