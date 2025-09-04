@@ -70,15 +70,15 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
+        .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
           &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       let mut ids = vec![];
-      for module in modules {
-        add_module(module.identifier(), chunk, &mut ids);
+      for mid in modules {
+        add_module(mid, chunk, &mut ids);
       }
       if ids.is_empty() {
         continue;
@@ -94,14 +94,14 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     for chunk in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
+        .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
           &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
-      for module in modules {
-        add_module(module.identifier(), chunk, &mut initial_consumes);
+      for mid in modules {
+        add_module(mid, chunk, &mut initial_consumes);
       }
     }
     if module_id_to_consume_data_mapping.is_empty() {

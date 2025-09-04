@@ -1,6 +1,6 @@
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, Plugin,
+  ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, NormalInitFragment, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -31,7 +31,7 @@ async fn render_module_content(
   &self,
   compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   _source: &mut RenderSource,
   init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {

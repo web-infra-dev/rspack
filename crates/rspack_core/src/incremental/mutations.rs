@@ -178,11 +178,11 @@ impl Mutations {
             _ => {}
           }
         }
-        modules.extend(
-          chunks
-            .into_iter()
-            .flat_map(|chunk| compilation.chunk_graph.get_chunk_modules_identifier(chunk)),
-        );
+        modules.extend(chunks.into_iter().flat_map(|chunk| {
+          compilation
+            .chunk_graph
+            .get_chunk_all_modules_identifier(chunk)
+        }));
         modules
       })
       .clone()

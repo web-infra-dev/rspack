@@ -4,9 +4,9 @@ use dashmap::DashMap;
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
   rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -89,7 +89,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   chunk: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {

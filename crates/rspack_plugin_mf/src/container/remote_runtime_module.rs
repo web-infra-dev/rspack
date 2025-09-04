@@ -46,9 +46,11 @@ impl RuntimeModule for RemoteRuntimeModule {
     let mut id_to_remote_data_mapping = FxHashMap::default();
     let module_graph = compilation.get_module_graph();
     for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
-      let modules = compilation
-        .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(&chunk, SourceType::Remote, &module_graph);
+      let modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+        &chunk,
+        SourceType::Remote,
+        &module_graph,
+      );
       let mut remotes = Vec::new();
       for m in modules {
         let Some(m) = m.downcast_ref::<RemoteModule>() else {

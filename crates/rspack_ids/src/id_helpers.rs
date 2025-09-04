@@ -371,7 +371,7 @@ fn compare_chunks_by_modules<'a>(
     .entry(a_ukey)
     .or_insert_with(|| {
       chunk_graph
-        .get_ordered_chunk_normal_modules_identifier(&a_ukey)
+        .get_ordered_chunk_modules_identifier(&a_ukey)
         .into_iter()
         .map(|m| ChunkGraph::get_module_id(module_ids, m).map(|s| s.as_str()))
         .collect_vec()
@@ -381,7 +381,7 @@ fn compare_chunks_by_modules<'a>(
     .entry(b_ukey)
     .or_insert_with(|| {
       chunk_graph
-        .get_ordered_chunk_normal_modules_identifier(&b_ukey)
+        .get_ordered_chunk_modules_identifier(&b_ukey)
         .into_iter()
         .map(|m| ChunkGraph::get_module_id(module_ids, m).map(|s| s.as_str()))
         .collect_vec()

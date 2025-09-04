@@ -345,14 +345,16 @@ async fn content_hash(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
-  let css_import_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
-    .collect::<Vec<_>>();
-  let css_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
-    .collect::<Vec<_>>();
+  let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::CssImport,
+    &module_graph,
+  );
+  let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::Css,
+    &module_graph,
+  );
   let (ordered_modules, _) =
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
   let mut hasher = hashes
@@ -392,14 +394,16 @@ async fn render_manifest(
     return Ok(());
   }
   let module_graph = compilation.get_module_graph();
-  let css_import_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
-    .collect::<Vec<_>>();
-  let css_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
-    .collect::<Vec<_>>();
+  let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::CssImport,
+    &module_graph,
+  );
+  let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::Css,
+    &module_graph,
+  );
   if css_import_modules.is_empty() && css_modules.is_empty() {
     return Ok(());
   }

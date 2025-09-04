@@ -18,7 +18,7 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset},
 };
 use rspack_collections::{
-  DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
+  DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -2089,13 +2089,10 @@ impl Compilation {
       .par_bridge()
       .map(|chunk_ukey| {
         let mut set = RuntimeGlobals::default();
-        for module in self
-          .chunk_graph
-          .get_chunk_modules(chunk_ukey, &self.get_module_graph())
-        {
+        for mid in self.chunk_graph.get_chunk_modules_identifier(chunk_ukey) {
           let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
           if let Some(runtime_requirements) =
-            ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
+            ChunkGraph::get_module_runtime_requirements(self, mid, chunk.runtime())
           {
             set.insert(*runtime_requirements);
           }

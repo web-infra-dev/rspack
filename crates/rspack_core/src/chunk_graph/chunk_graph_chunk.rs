@@ -386,6 +386,7 @@ impl ChunkGraph {
     }
   }
 
+  // Get chunk modules without runtime modules
   pub fn get_chunk_modules<'module>(
     &self,
     chunk: &ChunkUkey,
@@ -399,12 +400,33 @@ impl ChunkGraph {
       .collect()
   }
 
-  pub fn get_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> &IdentifierSet {
+  /// Get identifiers of chunk modules without runtime modules
+  pub fn get_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
+    let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
+    let runtime_modules = chunk_graph_chunk
+      .runtime_modules
+      .iter()
+      .copied()
+      .collect::<IdentifierSet>();
+    chunk_graph_chunk
+      .modules
+      .iter()
+      .filter(|m| !runtime_modules.contains(m))
+      .copied()
+      .collect()
+  }
+
+  /// Get all identifiers of chunk modules, including runtime modules
+  pub fn get_chunk_all_modules_identifier(&self, chunk: &ChunkUkey) -> &IdentifierSet {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     &chunk_graph_chunk.modules
   }
 
-  pub fn get_ordered_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
+  /// Get ordered identifiers of chunk modules, including runtime modules
+  pub fn get_ordered_chunk_all_modules_identifier(
+    &self,
+    chunk: &ChunkUkey,
+  ) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let mut modules: Vec<ModuleIdentifier> = chunk_graph_chunk.modules.iter().copied().collect();
     // SAFETY: module identifier is unique
@@ -412,10 +434,8 @@ impl ChunkGraph {
     modules
   }
 
-  pub fn get_ordered_chunk_normal_modules_identifier(
-    &self,
-    chunk: &ChunkUkey,
-  ) -> Vec<ModuleIdentifier> {
+  /// Get ordered identifiers of chunk modules, without runtime modules
+  pub fn get_ordered_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let runtime_modules = chunk_graph_chunk
       .runtime_modules
@@ -433,7 +453,8 @@ impl ChunkGraph {
     modules
   }
 
-  pub fn get_ordered_chunk_modules<'module>(
+  /// Get ordered modules of chunk, including runtime modules
+  pub fn get_ordered_chunk_all_modules<'module>(
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
@@ -444,44 +465,113 @@ impl ChunkGraph {
     modules
   }
 
+  /// Check if the chunk has a module with the given source type
+  /// returning `false` if source type is `Runtime`
+  pub fn has_chunk_module_by_source_type(
+    &self,
+    chunk: &ChunkUkey,
+    source_type: SourceType,
+    module_graph: &ModuleGraph,
+  ) -> bool {
+    let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
+    let source_types = &chunk_graph_chunk.source_types_by_module;
+    if source_type == SourceType::Runtime {
+      return false;
+    }
+
+    chunk_graph_chunk.modules.iter().any(|mid| {
+      if let Some(source_types) = source_types
+        && let Some(module_source_types) = source_types.get(mid)
+      {
+        if module_source_types.contains(&source_type) {
+          module_graph.module_by_identifier(mid).is_some()
+        } else {
+          false
+        }
+      } else {
+        module_graph
+          .module_by_identifier(mid)
+          .is_some_and(|module| module.source_types(module_graph).contains(&source_type))
+      }
+    })
+  }
+
+  /// Get chunk modules by source type
+  /// returning empty vector if source type is `Runtime`
   pub fn get_chunk_modules_by_source_type<'module>(
     &self,
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module BoxModule> {
+  ) -> Vec<&'module dyn Module> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let source_types = &chunk_graph_chunk.source_types_by_module;
+
+    if source_type == SourceType::Runtime {
+      return vec![];
+    }
 
     chunk_graph_chunk
       .modules
       .iter()
-      .filter_map(|uri| module_graph.module_by_identifier(uri))
-      .filter(|module| {
+      .filter_map(|mid| {
         if let Some(source_types) = source_types
-          && let Some(module_source_types) = source_types.get(&module.identifier())
+          && let Some(module_source_types) = source_types.get(mid)
         {
-          module_source_types.contains(&source_type)
+          if module_source_types.contains(&source_type) {
+            module_graph.module_by_identifier(mid).map(|m| m.as_ref())
+          } else {
+            None
+          }
         } else {
-          module.source_types(module_graph).contains(&source_type)
+          let module = module_graph.module_by_identifier(mid)?;
+          if module.source_types(module_graph).contains(&source_type) {
+            Some(module.as_ref())
+          } else {
+            None
+          }
         }
       })
       .collect::<Vec<_>>()
   }
 
-  pub fn get_chunk_modules_iterable_by_source_type<'module_graph: 'me, 'me>(
-    &'me self,
+  /// Get identifiers ofchunk modules by source type
+  /// returning empty vector if source type is `Runtime`
+  pub fn get_chunk_modules_identifier_by_source_type(
+    &self,
     chunk: &ChunkUkey,
     source_type: SourceType,
-    module_graph: &'module_graph ModuleGraph,
-  ) -> impl Iterator<Item = &'module_graph dyn Module> + 'me {
+    module_graph: &ModuleGraph,
+  ) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
+    let source_types = &chunk_graph_chunk.source_types_by_module;
+
+    if source_type == SourceType::Runtime {
+      return vec![];
+    }
+
     chunk_graph_chunk
       .modules
       .iter()
-      .filter_map(|uri| module_graph.module_by_identifier(uri))
-      .filter(move |module| module.source_types(module_graph).contains(&source_type))
-      .map(|m| m.as_ref())
+      .filter_map(|mid| {
+        if let Some(source_types) = source_types
+          && let Some(module_source_types) = source_types.get(mid)
+        {
+          if module_source_types.contains(&source_type) {
+            Some(*mid)
+          } else {
+            None
+          }
+        } else {
+          let module = module_graph.module_by_identifier(mid)?;
+          if module.source_types(module_graph).contains(&source_type) {
+            Some(module.identifier())
+          } else {
+            None
+          }
+        }
+      })
+      .collect::<Vec<_>>()
   }
 
   pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, compilation: &Compilation) -> f64 {

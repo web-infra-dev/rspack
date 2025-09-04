@@ -688,11 +688,10 @@ impl Chunk {
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
     self.id(&compilation.chunk_ids_artifact).hash(hasher);
-    for module in compilation
+    for module_identifier in compilation
       .chunk_graph
-      .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
+      .get_ordered_chunk_modules_identifier(&self.ukey)
     {
-      let module_identifier = module.identifier();
       let hash = compilation
         .code_generation_results
         .get_hash(&module_identifier, Some(&self.runtime))
@@ -915,10 +914,7 @@ pub fn chunk_hash_js<'a>(
   if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
     return true;
   }
-  if !chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::JavaScript, module_graph)
-    .is_empty()
-  {
+  if chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph) {
     return true;
   }
   false

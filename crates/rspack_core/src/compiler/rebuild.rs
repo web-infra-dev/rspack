@@ -283,7 +283,7 @@ impl CompilationRecords {
         let chunk_runtime = chunk.runtime().clone();
         let chunk_modules: FxHashSet<ModuleId> = compilation
           .chunk_graph
-          .get_chunk_modules_identifier(&chunk.ukey())
+          .get_chunk_all_modules_identifier(&chunk.ukey())
           .iter()
           .filter_map(|m| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m))
           .cloned()

@@ -579,10 +579,11 @@ async fn content_hash(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
-  let rendered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
-    .collect::<Vec<_>>();
+  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SOURCE_TYPE[0],
+    &module_graph,
+  );
 
   if rendered_modules.is_empty() {
     return Ok(());
@@ -626,10 +627,11 @@ async fn render_manifest(
     return Ok(());
   }
 
-  let rendered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
-    .collect::<Vec<_>>();
+  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SOURCE_TYPE[0],
+    &module_graph,
+  );
 
   if rendered_modules.is_empty() {
     return Ok(());

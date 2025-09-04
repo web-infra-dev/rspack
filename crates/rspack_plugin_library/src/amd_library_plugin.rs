@@ -100,7 +100,7 @@ async fn render(
   let module_graph = compilation.get_module_graph();
   let modules = compilation
     .chunk_graph
-    .get_chunk_modules_identifier(chunk_ukey)
+    .get_chunk_all_modules_identifier(chunk_ukey)
     .iter()
     .filter_map(|identifier| {
       module_graph
