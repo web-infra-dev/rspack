@@ -95,7 +95,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       }
       let range = param.range();
       let dep = AMDRequireArrayDependency::new(deps, range.into());
-      parser.presentational_dependencies.push(Box::new(dep));
+      parser.add_presentational_dependency(Box::new(dep));
       return Some(true);
     }
     None
@@ -129,21 +129,21 @@ impl AMDRequireDependenciesBlockParserPlugin {
           RuntimeGlobals::REQUIRE.name().into(),
           Some(RuntimeGlobals::REQUIRE),
         ));
-        parser.presentational_dependencies.push(dep);
+        parser.add_presentational_dependency(dep);
       } else if param_str == "module" {
         let dep = Box::new(ConstDependency::new(
           range.into(),
           "module".into(),
           Some(RuntimeGlobals::MODULE),
         ));
-        parser.presentational_dependencies.push(dep);
+        parser.add_presentational_dependency(dep);
       } else if param_str == "exports" {
         let dep = Box::new(ConstDependency::new(
           range.into(),
           "exports".into(),
           Some(RuntimeGlobals::EXPORTS),
         ));
-        parser.presentational_dependencies.push(dep);
+        parser.add_presentational_dependency(dep);
       } else if let Some(local_module) = parser.get_local_module_mut(param_str) {
         local_module.flag_used();
         let dep = Box::new(LocalModuleDependency::new(
@@ -151,7 +151,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
           Some(range.into()),
           false,
         ));
-        parser.presentational_dependencies.push(dep);
+        parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
         let mut dep = Box::new(AMDRequireItemDependency::new(
@@ -322,7 +322,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
           block_deps,
           self.process_array_for_request_string(&param),
         ));
-        parser.blocks.push(dep_block);
+        parser.add_block(dep_block);
         return Some(true);
       } else {
         return None;
@@ -342,7 +342,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
           "unsupported".into(),
           call_expr.span.into(),
         ));
-        parser.presentational_dependencies.push(dep);
+        parser.add_presentational_dependency(dep);
         let mut error: Error = create_traceable_error(
           "UnsupportedFeatureWarning".into(),
           "Cannot statically analyse 'require(…, …)'".into(),
@@ -351,7 +351,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         );
         error.severity = Severity::Warning;
         error.hide_stack = Some(true);
-        parser.warning_diagnostics.push(error.into());
+        parser.add_warning(error.into());
         return Some(true);
       }
 
@@ -370,7 +370,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         block_deps,
         self.process_array_for_request_string(&param),
       ));
-      parser.blocks.push(dep_block);
+      parser.add_block(dep_block);
 
       return Some(true);
     }

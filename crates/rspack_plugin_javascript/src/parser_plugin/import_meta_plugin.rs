@@ -123,31 +123,25 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          unary_expr.span().into(),
-          "'object'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        unary_expr.span().into(),
+        "'object'".into(),
+        None,
+      )));
       Some(true)
     } else if for_name == expr_name::IMPORT_META_URL {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          unary_expr.span().into(),
-          "'string'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        unary_expr.span().into(),
+        "'string'".into(),
+        None,
+      )));
       Some(true)
     } else if for_name == expr_name::IMPORT_META_WEBPACK {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          unary_expr.span().into(),
-          "'number'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        unary_expr.span().into(),
+        "'number'".into(),
+        None,
+      )));
       Some(true)
     } else {
       None
@@ -192,13 +186,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
             ));
           }
         }
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            span.into(),
-            format!("({{{}}})", content.join(",")).into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          span.into(),
+          format!("({{{}}})", content.join(",")).into(),
+          None,
+        )));
         Some(true)
       } else {
         // import.meta
@@ -210,20 +202,18 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           span.into()
         );
         error.severity = Severity::Warning;
-        parser.warning_diagnostics.push(error.into());
+        parser.add_warning(error.into());
 
         let content = if parser.is_asi_position(span.lo()) {
           ";({})"
         } else {
           "({})"
         };
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            span.into(),
-            content.into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          span.into(),
+          content.into(),
+          None,
+        )));
         Some(true)
       }
     } else {
@@ -239,23 +229,19 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_URL {
       // import.meta.url
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          member_expr.span().into(),
-          format!("'{}'", self.import_meta_url(parser)).into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        member_expr.span().into(),
+        format!("'{}'", self.import_meta_url(parser)).into(),
+        None,
+      )));
       Some(true)
     } else if for_name == expr_name::IMPORT_META_WEBPACK {
       // import.meta.webpack
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          member_expr.span().into(),
-          self.import_meta_webpack_version().into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        member_expr.span().into(),
+        self.import_meta_webpack_version().into(),
+        None,
+      )));
       Some(true)
     } else {
       None
@@ -301,7 +287,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
             ConstDependency::new(expr.span().into(), "undefined".into(), None)
           };
 
-          parser.presentational_dependencies.push(Box::new(dep));
+          parser.add_presentational_dependency(Box::new(dep));
           return Some(true);
         }
       }
@@ -325,13 +311,11 @@ impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
     if import_meta_name == expr_name::IMPORT_META {
       None
     } else if root_name == expr_name::IMPORT_META {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          span.into(),
-          import_meta_name.into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        span.into(),
+        import_meta_name.into(),
+        None,
+      )));
       Some(true)
     } else {
       None

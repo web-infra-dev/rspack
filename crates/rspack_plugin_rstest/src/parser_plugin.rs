@@ -88,23 +88,19 @@ impl RstestParserPlugin {
             parser.in_try,
             Some(parser.source_map.clone()),
           );
-          parser.dependencies.push(Box::new(dep));
+          parser.add_dependency(Box::new(dep));
 
           let range: DependencyRange = call_expr.callee.span().into();
-          parser
-            .presentational_dependencies
-            .push(Box::new(RequireHeaderDependency::new(
-              range,
-              Some(parser.source_map.clone()),
-            )));
+          parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
+            range,
+            Some(parser.source_map.clone()),
+          )));
 
-          parser
-            .presentational_dependencies
-            .push(Box::new(ConstDependency::new(
-              range,
-              ".rstest_require_actual".into(),
-              None,
-            )));
+          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+            range,
+            ".rstest_require_actual".into(),
+            None,
+          )));
 
           return Some(true);
         }
@@ -155,7 +151,7 @@ impl RstestParserPlugin {
             Some(lit.value.to_string()),
           );
 
-          parser.blocks.push(Box::new(block));
+          parser.add_block(Box::new(block));
           return Some(true);
         }
       }
@@ -265,37 +261,33 @@ impl RstestParserPlugin {
               },
               if has_b { Some(", ".to_string()) } else { None },
             );
-            parser.dependencies.push(Box::new(dep));
+            parser.add_dependency(Box::new(dep));
 
-            parser
-              .presentational_dependencies
-              .push(Box::new(MockMethodDependency::new(
-                call_expr.span(),
-                call_expr.callee.span(),
-                lit_str,
-                hoist,
-                method,
-              )));
+            parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
+              call_expr.span(),
+              call_expr.callee.span(),
+              lit_str,
+              hoist,
+              method,
+            )));
 
             if has_b {
               let second_arg = Span::new(
                 first_arg.span().hi() + swc_core::common::BytePos(0),
                 first_arg.span().hi() + swc_core::common::BytePos(0),
               );
-              parser
-                .dependencies
-                .push(Box::new(MockModuleIdDependency::new(
-                  mocked_target.to_string(),
-                  second_arg.into(),
-                  false,
-                  true,
-                  if is_esm {
-                    rspack_core::DependencyCategory::Esm
-                  } else {
-                    rspack_core::DependencyCategory::CommonJS
-                  },
-                  None,
-                )));
+              parser.add_dependency(Box::new(MockModuleIdDependency::new(
+                mocked_target.to_string(),
+                second_arg.into(),
+                false,
+                true,
+                if is_esm {
+                  rspack_core::DependencyCategory::Esm
+                } else {
+                  rspack_core::DependencyCategory::CommonJS
+                },
+                None,
+              )));
             }
           }
         }
@@ -329,16 +321,14 @@ impl RstestParserPlugin {
             None,
           );
 
-          parser
-            .presentational_dependencies
-            .push(Box::new(MockMethodDependency::new(
-              call_expr.span(),
-              call_expr.callee.span(),
-              lit_str,
-              hoist,
-              method,
-            )));
-          parser.dependencies.push(Box::new(module_dep));
+          parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
+            call_expr.span(),
+            call_expr.callee.span(),
+            lit_str,
+            hoist,
+            method,
+          )));
+          parser.add_dependency(Box::new(module_dep));
         } else {
           panic!("`rs.mock` function expects a string literal as the first argument");
         }
@@ -352,15 +342,13 @@ impl RstestParserPlugin {
   fn hoisted(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
     match call_expr.args.len() {
       1 => {
-        parser
-          .presentational_dependencies
-          .push(Box::new(MockMethodDependency::new(
-            call_expr.span(),
-            call_expr.callee.span(),
-            call_expr.span().real_lo().to_string(),
-            true,
-            MockMethod::Hoisted,
-          )));
+        parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
+          call_expr.span(),
+          call_expr.callee.span(),
+          call_expr.span().real_lo().to_string(),
+          true,
+          MockMethod::Hoisted,
+        )));
       }
       _ => {
         panic!("`rs.hoisted` function expects 1 argument, got more than 1");
@@ -371,13 +359,11 @@ impl RstestParserPlugin {
   fn reset_modules(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
     match call_expr.args.len() {
       0 => {
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            call_expr.callee.span().into(),
-            "__webpack_require__.rstest_reset_modules".into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          call_expr.callee.span().into(),
+          "__webpack_require__.rstest_reset_modules".into(),
+          None,
+        )));
         Some(true)
       }
       _ => {
@@ -426,7 +412,7 @@ impl RstestParserPlugin {
                   Some(mocked_target.to_string()),
                 );
 
-                parser.blocks.push(Box::new(block));
+                parser.add_block(Box::new(block));
 
                 return Some(true);
               } else {
@@ -439,14 +425,12 @@ impl RstestParserPlugin {
                 );
 
                 let range: DependencyRange = call_expr.callee.span().into();
-                parser
-                  .presentational_dependencies
-                  .push(Box::new(RequireHeaderDependency::new(
-                    range,
-                    Some(parser.source_map.clone()),
-                  )));
+                parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
+                  range,
+                  Some(parser.source_map.clone()),
+                )));
 
-                parser.dependencies.push(Box::new(dep));
+                parser.add_dependency(Box::new(dep));
                 return Some(true);
               }
             }
@@ -642,15 +626,15 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     if self.module_path_name {
       match for_name {
         DIR_NAME => {
-          parser
-            .presentational_dependencies
-            .push(Box::new(ModulePathNameDependency::new(NameType::DirName)));
+          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
+            NameType::DirName,
+          )));
           return Some(true);
         }
         FILE_NAME => {
-          parser
-            .presentational_dependencies
-            .push(Box::new(ModulePathNameDependency::new(NameType::FileName)));
+          parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
+            NameType::FileName,
+          )));
           return Some(true);
         }
         _ => return None,
@@ -713,13 +697,11 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   ) -> Option<bool> {
     if self.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME || for_name == IMPORT_META_FILENAME {
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            unary_expr.span().into(),
-            "'string'".into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          unary_expr.span().into(),
+          "'string'".into(),
+          None,
+        )));
         return Some(true);
       } else {
         return None;
@@ -738,23 +720,19 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     if self.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME {
         let result = self.process_import_meta(parser, ModulePathType::DirName);
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            member_expr.span().into(),
-            result.into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          result.into(),
+          None,
+        )));
         return Some(true);
       } else if for_name == IMPORT_META_FILENAME {
         let result = self.process_import_meta(parser, ModulePathType::FileName);
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            member_expr.span().into(),
-            result.into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          result.into(),
+          None,
+        )));
         return Some(true);
       } else {
         return None;

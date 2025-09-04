@@ -43,13 +43,11 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     (for_name == "require.ensure").then(|| {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span().into(),
-          "'function'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        expr.span().into(),
+        "'function'".into(),
+        None,
+      )));
       true
     })
   }
@@ -125,22 +123,21 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     if failed {
       return None;
     }
-    let old_deps = std::mem::take(&mut parser.dependencies);
-
-    if let Some(success_expr) = &success_expr {
-      match success_expr.func {
-        Either::Left(func) => {
-          if let Some(body) = &func.function.body {
-            parser.walk_statement(Statement::Block(body));
+    deps.extend(parser.collect_dependencies_for_block(|parser| {
+      if let Some(success_expr) = &success_expr {
+        match success_expr.func {
+          Either::Left(func) => {
+            if let Some(body) = &func.function.body {
+              parser.walk_statement(Statement::Block(body));
+            }
           }
+          Either::Right(arrow) => match &*arrow.body {
+            BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
+            BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
+          },
         }
-        Either::Right(arrow) => match &*arrow.body {
-          BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
-          BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
-        },
       }
-    }
-    deps.extend(std::mem::replace(&mut parser.dependencies, old_deps));
+    }));
 
     let source_map: SharedSourceMap = parser.source_map.clone();
     let mut block = AsyncDependenciesBlock::new(
@@ -153,7 +150,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));
-    parser.blocks.push(Box::new(block));
+    parser.add_block(Box::new(block));
 
     if success_expr.is_none() {
       parser.walk_expression(success_arg);

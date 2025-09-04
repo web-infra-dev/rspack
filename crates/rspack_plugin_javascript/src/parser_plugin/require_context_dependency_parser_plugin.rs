@@ -71,29 +71,27 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       }
 
       let reg_exp = clean_regexp_in_context_module(reg_exp, reg_exp_span, parser);
-      parser
-        .dependencies
-        .push(Box::new(RequireContextDependency::new(
-          ContextOptions {
-            mode,
-            recursive,
-            reg_exp,
-            include: None,
-            exclude: None,
-            category: DependencyCategory::CommonJS,
-            request: request_expr.string().to_string(),
-            context: request_expr.string().to_string(),
-            namespace_object: rspack_core::ContextNameSpaceObject::Unset,
-            group_options: None,
-            replaces: Vec::new(),
-            start: expr.span().real_lo(),
-            end: expr.span().real_hi(),
-            referenced_exports: None,
-            attributes: None,
-          },
-          expr.span.into(),
-          parser.in_try,
-        )));
+      parser.add_dependency(Box::new(RequireContextDependency::new(
+        ContextOptions {
+          mode,
+          recursive,
+          reg_exp,
+          include: None,
+          exclude: None,
+          category: DependencyCategory::CommonJS,
+          request: request_expr.string().to_string(),
+          context: request_expr.string().to_string(),
+          namespace_object: rspack_core::ContextNameSpaceObject::Unset,
+          group_options: None,
+          replaces: Vec::new(),
+          start: expr.span().real_lo(),
+          end: expr.span().real_hi(),
+          referenced_exports: None,
+          attributes: None,
+        },
+        expr.span.into(),
+        parser.in_try,
+      )));
       return Some(true);
     }
 

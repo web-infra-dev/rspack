@@ -52,13 +52,11 @@ fn extract_deps(
 impl JavascriptParser<'_> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
-    self
-      .presentational_dependencies
-      .push(Box::new(ModuleArgumentDependency::new(
-        Some("hot".into()),
-        span.into(),
-        Some(self.source_map.clone()),
-      )));
+    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+      Some("hot".into()),
+      span.into(),
+      Some(self.source_map.clone()),
+    )));
   }
 
   fn create_accept_handler(
@@ -67,13 +65,11 @@ impl JavascriptParser<'_> {
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
-    self
-      .presentational_dependencies
-      .push(Box::new(ModuleArgumentDependency::new(
-        Some("hot.accept".into()),
-        call_expr.callee.span().into(),
-        Some(self.source_map.clone()),
-      )));
+    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+      Some("hot.accept".into()),
+      call_expr.callee.span().into(),
+      Some(self.source_map.clone()),
+    )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     if !dependencies.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
@@ -83,15 +79,13 @@ impl JavascriptParser<'_> {
       } else {
         DependencyRange::new(call_expr.span().real_hi() - 1, 0)
       };
-      self
-        .presentational_dependencies
-        .push(Box::new(ESMAcceptDependency::new(
-          range,
-          callback_arg.is_some(),
-          dependency_ids,
-          Some(self.source_map.clone()),
-        )));
-      self.dependencies.extend(dependencies);
+      self.add_presentational_dependency(Box::new(ESMAcceptDependency::new(
+        range,
+        callback_arg.is_some(),
+        dependency_ids,
+        Some(self.source_map.clone()),
+      )));
+      self.add_dependencies(dependencies);
       for arg in call_expr.args.iter().skip(1) {
         self.walk_expression(&arg.expr);
       }
@@ -107,15 +101,13 @@ impl JavascriptParser<'_> {
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
-    self
-      .presentational_dependencies
-      .push(Box::new(ModuleArgumentDependency::new(
-        Some("hot.decline".into()),
-        call_expr.callee.span().into(),
-        Some(self.source_map.clone()),
-      )));
+    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+      Some("hot.decline".into()),
+      call_expr.callee.span().into(),
+      Some(self.source_map.clone()),
+    )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
-    self.dependencies.extend(dependencies);
+    self.add_dependencies(dependencies);
     Some(true)
   }
 }

@@ -32,7 +32,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
         members.iter().take(len - 1).cloned().collect::<Vec<_>>(),
         prop,
       ));
-      parser.presentational_dependencies.push(dep);
+      parser.add_presentational_dependency(dep);
       Some(true)
     } else {
       None
@@ -47,7 +47,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
   ) -> Option<bool> {
     if for_name == WEBPACK_EXPORTS_INFO {
       let dep = Box::new(ConstDependency::new(expr.span.into(), "true".into(), None));
-      parser.presentational_dependencies.push(dep);
+      parser.add_presentational_dependency(dep);
       Some(true)
     } else {
       None

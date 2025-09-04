@@ -73,15 +73,5 @@ pub fn scan_dependencies(
   );
 
   parser.walk_program(program.get_inner_program());
-
-  if parser.errors.is_empty() {
-    Ok(ScanDependenciesResult {
-      dependencies: parser.dependencies,
-      blocks: parser.blocks,
-      presentational_dependencies: parser.presentational_dependencies,
-      warning_diagnostics: parser.warning_diagnostics,
-    })
-  } else {
-    Err(parser.errors)
-  }
+  parser.into_results()
 }

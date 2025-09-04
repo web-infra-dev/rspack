@@ -136,15 +136,13 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     } else if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       debug_assert!(!parser.in_short_hand);
-      parser
-        .presentational_dependencies
-        .push(Box::new(gen_const_dep(
-          parser,
-          Cow::Borrowed(r#""object""#),
-          for_name,
-          expr.span.real_lo(),
-          expr.span.real_hi(),
-        )));
+      parser.add_presentational_dependency(Box::new(gen_const_dep(
+        parser,
+        Cow::Borrowed(r#""object""#),
+        for_name,
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      )));
       return Some(true);
     }
     None

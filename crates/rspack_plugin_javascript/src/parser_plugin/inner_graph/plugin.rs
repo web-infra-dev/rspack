@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_core::{Dependency, UsedByExports};
+use rspack_core::UsedByExports;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
@@ -142,7 +142,7 @@ impl InnerGraphPlugin {
                 *parser.module_identifier,
               );
               dep.set_used_by_exports(used_by_exports);
-              parser.dependencies.push(Box::new(dep));
+              parser.add_dependency(Box::new(dep));
             }
           }),
         );
@@ -553,7 +553,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 *parser.module_identifier,
               );
               dep.set_used_by_exports(used_by_exports);
-              parser.dependencies.push(Box::new(dep));
+              parser.add_dependency(Box::new(dep));
             }
           }),
         );
@@ -602,7 +602,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
             let mut dep =
               PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
             dep.set_used_by_exports(used_by_exports);
-            parser.dependencies.push(Box::new(dep));
+            parser.add_dependency(Box::new(dep));
           }
         }),
       );
@@ -659,7 +659,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 let mut dep =
                   PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
-                parser.dependencies.push(Box::new(dep));
+                parser.add_dependency(Box::new(dep));
               }
             }),
           );
@@ -704,7 +704,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 let mut dep =
                   PureExpressionDependency::new(super_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
-                parser.dependencies.push(Box::new(dep));
+                parser.add_dependency(Box::new(dep));
               }
             }),
           );
@@ -719,7 +719,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 let mut dep =
                   PureExpressionDependency::new(init_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
-                parser.dependencies.push(Box::new(dep));
+                parser.add_dependency(Box::new(dep));
               }
             }),
           );

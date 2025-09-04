@@ -187,16 +187,14 @@ fn handle_assign_export(
     // module.exports.aaa = require('xx');
     // this.aaa = require('xx');
     let range: DependencyRange = assign_expr.span.into();
-    parser
-      .dependencies
-      .push(Box::new(CommonJsExportRequireDependency::new(
-        arg.string().to_string(),
-        parser.in_try,
-        range,
-        base,
-        remaining.to_vec(),
-        !parser.is_statement_level_expression(assign_expr.span()),
-      )));
+    parser.add_dependency(Box::new(CommonJsExportRequireDependency::new(
+      arg.string().to_string(),
+      parser.in_try,
+      range,
+      base,
+      remaining.to_vec(),
+      !parser.is_statement_level_expression(assign_expr.span()),
+    )));
     return Some(true);
   }
 
@@ -222,14 +220,12 @@ fn handle_assign_export(
   // exports.a = 1;
   // module.exports.a = 1;
   // this.a = 1;
-  parser
-    .dependencies
-    .push(Box::new(CommonJsExportsDependency::new(
-      assign_expr.left.span().into(),
-      None,
-      base,
-      remaining.to_owned(),
-    )));
+  parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+    assign_expr.left.span().into(),
+    None,
+    base,
+    remaining.to_owned(),
+  )));
   parser.walk_expression(&assign_expr.right);
   Some(true)
 }
@@ -247,14 +243,12 @@ fn handle_access_export(
   if remaining.is_empty() {
     parser.bailout();
   }
-  parser
-    .dependencies
-    .push(Box::new(CommonJsSelfReferenceDependency::new(
-      expr_span.into(),
-      base,
-      remaining.to_vec(),
-      true,
-    )));
+  parser.add_dependency(Box::new(CommonJsSelfReferenceDependency::new(
+    expr_span.into(),
+    base,
+    remaining.to_vec(),
+    true,
+  )));
   if let Some(call_args) = call_args {
     parser.walk_expr_or_spread(call_args);
   }
@@ -337,14 +331,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           get_value_of_property_description(arg2),
         );
       }
-      parser
-        .dependencies
-        .push(Box::new(CommonJsExportsDependency::new(
-          call_expr.span.into(),
-          Some(arg2.span().into()),
-          base,
-          vec![property.into()],
-        )));
+      parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+        call_expr.span.into(),
+        Some(arg2.span().into()),
+        base,
+        vec![property.into()],
+      )));
 
       parser.walk_expression(arg2);
       return Some(true);
@@ -366,12 +358,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         RuntimeGlobals::NODE_MODULE_DECORATOR
       };
       parser.bailout();
-      parser
-        .dependencies
-        .push(Box::new(ModuleDecoratorDependency::new(
-          decorator,
-          !parser.is_esm,
-        )));
+      parser.add_dependency(Box::new(ModuleDecoratorDependency::new(
+        decorator,
+        !parser.is_esm,
+      )));
       return Some(true);
     }
 

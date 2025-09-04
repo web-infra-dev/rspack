@@ -12,14 +12,11 @@ impl JavascriptParserPlugin for ESMTopLevelThisParserPlugin {
     expr: &swc_core::ecma::ast::ThisExpr,
   ) -> Option<bool> {
     (parser.is_esm && parser.is_top_level_this()).then(|| {
-      // TODO: esm_export::is_enabled
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span.into(),
-          "undefined".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        expr.span.into(),
+        "undefined".into(),
+        None,
+      )));
       true
     })
   }
