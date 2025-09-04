@@ -310,7 +310,7 @@ Object {
       isOverSizeLimit: false,
       name: main.js,
       related: Array [],
-      size: 412,
+      size: 414,
       type: asset,
     },
   ],
@@ -698,10 +698,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 412,
+          size: 414,
         },
       ],
-      assetsSize: 412,
+      assetsSize: 414,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},
@@ -1455,10 +1455,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 412,
+          size: 414,
         },
       ],
-      assetsSize: 412,
+      assetsSize: 414,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},
