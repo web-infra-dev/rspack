@@ -720,4 +720,16 @@ export interface WatchFileSystem {
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
 	): Watcher;
+	once?(
+		event: "change",
+		listener: (filepath: string, mtime: number) => void
+	): this;
+	once?(event: "remove", listener: (filepath: string) => void): this;
+	on?(
+		event: "change",
+		listener: (filepath: string, mtime: number) => void
+	): this;
+	on?(event: "remove", listener: (filepath: string) => void): this;
+	emit?(event: "change", filepath: string, mtime: number): boolean;
+	emit?(event: "remove", filepath: string): boolean;
 }

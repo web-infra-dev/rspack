@@ -8,15 +8,21 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import type EventEmitter from "node:events";
 import util from "node:util";
 import type Watchpack from "watchpack";
-
 import type {
 	FileSystemInfoEntry,
 	InputFileSystem,
 	Watcher,
 	WatchFileSystem
 } from "../util/fs";
+
+interface WatchpackWatcher extends EventEmitter {
+	path: string;
+}
+
+type WatchpackWatchers = Map<string, { watcher: WatchpackWatcher }>;
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
 	inputFileSystem: InputFileSystem;
@@ -192,5 +198,81 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				};
 			}
 		};
+	}
+
+	once(
+		event: "change",
+		listener: (filepath: string, mtime: number) => void
+	): this;
+	once(event: "remove", listener: (filepath: string) => void): this;
+	once(
+		event: "change" | "remove",
+		listener:
+			| ((filepath: string, mtime: number) => void)
+			| ((filepath: string) => void)
+	): this {
+		if (event === "change") {
+			this.watcher?.once(
+				event,
+				(filepath: string, modifiedTime: number, _explanation: string) => {
+					listener(filepath, modifiedTime);
+				}
+			);
+		} else {
+			this.watcher?.once(event, (filepath: string, _explanation: string) => {
+				(listener as (filepath: string) => void)(filepath);
+			});
+		}
+		return this;
+	}
+	on(
+		event: "change",
+		listener: (filepath: string, mtime: number) => void
+	): this;
+	on(event: "remove", listener: (filepath: string) => void): this;
+	on(
+		event: "change" | "remove",
+		listener:
+			| ((filepath: string, mtime: number) => void)
+			| ((filepath: string) => void)
+	): this {
+		if (event === "change") {
+			this.watcher?.on(
+				event,
+				(filepath: string, modifiedTime: number, _explanation: string) => {
+					listener(filepath, modifiedTime);
+				}
+			);
+		} else {
+			this.watcher?.on(event, (filepath: string, _explanation: string) => {
+				(listener as (filepath: string) => void)(filepath);
+			});
+		}
+		return this;
+	}
+
+	emit(event: "change", filename: string, mtime: number): boolean;
+	emit(event: "remove", filename: string): boolean;
+	emit(event: "change" | "remove", filename: string, mtime?: number): boolean {
+		const fileWatchers = this.watcher?.fileWatchers as unknown as
+			| WatchpackWatchers
+			| undefined;
+		const dirWatchers = this.watcher?.dirWatchers as unknown as
+			| WatchpackWatchers
+			| undefined;
+
+		const fileWatcher = fileWatchers?.get(filename);
+		let r1 = false;
+		if (fileWatcher) {
+			r1 = fileWatcher.watcher.emit(event, filename, mtime);
+		}
+		const dirWatcher = dirWatchers?.get(filename);
+
+		let r2 = false;
+		if (dirWatcher) {
+			r2 = dirWatcher.watcher.emit(event, filename, mtime);
+		}
+
+		return r1 || r2;
 	}
 }

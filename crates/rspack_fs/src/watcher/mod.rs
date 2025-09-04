@@ -6,7 +6,7 @@ mod paths;
 mod scanner;
 mod trigger;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::SystemTime};
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
@@ -61,12 +61,16 @@ pub trait EventAggregateHandler {
 /// It provides methods to handle changes and deletions of files.
 pub trait EventHandler {
   /// Handle a change in a file.
-  fn on_change(&self, _changed_file: String) -> rspack_error::Result<()> {
+  fn on_change(
+    &self,
+    _changed_file: String,
+    _mtime: Option<SystemTime>,
+  ) -> rspack_error::Result<()> {
     Ok(())
   }
 
   /// Handle a deletion of a file.
-  fn on_delete(&self, _deleted_file: String) -> rspack_error::Result<()> {
+  fn on_remove(&self, _removed_file: String) -> rspack_error::Result<()> {
     Ok(())
   }
 }
