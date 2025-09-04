@@ -3,7 +3,7 @@ use std::hash::BuildHasherDefault;
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec, Skip},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -54,8 +54,7 @@ pub struct ESMExportImportedSpecifierDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
 }
@@ -75,6 +74,7 @@ impl ESMExportImportedSpecifierDependency {
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -86,7 +86,7 @@ impl ESMExportImportedSpecifierDependency {
       range,
       export_presence_mode,
       attributes,
-      source_map,
+      loc,
       factorize_info: Default::default(),
       lazy_make: false,
     }
@@ -1063,7 +1063,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn range(&self) -> Option<DependencyRange> {
