@@ -1,9 +1,11 @@
 use std::{
+  alloc::System,
   boxed::Box,
   path::{Path, PathBuf},
+  time::SystemTime,
 };
 
-use napi::bindgen_prelude::*;
+use napi::{JsUndefined, bindgen_prelude::*};
 use napi_derive::*;
 use rspack_fs::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
 use rspack_paths::ArcPath;
@@ -78,7 +80,8 @@ impl NativeWatcher {
     missing: (Vec<String>, Vec<String>),
     #[napi(ts_arg_type = "(err: Error | null, result: NativeWatchResult) => void")]
     callback: Function<'static>,
-    #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: Function<'static>,
+    #[napi(ts_arg_type = "(type: 'change' | 'remove', path: string, mtime?: number) => void")]
+    callback_undelayed: Function<'static>,
     env: Env,
   ) -> napi::Result<()> {
     if self.closed {
@@ -216,9 +219,9 @@ impl rspack_fs::EventAggregateHandler for JsEventHandler {
 
 struct JsEventHandlerUndelayed {
   inner: napi::threadsafe_function::ThreadsafeFunction<
-    String,
+    (String, String, Option<u64>),
     napi::Unknown<'static>,
-    String,
+    (String, String, Option<u64>),
     Status,
     false,
     false,
@@ -229,7 +232,7 @@ struct JsEventHandlerUndelayed {
 impl JsEventHandlerUndelayed {
   fn new(callback: Function<'static>) -> napi::Result<Self> {
     let callback = callback
-      .build_threadsafe_function::<String>()
+      .build_threadsafe_function::<(String, String, Option<u64>)>()
       .weak::<false>()
       .max_queue_size::<1>()
       .build_callback(
@@ -241,9 +244,20 @@ impl JsEventHandlerUndelayed {
 }
 
 impl rspack_fs::EventHandler for JsEventHandlerUndelayed {
-  fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
+  fn on_change(&self, changed_file: String, mtime: Option<SystemTime>) -> rspack_error::Result<()> {
+    let mtime = mtime
+      .and_then(|m| m.duration_since(SystemTime::UNIX_EPOCH).ok())
+      .map(|d| d.as_millis() as u64);
     self.inner.call(
-      changed_file,
+      ("change".to_string(), changed_file, mtime).into(),
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+    Ok(())
+  }
+
+  fn on_remove(&self, _removed_file: String) -> rspack_error::Result<()> {
+    self.inner.call(
+      ("remove".to_string(), _removed_file, None).into(),
       napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
     );
     Ok(())

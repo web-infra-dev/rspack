@@ -206,12 +206,12 @@ fn create_execute_task(
             let path = event.path.to_string_lossy().to_string();
             match event.kind {
               super::FsEventKind::Change | super::FsEventKind::Create => {
-                if event_handler.on_change(path).is_err() {
+                if event_handler.on_change(path, None).is_err() {
                   break;
                 }
               }
               super::FsEventKind::Remove => {
-                if event_handler.on_delete(path).is_err() {
+                if event_handler.on_remove(path).is_err() {
                   break;
                 }
               }

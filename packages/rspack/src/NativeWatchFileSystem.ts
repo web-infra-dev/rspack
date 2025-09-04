@@ -1,4 +1,5 @@
 import binding from "@rspack/binding";
+import { EventEmitter } from "stream";
 import type Watchpack from "watchpack";
 import type {
 	FileSystemInfoEntry,
@@ -40,6 +41,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 	#inner: binding.NativeWatcher | undefined;
 	#isFirstWatch = true;
 	#inputFileSystem: InputFileSystem;
+	#emitter = new EventEmitter();
 
 	constructor(inputFileSystem: InputFileSystem) {
 		this.#inputFileSystem = inputFileSystem;
@@ -128,9 +130,19 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 					new Set(removedFiles)
 				);
 			},
-			(fileName: string) => {
-				// TODO: add real change time
-				callbackUndelayed(fileName, Date.now());
+			(type: "change" | "remove", fileName: string, mtime?: number) => {
+				// FIXME: napi-rs will pass all arguments as array
+				// @ts-ignore
+				console.log("NativeWatchFileSystem event", type, fileName, mtime);
+				if (type === "change") {
+					const modifiedTime = mtime || Date.now();
+					callbackUndelayed(fileName, modifiedTime);
+					this.#emitter.emit("change", fileName, modifiedTime);
+				}
+
+				if (type === "remove") {
+					this.#emitter.emit("remove", fileName);
+				}
 			}
 		);
 
@@ -204,5 +216,48 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 				Array.from(dependencies.removed ?? [])
 			];
 		}
+	}
+
+	once(
+		event: "change",
+		listener: (filepath: string, mtime: number) => void
+	): this;
+	once(event: "remove", listener: (filepath: string) => void): this;
+	once(
+		event: "change" | "remove",
+		listener:
+			| ((filepath: string, mtime: number) => void)
+			| ((filepath: string) => void)
+	): this {
+		this.#emitter.once(event, listener);
+		return this;
+	}
+	on(
+		event: "change",
+		listener: (filepath: string, mtime: number) => void
+	): this;
+	on(event: "remove", listener: (filepath: string) => void): this;
+	on(
+		event: "change" | "remove",
+		listener:
+			| ((filepath: string, mtime: number) => void)
+			| ((filepath: string) => void)
+	): this {
+		this.#emitter.on(event, listener);
+		return this;
+	}
+
+	emit(event: "change", filename: string, mtime: number): boolean;
+	emit(event: "remove", filename: string): boolean;
+	emit(event: "change" | "remove", filename: string, _mtime?: number): boolean {
+		if (event === "change") {
+			return this.#inner?.triggerEvent("change", filename) ?? false;
+		}
+
+		if (event === "remove") {
+			return this.#inner?.triggerEvent("remove", filename) ?? false;
+		}
+
+		return false;
 	}
 }
