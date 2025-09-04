@@ -8987,6 +8987,18 @@ type WatchFiles = {
 // @public (undocumented)
 interface WatchFileSystem {
     // (undocumented)
+    emit?(event: 'change', filepath: string, mtime: number): boolean;
+    // (undocumented)
+    emit?(event: 'remove', filepath: string): boolean;
+    // (undocumented)
+    on?(event: 'change', listener: (filepath: string, mtime: number) => void): this;
+    // (undocumented)
+    on?(event: 'remove', listener: (filepath: string) => void): this;
+    // (undocumented)
+    once?(event: 'change', listener: (filepath: string, mtime: number) => void): this;
+    // (undocumented)
+    once?(event: 'remove', listener: (filepath: string) => void): this;
+    // (undocumented)
     watch(files: Iterable<string> & {
         added?: Iterable<String>;
         removed?: Iterable<String>;
