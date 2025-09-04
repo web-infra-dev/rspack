@@ -977,8 +977,8 @@ impl ChunkGraph {
     self.runtime_ids.insert(runtime, id);
   }
 
-  pub fn get_runtime_id(&self, runtime: String) -> Option<String> {
-    self.runtime_ids.get(&runtime).and_then(|v| v.to_owned())
+  pub fn get_runtime_id(&self, runtime: &str) -> Option<String> {
+    self.runtime_ids.get(runtime).and_then(|v| v.to_owned())
   }
 
   pub fn set_chunk_modules_source_types(
