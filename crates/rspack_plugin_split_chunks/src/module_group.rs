@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use derive_more::Debug;
 use itertools::Itertools;
 use rspack_collections::{IdentifierSet, UkeySet};
@@ -8,6 +10,25 @@ use crate::{
   CacheGroup,
   common::{ModuleSizes, SplitChunkSizes},
 };
+
+pub(crate) struct IndexedCacheGroup<'a> {
+  pub cache_group_index: usize,
+  pub cache_group: &'a CacheGroup,
+}
+
+impl<'a> IndexedCacheGroup<'a> {
+  pub fn compare_by_priority(&self, other: &Self) -> Ordering {
+    self
+      .cache_group
+      .priority
+      .partial_cmp(&other.cache_group.priority)
+      .unwrap_or(Ordering::Equal)
+  }
+
+  pub fn compare_by_index(&self, other: &Self) -> Ordering {
+    self.cache_group_index.cmp(&other.cache_group_index)
+  }
+}
 
 /// `ModuleGroup` is a abstraction of middle step for splitting chunks.
 ///
@@ -23,7 +44,6 @@ pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
   /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
   pub cache_group_index: usize,
-  pub cache_group_priority: f64,
   pub cache_group_reuse_existing_chunk: bool,
   /// If the `ModuleGroup` is going to create a chunk, which will be named using `chunk_name`
   /// A module
@@ -48,7 +68,6 @@ impl ModuleGroup {
     Self {
       modules: Default::default(),
       cache_group_index,
-      cache_group_priority: cache_group.priority,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
       sizes: Default::default(),
       source_types_modules: Default::default(),
@@ -156,10 +175,11 @@ pub(crate) fn compare_entries(
   (b_key, b): (&String, &ModuleGroup),
 ) -> f64 {
   // 1. by priority
-  let diff_priority = a.cache_group_priority - b.cache_group_priority;
-  if diff_priority != 0f64 {
-    return diff_priority;
-  }
+  // no need to compare priority anymore because we already pick all cache groups with same priority
+  // let diff_priority = a.cache_group_priority - b.cache_group_priority;
+  // if diff_priority != 0f64 {
+  //   return diff_priority;
+  // }
   // 2. by number of chunks
   let a_chunks_len = a.chunks.len();
   let b_chunks_len = b.chunks.len();

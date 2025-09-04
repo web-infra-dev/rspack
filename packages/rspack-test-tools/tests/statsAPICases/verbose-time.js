@@ -68,9 +68,9 @@ module.exports = {
 		    optimized 0 connections
 
 		LOG from rspack.SplitChunksPlugin
-		<t> prepare module group map: X ms
-		<t> ensure min size fit: X ms
-		<t> process module group map: X ms
+		<t> prepare module data: X ms
+		<t> prepare cache groups: X ms
+		<t> process cache groups: X ms
 		<t> ensure max size fit: X ms
 
 		LOG from rspack.buildChunkGraph
