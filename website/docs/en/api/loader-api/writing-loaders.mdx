@@ -103,8 +103,7 @@ By exporting `raw: true` in the loader file, a loader can receive the original `
 - CJS:
 
 ```js title="raw-loader.js"
-module.exports = function (source) {
-  // Process binary source
+  // Process binary content
   // Here source is a Buffer instance
   const processed = someBufferOperation(source);
 
