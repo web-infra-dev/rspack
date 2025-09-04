@@ -12,7 +12,7 @@ use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsMap, AsOption, AsPreset, Skip},
+  with::{AsMap, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -139,7 +139,6 @@ pub struct NormalModule {
   debug_id: usize,
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
-  #[cacheable(with=Skip)]
   diagnostics: Vec<Diagnostic>,
 
   code_generation_dependencies: Option<Vec<BoxModuleDependency>>,

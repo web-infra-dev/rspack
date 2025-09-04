@@ -9,7 +9,6 @@ pub struct ModuleGraphModule {
   // edges from module to module
   outgoing_connections: HashSet<DependencyId>,
   // incoming connections will regenerate by persistent cache recovery.
-  // we can cache it after all of module are cacheable
   #[cacheable(with=Skip)]
   incoming_connections: HashSet<DependencyId>,
 

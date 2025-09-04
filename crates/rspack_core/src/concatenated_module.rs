@@ -10,10 +10,7 @@ use dashmap::DashMap;
 use indexmap::IndexMap;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsMap, Skip},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsMap};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
@@ -389,7 +386,6 @@ pub struct ConcatenatedModule {
   dependencies: Vec<DependencyId>,
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
-  #[cacheable(with=Skip)]
   diagnostics: Vec<Diagnostic>,
   build_info: BuildInfo,
 }
