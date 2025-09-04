@@ -291,6 +291,7 @@ fn analyze_comments(
     for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
+        println!("item_name_match: {:?}", item_name);
         let error_span = || {
           captures
             .name("_9")
@@ -467,7 +468,7 @@ fn analyze_comments(
                 WebpackComment::Exports,
                 item_value_match.as_str().trim().to_string(),
               );
-              return;
+              continue;
             } else if let Some(item_value_match) = captures.name("_7")
               && let Some(exports) =
                 item_value_match
@@ -481,7 +482,7 @@ fn analyze_comments(
                   })
             {
               result.insert(WebpackComment::Exports, exports);
-              return;
+              continue;
             }
             add_magic_comment_warning(
               source_file,
