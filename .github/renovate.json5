@@ -33,7 +33,6 @@
 			excludePackageNames: [
 				"ustr",
 				"textwrap",
-				"styled_components",
 				"owo-colors",
 				"miette",
 				"rkyv",
@@ -45,9 +44,7 @@
 		{
 			groupName: "swc",
 			matchManagers: ["cargo"],
-			matchPackagePrefixes: ["swc"],
-			matchPackageNames: ["styled_components"],
-			enabled: false // manually update swc and related crate since it may contain breaking change in minor | patch version
+			matchPackagePrefixes: ["swc"]
 		},
 		{
 			groupName: "napi",
