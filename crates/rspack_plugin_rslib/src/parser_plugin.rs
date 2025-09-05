@@ -1,4 +1,5 @@
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
+use swc_core::ecma::ast::Ident;
 
 #[derive(PartialEq, Debug, Default)]
 pub struct RslibParserPlugin {
@@ -14,6 +15,21 @@ impl RslibParserPlugin {
 }
 
 impl JavascriptParserPlugin for RslibParserPlugin {
+  fn identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _ident: &Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    // Intercept CommonJsExportsParsePlugin, not APIPlugin, but put it here.
+    // crates/rspack_plugin_javascript/src/parser_plugin/common_js_exports_parse_plugin.rs
+    if for_name == "module" {
+      return Some(true);
+    }
+
+    None
+  }
+
   fn member(
     &self,
     _parser: &mut JavascriptParser,
