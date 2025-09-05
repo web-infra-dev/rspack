@@ -697,14 +697,6 @@ impl ChunkGraph {
       ) {
         for connection in module_graph.get_outgoing_connections(&module) {
           // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
-          if set.contains(connection.module_identifier()) {
-            let maybe_transitive = module_graph
-              .dependency_by_id(&connection.dependency_id)
-              .is_some_and(|dep| matches!(dep.dependency_type(), DependencyType::ExtractCSS));
-            if !maybe_transitive {
-              continue;
-            }
-          }
           let active_state = connection.active_state(module_graph, None, module_graph_cache);
           match active_state {
             crate::ConnectionState::Active(false) => {
