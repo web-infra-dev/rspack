@@ -25,7 +25,7 @@ pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
   ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, basic_function,
   concatenated_module::find_new_name,
@@ -579,7 +579,7 @@ impl JsPlugin {
       }
     }
 
-    let chunk_modules: Vec<&Box<dyn Module>> = if let Some(inlined_modules) = inlined_modules {
+    let chunk_modules: Vec<&dyn Module> = if let Some(inlined_modules) = inlined_modules {
       all_modules
         .clone()
         .into_iter()
@@ -674,7 +674,7 @@ impl JsPlugin {
         let Some((mut rendered_module, fragments, additional_fragments)) = render_module(
           compilation,
           chunk_ukey,
-          m,
+          m.as_ref(),
           all_strict,
           false,
           output_path,
@@ -828,7 +828,7 @@ impl JsPlugin {
   #[allow(clippy::too_many_arguments)]
   pub async fn get_renamed_inline_module(
     &self,
-    all_modules: &[&BoxModule],
+    all_modules: &[&dyn Module],
     inlined_modules: &IdentifierLinkedMap<ChunkGroupUkey>,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
@@ -871,7 +871,7 @@ impl JsPlugin {
             render_module(
               compilation,
               chunk_ukey,
-              module,
+              *module,
               all_strict,
               false,
               output_path,

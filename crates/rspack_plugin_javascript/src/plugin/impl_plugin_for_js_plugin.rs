@@ -444,22 +444,20 @@ async fn content_hash(
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
 
   let module_graph = compilation.get_module_graph();
-  let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SourceType::JavaScript,
-    &module_graph,
-  );
+  let mut ordered_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, &module_graph);
   // SAFETY: module identifier is unique
-  ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
+  ordered_modules.sort_unstable();
 
   ordered_modules
     .iter()
-    .map(|mgm| {
+    .map(|mid| {
       (
         compilation
           .code_generation_results
-          .get_hash(&mgm.identifier(), Some(chunk.runtime())),
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, mgm.identifier()),
+          .get_hash(mid, Some(chunk.runtime())),
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *mid),
       )
     })
     .for_each(|(current, id)| {
@@ -620,9 +618,6 @@ fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &Modu
   if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
     true
   } else {
-    chunk_graph
-      .get_chunk_modules_iterable_by_source_type(chunk, SourceType::JavaScript, module_graph)
-      .next()
-      .is_some()
+    chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
   }
 }

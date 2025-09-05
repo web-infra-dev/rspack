@@ -464,12 +464,8 @@ impl CodeSplitter {
     }
     for chunk in compilation.chunk_by_ukey.keys() {
       let mut mask = BigUint::from(0u32);
-      for module in compilation
-        .chunk_graph
-        .get_chunk_modules(chunk, &module_graph)
-      {
-        let module_id = module.identifier();
-        let module_ordinal = self.get_module_ordinal(module_id);
+      for module_id in compilation.chunk_graph.get_chunk_modules_identifier(chunk) {
+        let module_ordinal = self.get_module_ordinal(*module_id);
         mask.set_bit(module_ordinal, true);
       }
       self.mask_by_chunk.insert(*chunk, mask);
@@ -720,10 +716,10 @@ impl CodeSplitter {
             module,
             cache_result: can_rebuild.then(|| CacheResult {
               modules: chunk_graph
-                .get_chunk_modules(&chunk, &module_graph)
-                .into_iter()
-                .map(|m| m.identifier())
-                .collect(),
+                .get_chunk_modules_identifier(&chunk)
+                .iter()
+                .copied()
+                .collect::<Vec<_>>(),
               pre_order_indices: group.module_pre_order_indices.clone(),
               post_order_indices: group.module_post_order_indices.clone(),
               skipped_modules: cgi.skipped_items.clone(),

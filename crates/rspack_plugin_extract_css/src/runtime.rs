@@ -40,11 +40,11 @@ impl CssLoadingRuntimeModule {
     let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
 
     for chunk in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
-      let modules = compilation
-        .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(&chunk, SOURCE_TYPE[0], &module_graph);
-
-      if modules.count() > 0 {
+      if compilation.chunk_graph.has_chunk_module_by_source_type(
+        &chunk,
+        SOURCE_TYPE[0],
+        &module_graph,
+      ) {
         set.insert(chunk);
       }
     }
@@ -74,14 +74,11 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .get_all_async_chunks(&compilation.chunk_group_by_ukey)
         .iter()
         .any(|chunk| {
-          !compilation
-            .chunk_graph
-            .get_chunk_modules_by_source_type(
-              chunk,
-              SOURCE_TYPE[0],
-              &compilation.get_module_graph(),
-            )
-            .is_empty()
+          compilation.chunk_graph.has_chunk_module_by_source_type(
+            chunk,
+            SOURCE_TYPE[0],
+            &compilation.get_module_graph(),
+          )
         })
     };
 
