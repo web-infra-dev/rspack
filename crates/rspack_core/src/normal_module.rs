@@ -12,10 +12,10 @@ use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsMap, AsOption, AsPreset, Skip},
+  with::{AsMap, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
-use rspack_error::{Diagnosable, Diagnostic, DiagnosticExt, NodeError, Result, Severity, error};
+use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
@@ -40,8 +40,7 @@ use crate::{
   Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType,
   OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
-  diagnostics::{CapturedLoaderError, ModuleBuildError},
-  get_context, impl_module_meta_info, module_update_hash,
+  diagnostics::ModuleBuildError, get_context, impl_module_meta_info, module_update_hash,
 };
 
 #[cacheable]
@@ -140,7 +139,6 @@ pub struct NormalModule {
   debug_id: usize,
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
-  #[cacheable(with=Skip)]
   diagnostics: Vec<Diagnostic>,
 
   code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
@@ -292,7 +290,7 @@ impl NormalModule {
     let mut hasher = RspackHash::from(output_options);
     "source".hash(&mut hasher);
     if let Some(error) = self.first_error() {
-      error.message().hash(&mut hasher);
+      error.message.hash(&mut hasher);
     } else if let Some(s) = &self.source {
       s.hash(&mut hasher);
     }
@@ -403,7 +401,7 @@ impl Module for NormalModule {
       current_loader: Default::default(),
     });
 
-    let loader_result = run_loaders(
+    let (mut loader_result, err) = run_loaders(
       self.loaders.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
@@ -420,68 +418,40 @@ impl Module for NormalModule {
     )
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
-    let (mut loader_result, ds) = match loader_result {
-      Ok(r) => r.split_into_parts(),
-      Err(r) => {
-        let diagnostic = if r.is::<CapturedLoaderError>() {
-          #[allow(clippy::unwrap_used)]
-          let mut captured_error = r.downcast::<CapturedLoaderError>().unwrap();
-          self.build_info.cacheable = captured_error.cacheable;
-          self.build_info.file_dependencies = captured_error
-            .take_file_dependencies()
-            .into_iter()
-            .map(Into::into)
-            .collect();
-          self.build_info.context_dependencies = captured_error
-            .take_context_dependencies()
-            .into_iter()
-            .map(Into::into)
-            .collect();
-          self.build_info.missing_dependencies = captured_error
-            .take_missing_dependencies()
-            .into_iter()
-            .map(Into::into)
-            .collect();
-          self.build_info.build_dependencies = captured_error
-            .take_build_dependencies()
-            .into_iter()
-            .map(Into::into)
-            .collect();
+    if let Some(err) = err {
+      self.build_info.cacheable = loader_result.cacheable;
+      self.build_info.file_dependencies = loader_result
+        .file_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
+      self.build_info.context_dependencies = loader_result
+        .context_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
+      self.build_info.missing_dependencies = loader_result
+        .missing_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
+      self.build_info.build_dependencies = loader_result
+        .build_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
 
-          Diagnostic::from(
-            ModuleBuildError::new(rspack_error::Error::new_boxed(captured_error.source)).boxed(),
-          )
-          .with_details(captured_error.details)
-        } else {
-          self.build_info.cacheable = false;
-          if let Some(file_path) = &self.resource_data.resource_path
-            && file_path.is_absolute()
-          {
-            self
-              .build_info
-              .file_dependencies
-              .insert(file_path.clone().into_std_path_buf().into());
-          }
-          let node_error = r.downcast_ref::<NodeError>();
-          let stack = node_error.and_then(|e| e.stack.clone());
-          let hide_stack = node_error.and_then(|e| e.hide_stack);
-          let e = ModuleBuildError::new(r).boxed();
-          Diagnostic::from(e)
-            .with_stack(stack)
-            .with_hide_stack(hide_stack)
-        };
+      self.source = None;
+      let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(err)));
+      self.add_diagnostic(diagnostic);
 
-        self.source = None;
-        self.add_diagnostic(diagnostic);
-
-        self.build_info.hash =
-          Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
-        return Ok(BuildResult {
-          dependencies: Vec::new(),
-          blocks: Vec::new(),
-          optimization_bailouts: vec![],
-        });
-      }
+      self.build_info.hash =
+        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      return Ok(BuildResult {
+        dependencies: Vec::new(),
+        blocks: Vec::new(),
+        optimization_bailouts: vec![],
+      });
     };
     build_context
       .plugin_driver
@@ -489,7 +459,7 @@ impl Module for NormalModule {
       .additional_data
       .call(&mut loader_result.additional_data.as_mut())
       .await?;
-    self.add_diagnostics(ds);
+    self.add_diagnostics(loader_result.diagnostics);
 
     let is_binary = self
       .generator_options
@@ -579,7 +549,7 @@ impl Module for NormalModule {
       })
       .await?
       .split_into_parts();
-    if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
+    if diagnostics.iter().any(|d| d.is_error()) {
       self.build_meta = Default::default();
     }
     if !diagnostics.is_empty() {

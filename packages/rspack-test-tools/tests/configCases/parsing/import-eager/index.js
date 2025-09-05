@@ -6,5 +6,5 @@ it("should be able to use import eager", async function () {
 	const { default: b } = await import(/* webpackMode: "eager" */`./two`);
 	expect(b).toBe(2);
 	const files = await fs.promises.readdir(__dirname);
-	expect(files.filter(f => f.endsWith(".js")).length).toBe(1)
+	expect(files.filter(f => f.endsWith(".js") || f.endsWith(".mjs")).length).toBe(1)
 });

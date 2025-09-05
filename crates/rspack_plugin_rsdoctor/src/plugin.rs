@@ -3,15 +3,13 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use async_trait::async_trait;
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ApplyContext, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
-  CompilationAfterProcessAssets, CompilationId, CompilationModuleIds,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext,
+  ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
+  CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
+  CompilationParams, CompilerCompilation, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -52,10 +50,11 @@ type ArcRsdoctorPluginHooks = Arc<AtomicRefCell<RsdoctorPluginHooks>>;
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRsdoctorPluginHooks>> =
   LazyLock::new(Default::default);
 
-static MODULE_UKEY_MAP: LazyLock<FxDashMap<Identifier, ModuleUkey>> =
+static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<Identifier, ModuleUkey>>> =
   LazyLock::new(FxDashMap::default);
-static ENTRYPOINT_UKEY_MAP: LazyLock<FxDashMap<ChunkGroupUkey, EntrypointUkey>> =
-  LazyLock::new(FxDashMap::default);
+static ENTRYPOINT_UKEY_MAP: LazyLock<
+  FxDashMap<CompilationId, HashMap<ChunkGroupUkey, EntrypointUkey>>,
+> = LazyLock::new(FxDashMap::default);
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum RsdoctorPluginModuleGraphFeature {
@@ -180,10 +179,11 @@ impl RsdoctorPlugin {
 #[plugin_hook(CompilerCompilation for RsdoctorPlugin)]
 async fn compilation(
   &self,
-  _compilation: &mut Compilation,
+  compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  MODULE_UKEY_MAP.clear();
+  MODULE_UKEY_MAP.insert(compilation.id(), HashMap::default());
+  ENTRYPOINT_UKEY_MAP.insert(compilation.id(), HashMap::default());
   Ok(())
 }
 
@@ -223,8 +223,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     chunk_group_by_ukey,
   ));
 
-  for (entrypoint_ukey, entrypoint) in rsd_entrypoints.iter() {
-    ENTRYPOINT_UKEY_MAP.insert(*entrypoint_ukey, entrypoint.ukey);
+  {
+    let mut entrypoint_ukey_map = ENTRYPOINT_UKEY_MAP
+      .get_mut(&compilation.id())
+      .expect("should have entrypoint ukey map");
+    for (entrypoint_ukey, entrypoint) in rsd_entrypoints.iter() {
+      entrypoint_ukey_map.insert(*entrypoint_ukey, entrypoint.ukey);
+    }
   }
 
   tokio::spawn(async move {
@@ -269,10 +274,18 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &compilation.options.context,
   ));
 
-  for (module_id, module) in rsd_modules.iter() {
-    MODULE_UKEY_MAP.insert(*module_id, module.ukey);
+  {
+    let mut module_ukey_map = MODULE_UKEY_MAP
+      .get_mut(&compilation.id())
+      .expect("should have module ukey map");
+    for (module_id, module) in rsd_modules.iter() {
+      module_ukey_map.insert(*module_id, module.ukey);
+    }
   }
 
+  let module_ukey_map = MODULE_UKEY_MAP
+    .get(&compilation.id())
+    .expect("should have module ukey map");
   // 2. collect concatenate children
   let (child_map, parent_map) = collect_concatenated_modules(&modules);
   for (module_id, children) in child_map {
@@ -280,7 +293,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       rsd_module.modules.extend(
         children
           .iter()
-          .filter_map(|i| MODULE_UKEY_MAP.get(i).map(|u| *u))
+          .filter_map(|i| module_ukey_map.get(i).copied())
           .collect::<HashSet<_>>(),
       );
     }
@@ -292,14 +305,14 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       rsd_module.belong_modules.extend(
         parents
           .iter()
-          .filter_map(|i| MODULE_UKEY_MAP.get(i).map(|u| *u))
+          .filter_map(|i| module_ukey_map.get(i).copied())
           .collect::<HashSet<_>>(),
       );
     }
   }
 
   // 4. collect module dependencies
-  let dependency_infos = collect_module_dependencies(&modules, &MODULE_UKEY_MAP, &module_graph);
+  let dependency_infos = collect_module_dependencies(&modules, &module_ukey_map, &module_graph);
   for (origin_module_id, dependencies) in dependency_infos {
     for (dep_module_id, (dep_id, dependency)) in dependencies {
       if let Some(rsd_module) = rsd_modules.get_mut(&dep_module_id) {
@@ -313,10 +326,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   // 5. Rsdoctor module add issuer_path
-  for module in module_graph.modules() {
+  for (module_id, _) in modules.iter() {
     let mut issuer_path = Vec::new();
-    let (module_id, _) = module;
-    let mut current_issuer = module_graph.get_issuer(&module_id);
+    let mut current_issuer = module_graph.get_issuer(module_id);
 
     while let Some(i) = current_issuer {
       if let Some(rsd_module) = rsd_modules.get_mut(&i.identifier()) {
@@ -330,17 +342,16 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       current_issuer = module_graph.get_issuer(&i.identifier());
     }
 
-    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+    if let Some(rsd_module) = rsd_modules.get_mut(module_id) {
       rsd_module.issuer_path = Some(issuer_path);
-      let (_, module) = module;
-      let bailout_reason = module_graph.get_optimization_bailout(&module.identifier());
+      let bailout_reason = module_graph.get_optimization_bailout(module_id);
       rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
     }
   }
 
   // 6. collect chunk modules
   let chunk_modules =
-    collect_chunk_modules(chunk_by_ukey, &MODULE_UKEY_MAP, chunk_graph, &module_graph);
+    collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, &module_graph);
 
   tokio::spawn(async move {
     match hooks
@@ -370,8 +381,13 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
   let modules = module_graph.modules();
-  let rsd_module_ids =
-    collect_module_ids(&modules, &MODULE_UKEY_MAP, &compilation.module_ids_artifact);
+  let rsd_module_ids = collect_module_ids(
+    &modules,
+    &MODULE_UKEY_MAP
+      .get(&compilation.id())
+      .expect("should have module ukey map"),
+    &compilation.module_ids_artifact,
+  );
 
   tokio::spawn(async move {
     match hooks
@@ -399,8 +415,14 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
   let modules = module_graph.modules();
-  let rsd_module_original_sources =
-    collect_module_original_sources(&modules, &MODULE_UKEY_MAP, &module_graph, compilation);
+  let rsd_module_original_sources = collect_module_original_sources(
+    &modules,
+    &MODULE_UKEY_MAP
+      .get(&compilation.id())
+      .expect("should have module ukey map"),
+    &module_graph,
+    compilation,
+  );
 
   tokio::spawn(async move {
     match hooks
@@ -433,7 +455,9 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
   let rsd_entrypoint_assets = collect_entrypoint_assets(
     &compilation.entrypoints,
     &rsd_assets,
-    &ENTRYPOINT_UKEY_MAP,
+    &ENTRYPOINT_UKEY_MAP
+      .get(&compilation.id())
+      .expect("should have entrypoint ukey map"),
     chunk_group_by_ukey,
     chunk_by_ukey,
   );
@@ -457,44 +481,31 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for RsdoctorPlugin {
   fn name(&self) -> &'static str {
     "rsdoctor"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
 
-    ctx
-      .context
-      .compilation_hooks
-      .module_ids
-      .tap(module_ids::new(self));
+    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .after_code_generation
       .tap(after_code_generation::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));
@@ -503,7 +514,7 @@ impl Plugin for RsdoctorPlugin {
       cheap: self.options.source_map_features.cheap,
       module: self.options.source_map_features.module,
     })
-    .apply(ctx, options)?;
+    .apply(ctx)?;
 
     Ok(())
   }

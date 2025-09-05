@@ -3,11 +3,13 @@ use std::sync::LazyLock;
 use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
-  ecma::ast::{Ident, ObjectPatProp, Pat, VarDeclKind},
+  ecma::ast::{Ident, ObjectPatProp, Pat},
 };
 
 use super::JavascriptParserPlugin;
-use crate::visitors::{JavascriptParser, create_traceable_error};
+use crate::visitors::{
+  JavascriptParser, VariableDeclaration, VariableDeclarationKind, create_traceable_error,
+};
 
 static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
   [
@@ -37,19 +39,25 @@ impl CheckVarDeclaratorIdent {
   fn check_ident(&self, parser: &mut JavascriptParser, ident: &Ident) {
     if is_reserved_word_in_strict(ident.sym.as_str()) {
       if parser.is_strict() {
-        parser.errors.push(Box::new(create_traceable_error(
-          "JavaScript parse error".into(),
-          format!("The keyword '{}' is reserved in strict mode", ident.sym),
-          parser.source_file,
-          ident.span().into(),
-        )));
+        parser.add_error(
+          create_traceable_error(
+            "JavaScript parse error".into(),
+            format!("The keyword '{}' is reserved in strict mode", ident.sym),
+            parser.source_file,
+            ident.span().into(),
+          )
+          .into(),
+        );
       } else {
-        parser.errors.push(Box::new(create_traceable_error(
-          "JavaScript parse error".into(),
-          format!("{} is disallowed as a lexically bound name", ident.sym),
-          parser.source_file,
-          ident.span().into(),
-        )));
+        parser.add_error(
+          create_traceable_error(
+            "JavaScript parse error".into(),
+            format!("{} is disallowed as a lexically bound name", ident.sym),
+            parser.source_file,
+            ident.span().into(),
+          )
+          .into(),
+        );
       }
     }
   }
@@ -95,14 +103,14 @@ impl JavascriptParserPlugin for CheckVarDeclaratorIdent {
     &self,
     parser: &mut JavascriptParser,
     _expr: &swc_core::ecma::ast::VarDeclarator,
-    stmt: &swc_core::ecma::ast::VarDecl,
+    stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    let should_check = match stmt.kind {
-      VarDeclKind::Var => parser.is_strict(),
+    let should_check = match stmt.kind() {
+      VariableDeclarationKind::Var => parser.is_strict(),
       _ => true,
     };
     if should_check {
-      for ele in &stmt.decls {
+      for ele in stmt.declarators() {
         self.check_var_decl_pat(parser, &ele.name);
       }
     }

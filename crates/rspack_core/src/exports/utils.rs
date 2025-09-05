@@ -5,10 +5,10 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_util::{atom::Atom, json_stringify};
+use rspack_util::{atom::Atom, json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::DependencyId;
+use crate::{DependencyId, property_access};
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -33,55 +33,73 @@ pub enum UsedExports {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-enum EvaluatedInlinableValueInner {
+#[derive(Debug, Clone)]
+pub enum EvaluatedInlinableValue {
   Null,
   Undefined,
   Boolean(bool),
-  Number(#[cacheable(with=AsPreset)] Atom),
+  Number(f64),
   String(#[cacheable(with=AsPreset)] Atom),
 }
 
-#[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct EvaluatedInlinableValue(EvaluatedInlinableValueInner);
+impl Hash for EvaluatedInlinableValue {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    std::mem::discriminant(self).hash(state);
+    match self {
+      EvaluatedInlinableValue::Boolean(v) => {
+        v.hash(state);
+      }
+      EvaluatedInlinableValue::Number(v) => {
+        v.to_bits().hash(state);
+      }
+      EvaluatedInlinableValue::String(atom) => {
+        atom.hash(state);
+      }
+      _ => {}
+    }
+  }
+}
 
 impl EvaluatedInlinableValue {
   pub const SHORT_SIZE: usize = 6;
 
   pub fn new_null() -> Self {
-    Self(EvaluatedInlinableValueInner::Null)
+    Self::Null
   }
 
   pub fn new_undefined() -> Self {
-    Self(EvaluatedInlinableValueInner::Undefined)
+    Self::Undefined
   }
 
   pub fn new_boolean(v: bool) -> Self {
-    Self(EvaluatedInlinableValueInner::Boolean(v))
+    Self::Boolean(v)
   }
 
-  pub fn new_number(v: Atom) -> Self {
-    Self(EvaluatedInlinableValueInner::Number(v))
+  pub fn new_number(v: f64) -> Self {
+    Self::Number(v)
   }
 
   pub fn new_string(v: Atom) -> Self {
-    Self(EvaluatedInlinableValueInner::String(v))
+    Self::String(v)
   }
 
-  pub fn render(&self) -> Cow<'_, str> {
-    match &self.0 {
-      EvaluatedInlinableValueInner::Null => "null".into(),
-      EvaluatedInlinableValueInner::Undefined => "undefined".into(),
-      EvaluatedInlinableValueInner::Boolean(v) => if *v { "true" } else { "false" }.into(),
-      EvaluatedInlinableValueInner::Number(v) => v.as_str().into(),
-      EvaluatedInlinableValueInner::String(v) => json_stringify(v.as_str()).into(),
-    }
+  pub fn render(&self) -> String {
+    let s: Cow<str> = match self {
+      Self::Null => "null".into(),
+      Self::Undefined => "undefined".into(),
+      Self::Boolean(v) => if *v { "true" } else { "false" }.into(),
+      Self::Number(v) => {
+        let mut buf = ryu_js::Buffer::new();
+        buf.format(*v).to_string().into()
+      }
+      Self::String(v) => json_stringify(v.as_str()).into(),
+    };
+    format!("({s})")
   }
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash)]
 pub enum Inlinable {
   NoByProvide,
   NoByUse,
@@ -101,20 +119,41 @@ pub enum UsedNameItem {
 }
 
 #[derive(Debug, Clone)]
+pub struct InlinedUsedName {
+  value: EvaluatedInlinableValue,
+  suffix: Vec<Atom>,
+}
+
+impl InlinedUsedName {
+  pub fn new(value: EvaluatedInlinableValue) -> Self {
+    Self {
+      value,
+      suffix: Vec::new(),
+    }
+  }
+
+  pub fn render(&self) -> String {
+    let mut inlined = self.value.render();
+    inlined.push_str(&property_access(&self.suffix, 0));
+    inlined
+  }
+}
+
+#[derive(Debug, Clone)]
 pub enum UsedName {
   Normal(Vec<Atom>),
-  Inlined(EvaluatedInlinableValue),
+  Inlined(InlinedUsedName),
 }
 
 impl UsedName {
   pub fn is_inlined(&self) -> bool {
-    matches!(self, UsedName::Inlined(_))
+    matches!(self, UsedName::Inlined { .. })
   }
 
-  pub fn inlined(&self) -> Option<&EvaluatedInlinableValue> {
+  pub fn append(&mut self, item: impl IntoIterator<Item = Atom>) {
     match self {
-      UsedName::Inlined(inlined) => Some(inlined),
-      _ => None,
+      UsedName::Normal(vec) => vec.extend(item),
+      UsedName::Inlined(inlined) => inlined.suffix.extend(item),
     }
   }
 }
@@ -129,7 +168,7 @@ pub enum ExportProvided {
   Unknown,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Default)]
+#[derive(Debug, Hash, PartialEq, Eq, Default, Clone)]
 pub struct UsageKey(pub Vec<Either<Box<UsageKey>, UsageState>>);
 
 impl UsageKey {

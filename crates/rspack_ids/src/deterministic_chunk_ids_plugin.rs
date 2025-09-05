@@ -1,9 +1,6 @@
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, UkeyMap};
-use rspack_core::{
-  ApplyContext, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
-  incremental::IncrementalPasses,
-};
+use rspack_core::{CompilationChunkIds, Plugin, incremental::IncrementalPasses};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
@@ -90,7 +87,6 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     |a, b| {
       compare_chunks_natural(
         chunk_graph,
-        &module_graph,
         &compilation.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
@@ -123,12 +119,8 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 }
 
 impl Plugin for DeterministicChunkIdsPlugin {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .chunk_ids
-      .tap(chunk_ids::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     Ok(())
   }
 }

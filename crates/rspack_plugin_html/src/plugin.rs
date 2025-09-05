@@ -7,7 +7,7 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use cow_utils::CowUtils;
 use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
-use rspack_error::{Diagnostic, Result, miette};
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use sugar_path::SugarPath;
@@ -63,7 +63,7 @@ async fn generate_html(
   config: &HtmlRspackPluginOptions,
   compilation: &mut Compilation,
   hooks: ArcHtmlPluginHooks,
-) -> Result<(String, String, Vec<PathBuf>), miette::Error> {
+) -> Result<(String, String, Vec<PathBuf>)> {
   let public_path = config.get_public_path(compilation, filename).await;
 
   let mut template = HtmlTemplate::new(config, compilation).await?;
@@ -293,13 +293,8 @@ impl Plugin for HtmlRspackPlugin {
     "rspack.HtmlRspackPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));

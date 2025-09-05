@@ -1,29 +1,24 @@
-use std::{
-  borrow::Cow,
-  sync::{Arc, LazyLock},
-};
+use std::{borrow::Cow, sync::Arc};
 
-use regex::Regex;
-use rspack_cacheable::cacheable;
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, Scheme, get_scheme};
 use rspack_paths::Utf8PathBuf;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
-use swc_core::common::Span;
+use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyRange, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, RunnerContext, SharedPluginDriver, diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory, FactoryMeta,
+  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -78,16 +73,6 @@ impl ModuleFactory for NormalModuleFactory {
     Ok(factory_result)
   }
 }
-
-static MATCH_RESOURCE_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
-
-static MATCH_WEBPACK_EXT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r#"\.webpack\[([^\]]+)\]$"#).expect("Failed to initialize `MATCH_WEBPACK_EXT_REGEX`")
-});
-
-static ELEMENT_SPLIT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"!+").expect("Failed to initialize `ELEMENT_SPLIT_REGEX`"));
 
 const HYPHEN: char = '-';
 const EXCLAMATION: char = '!';
@@ -146,7 +131,7 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     let dependency_type = *dependency.dependency_type();
     let dependency_category = *dependency.category();
-    let dependency_source_span = dependency.source_span();
+    let dependency_range = dependency.range();
     let dependency_optional = dependency.get_optional();
 
     let importer = data.issuer_identifier;
@@ -171,9 +156,8 @@ impl NormalModuleFactory {
     if scheme.is_none() {
       let mut request_without_match_resource = data.request.as_str();
       request_without_match_resource = {
-        if let Some(m) = MATCH_RESOURCE_REGEX.captures(request_without_match_resource) {
+        if let Ok((resource, full_matched)) = match_resource(request_without_match_resource) {
           let match_resource = {
-            let resource = m.get(1).expect("Should have match resource").as_str();
             let mut chars = resource.chars();
             let first_char = chars.next();
             let second_char = chars.next();
@@ -209,10 +193,7 @@ impl NormalModuleFactory {
           );
 
           // e.g. ./index.js!=!
-          let whole_matched = m
-            .get(0)
-            .expect("should guaranteed to return a non-None value.")
-            .as_str();
+          let whole_matched = full_matched;
 
           match request_without_match_resource
             .char_indices()
@@ -235,8 +216,7 @@ impl NormalModuleFactory {
         let second_char = request.next();
 
         if first_char.is_none() {
-          let span = dependency.source_span().unwrap_or_default();
-          return Err(EmptyDependency::new(DependencyRange::new(span.start, span.end)).into());
+          return Err(EmptyDependency::new(dependency.range()).into());
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline
@@ -259,7 +239,7 @@ impl NormalModuleFactory {
             Some((pos, _)) => &request_without_match_resource[pos..],
             None => request_without_match_resource,
           };
-          ELEMENT_SPLIT_REGEX.split(s).collect::<Vec<_>>()
+          split_element(s)
         };
 
         unresolved_resource = raw_elements
@@ -331,7 +311,7 @@ impl NormalModuleFactory {
           specifier: &resource,
           dependency_type: &dependency_type,
           dependency_category: &dependency_category,
-          span: dependency_source_span,
+          span: dependency_range,
           resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
@@ -371,15 +351,10 @@ impl NormalModuleFactory {
     };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
-      && let Some(module_type) = captures.get(1)
+      && let Ok((module, module_type)) = match_webpack_ext(&match_resource_data.resource)
     {
-      match_module_type = Some(module_type.as_str().into());
-      match_resource_data.resource = match_resource_data
-        .resource
-        .strip_suffix(&format!(".webpack[{}]", module_type.as_str()))
-        .expect("should success")
-        .to_owned();
+      match_module_type = Some(module_type.into());
+      match_resource_data.resource = module.into();
 
       vec![]
     } else {
@@ -906,32 +881,6 @@ async fn resolve_each(
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
 }
 
-/// Using `u32` instead of `usize` to reduce memory usage,
-/// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
-/// ## Warning
-/// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
-#[cacheable]
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
-pub struct ErrorSpan {
-  pub start: u32,
-  pub end: u32,
-}
-
-impl ErrorSpan {
-  pub fn new(start: u32, end: u32) -> Self {
-    Self { start, end }
-  }
-}
-
-impl From<Span> for ErrorSpan {
-  fn from(span: Span) -> Self {
-    Self {
-      start: span.lo.0.saturating_sub(1),
-      end: span.hi.0.saturating_sub(1),
-    }
-  }
-}
-
 #[derive(Debug)]
 pub struct NormalModuleCreateData {
   pub raw_request: String,
@@ -943,12 +892,58 @@ pub struct NormalModuleCreateData {
   pub context: Option<String>,
 }
 
-#[test]
-fn match_webpack_ext() {
-  assert!(MATCH_WEBPACK_EXT_REGEX.is_match("foo.webpack[type/javascript]"));
-  let cap = MATCH_WEBPACK_EXT_REGEX
-    .captures("foo.webpack[type/javascript]")
-    .unwrap();
+fn split_element(mut input: &str) -> Vec<&str> {
+  use winnow::{
+    combinator::separated,
+    error::ContextError,
+    token::{take_till, take_while},
+  };
 
-  assert_eq!(cap.get(1).unwrap().as_str(), "type/javascript");
+  separated::<_, _, _, _, ContextError, _, _>(.., take_till(.., '!'), take_while(1.., '!'))
+    .parse_next(&mut input)
+    .expect("split should never fail")
+}
+
+fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
+  use winnow::{combinator::terminated, token::take_until};
+
+  let backup = input;
+
+  let res = terminated(take_until(1.., '!'), "!=!").parse_next(&mut input)?;
+  let whole_matched = &backup[..backup.len() - input.len()];
+  Ok((res, whole_matched))
+}
+
+fn match_webpack_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
+  use winnow::{
+    combinator::{delimited, eof, preceded, terminated},
+    token::take_until,
+  };
+
+  let parser = (
+    take_until(0.., ".webpack"),
+    preceded(".webpack", delimited('[', take_until(1.., ']'), ']')),
+  );
+
+  terminated(parser, eof).parse_next(&mut input)
+}
+
+#[test]
+fn test_split_element() {
+  assert_eq!(split_element("a!a"), vec!["a", "a"]);
+  assert_eq!(split_element("a!!a"), vec!["a", "a"]);
+  assert_eq!(split_element("!!a!!a!!"), vec!["", "a", "a", ""]);
+}
+
+#[test]
+fn test_match_webpack_ext() {
+  assert!(match_webpack_ext("foo.webpack[type/javascript]").is_ok());
+  let cap = match_webpack_ext("foo.webpack[type/javascript]").unwrap();
+
+  assert_eq!(cap, ("foo", "type/javascript"));
+
+  assert_eq!(
+    match_webpack_ext("foo.css.webpack[javascript/auto]"),
+    Ok(("foo.css", "javascript/auto"))
+  );
 }

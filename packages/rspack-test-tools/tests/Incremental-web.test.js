@@ -32,9 +32,6 @@ describeByWalk(
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
 		dist: path.resolve(__dirname, `./js/incremental/webpack-test/hot-web`),
-		exclude: [
-			// there is a self reference module in this case causing the make phase didn't found the module is removed
-			/require-disposed-module-warning/
-		]
+		exclude: []
 	}
 );

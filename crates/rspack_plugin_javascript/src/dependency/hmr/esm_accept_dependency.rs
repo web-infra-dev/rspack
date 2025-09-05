@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, RuntimeCondition, SharedSourceMap, TemplateContext,
@@ -13,8 +13,7 @@ pub struct ESMAcceptDependency {
   range: DependencyRange,
   has_callback: bool,
   dependency_ids: Vec<DependencyId>,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
 }
 
 impl ESMAcceptDependency {
@@ -24,16 +23,17 @@ impl ESMAcceptDependency {
     dependency_ids: Vec<DependencyId>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       range,
       has_callback,
       dependency_ids,
-      source_map,
+      loc,
     }
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 }
 
@@ -109,6 +109,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       if let Some(request) = request {
         let stmts = import_statement(
           *module,
+          *runtime,
           compilation,
           runtime_requirements,
           id,

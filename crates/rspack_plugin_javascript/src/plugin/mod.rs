@@ -25,9 +25,9 @@ pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt, basic_function,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, basic_function,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -38,7 +38,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_javascript_compiler::ast::Ast;
-use rspack_util::{diff_mode, fx_hash::FxDashMap};
+use rspack_util::{SpanExt, diff_mode, fx_hash::FxDashMap};
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,
@@ -523,7 +523,8 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     output_path: &str,
   ) -> Result<BoxSource> {
-    let hooks = Self::get_compilation_hooks(compilation.id());
+    let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
+    let hooks = js_plugin_hooks.read().await;
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let supports_arrow_function = compilation
       .options
@@ -565,8 +566,6 @@ impl JsPlugin {
     }
     if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
       if let Some(strict_bailout) = hooks
-        .read()
-        .await
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)
         .await?
@@ -580,7 +579,7 @@ impl JsPlugin {
       }
     }
 
-    let chunk_modules: Vec<&Box<dyn Module>> = if let Some(inlined_modules) = inlined_modules {
+    let chunk_modules: Vec<&dyn Module> = if let Some(inlined_modules) = inlined_modules {
       all_modules
         .clone()
         .into_iter()
@@ -596,6 +595,7 @@ impl JsPlugin {
       &chunk_modules,
       all_strict,
       output_path,
+      &hooks,
     )
     .await?;
     let has_chunk_modules_result = chunk_modules_result.is_some();
@@ -660,6 +660,7 @@ impl JsPlugin {
             all_strict,
             has_chunk_modules_result,
             output_path,
+            &hooks,
           )
           .await?
       } else {
@@ -670,8 +671,16 @@ impl JsPlugin {
         let m = module_graph
           .module_by_identifier(m_identifier)
           .expect("should have module");
-        let Some((mut rendered_module, fragments, additional_fragments)) =
-          render_module(compilation, chunk_ukey, m, all_strict, false, output_path).await?
+        let Some((mut rendered_module, fragments, additional_fragments)) = render_module(
+          compilation,
+          chunk_ukey,
+          m.as_ref(),
+          all_strict,
+          false,
+          output_path,
+          &hooks,
+        )
+        .await?
         else {
           continue;
         };
@@ -704,8 +713,6 @@ impl JsPlugin {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
           hooks
-            .read()
-            .await
             .embed_in_runtime_bailout
             .call(compilation, m, chunk)
             .await?
@@ -756,8 +763,6 @@ impl JsPlugin {
         source: startup_sources.boxed(),
       };
       hooks
-        .read()
-        .await
         .render_startup
         .call(
           compilation,
@@ -777,8 +782,6 @@ impl JsPlugin {
         source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
       };
       hooks
-        .read()
-        .await
         .render_startup
         .call(
           compilation,
@@ -808,8 +811,6 @@ impl JsPlugin {
       source: final_source,
     };
     hooks
-      .read()
-      .await
       .render
       .call(compilation, chunk_ukey, &mut render_source)
       .await?;
@@ -827,13 +828,14 @@ impl JsPlugin {
   #[allow(clippy::too_many_arguments)]
   pub async fn get_renamed_inline_module(
     &self,
-    all_modules: &[&BoxModule],
+    all_modules: &[&dyn Module],
     inlined_modules: &IdentifierLinkedMap<ChunkGroupUkey>,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     all_strict: bool,
     has_chunk_modules_result: bool,
     output_path: &str,
+    hooks: &JavascriptModulesPluginHooks,
   ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
     let inner_strict = !all_strict && all_modules.iter().all(|m| m.build_info().strict);
     let is_multiple_entries = inlined_modules.len() > 1;
@@ -854,16 +856,26 @@ impl JsPlugin {
 
     let render_module_results = rspack_futures::scope::<_, _>(|token| {
       all_modules.iter().for_each(|module| {
-        let s = unsafe { token.used((compilation, chunk_ukey, module, all_strict, output_path)) };
+        let s = unsafe {
+          token.used((
+            compilation,
+            chunk_ukey,
+            module,
+            all_strict,
+            output_path,
+            &hooks,
+          ))
+        };
         s.spawn(
-          move |(compilation, chunk_ukey, module, all_strict, output_path)| async move {
+          move |(compilation, chunk_ukey, module, all_strict, output_path, hooks)| async move {
             render_module(
               compilation,
               chunk_ukey,
-              module,
+              *module,
               all_strict,
               false,
               output_path,
+              hooks,
             )
             .await
           },
@@ -1162,7 +1174,8 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     output_path: &str,
   ) -> Result<BoxSource> {
-    let hooks = Self::get_compilation_hooks(compilation.id());
+    let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
+    let hooks = js_plugin_hooks.read().await;
     let module_graph = &compilation.get_module_graph();
     let is_module = compilation.options.output.module;
     let mut all_strict = compilation.options.output.module;
@@ -1174,8 +1187,6 @@ impl JsPlugin {
     let mut sources = ConcatSource::default();
     if !all_strict && chunk_modules.iter().all(|m| m.build_info().strict) {
       if let Some(strict_bailout) = hooks
-        .read()
-        .await
         .strict_runtime_bailout
         .call(compilation, chunk_ukey)
         .await?
@@ -1194,6 +1205,7 @@ impl JsPlugin {
       &chunk_modules,
       all_strict,
       output_path,
+      &hooks,
     )
     .await?
     .unwrap_or_else(|| (RawStringSource::from_static("{}").boxed(), Vec::new()));
@@ -1201,8 +1213,6 @@ impl JsPlugin {
       source: chunk_modules_source,
     };
     hooks
-      .read()
-      .await
       .render_chunk
       .call(compilation, chunk_ukey, &mut render_source)
       .await?;
@@ -1215,8 +1225,6 @@ impl JsPlugin {
       source: source_with_fragments,
     };
     hooks
-      .read()
-      .await
       .render
       .call(compilation, chunk_ukey, &mut render_source)
       .await?;

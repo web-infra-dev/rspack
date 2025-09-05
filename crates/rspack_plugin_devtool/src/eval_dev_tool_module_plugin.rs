@@ -4,9 +4,9 @@ use cow_utils::CowUtils;
 use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
-  CompilerOptions, Filename, ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals,
+  ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
+  CompilationParams, CompilerCompilation, Filename, Module, ModuleIdentifier, PathData, Plugin,
+  RuntimeGlobals,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -91,7 +91,7 @@ async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
@@ -155,7 +155,7 @@ async fn eval_devtool_plugin_render_module_content(
     );
 
     let module_content =
-      simd_json::to_string(&format!("{source}{footer}")).expect("failed to parse string");
+      simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("failed to parse string");
     RawStringSource::from(format!(
       "eval({});",
       if compilation.options.output.trusted_types.is_some() {
@@ -196,14 +196,12 @@ impl Plugin for EvalDevToolModulePlugin {
     EVAL_DEV_TOOL_MODULE_PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compiler_hooks
       .compilation
       .tap(eval_devtool_plugin_compilation::new(self));
     ctx
-      .context
       .compilation_hooks
       .additional_module_runtime_requirements
       .tap(eval_devtool_plugin_additional_module_runtime_requirements::new(self));

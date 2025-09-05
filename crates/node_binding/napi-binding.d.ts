@@ -328,6 +328,7 @@ export declare class JsCompiler {
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
+  getVirtualFileStore(): VirtualFileStore | null
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -442,7 +443,8 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
-  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**
    * # Safety
    *
@@ -485,6 +487,16 @@ export declare class ResolverFactory {
 
 export declare class Sources {
   _get(sourceType: string): JsCompatSourceOwned | null
+}
+
+export declare class VirtualFileStore {
+  writeVirtualFileSync(path: string, content: string): void
+  batchWriteVirtualFilesSync(files: Array<JsVirtualFile>): void
+}
+export type JsVirtualFileStore = VirtualFileStore
+
+export interface AssetInfoRelated {
+  sourceMap?: string | null
 }
 
 export declare function async(path: string, request: string): Promise<ResolveResult>
@@ -559,6 +571,7 @@ export declare enum BuiltinPluginName {
   RuntimeChunkPlugin = 'RuntimeChunkPlugin',
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
+  NormalModuleReplacementPlugin = 'NormalModuleReplacementPlugin',
   ContextReplacementPlugin = 'ContextReplacementPlugin',
   DllEntryPlugin = 'DllEntryPlugin',
   DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
@@ -588,13 +601,6 @@ export declare function cleanupGlobalTrace(): void
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
-}
-
-export interface CssChunkingPluginOptions {
-  strict?: boolean
-  minSize?: number
-  maxSize?: number
-  exclude?: RegExp
 }
 
 export declare enum EnforceExtension {
@@ -672,10 +678,6 @@ export interface JsAssetEmittedArgs {
   targetPath: string
 }
 
-export interface JsAssetInfoRelated {
-  sourceMap?: string
-}
-
 export interface JsBannerContentFnCtx {
   hash: string
   chunk: Chunk
@@ -694,13 +696,6 @@ export interface JsBeforeEmitData {
   outputName: string
   compilationId: number
   uid?: number
-}
-
-export interface JsBeforeResolveArgs {
-  request: string
-  context: string
-  issuer: string
-  issuerLayer?: string
 }
 
 export interface JsBuildMeta {
@@ -856,13 +851,6 @@ export interface JsExecuteModuleResult {
   error?: string
 }
 
-export interface JsFactorizeArgs {
-  request: string
-  context: string
-  issuer: string
-  issuerLayer?: string
-}
-
 export interface JsFactoryMeta {
   sideEffectFree?: boolean
 }
@@ -1014,11 +1002,14 @@ export interface JsPathDataChunkLike {
   id?: string
 }
 
-export interface JsResolveArgs {
+export interface JsResolveData {
   request: string
   context: string
-  issuer: string
-  issuerLayer?: string
+  contextInfo: ContextInfo
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  createData?: JsCreateData
 }
 
 export interface JsResolveForSchemeArgs {
@@ -1479,6 +1470,11 @@ export interface JsTap {
   stage: number
 }
 
+export interface JsVirtualFile {
+  path: string
+  content: string
+}
+
 export interface KnownAssetInfo {
   /** if the asset can be long term cached forever (contains a hash) */
   immutable?: boolean
@@ -1507,7 +1503,7 @@ export interface KnownAssetInfo {
   /** when asset is javascript and an ESM */
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
-  related?: JsAssetInfoRelated
+  related?: AssetInfoRelated
   /** unused css local ident for the css chunk */
   cssUnusedIdents?: Array<string>
   /** whether this asset is over the size limit */
@@ -1993,6 +1989,13 @@ export interface RawCssAutoParserOptions {
   url?: boolean
 }
 
+export interface RawCssChunkingPluginOptions {
+  strict?: boolean
+  minSize?: number
+  maxSize?: number
+  exclude?: RegExp
+}
+
 export interface RawCssExtractPluginOption {
   filename: JsFilename
   chunkFilename: JsFilename
@@ -2108,6 +2111,7 @@ parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
+css?: boolean
 inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
@@ -2141,6 +2145,7 @@ export interface RawExternalItemFnResult {
 export interface RawExternalsPluginOptions {
   type: string
   externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
+  placeInInitial: boolean
 }
 
 export interface RawExternalsPresets {
@@ -2292,6 +2297,7 @@ export interface RawJavascriptParserOptions {
   dynamicImportFetchPriority?: string
   url?: string
   exprContextCritical?: boolean
+  unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
@@ -2343,11 +2349,11 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  module: ((err: Error | null, arg: RawModuleArg) => RawModuleInfo)
+  currentActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
-  cacheable: boolean
+  client: string
 }
 
 export interface RawLibManifestPluginOptions {
@@ -2403,11 +2409,6 @@ export interface RawLimitChunkCountPluginOptions {
   chunkOverhead?: number
   entryChunkMultiplicator?: number
   maxChunks: number
-}
-
-export interface RawModuleArg {
-  module: string
-  path: string
 }
 
 export interface RawModuleFederationRuntimePluginOptions {
@@ -2502,6 +2503,11 @@ export interface RawNonStandard {
   deepSelectorCombinator: boolean
 }
 
+export interface RawNormalModuleReplacementPluginOptions {
+  resourceRegExp: RegExp
+  newResource: string | ((data: JsResolveData) => JsResolveData)
+}
+
 export interface RawOccurrenceChunkIdsPluginOptions {
   prioritiseInitial?: boolean
 }
@@ -2535,6 +2541,7 @@ export interface RawOptions {
   amd?: string
   bail: boolean
   __references: Record<string, any>
+  __virtual_files?: Array<JsVirtualFile>
 }
 
 export interface RawOutputOptions {
@@ -2694,7 +2701,17 @@ export interface RawRsdoctorPluginOptions {
 }
 
 export interface RawRslibPluginOptions {
-  interceptApiPlugin: boolean
+  /**
+   * Intercept partial parse hooks of APIPlugin, expect some statements not to be parsed as API.
+   * @default `false`
+   */
+  interceptApiPlugin?: boolean
+  /**
+   * Use the compact runtime for dynamic import from `modern-module`, commonly used in CommonJS output.
+   * This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
+   * @default `false`
+   */
+  compactExternalModuleDynamicImport?: boolean
 }
 
 export interface RawRspackFuture {
@@ -2921,11 +2938,11 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
-  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeResolveArgs) => Promise<[boolean | undefined, JsBeforeResolveArgs]>); stage: number; }>
-  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsFactorizeArgs) => Promise<JsFactorizeArgs>); stage: number; }>
-  registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveArgs) => Promise<JsResolveArgs>); stage: number; }>
+  registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
+  registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
+  registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveForSchemeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>
-  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: string) => Promise<[boolean | undefined, JsCreateData | undefined]>); stage: number; }>
+  registerNormalModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryCreateModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsNormalModuleFactoryCreateModuleArgs) => Promise<void>); stage: number; }>
   registerContextModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryBeforeResolveData) => Promise<false | JsContextModuleFactoryBeforeResolveData>); stage: number; }>
   registerContextModuleFactoryAfterResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: false | JsContextModuleFactoryAfterResolveData) => Promise<false | JsContextModuleFactoryAfterResolveData>); stage: number; }>

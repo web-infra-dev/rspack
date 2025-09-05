@@ -12,6 +12,7 @@ use crate::{
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<DependencyId>,
+  pub from_unlazy: bool,
 }
 
 #[async_trait::async_trait]
@@ -24,6 +25,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
     let Self {
       original_module_identifier,
       dependencies,
+      from_unlazy,
     } = *self;
     let mut sorted_dependencies = HashMap::default();
     let module_graph =
@@ -106,6 +108,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         options: context.compiler_options.clone(),
         current_profile,
         resolver_factory: context.resolver_factory.clone(),
+        from_unlazy,
       }));
     }
     Ok(res)

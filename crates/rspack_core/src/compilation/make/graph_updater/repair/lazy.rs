@@ -1,6 +1,6 @@
 use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
-  ModuleIdentifier,
+  DependencyId, ModuleIdentifier,
   compilation::make::ForwardedIdSet,
   task_loop::{Task, TaskResult, TaskType},
 };
@@ -30,7 +30,7 @@ impl Task<TaskContext> for ProcessUnlazyDependenciesTask {
       .module_to_lazy_make
       .get_lazy_dependencies(&original_module_identifier)
       .expect("only module has lazy dependencies should run into ProcessUnlazyDependenciesTask");
-    let dependencies_to_process = lazy_dependencies
+    let dependencies_to_process: Vec<DependencyId> = lazy_dependencies
       .requested_lazy_dependencies(&forwarded_ids)
       .into_iter()
       .filter(|dep| {
@@ -40,9 +40,13 @@ impl Task<TaskContext> for ProcessUnlazyDependenciesTask {
         dep.unset_lazy()
       })
       .collect();
+    if dependencies_to_process.is_empty() {
+      return Ok(vec![]);
+    }
     return Ok(vec![Box::new(ProcessDependenciesTask {
       dependencies: dependencies_to_process,
       original_module_identifier,
+      from_unlazy: true,
     })]);
   }
 }

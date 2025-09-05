@@ -1,8 +1,9 @@
-mod css_chunking;
 mod raw_banner;
 mod raw_bundle_info;
 mod raw_circular_dependency;
+mod raw_context_replacement;
 mod raw_copy;
+mod raw_css_chunking;
 mod raw_css_extract;
 mod raw_dll;
 mod raw_html;
@@ -13,6 +14,7 @@ mod raw_lazy_compilation;
 mod raw_lightning_css_minimizer;
 mod raw_limit_chunk_count;
 mod raw_mf;
+mod raw_normal_replacement;
 mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
@@ -40,7 +42,6 @@ use rspack_ids::{
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
-use rspack_plugin_context_replacement::ContextReplacementPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
 use rspack_plugin_css_chunking::CssChunkingPlugin;
@@ -75,14 +76,12 @@ use rspack_plugin_mf::{
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
 use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
+use rspack_plugin_module_replacement::{ContextReplacementPlugin, NormalModuleReplacementPlugin};
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
-use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
-use rspack_plugin_rsdoctor::RsdoctorPlugin;
 use rspack_plugin_rslib::RslibPlugin;
-use rspack_plugin_rstest::RstestPlugin;
 use rspack_plugin_runtime::{
   ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin, ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin, enable_chunk_loading_plugin,
@@ -100,38 +99,37 @@ use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 use rustc_hash::FxHashMap as HashMap;
 
-pub use self::{
-  css_chunking::CssChunkingPluginOptions,
+use self::{
   raw_banner::RawBannerPluginOptions,
+  raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
   raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
+  raw_context_replacement::RawContextReplacementPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
+  raw_css_chunking::RawCssChunkingPluginOptions,
+  raw_css_extract::RawCssExtractPluginOption,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
   raw_html::RawHtmlRspackPluginOptions,
   raw_ignore::RawIgnorePluginOptions,
-  raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
-  raw_mf::RawContainerPluginOptions,
-  raw_progress::RawProgressPluginOptions,
-  raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
-};
-use self::{
-  raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
-  raw_css_extract::RawCssExtractPluginOption,
   raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
-  raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
+  raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
+  raw_mf::{
+    RawConsumeSharedPluginOptions, RawContainerPluginOptions, RawContainerReferencePluginOptions,
+    RawProvideOptions,
+  },
+  raw_normal_replacement::RawNormalModuleReplacementPluginOptions,
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
+  raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use crate::{
   options::entry::JsEntryPluginOptions,
-  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter, RawContextReplacementPluginOptions},
+  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter},
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
     SourceMapDevToolPluginOptions,
   },
-  rsdoctor::RawRsdoctorPluginOptions,
   rslib::RawRslibPluginOptions,
-  rstest::RawRstestPluginOptions,
 };
 
 #[napi(string_enum)]
@@ -202,6 +200,7 @@ pub enum BuiltinPluginName {
   RuntimeChunkPlugin,
   SizeLimitsPlugin,
   NoEmitOnErrorsPlugin,
+  NormalModuleReplacementPlugin,
   ContextReplacementPlugin,
   DllEntryPlugin,
   DllReferenceAgencyPlugin,
@@ -307,9 +306,7 @@ impl<'a> BuiltinPlugin<'a> {
           downcast_into::<RawBannerPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .try_into()
-            .map_err(|report: rspack_error::miette::Error| {
-              napi::Error::from_reason(report.to_string())
-            })?,
+            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
         )
         .boxed();
         plugins.push(plugin);
@@ -324,13 +321,20 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(plugin);
       }
       BuiltinPluginName::ProgressPlugin => {
-        let plugin = ProgressPlugin::new(
-          downcast_into::<RawProgressPluginOptions>(self.options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?
-            .into(),
-        )
-        .boxed();
-        plugins.push(plugin);
+        #[cfg(not(feature = "browser"))]
+        {
+          use rspack_plugin_progress::ProgressPlugin;
+
+          use crate::raw_options::raw_builtins::raw_progress::RawProgressPluginOptions;
+
+          let plugin = ProgressPlugin::new(
+            downcast_into::<RawProgressPluginOptions>(self.options)
+              .map_err(|report| napi::Error::from_reason(report.to_string()))?
+              .into(),
+          )
+          .boxed();
+          plugins.push(plugin);
+        }
       }
       BuiltinPluginName::EntryPlugin => {
         let plugin_options = downcast_into::<JsEntryPluginOptions>(self.options)
@@ -359,7 +363,12 @@ impl<'a> BuiltinPlugin<'a> {
           .map(|e| RawExternalItemWrapper(e).try_into())
           .collect::<Result<Vec<_>>>()
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let plugin = ExternalsPlugin::new(plugin_options.r#type, externals).boxed();
+        let plugin = ExternalsPlugin::new(
+          plugin_options.r#type,
+          externals,
+          plugin_options.place_in_initial,
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
@@ -629,9 +638,7 @@ impl<'a> BuiltinPlugin<'a> {
           downcast_into::<RawSwcJsMinimizerRspackPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .try_into()
-            .map_err(|report: rspack_error::miette::Error| {
-              napi::Error::from_reason(report.to_string())
-            })?,
+            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
         )
         .boxed();
         plugins.push(plugin);
@@ -641,9 +648,7 @@ impl<'a> BuiltinPlugin<'a> {
           downcast_into::<RawLightningCssMinimizerRspackPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .try_into()
-            .map_err(|report: rspack_error::miette::Error| {
-              napi::Error::from_reason(report.to_string())
-            })?,
+            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
         )
         .boxed(),
       ),
@@ -709,25 +714,28 @@ impl<'a> BuiltinPlugin<'a> {
         let js_backend = JsBackend::from(&options);
         plugins.push(Box::new(
           rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
-            options.cacheable,
             js_backend,
             options.test.map(|test| test.into()),
             options.entries,
             options.imports,
+            options.client,
           ),
         ) as Box<dyn Plugin>)
       }
       BuiltinPluginName::NoEmitOnErrorsPlugin => {
         plugins.push(NoEmitOnErrorsPlugin::default().boxed());
       }
+      BuiltinPluginName::NormalModuleReplacementPlugin => {
+        let raw_options = downcast_into::<RawNormalModuleReplacementPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(NormalModuleReplacementPlugin::new(raw_options.into()).boxed());
+      }
       BuiltinPluginName::ContextReplacementPlugin => {
         let raw_options = downcast_into::<RawContextReplacementPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options
           .try_into()
-          .map_err(|report: rspack_error::miette::Error| {
-            napi::Error::from_reason(report.to_string())
-          })?;
+          .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ContextReplacementPlugin::new(options).boxed());
       }
       BuiltinPluginName::DllEntryPlugin => {
@@ -754,16 +762,30 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
       }
       BuiltinPluginName::RsdoctorPlugin => {
-        let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let options = raw_options.into();
-        plugins.push(RsdoctorPlugin::new(options).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          use rspack_plugin_rsdoctor::RsdoctorPlugin;
+
+          use crate::rsdoctor::RawRsdoctorPluginOptions;
+
+          let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          let options = raw_options.into();
+          plugins.push(RsdoctorPlugin::new(options).boxed());
+        }
       }
       BuiltinPluginName::RstestPlugin => {
-        let raw_options = downcast_into::<RawRstestPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let options = raw_options.into();
-        plugins.push(RstestPlugin::new(options).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          use rspack_plugin_rstest::RstestPlugin;
+
+          use crate::rstest::RawRstestPluginOptions;
+
+          let raw_options = downcast_into::<RawRstestPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          let options = raw_options.into();
+          plugins.push(RstestPlugin::new(options).boxed());
+        }
       }
       BuiltinPluginName::RslibPlugin => {
         let raw_options = downcast_into::<RawRslibPluginOptions>(self.options)
@@ -783,7 +805,7 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
       BuiltinPluginName::CssChunkingPlugin => {
-        let options = downcast_into::<CssChunkingPluginOptions>(self.options)
+        let options = downcast_into::<RawCssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }

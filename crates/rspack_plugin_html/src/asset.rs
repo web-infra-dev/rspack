@@ -14,7 +14,7 @@ use rspack_core::{
   AssetInfo, Compilation, CompilationAsset, Filename, PathData,
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
-use rspack_error::{AnyhowResultToRspackResultExt, Result, miette};
+use rspack_error::{AnyhowResultToRspackResultExt, Result};
 use rspack_paths::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
@@ -329,7 +329,7 @@ pub async fn create_favicon_asset(
   favicon: &str,
   config: &HtmlRspackPluginOptions,
   compilation: &Compilation,
-) -> Result<(String, CompilationAsset), miette::Error> {
+) -> Result<(String, CompilationAsset)> {
   let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
     .file_name()
     .expect("Should have favicon file name")

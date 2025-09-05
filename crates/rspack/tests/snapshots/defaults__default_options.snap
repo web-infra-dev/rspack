@@ -1,6 +1,5 @@
 ---
 source: crates/rspack/tests/defaults.rs
-assertion_line: 16
 expression: options
 ---
 CompilerOptions {
@@ -1396,6 +1395,9 @@ CompilerOptions {
                             url: Some(
                                 Enable,
                             ),
+                            unknown_context_critical: Some(
+                                true,
+                            ),
                             expr_context_critical: Some(
                                 true,
                             ),
@@ -1475,6 +1477,7 @@ CompilerOptions {
         top_level_await: true,
         rspack_future: RspackFuture,
         cache: Disabled,
+        css: false,
         inline_const: false,
         inline_enum: false,
         type_reexports_presence: false,

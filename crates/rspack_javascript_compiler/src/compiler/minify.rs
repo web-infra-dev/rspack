@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{BatchErrors, DiagnosticKind};
+use rspack_error::BatchErrors;
 use rspack_util::swc::minify_file_comments;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -66,142 +66,139 @@ impl JavaScriptCompiler {
     F: for<'a> FnOnce(&'a SingleThreadedComments),
   {
     self.run(|| -> Result<TransformOutput, BatchErrors> {
-      with_rspack_error_handler(
-        "Minify Error".to_string(),
-        DiagnosticKind::JavaScript,
-        self.cm.clone(),
-        |handler| {
-          let fm = self.cm.new_source_file(Arc::new(filename), source.into());
+      with_rspack_error_handler("Minify Error".to_string(), self.cm.clone(), |handler| {
+        let fm = self.cm.new_source_file(Arc::new(filename), source.into());
 
-          let source_map = opts
-            .source_map
-            .as_ref()
-            .map(|_| SourceMapsConfig::Bool(true))
-            .unwrap_as_option(|v| {
-              Some(match v {
-                Some(true) => SourceMapsConfig::Bool(true),
-                _ => SourceMapsConfig::Bool(false),
-              })
+        let source_map = opts
+          .source_map
+          .as_ref()
+          .map(|_| SourceMapsConfig::Bool(true))
+          .unwrap_as_option(|v| {
+            Some(match v {
+              Some(true) => SourceMapsConfig::Bool(true),
+              _ => SourceMapsConfig::Bool(false),
             })
-            .expect("TODO:");
+          })
+          .expect("TODO:");
 
-          let mut min_opts = MinifyOptions {
-            compress: opts
-              .compress
-              .clone()
-              .unwrap_as_option(|default| match default {
-                Some(true) | None => Some(Default::default()),
-                _ => None,
-              })
-              .map(|v| v.into_config(self.cm.clone())),
-            mangle: opts
-              .mangle
-              .clone()
-              .unwrap_as_option(|default| match default {
-                Some(true) | None => Some(Default::default()),
-                _ => None,
-              }),
-            ..Default::default()
-          };
-
-          // top_level defaults to true if module is true
-
-          // https://github.com/swc-project/swc/issues/2254
-          if opts.module.unwrap_or(false) {
-            if let Some(opts) = &mut min_opts.compress
-              && opts.top_level.is_none()
-            {
-              opts.top_level = Some(TopLevelOptions { functions: true });
-            }
-
-            if let Some(opts) = &mut min_opts.mangle {
-              opts.top_level = Some(true);
-            }
-          }
-
-          let comments = SingleThreadedComments::default();
-
-          let target = opts.ecma.clone().into();
-          let program = self.parse_js(
-            fm.clone(),
-            target,
-            Syntax::Es(EsSyntax {
-              jsx: true,
-              decorators: true,
-              decorators_before_export: true,
-              import_attributes: true,
-              ..Default::default()
+        let mut min_opts = MinifyOptions {
+          compress: opts
+            .compress
+            .clone()
+            .unwrap_as_option(|default| match default {
+              Some(true) | None => Some(Default::default()),
+              _ => None,
+            })
+            .map(|v| v.into_config(self.cm.clone())),
+          mangle: opts
+            .mangle
+            .clone()
+            .unwrap_as_option(|default| match default {
+              Some(true) | None => Some(Default::default()),
+              _ => None,
             }),
-            opts
-              .module
-              .map_or_else(|| IsModule::Unknown, IsModule::Bool),
-            Some(&comments),
-          )?;
+          ..Default::default()
+        };
 
-          let unresolved_mark = Mark::new();
-          let top_level_mark = Mark::new();
+        // top_level defaults to true if module is true
 
-          let is_mangler_enabled = min_opts.mangle.is_some();
-
-          let program = helpers::HELPERS.set(&Helpers::new(false), || {
-            HANDLER.set(handler, || {
-              let program = program
-                .apply(&mut resolver(unresolved_mark, top_level_mark, false))
-                .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
-              let mut program = swc_ecma_minifier::optimize(
-                program,
-                self.cm.clone(),
-                Some(&comments),
-                None,
-                &min_opts,
-                &swc_ecma_minifier::option::ExtraOptions {
-                  unresolved_mark,
-                  top_level_mark,
-                  mangle_name_cache: None,
-                },
-              );
-
-              if !is_mangler_enabled {
-                program.visit_mut_with(&mut hygiene())
-              }
-              program.apply(&mut fixer(Some(&comments as &dyn Comments)))
-            })
-          });
-
-          if let Some(op) = comments_op {
-            op(&comments);
+        // https://github.com/swc-project/swc/issues/2254
+        if opts.module.unwrap_or(false) {
+          if let Some(opts) = &mut min_opts.compress
+            && opts.top_level.is_none()
+          {
+            opts.top_level = Some(TopLevelOptions { functions: true });
           }
 
-          minify_file_comments(
-            &comments,
-            opts
-              .format
-              .comments
-              .clone()
-              .into_inner()
-              .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
-            opts.format.preserve_annotations,
-          );
+          if let Some(opts) = &mut min_opts.mangle {
+            opts.top_level = Some(true);
+          }
+        }
 
-          let print_options = PrintOptions {
-            source_len: fm.byte_length(),
-            source_map: self.cm.clone(),
-            target,
-            source_map_config: SourceMapConfig {
-              enable: source_map.enabled(),
-              inline_sources_content: opts.inline_sources_content,
-              emit_columns: true,
-              names: Default::default(),
-            },
-            input_source_map: None,
-            minify: opts.minify,
-            comments: Some(&comments),
-            format: &opts.format,
-          };
+        let comments = SingleThreadedComments::default();
 
-          self.print(&program, print_options).map_err(|e| e.into())
-        },
-      )
+        let target = opts.ecma.clone().into();
+        let program = self.parse_js(
+          fm.clone(),
+          target,
+          Syntax::Es(EsSyntax {
+            jsx: true,
+            decorators: true,
+            decorators_before_export: true,
+            import_attributes: true,
+            ..Default::default()
+          }),
+          opts
+            .module
+            .map_or_else(|| IsModule::Unknown, IsModule::Bool),
+          Some(&comments),
+        )?;
+
+        let unresolved_mark = Mark::new();
+        let top_level_mark = Mark::new();
+
+        let is_mangler_enabled = min_opts.mangle.is_some();
+
+        let program = helpers::HELPERS.set(&Helpers::new(false), || {
+          HANDLER.set(handler, || {
+            let program = program
+              .apply(&mut resolver(unresolved_mark, top_level_mark, false))
+              .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
+            let mut program = swc_ecma_minifier::optimize(
+              program,
+              self.cm.clone(),
+              Some(&comments),
+              None,
+              &min_opts,
+              &swc_ecma_minifier::option::ExtraOptions {
+                unresolved_mark,
+                top_level_mark,
+                mangle_name_cache: None,
+              },
+            );
+
+            if !is_mangler_enabled {
+              program.visit_mut_with(&mut hygiene())
+            }
+            program.apply(&mut fixer(Some(&comments as &dyn Comments)))
+          })
+        });
+
+        if let Some(op) = comments_op {
+          op(&comments);
+        }
+
+        minify_file_comments(
+          &comments,
+          &opts
+            .format
+            .comments
+            .clone()
+            .into_inner()
+            .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
+          opts.format.preserve_annotations,
+        );
+
+        let print_options = PrintOptions {
+          source_len: fm.byte_length(),
+          source_map: self.cm.clone(),
+          target,
+          source_map_config: SourceMapConfig {
+            enable: source_map.enabled(),
+            inline_sources_content: opts.inline_sources_content,
+            emit_columns: true,
+            names: Default::default(),
+          },
+          input_source_map: None,
+          minify: opts.minify,
+          comments: Some(&comments),
+          preamble: &opts.format.preamble,
+          ascii_only: opts.format.ascii_only,
+          inline_script: opts.format.inline_script,
+        };
+
+        self.print(&program, print_options).map_err(|e| e.into())
+      })
     })
   }
 }

@@ -537,21 +537,20 @@ impl CodeSplitter {
     let mut runtime_errors = vec![];
 
     if depend_on.is_some() && runtime.is_some() {
-      runtime_errors.push(
-        Diagnostic::from(error!(
-          "Entrypoint '{name}' has 'dependOn' and 'runtime' specified. This is not valid.
+      let mut diagnostic = Diagnostic::from(error!(
+        "Entrypoint '{name}' has 'dependOn' and 'runtime' specified. This is not valid.
 Entrypoints that depend on other entrypoints do not have their own runtime.
 They will use the runtime(s) from referenced entrypoints instead.
 Remove the 'runtime' option from the entrypoint."
-        ))
-        .with_chunk(compilation.entrypoints.get(name).map(|key| {
-          compilation
-            .chunk_group_by_ukey
-            .expect_get(key)
-            .get_entrypoint_chunk()
-            .as_u32()
-        })),
-      );
+      ));
+      diagnostic.chunk = compilation.entrypoints.get(name).map(|key| {
+        compilation
+          .chunk_group_by_ukey
+          .expect_get(key)
+          .get_entrypoint_chunk()
+          .as_u32()
+      });
+      runtime_errors.push(diagnostic);
     }
 
     if let Some(depend_on) = &options.depend_on {
@@ -580,11 +579,11 @@ Remove the 'runtime' option from the entrypoint."
               .expect_get(dependency_ukey)
               .get_entrypoint_chunk();
             if referenced_chunks.contains(&dependency_chunk_ukey) {
-              runtime_errors.push(Diagnostic::from(
-                error!(
-                  "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
-                ),
-              ).with_chunk(Some(entry_point.get_entrypoint_chunk().as_u32())));
+              let mut diagnostic = Diagnostic::from(error!(
+                "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
+              ));
+              diagnostic.chunk = Some(entry_point.get_entrypoint_chunk().as_u32());
+              runtime_errors.push(diagnostic);
               entry_point_runtime = Some(entry_point_chunk.ukey());
               has_error = true;
               break;
@@ -625,14 +624,16 @@ Remove the 'runtime' option from the entrypoint."
         Some(ukey) => {
           if !self.runtime_chunks.contains(ukey) {
             let entry_chunk = entry_point.get_entrypoint_chunk();
-            runtime_errors.push(Diagnostic::from(
+            let mut diagnostic = Diagnostic::from(
               error!(
                 "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{runtime}'.
 It's not valid to use other entrypoints as runtime chunk.
 Did you mean to use 'dependOn: \"{runtime}\"' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{runtime}'? For this '{runtime}' must always be loaded when '{name}' is used.
 Or do you want to use the entrypoints '{name}' and '{runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
                               ),
-            ).with_chunk(Some(entry_chunk.as_u32())));
+            );
+            diagnostic.chunk = Some(entry_chunk.as_u32());
+            runtime_errors.push(diagnostic);
             entry_point.set_runtime_chunk(entry_chunk);
           }
           compilation.chunk_by_ukey.expect_get_mut(ukey)
@@ -666,6 +667,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   pub fn prepare_input_entrypoints_and_modules(
     &mut self,
+    all_modules: &Vec<ModuleIdentifier>,
     compilation: &mut Compilation,
   ) -> Result<UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
@@ -675,9 +677,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let outgoings = {
       let mg = compilation.get_module_graph();
-      mg.modules()
-        .keys()
-        .par_bridge()
+      all_modules
+        .par_iter()
         .map(|m| {
           (
             *m,
@@ -812,7 +813,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let start = logger.time("process queue");
     // Iterative traversal of the Module graph
     // Recursive would be simpler to write but could result in Stack Overflows
-    while !self.queue.is_empty() || !self.queue_connect.is_empty() || !self.queue_delayed.is_empty()
+    while !self.queue.is_empty()
+      || !self.queue_connect.is_empty()
+      || !self.queue_delayed.is_empty()
+      || !self.chunk_groups_for_combining.is_empty()
     {
       self.process_queue(compilation);
 
@@ -1495,6 +1499,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               compilation
                 .named_chunk_groups
                 .insert(name.to_owned(), entrypoint.ukey);
+              compilation
+                .named_chunks
+                .insert(name.to_owned(), chunk.ukey());
             }
 
             entrypoint.connect_chunk(chunk);
@@ -2006,10 +2013,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  pub fn prepare(&mut self, compilation: &Compilation) -> Result<()> {
+  pub fn prepare(
+    &mut self,
+    all_modules: &Vec<ModuleIdentifier>,
+    compilation: &Compilation,
+  ) -> Result<()> {
     let mg = compilation.get_module_graph();
-    let modules = mg.modules().keys().copied().collect::<Vec<_>>();
-    self.prepared_connection_map = modules
+    self.prepared_connection_map = all_modules
       .par_iter()
       .map(|module| {
         let mut connection_map =
@@ -2043,7 +2053,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
       .collect::<IdentifierMap<_>>();
 
-    self.prepared_blocks_map = modules
+    self.prepared_blocks_map = all_modules
       .par_iter()
       .map(|module| {
         let mut map =

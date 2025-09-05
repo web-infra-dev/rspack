@@ -14,6 +14,7 @@ pub struct Mutations {
   inner: Vec<Mutation>,
 
   affected_modules_with_module_graph: OnceCell<IdentifierSet>,
+  affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
   affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
 }
 
@@ -132,6 +133,57 @@ impl Mutations {
             })
             .collect(),
         )
+      })
+      .clone()
+  }
+
+  pub fn get_affected_modules_with_chunk_graph(&self, compilation: &Compilation) -> IdentifierSet {
+    self
+      .affected_modules_with_chunk_graph
+      .get_or_init(|| {
+        let mg = compilation.get_module_graph();
+        let mut modules = self.get_affected_modules_with_module_graph(&mg);
+        let mut chunks = UkeySet::default();
+        for mutation in self.iter() {
+          match mutation {
+            Mutation::ModuleSetAsync { module } => {
+              modules.insert(*module);
+            }
+            Mutation::ModuleSetId { module } => {
+              modules.insert(*module);
+              modules.extend(
+                mg.get_incoming_connections(module)
+                  .filter_map(|c| c.original_module_identifier),
+              );
+            }
+            Mutation::ChunkAdd { chunk } => {
+              chunks.insert(chunk);
+            }
+            Mutation::ChunkRemove { chunk } => {
+              chunks.remove(chunk);
+            }
+            Mutation::ChunkSetId { chunk } => {
+              let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+              modules.extend(
+                chunk
+                  .groups()
+                  .iter()
+                  .flat_map(|group| {
+                    let group = compilation.chunk_group_by_ukey.expect_get(group);
+                    group.origins()
+                  })
+                  .filter_map(|origin| origin.module),
+              );
+            }
+            _ => {}
+          }
+        }
+        modules.extend(
+          chunks
+            .into_iter()
+            .flat_map(|chunk| compilation.chunk_graph.get_chunk_modules_identifier(chunk)),
+        );
+        modules
       })
       .clone()
   }

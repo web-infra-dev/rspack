@@ -8,8 +8,8 @@ use rspack_collections::{
   UkeySet,
 };
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, Logger, Module, ModuleIdentifier, Plugin, PluginContext, SourceType,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams, CompilerCompilation,
+  Logger, Module, ModuleIdentifier, Plugin, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -417,19 +417,10 @@ impl Plugin for CssChunkingPlugin {
     "rspack.CssChunkingPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));

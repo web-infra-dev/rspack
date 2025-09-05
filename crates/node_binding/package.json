@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.4.11",
+  "version": "1.5.2",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -12,7 +12,8 @@
   "files": [
     "binding.js",
     "binding.d.ts",
-    "napi-binding.d.ts"
+    "napi-binding.d.ts",
+    "webcontainer-fallback.cjs"
   ],
   "scripts": {
     "build:dev": "node scripts/build.js",
@@ -34,7 +35,7 @@
     "@napi-rs/cli": "3.0.4",
     "@napi-rs/wasm-runtime": "^1.0.1",
     "emnapi": "^1.4.5",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "napi": {
     "binaryName": "rspack",

@@ -3,16 +3,16 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerId, CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module,
-  ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin, PluginContext,
+  BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
+  CompilerMake, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleFactory,
+  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{
   backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
@@ -64,18 +64,26 @@ pub struct LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck> {
   entries: bool, // enable for entries
   imports: bool, // enable for imports
   test: Option<LazyCompilationTest<F>>,
-  cacheable: bool,
+  client: String,
+  active_modules: RwLock<IdentifierSet>,
 }
 
 impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
   pub fn new(
-    cacheable: bool,
     backend: T,
     test: Option<LazyCompilationTest<F>>,
     entries: bool,
     imports: bool,
+    client: String,
   ) -> Self {
-    Self::new_inner(Mutex::new(backend), entries, imports, test, cacheable)
+    Self::new_inner(
+      Mutex::new(backend),
+      entries,
+      imports,
+      test,
+      client,
+      Default::default(),
+    )
   }
 
   async fn check_test(
@@ -181,30 +189,50 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  let mut backend = self.backend.lock().await;
   let module_identifier = module.identifier();
 
   let lib_ident = module.lib_ident(LibIdentOptions {
     context: module_factory_create_data.options.context.as_str(),
   });
-  let info = backend
-    .module(
-      module_identifier,
-      create_data.resource_resolve_data.resource.clone(),
-    )
-    .await?;
 
   *module = Box::new(LazyCompilationProxyModule::new(
     module_identifier,
     lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data.clone(),
     create_data.resource_resolve_data.resource.clone(),
-    self.cacheable,
-    info.active,
-    info.data,
-    info.client,
+    self
+      .active_modules
+      .read()
+      .await
+      .contains(&format!("lazy-compilation-proxy|{module_identifier}").into()),
+    self.client.clone(),
   ));
 
+  Ok(())
+}
+
+#[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
+async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
+  let active_modules = self.backend.lock().await.current_active_modules().await?;
+  let mut module_graph = compilation.get_module_graph_mut();
+  let mut errors = vec![];
+  for module_id in &active_modules {
+    let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
+      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
+      continue;
+    };
+
+    let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
+      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
+      continue;
+    };
+
+    active_module.need_build = true;
+  }
+
+  *self.active_modules.write().await = active_modules.into_iter().collect();
+
+  compilation.extend_diagnostics(errors);
   Ok(())
 }
 
@@ -212,18 +240,15 @@ async fn normal_module_factory_module(
 impl<T: Backend + 'static, F: LazyCompilationTestCheck + 'static> Plugin
   for LazyCompilationPlugin<T, F>
 {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
-      .context
       .normal_module_factory_hooks
       .module
       .tap(normal_module_factory_module::new(self));
+
+    ctx.compiler_hooks.make.tap(compiler_make::new(self));
     Ok(())
   }
 }

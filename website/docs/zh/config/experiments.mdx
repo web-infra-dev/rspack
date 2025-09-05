@@ -88,6 +88,14 @@ export default {
 
 ## experiments.topLevelAwait
 
+:::warning
+
+该配置项已经废弃，将在 Rspack v2.0 中被移除。
+
+未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
+
+:::
+
 - **类型：** `boolean`
 - **默认值：** `true`
 
@@ -105,151 +113,13 @@ export default {
 
 ## experiments.lazyCompilation
 
-- **类型：** `boolean | LazyCompilationOptions`
-- **默认值：** `false`
+<ApiMeta deprecatedVersion="1.5.0" />
 
-```ts
-type LazyCompilationOptions =
-  | boolean
-  | {
-      /**
-       * 为 entries 启用 lazy compilation
-       * @default true
-       */
-      entries?: boolean;
-      /**
-       * 为 dynamic imports 启用 lazy compilation
-       * @default true
-       */
-      imports?: boolean;
-      /**
-       * 指定哪些导入的模块应该被延迟编译
-       */
-      test?: RegExp | ((m: Module) => boolean);
-      /**
-       * 自定义客户端脚本路径
-       */
-      client?: string;
-      /**
-       * 自定义服务端路径
-       */
-      serverUrl?: string;
-      /**
-       * 自定义懒编译端点的前缀
-       * @default "/lazy-compilation-using-"
-       */
-      prefix?: string;
-    };
-```
+:::warning
 
-:::tip
-参考 [指南](/guide/features/lazy-compilation) 来快速上手。
+该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
+
 :::
-
-开启懒编译，这对提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能会非常有帮助。例如你有二十个入口，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
-
-如果设置为 true，则默认会对入口模块以及 `import()` 指向的模块进行懒编译。你可以通过配置对象形式，来决定是否只对入口或只对 `import()` 生效。`entries` 决定是否对入口生效，`import()` 决定是否对 `import()` 生效。
-
-```js title="rspack.config.mjs"
-const isDev = process.env.NODE_ENV === 'development';
-
-export default {
-  experiments: {
-    // 仅在 dev 模式下开启
-    lazyCompilation: isDev,
-  },
-};
-```
-
-除此以外你还可以配置 `test` 来更细粒度控制对哪些模块进行懒编译。`test` 可以是一个正则表达式，只对该正则匹配到的模块进行懒编译，`test` 也可以是一个函数，函数的输入是 `Module` 类型，返回 `boolean` 类型，表示是否命中懒编译逻辑。
-
-:::note
-当前 lazy compilation **仍处于实验性阶段**。在部分场景下，lazy compilation 可能无法按照预期工作，或是性能提升不明显。
-:::
-
-### lazyCompilation.client
-
-- **类型：** `string`
-
-用于覆盖默认 lazy compilation 的客户端运行时，如果你想要自定义客户端运行时的逻辑，可以通过该配置项来指定。
-
-你可以参考默认实现：
-
-- [web 环境运行时](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-web.js)
-- [node 环境运行时](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-node.js)
-
-```js title="rspack.config.mjs"
-import path from 'path';
-
-export default {
-  experiments: {
-    lazyCompilation: {
-      client: path.resolve('custom-client.js'),
-    },
-  },
-};
-```
-
-### lazyCompilation.serverUrl
-
-- **类型：** `string`
-
-告诉客户端需要请求的服务端路径，默认为空，在浏览器环境会找到页面所在的服务端路径，但在 Node 环境下需要显式指定具体的路径。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    lazyCompilation: {
-      serverUrl: 'http://localhost:3000',
-    },
-  },
-};
-```
-
-### lazyCompilation.prefix
-
-- **类型：** `string`
-- **默认值：** `'/lazy-compilation-using-'`
-
-自定义懒编译请求前缀。默认情况下，懒编译中间件使用 `/lazy-compilation-using-` 前缀来处理请求。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    lazyCompilation: {
-      prefix: '/custom-lazy-endpoint-',
-    },
-  },
-};
-```
-
-### 排除 HMR client
-
-如果你未使用 Rspack 的 dev server，而是使用自己的 server 作为开发服务器，一般会在 entry 配置中加入另外的 client 代码来开启 HMR 等能力，那么最好通过配置 test 来将该 client 模块从懒编译模块中排除出去。
-
-如果不排除掉，并且开启 entry 的懒编译，该 client 在第一次访问页面时不会被编译，因此需要一次额外的刷新才能让其真正生效。
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-const options = {
-  experiments: {
-    lazyCompilation: {
-      test(module) {
-        const isMyClient = module.nameForCondition().endsWith('dev-client.js');
-        // 让 dev-client.js 不被懒编译
-        return !isMyClient;
-      },
-    },
-  },
-};
-const compiler = rspack(options);
-
-new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
-  // name: undefined 代表这是全局 entry，会插入到每一个 entry 前
-  name: undefined,
-}).apply(compiler);
-```
 
 ## experiments.layers
 
@@ -834,8 +704,8 @@ import imageUrl from 'https://example.com/image.png';
 
 <ApiMeta addedVersion="1.3.14" />
 
-- **类型:** `false | RegExp[]`
-- **默认值:** `false`
+- **类型：** `false | RegExp[]`
+- **默认值：** `false`
 
 默认情况下，Rspack 使用原生文件系统从磁盘读取文件。
 但你也可以通过更换 inputFileSystem，使用其他类型的文件系统。例如，可以用 memfs 替代默认文件系统来支持虚拟模块。
@@ -908,32 +778,53 @@ export default {
 
 <ApiMeta addedVersion="1.4.1" />
 
-- **类型:** `boolean`
-- **默认值:** `false`
+- **类型：** `boolean`
+- **默认值：** `false`
 
-实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后才能使用。
+实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后会将位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化。
+
+常见的优化场景为 `constants.js`，比如：
+
+```js
+// constants.js
+export const A = true;
+// index.js
+import { A } from './constants';
+console.log(A ? 1 : 2);
+
+// 经过打包后的结果 output.js
+const __webpack_modules__ = {
+  './index.js': __webpack_require__ => {
+    // 1. A 会被内联到使用的地方。
+    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
+    console.log(true ? 1 : 2);
+  },
+};
+```
+
+详细示例可参考：[inline const 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
 ## experiments.inlineEnum
 
 <ApiMeta addedVersion="1.4.1" />
 
-- **类型:** `boolean`
-- **默认值:** `false`
+- **类型：** `boolean`
+- **默认值：** `false`
 
 实验性功能 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 的开关，开启后才能使用。
 
-详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
 
 ## experiments.typeReexportsPresence
 
 <ApiMeta addedVersion="1.4.1" />
 
-- **类型:** `boolean`
-- **默认值:** `false`
+- **类型：** `boolean`
+- **默认值：** `false`
 
 实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
 
-详细示例可参考：[example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
 
 ## experiments.nativeWatcher
 
@@ -959,3 +850,45 @@ export default {
   },
 };
 ```
+
+## experiments.lazyBarrel
+
+<ApiMeta addedVersion="1.5.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyBarrel: true,
+  },
+};
+```
+
+无副作用模块是指满足以下条件之一的模块：
+
+- 其所属包的 `package.json` 文件中声明了 `"sideEffects": false`，详见 [副作用分析](/guide/optimization/tree-shaking#副作用分析)
+- 通过 [module.rule.sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
+
+:::info FAQ
+
+1. `lazyBarrel` 是否支持 CommonJS？
+
+   是的，理论上这个功能也可以支持 CommonJS，但在那之前我们需要先改进 Rspack 对 CJS 的 tree shaking 能力，特别是静态分析部分。所以目前我们只会支持 ESM，后续 PR 再支持 CJS。
+
+2. 为什么依赖 package.json 中的 `"sideEffects": false` 标记？Rspack 不能自动分析模块是否无副作用吗？
+
+   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `module.rule.sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
+
+3. 所以 `export * from "./x"` 不再是问题了？
+
+   不，`export * from "./x"` 对构建性能来说仍然是个不好的实践。`lazyBarrel` 只会在以下情况不构建 star re-export：当你导入一个 specifier 时，且这个无副作用的重导出模块（barrel file）的具名导出中包含该 specifier（`export { x as A } from "./a";`、`export * as A from "./a"`、`export { a, b }`、`export const A`、`export default A (the name is default)`），这意味着 star re-export 没有被使用。所以 Rspack 在以下情况仍然会构建 star re-export：
+   1. 重导出模块（barrel file）不是无副作用的
+   2. star re-export 被使用了
+
+:::
+
+> 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)

@@ -1,6 +1,6 @@
 use rspack_core::{
-  ApplyContext, CompilationModuleIds, CompilerOptions, Plugin, PluginContext,
-  compare_modules_by_pre_order_index_or_identifier, incremental::IncrementalPasses,
+  CompilationModuleIds, Plugin, compare_modules_by_pre_order_index_or_identifier,
+  incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -49,12 +49,8 @@ impl Plugin for NaturalModuleIdsPlugin {
     "NaturalModuleIdsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .module_ids
-      .tap(module_ids::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
     Ok(())
   }
 }

@@ -1,7 +1,6 @@
-use rspack_core::{
-  ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
-};
+use rspack_core::{ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory};
 use rspack_regex::RspackRegex;
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{CallExpr, Lit},
@@ -112,14 +111,14 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,
-    ident: &str,
+    for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    if ident == expr_name::IMPORT_META_WEBPACK_CONTEXT {
+    if for_name == expr_name::IMPORT_META_WEBPACK_CONTEXT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_WEBPACK_CONTEXT.to_string(),
-        expr_name::IMPORT_META.to_string(),
+        expr_name::IMPORT_META_WEBPACK_CONTEXT.into(),
+        expr_name::IMPORT_META.into(),
         Some(true),
         start,
         end,
@@ -141,7 +140,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     {
       None
     } else if let Some(dep) = create_import_meta_context_dependency(expr, parser) {
-      parser.dependencies.push(Box::new(dep));
+      parser.add_dependency(Box::new(dep));
       Some(true)
     } else {
       None

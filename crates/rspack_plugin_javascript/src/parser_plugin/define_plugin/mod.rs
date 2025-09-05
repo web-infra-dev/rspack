@@ -1,44 +1,50 @@
 mod parser;
+mod utils;
+mod walk_data;
 
-use std::{borrow::Cow, collections::HashMap};
+use std::sync::Arc;
 
-use itertools::Itertools;
-use parser::{DefineParserPlugin, walk_definitions};
+use parser::DefineParserPlugin;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginContext,
+  Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin,
 };
-use rspack_error::{
-  DiagnosticExt, Result,
-  miette::{self, Diagnostic},
-  thiserror::{self, Error},
-};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::itoa;
+use rustc_hash::FxHashMap;
 use serde_json::Value;
 
+use self::walk_data::WalkData;
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
-pub type DefineValue = HashMap<String, Value>;
+const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
 
-const VALUE_DEP_PREFIX: &str = "webpack/DefinePlugin ";
+#[derive(Debug)]
+struct ConflictingValuesError(String, String, String);
+
+impl ConflictingValuesError {
+  fn into_diagnostic(self) -> Diagnostic {
+    Error::warning(format!(
+      "DefinePlugin:\nConflicting values for '{}' ({} !== {})",
+      self.0, self.1, self.2
+    ))
+    .into()
+  }
+}
+
+pub type DefineValue = FxHashMap<String, Value>;
 
 #[plugin]
 #[derive(Debug)]
 pub struct DefinePlugin {
-  definitions: DefineValue,
+  walk_data: Arc<WalkData>,
 }
 
 impl DefinePlugin {
   pub fn new(definitions: DefineValue) -> Self {
-    Self::new_inner(definitions)
+    Self::new_inner(Arc::new(WalkData::new(&definitions)))
   }
 }
-
-#[derive(Debug, Error, Diagnostic)]
-#[error("DefinePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
-#[diagnostic(severity(Warning))]
-struct ConflictingValuesError(String, String, String);
 
 #[plugin_hook(CompilerCompilation for DefinePlugin, tracing=false)]
 async fn compilation(
@@ -46,44 +52,22 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  fn walk_definitions<'d, 's>(
-    definitions: impl Iterator<Item = (&'d String, &'d Value)>,
-    compilation: &mut Compilation,
-    prefix: Cow<'s, str>,
-  ) {
-    definitions.for_each(|(key, value)| {
-      let name = format!("{VALUE_DEP_PREFIX}{prefix}{key}");
-      let value_str = value.to_string();
-      if let Some(prev) = compilation.value_cache_versions.get(&name)
-        && !prev.eq(&value_str)
-      {
-        compilation.push_diagnostic(
-          ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .boxed()
-            .into(),
-        );
-      } else {
-        compilation.value_cache_versions.insert(name, value_str);
-      }
-      if let Some(value) = value.as_object() {
-        walk_definitions(
-          value.iter(),
-          compilation,
-          Cow::Owned(format!("{prefix}{key}.")),
-        )
-      } else if let Some(value) = value.as_array() {
-        let indexes = (0..value.len())
-          .map(|index| {
-            let mut index_buffer = itoa::Buffer::new();
-            index_buffer.format(index).to_string()
-          })
-          .collect_vec();
-        let iter = indexes.iter().zip(value.iter());
-        walk_definitions(iter, compilation, Cow::Owned(format!("{prefix}{key}.")))
-      }
-    });
+  compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
+  for (key, value) in self.walk_data.tiling_definitions.iter() {
+    let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
+    if let Some(prev) = compilation.value_cache_versions.get(&cache_key)
+      && prev != value
+    {
+      compilation.push_diagnostic(
+        ConflictingValuesError(key.clone(), prev.clone(), value.clone()).into_diagnostic(),
+      );
+    } else {
+      compilation
+        .value_cache_versions
+        .insert(cache_key, value.clone());
+    }
   }
-  walk_definitions(self.definitions.iter(), compilation, "".into());
+
   Ok(())
 }
 
@@ -97,8 +81,7 @@ async fn nmf_parser(
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
-    let walk_data = walk_definitions(&self.definitions);
-    parser.add_parser_plugin(Box::new(DefineParserPlugin { walk_data }));
+    parser.add_parser_plugin(Box::new(DefineParserPlugin::new(self.walk_data.clone())));
   }
   Ok(())
 }
@@ -108,14 +91,9 @@ impl Plugin for DefinePlugin {
     "rspack.DefinePlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

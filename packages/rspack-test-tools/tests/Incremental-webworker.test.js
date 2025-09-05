@@ -36,6 +36,6 @@ describeByWalk(
 			__dirname,
 			`./js/incremental/webpack-test/hot-webworker`
 		),
-		exclude: [/require-disposed-module-warning/]
+		exclude: []
 	}
 );

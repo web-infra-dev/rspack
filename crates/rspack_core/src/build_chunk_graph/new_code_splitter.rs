@@ -1252,13 +1252,15 @@ impl CodeSplitter {
 
               let rt_chunk = if compilation.entries.contains_key(entry_runtime) {
                 let name = entry.as_ref().expect("should have name");
-                errors.push(Diagnostic::from(error!(
+                let mut diagnostic = Diagnostic::from(error!(
                   "Entrypoint '{name}' has a 'runtime' option which points to another entrypoint named '{entry_runtime}'.
 It's not valid to use other entrypoints as runtime chunk.
 Did you mean to use 'dependOn: \"{entry_runtime}\"' instead to allow using entrypoint '{name}' within the runtime of entrypoint '{entry_runtime}'? For this '{entry_runtime}' must always be loaded when '{name}' is used.
 Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint."
                                 ),
-                ).with_chunk(Some(entry_chunk_ukey.as_u32())));
+                  );
+                diagnostic.chunk = Some(entry_chunk_ukey.as_u32());
+                errors.push(diagnostic);
                 compilation.chunk_by_ukey.expect_get_mut(&entry_chunk_ukey)
               } else {
                 let runtime_chunk = compilation
@@ -1583,7 +1585,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     }
     self.set_order_index_and_group_index(compilation);
 
-    errors.sort_unstable_by_key(|err| err.message());
+    errors.sort_unstable_by_key(|err| err.message.clone());
 
     compilation.extend_diagnostics(errors);
 
@@ -1774,22 +1776,20 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
 // main entry for code splitting
 pub fn code_split(compilation: &mut Compilation) -> Result<()> {
-  // ensure every module have a cgm, webpack uses the same trick
-  for m in compilation
+  let all_modules = compilation
     .get_module_graph()
     .modules()
     .keys()
     .copied()
-    .collect::<Vec<_>>()
-  {
-    compilation.chunk_graph.add_module(m);
+    .collect::<Vec<_>>();
+
+  // ensure every module have a cgm, webpack uses the same trick
+  for m in all_modules.iter() {
+    compilation.chunk_graph.add_module(*m);
   }
 
-  let outgoings = compilation
-    .get_module_graph()
-    .modules()
-    .keys()
-    .par_bridge()
+  let outgoings = all_modules
+    .par_iter()
     .map(|m| {
       (
         *m,
@@ -1827,7 +1827,7 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     splitter.invalidate(affected.into_iter());
     splitter
   } else {
-    CodeSplitter::new(compilation.get_module_graph().modules().keys().copied())
+    CodeSplitter::new(all_modules.into_iter())
   };
 
   // fill chunks with its modules

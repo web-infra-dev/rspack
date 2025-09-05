@@ -13,6 +13,7 @@ import type { PathInfoFixtures } from "./pathInfo";
 class Rspack {
 	private config: RspackConfig;
 	projectDir: string;
+	outDir: string;
 	compiler: Compiler;
 	devServer: RspackDevServer;
 	private onDone: Array<() => void> = [];
@@ -24,6 +25,7 @@ class Rspack {
 		this.config = handleRspackConfig(require(configPath));
 		delete require.cache[configPath];
 		this.projectDir = projectDir;
+		this.outDir = this.config.output!.path!;
 	}
 
 	// waiting for build done, not hmr done
@@ -61,7 +63,7 @@ class Rspack {
 			}
 		});
 		const DevServerConstructor = RspackDevServer;
-		if (compiler.options.experiments.lazyCompilation) {
+		if (compiler.options.lazyCompilation) {
 			const middleware = experiments.lazyCompilationMiddleware(compiler);
 			compiler.options.devServer ??= {};
 			const setupMiddlewares = compiler.options.devServer.setupMiddlewares;
@@ -102,47 +104,53 @@ export const rspackFixtures = (): RspackFixtures => {
 	const rspackFixture = (
 		incremental: boolean
 	): RspackFixtures["rspack"] | RspackFixtures["rspackIncremental"] => [
-		async ({ page, pathInfo, defaultRspackConfig }, use, { workerIndex }) => {
-			const { tempProjectDir } = pathInfo;
-			const port = (incremental ? 8200 : 8000) + workerIndex;
-			const rspack = new Rspack(tempProjectDir, config => {
-				// rewrite port
-				if (!config.devServer) {
-					config.devServer = {};
-				}
-				config.devServer.port = port;
-
-				// set default context
-				if (!config.context) {
-					config.context = tempProjectDir;
-				}
-
-				if (incremental) {
-					config.experiments ??= {};
-					config.experiments.incremental = true;
-					const cache = config.experiments.cache;
-					if (typeof cache === "object" && cache.type === "persistent") {
-						cache.storage = {
-							type: "filesystem",
-							...cache.storage,
-							//rewrite directory
-							directory: "node_modules/.cache/incremental"
-						};
+			async ({ page, pathInfo, defaultRspackConfig }, use, { workerIndex }) => {
+				const { tempProjectDir } = pathInfo;
+				const port = (incremental ? 8200 : 8000) + workerIndex;
+				const rspack = new Rspack(tempProjectDir, config => {
+					// rewrite port
+					if (!config.devServer) {
+						config.devServer = {};
 					}
-				}
+					config.devServer.port = port;
 
-				return defaultRspackConfig.handleConfig(config);
-			});
-			await rspack.start();
+					// set default context
+					if (!config.context) {
+						config.context = tempProjectDir;
+					}
 
-			await page.goto(`http://localhost:${port}`);
+					// set default output path
+					if (!config.output) {
+						config.output = {};
+					}
+					config.output.path = path.resolve(tempProjectDir, "dist");
 
-			await use(rspack);
+					if (incremental) {
+						config.experiments ??= {};
+						config.experiments.incremental = true;
+						const cache = config.experiments.cache;
+						if (typeof cache === "object" && cache.type === "persistent") {
+							cache.storage = {
+								type: "filesystem",
+								...cache.storage,
+								//rewrite directory
+								directory: "node_modules/.cache/incremental"
+							};
+						}
+					}
 
-			await rspack.stop();
-		},
-		{ auto: true }
-	];
+					return defaultRspackConfig.handleConfig(config);
+				});
+				await rspack.start();
+
+				await page.goto(`http://localhost:${port}`);
+
+				await use(rspack);
+
+				await rspack.stop();
+			},
+			{ auto: true }
+		];
 	return {
 		defaultRspackConfig: [{ handleConfig: c => c }, { option: true }],
 		rspack: rspackFixture(false),

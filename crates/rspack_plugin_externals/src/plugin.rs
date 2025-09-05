@@ -5,11 +5,10 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxModule, CompilerOptions, ContextInfo, DependencyMeta, DependencyType,
-  ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest,
-  ExternalRequestValue, ExternalType, ExternalTypeEnum, ModuleDependency, ModuleExt,
-  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  ResolveOptionsWithDependencyType, SourceType,
+  BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalItem, ExternalItemFnCtx,
+  ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
+  ExternalTypeEnum, ModuleDependency, ModuleExt, ModuleFactoryCreateData,
+  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -23,11 +22,12 @@ static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
 pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,
+  place_in_initial: bool,
 }
 
 impl ExternalsPlugin {
-  pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>) -> Self {
-    Self::new_inner(externals, r#type)
+  pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>, place_in_initial: bool) -> Self {
+    Self::new_inner(externals, r#type, place_in_initial)
   }
 
   fn handle_external(
@@ -138,6 +138,7 @@ impl ExternalsPlugin {
       r#type.unwrap_or(external_module_type),
       dependency.request().to_owned(),
       dependency_meta,
+      self.place_in_initial,
     ))
   }
 }
@@ -224,9 +225,8 @@ impl Plugin for ExternalsPlugin {
     "rspack.ExternalsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .factorize
       .tap(factorize::new(self));

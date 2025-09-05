@@ -1,7 +1,4 @@
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsPreset, Skip},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
@@ -19,8 +16,7 @@ use swc_core::ecma::atoms::Atom;
 pub struct ESMExportSpecifierDependency {
   id: DependencyId,
   range: DependencyRange,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   #[cacheable(with=AsPreset)]
   name: Atom,
   #[cacheable(with=AsPreset)]
@@ -38,13 +34,14 @@ impl ESMExportSpecifierDependency {
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       name,
       value,
       inline,
       enum_value,
       range,
-      source_map,
+      loc,
       id: DependencyId::new(),
     }
   }
@@ -57,7 +54,7 @@ impl Dependency for ESMExportSpecifierDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {

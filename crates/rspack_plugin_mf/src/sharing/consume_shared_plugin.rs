@@ -1,19 +1,18 @@
 use std::{
   collections::HashSet,
   fmt,
-  sync::{Arc, LazyLock, Mutex, RwLock},
+  sync::{Arc, LazyLock, OnceLock},
 };
 
-use async_trait::async_trait;
 use camino::Utf8Path;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
-  DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
+  BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationParams, CompilerThisCompilation, Context, DependencyCategory, DependencyType,
+  ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryCreateModule,
+  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
@@ -167,9 +166,9 @@ pub struct ConsumeSharedPluginOptions {
 #[derive(Debug)]
 pub struct ConsumeSharedPlugin {
   options: ConsumeSharedPluginOptions,
-  resolver: Mutex<Option<Arc<Resolver>>>,
-  compiler_context: Mutex<Option<Context>>,
-  matched_consumes: RwLock<Option<Arc<MatchedConsumes>>>,
+  resolver: OnceLock<Arc<Resolver>>,
+  compiler_context: OnceLock<Context>,
+  matched_consumes: OnceLock<Arc<MatchedConsumes>>,
 }
 
 impl ConsumeSharedPlugin {
@@ -183,43 +182,53 @@ impl ConsumeSharedPlugin {
   }
 
   fn init_context(&self, compilation: &Compilation) {
-    let mut lock = self.compiler_context.lock().expect("should lock");
-    *lock = Some(compilation.options.context.clone());
+    self
+      .compiler_context
+      .set(compilation.options.context.clone())
+      .expect("failed to set compiler context");
   }
 
   fn get_context(&self) -> Context {
-    let lock = self.compiler_context.lock().expect("should lock");
-    lock.clone().expect("init_context first")
+    self
+      .compiler_context
+      .get()
+      .expect("init_context first")
+      .clone()
   }
 
   fn init_resolver(&self, compilation: &Compilation) {
-    let mut lock = self.resolver.lock().expect("should lock");
-    *lock = Some(
-      compilation
-        .resolver_factory
-        .get(ResolveOptionsWithDependencyType {
-          resolve_options: None,
-          resolve_to_context: false,
-          dependency_category: DependencyCategory::Esm,
-        }),
-    );
+    self
+      .resolver
+      .set(
+        compilation
+          .resolver_factory
+          .get(ResolveOptionsWithDependencyType {
+            resolve_options: None,
+            resolve_to_context: false,
+            dependency_category: DependencyCategory::Esm,
+          }),
+      )
+      .expect("failed to set resolver for multiple times");
   }
 
   fn get_resolver(&self) -> Arc<Resolver> {
-    let lock = self.resolver.lock().expect("should lock");
-    lock.clone().expect("init_resolver first")
+    self.resolver.get().expect("init_resolver first").clone()
   }
 
   async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
     let config = resolve_matched_configs(compilation, resolver, &self.options.consumes).await;
-    let mut lock = self.matched_consumes.write().expect("should lock");
-
-    *lock = Some(Arc::new(config));
+    self
+      .matched_consumes
+      .set(Arc::new(config))
+      .expect("failed to set matched consumes");
   }
 
   fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
-    let lock = self.matched_consumes.read().expect("should lock");
-    lock.clone().expect("init_matched_consumes first")
+    self
+      .matched_consumes
+      .get()
+      .expect("init_matched_consumes first")
+      .clone()
   }
 
   async fn get_required_version(
@@ -374,11 +383,17 @@ async fn this_compilation(
     DependencyType::ConsumeSharedFallback,
     params.normal_module_factory.clone(),
   );
-  self.init_context(compilation);
-  self.init_resolver(compilation);
-  self
-    .init_matched_consumes(compilation, self.get_resolver())
-    .await;
+  if self.compiler_context.get().is_none() {
+    self.init_context(compilation);
+  }
+  if self.resolver.get().is_none() {
+    self.init_resolver(compilation);
+  }
+  if self.matched_consumes.get().is_none() {
+    self
+      .init_matched_consumes(compilation, self.get_resolver())
+      .await;
+  }
   Ok(())
 }
 
@@ -475,30 +490,25 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for ConsumeSharedPlugin {
   fn name(&self) -> &'static str {
     "rspack.ConsumeSharedPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compiler_hooks
       .this_compilation
       .tap(this_compilation::new(self));
     ctx
-      .context
       .normal_module_factory_hooks
       .factorize
       .tap(factorize::new(self));
     ctx
-      .context
       .normal_module_factory_hooks
       .create_module
       .tap(create_module::new(self));
     ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));

@@ -1,11 +1,11 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  ExportProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
-  PluginContext, PrefetchExportsInfoMode, UsedNameItem, property_access,
+  ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, UsedNameItem,
+  property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_identifier,
+  to_identifier, to_module_export_name,
 };
 use rspack_error::{Result, error_bail};
 use rspack_hash::RspackHash;
@@ -113,11 +113,14 @@ async fn render_startup(
         match used_name {
           UsedNameItem::Str(used_name) =>
             format!("__webpack_exports__{}", property_access(vec![used_name], 0)),
-          UsedNameItem::Inlined(inlined) => inlined.render().into_owned(),
+          UsedNameItem::Inlined(inlined) => inlined.render(),
         }
       )));
     }
-    exports.push(format!("{var_name} as {info_name}"));
+    exports.push(format!(
+      "{var_name} as {}",
+      to_module_export_name(info_name)
+    ));
   }
   if !exports.is_empty() {
     source.add(RawStringSource::from(format!(
@@ -148,12 +151,8 @@ impl Plugin for ModuleLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
   }
 }

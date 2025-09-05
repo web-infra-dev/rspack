@@ -1,3 +1,6 @@
+#[cfg(feature = "plugin")]
+pub mod runtime;
+
 use rustc_hash::FxHashSet;
 use swc_config::types::BoolOr;
 use swc_core::{
@@ -45,7 +48,7 @@ fn test_normalize_custom_filename() {
  */
 pub fn minify_file_comments(
   comments: &SingleThreadedComments,
-  preserve_comments: BoolOr<JsMinifyCommentOption>,
+  preserve_comments: &BoolOr<JsMinifyCommentOption>,
   preserve_annotations: bool,
 ) {
   match preserve_comments {

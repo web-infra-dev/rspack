@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace,
-  Compilation, RuntimeGlobals, SourceType,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
+  Module, RuntimeGlobals, SourceType,
   chunk_graph_chunk::ChunkId,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -11,29 +11,40 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{JsPlugin, RenderSource};
+use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 
 pub async fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  ordered_modules: &Vec<&BoxModule>,
+  ordered_modules: &Vec<&dyn Module>,
   all_strict: bool,
   output_path: &str,
+  hooks: &JavascriptModulesPluginHooks,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let module_sources = rspack_futures::scope::<_, _>(|token| {
     ordered_modules.iter().for_each(|module| {
-      let s = unsafe { token.used((compilation, chunk_ukey, module, all_strict, output_path)) };
+      let s = unsafe {
+        token.used((
+          compilation,
+          chunk_ukey,
+          module,
+          all_strict,
+          output_path,
+          hooks,
+        ))
+      };
       s.spawn(
-        |(compilation, chunk_ukey, module, all_strict, output_path)| async move {
+        |(compilation, chunk_ukey, module, all_strict, output_path, hooks)| async move {
           render_module(
             compilation,
             chunk_ukey,
-            module,
+            *module,
             all_strict,
             true,
             output_path,
+            hooks,
           )
           .await
           .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
@@ -91,10 +102,11 @@ pub async fn render_chunk_modules(
 pub async fn render_module(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   all_strict: bool,
   factory: bool,
   output_path: &str,
+  hooks: &JavascriptModulesPluginHooks,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let code_gen_result = compilation
@@ -104,7 +116,6 @@ pub async fn render_module(
     return Ok(None);
   };
 
-  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
     Some(fragments) => fragments.clone(),
     None => ChunkInitFragments::default(),
@@ -146,8 +157,6 @@ pub async fn render_module(
   };
 
   hooks
-    .read()
-    .await
     .render_module_content
     .call(
       compilation,
@@ -244,8 +253,6 @@ pub async fn render_module(
     };
 
     hooks
-      .read()
-      .await
       .render_module_container
       .call(
         compilation,
@@ -259,8 +266,6 @@ pub async fn render_module(
     let mut post_module_package = post_module_container;
 
     hooks
-      .read()
-      .await
       .render_module_package
       .call(
         compilation,
@@ -275,8 +280,6 @@ pub async fn render_module(
     sources.boxed()
   } else {
     hooks
-      .read()
-      .await
       .render_module_package
       .call(
         compilation,

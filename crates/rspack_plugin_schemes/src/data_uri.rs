@@ -2,9 +2,8 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, CompilerOptions, Content, ModuleFactoryCreateData,
-  NormalModuleFactoryResolveForScheme, NormalModuleReadResource, Plugin, PluginContext,
-  ResourceData, Scheme,
+  Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme, NormalModuleReadResource,
+  Plugin, ResourceData, Scheme,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -78,20 +77,17 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
   Ok(None)
 }
 
-#[async_trait::async_trait]
 impl Plugin for DataUriPlugin {
   fn name(&self) -> &'static str {
     "rspack.DataUriPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .resolve_for_scheme
       .tap(resolve_for_scheme::new(self));
     ctx
-      .context
       .normal_module_hooks
       .read_resource
       .tap(read_resource::new(self));

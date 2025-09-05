@@ -5,7 +5,7 @@ import { serializers } from "./serializers";
 
 expect.extend({
 	// CHANGE: new test matcher for `rspack-test-tools`
-	// @ts-ignore
+	// @ts-expect-error
 	toMatchFileSnapshot,
 	toBeTypeOf,
 	toEndWith

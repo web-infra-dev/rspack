@@ -1,5 +1,3 @@
-use rspack_error::miette;
-
 use crate::fs::{BatchFSError, FSError};
 
 #[derive(Debug)]
@@ -173,18 +171,17 @@ impl std::error::Error for Error {
   }
 }
 
-impl miette::Diagnostic for Error {
-  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    Some(Box::new(format!(
+impl From<Error> for rspack_error::Error {
+  fn from(value: Error) -> rspack_error::Error {
+    let mut error = rspack_error::Error::warning(value.to_string());
+    error.code = Some(format!(
       "Error::{}",
-      self
+      value
         .r#type
         .as_ref()
         .map_or("".to_string(), |t| t.to_string())
-    )))
-  }
-  fn severity(&self) -> Option<miette::Severity> {
-    Some(miette::Severity::Warning)
+    ));
+    error
   }
 }
 

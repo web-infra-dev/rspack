@@ -2,11 +2,11 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ApplyContext, BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
+  BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
-  CompilerOptions, ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock,
-  Dependency, DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
-  PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
+  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
+  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -32,6 +32,65 @@ use crate::{
 };
 
 const PLUGIN_NAME: &str = "rspack.ModernModuleLibraryPlugin";
+
+/// Replaces ImportDependency instances with ModernModuleImportDependency for external modules.
+/// This function iterates through all modules and their blocks to find ImportDependencies
+/// that point to external modules, then creates ModernModuleImportDependency replacements.
+pub fn replace_import_dependencies_for_external_modules(
+  compilation: &mut Compilation,
+) -> Result<()> {
+  let mg = compilation.get_module_graph();
+  let mut deps_to_replace: Vec<BoxDependency> = Vec::new();
+
+  for module in mg.modules().values() {
+    for block_id in module.get_blocks() {
+      let Some(block) = mg.block_by_id(block_id) else {
+        continue;
+      };
+      for block_dep_id in block.get_dependencies() {
+        let block_dep = mg.dependency_by_id(block_dep_id);
+        if let Some(block_dep) = block_dep
+          && let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>()
+        {
+          let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
+          if let Some(import_dep_connection) = import_dep_connection {
+            // Try find the connection with a import dependency pointing to an external module.
+            // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
+            let import_module_id = import_dep_connection.module_identifier();
+            let Some(import_module) = mg.module_by_identifier(import_module_id) else {
+              continue;
+            };
+
+            if let Some(external_module) = import_module.as_external_module() {
+              let new_dep = ModernModuleImportDependency::new(
+                *block_dep.id(),
+                import_dependency.request.as_str().into(),
+                external_module.request.clone(),
+                external_module.external_type.clone(),
+                import_dependency.range,
+                import_dependency.get_attributes().cloned(),
+                import_dependency.comments.clone(),
+              );
+
+              deps_to_replace.push(Box::new(new_dep));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  let mut mg = compilation.get_module_graph_mut();
+  for dep in deps_to_replace {
+    let dep_id = dep.id();
+    // remove connection
+    mg.revoke_dependency(dep_id, false);
+    // overwrite dependency
+    mg.add_dependency(dep);
+  }
+
+  Ok(())
+}
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -138,6 +197,119 @@ impl ModernModuleLibraryPlugin {
 
     Ok(())
   }
+
+  fn preserve_reexports_star(&self, compilation: &mut Compilation) -> Result<()> {
+    let mg = compilation.get_module_graph();
+    let mut deps_to_replace: Vec<BoxDependency> = Vec::new();
+    let mut external_connections = HashSet::default();
+
+    // Reexport star from external module.
+    // Only preserve star reexports for module graph entry, nested reexports are not supported.
+    for dep_id in &compilation.make_artifact.entry_dependencies {
+      let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
+        continue;
+      };
+
+      let mut module_id_to_connections: IdentifierMap<Vec<DependencyId>> = IdentifierMap::default();
+      mg.get_outgoing_connections(&module.identifier())
+        .for_each(|connection| {
+          module_id_to_connections
+            .entry(*connection.module_identifier())
+            .or_default()
+            .push(connection.dependency_id);
+        });
+
+      for dep_id in module.get_dependencies() {
+        if let Some(export_dep) = mg.dependency_by_id(dep_id)
+          && let Some(reexport_dep) = export_dep
+            .as_any()
+            .downcast_ref::<ESMExportImportedSpecifierDependency>()
+          && self.reexport_star_from_external_module(reexport_dep, &mg)
+        {
+          let reexport_connection = mg.connection_by_dependency_id(&reexport_dep.id);
+          if let Some(reexport_connection) = reexport_connection {
+            let import_module_id = reexport_connection.module_identifier();
+            let Some(import_module) = mg.module_by_identifier(import_module_id) else {
+              continue;
+            };
+
+            if let Some(external_module) = import_module.as_external_module() {
+              if let Some(connections) =
+                module_id_to_connections.get(reexport_connection.module_identifier())
+              {
+                let reexport_star_count = connections
+                  .iter()
+                  .filter(|c| {
+                    if let Some(dep) = mg.dependency_by_id(c)
+                      && let Some(dep) = dep
+                        .as_any()
+                        .downcast_ref::<ESMExportImportedSpecifierDependency>()
+                    {
+                      return self.reexport_star_from_external_module(dep, &mg);
+                    }
+
+                    false
+                  })
+                  .count();
+
+                let side_effect_count = connections
+                  .iter()
+                  .filter(|c| {
+                    if let Some(dep) = mg.dependency_by_id(c)
+                      && dep
+                        .as_any()
+                        .downcast_ref::<ESMImportSideEffectDependency>()
+                        .is_some()
+                    {
+                      return true;
+                    }
+
+                    false
+                  })
+                  .count();
+
+                // Every ESMExportImportedSpecifierDependency comes along with an ESMImportSideEffectDependency.
+                // So if there are an equal number of ESMExportImportedSpecifierDependency (export star) and ESMImportSideEffectDependency,
+                // we can consider that it only contains reexport star, and safely remove it.
+                if side_effect_count == reexport_star_count
+                  && side_effect_count + reexport_star_count == connections.len()
+                {
+                  for c in connections.iter() {
+                    external_connections.insert(*c);
+                  }
+                }
+              }
+
+              let new_dep = ModernModuleReexportStarExternalDependency::new(
+                *dep_id,
+                reexport_dep.request.as_str().into(),
+                external_module.request.clone(),
+                external_module.external_type.clone(),
+              );
+
+              deps_to_replace.push(Box::new(new_dep));
+            }
+          }
+        }
+      }
+    }
+
+    let mut mg = compilation.get_module_graph_mut();
+    for dep in deps_to_replace {
+      let dep_id = dep.id();
+      external_connections.remove(dep_id);
+      // remove connection
+      mg.revoke_dependency(dep_id, false);
+      // overwrite dependency
+      mg.add_dependency(dep);
+    }
+
+    for connection in &external_connections {
+      mg.revoke_dependency(connection, true);
+    }
+
+    Ok(())
+  }
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for ModernModuleLibraryPlugin)]
@@ -225,7 +397,7 @@ async fn render_startup(
     }
   }
 
-  if !exports.is_empty() {
+  if !exports.is_empty() && !compilation.options.output.iife {
     source.add(RawStringSource::from(format!(
       "export {{ {} }};\n",
       exports.join(", ")
@@ -238,153 +410,9 @@ async fn render_startup(
 
 #[plugin_hook(CompilerFinishMake for ModernModuleLibraryPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  let mg = compilation.get_module_graph();
-  let mut deps_to_replace: Vec<BoxDependency> = Vec::new();
-  let mut external_connections = HashSet::default();
-
-  // Remove `import()` runtime.
-  for module in mg.modules().values() {
-    for block_id in module.get_blocks() {
-      let Some(block) = mg.block_by_id(block_id) else {
-        continue;
-      };
-      for block_dep_id in block.get_dependencies() {
-        let block_dep = mg.dependency_by_id(block_dep_id);
-        if let Some(block_dep) = block_dep
-          && let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>()
-        {
-          let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
-          if let Some(import_dep_connection) = import_dep_connection {
-            // Try find the connection with a import dependency pointing to an external module.
-            // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
-            let import_module_id = import_dep_connection.module_identifier();
-            let Some(import_module) = mg.module_by_identifier(import_module_id) else {
-              continue;
-            };
-
-            if let Some(external_module) = import_module.as_external_module() {
-              let new_dep = ModernModuleImportDependency::new(
-                *block_dep.id(),
-                import_dependency.request.as_str().into(),
-                external_module.request.clone(),
-                external_module.external_type.clone(),
-                import_dependency.range.clone(),
-                import_dependency.get_attributes().cloned(),
-                import_dependency.comments.clone(),
-              );
-
-              deps_to_replace.push(Box::new(new_dep));
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Reexport star from external module.
-  // Only preserve star reexports for module graph entry, nested reexports are not supported.
-  for dep_id in &compilation.make_artifact.entry_dependencies {
-    let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
-      continue;
-    };
-
-    let mut module_id_to_connections: IdentifierMap<Vec<DependencyId>> = IdentifierMap::default();
-    mg.get_outgoing_connections(&module.identifier())
-      .for_each(|connection| {
-        module_id_to_connections
-          .entry(*connection.module_identifier())
-          .or_default()
-          .push(connection.dependency_id);
-      });
-
-    for dep_id in module.get_dependencies() {
-      if let Some(export_dep) = mg.dependency_by_id(dep_id)
-        && let Some(reexport_dep) = export_dep
-          .as_any()
-          .downcast_ref::<ESMExportImportedSpecifierDependency>()
-        && self.reexport_star_from_external_module(reexport_dep, &mg)
-      {
-        let reexport_connection = mg.connection_by_dependency_id(&reexport_dep.id);
-        if let Some(reexport_connection) = reexport_connection {
-          let import_module_id = reexport_connection.module_identifier();
-          let Some(import_module) = mg.module_by_identifier(import_module_id) else {
-            continue;
-          };
-
-          if let Some(external_module) = import_module.as_external_module() {
-            if let Some(connections) =
-              module_id_to_connections.get(reexport_connection.module_identifier())
-            {
-              let reexport_star_count = connections
-                .iter()
-                .filter(|c| {
-                  if let Some(dep) = mg.dependency_by_id(c)
-                    && let Some(dep) = dep
-                      .as_any()
-                      .downcast_ref::<ESMExportImportedSpecifierDependency>()
-                  {
-                    return self.reexport_star_from_external_module(dep, &mg);
-                  }
-
-                  false
-                })
-                .count();
-
-              let side_effect_count = connections
-                .iter()
-                .filter(|c| {
-                  if let Some(dep) = mg.dependency_by_id(c)
-                    && dep
-                      .as_any()
-                      .downcast_ref::<ESMImportSideEffectDependency>()
-                      .is_some()
-                  {
-                    return true;
-                  }
-
-                  false
-                })
-                .count();
-
-              // Every ESMExportImportedSpecifierDependency comes along with an ESMImportSideEffectDependency.
-              // So if there are an equal number of ESMExportImportedSpecifierDependency (export star) and ESMImportSideEffectDependency,
-              // we can consider that it only contains reexport star, and safely remove it.
-              if side_effect_count == reexport_star_count
-                && side_effect_count + reexport_star_count == connections.len()
-              {
-                for c in connections.iter() {
-                  external_connections.insert(*c);
-                }
-              }
-            }
-
-            let new_dep = ModernModuleReexportStarExternalDependency::new(
-              *dep_id,
-              reexport_dep.request.as_str().into(),
-              external_module.request.clone(),
-              external_module.external_type.clone(),
-            );
-
-            deps_to_replace.push(Box::new(new_dep));
-          }
-        }
-      }
-    }
-  }
-
-  let mut mg = compilation.get_module_graph_mut();
-  for dep in deps_to_replace {
-    let dep_id = dep.id();
-    external_connections.remove(dep_id);
-    // remove connection
-    mg.revoke_dependency(dep_id, false);
-    // overwrite dependency
-    mg.add_dependency(dep);
-  }
-
-  for connection in &external_connections {
-    mg.revoke_dependency(connection, true);
-  }
+  // Replace ImportDependency instances with ModernModuleImportDependency for external modules
+  replace_import_dependencies_for_external_modules(compilation)?;
+  self.preserve_reexports_star(compilation)?;
 
   Ok(())
 }
@@ -449,29 +477,19 @@ impl Plugin for ModernModuleLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
-      .context
       .concatenated_module_hooks
       .exports_definitions
       .tap(exports_definitions::new(self));
 
     ctx
-      .context
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
-    ctx
-      .context
-      .compiler_hooks
-      .finish_make
-      .tap(finish_make::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     Ok(())
   }

@@ -6,16 +6,14 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use async_trait::async_trait;
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
-  get_css_chunk_filename_template,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Module, ModuleGraph,
+  ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
+  RuntimeGlobals, SelfModuleFactory, SourceType, get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
     SourceExt,
@@ -97,9 +95,12 @@ impl CssPlugin {
     css_import_modules: Vec<&dyn Module>,
     css_modules: Vec<&dyn Module>,
   ) -> Result<(BoxSource, Vec<Diagnostic>)> {
+    let css_plugin_hooks = Self::get_compilation_hooks(compilation.id());
+    let hooks = css_plugin_hooks.borrow();
     let (ordered_css_modules, conflicts) =
       Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
-    let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules).await?;
+    let source =
+      Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
     let content = source.source();
     let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
@@ -129,7 +130,7 @@ impl CssPlugin {
           .module_by_identifier(&conflict.selected_module)
           .expect("should have module");
 
-        Diagnostic::warn(
+        let mut diagnostic = Diagnostic::warn(
           "Conflicting order".into(),
           format!(
             "chunk {}\nConflicting order between {} and {}",
@@ -142,9 +143,10 @@ impl CssPlugin {
             failed_module.readable_identifier(&compilation.options.context),
             selected_module.readable_identifier(&compilation.options.context)
           ),
-        )
-        .with_file(Some(output_path.to_owned().into()))
-        .with_chunk(Some(chunk.ukey().as_u32()))
+        );
+        diagnostic.file = Some(output_path.to_owned().into());
+        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic
       }));
     }
     Ok((source, diagnostics))
@@ -154,6 +156,7 @@ impl CssPlugin {
     compilation: &Compilation,
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
+    hooks: &CssModulesPluginHooks,
   ) -> rspack_error::Result<ConcatSource> {
     let module_sources = ordered_css_modules
       .iter()
@@ -178,10 +181,18 @@ impl CssPlugin {
         .into_iter()
         .flatten()
         .for_each(|(debug_info, data, cur_source)| {
-          let s = unsafe { token.used((compilation, chunk.ukey(), debug_info, data, cur_source)) };
+          let s = unsafe {
+            token.used((
+              compilation,
+              chunk.ukey(),
+              debug_info,
+              data,
+              cur_source,
+              hooks,
+            ))
+          };
           s.spawn(
-            |(compilation, chunk, debug_info, data, cur_source)| async move {
-              let hooks = Self::get_compilation_hooks(compilation.id());
+            |(compilation, chunk, debug_info, data, cur_source, hooks)| async move {
               let mut post_module_container = {
                 let mut container_source = ConcatSource::default();
 
@@ -223,7 +234,6 @@ impl CssPlugin {
 
               let chunk_ukey = chunk.ukey().as_u32().into();
               hooks
-                .borrow()
                 .render_module_package
                 .call(
                   compilation,
@@ -335,14 +345,16 @@ async fn content_hash(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
-  let css_import_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
-    .collect::<Vec<_>>();
-  let css_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
-    .collect::<Vec<_>>();
+  let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::CssImport,
+    &module_graph,
+  );
+  let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::Css,
+    &module_graph,
+  );
   let (ordered_modules, _) =
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
   let mut hasher = hashes
@@ -382,14 +394,16 @@ async fn render_manifest(
     return Ok(());
   }
   let module_graph = compilation.get_module_graph();
-  let css_import_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
-    .collect::<Vec<_>>();
-  let css_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
-    .collect::<Vec<_>>();
+  let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::CssImport,
+    &module_graph,
+  );
+  let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SourceType::Css,
+    &module_graph,
+  );
   if css_import_modules.is_empty() && css_modules.is_empty() {
     return Ok(());
   }
@@ -454,39 +468,27 @@ async fn render_manifest(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
     ctx
-      .context
       .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
-      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.context.register_parser_and_generator_builder(
+    ctx.register_parser_and_generator_builder(
       ModuleType::Css,
       Box::new(|p, g| {
         let p = p
@@ -508,7 +510,7 @@ impl Plugin for CssPlugin {
         }) as Box<dyn ParserAndGenerator>
       }),
     );
-    ctx.context.register_parser_and_generator_builder(
+    ctx.register_parser_and_generator_builder(
       ModuleType::CssModule,
       Box::new(|p, g| {
         let p = p
@@ -537,7 +539,7 @@ impl Plugin for CssPlugin {
         }) as Box<dyn ParserAndGenerator>
       }),
     );
-    ctx.context.register_parser_and_generator_builder(
+    ctx.register_parser_and_generator_builder(
       ModuleType::CssAuto,
       Box::new(|p, g| {
         let p = p

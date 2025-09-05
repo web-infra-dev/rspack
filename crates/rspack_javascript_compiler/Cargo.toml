@@ -40,7 +40,6 @@ swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
 url = { workspace = true }
 
-rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }
 rspack_sources   = { workspace = true }
 rspack_util      = { workspace = true }

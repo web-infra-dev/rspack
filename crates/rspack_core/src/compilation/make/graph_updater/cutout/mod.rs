@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
-use crate::{BuildDependency, FactorizeInfo};
+use crate::{BuildDependency, Compilation, FactorizeInfo};
 
 /// Cutout module graph.
 ///
@@ -27,6 +27,7 @@ impl Cutout {
   /// it will return the dependency of B->C.
   pub fn cutout_artifact(
     &mut self,
+    compilation: &Compilation,
     artifact: &mut MakeArtifact,
     params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
@@ -50,7 +51,7 @@ impl Cutout {
         }
         UpdateParam::CheckNeedBuild => {
           force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
-            if module.need_build() {
+            if module.need_build(&compilation.value_cache_versions) {
               Some(module.identifier())
             } else {
               None
@@ -90,14 +91,16 @@ impl Cutout {
       };
     }
 
-    for module_identifier in &force_build_modules {
-      self
-        .fix_issuers
-        .analyze_force_build_module(artifact, module_identifier);
-      self
-        .fix_build_meta
-        .analyze_force_build_module(artifact, module_identifier);
-    }
+    // analyze force_build_module and force_build_deps
+    self
+      .fix_issuers
+      .analyze_force_build_modules(artifact, &force_build_modules);
+    self
+      .fix_issuers
+      .analyze_force_build_dependencies(artifact, &force_build_deps);
+    self
+      .fix_build_meta
+      .analyze_force_build_modules(artifact, &force_build_modules);
 
     let mut build_deps = HashSet::default();
 

@@ -90,9 +90,11 @@ export class RspackOptionsApply {
 				options.externalsType,
 				"options.externalsType should have value after `applyRspackOptionsDefaults`"
 			);
-			new ExternalsPlugin(options.externalsType, options.externals).apply(
-				compiler
-			);
+			new ExternalsPlugin(
+				options.externalsType,
+				options.externals,
+				false
+			).apply(compiler);
 		}
 
 		if (options.externalsPresets.node) {
@@ -116,7 +118,7 @@ export class RspackOptionsApply {
 			new ElectronTargetPlugin().apply(compiler);
 		}
 		if (options.externalsPresets.nwjs) {
-			new ExternalsPlugin("node-commonjs", "nw.gui").apply(compiler);
+			new ExternalsPlugin("node-commonjs", "nw.gui", false).apply(compiler);
 		}
 		if (
 			options.externalsPresets.web ||

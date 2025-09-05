@@ -185,11 +185,9 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
                 &overall_max_initial_size
               });
 
-          let min_chunks = if enforce {
-            1
-          } else {
-            v.min_chunks.unwrap_or(overall_min_chunks)
-          };
+          let min_chunks = v
+            .min_chunks
+            .unwrap_or(if enforce { 1 } else { overall_min_chunks });
 
           let r#type = v
             .r#type

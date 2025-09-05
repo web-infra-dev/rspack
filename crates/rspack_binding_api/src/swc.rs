@@ -3,7 +3,8 @@ use rspack_javascript_compiler::{
   JavaScriptCompiler, TransformOutput as CompilerTransformOutput, minify::JsMinifyOptions,
   transform::SwcOptions,
 };
-use swc_core::ecma::ast::noop_pass;
+use rspack_util::source_map::SourceMapKind;
+use swc_core::{base::config::SourceMapsConfig, ecma::ast::noop_pass};
 
 #[napi(object)]
 pub struct TransformOutput {
@@ -24,15 +25,43 @@ impl From<CompilerTransformOutput> for TransformOutput {
   }
 }
 
+fn _to_source_map_kind(source_maps: Option<SourceMapsConfig>) -> SourceMapKind {
+  match source_maps {
+    Some(SourceMapsConfig::Str(s)) if s == "inline" => SourceMapKind::SourceMap,
+    Some(SourceMapsConfig::Str(s)) => {
+      // Explicitly handle non-"inline" string values for SourceMapsConfig::Str.
+      // Currently, only "inline" is supported; other values are treated as empty.
+      // Consider updating this match arm if additional string values are supported in the future.
+      SourceMapKind::empty()
+    }
+    Some(SourceMapsConfig::Bool(true)) => SourceMapKind::SourceMap,
+    Some(SourceMapsConfig::Bool(false)) => SourceMapKind::empty(),
+    _ => SourceMapKind::empty(),
+  }
+}
+
 fn _transform(source: String, options: String) -> napi::Result<TransformOutput> {
-  let options: SwcOptions = serde_json::from_str(&options)?;
+  #[cfg_attr(not(feature = "plugin"), allow(unused_mut))]
+  let mut options: SwcOptions = serde_json::from_str(&options)?;
+
+  #[cfg(feature = "plugin")]
+  {
+    options.runtime_options = options.runtime_options.plugin_runtime(std::sync::Arc::new(
+      rspack_util::swc::runtime::WasmtimeRuntime,
+    ));
+  }
+
   let compiler = JavaScriptCompiler::new();
+  let module_source_map_kind = _to_source_map_kind(options.source_maps.clone());
+
   compiler
     .transform(
       source,
-      Some(swc_core::common::FileName::Anon),
+      Some(swc_core::common::FileName::Real(
+        options.filename.clone().into(),
+      )),
       options,
-      None,
+      Some(module_source_map_kind),
       |_| {},
       |_| noop_pass(),
     )

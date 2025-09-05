@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
-use rspack_core::{
-  ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
-  incremental::IncrementalPasses,
-};
+use rspack_core::{Chunk, CompilationChunkIds, Plugin, incremental::IncrementalPasses};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -42,7 +39,6 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
   }
 
   let chunk_graph = &compilation.chunk_graph;
-  let module_graph = &compilation.get_module_graph();
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
   let mut occurs_in_initial_chunks_map = HashMap::new();
 
@@ -84,7 +80,6 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
 
       compare_chunks_natural(
         chunk_graph,
-        module_graph,
         &compilation.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
@@ -105,12 +100,8 @@ impl Plugin for OccurrenceChunkIdsPlugin {
     "rspack.OccurrenceChunkIdsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
-    ctx
-      .context
-      .compilation_hooks
-      .chunk_ids
-      .tap(chunk_ids::new(self));
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
     Ok(())
   }
 }

@@ -1389,9 +1389,9 @@ export class DefaultStatsPrinterPlugin {
 								}
 							}
 							for (const format of Object.keys(AVAILABLE_FORMATS)) {
-								// @ts-ignore
+								// @ts-expect-error
 								context[format] = (content, ...args) =>
-									// @ts-ignore
+									// @ts-expect-error
 									AVAILABLE_FORMATS[format](content, context, ...args);
 							}
 							context.timeReference = compilation.time;

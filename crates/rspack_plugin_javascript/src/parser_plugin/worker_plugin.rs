@@ -1,17 +1,17 @@
-use std::{hash::Hash, sync::LazyLock};
+use std::hash::Hash;
 
 use itertools::Itertools;
-use regex::Regex;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
-  SharedSourceMap, SpanExt,
+  SharedSourceMap,
 };
 use rspack_hash::RspackHash;
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, NewExpr, VarDecl, VarDeclarator},
+  ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, NewExpr, VarDeclarator},
 };
 
 use super::{
@@ -22,7 +22,7 @@ use super::{
 use crate::{
   dependency::{CreateScriptUrlDependency, WorkerDependency},
   utils::object_properties::get_literal_str_by_obj_prop,
-  visitors::{JavascriptParser, TagInfoData},
+  visitors::{JavascriptParser, TagInfoData, VariableDeclaration},
   webpack_comment::try_extract_webpack_magic_comment,
 };
 
@@ -55,13 +55,7 @@ fn parse_new_worker_options_from_comments(
   span: Span,
   diagnostic_span: Span,
 ) -> Option<ParsedNewWorkerOptions> {
-  let comments = try_extract_webpack_magic_comment(
-    parser.source_file,
-    &parser.comments,
-    diagnostic_span,
-    span,
-    &mut parser.warning_diagnostics,
-  );
+  let comments = try_extract_webpack_magic_comment(parser, diagnostic_span, span);
   comments
     .get_webpack_chunk_name()
     .map(|name| ParsedNewWorkerOptions {
@@ -116,40 +110,34 @@ fn add_dependencies(
     layer: None,
   })));
 
-  parser.blocks.push(Box::new(block));
+  parser.add_block(Box::new(block));
 
   if parser.compiler_options.output.trusted_types.is_some() {
-    parser
-      .dependencies
-      .push(Box::new(CreateScriptUrlDependency::new(
-        span.into(),
-        first_arg.span().into(),
-      )));
+    parser.add_dependency(Box::new(CreateScriptUrlDependency::new(
+      span.into(),
+      first_arg.span().into(),
+    )));
   }
 
   if let Some(range) = range {
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        (range.0, range.0).into(),
-        "Object.assign({}, ".into(),
-        None,
-      )));
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        (range.1, range.1).into(),
-        format!(
-          ", {{ type: {} }})",
-          if output_module {
-            "\"module\""
-          } else {
-            "undefined"
-          }
-        )
-        .into(),
-        None,
-      )));
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (range.0, range.0).into(),
+      "Object.assign({}, ".into(),
+      None,
+    )));
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (range.1, range.1).into(),
+      format!(
+        ", {{ type: {} }})",
+        if output_module {
+          "\"module\""
+        } else {
+          "undefined"
+        }
+      )
+      .into(),
+      None,
+    )));
   }
 }
 
@@ -206,9 +194,6 @@ pub struct WorkerPlugin {
   pattern_syntax: FxHashMap<String, FxHashSet<String>>,
 }
 
-static WORKER_FROM_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
-
 const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
 const DEFAULT_SYNTAX: [&str; 4] = [
   "Worker",
@@ -260,11 +245,8 @@ impl WorkerPlugin {
       }
     } else if let Some(syntax) = syntax.strip_suffix("()") {
       self.call_syntax.insert(syntax.to_string());
-    } else if let Some(captures) = WORKER_FROM_REGEX.captures(syntax) {
-      let ids = &captures[1];
-      let is_call = &captures.get(2).is_some();
-      let source = &captures[3];
-      if *is_call {
+    } else if let Ok(((ids, is_call), source)) = worker_from(syntax) {
+      if is_call {
         self
           .from_call_syntax
           .insert((ids.to_string(), source.to_string()));
@@ -284,13 +266,13 @@ impl JavascriptParserPlugin for WorkerPlugin {
     &self,
     parser: &mut JavascriptParser,
     decl: &VarDeclarator,
-    _statement: &VarDecl,
+    _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if let Some(ident) = decl.name.as_ident()
       && self.pattern_syntax.contains_key(ident.sym.as_str())
     {
       parser.tag_variable(
-        ident.sym.to_string(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),
@@ -304,7 +286,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
     if self.pattern_syntax.contains_key(for_name) {
       parser.tag_variable(
-        ident.sym.to_string(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),
@@ -479,4 +461,41 @@ impl JavascriptParserPlugin for WorkerPlugin {
         true
       })
   }
+}
+
+fn worker_from(mut input: &str) -> winnow::ModalResult<((&str, bool), &str)> {
+  use winnow::{ascii, combinator::separated_pair, prelude::*, stream::AsChar, token};
+
+  let ident_and_call = token::take_while(1.., |c: char| !c.is_space()).map(|ident: &str| {
+    ident
+      .strip_suffix("()")
+      .map(|ident| (ident, true))
+      .unwrap_or((ident, false))
+  });
+
+  let mut parser = separated_pair(
+    ident_and_call,
+    (ascii::multispace1, "from", ascii::multispace1),
+    token::take_while(1.., |_| true),
+  );
+
+  parser.parse_next(&mut input)
+}
+
+#[test]
+fn test_worker_from() {
+  assert_eq!(
+    worker_from("Worker from worker_threads").ok(),
+    Some((("Worker", false), "worker_threads"))
+  );
+
+  assert_eq!(
+    worker_from("worker() from worker_threads").ok(),
+    Some((("worker", true), "worker_threads"))
+  );
+
+  assert_eq!(
+    worker_from("()() from worker_threads").ok(),
+    Some((("()", true), "worker_threads"))
+  );
 }

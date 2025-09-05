@@ -2,7 +2,7 @@ use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
-use rspack_error::{Error, RspackSeverity};
+use rspack_error::Error;
 use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Sender;
@@ -158,8 +158,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         let diagnostics = module.diagnostics();
         let errors: Vec<_> = diagnostics
           .iter()
-          .filter(|d| matches!(d.severity(), RspackSeverity::Error))
-          .map(|d| d.message())
+          .filter(|d| d.is_error())
+          .map(|d| d.message.clone())
           .collect();
         if !errors.is_empty() {
           has_error = true;
@@ -179,8 +179,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
             .diagnostics();
           let errors: Vec<_> = diagnostics
             .iter()
-            .filter(|d| matches!(d.severity(), RspackSeverity::Error))
-            .map(|d| d.message())
+            .filter(|d| d.is_error())
+            .map(|d| d.message.clone())
             .collect();
           if !errors.is_empty() {
             has_error = true;

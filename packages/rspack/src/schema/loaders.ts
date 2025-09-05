@@ -289,6 +289,7 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 			decoratorMetadata: z.boolean(),
 			decoratorVersion: z.enum(["2021-12", "2022-03"]),
 			treatConstEnumAsEnum: z.boolean(),
+			tsEnumIsMutable: z.boolean(),
 			useDefineForClassFields: z.boolean(),
 			verbatimModuleSyntax: z.boolean()
 		})

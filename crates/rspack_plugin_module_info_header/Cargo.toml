@@ -8,10 +8,8 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait              = { workspace = true }
 regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
-rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_hash              = { workspace = true }

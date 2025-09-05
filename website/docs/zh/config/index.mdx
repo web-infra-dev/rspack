@@ -72,63 +72,31 @@ Rspack 支持以下配置文件格式：
 
 ## TypeScript 配置文件
 
-在使用 `rspack.config.ts` 时，你需要使用支持 TypeScript 的运行时，或者安装额外的依赖来解析 TypeScript 文件，你可以选择以下任意一种：
+在使用 `rspack.config.ts` 时，你可以选择以下任意一种方式：
+
+### 默认行为
+
+Rspack CLI 从 1.5.0 版本开始内置对 TypeScript 配置的支持，默认使用 SWC 来将 TypeScript 代码转换为 CommonJS 格式的 JavaScript 代码。
+
+如果你使用的 Rspack CLI 版本小于 1.5.0，建议升级到最新版本，无需再通过 `ts-node` 或 `esbuild-register` 加载配置文件，这些依赖可以被移除。
 
 ### 原生支持
 
-如果你使用的 JavaScript 运行时已经原生支持 TypeScript，你可以使用内置的 TS 转换来加载配置文件，而无需安装额外的依赖。
+如果你使用的 JavaScript 运行时已经原生支持 TypeScript，你可以使用内置的 TS 转换来加载配置文件，确保模块解析行为与原生行为一致。
 
 例如，Node.js 已经原生支持 TypeScript，你可以使用以下命令来使用 Node.js 原生加载器来加载配置文件：
 
-- 对于 Node.js v22.7.0 到 v23.5.0，你需要启用 `--experimental-transform-types` 选项：
+- 对于原生支持 TypeScript 的 Node.js v22.18+ 和 v24.3+，你可以运行以下命令来加载 TS 配置：
 
 ```json title="package.json"
 {
   "scripts": {
-    "build": "NODE_OPTIONS='--experimental-transform-types' rspack build"
-  }
-}
-```
-
-- 对于 Node.js v23.6.0+，不再需要 `--experimental-transform-types` 选项：
-
-```json title="package.json"
-{
-  "scripts": {
-    "build": "rspack build"
+    "build": "rspack build --configLoader=native"
   }
 }
 ```
 
 详见 [Node.js - Running TypeScript Natively](https://nodejs.org/en/learn/typescript/run-natively#running-typescript-natively)。
-
-### 使用 esbuild
-
-对于低于 Node.js v22.7.0 的版本，你可以使用 `esbuild-register` 来加载配置文件。
-
-安装 [esbuild](https://npmjs.com/package/esbuild) 和 [esbuild-register](https://npmjs.com/package/esbuild-register) 即可，不需要任何配置。
-
-<PackageManagerTabs command="add esbuild esbuild-register -D" />
-
-### 使用 ts-node
-
-你也可以使用 [ts-node](https://npmjs.com/package/ts-node) 来加载配置文件。
-
-1. 安装 `ts-node`：
-
-<PackageManagerTabs command="add ts-node -D" />
-
-2. 然后在 `tsconfig.json` 中配置 `ts-node` 使用 `CommonJS` 模块：
-
-```json title="tsconfig.json"
-{
-  "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS"
-    }
-  }
-}
-```
 
 ### 配置类型检查
 

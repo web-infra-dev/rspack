@@ -1,4 +1,6 @@
+use bitflags::bitflags;
 use rustc_hash::FxHashMap;
+use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ScopeInfoId(u32);
@@ -181,9 +183,9 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn get<S: AsRef<str>>(&mut self, id: ScopeInfoId, key: S) -> Option<VariableInfoId> {
+  pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
     let definitions = self.expect_get_scope(id);
-    if let Some(&top_value) = definitions.map.get(key.as_ref()) {
+    if let Some(&top_value) = definitions.map.get(key) {
       if top_value == VariableInfo::TOMBSTONE || top_value == VariableInfo::UNDEFINED {
         None
       } else {
@@ -193,7 +195,7 @@ impl ScopeInfoDB {
       for index in (0..definitions.stack.len() - 1).rev() {
         // SAFETY: boundary had been checked
         let id = unsafe { definitions.stack.get_unchecked(index) };
-        if let Some(&value) = self.expect_get_scope(*id).map.get(key.as_ref()) {
+        if let Some(&value) = self.expect_get_scope(*id).map.get(key) {
           if value == VariableInfo::TOMBSTONE || value == VariableInfo::UNDEFINED {
             return None;
           } else {
@@ -202,28 +204,24 @@ impl ScopeInfoDB {
         }
       }
       let definitions = self.expect_get_mut_scope(id);
-      definitions
-        .map
-        .insert(key.as_ref().to_string(), VariableInfo::TOMBSTONE);
+      definitions.map.insert(key.clone(), VariableInfo::TOMBSTONE);
       None
     } else {
       None
     }
   }
 
-  pub fn set(&mut self, id: ScopeInfoId, key: String, variable_info_id: VariableInfoId) {
+  pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
     let scope = self.expect_get_mut_scope(id);
     scope.map.insert(key, variable_info_id);
   }
 
-  pub fn delete<S: AsRef<str>>(&mut self, id: ScopeInfoId, key: S) {
+  pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
     let scope = self.expect_get_mut_scope(id);
     if scope.stack.len() > 1 {
-      scope
-        .map
-        .insert(key.as_ref().to_string(), VariableInfo::TOMBSTONE);
+      scope.map.insert(key.clone(), VariableInfo::TOMBSTONE);
     } else {
-      scope.map.remove(key.as_ref());
+      scope.map.remove(key);
     }
   }
 }
@@ -260,10 +258,14 @@ impl TagInfo {
   }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum FreeName {
-  String(String),
-  True,
+bitflags! {
+  #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+  pub struct VariableInfoFlags: u8 {
+    const EVALUATED = 0b000;
+    const FREE = 0b001;
+    const NORMAL = 0b010;
+    const TAGGED = 0b100;
+  }
 }
 
 /// Similar to `VariableInfo` in webpack but more general.
@@ -274,28 +276,29 @@ pub struct VariableInfo {
   id: VariableInfoId,
   pub declared_scope: ScopeInfoId,
 
-  /// `free_name` is used for special identifiers such as `require` in
-  /// CommonJS:
+  /// `name` is alias name for free variable or tagged variable.
+  ///
+  /// For free variable:
   ///
   /// ```ignore
   /// let alias = require;
   /// ```
   ///
-  /// The info about `alias` becomes:
+  /// The name for variable `alias` is `Some("require")`, so `call_hooks_name`
+  /// will call the aliased name `"require"` for hooks.
+  ///
+  /// For tagged variable:
   ///
   /// ```ignore
-  /// VariableInfo {
-  ///   id: self_id,
-  ///   declared_scope: function_f_scope,
-  ///   free_name: Some("require"),
-  /// }
+  /// import { a } from "./m";
+  /// a.b;
   /// ```
-  /// This can help us redirect the invocation, such as `alias(something)`,
-  /// into `require(something)`.
   ///
-  /// Furthermore, if the value of this field is `Some(FreeName::True)`, it means
-  /// we can skip further handling.
-  pub free_name: Option<FreeName>,
+  /// The variable `a` is tagged as `ESM_SPECIFIER_TAG`, so `call_hooks_name`
+  /// will call the aliased name `"a"` for hooks.
+  pub name: Option<Atom>,
+
+  pub flags: VariableInfoFlags,
 
   /// For example, if we want to bundle a case that has the same name as one
   /// already used in the webpack output, we must rename the argument
@@ -316,8 +319,6 @@ pub struct VariableInfo {
   ///
   /// ```ignore
   /// VariableInfo {
-  ///   id: self_id,
-  ///   declared_scope: function_f_scope,
   ///   free_name: Some("__webpack_require__"),
   ///   tag: Some(Tag {
   ///     tag: COMPACT_WEBPACK_RUNTIME_REQUIRE_IDENTIFIER,
@@ -338,14 +339,16 @@ impl VariableInfo {
   pub fn create(
     definitions_db: &mut ScopeInfoDB,
     declared_scope: ScopeInfoId,
-    free_name: Option<FreeName>,
+    name: Option<Atom>,
+    flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
     let id = definitions_db.variable_info_db.next();
     let variable_info = VariableInfo {
       id,
       declared_scope,
-      free_name,
+      name,
+      flags,
       tag_info,
     };
     let prev = definitions_db
@@ -359,17 +362,25 @@ impl VariableInfo {
   pub fn id(&self) -> VariableInfoId {
     self.id
   }
+
+  pub fn is_free(&self) -> bool {
+    self.flags.contains(VariableInfoFlags::FREE)
+  }
+
+  pub fn is_tagged(&self) -> bool {
+    self.flags.contains(VariableInfoFlags::TAGGED)
+  }
 }
 
 #[derive(Debug)]
 pub struct ScopeInfo {
   stack: Vec<ScopeInfoId>,
-  map: FxHashMap<String, VariableInfoId>,
+  map: FxHashMap<Atom, VariableInfoId>,
   pub is_strict: bool,
 }
 
 impl ScopeInfo {
-  pub fn variable_map(&self) -> &FxHashMap<String, VariableInfoId> {
+  pub fn variable_map(&self) -> &FxHashMap<Atom, VariableInfoId> {
     &self.map
   }
 

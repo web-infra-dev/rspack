@@ -33,21 +33,18 @@
 			excludePackageNames: [
 				"ustr",
 				"textwrap",
-				"styled_components",
 				"owo-colors",
 				"miette",
 				"rkyv",
 				"rspack_resolver",
 				"inventory"
 			],
-			matchUpdateTypes: ["patch"],
+			matchUpdateTypes: ["patch"]
 		},
 		{
 			groupName: "swc",
 			matchManagers: ["cargo"],
-			matchPackagePrefixes: ["swc"],
-			matchPackageNames: ["styled_components"],
-			enabled: false // manually update swc and related crate since it may contain breaking change in minor | patch version
+			matchPackagePrefixes: ["swc"]
 		},
 		{
 			groupName: "napi",
@@ -102,12 +99,7 @@
 			matchManagers: ["npm"],
 			matchDepTypes: ["dependencies", "devDependencies"],
 			excludePackagePrefixes: ["webpack"],
-			excludePackageNames: [
-				"typescript",
-				"@playwright/test",
-				"@biomejs/biome",
-				"prettier"
-			],
+			excludePackageNames: ["typescript", "@playwright/test"],
 			// bump major and minor in a separate PR
 			matchUpdateTypes: ["patch"]
 		},

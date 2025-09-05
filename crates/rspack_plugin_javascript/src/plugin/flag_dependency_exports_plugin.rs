@@ -1,11 +1,11 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ApplyContext, BuildMetaExportsType, Compilation, CompilationFinishModules, CompilerOptions,
-  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec,
-  ExportsSpec, Inlinable, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, Nullable, Plugin, PluginContext, PrefetchExportsInfoMode, get_target,
+  BuildMetaExportsType, Compilation, CompilationFinishModules, DependenciesBlock, DependencyId,
+  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
+  ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
+  PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -217,9 +217,8 @@ impl Plugin for FlagDependencyExportsPlugin {
     "FlagDependencyExportsPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));

@@ -633,6 +633,7 @@ export const getRspackOptionsSchema = memoize(() => {
 	const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 	const exprContextCritical = z.boolean();
 	const wrappedContextCritical = z.boolean();
+	const unknownContextCritical = z.boolean();
 	const wrappedContextRegExp = z.instanceof(RegExp);
 	const exportsPresence = z
 		.enum(["error", "warn", "auto"])
@@ -667,6 +668,7 @@ export const getRspackOptionsSchema = memoize(() => {
 			url: javascriptParserUrl,
 			exprContextCritical: exprContextCritical,
 			wrappedContextCritical: wrappedContextCritical,
+			unknownContextCritical: unknownContextCritical,
 			wrappedContextRegExp: wrappedContextRegExp,
 			exportsPresence: exportsPresence,
 			importExportsPresence: importExportsPresence,
@@ -1368,6 +1370,7 @@ export const getRspackOptionsSchema = memoize(() => {
 
 	const incremental = z
 		.strictObject({
+			silent: z.boolean(),
 			make: z.boolean(),
 			inferAsyncModules: z.boolean(),
 			providedExports: z.boolean(),
@@ -1525,7 +1528,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			profile: profile,
 			amd: amd,
 			bail: bail,
-			performance: performance
+			performance: performance,
+			lazyCompilation: z.boolean().or(lazyCompilationOptions).optional()
 		})
 		.partial()
 		.check(externalUmdChecker) satisfies z.ZodType<t.RspackOptions>;

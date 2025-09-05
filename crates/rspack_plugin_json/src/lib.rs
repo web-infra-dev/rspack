@@ -12,17 +12,14 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfoGetter,
-  GenerateContext, Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator,
-  Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec,
-  SourceType, UsageState, UsedNameItem,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoGetter, GenerateContext,
+  Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, Plugin,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
-use rspack_error::{
-  DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError, miette::diagnostic,
-};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::itoa;
 
 use crate::json_exports_dependency::JsonExportsDependency;
@@ -93,31 +90,27 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             } else {
               start_offset
             };
-            TraceableError::from_file(
-              source.into_owned(),
+            Error::from_string(
+              Some(source.into_owned()),
               // one character offset
               start_offset,
               start_offset + 1,
               "JSON parse error".to_string(),
               format!("Unexpected character {ch}"),
             )
-            .with_kind(DiagnosticKind::Json)
-            .boxed()
           }
-          ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
+          ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => error!("{}", e),
           UnexpectedEndOfJson => {
             // End offset of json file
             let length = source.len();
             let offset = if length > 0 { length - 1 } else { length };
-            TraceableError::from_file(
-              source.into_owned(),
+            Error::from_string(
+              Some(source.into_owned()),
               offset,
               offset,
               "JSON parse error".to_string(),
               format!("{e}"),
             )
-            .with_kind(DiagnosticKind::Json)
-            .boxed()
           }
         }
       });
@@ -125,7 +118,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let (diagnostics, data) = match parse_result {
       Ok(data) => (vec![], Some(data)),
       Err(err) => (
-        vec![ModuleParseError::new(err, loaders).boxed().into()],
+        vec![Error::from(ModuleParseError::new(err, loaders)).into()],
         None,
       ),
     };
@@ -246,12 +239,8 @@ impl Plugin for JsonPlugin {
     "json"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
-    ctx.context.register_parser_and_generator_builder(
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
       Box::new(|p, g| {
         let p = p

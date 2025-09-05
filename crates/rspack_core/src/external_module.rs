@@ -209,6 +209,7 @@ pub struct ExternalModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
+  place_in_initial: bool,
 }
 
 #[cacheable]
@@ -234,6 +235,7 @@ impl ExternalModule {
     external_type: ExternalType,
     user_request: String,
     dependency_meta: DependencyMeta,
+    place_in_initial: bool,
   ) -> Self {
     Self {
       dependencies: Vec::new(),
@@ -255,6 +257,7 @@ impl ExternalModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
+      place_in_initial,
     }
   }
 
@@ -441,6 +444,69 @@ impl ExternalModule {
                 serde_json::to_string(meta).expect("json stringify failed"),
               )
             });
+
+            #[derive(Clone, Copy)]
+            struct ExternalImportOptimize(pub bool);
+
+            let safe_to_optimize =
+              if let Some(optimize) = concatenation_scope.data.get::<ExternalImportOptimize>() {
+                optimize.0
+              } else {
+                let chunk = compilation
+                  .chunk_graph
+                  .get_module_chunks(concatenation_scope.concat_module_id);
+
+                let safe_to_optimize = if chunk.is_empty() {
+                  false
+                } else {
+                  let chunk = chunk
+                    .iter()
+                    .next()
+                    .expect("concate module have only 1 chunk");
+
+                  // chunk: [extern_1, extern_2],
+                  // they are placed in 2 different concate modules
+                  // They may have conflict symbols, but we can't know during codegen,
+                  // and even if we know we can't determine which one to rename, as they
+                  // render in parallel.
+                  // This will be improved in incoming esm format.
+                  //
+                  // We must ensure that there is no other external modules in different
+                  // concate modules of the same chunk
+                  let module_graph = compilation.get_module_graph();
+                  let mut safe_to_optimize = true;
+                  'outer: for m in compilation
+                    .chunk_graph
+                    .get_chunk_modules(chunk, &module_graph)
+                  {
+                    if m.identifier() == concatenation_scope.concat_module_id {
+                      // skip self
+                      continue;
+                    }
+
+                    if let Some(m) = m.as_concatenated_module() {
+                      for m in m.get_modules() {
+                        if let Some(external_module) = module_graph
+                          .module_by_identifier(&m.id)
+                          .expect("should have module")
+                          .as_external_module()
+                          && external_module.resolve_external_type() == "module"
+                        {
+                          safe_to_optimize = false;
+                          break 'outer;
+                        }
+                      }
+                    }
+                  }
+                  safe_to_optimize
+                };
+
+                concatenation_scope
+                  .data
+                  .insert(ExternalImportOptimize(safe_to_optimize));
+                safe_to_optimize
+              };
+
             match used_exports {
               UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
                 chunk_init_fragments.push(
@@ -489,18 +555,46 @@ impl ExternalModule {
                 );
               }
               UsedExports::UsedNames(atoms) => {
-                concatenation_scope.register_import(
-                  request.primary().to_string(),
-                  attributes.clone(),
-                  None,
-                );
-                for atom in &atoms {
+                if !safe_to_optimize {
+                  chunk_init_fragments.push(
+                    NormalInitFragment::new(
+                      format!(
+                        "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                        id.clone(),
+                        json_stringify(request.primary()),
+                        attributes.clone().unwrap_or_default()
+                      ),
+                      InitFragmentStage::StageESMImports,
+                      module_graph
+                        .get_pre_order_index(&self.identifier())
+                        .map_or(0, |num| num as i32),
+                      InitFragmentKey::ModuleExternal(request.primary().into()),
+                      None,
+                    )
+                    .boxed(),
+                  );
+                  let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
+                  let namespace_export_with_name = format!(
+                    "{}{}{}",
+                    NAMESPACE_OBJECT_EXPORT,
+                    &external_module_id,
+                    &property_access(request.iter(), 1)
+                  );
+                  concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                } else {
                   concatenation_scope.register_import(
                     request.primary().to_string(),
                     attributes.clone(),
-                    Some(atom.clone()),
+                    None,
                   );
-                  concatenation_scope.register_raw_export(atom.clone(), atom.to_string());
+                  for atom in &atoms {
+                    concatenation_scope.register_import(
+                      request.primary().to_string(),
+                      attributes.clone(),
+                      Some(atom.clone()),
+                    );
+                    concatenation_scope.register_raw_export(atom.clone(), atom.to_string());
+                  }
                 }
               }
             }
@@ -674,15 +768,15 @@ impl Module for ExternalModule {
   }
 
   fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
-    if self.external_type == "css-import" {
-      return Some(true);
+    match self.external_type.as_str() {
+      "css-import" | "module" | "import" | "module-import" if !self.place_in_initial => Some(true),
+      _ => Some(
+        compilation
+          .chunk_graph
+          .get_number_of_entry_modules(chunk_key)
+          > 0,
+      ),
     }
-    Some(
-      compilation
-        .chunk_graph
-        .get_number_of_entry_modules(chunk_key)
-        > 0,
-    )
   }
 
   fn source(&self) -> Option<&BoxSource> {

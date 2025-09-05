@@ -1,5 +1,5 @@
 export * from "./directory";
-export * from "./legacy/supportsImportFn";
+export * from "./is";
 export * from "./parse-modules";
 export * from "./read-config-file";
 export * from "./update-snapshot";

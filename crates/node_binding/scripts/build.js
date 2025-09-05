@@ -41,6 +41,7 @@ async function build() {
 			"--pipe",
 			`"node ${path.resolve(__dirname, "dts-header.js")}"`
 		];
+		const rustflags = []
 		const features = [];
 		const envs = { ...process.env };
 
@@ -62,6 +63,8 @@ async function build() {
 		}
 		if (process.env.BROWSER) {
 			features.push("browser")
+			// Strip debug format to reduce wasm size of @rspack/browser
+			rustflags.push("-Zfmt-debug=none");
 		}
 		args.push("--no-dts-cache");
 		if (!values.profile || values.profile === "dev") {
@@ -71,7 +74,8 @@ async function build() {
 			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
 		) {
 			features.push("sftrace-setup");
-			envs.RUSTFLAGS = "-Zinstrument-xray=always";
+			rustflags.push("-Zinstrument-xray=always");
+			rustflags.push("-Csymbol-mangling-version=v0");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
@@ -88,6 +92,12 @@ async function build() {
 		) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
+
+			if (rustflags.length > 0) {
+				const flag = rustflags.map(f => `\\"${f}\\"`).join(",");
+				args.push("--config");
+				args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
+			}
 
 			if (values.profile === "release"
 				|| values.profile === "release-debug"

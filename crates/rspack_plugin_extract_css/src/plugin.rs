@@ -9,12 +9,11 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
-  ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
+  AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, SourceType, get_undo_path,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename, Module,
+  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals, SourceType, get_undo_path,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -331,7 +330,7 @@ impl PluginCssExtract {
           .module_by_identifier(&conflict.fallback_module)
           .expect("should have module");
 
-        Diagnostic::warn(
+        let mut diagnostic = Diagnostic::warn(
           "".into(),
           format!(
             r#"chunk {} [{PLUGIN_NAME}]
@@ -373,9 +372,10 @@ despite it was not able to fulfill desired ordering with these modules:
               .collect::<Vec<_>>()
               .join("\n")
           ),
-        )
-        .with_file(Some(filename.to_owned().into()))
-        .with_chunk(Some(chunk.ukey().as_u32()))
+        );
+        diagnostic.file = Some(filename.to_owned().into());
+        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic
       }));
     }
 
@@ -538,7 +538,9 @@ async fn runtime_requirement_in_tree(
         "mini-css",
         SOURCE_TYPE[0],
         "__webpack_require__.miniCssF".into(),
-        move |_| has_hot_update,
+        move |runtime_requirements| {
+          runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+        },
         move |chunk, compilation| {
           chunk
             .content_hash(&compilation.chunk_hashes_artifact)?
@@ -577,10 +579,11 @@ async fn content_hash(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
-  let rendered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
-    .collect::<Vec<_>>();
+  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SOURCE_TYPE[0],
+    &module_graph,
+  );
 
   if rendered_modules.is_empty() {
     return Ok(());
@@ -624,10 +627,11 @@ async fn render_manifest(
     return Ok(());
   }
 
-  let rendered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
-    .collect::<Vec<_>>();
+  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SOURCE_TYPE[0],
+    &module_graph,
+  );
 
   if rendered_modules.is_empty() {
     return Ok(());
@@ -702,32 +706,23 @@ async fn nmf_parser(
   Ok(())
 }
 
-#[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirement_in_tree::new(self));
     ctx
-      .context
       .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
-      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
     ctx
-      .context
       .normal_module_factory_hooks
       .parser
       .tap(nmf_parser::new(self));

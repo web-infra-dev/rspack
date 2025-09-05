@@ -27,6 +27,7 @@ pub struct FactorizeTask {
   pub options: Arc<CompilerOptions>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub from_unlazy: bool,
 }
 
 #[async_trait::async_trait]
@@ -92,9 +93,9 @@ impl Task<TaskContext> for FactorizeTask {
       Err(mut e) => {
         // Wrap source code if available
         if let Some(s) = self.original_module_source {
-          let has_source_code = e.source_code().is_some();
+          let has_source_code = e.src.is_some();
           if !has_source_code {
-            e = e.with_source_code(s.source().to_string());
+            e.src = Some(s.source().to_string());
           }
         }
         // Bail out if `options.bail` set to `true`,
@@ -102,10 +103,9 @@ impl Task<TaskContext> for FactorizeTask {
         if self.options.bail {
           return Err(e);
         }
-        create_data.diagnostics.insert(
-          0,
-          Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc()),
-        );
+        let mut diagnostic = Diagnostic::from(e);
+        diagnostic.loc = create_data.dependencies[0].loc();
+        create_data.diagnostics.insert(0, diagnostic);
         None
       }
     };
@@ -133,6 +133,7 @@ impl Task<TaskContext> for FactorizeTask {
       current_profile: self.current_profile,
       exports_info_related: exports_info,
       factorize_info,
+      from_unlazy: self.from_unlazy,
     })])
   }
 }
@@ -147,6 +148,7 @@ pub struct FactorizeResultTask {
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
+  pub from_unlazy: bool,
 }
 
 #[async_trait::async_trait]
@@ -162,6 +164,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       current_profile,
       exports_info_related,
       mut factorize_info,
+      from_unlazy,
     } = *self;
 
     let artifact = &mut context.artifact;
@@ -224,6 +227,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       module_graph_module: Box::new(mgm),
       dependencies,
       current_profile,
+      from_unlazy,
     })])
   }
 }

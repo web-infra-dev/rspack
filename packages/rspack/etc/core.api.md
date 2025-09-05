@@ -656,6 +656,14 @@ export type ChunkLoadingGlobal = string;
 export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
 
 // @public (undocumented)
+export type ChunkPathData = {
+    id?: string;
+    name?: string;
+    hash?: string;
+    contentHash?: Record<string, string>;
+};
+
+// @public (undocumented)
 export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
     constructor(options: CircularDependencyRspackPluginOptions);
     // (undocumented)
@@ -1097,6 +1105,8 @@ export class Compiler {
     // @internal
     __internal__get_module_execution_results_map(): Map<number, any>;
     // @internal
+    __internal__get_virtual_file_store(): binding.VirtualFileStore | null | undefined;
+    // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
     // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
@@ -1104,6 +1114,8 @@ export class Compiler {
     get __internal__ruleSet(): RuleSetCompiler;
     // @internal
     __internal__takeModuleExecutionResult(id: number): any;
+    // @internal
+    __internal_browser_require: (id: string) => unknown;
     // (undocumented)
     cache: Cache_2;
     // (undocumented)
@@ -1425,12 +1437,6 @@ export type ContainerReferencePluginOptions = {
 // @public
 export type Context = string;
 
-// @public (undocumented)
-type ContextInfo = {
-    issuer: string;
-    issuerLayer?: string | null;
-};
-
 export { ContextModule }
 
 // @public (undocumented)
@@ -1523,9 +1529,6 @@ export const CopyRspackPlugin: {
 export type CopyRspackPluginOptions = {
     patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
 };
-
-// @public (undocumented)
-type CreateData = Partial<binding.JsCreateData>;
 
 // @public
 function createNativePlugin<T extends any[], R>(name: CustomPluginName, resolve: (this: Compiler, ...args: T) => R, affectedHooks?: AffectedHooks): {
@@ -2258,6 +2261,7 @@ interface EsParserConfig {
     functionBind?: boolean;
     // @deprecated (undocumented)
     importAssertions?: boolean;
+    // @deprecated (undocumented)
     importAttributes?: boolean;
     // @deprecated (undocumented)
     importMeta?: boolean;
@@ -2424,6 +2428,8 @@ interface Experiments_2 {
         transformSync: typeof transformSync;
         minifySync: typeof minifySync;
     };
+    // (undocumented)
+    VirtualModulesPlugin: typeof VirtualModulesPlugin;
 }
 
 // @public (undocumented)
@@ -2448,7 +2454,7 @@ export interface ExperimentsNormalized {
     layers?: boolean;
     // (undocumented)
     lazyBarrel?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     nativeWatcher?: boolean;
@@ -2640,7 +2646,7 @@ export type Externals = ExternalItem | ExternalItem[];
 
 // @public (undocumented)
 export class ExternalsPlugin extends RspackBuiltinPlugin {
-    constructor(type: string, externals: Externals);
+    constructor(type: string, externals: Externals, placeInInitial?: boolean | undefined);
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
@@ -3366,6 +3372,7 @@ export type JavascriptParserOptions = {
     importMeta?: boolean;
     url?: "relative" | boolean;
     exprContextCritical?: boolean;
+    unknownContextCritical?: boolean;
     wrappedContextCritical?: boolean;
     wrappedContextRegExp?: RegExp;
     exportsPresence?: ExportsPresence;
@@ -4314,16 +4321,16 @@ export interface LoaderContext<OptionsType = {}> {
 }
 
 // @public (undocumented)
-type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
+type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | RawSourceMap, additionalData?: AdditionalData) => void;
 
-// @public (undocumented)
+// @public
 export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
     raw?: false;
     pitch?: PitchLoaderDefinitionFunction;
 };
 
 // @public (undocumented)
-export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer>;
+export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | RawSourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer | void>;
 
 // @public (undocumented)
 interface LoaderExperiments {
@@ -4752,9 +4759,6 @@ export interface ModuleOptionsNormalized {
 }
 
 // @public (undocumented)
-type ModuleReplacer = (createData: ResolveData) => void;
-
-// @public (undocumented)
 export class MultiCompiler {
     constructor(compilers: Compiler[] | Record<string, Compiler>, options?: MultiCompilerOptions);
     // (undocumented)
@@ -4846,7 +4850,7 @@ class MultiWatching {
     // (undocumented)
     compiler: MultiCompiler;
     // (undocumented)
-    invalidate(callback: Callback<Error, void>): void;
+    invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
     invalidateWithChangesAndRemovals(changedFiles?: Set<string>, removedFiles?: Set<string>, callback?: Callback<Error, void>): void;
     // (undocumented)
@@ -5055,14 +5059,15 @@ export class NormalModuleFactory {
 }
 
 // @public (undocumented)
-export class NormalModuleReplacementPlugin {
-    constructor(resourceRegExp: RegExp, newResource: string | ModuleReplacer);
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    readonly newResource: string | ModuleReplacer;
-    // (undocumented)
-    readonly resourceRegExp: RegExp;
-}
+export const NormalModuleReplacementPlugin: {
+    new (resourceRegExp: RegExp, newResource: string | ((data: ResolveData) => void)): {
+        name: string;
+        _args: [resourceRegExp: RegExp, newResource: string | ((data: ResolveData) => void)];
+        affectedHooks: "done" | "compilation" | "run" | "afterDone" | "thisCompilation" | "invalid" | "compile" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "emit" | "assetEmitted" | "afterEmit" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "make" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 interface NullLiteral extends Node_4, HasSpan {
@@ -5257,7 +5262,7 @@ interface Options extends Config_2 {
     filename?: string;
     inputSourceMap?: boolean | string;
     // (undocumented)
-    isModule?: boolean | "unknown";
+    isModule?: boolean | "unknown" | "commonjs";
     outputPath?: string;
     // (undocumented)
     plugin?: Plugin_3;
@@ -5521,23 +5526,15 @@ export type ParserOptionsByModuleTypeUnknown = {
 export type Path = string;
 
 // @public (undocumented)
-type PathData = {
+export type PathData = {
     filename?: string;
     hash?: string;
     contentHash?: string;
     runtime?: string;
     url?: string;
     id?: string;
-    chunk?: Chunk | PathDataChunkLike;
+    chunk?: Chunk | ChunkPathData;
     contentHashType?: string;
-};
-
-// @public (undocumented)
-type PathDataChunkLike = {
-    id?: string;
-    name?: string;
-    hash?: string;
-    contentHash?: Record<string, string>;
 };
 
 // @public
@@ -5568,7 +5565,7 @@ type Performance_2 = false | {
 export { Performance_2 as Performance }
 
 // @public (undocumented)
-export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
+export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer | void>;
 
 // @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;
@@ -5765,7 +5762,20 @@ export type PublicPath = "auto" | Filename;
 type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
-interface RawSourceMap {
+export interface RawSourceMap {
+    debugId?: string;
+    file: string;
+    ignoreList?: number[];
+    mappings: string;
+    names: string[];
+    sourceRoot?: string;
+    sources: string[];
+    sourcesContent?: string[];
+    version: number;
+}
+
+// @public (undocumented)
+interface RawSourceMap_2 {
     	debugId?: string;
 
     	file: string;
@@ -6007,15 +6017,7 @@ type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?
 type ResolveContext = {};
 
 // @public (undocumented)
-export type ResolveData = {
-    contextInfo: ContextInfo;
-    context: string;
-    request: string;
-    fileDependencies: string[];
-    missingDependencies: string[];
-    contextDependencies: string[];
-    createData?: CreateData;
-};
+export type ResolveData = binding.JsResolveData;
 
 // @public
 export type ResolveOptions = {
@@ -6247,8 +6249,10 @@ declare namespace rspackExports {
         Asset,
         AssetInfo,
         Assets,
+        ChunkPathData,
         CompilationParams,
         LogEntry,
+        PathData,
         Compilation,
         Compiler,
         MultiCompilerOptions,
@@ -6319,7 +6323,6 @@ declare namespace rspackExports {
         EnvironmentPlugin,
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
-        NormalModuleReplacementPlugin,
         OutputFileSystem,
         web,
         node,
@@ -6390,9 +6393,11 @@ declare namespace rspackExports {
         EvalSourceMapDevToolPlugin,
         HtmlRspackPlugin,
         LightningCssMinimizerRspackPlugin,
+        NormalModuleReplacementPlugin,
         SourceMapDevToolPlugin,
         SwcJsMinimizerRspackPlugin,
         experiments,
+        RawSourceMap,
         getRawResolve,
         LoaderContext,
         LoaderDefinition,
@@ -6634,6 +6639,7 @@ export type RspackOptions = {
     amd?: Amd;
     bail?: Bail;
     performance?: Performance_2;
+    lazyCompilation?: boolean | LazyCompilationOptions;
 };
 
 // @public (undocumented)
@@ -6674,6 +6680,8 @@ export interface RspackOptionsNormalized {
     ignoreWarnings?: IgnoreWarningsNormalized;
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
+    // (undocumented)
+    lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     loader: Loader;
     // (undocumented)
@@ -7149,7 +7157,7 @@ class Source {
     	// (undocumented)
     buffer(): Buffer_2;
     	// (undocumented)
-    map(options?: MapOptions): null | RawSourceMap;
+    map(options?: MapOptions): null | RawSourceMap_2;
     	// (undocumented)
     size(): number;
     	// (undocumented)
@@ -7162,27 +7170,9 @@ class Source {
 
 // @public (undocumented)
 interface SourceAndMap {
-    	map: null | RawSourceMap;
+    	map: null | RawSourceMap_2;
 
     	source: SourceValue;
-}
-
-// @public (undocumented)
-interface SourceMap {
-    // (undocumented)
-    file?: string;
-    // (undocumented)
-    mappings: string;
-    // (undocumented)
-    names?: string[];
-    // (undocumented)
-    sourceRoot?: string;
-    // (undocumented)
-    sources: string[];
-    // (undocumented)
-    sourcesContent?: string[];
-    // (undocumented)
-    version: number;
 }
 
 // @public (undocumented)
@@ -8098,6 +8088,8 @@ interface TransformConfig {
     react?: ReactConfig;
     // (undocumented)
     treatConstEnumAsEnum?: boolean;
+    // (undocumented)
+    tsEnumIsMutable?: boolean;
     useDefineForClassFields?: boolean;
     verbatimModuleSyntax?: boolean;
 }
@@ -8884,6 +8876,20 @@ interface VariableDeclarator extends Node_4, HasSpan {
 
 // @public (undocumented)
 export const version: string;
+
+// @public (undocumented)
+class VirtualModulesPlugin {
+    constructor(modules?: Record<string, string>);
+    // (undocumented)
+    static __internal__take_virtual_files(compiler: Compiler): {
+        path: string;
+        content: string;
+    }[] | undefined;
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    writeModule(filePath: string, contents: string): void;
+}
 
 // @public (undocumented)
 export const WarnCaseSensitiveModulesPlugin: {

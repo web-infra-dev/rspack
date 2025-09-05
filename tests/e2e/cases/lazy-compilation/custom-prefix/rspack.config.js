@@ -9,14 +9,12 @@ module.exports = {
   stats: "none",
   mode: "development",
   plugins: [new rspack.HtmlRspackPlugin()],
-  experiments: {
-    lazyCompilation: {
-      entries: true,
-      imports: true,
-      // Set custom prefix for lazy compilation
-      prefix: "/custom-lazy-endpoint-"
-    }
-  },
+	lazyCompilation: {
+		entries: true,
+		imports: true,
+		// Set custom prefix for lazy compilation
+		prefix: "/custom-lazy-endpoint-"
+	},
   devServer: {
     hot: true
   }

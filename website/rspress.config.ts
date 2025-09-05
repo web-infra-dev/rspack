@@ -4,11 +4,11 @@ import { defineConfig } from '@rspress/core';
 import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
+import { pluginSitemap } from '@rspress/plugin-sitemap';
 import { transformerNotationHighlight } from '@shikijs/transformers';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
-import pluginSitemap from 'rspress-plugin-sitemap';
 
 const PUBLISH_URL = 'https://rspack.rs';
 
@@ -25,7 +25,6 @@ export default defineConfig({
   lang: 'en',
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
-    checkDeadLinks: true,
     shiki: {
       transformers: [transformerNotationHighlight()],
       langAlias: {
@@ -44,7 +43,7 @@ export default defineConfig({
     pluginAlgolia(),
     pluginLlms(),
     pluginSitemap({
-      domain: PUBLISH_URL,
+      siteUrl: PUBLISH_URL,
     }),
     pluginFontOpenSans(),
     pluginRss({
@@ -151,6 +150,9 @@ export default defineConfig({
         if (routePath.endsWith('blog/announcing-1-4')) {
           return 'assets/rspack-og-image-v1-4.png';
         }
+        if (routePath.endsWith('blog/announcing-1-5')) {
+          return 'assets/rspack-og-image-v1-5.png';
+        }
         if (routePath.endsWith('blog/rspack-next-partner')) {
           return 'assets/next-rspack-og-image.png';
         }
@@ -168,8 +170,6 @@ export default defineConfig({
       pluginSass(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
-        title: 'Rspack',
-        type: 'website',
         url: PUBLISH_URL,
         description: 'Fast Rust-based web bundler',
         twitter: {

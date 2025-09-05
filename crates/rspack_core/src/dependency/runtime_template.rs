@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
@@ -33,7 +34,7 @@ pub fn runtime_condition_expression(
     Some(runtime_condition),
     |runtime| {
       if let Some(runtime_id) =
-        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
+        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.as_str()))
       {
         positive_runtime_ids.insert(runtime_id);
       }
@@ -46,7 +47,7 @@ pub fn runtime_condition_expression(
     subtract_runtime(runtime, Some(runtime_condition)).as_ref(),
     |runtime| {
       if let Some(runtime_id) =
-        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
+        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.as_str()))
       {
         negative_runtime_ids.insert(runtime_id);
       }
@@ -74,20 +75,18 @@ fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<
 
 pub fn for_each_runtime<F>(runtime: Option<&RuntimeSpec>, mut f: F, deterministic_order: bool)
 where
-  F: FnMut(Option<&String>),
+  F: FnMut(Option<&ustr::Ustr>),
 {
   match runtime {
     None => f(None),
     Some(runtime) => {
       if deterministic_order {
-        let mut runtimes = runtime.iter().collect::<Vec<_>>();
-        runtimes.sort();
-        for r in runtimes {
-          f(Some(&r.to_string()));
+        for r in runtime.iter().sorted() {
+          f(Some(r));
         }
       } else {
         for r in runtime.iter() {
-          f(Some(&r.to_string()));
+          f(Some(r));
         }
       }
     }
@@ -378,6 +377,7 @@ pub fn module_id(
 
 pub fn import_statement(
   module: &dyn Module,
+  runtime: Option<&RuntimeSpec>,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
   id: &DependencyId,
@@ -396,7 +396,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation.get_import_var(id);
+  let import_var = compilation.get_import_var(id, runtime);
 
   let opt_declaration = if update { "" } else { "var " };
 

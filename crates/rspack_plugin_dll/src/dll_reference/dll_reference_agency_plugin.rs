@@ -1,7 +1,4 @@
-use rspack_core::{
-  ApplyContext, CompilerOptions, Context, ExternalItem, ExternalItemValue, LibraryType, Plugin,
-  PluginContext,
-};
+use rspack_core::{Context, ExternalItem, ExternalItemValue, LibraryType, Plugin};
 use rspack_error::Result;
 use rspack_hook::plugin;
 use rspack_plugin_externals::ExternalsPlugin;
@@ -39,7 +36,7 @@ impl Plugin for DllReferenceAgencyPlugin {
     "rspack.DllReferenceAgencyPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     let mut name = self.options.name.clone();
     let mut source_type = self.options.source_type.clone();
     let mut resolved_content = self.options.content.clone();
@@ -70,8 +67,7 @@ impl Plugin for DllReferenceAgencyPlugin {
 
     let external = ExternalItem::Object(external_item_object);
 
-    ExternalsPlugin::new(source_type.unwrap_or("var".into()), vec![external])
-      .apply(PluginContext::with_context(ctx.context), options)?;
+    ExternalsPlugin::new(source_type.unwrap_or("var".into()), vec![external], false).apply(ctx)?;
 
     DelegatedPlugin::new(DelegatedPluginOptions {
       source: source.clone(),
@@ -80,9 +76,9 @@ impl Plugin for DllReferenceAgencyPlugin {
       content: resolved_content,
       extensions: self.options.extensions.clone(),
       context: self.options.context.clone(),
-      compilation_context: options.context.clone(),
+      compilation_context: ctx.compiler_options.context.clone(),
     })
-    .apply(PluginContext::with_context(ctx.context), options)?;
+    .apply(ctx)?;
 
     Ok(())
   }

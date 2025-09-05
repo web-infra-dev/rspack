@@ -15,14 +15,16 @@ it("should inline constants", () => {
   expect(constants.REMOVE_i).toBe(123456);
   expect(constants.REMOVE_f).toBe(123.45);
   expect(constants.REMOVE_s).toBe("remove");
+  expect(constants.REMOVE_m).toBe(13);
   // END:A
   const block = generated.match(/\/\/ START:A([\s\S]*)\/\/ END:A/)[1];
-  expect(block.includes(`(/* inlined export .REMOVE_n */ null).toBe(null)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_u */ undefined).toBe(undefined)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_b */ true).toBe(true)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_i */ 123456).toBe(123456)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_f */ 123.45).toBe(123.45)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_s */ "remove").toBe("remove")`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_n */ (null)).toBe(null)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_u */ (undefined)).toBe(undefined)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_b */ (true)).toBe(true)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_i */ (123456)).toBe(123456)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_f */ (123.45)).toBe(123.45)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_s */ ("remove")).toBe("remove")`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_m */ (13)).toBe(13)`)).toBe(true);
 })
 
 it("should inline constants with re-export", () => {
@@ -35,12 +37,12 @@ it("should inline constants with re-export", () => {
   expect(reexported.REMOVE_s).toBe("remove");
   // END:B
   const block = generated.match(/\/\/ START:B([\s\S]*)\/\/ END:B/)[1];
-  expect(block.includes(`(/* inlined export .REMOVE_n */ null).toBe(null)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_u */ undefined).toBe(undefined)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_b */ true).toBe(true)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_i */ 123456).toBe(123456)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_f */ 123.45).toBe(123.45)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_s */ "remove").toBe("remove")`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_n */ (null)).toBe(null)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_u */ (undefined)).toBe(undefined)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_b */ (true)).toBe(true)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_i */ (123456)).toBe(123456)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_f */ (123.45)).toBe(123.45)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_s */ ("remove")).toBe("remove")`)).toBe(true);
 })
 
 it("should not inline constants with destructing", () => {
@@ -64,9 +66,9 @@ it("should allow inline constants if the rest exports is not used with destructi
   expect(destructing.REMOVE_s).toBe("remove");
   // END:D
   const block = generated.match(/\/\/ START:D([\s\S]*)\/\/ END:D/)[1];
-  expect(block.includes(`(/* inlined export .REMOVE_i */ 123456).toBe(123456)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_f */ 123.45).toBe(123.45)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .REMOVE_s */ "remove").toBe("remove")`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_i */ (123456)).toBe(123456)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_f */ (123.45)).toBe(123.45)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_s */ ("remove")).toBe("remove")`)).toBe(true);
 })
 
 it("should respect side effects when inline constants", () => {
@@ -75,7 +77,7 @@ it("should respect side effects when inline constants", () => {
   expect(globalThis.__sideEffects).toBe("constants.side-effects.js");
   // END:E
   const block = generated.match(/\/\/ START:E([\s\S]*)\/\/ END:E/)[1];
-  expect(block.includes(`(/* inlined export .REMOVE_CONST */ true).toBe(true)`)).toBe(true);
+  expect(block.includes(`(/* inlined export .REMOVE_CONST */ (true)).toBe(true)`)).toBe(true);
 })
 
 it("should not inline and link to re-export module when have side effects", () => {

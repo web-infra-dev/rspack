@@ -66,6 +66,7 @@ import type {
 	WatchFileSystem
 } from "./util/fs";
 import { makePathsRelative } from "./util/identifier";
+import { VirtualModulesPlugin } from "./VirtualModulesPlugin";
 import { Watching } from "./Watching";
 
 export interface AssetEmittedInfo {
@@ -161,6 +162,12 @@ class Compiler {
 	compilerPath: string;
 	options: RspackOptionsNormalized;
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal_browser_require: (id: string) => unknown;
+
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.#initial = true;
 
@@ -240,6 +247,12 @@ class Compiler {
 		this.idle = false;
 
 		this.watchMode = false;
+
+		this.__internal_browser_require = () => {
+			throw new Error(
+				"Cannot execute user defined code in browser without `BrowserRequirePlugin`"
+			);
+		};
 		// this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
 		// we need to call pnp defaultValue early here
 		this.resolverFactory = new ResolverFactory(
@@ -778,6 +791,14 @@ class Compiler {
 		return compilation;
 	}
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal__get_virtual_file_store() {
+		return this.#instance?.getVirtualFileStore();
+	}
+
 	#resetThisCompilation() {
 		// reassign new compilation in thisCompilation
 		this.#compilation = undefined;
@@ -820,6 +841,8 @@ class Compiler {
 		rawOptions.__references = Object.fromEntries(
 			this.#ruleSet.builtinReferences.entries()
 		);
+		rawOptions.__virtual_files =
+			VirtualModulesPlugin.__internal__take_virtual_files(this);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 

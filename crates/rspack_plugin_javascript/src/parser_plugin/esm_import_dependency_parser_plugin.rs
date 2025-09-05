@@ -1,58 +1,20 @@
-use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes};
+use rspack_core::{ConstDependency, DependencyType, ImportAttributes};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{Callee, Expr, Ident, ImportDecl, MemberExpr, OptChainBase},
+  ecma::ast::{Callee, Expr, Ident, ImportDecl},
 };
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
   utils::object_properties::get_attributes,
-  visitors::{JavascriptParser, TagInfoData},
+  visitors::{
+    AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, TagInfoData,
+    get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
+    get_non_optional_part,
+  },
 };
-
-fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]) -> &'a [Atom] {
-  let mut i = 0;
-  while i < members.len() && matches!(members_optionals.get(i), Some(false)) {
-    i += 1;
-  }
-  if i != members.len() {
-    &members[0..i]
-  } else {
-    members
-  }
-}
-
-fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) -> &Expr {
-  while count != 0 {
-    if let Expr::Member(member) = expr {
-      expr = &member.obj;
-      count -= 1;
-    } else if let Expr::OptChain(opt_chain) = expr {
-      expr = match &*opt_chain.base {
-        OptChainBase::Member(member) => &*member.obj,
-        OptChainBase::Call(call) if call.callee.as_member().is_some() => {
-          let member = call
-            .callee
-            .as_member()
-            .expect("`call.callee` is `MemberExpr` in `if_guard`");
-          &*member.obj
-        }
-        _ => unreachable!(),
-      };
-      count -= 1;
-    } else {
-      unreachable!()
-    }
-  }
-  expr
-}
-
-fn get_non_optional_member_chain_from_member(member: &MemberExpr, mut count: i32) -> &Expr {
-  count -= 1;
-  get_non_optional_member_chain_from_expr(&member.obj, count)
-}
 
 pub struct ESMImportDependencyParserPlugin;
 
@@ -80,25 +42,23 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       source.into(),
       parser.last_esm_import_order,
       import_decl.span.into(),
-      import_decl.src.span.into(),
       DependencyType::EsmImport,
       attributes,
       Some(parser.source_map.clone()),
       false,
     );
-    parser.dependencies.push(Box::new(dependency));
 
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        import_decl.span.into(),
-        if parser.is_asi_position(import_decl.span_lo()) {
-          ";".into()
-        } else {
-          "".into()
-        },
-        None,
-      )));
+    parser.add_dependency(Box::new(dependency));
+
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      import_decl.span.into(),
+      if parser.is_asi_position(import_decl.span_lo()) {
+        ";".into()
+      } else {
+        "".into()
+      },
+      None,
+    )));
     parser.unset_asi_position(import_decl.span_hi());
     Some(true)
   }
@@ -112,7 +72,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     name: &Atom,
   ) -> Option<bool> {
     parser.tag_variable::<ESMSpecifierData>(
-      name.to_string(),
+      name.clone(),
       ESM_SPECIFIER_TAG,
       Some(ESMSpecifierData {
         name: name.clone(),
@@ -123,6 +83,24 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       }),
     );
     Some(true)
+  }
+
+  fn collect_destructuring_assignment_properties(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    if let MemberExpressionInfo::Expression(info) =
+      parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
+      && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
+      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
+      && parser
+        .get_tag_data(&name.clone(), ESM_SPECIFIER_TAG)
+        .is_some()
+    {
+      return Some(true);
+    }
+    None
   }
 
   fn identifier(
@@ -155,16 +133,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       Some(parser.source_map.clone()),
     );
-    let dep_id = *dep.id();
-    parser.dependencies.push(Box::new(dep));
+    let dep_idx = parser.next_dependency_idx();
+    parser.add_dependency(Box::new(dep));
 
     InnerGraphPlugin::on_usage(
       parser,
       Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser
-          .dependencies
-          .iter_mut()
-          .find(|dep| dep.id() == &dep_id)
+        if let Some(dep) = parser.get_dependency_mut(dep_idx)
+          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
         {
           dep.set_used_by_exports(used_by_exports);
         }
@@ -224,16 +200,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       Some(parser.source_map.clone()),
     );
-    let dep_id = *dep.id();
-    parser.dependencies.push(Box::new(dep));
+    let dep_idx = parser.next_dependency_idx();
+    parser.add_dependency(Box::new(dep));
 
     InnerGraphPlugin::on_usage(
       parser,
       Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser
-          .dependencies
-          .iter_mut()
-          .find(|dep| dep.id() == &dep_id)
+        if let Some(dep) = parser.get_dependency_mut(dep_idx)
+          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
         {
           dep.set_used_by_exports(used_by_exports);
         }
@@ -290,16 +264,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       Some(parser.source_map.clone()),
     );
-    let dep_id = *dep.id();
-    parser.dependencies.push(Box::new(dep));
+    let dep_idx = parser.next_dependency_idx();
+    parser.add_dependency(Box::new(dep));
 
     InnerGraphPlugin::on_usage(
       parser,
       Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser
-          .dependencies
-          .iter_mut()
-          .find(|dep| dep.id() == &dep_id)
+        if let Some(dep) = parser.get_dependency_mut(dep_idx)
+          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
         {
           dep.set_used_by_exports(used_by_exports);
         }

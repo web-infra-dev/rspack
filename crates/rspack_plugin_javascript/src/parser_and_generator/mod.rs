@@ -11,7 +11,7 @@ use rspack_core::{
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, miette::Diagnostic};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
@@ -19,6 +19,7 @@ use swc_core::{
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
+    transforms::base::fixer::paren_remover,
   },
 };
 use swc_node_comments::SwcComments;
@@ -140,7 +141,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut parse_meta,
       ..
     } = parse_context;
-    let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
+    let mut diagnostics: Vec<Diagnostic> = vec![];
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
       && let Ok(collected_ts_info) =
@@ -149,23 +150,22 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }
 
-    let default_with_diagnostics =
-      |source: Arc<dyn Source>, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
-        Ok(
-          ParseResult {
-            source,
-            dependencies: vec![],
-            blocks: vec![],
-            presentational_dependencies: vec![],
-            code_generation_dependencies: vec![],
-            side_effects_bailout: None,
-          }
-          .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-            diagnostics,
-            loaders,
-          )),
-        )
-      };
+    let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
+      Ok(
+        ParseResult {
+          source,
+          dependencies: vec![],
+          blocks: vec![],
+          presentational_dependencies: vec![],
+          code_generation_dependencies: vec![],
+          side_effects_bailout: None,
+        }
+        .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+          diagnostics,
+          loaders,
+        )),
+      )
+    };
 
     let source = remove_bom(source);
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
@@ -187,6 +187,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto
         ),
+        explicit_resource_management: true,
         import_attributes: true,
         ..Default::default()
       }),
@@ -226,6 +227,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut semicolons = Default::default();
     ast.transform(|program, context| {
+      program.visit_mut_with(&mut paren_remover(Some(&comments)));
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,

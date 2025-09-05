@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.4.11",
+  "version": "1.5.2",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -37,23 +37,20 @@
     "@rspack/dev-server": "~1.1.3",
     "colorette": "2.0.20",
     "exit-hook": "^4.0.0",
-    "interpret": "^3.1.1",
-    "rechoir": "^0.8.0",
     "webpack-bundle-analyzer": "4.10.2",
-    "yargs": "17.7.2"
+    "yargs": "17.7.2",
+    "pirates": "^4.0.7"
   },
   "devDependencies": {
-    "@rslib/core": "0.11.0",
+    "@rslib/core": "0.12.1",
     "@rspack/core": "workspace:*",
-    "@types/interpret": "^1.1.3",
-    "@types/rechoir": "^0.6.4",
     "@types/webpack-bundle-analyzer": "^4.7.0",
     "@types/yargs": "17.0.33",
     "concat-stream": "^2.0.0",
     "cross-env": "^7.0.3",
     "execa": "^5.1.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "peerDependencies": {
     "@rspack/core": "^1.0.0-alpha || ^1.x"

@@ -4,7 +4,7 @@ use rspack_swc_plugin_ts_collector::{
 };
 use rustc_hash::FxHashMap;
 use swc::atoms::Atom;
-use swc_core::ecma::{ast::Program, utils::number::ToJsString, visit::VisitWith};
+use swc_core::ecma::{ast::Program, visit::VisitWith};
 
 use crate::options::{CollectTypeScriptInfoOptions, CollectingEnumKind};
 
@@ -33,9 +33,7 @@ pub fn collect_typescript_info(
             .into_iter()
             .map(|(id, v)| {
               let value = match v {
-                EnumMemberValue::Number(n) => {
-                  Some(EvaluatedInlinableValue::new_number(n.to_js_string().into()))
-                }
+                EnumMemberValue::Number(n) => Some(EvaluatedInlinableValue::new_number(n)),
                 EnumMemberValue::String(s) => Some(EvaluatedInlinableValue::new_string(s)),
                 EnumMemberValue::Unknown => None,
               };

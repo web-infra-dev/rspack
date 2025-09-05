@@ -18,7 +18,8 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 
 	constructor(
 		private type: string,
-		private externals: Externals
+		private externals: Externals,
+		private placeInInitial?: boolean
 	) {
 		super();
 	}
@@ -30,7 +31,8 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 			type,
 			externals: (Array.isArray(externals) ? externals : [externals])
 				.filter(Boolean)
-				.map(item => this.#getRawExternalItem(item))
+				.map(item => this.#getRawExternalItem(item)),
+			placeInInitial: this.placeInInitial ?? false
 		};
 		return createBuiltinPlugin(this.name, raw);
 	}
@@ -47,6 +49,17 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 		}
 		return Object.assign({}, resolveRequest);
 	};
+
+	// Reference: webpack/enhanced-resolve#255
+	// Handle fragment escaping in resolve results:
+	// - `#` can be escaped as `\0#` to prevent fragment parsing
+	// - enhanced-resolve resolves `#` ambiguously as both path and fragment
+	// - Example: `./some#thing` could resolve to `.../some.js#thing` or `.../some#thing.js`
+	// - When `#` is part of the path, it gets escaped as `\0#` in the result
+	// - We replace `\0#` with zero-width space + `#` (\u200b#) for compatibility
+	#processRequest(req: ResolveRequest): string {
+		return `${req.path.replace(/#/g, "\u200b#")}${req.query.replace(/#/g, "\u200b#")}${req.fragment}`;
+	}
 
 	#getRawExternalItem = (item: ExternalItem | undefined): RawExternalItem => {
 		if (typeof item === "string" || item instanceof RegExp) {
@@ -68,7 +81,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 								issuer: data.contextInfo.issuer,
 								issuerLayer: data.contextInfo.issuerLayer ?? null
 							},
-							getResolve(options) {
+							getResolve: options => {
 								const rawResolve = options ? getRawResolve(options) : undefined;
 								const resolve = ctx.getResolve(rawResolve);
 
@@ -83,7 +96,11 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 												callback(error);
 											} else {
 												const req = processResolveResult(text);
-												callback(null, req?.path ?? false, req);
+												callback(
+													null,
+													req ? this.#processRequest(req) : false,
+													req
+												);
 											}
 										});
 									} else {
@@ -93,7 +110,9 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 													promiseReject(error);
 												} else {
 													const req = processResolveResult(text);
-													promiseResolve(req?.path);
+													promiseResolve(
+														req ? this.#processRequest(req) : undefined
+													);
 												}
 											});
 										});

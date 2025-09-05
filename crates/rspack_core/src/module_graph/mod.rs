@@ -1,5 +1,6 @@
 use std::collections::hash_map::Entry;
 
+use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
@@ -8,13 +9,13 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
 mod connection;
 pub use connection::*;
+mod exports_info;
 
 use crate::{
   BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfo, ExportsInfoData,
@@ -1025,62 +1026,6 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.add_incoming_connection(*dep_id);
   }
 
-  pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have mgm")
-      .exports
-  }
-
-  pub fn get_prefetched_exports_info_optional<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
-  }
-
-  pub fn get_prefetched_exports_info<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> PrefetchedExportsInfoWrapper<'b> {
-    let exports_info = self.get_exports_info(module_identifier);
-    ExportsInfoGetter::prefetch(&exports_info, self, mode)
-  }
-
-  pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
-    self
-      .try_get_exports_info_by_id(id)
-      .expect("should have exports info")
-  }
-
-  pub fn try_get_exports_info_by_id(&self, id: &ExportsInfo) -> Option<&ExportsInfoData> {
-    self.loop_partials(|p| p.exports_info_map.get(id))
-  }
-
-  pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {
-    self
-      .loop_partials_mut(
-        |p| p.exports_info_map.contains_key(id),
-        |p, search_result| {
-          p.exports_info_map.insert(*id, search_result);
-        },
-        |p| p.exports_info_map.get(id).cloned(),
-        |p| p.exports_info_map.get_mut(id),
-      )
-      .expect("should have exports info")
-  }
-
-  pub fn set_exports_info(&mut self, id: ExportsInfo, info: ExportsInfoData) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial.exports_info_map.insert(id, info);
-  }
-
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
     let mgm = self
       .module_graph_module_by_identifier_mut(id)
@@ -1107,22 +1052,6 @@ impl<'a> ModuleGraph<'a> {
     condition.get_connection_state(connection, runtime, self, module_graph_cache)
   }
 
-  // returns: Option<bool>
-  //   - None: it's unknown
-  //   - Some(true): provided
-  //   - Some(false): not provided
-  pub fn is_export_provided(
-    &self,
-    id: &ModuleIdentifier,
-    names: &[Atom],
-  ) -> Option<ExportProvided> {
-    self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info =
-        ExportsInfoGetter::prefetch(&mgm.exports, self, PrefetchExportsInfoMode::Nested(names));
-      exports_info.is_export_provided(names)
-    })
-  }
-
   // todo remove it after module_graph_partial remove all of dependency_id_to_*
   pub fn cache_recovery_connection(&mut self, connection: ModuleGraphConnection) {
     let condition = self
@@ -1143,5 +1072,149 @@ impl<'a> ModuleGraph<'a> {
     active_partial
       .connections
       .insert(connection.dependency_id, Some(connection));
+  }
+
+  pub fn batch_set_connections_original_module(
+    &mut self,
+    tasks: Vec<(DependencyId, ModuleIdentifier)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(dep_id, original_module_identifier)| {
+        let mut con = self
+          .connection_by_dependency_id(&dep_id)
+          .expect("should have connection")
+          .clone();
+        con.original_module_identifier = Some(original_module_identifier);
+        (dep_id, con)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (dep_id, con) in changed {
+      active_partial.connections.insert(dep_id, Some(con));
+    }
+  }
+
+  pub fn batch_set_connections_module(&mut self, tasks: Vec<(DependencyId, ModuleIdentifier)>) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(dep_id, module_identifier)| {
+        let mut con = self
+          .connection_by_dependency_id(&dep_id)
+          .expect("should have connection")
+          .clone();
+        con.set_module_identifier(module_identifier);
+        (dep_id, con)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (dep_id, con) in changed {
+      active_partial.connections.insert(dep_id, Some(con));
+    }
+  }
+
+  pub fn batch_add_connections(
+    &mut self,
+    tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(mid, outgoings, incomings)| {
+        let mut mgm = self
+          .module_graph_module_by_identifier(&mid)
+          .expect("should have mgm")
+          .clone();
+        for outgoing in outgoings {
+          mgm.add_outgoing_connection(outgoing);
+        }
+        for incoming in incomings {
+          mgm.add_incoming_connection(incoming);
+        }
+        (mid, mgm)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (mid, mgm) in changed {
+      active_partial.module_graph_modules.insert(mid, Some(mgm));
+    }
+  }
+
+  pub fn batch_remove_connections(
+    &mut self,
+    tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
+  ) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let changed = tasks
+      .into_par_iter()
+      .map(|(mid, outgoings, incomings)| {
+        let mut mgm = self
+          .module_graph_module_by_identifier(&mid)
+          .expect("should have mgm")
+          .clone();
+        for outgoing in outgoings.iter() {
+          mgm.remove_outgoing_connection(outgoing);
+        }
+        for incoming in incomings.iter() {
+          mgm.remove_incoming_connection(incoming);
+        }
+        (mid, mgm)
+      })
+      .collect::<Vec<_>>();
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (mid, mgm) in changed {
+      active_partial.module_graph_modules.insert(mid, Some(mgm));
+    }
+  }
+
+  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, Atom)>) {
+    if self.active.is_none() {
+      panic!("should have active partial");
+    }
+
+    let active_partial = self.active.as_mut().expect("should have active partial");
+    for (export_info, used_name) in tasks {
+      let ExportInfo {
+        exports_info,
+        export_name,
+      } = export_info;
+
+      let data = active_partial
+        .exports_info_map
+        .get_mut(&exports_info)
+        .expect("should have exports info");
+      match export_name {
+        ExportName::Named(name) => {
+          data
+            .named_exports_mut(&name)
+            .expect("should have named export")
+            .set_used_name(used_name);
+        }
+        ExportName::Other => {
+          data.other_exports_info_mut().set_used_name(used_name);
+        }
+        ExportName::SideEffects => {
+          data.side_effects_only_info_mut().set_used_name(used_name);
+        }
+      }
+    }
   }
 }

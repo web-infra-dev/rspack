@@ -1,13 +1,12 @@
 use std::{hash::Hash, sync::Arc};
 
-use async_trait::async_trait;
 use rspack_core::{
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  CompilerOptions, ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph,
-  ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext, RenderManifestEntry,
-  RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
+  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
+  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
@@ -445,22 +444,20 @@ async fn content_hash(
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
 
   let module_graph = compilation.get_module_graph();
-  let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SourceType::JavaScript,
-    &module_graph,
-  );
+  let mut ordered_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, &module_graph);
   // SAFETY: module identifier is unique
-  ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
+  ordered_modules.sort_unstable();
 
   ordered_modules
     .iter()
-    .map(|mgm| {
+    .map(|mid| {
       (
         compilation
           .code_generation_results
-          .get_hash(&mgm.identifier(), Some(chunk.runtime())),
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, mgm.identifier()),
+          .get_hash(mid, Some(chunk.runtime())),
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *mid),
       )
     })
     .for_each(|(current, id)| {
@@ -470,13 +467,13 @@ async fn content_hash(
       }
     });
 
-  for (runtime_module_idenfitier, _) in compilation
+  for (runtime_module_identifier, _) in compilation
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
     if let Some(hash) = compilation
       .runtime_modules_hash
-      .get(runtime_module_idenfitier)
+      .get(runtime_module_identifier)
     {
       hash.hash(&mut hasher);
     }
@@ -567,63 +564,41 @@ async fn render_manifest(
   Ok(())
 }
 
-#[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
   }
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+    ctx.compilation_hooks.chunk_hash.tap(chunk_hash::new(self));
     ctx
-      .context
-      .compilation_hooks
-      .chunk_hash
-      .tap(chunk_hash::new(self));
-    ctx
-      .context
       .compilation_hooks
       .content_hash
       .tap(content_hash::new(self));
     ctx
-      .context
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::JsAuto, {
-        Box::new(move |_, _| {
-          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-        })
-      });
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::JsEsm, {
-        Box::new(move |_, _| {
-          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-        })
-      });
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::JsDynamic, {
-        Box::new(move |_, _| {
-          Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-        })
-      });
+    ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
+      Box::new(move |_, _| {
+        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      })
+    });
+    ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
+      Box::new(move |_, _| {
+        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      })
+    });
+    ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
+      Box::new(move |_, _| {
+        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      })
+    });
 
     Ok(())
   }
@@ -643,9 +618,6 @@ fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &Modu
   if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
     true
   } else {
-    chunk_graph
-      .get_chunk_modules_iterable_by_source_type(chunk, SourceType::JavaScript, module_graph)
-      .next()
-      .is_some()
+    chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
   }
 }

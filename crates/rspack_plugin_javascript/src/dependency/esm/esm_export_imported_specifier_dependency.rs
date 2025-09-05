@@ -3,7 +3,7 @@ use std::hash::BuildHasherDefault;
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec, Skip},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -25,10 +25,7 @@ use rspack_core::{
   create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
   get_terminal_binding, property_access, property_name, to_normal_comment,
 };
-use rspack_error::{
-  Diagnostic, DiagnosticExt, TraceableError,
-  miette::{MietteDiagnostic, Severity},
-};
+use rspack_error::{Diagnostic, Error, Severity};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
@@ -57,8 +54,7 @@ pub struct ESMExportImportedSpecifierDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
 }
@@ -78,6 +74,7 @@ impl ESMExportImportedSpecifierDependency {
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -89,7 +86,7 @@ impl ESMExportImportedSpecifierDependency {
       range,
       export_presence_mode,
       attributes,
-      source_map,
+      loc,
       factorize_info: Default::default(),
       lazy_make: false,
     }
@@ -138,10 +135,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ExportMode {
-    let key = (
-      self.id,
-      runtime.map(|runtime| get_runtime_key(runtime).to_owned()),
-    );
+    let key = (self.id, runtime.map(|r| get_runtime_key(r).to_string()));
     module_graph_cache.cached_get_mode(key, || {
       self.get_mode_inner(module_graph, module_graph_cache, runtime)
     })
@@ -501,6 +495,7 @@ impl ESMExportImportedSpecifierDependency {
     let TemplateContext {
       module,
       runtime_requirements,
+      runtime,
       ..
     } = ctxt;
     let compilation = ctxt.compilation;
@@ -508,7 +503,7 @@ impl ESMExportImportedSpecifierDependency {
     let mg = &compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
     let module_identifier = module.identifier();
-    let import_var = compilation.get_import_var(&self.id);
+    let import_var = compilation.get_import_var(&self.id, *runtime);
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         fragments.push(
@@ -854,7 +849,7 @@ impl ESMExportImportedSpecifierDependency {
       ValueKey::Name => name,
       ValueKey::UsedName(used) => match used {
         UsedName::Normal(used) => format!("{}{}", name, property_access(used, 0)),
-        UsedName::Inlined(inlined) => inlined.render().into_owned(),
+        UsedName::Inlined(inlined) => inlined.render(),
       },
     }
   }
@@ -924,32 +919,26 @@ impl ESMExportImportedSpecifierDependency {
       let parent_module_identifier = module_graph
         .get_parent_module(&self.id)
         .expect("should have parent module for dependency");
-      let mut diagnostic = if let Some(span) = self.range()
+      let mut error = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
         && let Some(source) = parent_module.source()
       {
-        Diagnostic::from(
-          TraceableError::from_file(
-            source.source().into_owned(),
-            span.start as usize,
-            span.end as usize,
-            title.to_string(),
-            message,
-          )
-          .with_severity(severity)
-          .boxed(),
+        Error::from_string(
+          Some(source.source().into_owned()),
+          span.start as usize,
+          span.end as usize,
+          title.to_string(),
+          message,
         )
-        .with_hide_stack(Some(true))
       } else {
-        Diagnostic::from(
-          MietteDiagnostic::new(message)
-            .with_code(title)
-            .with_severity(severity)
-            .boxed(),
-        )
-        .with_hide_stack(Some(true))
+        let mut error = rspack_error::error!(message);
+        error.code = Some(title.into());
+        error
       };
-      diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
+      error.severity = severity;
+      error.hide_stack = Some(true);
+      let mut diagnostic = Diagnostic::from(error);
+      diagnostic.module_identifier = Some(*parent_module_identifier);
       diagnostic
     };
 
@@ -1074,11 +1063,11 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn category(&self) -> &DependencyCategory {

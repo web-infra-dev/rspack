@@ -27,7 +27,7 @@ Cargo.toml @quininer
 /crates/node_binding
 /crates/rspack @h-a-n-a
 /crates/rspack_base64
-/crates/rspack_binding_api @h-a-n-a
+/crates/rspack_binding_api
 /crates/rspack_binding_build @h-a-n-a
 /crates/rspack_binding_builder @h-a-n-a
 /crates/rspack_binding_builder_macros @h-a-n-a

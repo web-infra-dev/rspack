@@ -11,14 +11,14 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin, PluginContext,
+  CompilerCompilation, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
-use rspack_error::{Diagnostic, DiagnosticExt, Result, miette::IntoDiagnostic};
+use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -303,9 +303,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             Ok(r) => r,
             Err(e) => {
               let errors = e.into_inner().into_iter().map(|err| {
-                Diagnostic::from(MinifyError(err).boxed()).with_file(Some(filename.into()))
+                let mut d = Diagnostic::from(MinifyError(err));
+                d.file = Some(filename.into());
+                d
               }).collect::<Vec<_>>();
-              tx.send(errors).into_diagnostic()?;
+              tx.send(errors)?;
               return Ok(())
             },
         };
@@ -368,10 +370,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str) {
+      return false;
+    }
   } else if !JAVASCRIPT_ASSET_REGEXP.is_match(str) {
     return false;
   }
@@ -394,18 +396,9 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
-      .context
-      .compiler_hooks
-      .compilation
-      .tap(compilation::new(self));
-    ctx
-      .context
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));

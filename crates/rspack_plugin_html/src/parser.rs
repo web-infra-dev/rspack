@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use rspack_core::{Compilation, ErrorSpan};
+use rspack_core::Compilation;
 use rspack_error::{
-  DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  ToStringResultToRspackResultExt,
+  IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, ToStringResultToRspackResultExt,
 };
+use rspack_util::SpanExt;
 use swc_core::common::{FileName, FilePathMapping, GLOBALS, SourceFile, SourceMap, sync::Lrc};
 use swc_html::{
   ast::Document,
@@ -79,17 +79,14 @@ impl<'a> HtmlCompiler<'a> {
 pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rspack_error::Error {
   let message = error.message();
   let error = error.into_inner();
-  let span: ErrorSpan = error.0.into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
-    fm,
-    span.start as usize,
-    span.end as usize,
+  let span = error.0;
+  rspack_error::Error::from_string(
+    Some(fm.src.clone().into_string()),
+    span.real_lo() as usize,
+    span.real_hi() as usize,
     "HTML parse error".to_string(),
     message.to_string(),
   )
-  .with_kind(DiagnosticKind::Html);
-  //Use this `Error` conversion could avoid eagerly clone source file.
-  traceable_error.into()
 }
 
 struct NoopCssMinifier;

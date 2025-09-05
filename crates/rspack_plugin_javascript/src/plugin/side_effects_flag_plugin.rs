@@ -16,7 +16,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
 use swc_core::{
-  common::{GLOBALS, Span, Spanned, SyntaxContext, comments, comments::Comments},
+  common::{GLOBALS, Spanned, SyntaxContext, comments, comments::Comments},
   ecma::{
     ast::*,
     utils::{ExprCtx, ExprExt},
@@ -334,7 +334,6 @@ fn is_pure_call_expr(
   expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
-  paren_spans: &mut Vec<Span>,
 ) -> bool {
   let Expr::Call(call_expr) = expr else {
     unreachable!();
@@ -342,17 +341,10 @@ fn is_pure_call_expr(
   let callee = &call_expr.callee;
   let pure_flag = comments
     .and_then(|comments| {
-      paren_spans.push(callee.span());
-      while let Some(span) = paren_spans.pop() {
-        if let Some(comment_list) = comments.get_leading(span.lo)
-          && let Some(last_comment) = comment_list.last()
-          && last_comment.kind == comments::CommentKind::Block
-        {
-          // iterate through the parens and check if it contains pure comment
-          if PURE_COMMENTS.is_match(&last_comment.text) {
-            return Some(true);
-          }
-        }
+      if let Some(comment_list) = comments.get_leading(callee.span().lo) {
+        return Some(comment_list.iter().any(|comment| {
+          comment.kind == comments::CommentKind::Block && PURE_COMMENTS.is_match(&comment.text)
+        }));
       }
       None
     })
@@ -420,20 +412,10 @@ pub fn is_pure_expression<'a>(
     expr: &'a Expr,
     unresolved_ctxt: SyntaxContext,
     comments: Option<&'a dyn Comments>,
-    paren_spans: &mut Vec<Span>,
   ) -> bool {
     match expr {
-      Expr::Call(_) => is_pure_call_expr(expr, unresolved_ctxt, comments, paren_spans),
-      Expr::Paren(par) => {
-        paren_spans.push(par.span());
-        let mut cur = par.expr.as_ref();
-        while let Expr::Paren(paren) = cur {
-          paren_spans.push(paren.span());
-          cur = paren.expr.as_ref();
-        }
-
-        _is_pure_expression(cur, unresolved_ctxt, comments, paren_spans)
-      }
+      Expr::Call(_) => is_pure_call_expr(expr, unresolved_ctxt, comments),
+      Expr::Paren(_) => unreachable!(),
       _ => !expr.may_have_side_effects(ExprCtx {
         unresolved_ctxt,
         is_unresolved_ref_safe: true,
@@ -442,7 +424,7 @@ pub fn is_pure_expression<'a>(
       }),
     }
   }
-  _is_pure_expression(expr, unresolved_ctxt, comments, &mut vec![])
+  _is_pure_expression(expr, unresolved_ctxt, comments)
 }
 
 pub fn is_pure_class_member<'a>(
@@ -666,8 +648,9 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     std::mem::take(&mut compilation.side_effects_optimize_artifact);
   let module_graph = compilation.get_module_graph();
 
-  let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph
-    .modules()
+  let all_modules = module_graph.modules();
+
+  let side_effects_state_map: IdentifierMap<ConnectionState> = all_modules
     .par_iter()
     .map(|(module_identifier, module)| {
       (
@@ -738,12 +721,12 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      module_graph.modules().len()
+      all_modules.len()
     ));
 
     modules
   } else {
-    module_graph.modules().keys().copied().collect()
+    all_modules.keys().copied().collect()
   };
   logger.time_end(inner_start);
 
@@ -938,18 +921,12 @@ impl Plugin for SideEffectsFlagPlugin {
     "SideEffectsFlagPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &rspack_core::CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
-      .context
       .normal_module_factory_hooks
       .module
       .tap(nmf_module::new(self));
     ctx
-      .context
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));

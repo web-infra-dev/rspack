@@ -1,6 +1,6 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
+  with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -49,8 +49,7 @@ pub struct ESMImportSpecifierDependency {
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   attributes: Option<ImportAttributes>,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
   factorize_info: FactorizeInfo,
 }
@@ -74,6 +73,7 @@ impl ESMImportSpecifierDependency {
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::new(),
       request,
@@ -91,7 +91,7 @@ impl ESMImportSpecifierDependency {
       referenced_properties_in_destructuring,
       attributes,
       resource_identifier,
-      source_map,
+      loc,
       factorize_info: Default::default(),
     }
   }
@@ -138,6 +138,10 @@ impl ESMImportSpecifierDependency {
         ExportPresenceMode::Auto
       })
   }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
+  }
 }
 
 #[cacheable_dyn]
@@ -147,11 +151,11 @@ impl Dependency for ESMImportSpecifierDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn source_order(&self) -> Option<i32> {
@@ -160,10 +164,6 @@ impl Dependency for ESMImportSpecifierDependency {
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     self.attributes.as_ref()
-  }
-
-  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
-    self.used_by_exports = used_by_exports;
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -419,7 +419,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         )
       }
     } else {
-      let import_var = compilation.get_import_var(&dep.id);
+      let import_var = compilation.get_import_var(&dep.id, *runtime);
       esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
       export_from_import(
         code_generatable_context,

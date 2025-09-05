@@ -15,7 +15,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
   id: DependencyId,
-  options: ContextOptions,
+  pub options: ContextOptions,
   range: DependencyRange,
   value_range: DependencyRange,
   resource_identifier: String,
@@ -59,8 +59,8 @@ impl Dependency for ImportContextDependency {
     &DependencyType::ImportContext
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
