@@ -53,7 +53,7 @@ pub(crate) use self::{
   exports_info_api_plugin::ExportsInfoApiPlugin,
   import_meta_context_dependency_parser_plugin::ImportMetaContextDependencyParserPlugin,
   import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin},
-  import_parser_plugin::ImportParserPlugin,
+  import_parser_plugin::{ImportParserPlugin, ImportsReferencesState},
   initialize_evaluating::InitializeEvaluating,
   inline_const::{InlineConstPlugin, InlineValueDependencyCondition},
   inner_graph::{get_dependency_used_by_exports_condition, plugin::*, state::InnerGraphState},

@@ -137,6 +137,10 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.dependencies)
   }
 
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
+    self.dependencies.get_mut(idx)
+  }
+
   pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
     unimplemented!("Nested block are not implemented");
     // self.block_ids.push(block.id);

@@ -721,7 +721,7 @@ cacheable modules xx bytes
     ./templates/baz.js xx bytes [built] [code generated]
     ./templates/foo.js xx bytes [built] [code generated]
   ./entry.js xx bytes [built] [code generated]
-  Xdir/import-xxx.js$/|groupOptions: {}|namespace object xx bytes [built] [code generated]
+  Xdir/import-xxx.js$/|referencedExports: [*]|groupOptions: {}|namespace object xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
