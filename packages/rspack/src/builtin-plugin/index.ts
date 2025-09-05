@@ -50,6 +50,7 @@ export * from "./lazy-compilation/middleware";
 export * from "./MangleExportsPlugin";
 export * from "./MergeDuplicateChunksPlugin";
 export * from "./ModuleChunkFormatPlugin";
+export * from "./EsmLibraryPlugin";
 export * from "./ModuleConcatenationPlugin";
 export * from "./ModuleInfoHeaderPlugin";
 export * from "./NamedChunkIdsPlugin";

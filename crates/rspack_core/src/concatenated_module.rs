@@ -43,8 +43,8 @@ use crate::{
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
   ConnectionState, Context, DEFAULT_EXPORT, DependenciesBlock, DependencyId, DependencyType,
-  ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam,
-  IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  ExportMode, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
+  GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
   MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
@@ -88,28 +88,37 @@ pub struct RootModuleContext {
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct RawBinding {
-  info_id: ModuleIdentifier,
-  raw_name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub raw_name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct SymbolBinding {
   /// corresponding to a ConcatenatedModuleInfo, ref https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L93-L100
-  info_id: ModuleIdentifier,
-  name: Atom,
-  comment: Option<String>,
-  ids: Vec<Atom>,
-  export_name: Vec<Atom>,
+  pub info_id: ModuleIdentifier,
+  pub name: Atom,
+  pub comment: Option<String>,
+  pub ids: Vec<Atom>,
+  pub export_name: Vec<Atom>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Binding {
   Raw(RawBinding),
   Symbol(SymbolBinding),
+}
+
+impl Binding {
+  pub fn identifier(&self) -> ModuleIdentifier {
+    match self {
+      Binding::Raw(raw_binding) => raw_binding.info_id,
+      Binding::Symbol(symbol_binding) => symbol_binding.info_id,
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -188,7 +197,7 @@ pub struct ConcatenatedModuleInfo {
   pub source: Option<ReplaceSource<Arc<dyn Source>>>,
   pub internal_source: Option<Arc<dyn Source>>,
   pub internal_names: HashMap<Atom, Atom>,
-  pub export_map: Option<HashMap<Atom, String>>,
+  pub export_map: Option<HashMap<Atom, Atom>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
   pub import_map: ConcatenatedImportMap,
   pub namespace_object_name: Option<Atom>,
@@ -201,9 +210,53 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
+  pub star_exports: IdentifierIndexMap<Vec<ExportMode>>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
   pub public_path_auto_replace: Option<bool>,
+}
+
+impl ConcatenatedModuleInfo {
+  pub fn get_internal_name<'me>(&'me self, atom: &Atom) -> Option<&'me Atom> {
+    if let Some(name) = self.internal_names.get(atom) {
+      return Some(name);
+    }
+
+    if let Some(name) = &self.namespace_export_symbol
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if let Some(name) = &self.namespace_object_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_default_access_used
+      && let Some(name) = &self.interop_default_access_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_namespace_object_used
+      && let Some(name) = &self.interop_namespace_object_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_namespace_object2_used
+      && let Some(name) = &self.interop_namespace_object2_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    None
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -218,6 +271,7 @@ pub struct ExternalModuleInfo {
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
   pub name: Option<Atom>,
+  pub runtime_requirements: RuntimeGlobals,
 }
 
 #[derive(Debug, Clone)]
@@ -233,6 +287,14 @@ pub enum ModuleInfo {
 }
 
 impl ModuleInfo {
+  pub fn is_external(&self) -> bool {
+    matches!(self, ModuleInfo::External(_))
+  }
+
+  pub fn is_concatenated(&self) -> bool {
+    matches!(self, ModuleInfo::Concatenated(_))
+  }
+
   pub fn try_as_concatenated_mut(&mut self) -> Option<&mut ConcatenatedModuleInfo> {
     if let Self::Concatenated(v) = self {
       Some(v)
@@ -255,6 +317,14 @@ impl ModuleInfo {
       v
     } else {
       panic!("should convert as concatenated module info")
+    }
+  }
+
+  pub fn as_external(&self) -> &ExternalModuleInfo {
+    if let Self::External(v) = self {
+      v
+    } else {
+      panic!("should convert as external module info")
     }
   }
 
@@ -353,6 +423,13 @@ impl ModuleInfo {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
+    }
+  }
+
+  pub fn get_runtime_requirements(&self) -> &RuntimeGlobals {
+    match self {
+      ModuleInfo::External(e) => &e.runtime_requirements,
+      ModuleInfo::Concatenated(c) => &c.runtime_requirements,
     }
   }
 }
@@ -740,7 +817,8 @@ impl Module for ConcatenatedModule {
           &compilation.module_static_cache_artifact,
           &context,
         );
-        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
+        let splitted_readable_identifier: Vec<String> =
+          split_readable_identifier(&readable_identifier);
         escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
 
         match info {
@@ -1714,6 +1792,7 @@ impl ConcatenatedModule {
                 interop_default_access_used: false,
                 interop_default_access_name: None,
                 name: None,
+                runtime_requirements: Default::default(),
               };
               vac.insert(ModuleInfo::External(info));
               list.push((module_id, Some(e.runtime_condition)))

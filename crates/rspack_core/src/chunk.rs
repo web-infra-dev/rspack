@@ -55,7 +55,7 @@ pub struct ChunkRenderResult {
 
 #[derive(Debug, Clone)]
 pub struct Chunk {
-  ukey: ChunkUkey,
+  pub ukey: ChunkUkey,
   kind: ChunkKind,
   // - If the chunk is create by entry config, the name is the entry name
   // - The name of chunks create by dynamic import is `None` unless users use
