@@ -24,7 +24,6 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   let module_ids = &compilation.module_ids_artifact;
   let chunk_graph = &compilation.chunk_graph;
-  let module_graph = &compilation.get_module_graph();
   let mut ordered_chunk_modules_cache = Default::default();
 
   let chunks = compilation
@@ -34,7 +33,6 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     .sorted_unstable_by(|a, b| {
       compare_chunks_natural(
         chunk_graph,
-        module_graph,
         &compilation.chunk_group_by_ukey,
         module_ids,
         a,
