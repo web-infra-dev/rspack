@@ -18,7 +18,7 @@ use rspack_core::{
     SourceMapSourceOptions,
   },
 };
-use rspack_error::{Diagnostic, DiagnosticExt, Result, miette::IntoDiagnostic};
+use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -303,9 +303,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             Ok(r) => r,
             Err(e) => {
               let errors = e.into_inner().into_iter().map(|err| {
-                Diagnostic::from(MinifyError(err).boxed()).with_file(Some(filename.into()))
+                let mut d = Diagnostic::from(MinifyError(err));
+                d.file = Some(filename.into());
+                d
               }).collect::<Vec<_>>();
-              tx.send(errors).into_diagnostic()?;
+              tx.send(errors)?;
               return Ok(())
             },
         };
@@ -368,10 +370,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str) {
+      return false;
+    }
   } else if !JAVASCRIPT_ASSET_REGEXP.is_match(str) {
     return false;
   }

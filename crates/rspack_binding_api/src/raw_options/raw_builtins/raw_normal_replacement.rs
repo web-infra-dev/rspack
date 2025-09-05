@@ -3,7 +3,7 @@ use napi::{
   bindgen_prelude::{Object, Promise},
 };
 use napi_derive::napi;
-use rspack_error::{Error, miette::IntoDiagnostic};
+use rspack_error::Error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_module_replacement::{
   NormalModuleReplacementPluginOptions, NormalModuleReplacer,

@@ -5,7 +5,7 @@ use std::{
 
 use itertools::Itertools as _;
 use regex::Regex;
-use rspack_error::{Diagnostic, DiagnosticExt};
+use rspack_error::Diagnostic;
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
 use swc_core::common::Span;
@@ -214,8 +214,7 @@ impl WalkData {
       {
         self.diagnostics.push(
           ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .boxed()
-            .into(),
+            .into_diagnostic(),
         );
       } else {
         self.tiling_definitions.insert(name, value_str);
@@ -275,9 +274,9 @@ impl WalkData {
           .with_on_expression(Box::new(
             move |record, parser, span, start, end, for_name| {
               let code = code_to_string(&record.code, Some(!parser.is_asi_position(span.lo)), None);
-              parser
-                .presentational_dependencies
-                .push(Box::new(gen_const_dep(parser, code, for_name, start, end)));
+              parser.add_presentational_dependency(Box::new(gen_const_dep(
+                parser, code, for_name, start, end,
+              )));
               Some(true)
             },
           ));
@@ -312,15 +311,13 @@ impl WalkData {
                 return None;
               }
               debug_assert!(!parser.in_short_hand);
-              parser
-                .presentational_dependencies
-                .push(Box::new(gen_const_dep(
-                  parser,
-                  Cow::Owned(format!("{}", json!(evaluated.string()))),
-                  "",
-                  start,
-                  end,
-                )));
+              parser.add_presentational_dependency(Box::new(gen_const_dep(
+                parser,
+                Cow::Owned(format!("{}", json!(evaluated.string()))),
+                "",
+                start,
+                end,
+              )));
               Some(true)
             })
         }));
@@ -350,9 +347,9 @@ impl WalkData {
         .with_on_expression(Box::new(
           move |record, parser, span, start, end, for_name| {
             let code = code_to_string(&record.object, Some(!parser.is_asi_position(span.lo)), None);
-            parser
-              .presentational_dependencies
-              .push(Box::new(gen_const_dep(parser, code, for_name, start, end)));
+            parser.add_presentational_dependency(Box::new(gen_const_dep(
+              parser, code, for_name, start, end,
+            )));
             Some(true)
           },
         ));
@@ -373,9 +370,9 @@ impl WalkData {
               Some(!parser.is_asi_position(span.lo)),
               parser.destructuring_assignment_properties_for(&span),
             );
-            parser
-              .presentational_dependencies
-              .push(Box::new(gen_const_dep(parser, code, for_name, start, end)));
+            parser.add_presentational_dependency(Box::new(gen_const_dep(
+              parser, code, for_name, start, end,
+            )));
             Some(true)
           },
         ));

@@ -330,7 +330,7 @@ impl PluginCssExtract {
           .module_by_identifier(&conflict.fallback_module)
           .expect("should have module");
 
-        Diagnostic::warn(
+        let mut diagnostic = Diagnostic::warn(
           "".into(),
           format!(
             r#"chunk {} [{PLUGIN_NAME}]
@@ -372,9 +372,10 @@ despite it was not able to fulfill desired ordering with these modules:
               .collect::<Vec<_>>()
               .join("\n")
           ),
-        )
-        .with_file(Some(filename.to_owned().into()))
-        .with_chunk(Some(chunk.ukey().as_u32()))
+        );
+        diagnostic.file = Some(filename.to_owned().into());
+        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic
       }));
     }
 

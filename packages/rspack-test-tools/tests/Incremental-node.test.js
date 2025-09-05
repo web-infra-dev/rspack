@@ -36,7 +36,7 @@ describeByWalk(
 			__dirname,
 			`./js/incremental/webpack-test/hot-async-node`
 		),
-		exclude: [/require-disposed-module-warning/]
+		exclude: []
 	}
 );
 
@@ -49,6 +49,6 @@ describeByWalk(
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
 		dist: path.resolve(__dirname, `./js/incremental/webpack-test/hot-node`),
-		exclude: [/require-disposed-module-warning/]
+		exclude: []
 	}
 );

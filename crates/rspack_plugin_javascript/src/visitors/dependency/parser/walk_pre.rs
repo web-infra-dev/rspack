@@ -137,7 +137,7 @@ impl JavascriptParser<'_> {
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(ident.sym.to_string());
+      self.define_variable(ident.sym.clone());
     }
   }
 
@@ -161,7 +161,7 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    if stmt.is_await && matches!(self.top_level_scope, super::TopLevelScope::Top) {
+    if stmt.is_await && self.is_top_level_scope() {
       self
         .plugin_drive
         .clone()
@@ -200,7 +200,7 @@ impl JavascriptParser<'_> {
         .unwrap_or_default()
       {
         self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
-          this.define_variable(ident.sym.to_string());
+          this.define_variable(ident.sym.clone());
         });
       }
     }
@@ -221,8 +221,8 @@ impl JavascriptParser<'_> {
               shorthand: false,
             });
           } else {
-            let name = eval::eval_prop_name(&prop.key);
-            if let Some(id) = name.and_then(|id| id.as_string()) {
+            let name = eval::eval_prop_name(self, &prop.key);
+            if let Some(id) = name.as_string() {
               keys.insert(DestructuringAssignmentProperty {
                 id: id.into(),
                 range: prop.key.span().into(),

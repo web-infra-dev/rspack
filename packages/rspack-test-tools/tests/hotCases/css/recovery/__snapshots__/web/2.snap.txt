@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 7115
+- Update: main.hot-update.js, size: 7147
 
 ## Manifest
 
@@ -80,10 +80,11 @@ function updateCss(el, url) {
     let normalizedUrl;
     if (url) normalizedUrl = url;
     else {
-        if (!el.href) return;
-        normalizedUrl = el.href.split("?")[0];
+        let href = el.getAttribute("href");
+        if (!href) return;
+        normalizedUrl = href.split("?")[0];
     }
-    if (!isUrlRequest(normalizedUrl) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) return;
+    if (!isUrlRequest(el.href) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) return;
     el.visited = !0;
     let newEl = el.cloneNode();
     newEl.isLoaded = !1, newEl.addEventListener("load", ()=>{

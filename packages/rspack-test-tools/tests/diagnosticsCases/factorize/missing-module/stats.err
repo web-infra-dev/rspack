@@ -1,4 +1,4 @@
-WARNING in ./index.js 4:16-35
+WARNING in ./index.js 4:16-34
   ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/missing-module'
    ╭─[4:8]
  2 │     let errored = false;

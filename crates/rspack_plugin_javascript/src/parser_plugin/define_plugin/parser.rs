@@ -6,7 +6,7 @@ use std::{
   },
 };
 
-use rspack_core::SpanExt as _;
+use rspack_util::SpanExt;
 use swc_core::ecma::ast::Expr;
 
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
@@ -56,7 +56,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);
       if let Some(first_key) = first_key
-        && let Some(info) = parser.get_variable_info(first_key)
+        && let Some(info) = parser.get_variable_info(&first_key.as_ref().into())
         && !info.is_free()
       {
         return Some(false);
@@ -80,7 +80,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
         return None;
       }
       self.add_value_dependency(parser, for_name);
-      let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.hi.0);
+      let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.real_hi());
       self.recurse_typeof.store(false, Ordering::Release);
       return evaluated;
     }
@@ -89,7 +89,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       return Some(evaluate_to_string(
         "object".to_string(),
         expr.span.real_lo(),
-        expr.span.hi.0,
+        expr.span.real_hi(),
       ));
     }
     None
@@ -136,15 +136,13 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     } else if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       debug_assert!(!parser.in_short_hand);
-      parser
-        .presentational_dependencies
-        .push(Box::new(gen_const_dep(
-          parser,
-          Cow::Borrowed(r#""object""#),
-          for_name,
-          expr.span.real_lo(),
-          expr.span.real_hi(),
-        )));
+      parser.add_presentational_dependency(Box::new(gen_const_dep(
+        parser,
+        Cow::Borrowed(r#""object""#),
+        for_name,
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      )));
       return Some(true);
     }
     None

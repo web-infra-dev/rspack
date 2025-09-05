@@ -4,10 +4,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{
-  DiagnosticExt, Severity, TraceableError,
-  miette::{Diagnostic, diagnostic},
-};
+use rspack_error::{Error, Severity};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
@@ -197,7 +194,7 @@ impl Resolver {
 }
 
 impl ResolveInnerError {
-  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Box<dyn Diagnostic + Send + Sync> {
+  pub fn into_resolve_error(self, args: &ResolveArgs<'_>) -> Error {
     match self {
       Self::RspackResolver(error) => map_rspack_resolver_error(error, args),
     }
@@ -333,9 +330,9 @@ fn to_rspack_resolver_options(
 fn map_rspack_resolver_error(
   error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
-) -> Box<dyn Diagnostic + Send + Sync> {
+) -> Error {
   match error {
-    rspack_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
+    rspack_resolver::ResolveError::IOError(error) => rspack_error::error!(error.to_string()),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
     rspack_resolver::ResolveError::JSON(error) => {
@@ -344,12 +341,11 @@ fn map_rspack_resolver_error(
         let Some((offset, _)) =
           try_line_column_length_to_offset_length(&rope, error.line, error.column, 0)
         else {
-          return diagnostic!(
+          return rspack_error::error!(format!(
             "JSON parse error: {:?} in '{}'",
             error,
             error.path.display()
-          )
-          .boxed();
+          ));
         };
         drop(rope);
 
@@ -371,69 +367,71 @@ fn map_rspack_resolver_error(
         let offset = ceil_char_boundary(content, offset);
 
         if content[offset..].starts_with('\u{feff}') {
-          return TraceableError::from_file(
-            content.clone(),
+          return Error::from_string(
+            Some(content.clone()),
             offset,
             offset,
             "JSON parse error".to_string(),
             format!("BOM character found in '{}'", error.path.display()),
-          )
-          .boxed();
+          );
         }
 
-        TraceableError::from_file(
-          content.clone(),
+        Error::from_string(
+          Some(content.clone()),
           offset,
           offset,
           "JSON parse error".to_string(),
           format!("{} in '{}'", error.message, error.path.display()),
         )
-        .boxed()
       } else {
-        diagnostic!(
+        rspack_error::error!(format!(
           "JSON parse error: {:?} in '{}'",
           error,
           error.path.display()
-        )
-        .boxed()
+        ))
       }
     }
-    _ => diagnostic!("{}", error).boxed(),
+    _ => Error::error(error.to_string()),
   }
 }
 
-fn map_resolver_error(
-  is_recursion: bool,
-  args: &ResolveArgs<'_>,
-) -> Box<dyn Diagnostic + Send + Sync> {
+fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
   let request = &args.specifier;
   let context = &args.context;
 
   let importer = args.importer;
   if importer.is_none() {
-    return diagnostic!("Module not found: Can't resolve '{request}' in '{context}'").boxed();
+    return rspack_error::error!(format!(
+      "Module not found: Can't resolve '{request}' in '{context}'"
+    ));
   }
 
-  let span = args.span.unwrap_or_default();
   let message = format!("Can't resolve '{request}' in '{context}'");
-  TraceableError::from_lazy_file(
-    span.start as usize,
-    span.end as usize,
+  let mut error = Error::from_string(
+    None,
+    args
+      .span
+      .as_ref()
+      .map(|span| span.start as usize)
+      .unwrap_or_default(),
+    args
+      .span
+      .as_ref()
+      .map(|span| span.end as usize)
+      .unwrap_or_default(),
     "Module not found".to_string(),
     message,
-  )
-  .with_help(if is_recursion {
-    Some("maybe it had cyclic aliases")
+  );
+  error.help = if is_recursion {
+    Some("maybe it had cyclic aliases".into())
   } else {
     None
-  })
-  .with_severity(
-    // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
-    if args.optional {
-      Severity::Warn
-    } else {
-      Severity::Error
-    },
-  )
-  .boxed()
+  };
+  // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
+  error.severity = if args.optional {
+    Severity::Warning
+  } else {
+    Severity::Error
+  };
+  error
 }

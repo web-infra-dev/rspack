@@ -3,9 +3,10 @@ use std::hash::Hash;
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
-  SharedSourceMap, SpanExt,
+  SharedSourceMap,
 };
 use rspack_hash::RspackHash;
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
@@ -54,13 +55,7 @@ fn parse_new_worker_options_from_comments(
   span: Span,
   diagnostic_span: Span,
 ) -> Option<ParsedNewWorkerOptions> {
-  let comments = try_extract_webpack_magic_comment(
-    parser.source_file,
-    &parser.comments,
-    diagnostic_span,
-    span,
-    &mut parser.warning_diagnostics,
-  );
+  let comments = try_extract_webpack_magic_comment(parser, diagnostic_span, span);
   comments
     .get_webpack_chunk_name()
     .map(|name| ParsedNewWorkerOptions {
@@ -115,40 +110,34 @@ fn add_dependencies(
     layer: None,
   })));
 
-  parser.blocks.push(Box::new(block));
+  parser.add_block(Box::new(block));
 
   if parser.compiler_options.output.trusted_types.is_some() {
-    parser
-      .dependencies
-      .push(Box::new(CreateScriptUrlDependency::new(
-        span.into(),
-        first_arg.span().into(),
-      )));
+    parser.add_dependency(Box::new(CreateScriptUrlDependency::new(
+      span.into(),
+      first_arg.span().into(),
+    )));
   }
 
   if let Some(range) = range {
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        (range.0, range.0).into(),
-        "Object.assign({}, ".into(),
-        None,
-      )));
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        (range.1, range.1).into(),
-        format!(
-          ", {{ type: {} }})",
-          if output_module {
-            "\"module\""
-          } else {
-            "undefined"
-          }
-        )
-        .into(),
-        None,
-      )));
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (range.0, range.0).into(),
+      "Object.assign({}, ".into(),
+      None,
+    )));
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (range.1, range.1).into(),
+      format!(
+        ", {{ type: {} }})",
+        if output_module {
+          "\"module\""
+        } else {
+          "undefined"
+        }
+      )
+      .into(),
+      None,
+    )));
   }
 }
 
@@ -283,7 +272,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       && self.pattern_syntax.contains_key(ident.sym.as_str())
     {
       parser.tag_variable(
-        ident.sym.to_string(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),
@@ -297,7 +286,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
     if self.pattern_syntax.contains_key(for_name) {
       parser.tag_variable(
-        ident.sym.to_string(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),

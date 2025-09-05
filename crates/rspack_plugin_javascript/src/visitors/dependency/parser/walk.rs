@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use swc_core::{
+  atoms::Atom,
   common::Spanned,
   ecma::ast::{
     ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
@@ -62,11 +63,11 @@ impl JavascriptParser<'_> {
     self.definitions = self.definitions_db.create_child(old_definitions);
 
     if has_this {
-      self.undefined_variable("this".to_string());
+      self.undefined_variable(&"this".into());
     }
 
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
+      this.define_variable(ident.sym.clone());
     });
 
     f(self);
@@ -89,10 +90,10 @@ impl JavascriptParser<'_> {
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
     if has_this {
-      self.undefined_variable("this".to_string());
+      self.undefined_variable(&"this".into());
     }
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
+      this.define_variable(ident.sym.clone());
     });
     f(self);
 
@@ -223,7 +224,7 @@ impl JavascriptParser<'_> {
     self.in_block_scope(|this| {
       if let Some(param) = &catch_clause.param {
         this.enter_pattern(Cow::Borrowed(param), |this, ident| {
-          this.define_variable(ident.sym.to_string());
+          this.define_variable(ident.sym.clone());
         });
         this.walk_pattern(param)
       }
@@ -380,8 +381,8 @@ impl JavascriptParser<'_> {
             .unwrap_or_default()
           {
             self.set_variable(
-              ident.sym.to_string(),
-              ExportedVariableInfo::Name(renamed_identifier),
+              ident.sym.clone(),
+              ExportedVariableInfo::Name(renamed_identifier.clone()),
             );
           }
           continue;
@@ -724,10 +725,15 @@ impl JavascriptParser<'_> {
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
-              this
-                .plugin_drive
-                .clone()
-                .member_chain_of_call_member_chain(this, expr, for_name)
+              this.plugin_drive.clone().member_chain_of_call_member_chain(
+                this,
+                expr,
+                &expr_info.callee_members,
+                &expr_info.call,
+                &expr_info.members,
+                &expr_info.member_ranges,
+                for_name,
+              )
             })
             .unwrap_or_default()
           {
@@ -875,13 +881,13 @@ impl JavascriptParser<'_> {
       if let Some(this) = rename_this
         && !expr.is_arrow()
       {
-        parser.set_variable("this".to_string(), this)
+        parser.set_variable("this".into(), this)
       }
       for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
         if let Some(var_info) = var_info
           && let Some(param) = params.get(i)
         {
-          parser.set_variable(param.sym.to_string(), var_info);
+          parser.set_variable(param.sym.clone(), var_info);
         }
       }
 
@@ -959,7 +965,15 @@ impl JavascriptParser<'_> {
                 this
                   .plugin_drive
                   .clone()
-                  .call_member_chain_of_call_member_chain(this, expr, for_name)
+                  .call_member_chain_of_call_member_chain(
+                    this,
+                    expr,
+                    &expr_info.callee_members,
+                    &expr_info.call,
+                    &expr_info.members,
+                    &expr_info.member_ranges,
+                    for_name,
+                  )
               })
               .unwrap_or_default()
           {
@@ -1077,7 +1091,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_await_expression(&mut self, expr: &AwaitExpr) {
-    if matches!(self.top_level_scope, TopLevelScope::Top) {
+    if self.is_top_level_scope() {
       self.plugin_drive.clone().top_level_await_expr(self, expr);
     }
     self.walk_expression(&expr.arg);
@@ -1092,11 +1106,9 @@ impl JavascriptParser<'_> {
     });
   }
 
-  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
+  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<Atom> {
     let result = self.evaluate_expression(expr);
-    result
-      .is_identifier()
-      .then(|| result.identifier().to_string())
+    result.is_identifier().then(|| result.identifier().clone())
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
@@ -1117,7 +1129,7 @@ impl JavascriptParser<'_> {
             .get_variable_info(&rename_identifier)
             .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
             .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
-          self.set_variable(ident.sym.to_string(), variable);
+          self.set_variable(ident.sym.clone(), variable);
         }
         return;
       }
@@ -1128,7 +1140,7 @@ impl JavascriptParser<'_> {
           if !ident
             .sym
             .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+              this.plugin_drive.clone().assign(this, expr, for_name)
             })
             .unwrap_or_default()
           {
@@ -1145,23 +1157,28 @@ impl JavascriptParser<'_> {
           if !ident
             .sym
             .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+              this.plugin_drive.clone().assign(this, expr, for_name)
             })
             .unwrap_or_default()
           {
-            this.define_variable(ident.sym.to_string());
+            this.define_variable(ident.sym.clone());
           }
         },
       );
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
-      let expr_name = self.get_member_expression_info(member, AllowedMemberTypes::Expression);
-      if expr_name.is_some()
-        && self
-          .plugin_drive
-          .clone()
-          // TODO: assign_member_chain
-          .assign(self, expr, None)
+      if let Some(MemberExpressionInfo::Expression(expr_name)) =
+        self.get_member_expression_info(member, AllowedMemberTypes::Expression)
+        && expr_name
+          .root_info
+          .call_hooks_name(self, |parser, for_name| {
+            parser.plugin_drive.clone().assign_member_chain(
+              parser,
+              expr,
+              &expr_name.members,
+              for_name,
+            )
+          })
           .unwrap_or_default()
       {
         return;

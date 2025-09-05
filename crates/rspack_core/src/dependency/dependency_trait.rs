@@ -14,7 +14,7 @@ use super::{
 use crate::{
   AsContextDependency, ConnectionState, Context, ExtendedReferencedExport, ForwardId,
   ImportAttributes, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, RuntimeSpec,
-  UsedByExports, create_exports_object_referenced,
+  create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -67,8 +67,6 @@ pub trait Dependency:
     None
   }
 
-  fn set_used_by_exports(&mut self, _used_by_exports: Option<UsedByExports>) {}
-
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
@@ -83,7 +81,7 @@ pub trait Dependency:
     None
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
+  fn range(&self) -> Option<DependencyRange> {
     None
   }
 

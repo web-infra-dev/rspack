@@ -113,7 +113,7 @@ async fn render_startup(
         match used_name {
           UsedNameItem::Str(used_name) =>
             format!("__webpack_exports__{}", property_access(vec![used_name], 0)),
-          UsedNameItem::Inlined(inlined) => inlined.render().into_owned(),
+          UsedNameItem::Inlined(inlined) => inlined.render(),
         }
       )));
     }

@@ -121,8 +121,8 @@ impl Dependency for ImportDependency {
     self.attributes.as_ref()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(

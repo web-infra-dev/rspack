@@ -37,6 +37,9 @@ var findStylesheet = function (href, fullhref) {
 	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];
 		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
+		if (dataHref) {
+			dataHref = dataHref.split('?')[0]
+		}
 		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
 	}
 

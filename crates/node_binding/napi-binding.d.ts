@@ -443,7 +443,7 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
-  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**
    * # Safety
@@ -494,6 +494,10 @@ export declare class VirtualFileStore {
   batchWriteVirtualFilesSync(files: Array<JsVirtualFile>): void
 }
 export type JsVirtualFileStore = VirtualFileStore
+
+export interface AssetInfoRelated {
+  sourceMap?: string | null
+}
 
 export declare function async(path: string, request: string): Promise<ResolveResult>
 
@@ -672,10 +676,6 @@ export interface JsAssetEmittedArgs {
   filename: string
   outputPath: string
   targetPath: string
-}
-
-export interface JsAssetInfoRelated {
-  sourceMap?: string
 }
 
 export interface JsBannerContentFnCtx {
@@ -1503,7 +1503,7 @@ export interface KnownAssetInfo {
   /** when asset is javascript and an ESM */
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
-  related?: JsAssetInfoRelated
+  related?: AssetInfoRelated
   /** unused css local ident for the css chunk */
   cssUnusedIdents?: Array<string>
   /** whether this asset is over the size limit */
@@ -2111,6 +2111,7 @@ parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
+css?: boolean
 inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
@@ -2348,11 +2349,11 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  module: ((err: Error | null, arg: RawModuleArg) => RawModuleInfo)
+  currentActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
-  cacheable: boolean
+  client: string
 }
 
 export interface RawLibManifestPluginOptions {
@@ -2408,11 +2409,6 @@ export interface RawLimitChunkCountPluginOptions {
   chunkOverhead?: number
   entryChunkMultiplicator?: number
   maxChunks: number
-}
-
-export interface RawModuleArg {
-  module: string
-  path: string
 }
 
 export interface RawModuleFederationRuntimePluginOptions {

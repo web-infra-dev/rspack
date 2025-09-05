@@ -19,10 +19,7 @@ use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
-use rspack_error::{
-  DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
-  miette::diagnostic,
-};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::itoa;
 
 use crate::json_exports_dependency::JsonExportsDependency;
@@ -93,29 +90,27 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             } else {
               start_offset
             };
-            TraceableError::from_file(
-              source.into_owned(),
+            Error::from_string(
+              Some(source.into_owned()),
               // one character offset
               start_offset,
               start_offset + 1,
               "JSON parse error".to_string(),
               format!("Unexpected character {ch}"),
             )
-            .boxed()
           }
-          ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
+          ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => error!("{}", e),
           UnexpectedEndOfJson => {
             // End offset of json file
             let length = source.len();
             let offset = if length > 0 { length - 1 } else { length };
-            TraceableError::from_file(
-              source.into_owned(),
+            Error::from_string(
+              Some(source.into_owned()),
               offset,
               offset,
               "JSON parse error".to_string(),
               format!("{e}"),
             )
-            .boxed()
           }
         }
       });
@@ -123,7 +118,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let (diagnostics, data) = match parse_result {
       Ok(data) => (vec![], Some(data)),
       Err(err) => (
-        vec![ModuleParseError::new(err, loaders).boxed().into()],
+        vec![Error::from(ModuleParseError::new(err, loaders)).into()],
         None,
       ),
     };

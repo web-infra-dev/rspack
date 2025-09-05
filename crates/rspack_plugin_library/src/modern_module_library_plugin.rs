@@ -67,7 +67,7 @@ pub fn replace_import_dependencies_for_external_modules(
                 import_dependency.request.as_str().into(),
                 external_module.request.clone(),
                 external_module.external_type.clone(),
-                import_dependency.range.clone(),
+                import_dependency.range,
                 import_dependency.get_attributes().cloned(),
                 import_dependency.comments.clone(),
               );

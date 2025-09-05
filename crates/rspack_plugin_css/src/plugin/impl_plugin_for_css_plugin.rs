@@ -130,7 +130,7 @@ impl CssPlugin {
           .module_by_identifier(&conflict.selected_module)
           .expect("should have module");
 
-        Diagnostic::warn(
+        let mut diagnostic = Diagnostic::warn(
           "Conflicting order".into(),
           format!(
             "chunk {}\nConflicting order between {} and {}",
@@ -143,9 +143,10 @@ impl CssPlugin {
             failed_module.readable_identifier(&compilation.options.context),
             selected_module.readable_identifier(&compilation.options.context)
           ),
-        )
-        .with_file(Some(output_path.to_owned().into()))
-        .with_chunk(Some(chunk.ukey().as_u32()))
+        );
+        diagnostic.file = Some(output_path.to_owned().into());
+        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic
       }));
     }
     Ok((source, diagnostics))

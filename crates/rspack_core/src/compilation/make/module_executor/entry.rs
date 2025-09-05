@@ -1,7 +1,5 @@
 use std::collections::hash_map::Entry;
 
-use rspack_error::miette::diagnostic;
-
 use super::{
   super::graph_updater::repair::{context::TaskContext, factorize::FactorizeTask},
   context::{ExecutorTaskContext, ImportModuleMeta},
@@ -82,6 +80,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
             .profile
             .then(Box::<ModuleProfile>::default),
           resolver_factory: origin_context.resolver_factory.clone(),
+          from_unlazy: false,
         })]));
         (*v.insert(dep_id), true)
       }
@@ -98,13 +97,10 @@ impl Task<ExecutorTaskContext> for EntryTask {
         .module_graph_module_by_identifier(&meta.origin_module_identifier)
         .is_some()
       {
-        execute_task.finish_with_error(
-          diagnostic!(
-            "The added task is running, maybe have a circular build dependency. MetaInfo: {:?}",
-            meta
-          )
-          .into(),
-        );
+        execute_task.finish_with_error(rspack_error::error!(
+          "The added task is running, maybe have a circular build dependency. MetaInfo: {:?}",
+          meta
+        ));
         return Ok(vec![]);
       }
     }

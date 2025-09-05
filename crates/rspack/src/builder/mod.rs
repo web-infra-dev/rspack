@@ -51,11 +51,7 @@ use rspack_core::{
   StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
   incremental::{IncrementalOptions, IncrementalPasses},
 };
-use rspack_error::{
-  Result,
-  miette::{self, Diagnostic},
-  thiserror::{self, Error},
-};
+use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -65,13 +61,20 @@ use serde_json::json;
 use target::{TargetProperties, get_targets_properties};
 
 /// Error type for builder
-#[derive(Debug, Clone, Error, Diagnostic)]
-#[diagnostic()]
-#[non_exhaustive]
+#[derive(Debug, Clone)]
 pub enum BuilderError {
   /// Invalid option
-  #[error("Invalid option '{0}': {1}")]
   Option(/* Accessor */ String, /* Error message */ String),
+}
+
+impl From<BuilderError> for Error {
+  fn from(value: BuilderError) -> Error {
+    match value {
+      BuilderError::Option(accessor, msg) => {
+        Error::error(format!("Invalid option '{accessor}': {msg}"))
+      }
+    }
+  }
 }
 
 /// Builder trait
@@ -3675,7 +3678,7 @@ impl From<Experiments> for ExperimentsBuilder {
       parallel_code_splitting: Some(value.parallel_code_splitting),
       output_module: None,
       future_defaults: None,
-      css: None,
+      css: Some(value.css),
       async_web_assembly: None,
     }
   }
@@ -3793,6 +3796,7 @@ impl ExperimentsBuilder {
       rspack_future,
       parallel_code_splitting,
       cache,
+      css: d!(self.css, false),
       inline_const: false,
       inline_enum: false,
       type_reexports_presence: false,

@@ -412,6 +412,27 @@ impl ChunkGraph {
     modules
   }
 
+  pub fn get_ordered_chunk_normal_modules_identifier(
+    &self,
+    chunk: &ChunkUkey,
+  ) -> Vec<ModuleIdentifier> {
+    let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
+    let runtime_modules = chunk_graph_chunk
+      .runtime_modules
+      .iter()
+      .copied()
+      .collect::<IdentifierSet>();
+    let mut modules: Vec<ModuleIdentifier> = chunk_graph_chunk
+      .modules
+      .iter()
+      .filter(|m| !runtime_modules.contains(m))
+      .copied()
+      .collect();
+    // SAFETY: module identifier is unique
+    modules.sort_unstable_by_key(|m| m.as_str());
+    modules
+  }
+
   pub fn get_ordered_chunk_modules<'module>(
     &self,
     chunk: &ChunkUkey,
@@ -664,6 +685,7 @@ impl ChunkGraph {
     let cgc = self.expect_chunk_graph_chunk(chunk);
     let mut input = cgc.modules.iter().copied().collect::<Vec<_>>();
     input.sort_unstable();
+
     let mut modules = find_graph_roots(input, |module| {
       let mut set: IdentifierSet = Default::default();
       fn add_dependencies(
@@ -977,8 +999,8 @@ impl ChunkGraph {
     self.runtime_ids.insert(runtime, id);
   }
 
-  pub fn get_runtime_id(&self, runtime: String) -> Option<String> {
-    self.runtime_ids.get(&runtime).and_then(|v| v.to_owned())
+  pub fn get_runtime_id(&self, runtime: &str) -> Option<String> {
+    self.runtime_ids.get(runtime).and_then(|v| v.to_owned())
   }
 
   pub fn set_chunk_modules_source_types(

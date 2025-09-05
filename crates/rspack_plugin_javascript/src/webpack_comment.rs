@@ -2,16 +2,17 @@ use std::sync::LazyLock;
 
 use itertools::Itertools;
 use regex::Captures;
-use rspack_core::{ErrorSpan, SpanExt};
-use rspack_error::miette::{Diagnostic, Severity};
+use rspack_core::DependencyRange;
+use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::{
   SourceFile, Span,
   comments::{Comment, CommentKind, Comments},
 };
 
-use crate::visitors::create_traceable_error;
+use crate::visitors::{JavascriptParser, create_traceable_error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WebpackComment {
@@ -123,22 +124,21 @@ fn add_magic_comment_warning(
   comment_name: &str,
   comment_type: &str,
   captures: &Captures,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
-  span: impl Into<ErrorSpan>,
+  warning_diagnostics: &mut Vec<Diagnostic>,
+  span: DependencyRange,
 ) {
-  warning_diagnostics.push(Box::new(
-    create_traceable_error(
-      "Magic comments parse failed".into(),
-      format!(
-        "`{comment_name}` expected {comment_type}, but received: {}.",
-        captures.get(2).map_or("", |m| m.as_str())
-      ),
-      source_file,
-      span.into(),
-    )
-    .with_severity(Severity::Warning)
-    .with_hide_stack(Some(true)),
-  ))
+  let mut error: Error = create_traceable_error(
+    "Magic comments parse failed".into(),
+    format!(
+      "`{comment_name}` expected {comment_type}, but received: {}.",
+      captures.get(2).map_or("", |m| m.as_str())
+    ),
+    source_file,
+    span,
+  );
+  error.severity = Severity::Warning;
+  error.hide_stack = Some(true);
+  warning_diagnostics.push(error.into())
 }
 
 // Using vm.runInNewContext in webpack
@@ -161,31 +161,31 @@ static WEBAPCK_EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
   LazyLock::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
 
 pub fn try_extract_webpack_magic_comment(
-  source_file: &SourceFile,
-  comments: &Option<&dyn Comments>,
+  parser: &mut JavascriptParser,
   error_span: Span,
   span: Span,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
 ) -> WebpackCommentMap {
   let mut result = WebpackCommentMap::new();
-  comments.with_leading(span.lo, |comments| {
+  let mut warning_diagnostics = Vec::new();
+  parser.comments.with_leading(span.lo, |comments| {
     analyze_comments(
-      source_file,
+      parser.source_file,
       comments,
       error_span,
-      warning_diagnostics,
+      &mut warning_diagnostics,
       &mut result,
     )
   });
-  comments.with_trailing(span.hi, |comments| {
+  parser.comments.with_trailing(span.hi, |comments| {
     analyze_comments(
-      source_file,
+      parser.source_file,
       comments,
       error_span,
-      warning_diagnostics,
+      &mut warning_diagnostics,
       &mut result,
     )
   });
+  parser.add_warnings(warning_diagnostics);
   result
 }
 
@@ -252,7 +252,7 @@ fn match_item_to_error_span(
   comment_text: &str,
   match_start: usize,
   match_end: usize,
-) -> ErrorSpan {
+) -> DependencyRange {
   let s = ropey::Rope::from_str(source);
   // SAFETY: `comment_span` is always within the bound of `source`.
   let s_loc = byte_offset_to_location(
@@ -267,14 +267,14 @@ fn match_item_to_error_span(
   let Location { sl, sc, el, ec } = s_loc.merge_with_block_comment_location(&c_loc);
   let start = s.line_to_byte(sl as usize) + sc as usize;
   let end = s.line_to_byte(el as usize) + ec as usize;
-  ErrorSpan::new(start as u32, end as u32)
+  DependencyRange::new(start as u32, end as u32)
 }
 
 fn analyze_comments(
   source_file: &SourceFile,
   comments: &[Comment],
   error_span: Span,
-  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  warning_diagnostics: &mut Vec<Diagnostic>,
   result: &mut WebpackCommentMap,
 ) {
   // TODO: remove this, parser.comments contains two same block comment

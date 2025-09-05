@@ -78,6 +78,7 @@ impl PersistentCache {
       initialized: false,
       build_deps: BuildDeps::new(
         &option.build_dependencies,
+        &option.snapshot,
         input_filesystem.clone(),
         storage.clone(),
       ),

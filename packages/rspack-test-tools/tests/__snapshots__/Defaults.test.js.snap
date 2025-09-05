@@ -23,7 +23,7 @@ Object {
     css: undefined,
     futureDefaults: false,
     incremental: Object {
-      buildChunkGraph: true,
+      buildChunkGraph: false,
       chunkIds: true,
       chunksHashes: true,
       chunksRender: true,

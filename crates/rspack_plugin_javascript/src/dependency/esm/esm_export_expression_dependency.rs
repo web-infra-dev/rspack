@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
@@ -46,8 +46,7 @@ pub struct ESMExportExpressionDependency {
   range_stmt: DependencyRange,
   prefix: String,
   declaration: Option<DeclarationId>,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
 }
 
 impl ESMExportExpressionDependency {
@@ -58,13 +57,14 @@ impl ESMExportExpressionDependency {
     declaration: Option<DeclarationId>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::default(),
       range,
       range_stmt,
       declaration,
       prefix,
-      source_map,
+      loc,
     }
   }
 }
@@ -80,7 +80,7 @@ impl Dependency for ESMExportExpressionDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn get_exports(

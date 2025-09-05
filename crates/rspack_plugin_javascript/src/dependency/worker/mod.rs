@@ -54,8 +54,8 @@ impl Dependency for WorkerDependency {
     &DependencyType::NewWorker
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(

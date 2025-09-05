@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{Error, miette::IntoDiagnostic};
+use rspack_error::Result;
 use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -74,11 +74,13 @@ pub struct PrintOptions<'a> {
   pub input_source_map: Option<&'a sourcemap::SourceMap>,
   pub minify: bool,
   pub comments: Option<&'a dyn Comments>,
-  pub format: &'a JsMinifyFormatOptions,
+  pub preamble: &'a str,
+  pub ascii_only: bool,
+  pub inline_script: bool,
 }
 
 impl JavaScriptCompiler {
-  pub fn stringify(&self, ast: &Ast, options: CodegenOptions) -> Result<TransformOutput, Error> {
+  pub fn stringify(&self, ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> {
     ast.visit(|program, context| {
       let keep_comments = options.keep_comments;
       let target = options.target.unwrap_or(EsVersion::latest());
@@ -105,17 +107,15 @@ impl JavaScriptCompiler {
           .unwrap_or_default()
           .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
           .flatten(),
-        format: &format_opt,
+        preamble: &format_opt.preamble,
+        ascii_only: format_opt.ascii_only,
+        inline_script: format_opt.inline_script,
       };
       self.print(program.get_inner_program(), print_options)
     })
   }
 
-  pub fn print(
-    &self,
-    node: &SwcProgram,
-    options: PrintOptions<'_>,
-  ) -> Result<TransformOutput, Error> {
+  pub fn print(&self, node: &SwcProgram, options: PrintOptions<'_>) -> Result<TransformOutput> {
     let PrintOptions {
       source_len,
       source_map,
@@ -124,7 +124,9 @@ impl JavaScriptCompiler {
       input_source_map,
       minify,
       comments,
-      format,
+      preamble,
+      ascii_only,
+      inline_script,
     } = options;
     let mut src_map_buf = vec![];
 
@@ -148,7 +150,7 @@ impl JavaScriptCompiler {
           source_map_config.enable.then_some(&mut src_map_buf),
         );
 
-        w.preamble(&format.preamble).into_diagnostic()?;
+        w.preamble(preamble)?;
         let mut wr = Box::new(w) as Box<dyn WriteJs>;
 
         if minify {
@@ -159,13 +161,13 @@ impl JavaScriptCompiler {
           cfg: codegen::Config::default()
             .with_minify(minify)
             .with_target(target)
-            .with_ascii_only(format.ascii_only)
-            .with_inline_script(format.inline_script),
+            .with_ascii_only(ascii_only)
+            .with_inline_script(inline_script),
           comments,
           cm: source_map.clone(),
           wr,
         };
-        node.emit_with(&mut emitter).into_diagnostic()?;
+        node.emit_with(&mut emitter)?;
       }
       // SAFETY: SWC will emit valid utf8 for sure
       unsafe { String::from_utf8_unchecked(buf) }

@@ -52,8 +52,8 @@ impl Dependency for AMDRequireContextDependency {
     &DependencyType::AmdRequireContext
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

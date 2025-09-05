@@ -1,6 +1,6 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec, Skip},
+  with::{AsPreset, AsVec},
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
@@ -23,8 +23,7 @@ pub struct CommonJsFullRequireDependency {
   is_call: bool,
   optional: bool,
   asi_safe: bool,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
 }
 
@@ -38,6 +37,7 @@ impl CommonJsFullRequireDependency {
     asi_safe: bool,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::new(),
       request,
@@ -46,7 +46,7 @@ impl CommonJsFullRequireDependency {
       is_call,
       optional,
       asi_safe,
-      source_map,
+      loc,
       factorize_info: Default::default(),
     }
   }
@@ -67,11 +67,11 @@ impl Dependency for CommonJsFullRequireDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(
