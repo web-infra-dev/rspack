@@ -497,7 +497,7 @@ impl ChunkGraph {
       .collect::<Vec<_>>()
   }
 
-  /// Get identifiers ofchunk modules by source type
+  /// Get identifiers of chunk modules by source type
   /// returning empty vector if source type is `Runtime`
   pub fn get_chunk_modules_identifier_by_source_type(
     &self,
