@@ -54,7 +54,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
 
     let mut invalid_packs = validate_results
       .iter()
-      .zip(pack_list.into_iter())
+      .zip(pack_list)
       .filter(|(is_valid, _)| !*is_valid)
       .map(|(_, (_, pack))| pack)
       .collect::<Vec<_>>();
