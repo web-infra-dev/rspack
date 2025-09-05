@@ -111,7 +111,7 @@ async fn render(
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let modules = compilation
     .chunk_graph
-    .get_chunk_all_modules_identifier(chunk_ukey)
+    .get_chunk_modules_identifier(chunk_ukey)
     .iter()
     .filter_map(|identifier| {
       module_graph

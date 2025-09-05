@@ -32,7 +32,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let mut possible_duplicates: Option<UkeySet<ChunkUkey>> = None;
     for module in compilation
       .chunk_graph
-      .get_chunk_all_modules_identifier(&chunk_ukey)
+      .get_chunk_modules_identifier(&chunk_ukey)
     {
       if let Some(ref mut possible_duplicates) = possible_duplicates {
         possible_duplicates.retain(|dup| compilation.chunk_graph.is_module_in_chunk(module, *dup));
@@ -86,7 +86,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           let module_graph = compilation.get_module_graph();
           let is_all_equal = compilation
             .chunk_graph
-            .get_chunk_all_modules_identifier(&chunk_ukey)
+            .get_chunk_modules_identifier(&chunk_ukey)
             .into_par_iter()
             .all(|module| {
               let exports_info = module_graph.get_exports_info(module);

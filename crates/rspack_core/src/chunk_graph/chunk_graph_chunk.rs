@@ -400,33 +400,14 @@ impl ChunkGraph {
       .collect()
   }
 
-  /// Get identifiers of chunk modules without runtime modules
-  pub fn get_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
-    let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
-    let runtime_modules = chunk_graph_chunk
-      .runtime_modules
-      .iter()
-      .copied()
-      .collect::<IdentifierSet>();
-    chunk_graph_chunk
-      .modules
-      .iter()
-      .filter(|m| !runtime_modules.contains(m))
-      .copied()
-      .collect()
-  }
-
   /// Get all identifiers of chunk modules, including runtime modules
-  pub fn get_chunk_all_modules_identifier(&self, chunk: &ChunkUkey) -> &IdentifierSet {
+  pub fn get_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> &IdentifierSet {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     &chunk_graph_chunk.modules
   }
 
   /// Get ordered identifiers of chunk modules, including runtime modules
-  pub fn get_ordered_chunk_all_modules_identifier(
-    &self,
-    chunk: &ChunkUkey,
-  ) -> Vec<ModuleIdentifier> {
+  pub fn get_ordered_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let mut modules: Vec<ModuleIdentifier> = chunk_graph_chunk.modules.iter().copied().collect();
     // SAFETY: module identifier is unique
@@ -434,27 +415,8 @@ impl ChunkGraph {
     modules
   }
 
-  /// Get ordered identifiers of chunk modules, without runtime modules
-  pub fn get_ordered_chunk_modules_identifier(&self, chunk: &ChunkUkey) -> Vec<ModuleIdentifier> {
-    let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
-    let runtime_modules = chunk_graph_chunk
-      .runtime_modules
-      .iter()
-      .copied()
-      .collect::<IdentifierSet>();
-    let mut modules: Vec<ModuleIdentifier> = chunk_graph_chunk
-      .modules
-      .iter()
-      .filter(|m| !runtime_modules.contains(m))
-      .copied()
-      .collect();
-    // SAFETY: module identifier is unique
-    modules.sort_unstable_by_key(|m| m.as_str());
-    modules
-  }
-
   /// Get ordered modules of chunk, including runtime modules
-  pub fn get_ordered_chunk_all_modules<'module>(
+  pub fn get_ordered_chunk_modules<'module>(
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,

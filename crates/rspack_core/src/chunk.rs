@@ -7,7 +7,7 @@ use std::{
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierSet, UkeyIndexMap, UkeyIndexSet, UkeySet};
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -688,18 +688,27 @@ impl Chunk {
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
     self.id(&compilation.chunk_ids_artifact).hash(hasher);
+    let runtime_modules = compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_iterable(&self.ukey)
+      .copied()
+      .collect::<IdentifierSet>();
+
     for module_identifier in compilation
       .chunk_graph
       .get_ordered_chunk_modules_identifier(&self.ukey)
     {
-      let hash = compilation
+      if runtime_modules.contains(&module_identifier) {
+        continue;
+      }
+      if let Some(hash) = compilation
         .code_generation_results
         .get_hash(&module_identifier, Some(&self.runtime))
-        .unwrap_or_else(|| {
-          panic!("Module ({module_identifier}) should have hash result when updating chunk hash.");
-        });
-      hash.hash(hasher);
+      {
+        hash.hash(hasher);
+      }
     }
+
     for (runtime_module_identifier, _) in compilation
       .chunk_graph
       .get_chunk_runtime_modules_in_order(&self.ukey, compilation)
@@ -714,6 +723,7 @@ impl Chunk {
         });
       hash.hash(hasher);
     }
+
     "entry".hash(hasher);
     for (module, chunk_group) in compilation
       .chunk_graph

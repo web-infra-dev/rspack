@@ -187,7 +187,7 @@ pub fn collect_chunk_modules(
     .par_bridge()
     .map(|chunk_id| {
       let modules = chunk_graph
-        .get_ordered_chunk_all_modules_identifier(chunk_id)
+        .get_ordered_chunk_modules_identifier(chunk_id)
         .iter()
         .flat_map(|mid| {
           let mut res = vec![];

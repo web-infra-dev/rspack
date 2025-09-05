@@ -2092,7 +2092,7 @@ impl Compilation {
         for mid in self.chunk_graph.get_chunk_modules_identifier(chunk_ukey) {
           let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
           if let Some(runtime_requirements) =
-            ChunkGraph::get_module_runtime_requirements(self, mid, chunk.runtime())
+            ChunkGraph::get_module_runtime_requirements(self, *mid, chunk.runtime())
           {
             set.insert(*runtime_requirements);
           }

@@ -465,7 +465,7 @@ impl CodeSplitter {
     for chunk in compilation.chunk_by_ukey.keys() {
       let mut mask = BigUint::from(0u32);
       for module_id in compilation.chunk_graph.get_chunk_modules_identifier(chunk) {
-        let module_ordinal = self.get_module_ordinal(module_id);
+        let module_ordinal = self.get_module_ordinal(*module_id);
         mask.set_bit(module_ordinal, true);
       }
       self.mask_by_chunk.insert(*chunk, mask);
@@ -715,7 +715,11 @@ impl CodeSplitter {
             can_rebuild,
             module,
             cache_result: can_rebuild.then(|| CacheResult {
-              modules: chunk_graph.get_chunk_modules_identifier(&chunk),
+              modules: chunk_graph
+                .get_chunk_modules_identifier(&chunk)
+                .iter()
+                .copied()
+                .collect::<Vec<_>>(),
               pre_order_indices: group.module_pre_order_indices.clone(),
               post_order_indices: group.module_post_order_indices.clone(),
               skipped_modules: cgi.skipped_items.clone(),

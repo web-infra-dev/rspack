@@ -147,7 +147,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       new_modules = compilation
         .chunk_graph
-        .get_chunk_all_modules_identifier(&current_chunk.ukey())
+        .get_chunk_modules_identifier(&current_chunk.ukey())
         .iter()
         .filter_map(|&module| {
           let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)?;
