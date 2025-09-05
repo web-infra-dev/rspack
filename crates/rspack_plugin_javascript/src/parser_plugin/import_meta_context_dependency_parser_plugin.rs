@@ -140,7 +140,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     {
       None
     } else if let Some(dep) = create_import_meta_context_dependency(expr, parser) {
-      parser.dependencies.push(Box::new(dep));
+      parser.add_dependency(Box::new(dep));
       Some(true)
     } else {
       None

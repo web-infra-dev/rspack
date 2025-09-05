@@ -15,7 +15,7 @@ use rspack_core::{
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
   ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, TypeReexportPresenceMode,
 };
-use rspack_error::Diagnostic;
+use rspack_error::{Diagnostic, Result};
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
@@ -38,8 +38,11 @@ use crate::{
   dependency::local_module::LocalModule,
   parser_plugin::{self, InnerGraphState, JavaScriptParserPluginDrive, JavascriptParserPlugin},
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::scope_info::{
-    ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
+  visitors::{
+    ScanDependenciesResult,
+    scope_info::{
+      ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
+    },
   },
 };
 
@@ -206,14 +209,14 @@ impl From<Span> for StatementPath {
 
 pub struct JavascriptParser<'parser> {
   // ===== results =======
-  pub(crate) errors: Vec<Diagnostic>,
-  pub(crate) warning_diagnostics: Vec<Diagnostic>,
-  pub dependencies: Vec<BoxDependency>,
-  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  errors: Vec<Diagnostic>,
+  warning_diagnostics: Vec<Diagnostic>,
+  dependencies: Vec<BoxDependency>,
+  presentational_dependencies: Vec<BoxDependencyTemplate>,
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
-  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
+  blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
   pub source_map: Arc<SourceMap>,
   pub(crate) source_file: &'parser SourceFile,
@@ -422,6 +425,98 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  pub fn into_results(self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
+    if self.errors.is_empty() {
+      Ok(ScanDependenciesResult {
+        dependencies: self.dependencies,
+        blocks: self.blocks,
+        presentational_dependencies: self.presentational_dependencies,
+        warning_diagnostics: self.warning_diagnostics,
+      })
+    } else {
+      Err(self.errors)
+    }
+  }
+
+  pub fn add_dependency(&mut self, dep: BoxDependency) {
+    self.dependencies.push(dep);
+  }
+
+  pub fn add_dependencies(&mut self, deps: impl IntoIterator<Item = BoxDependency>) {
+    self.dependencies.extend(deps);
+  }
+
+  pub fn pop_dependency(&mut self) -> Option<BoxDependency> {
+    self.dependencies.pop()
+  }
+
+  pub fn next_dependency_idx(&self) -> usize {
+    self.dependencies.len()
+  }
+
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
+    self.dependencies.get_mut(idx)
+  }
+
+  pub fn collect_dependencies_for_block(
+    &mut self,
+    f: impl FnOnce(&mut JavascriptParser),
+  ) -> Vec<BoxDependency> {
+    let old_deps = std::mem::take(&mut self.dependencies);
+    f(self);
+    std::mem::replace(&mut self.dependencies, old_deps)
+  }
+
+  pub fn add_presentational_dependency(&mut self, dep: BoxDependencyTemplate) {
+    self.presentational_dependencies.push(dep);
+  }
+
+  pub fn add_presentational_dependencies(
+    &mut self,
+    deps: impl IntoIterator<Item = BoxDependencyTemplate>,
+  ) {
+    self.presentational_dependencies.extend(deps);
+  }
+
+  pub fn next_presentational_dependency_idx(&self) -> usize {
+    self.presentational_dependencies.len()
+  }
+
+  pub fn get_presentational_dependency_mut(
+    &mut self,
+    idx: usize,
+  ) -> Option<&mut BoxDependencyTemplate> {
+    self.presentational_dependencies.get_mut(idx)
+  }
+
+  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
+    self.blocks.push(block);
+  }
+
+  pub fn next_block_idx(&self) -> usize {
+    self.blocks.len()
+  }
+
+  pub fn get_block_mut(&mut self, idx: usize) -> Option<&mut Box<AsyncDependenciesBlock>> {
+    self.blocks.get_mut(idx)
+  }
+
+  pub fn add_error(&mut self, error: Diagnostic) {
+    self.errors.push(error);
+  }
+
+  pub fn add_errors(&mut self, errors: impl IntoIterator<Item = Diagnostic>) {
+    self.errors.extend(errors);
+  }
+
+  pub fn add_warning(&mut self, warning: Diagnostic) {
+    self.warning_diagnostics.push(warning);
+  }
+
+  pub fn add_warnings(&mut self, warnings: impl IntoIterator<Item = Diagnostic>) {
+    self.warning_diagnostics.extend(warnings);
+  }
+
   pub fn is_top_level_scope(&self) -> bool {
     matches!(self.top_level_scope, TopLevelScope::Top)
   }
@@ -430,19 +525,12 @@ impl<'parser> JavascriptParser<'parser> {
     !matches!(self.top_level_scope, TopLevelScope::False)
   }
 
-  pub fn add_local_module(&mut self, name: &str) -> LocalModule {
-    let m = LocalModule::new(name.into(), self.local_modules.len());
-    self.local_modules.push(m.clone());
-    m
-  }
-
-  pub fn get_local_module(&self, name: &str) -> Option<LocalModule> {
-    for m in self.local_modules.iter() {
-      if m.get_name() == name {
-        return Some(m.clone());
-      }
-    }
-    None
+  pub fn add_local_module(&mut self, name: &Atom, dep_idx: usize) {
+    self.local_modules.push(LocalModule::new(
+      name.clone(),
+      self.local_modules.len(),
+      dep_idx,
+    ));
   }
 
   pub fn get_local_module_mut(&mut self, name: &str) -> Option<&mut LocalModule> {

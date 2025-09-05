@@ -639,6 +639,8 @@ inline 优化的条件是常量值为：
 - 长度 \<= 6 的 `string`
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineConst: true, // 目前为实验性功能，需开启此选项
@@ -646,12 +648,14 @@ export default {
   module: {
     parser: {
       javascript: {
-        inlineConst: true,
+        inlineConst: isProduction,
       },
     },
   },
 };
 ```
+
+由于该功能依赖模块导出的使用信息（[optimization.usedExports](/config/optimization#optimizationusedexports)），所以建议仅在 `mode = "production"` 时开启该功能。
 
 详细示例可参考：[inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
@@ -2299,7 +2303,7 @@ export default {
 
 所有 loader 都会进入以下两个阶段：
 
-- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/types#pitching-loader)。
+- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader)。
 - **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
 
 ### Rule.type

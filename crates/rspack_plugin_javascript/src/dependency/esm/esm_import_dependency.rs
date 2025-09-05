@@ -1,7 +1,4 @@
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsPreset, Skip},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
@@ -64,12 +61,10 @@ pub struct ESMImportSideEffectDependency {
   source_order: i32,
   id: DependencyId,
   range: DependencyRange,
-  range_src: DependencyRange,
   dependency_type: DependencyType,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
   star_export: bool,
@@ -81,7 +76,6 @@ impl ESMImportSideEffectDependency {
     request: Atom,
     source_order: i32,
     range: DependencyRange,
-    range_src: DependencyRange,
     dependency_type: DependencyType,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
@@ -89,16 +83,16 @@ impl ESMImportSideEffectDependency {
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
       request,
       range,
-      range_src,
       dependency_type,
       attributes,
       resource_identifier,
-      source_map,
+      loc,
       factorize_info: Default::default(),
       lazy_make: false,
       star_export,
@@ -510,7 +504,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn range(&self) -> Option<DependencyRange> {

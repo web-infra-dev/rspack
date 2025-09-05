@@ -42,7 +42,7 @@ pub fn eval_source<T: Display>(
         format!("failed to parse {}", json!(fm.src.as_str())),
       );
       error.severity = Severity::Warning;
-      parser.warning_diagnostics.push(error.into());
+      parser.add_warning(error.into());
       None
     }
     Ok(mut expr) => {

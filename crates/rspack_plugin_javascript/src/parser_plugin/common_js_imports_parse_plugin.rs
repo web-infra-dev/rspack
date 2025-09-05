@@ -144,12 +144,12 @@ impl CommonJsImportsParserPlugin {
           self.process_resolve_context(parser, option, weak);
         }
       }
-      parser.dependencies.push(require_resolve_header_dependency);
+      parser.add_dependency(require_resolve_header_dependency);
     } else {
       if !self.process_resolve_item(parser, &param, weak) {
         self.process_resolve_context(parser, &param, weak);
       }
-      parser.dependencies.push(require_resolve_header_dependency);
+      parser.add_dependency(require_resolve_header_dependency);
     }
   }
 
@@ -160,14 +160,12 @@ impl CommonJsImportsParserPlugin {
     weak: bool,
   ) -> bool {
     if param.is_string() {
-      parser
-        .dependencies
-        .push(Box::new(RequireResolveDependency::new(
-          param.string().to_string(),
-          param.range().into(),
-          weak,
-          parser.in_try,
-        )));
+      parser.add_dependency(Box::new(RequireResolveDependency::new(
+        param.string().to_string(),
+        param.range().into(),
+        weak,
+        parser.in_try,
+      )));
 
       return true;
     }
@@ -183,7 +181,7 @@ impl CommonJsImportsParserPlugin {
   ) {
     let dep = create_require_resolve_context_dependency(parser, param, param.range().into(), weak);
 
-    parser.dependencies.push(Box::new(dep));
+    parser.add_dependency(Box::new(dep));
   }
 
   fn chain_handler(
@@ -227,7 +225,7 @@ impl CommonJsImportsParserPlugin {
         parser.in_try,
         Some(parser.source_map.clone()),
       );
-      parser.dependencies.push(Box::new(dep));
+      parser.add_dependency(Box::new(dep));
       true
     })
   }
@@ -242,7 +240,7 @@ impl CommonJsImportsParserPlugin {
       unreachable!("ensure require includes arguments")
     };
     let dep = create_commonjs_require_context_dependency(parser, param, call_expr, argument_expr);
-    parser.dependencies.push(Box::new(dep));
+    parser.add_dependency(Box::new(dep));
     Some(true)
   }
 
@@ -265,12 +263,10 @@ impl CommonJsImportsParserPlugin {
       }
       if !is_expression {
         let range: DependencyRange = callee.span().into();
-        parser
-          .presentational_dependencies
-          .push(Box::new(RequireHeaderDependency::new(
-            range,
-            Some(parser.source_map.clone()),
-          )));
+        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
+          range,
+          Some(parser.source_map.clone()),
+        )));
         return Some(true);
       }
     }
@@ -284,7 +280,7 @@ impl CommonJsImportsParserPlugin {
         Some(span.into()),
         matches!(expr, CallOrNewExpr::New(_)),
       ));
-      parser.presentational_dependencies.push(dep);
+      parser.add_presentational_dependency(dep);
       return Some(true);
     }
 
@@ -300,12 +296,10 @@ impl CommonJsImportsParserPlugin {
       self.process_require_context(parser, call_expr, &param);
     } else {
       let range: DependencyRange = callee.span().into();
-      parser
-        .presentational_dependencies
-        .push(Box::new(RequireHeaderDependency::new(
-          range,
-          Some(parser.source_map.clone()),
-        )));
+      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
+        range,
+        Some(parser.source_map.clone()),
+      )));
     }
     Some(true)
   }
@@ -356,7 +350,7 @@ impl CommonJsImportsParserPlugin {
       error.severity = Severity::Warning;
       *dep.critical_mut() = Some(Diagnostic::from(error));
     }
-    parser.dependencies.push(Box::new(dep));
+    parser.add_dependency(Box::new(dep));
     Some(true)
   }
 }
@@ -372,13 +366,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span().into(),
-          "undefined".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        expr.span().into(),
+        "undefined".into(),
+        None,
+      )));
       Some(false)
     } else {
       None
@@ -447,13 +439,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       || for_name == expr_name::REQUIRE_RESOLVE
       || for_name == expr_name::REQUIRE_RESOLVE_WEAK
     {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span().into(),
-          "'function'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        expr.span().into(),
+        "'function'".into(),
+        None,
+      )));
       Some(true)
     } else {
       None
@@ -509,7 +499,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && let Some(dep) = self.chain_handler(parser, member_expr, call_expr, members, false)
     {
-      parser.dependencies.push(Box::new(dep));
+      parser.add_dependency(Box::new(dep));
       return Some(true);
     }
     None
@@ -530,7 +520,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && let Some(member) = callee.as_member()
       && let Some(dep) = self.chain_handler(parser, member, inner_call_expr, members, true)
     {
-      parser.dependencies.push(Box::new(dep));
+      parser.add_dependency(Box::new(dep));
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }
@@ -556,13 +546,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          (0, 0).into(),
-          "var require;".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        (0, 0).into(),
+        "var require;".into(),
+        None,
+      )));
       return Some(true);
     }
 

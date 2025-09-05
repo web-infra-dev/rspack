@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes};
+use rspack_core::{ConstDependency, DependencyType, ImportAttributes};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
@@ -82,26 +82,23 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       source.into(),
       parser.last_esm_import_order,
       import_decl.span.into(),
-      import_decl.src.span.into(),
       DependencyType::EsmImport,
       attributes,
       Some(parser.source_map.clone()),
       false,
     );
 
-    parser.dependencies.push(Box::new(dependency));
+    parser.add_dependency(Box::new(dependency));
 
-    parser
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        import_decl.span.into(),
-        if parser.is_asi_position(import_decl.span_lo()) {
-          ";".into()
-        } else {
-          "".into()
-        },
-        None,
-      )));
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      import_decl.span.into(),
+      if parser.is_asi_position(import_decl.span_lo()) {
+        ";".into()
+      } else {
+        "".into()
+      },
+      None,
+    )));
     parser.unset_asi_position(import_decl.span_hi());
     Some(true)
   }
@@ -176,16 +173,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       Some(parser.source_map.clone()),
     );
-    let dep_id = *dep.id();
-    parser.dependencies.push(Box::new(dep));
+    let dep_idx = parser.next_dependency_idx();
+    parser.add_dependency(Box::new(dep));
 
     InnerGraphPlugin::on_usage(
       parser,
       Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser
-          .dependencies
-          .iter_mut()
-          .find(|dep| dep.id() == &dep_id)
+        if let Some(dep) = parser.get_dependency_mut(dep_idx)
+          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
         {
           dep.set_used_by_exports(used_by_exports);
         }
@@ -245,16 +240,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       Some(parser.source_map.clone()),
     );
-    let dep_id = *dep.id();
-    parser.dependencies.push(Box::new(dep));
+    let dep_idx = parser.next_dependency_idx();
+    parser.add_dependency(Box::new(dep));
 
     InnerGraphPlugin::on_usage(
       parser,
       Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser
-          .dependencies
-          .iter_mut()
-          .find(|dep| dep.id() == &dep_id)
+        if let Some(dep) = parser.get_dependency_mut(dep_idx)
+          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
         {
           dep.set_used_by_exports(used_by_exports);
         }
@@ -311,16 +304,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       Some(parser.source_map.clone()),
     );
-    let dep_id = *dep.id();
-    parser.dependencies.push(Box::new(dep));
+    let dep_idx = parser.next_dependency_idx();
+    parser.add_dependency(Box::new(dep));
 
     InnerGraphPlugin::on_usage(
       parser,
       Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser
-          .dependencies
-          .iter_mut()
-          .find(|dep| dep.id() == &dep_id)
+        if let Some(dep) = parser.get_dependency_mut(dep_idx)
+          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
         {
           dep.set_used_by_exports(used_by_exports);
         }

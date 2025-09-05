@@ -639,6 +639,8 @@ Inline optimization is applied when the constant value is:
 - `string` with length \<= 6
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineConst: true, // This is currently an experimental feature and requires explicit enabling
@@ -646,12 +648,14 @@ export default {
   module: {
     parser: {
       javascript: {
-        inlineConst: true,
+        inlineConst: isProduction,
       },
     },
   },
 };
 ```
+
+Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
 
 Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
@@ -2304,7 +2308,7 @@ export default {
 
 There are two phases that all loaders enter one after the other:
 
-- **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/types#pitching-loader) for details.
+- **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader) for details.
 - **Normal phase:** the default method on loaders is executed in the order `pre, normal, inline, post`. Transformation on the source code of a module happens in this phase.
 
 ### Rule.type

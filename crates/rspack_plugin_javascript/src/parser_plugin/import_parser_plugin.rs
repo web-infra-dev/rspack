@@ -59,13 +59,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_order();
     let dynamic_import_fetch_priority = parser.javascript_options.dynamic_import_fetch_priority;
 
-    let magic_comment_options = try_extract_webpack_magic_comment(
-      parser.source_file,
-      &parser.comments,
-      node.span,
-      dyn_imported.span(),
-      &mut parser.warning_diagnostics,
-    );
+    let magic_comment_options =
+      try_extract_webpack_magic_comment(parser, node.span, dyn_imported.span());
     if magic_comment_options
       .get_webpack_ignore()
       .unwrap_or_default()
@@ -112,7 +107,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         );
         error.severity = Severity::Warning;
         error.hide_stack = Some(true);
-        parser.warning_diagnostics.push(error.into());
+        parser.add_warning(error.into());
       }
       exports = Some(
         referenced_properties_in_destructuring
@@ -134,7 +129,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           exports,
           attributes,
         );
-        parser.dependencies.push(Box::new(dep));
+        parser.add_dependency(Box::new(dep));
         return Some(true);
       }
 
@@ -164,7 +159,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         chunk_prefetch,
         fetch_priority,
       )));
-      parser.blocks.push(Box::new(block));
+      parser.add_block(Box::new(block));
       Some(true)
     } else {
       if matches!(parser.javascript_options.import_dynamic, Some(false)) {
@@ -213,7 +208,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         parser.in_try,
       );
       *dep.critical_mut() = critical;
-      parser.dependencies.push(Box::new(dep));
+      parser.add_dependency(Box::new(dep));
       Some(true)
     }
   }

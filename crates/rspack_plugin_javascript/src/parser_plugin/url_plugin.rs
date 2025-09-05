@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, Dependency, RuntimeGlobals};
+use rspack_core::{ConstDependency, RuntimeGlobals};
 use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
@@ -65,13 +65,7 @@ impl JavascriptParserPlugin for URLPlugin {
 
     let args = expr.args.as_ref()?;
     let arg = args.first()?;
-    let magic_comment_options = try_extract_webpack_magic_comment(
-      parser.source_file,
-      &parser.comments,
-      expr.span,
-      arg.span(),
-      &mut parser.warning_diagnostics,
-    );
+    let magic_comment_options = try_extract_webpack_magic_comment(parser, expr.span, arg.span());
     if magic_comment_options
       .get_webpack_ignore()
       .unwrap_or_default()
@@ -89,13 +83,11 @@ impl JavascriptParserPlugin for URLPlugin {
       {
         return None;
       }
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          arg2.span().into(),
-          RuntimeGlobals::BASE_URI.name().into(),
-          Some(RuntimeGlobals::BASE_URI),
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        arg2.span().into(),
+        RuntimeGlobals::BASE_URI.name().into(),
+        Some(RuntimeGlobals::BASE_URI),
+      )));
       return Some(true);
     }
 
@@ -106,15 +98,13 @@ impl JavascriptParserPlugin for URLPlugin {
         (start, end).into(),
         self.relative,
       );
-      let dep_id = *dep.id();
-      parser.dependencies.push(Box::new(dep));
+      let dep_idx = parser.next_dependency_idx();
+      parser.add_dependency(Box::new(dep));
       InnerGraphPlugin::on_usage(
         parser,
         Box::new(move |parser, used_by_exports| {
-          if let Some(dep) = parser
-            .dependencies
-            .iter_mut()
-            .find(|dep| dep.id() == &dep_id)
+          if let Some(dep) = parser.get_dependency_mut(dep_idx)
+            && let Some(dep) = dep.downcast_mut::<URLDependency>()
           {
             dep.set_used_by_exports(used_by_exports);
           }

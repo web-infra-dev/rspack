@@ -488,6 +488,8 @@ import 'antd/es/button/style';
 - `'const-only'` 仅收集 `const enum` 信息，仅对 `const enum` 进行跨模块的内联优化。
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineEnum: true, // 目前为实验性功能，需开启此选项
@@ -507,7 +509,7 @@ export default {
               },
               rspackExperiments: {
                 collectTypeScriptInfo: {
-                  exportedEnum: true,
+                  exportedEnum: isProduction,
                 },
               },
             },
@@ -518,6 +520,8 @@ export default {
   },
 };
 ```
+
+由于该功能依赖模块导出的使用信息（[optimization.usedExports](/config/optimization#optimizationusedexports)），所以建议仅在 `mode = "production"` 时开启该功能。
 
 详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
 

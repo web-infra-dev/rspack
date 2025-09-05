@@ -119,7 +119,6 @@ fn assign_named_chunk_ids(
         let b = compilation.chunk_by_ukey.expect_get(b);
         compare_chunks_natural(
           chunk_graph,
-          &module_graph,
           &compilation.chunk_group_by_ukey,
           &compilation.module_ids_artifact,
           a,
@@ -154,7 +153,6 @@ fn assign_named_chunk_ids(
     let b = compilation.chunk_by_ukey.expect_get(b);
     compare_chunks_natural(
       chunk_graph,
-      &module_graph,
       &compilation.chunk_group_by_ukey,
       &compilation.module_ids_artifact,
       a,

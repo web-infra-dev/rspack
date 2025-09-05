@@ -1,9 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
-use rspack_cacheable::{
-  cacheable,
-  with::{As, Skip},
-};
+use rspack_cacheable::{cacheable, with::As};
 use rspack_error::{Diagnostic, Result};
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
@@ -32,7 +29,6 @@ pub struct ModuleFactoryCreateData {
   pub file_dependencies: HashSet<ArcPath>,
   pub context_dependencies: HashSet<ArcPath>,
   pub missing_dependencies: HashSet<ArcPath>,
-  #[cacheable(with=Skip)]
   pub diagnostics: Vec<Diagnostic>,
 }
 

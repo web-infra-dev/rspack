@@ -486,6 +486,8 @@ Whether to collect information about exported `enum`s, so Rspack can perform cro
 - `'const-only'` will gather only `const enum`s, then only perform cross-module inline optimization for `const enum`.
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
@@ -505,7 +507,7 @@ export default {
               },
               rspackExperiments: {
                 collectTypeScriptInfo: {
-                  exportedEnum: true,
+                  exportedEnum: isProduction,
                 },
               },
             },
@@ -516,6 +518,8 @@ export default {
   },
 };
 ```
+
+Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
 
 Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
 

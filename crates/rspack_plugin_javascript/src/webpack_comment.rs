@@ -12,7 +12,7 @@ use swc_core::common::{
   comments::{Comment, CommentKind, Comments},
 };
 
-use crate::visitors::create_traceable_error;
+use crate::visitors::{JavascriptParser, create_traceable_error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WebpackComment {
@@ -161,31 +161,31 @@ static WEBAPCK_EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
   LazyLock::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
 
 pub fn try_extract_webpack_magic_comment(
-  source_file: &SourceFile,
-  comments: &Option<&dyn Comments>,
+  parser: &mut JavascriptParser,
   error_span: Span,
   span: Span,
-  warning_diagnostics: &mut Vec<Diagnostic>,
 ) -> WebpackCommentMap {
   let mut result = WebpackCommentMap::new();
-  comments.with_leading(span.lo, |comments| {
+  let mut warning_diagnostics = Vec::new();
+  parser.comments.with_leading(span.lo, |comments| {
     analyze_comments(
-      source_file,
+      parser.source_file,
       comments,
       error_span,
-      warning_diagnostics,
+      &mut warning_diagnostics,
       &mut result,
     )
   });
-  comments.with_trailing(span.hi, |comments| {
+  parser.comments.with_trailing(span.hi, |comments| {
     analyze_comments(
-      source_file,
+      parser.source_file,
       comments,
       error_span,
-      warning_diagnostics,
+      &mut warning_diagnostics,
       &mut result,
     )
   });
+  parser.add_warnings(warning_diagnostics);
   result
 }
 

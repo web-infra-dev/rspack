@@ -53,13 +53,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
               .into(),
           );
 
-          parser
-            .presentational_dependencies
-            .push(Box::new(external_url_dep));
-          parser
-            .presentational_dependencies
-            .push(Box::new(external_path_dep));
-          parser.presentational_dependencies.push(Box::new(const_dep));
+          parser.add_presentational_dependency(Box::new(external_url_dep));
+          parser.add_presentational_dependency(Box::new(external_path_dep));
+          parser.add_presentational_dependency(Box::new(const_dep));
           return Some(true);
         }
         NodeDirnameOption::True => Some(
@@ -76,15 +72,13 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         _ => None,
       };
       if let Some(dirname) = dirname {
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            ident.span.into(),
-            serde_json::to_string(&dirname)
-              .expect("should render dirname")
-              .into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          ident.span.into(),
+          serde_json::to_string(&dirname)
+            .expect("should render dirname")
+            .into(),
+          None,
+        )));
         return Some(true);
       }
     } else if for_name == FILE_NAME {
@@ -111,10 +105,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
               .into(),
           );
 
-          parser
-            .presentational_dependencies
-            .push(Box::new(external_dep));
-          parser.presentational_dependencies.push(Box::new(const_dep));
+          parser.add_presentational_dependency(Box::new(external_dep));
+          parser.add_presentational_dependency(Box::new(const_dep));
           return Some(true);
         }
         NodeFilenameOption::True => Some(
@@ -130,15 +122,13 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         _ => None,
       };
       if let Some(filename) = filename {
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            ident.span.into(),
-            serde_json::to_string(&filename)
-              .expect("should render filename")
-              .into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          ident.span.into(),
+          serde_json::to_string(&filename)
+            .expect("should render filename")
+            .into(),
+          None,
+        )));
         return Some(true);
       }
     } else if for_name == GLOBAL
@@ -147,13 +137,11 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::GLOBAL.name().into(),
-          Some(RuntimeGlobals::GLOBAL),
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        ident.span.into(),
+        RuntimeGlobals::GLOBAL.name().into(),
+        Some(RuntimeGlobals::GLOBAL),
+      )));
       return Some(true);
     }
     None

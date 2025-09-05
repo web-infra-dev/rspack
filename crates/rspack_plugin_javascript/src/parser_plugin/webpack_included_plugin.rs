@@ -23,12 +23,10 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
       return None;
     }
 
-    parser
-      .dependencies
-      .push(Box::new(WebpackIsIncludedDependency::new(
-        (expr.span().real_lo(), expr.span().real_hi()).into(),
-        request.string().to_string(),
-      )));
+    parser.add_dependency(Box::new(WebpackIsIncludedDependency::new(
+      (expr.span().real_lo(), expr.span().real_hi()).into(),
+      request.string().to_string(),
+    )));
 
     Some(true)
   }
@@ -40,13 +38,11 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
     for_name: &str,
   ) -> Option<bool> {
     (for_name == WEBPACK_IS_INCLUDED).then(|| {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          (expr.span().real_lo(), expr.span().real_hi()).into(),
-          "'function'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        (expr.span().real_lo(), expr.span().real_hi()).into(),
+        "'function'".into(),
+        None,
+      )));
       true
     })
   }
