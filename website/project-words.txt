@@ -75,6 +75,7 @@ jantimon
 JavaScript
 jerrykingxyz
 jkzing
+jridgewell
 jscexperimentalplugins
 jserfeng
 kaffi
