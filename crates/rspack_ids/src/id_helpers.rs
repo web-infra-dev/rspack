@@ -300,11 +300,7 @@ pub fn get_full_chunk_name(
   let full_module_names = chunk_graph
     .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
-    .map(|id| {
-      module_graph
-        .module_by_identifier(id)
-        .expect("Module not found")
-    })
+    .filter_map(|id| module_graph.module_by_identifier(id))
     .map(|module| get_full_module_name(module, context))
     .collect::<Vec<_>>();
 
