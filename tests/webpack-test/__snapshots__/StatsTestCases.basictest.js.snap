@@ -2764,6 +2764,16 @@ chunk (runtime: b) c.js (c) xx bytes <{364}> ={773}= [rendered]
 default (Rspack x.x.x) compiled successfully"
 `;
 
+exports[`StatsTestCases should print correct stats for split-chunks-issue-11583 1`] = `
+"asset main.js xx KiB [emitted] (name: main)
+asset foo.js xx bytes [emitted] (name: foo)
+runtime modules xx KiB 8 modules
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./module.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X.23"
+`;
+
 exports[`StatsTestCases should print correct stats for split-chunks-keep-remaining-size 1`] = `
 "Entrypoint main xx KiB = default/main.js
 chunk (runtime: main) default/184.js (id hint: vendors) xx bytes <{889}> ={724}= [rendered] split chunk (cache group: defaultVendors)

@@ -30,10 +30,7 @@ const tests = fs
 		const testDirectory = path.join(base, testName);
 		const filterPath = path.join(testDirectory, "test.filter.js");
 		return createFilteredDescribe(testName, filterPath);
-	})
-	// .filter(testName => {
-	// 	return testName === 'split-chunks-issue-11583'
-	// })
+	});
 
 describe("StatsTestCases", () => {
 	jest.setTimeout(30000);
@@ -220,10 +217,6 @@ describe("StatsTestCases", () => {
 				expect(actual).toMatchSnapshot();
 				// CHANGE: check actual snapshot
 				// if (testConfig.validate) testConfig.validate(stats, stderr.toString());
-				// for (const chunk of stats.compilation.chunks) {
-				// 	console.log('chunk', chunk.name)
-				// }
-				// console.log('stats', actual)
 				if (testConfig.validate) testConfig.validate(stats, stderr.toString(), actual);
 				done();
 			});

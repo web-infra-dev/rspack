@@ -288,10 +288,10 @@ fn analyze_comments(
       continue;
     }
     parsed_comment.insert(comment.span);
+    println!("comment text: {:?}", &comment.text);
     for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
-        println!("item_name_match: {:?}", item_name);
         let error_span = || {
           captures
             .name("_9")
