@@ -1,0 +1,69 @@
+# Deploy with zephyr cloud
+
+[Zephyr Cloud](https://zephyr-cloud.io) is a zero-config deployment platform that integrates directly into your build process and provides global edge distribution for federated applications.
+
+## Features
+
+- **Automatic Deployment**: Automatically deploys your federated applications during the build process - simply save your code and get a URL in seconds.
+- **Multi-Bundler Support**: Works with Webpack, Vite, Rspack, and more.
+- **Bring Your Own Cloud (BYOC)**: Deploy using BYOC to any cloud provider.
+- **Advanced Deployment Management**: Manages complex multi-artifact deployments across different release cadences, handles micro frontend dependency management automatically, and provides version rollback and roll-forward capabilities.
+
+## How to deploy
+
+1. Install the Zephyr plugin for Rspack:
+
+```bash
+npm install zephyr-rspack-plugin --save-dev
+```
+
+2. Add the plugin to your Rspack configuration:
+
+```js title="rspack.config.js"
+const { withZephyr } = require('zephyr-rspack-plugin');
+
+module.exports = withZephyr()({
+  // your existing Rspack configuration
+  entry: './src/index.js',
+  output: {
+    path: __dirname + '/dist',
+  },
+  // ... rest of your config
+});
+```
+
+Or if you're using ES modules:
+
+```js title="rspack.config.mjs"
+import { withZephyr } from 'zephyr-rspack-plugin';
+
+export default withZephyr()({
+  // your existing Rspack configuration
+  entry: './src/index.js',
+  output: {
+    path: __dirname + '/dist',
+  },
+  // ... rest of your config
+});
+```
+
+3. Build your project as usual:
+
+```bash
+npm run build
+```
+
+During the build process, your application will be automatically deployed and you'll receive a deployment URL. Zephyr Cloud handles asset optimization, global CDN distribution, module federation setup, and provides automatic rollback capabilities.
+
+## Integration with Rspack
+
+Zephyr Cloud provides first-class support for Rspack applications, offering:
+
+- **Optimized Build Pipelines**: Specifically designed for Rspack's high-performance architecture
+- **Module Federation Support**: Enhanced module federation capabilities with automatic dependency resolution
+- **Asset Optimization**: Intelligent asset bundling and CDN distribution
+- **Development Integration**: Seamless integration with Rspack's development workflow
+
+## Getting started
+
+Start for free today at [zephyr-cloud.io](https://zephyr-cloud.io).
