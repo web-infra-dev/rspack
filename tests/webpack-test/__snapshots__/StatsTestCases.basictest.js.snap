@@ -325,7 +325,7 @@ chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{
   > ./index main
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
-    cjs require ./a ./index.js 1:8-14
+    cjs require ./a ./index.js 1:8-13
     X (resolving: X, building: X)
   ./index.js xx bytes [built] [code generated]
     entry ./index
@@ -364,8 +364,8 @@ chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{
   > ./index main
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
-    cjs require ./a ./e.js 1:8-14
-    cjs require ./a ./index.js 1:8-14
+    cjs require ./a ./e.js 1:8-13
+    cjs require ./a ./index.js 1:8-13
     X (resolving: X, building: X)
   ./index.js xx bytes [built] [code generated]
     entry ./index
@@ -400,8 +400,8 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
 "asset react.js xx KiB [emitted] (name: react)
 ./react.js xx bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@19.1.0/node_modules/react/index.js xx bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@19.1.0/node_modules/react/cjs/react.production.js xx KiB [built] [code generated]
+../../../../node_modules/.pnpm/react@19.1.1/node_modules/react/index.js xx bytes [built] [code generated]
+../../../../node_modules/.pnpm/react@19.1.1/node_modules/react/cjs/react.production.js xx KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -491,8 +491,8 @@ Entrypoint main 1.01 MiB = runtime.js xx KiB common.js xx KiB main.js xx KiB
 runtime modules xx KiB 12 modules
 cacheable modules 1 MiB
   modules by path ../../../../node_modules/.pnpm/ xx KiB
-    modules by path ../../../../node_modules/.pnpm/react@19.1.0/node_modules/react/ xx KiB 4 modules
-    modules by path ../../../../node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/ xx KiB
+    modules by path ../../../../node_modules/.pnpm/react@19.1.1/node_modules/react/ xx KiB 4 modules
+    modules by path ../../../../node_modules/.pnpm/react-dom@19.1.1_react@19.1.1/node_modules/react-dom/ xx KiB
       modules by path ../../../../node_modules/.pnpm/react-xxx.js xx KiB 2 modules
       modules by path ../../../../node_modules/.pnpm/react-xxx.js xx KiB 2 modules
     modules by path ../../../../node_modules/.pnpm/scheduler@0.26.0/node_modules/scheduler/ xx KiB
@@ -721,7 +721,7 @@ cacheable modules xx bytes
     ./templates/baz.js xx bytes [built] [code generated]
     ./templates/foo.js xx bytes [built] [code generated]
   ./entry.js xx bytes [built] [code generated]
-  Xdir/import-xxx.js$/|groupOptions: {}|namespace object xx bytes [built] [code generated]
+  Xdir/import-xxx.js$/|referencedExports: [*]|groupOptions: {}|namespace object xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -1039,7 +1039,7 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for module-not-found-error 1`] = `
-"ERROR in ./index.js 1:8-17
+"ERROR in ./index.js 1:8-16
   × Module not found: Can't resolve 'buffer' in 'Xdir/module-not-found-error'
    ╭─[1:0]
  1 │ require('buffer')
@@ -1047,7 +1047,7 @@ exports[`StatsTestCases should print correct stats for module-not-found-error 1`
  2 │ require('os')
    ╰────
 
-ERROR in ./index.js 2:8-13
+ERROR in ./index.js 2:8-12
   × Module not found: Can't resolve 'os' in 'Xdir/module-not-found-error'
    ╭─[2:0]
  1 │ require('buffer')
@@ -1065,8 +1065,8 @@ cacheable modules xx bytes
   ./index.js + 2 modules xx bytes [code generated]
     entry ./index
   ./c.js xx bytes [built] [code generated]
-    cjs require ./c ./a.js 1:8-14
-    cjs require ./c ./b.js 1:8-14
+    cjs require ./c ./a.js 1:8-13
+    cjs require ./c ./b.js 1:8-13
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -1078,7 +1078,7 @@ modules with errors xx bytes [errors]
 ./index.js xx bytes [built] [code generated]
 ./inner.js xx bytes [built] [code generated]
 
-ERROR in ./not-xxx.js 1:8-25
+ERROR in ./not-xxx.js 1:8-24
   × Module not found: Can't resolve 'does-not-exist' in 'Xdir/module-trace-disabled-in-error'
    ╭────
  1 │ require('does-not-exist')
@@ -1111,7 +1111,7 @@ modules with errors xx bytes [errors]
 ./index.js xx bytes [built] [code generated]
 ./inner.js xx bytes [built] [code generated]
 
-ERROR in ./not-xxx.js 1:8-25
+ERROR in ./not-xxx.js 1:8-24
   × Module not found: Can't resolve 'does-not-exist' in 'Xdir/module-trace-enabled-in-error'
    ╭────
  1 │ require('does-not-exist')
@@ -1552,7 +1552,7 @@ LOG from LogTestPlugin
 <e> Error
 + 14 hidden lines
 
-ERROR in ./index.js 1:8-25
+ERROR in ./index.js 1:8-24
   × Module not found: Can't resolve 'does-not-exist' in 'Xdir/preset-errors-only-error'
    ╭────
  1 │ require('does-not-exist')
@@ -2592,13 +2592,13 @@ custom-chunks-filter-in-cache-groups:
 
 exports[`StatsTestCases should print correct stats for split-chunks-automatic-name 1`] = `
 "Entrypoint main xx KiB = main.js
-chunk (runtime: main) async-xxx.js (async-a) (id hint: common) xx bytes <{main}> ={common-d_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
+chunk (runtime: main) async-xxx.js (async-a) xx bytes <{main}> ={common-d_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
   > ./a ./index.js 1:0-47
   ./a.js + 1 modules xx bytes [code generated]
-chunk (runtime: main) async-xxx.js (async-b) (id hint: common) xx bytes <{main}> ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
+chunk (runtime: main) async-xxx.js (async-b) xx bytes <{main}> ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
   > ./b ./index.js 2:0-47
   ./b.js xx bytes [built] [code generated]
-chunk (runtime: main) async-xxx.js (async-c) (id hint: common) xx bytes <{main}> ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_z_js}= [rendered]
+chunk (runtime: main) async-xxx.js (async-c) xx bytes <{main}> ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_z_js}= [rendered]
   > ./c ./index.js 3:0-47
   ./c.js xx bytes [built] [code generated]
 chunk (runtime: main) common-xxx.js (id hint: common) xx bytes <{main}> ={async-a}= ={async-b}= ={async-c}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= ={common-node_modules_z_js}= [rendered] split chunk (cache group: a)
@@ -2622,7 +2622,7 @@ chunk (runtime: main) common-xxx.js (id hint: common) xx bytes <{main}> ={async-
 chunk (runtime: main) common-xxx.js (id hint: common) xx bytes <{main}> ={async-c}= ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= [rendered] split chunk (cache group: b)
   > ./c ./index.js 3:0-47
   ./node_modules/z.js xx bytes [built] [code generated]
-chunk (runtime: main) main.js (main) (id hint: common) xx bytes (javascript) xx KiB (runtime) >{async-a}< >{async-b}< >{async-c}< >{common-d_js}< >{common-f_js}< >{common-node_modules_x_js}< >{common-node_modules_y_js}< >{common-node_modules_z_js}< [entry] [rendered]
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{async-a}< >{async-b}< >{async-c}< >{common-d_js}< >{common-f_js}< >{common-node_modules_x_js}< >{common-node_modules_y_js}< >{common-node_modules_z_js}< [entry] [rendered]
   > ./ main
   ./index.js xx bytes [built] [code generated]
 production (Rspack x.x.x) compiled successfully"
@@ -2762,16 +2762,6 @@ chunk (runtime: b) c.js (c) xx bytes <{364}> ={773}= [rendered]
   > ./c ./b.js 1:0-41
   ./c.js xx bytes [built] [code generated]
 default (Rspack x.x.x) compiled successfully"
-`;
-
-exports[`StatsTestCases should print correct stats for split-chunks-issue-11583 1`] = `
-"asset main.js xx KiB [emitted] (name: main)
-asset foo.js xx bytes [emitted] (name: foo)
-runtime modules xx KiB 8 modules
-cacheable modules xx bytes
-  ./index.js xx bytes [built] [code generated]
-  ./module.js xx bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks-keep-remaining-size 1`] = `
