@@ -107,6 +107,7 @@ export const applyRspackOptionsDefaults = (
 		targetProperties,
 		mode: options.mode,
 		uniqueName: options.output.uniqueName,
+		production,
 		inlineConst: options.experiments.inlineConst
 	});
 
@@ -302,7 +303,7 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
-	{ inlineConst }: { inlineConst?: boolean }
+	{ production, inlineConst }: { production: boolean; inlineConst?: boolean }
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
@@ -319,7 +320,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
-	D(parserOptions, "inlineConst", inlineConst);
+	D(parserOptions, "inlineConst", production && inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
 };
 
@@ -337,6 +338,7 @@ const applyModuleDefaults = (
 		targetProperties,
 		mode,
 		uniqueName,
+		production,
 		inlineConst
 	}: {
 		asyncWebAssembly: boolean;
@@ -344,6 +346,7 @@ const applyModuleDefaults = (
 		targetProperties: any;
 		mode?: Mode;
 		uniqueName?: string;
+		production: boolean;
 		inlineConst?: boolean;
 	}
 ) => {
@@ -361,6 +364,7 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript, {
+		production,
 		inlineConst
 	});
 
