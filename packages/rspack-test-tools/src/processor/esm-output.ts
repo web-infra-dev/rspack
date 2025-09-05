@@ -4,32 +4,29 @@ import path from "node:path";
 import rspack from "@rspack/core";
 import { parseResource } from "../helper/legacy/parseResource";
 import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
+import { type ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IConfigProcessorOptions<T extends ECompilerType>
-	extends IMultiTaskProcessorOptions<T> { }
+	extends ISnapshotProcessorOptions<T> {}
 
-export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack> {
+export class EsmOutputProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 	constructor(
 		protected _configOptions: IConfigProcessorOptions<ECompilerType.Rspack>
 	) {
 		super({
+			..._configOptions,
 			defaultOptions: EsmOutputProcessor.defaultOptions,
-			overrideOptions: EsmOutputProcessor.overrideOptions,
-			findBundle: EsmOutputProcessor.findBundle,
-			..._configOptions
+			findBundle: EsmOutputProcessor.findBundle
 		});
 	}
-
 	static findBundle<T extends ECompilerType>(
-		index: number,
 		context: ITestContext,
 		options: TCompilerOptions<T>
 	) {
 		const testConfig = context.getTestConfig();
 
 		if (typeof testConfig.findBundle === "function") {
-			return testConfig.findBundle!(index, options);
+			return testConfig.findBundle!(0, options);
 		}
 
 		const ext = path.extname(parseResource(options.output?.filename).path);
@@ -43,10 +40,10 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 					options.output.path!,
 					(typeof options.output?.cssFilename === "string" &&
 						options.output?.cssFilename) ||
-					`bundle${index}.css`
+						`bundle.css`
 				);
 				if (fs.existsSync(cssOutputPath)) {
-					bundlePath.push(`./bundle${index}.css`);
+					bundlePath.push(`./bundle.css`);
 				}
 			}
 
@@ -57,7 +54,6 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 	}
 
 	static defaultOptions(
-		_index: number,
 		context: ITestContext
 	): TCompilerOptions<ECompilerType.Rspack> {
 		return {
@@ -65,24 +61,28 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 			mode: "production",
 			target: "async-node",
 			devtool: false,
+			entry: "./index.js",
 			cache: false,
 			output: {
 				path: context.getDist(),
 				filename: "[name].mjs",
 				chunkLoading: "import",
-				chunkFormat: false
+				chunkFormat: false,
+				module: true
 			},
+			bail: true,
 			optimization: {
 				minimize: false,
-				moduleIds: 'named',
-				chunkIds: 'named',
+				moduleIds: "named",
+				chunkIds: "named",
 				runtimeChunk: "single",
+				removeEmptyChunks: false,
 				concatenateModules: false,
 				splitChunks: false
 			},
 			plugins: [
 				new rspack.experiments.RemoveDuplicateModulesPlugin(),
-				new rspack.experiments.EsmLibraryPlugin(),
+				new rspack.experiments.EsmLibraryPlugin()
 			],
 			experiments: {
 				css: true,
@@ -94,21 +94,5 @@ export class EsmOutputProcessor extends MultiTaskProcessor<ECompilerType.Rspack>
 				outputModule: true
 			}
 		};
-	}
-	static overrideOptions<T extends ECompilerType>(
-		index: number,
-		context: ITestContext,
-		options: TCompilerOptions<T>
-	): void {
-		if (!options.entry) {
-			options.entry = "./index.js";
-		}
-		if (!global.printLogger) {
-			options.infrastructureLogging = {
-				level: "error"
-			};
-		}
-		options.experiments ??= {};
-		options.experiments.outputModule = true;
 	}
 }

@@ -1,9 +1,5 @@
 module.exports = {
-	module: {
-		parser: {
-			javascript: {
-				importMeta: false
-			}
-		}
+	optimization: {
+		usedExports: false
 	}
 };
