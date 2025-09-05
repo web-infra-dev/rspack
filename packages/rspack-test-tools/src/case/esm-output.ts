@@ -26,7 +26,8 @@ const creator = new BasicCaseCreator({
 				"rspack.config.cjs",
 				"rspack.config.js",
 				"webpack.config.js"
-			]
+			],
+			snapshot: "esm.snap.txt"
 		})
 	],
 	runner: BasicRunnerFactory,

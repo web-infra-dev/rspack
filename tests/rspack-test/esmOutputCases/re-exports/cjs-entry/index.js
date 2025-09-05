@@ -1,11 +1,9 @@
 module.exports = require('./foo')
 
-it('should have correct output for entry re-exports', () => {
-	const fs = __non_webpack_require__('fs')
-	const path = __non_webpack_require__('path')
+it('should have correct output for entry re-exports', async () => {
+	const { foo, bar } = await import(/* webpackIgnore: true */ './main.mjs');
 
-	const code = fs.readFileSync(path.resolve(__dirname, './main.mjs'), 'utf-8')
-
-	expect(code).toMatchSnapshot(import.meta.dirname)
+	expect(foo).toBe(1);
+	expect(bar).toBe(2);
 })
-exports.value = 42
+

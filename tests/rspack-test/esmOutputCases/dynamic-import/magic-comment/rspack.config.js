@@ -1,3 +1,6 @@
 module.exports = {
-	externalsType: "module-import"
+	externalsType: "module-import",
+	output: {
+		pathinfo: true
+	}
 };

@@ -961,7 +961,7 @@ impl EsmLibraryPlugin {
                       ref_chunk,
                       *ref_module,
                       internal_name.clone(),
-                      internal_name.clone(),
+                      item.name.clone(),
                       exports,
                     );
 
