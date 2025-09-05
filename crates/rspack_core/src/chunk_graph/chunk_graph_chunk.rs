@@ -12,9 +12,8 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkIdsArtifact, ChunkUkey, Compilation, DependencyType, Module, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
-  find_graph_roots, merge_runtime,
+  ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
