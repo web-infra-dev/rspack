@@ -32,9 +32,11 @@ swc_core = { workspace = true, features = [
   "swc_ecma_ast",
   "ecma_transforms_react",
   "ecma_transforms_module",
+  "ecma_parser_unstable",
   "swc_ecma_codegen",
   "swc_ecma_visit",
 ] }
+swc_ecma_lexer = { workspace = true }
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
