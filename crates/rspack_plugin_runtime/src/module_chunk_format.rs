@@ -243,8 +243,8 @@ async fn render_chunk(
       source: RawStringSource::from(startup_source.join("\n")).boxed(),
     };
     hooks
-      .read()
-      .await
+      .try_read()
+      .expect("should have js plugin drive")
       .render_startup
       .call(
         compilation,
