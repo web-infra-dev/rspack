@@ -1,21 +1,62 @@
 import type { Compiler } from ".";
 
+interface ResolvedRequest {
+	request: string;
+	issuer: string;
+	packageName: string;
+}
+
 interface BrowserHttpImportPluginOptions {
 	/**
 	 * ESM CDN domain
 	 */
-	domain: string | ((request: string, packageName: string) => string);
+	domain: string | ((resolvedRequest: ResolvedRequest) => string);
 	/**
 	 * Specify ESM CDN URL for dependencies.
+	 * If a record is provided, it will be used to map package names to their CDN URLs.
+	 *
+	 * Once this function resolves a dependency, other options are ignored.
 	 */
 	dependencyUrl?:
 		| Record<string, string | undefined>
-		| ((packageName: string) => string | undefined);
+		| ((resolvedRequest: ResolvedRequest) => string | undefined);
 	/**
 	 * Specify versions for dependencies.
 	 * Default to "latest" if not specified.
 	 */
 	dependencyVersions?: Record<string, string | undefined>;
+	/**
+	 * Specify whether to bundle the dependencies. This option will attach `?bundle=<value>` query to the final URL.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#bundling-strategy
+	 */
+	bundle?: (resolvedRequest: ResolvedRequest) => boolean;
+	/**
+	 * Specify which exported members to include from the dependency if you want to import only a specific set of members.
+	 * This option will attach `?exports=<value>` query to the final URL.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#tree-shaking
+	 */
+	exports?: (resolvedRequest: ResolvedRequest) => string[];
+	/**
+	 * Specify which packages to be bundled under development mode.
+	 * This option will attach `?dev` query to the final URL if true.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#development-build
+	 */
+	dev?: string[] | ((resolvedRequest: ResolvedRequest) => boolean);
+	/**
+	 * Specify external dependencies.
+	 * This is useful if you don't want to include multiple instances of a package introduced by different dependencies.
+	 * This option will attach `?external=<value>` query to the final URL.
+	 *
+	 * You should make sure your cdn domain supports this behavior.
+	 * @see https://esm.sh/#using-import-maps
+	 */
+	externals?: string[];
 }
 
 /**
@@ -28,7 +69,7 @@ export class BrowserHttpImportEsmPlugin {
 		compiler.hooks.normalModuleFactory.tap("BrowserHttpImportPlugin", nmf => {
 			nmf.hooks.resolve.tap("BrowserHttpImportPlugin", resolveData => {
 				const request = resolveData.request;
-				const packageName = getPackageName(request);
+				const issuer = resolveData.contextInfo.issuer;
 
 				// We don't consider match resource and inline loaders
 				// Because usually they are not used with dependent modules like `sass-loader?react`
@@ -36,16 +77,24 @@ export class BrowserHttpImportEsmPlugin {
 					return;
 				}
 
+				// There are some common cases of request and issuer:
+				// 1. Relative request + path issuer
+				// 2. Relative request + http issuer
+				// 3. Absolute request + http issuer
+				// 4. Node module specifier + path issuer
+				const issuerUrl = toHttpUrl(issuer);
+				const resolvedRequest = resolveRequest(request, issuer, !!issuerUrl);
+
 				// If dependencyUrl is provided, use it to resolve the request
 				if (this.options.dependencyUrl) {
 					if (typeof this.options.dependencyUrl === "function") {
-						const url = this.options.dependencyUrl(packageName);
+						const url = this.options.dependencyUrl(resolvedRequest);
 						if (url) {
 							resolveData.request = url;
 							return;
 						}
 					} else if (typeof this.options.dependencyUrl === "object") {
-						const url = this.options.dependencyUrl[packageName];
+						const url = this.options.dependencyUrl[resolvedRequest.packageName];
 						if (url) {
 							resolveData.request = url;
 							return;
@@ -53,40 +102,81 @@ export class BrowserHttpImportEsmPlugin {
 					}
 				}
 
-				// If the issuer is a URL, request must be relative to that URL too
-				const issuerUrl = toHttpUrl(resolveData.contextInfo.issuer);
+				// If the issuer is a URL, request should base on that
 				if (issuerUrl) {
-					resolveData.request = this.resolveWithUrlIssuer(request, issuerUrl);
+					resolveData.request = this.parameterize(
+						this.resolveWithUrlIssuer(request, issuerUrl),
+						resolvedRequest
+					);
 					return;
 				}
 
 				// If the request is a node module, resolve it with esm cdn URL
 				if (this.isNodeModule(request)) {
-					resolveData.request = this.resolveNodeModule(request, packageName);
+					resolveData.request = this.parameterize(
+						this.resolveNodeModule(resolvedRequest),
+						resolvedRequest
+					);
 					return;
 				}
 			});
 		});
 	}
 
-	resolveWithUrlIssuer(request: string, issuer: URL) {
+	private resolveWithUrlIssuer(request: string, issuer: URL) {
 		return new URL(request, issuer).href;
 	}
 
-	resolveNodeModule(request: string, packageName: string) {
+	private resolveNodeModule(resolvedRequest: ResolvedRequest) {
 		let domain = "";
 		if (typeof this.options.domain === "function") {
-			domain = this.options.domain(request, packageName);
+			domain = this.options.domain(resolvedRequest);
 		} else if (typeof this.options.domain === "string") {
 			domain = this.options.domain;
 		}
 
-		const version = this.options.dependencyVersions?.[packageName] || "latest";
-		const versionedRequest = getRequestWithVersion(request, version);
+		const version =
+			this.options.dependencyVersions?.[resolvedRequest.packageName] ||
+			"latest";
+		const versionedRequest = getRequestWithVersion(
+			resolvedRequest.request,
+			version
+		);
 		return `${domain}/${versionedRequest}`;
 	}
 
-	isNodeModule(request: string) {
+	private parameterize(requestUrl: string, resolvedRequest: ResolvedRequest) {
+		const url = new URL(requestUrl);
+		if (this.options.bundle) {
+			const bundle = this.options.bundle(resolvedRequest);
+			url.searchParams.set("bundle", bundle.toString());
+		}
+		if (this.options.exports) {
+			const exports = this.options.exports(resolvedRequest);
+			if (exports.length > 0) {
+				url.searchParams.set("exports", exports.join(","));
+			}
+		}
+		if (this.options.dev) {
+			if (typeof this.options.dev === "function") {
+				const dev = this.options.dev(resolvedRequest);
+				if (dev) {
+					url.searchParams.set("dev", "");
+				}
+			} else {
+				const dev = this.options.dev.includes(resolvedRequest.packageName);
+				if (dev) {
+					url.searchParams.set("dev", "");
+				}
+			}
+		}
+		if (this.options.externals && this.options.externals.length > 0) {
+			url.searchParams.set("external", this.options.externals.join(","));
+		}
+		return url.toString();
+	}
+
+	private isNodeModule(request: string) {
 		// Skip requests like "http://xxx"
 		if (toHttpUrl(request)) {
 			return false;
@@ -101,14 +191,64 @@ export class BrowserHttpImportEsmPlugin {
 	}
 }
 
-function getPackageName(request: string) {
-	if (request.startsWith("@")) {
-		const parts = request.split("/");
-		return `${parts[0]}/${parts[1]}`;
+function resolveRequest(
+	request: string,
+	issuer: string,
+	isHttpIssuer: boolean
+): ResolvedRequest {
+	function resolvePackageName() {
+		// Such as "/react@19.1.1/es2022/react.mjs" and "/@module-federation/runtime@0.18.3/es2022/runtime.mjs"
+		if (isHttpIssuer) {
+			// If the issuer is a URL, the request is usually an absolute URL with explicit version
+			// But if the request is a relative path, we should resolve based on the issuer
+			let requestToResolve = request;
+			if (!request.startsWith("/")) {
+				requestToResolve = issuer;
+			}
+
+			// ['', '@module-federation', 'runtime@0.18.3', 'es2022', 'runtime.mjs']
+			const segments = requestToResolve.split("/");
+
+			// Find the first segment with "@" but not starting with "@"
+			const nameSegIndex = segments.findIndex(
+				segment => segment.includes("@") && !segment.startsWith("@")
+			);
+
+			if (nameSegIndex > 0) {
+				const nameSeg = segments[nameSegIndex];
+				const atIndex = nameSeg.indexOf("@");
+				const name = nameSeg.slice(0, atIndex);
+
+				// If group segment which starts with "@" exists
+				const groupSeg = segments[nameSegIndex - 1] ?? "";
+				if (groupSeg.startsWith("@")) {
+					return `${groupSeg}/${name}`;
+				} else {
+					return name;
+				}
+			}
+		}
+
+		if (request.startsWith("@")) {
+			const parts = request.split("/");
+			return `${parts[0]}/${parts[1]}`;
+		}
+		return request.split("/")[0];
 	}
-	return request.split("/")[0];
+
+	const packageName = resolvePackageName();
+
+	return {
+		packageName,
+		request,
+		issuer
+	};
 }
 
+/**
+ * This function is called only when the request is a node module specifier,
+ * i.e. isNodeModule(request) === true
+ */
 function getRequestWithVersion(request: string, version: string) {
 	// Handle scoped packages (packages starting with '@')
 	if (request.startsWith("@")) {
