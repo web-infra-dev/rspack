@@ -369,7 +369,7 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
-	EsmLibraryPlugin: typeof EsmLibraryPlugin,
+	EsmLibraryPlugin: typeof EsmLibraryPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
 	RslibPlugin: typeof RslibPlugin;

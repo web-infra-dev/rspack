@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
 use rspack_collections::{
-  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
+  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap, UkeyMap,
 };
 use rspack_sources::{ConcatSource, RawStringSource};
 use rspack_util::{atom::Atom, env::has_query, fx_hash::FxIndexMap};
@@ -247,38 +247,63 @@ impl ExternalInterop {
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
 
-  // specifier order doesn't matter, we can sort them based on name
-  // Map<module_id, Map<local_name, export_name>>
-  exports: IdentifierMap<HashMap<Atom, Atom>>,
+  /**
+  specifier order doesn't matter, we can sort them based on name
+  Map<module_id, Map<local_name, export_name>>
+  */
+  exports: HashMap<Atom, HashSet<Atom>>,
 
-  // exports that need to be re-exported
-  // Map<chunk, Map<local_name, export_name>>
-  re_exports: UkeyMap<ChunkUkey, HashMap<Atom, Atom>>,
+  /**
+  symbols that this chunk provides
+  */
+  pub exported_symbols: HashSet<Atom>,
 
-  // import order matters, it affects execution order
+  /**
+  exports that need to be re-exported
+  Map<chunk, Map<local_name, export_name>>
+  */
+  re_exports: UkeyIndexMap<ChunkUkey, HashMap<Atom, HashSet<Atom>>>,
+
+  /**
+  import order matters, it affects execution order
+  */
   pub imports: IdentifierIndexMap<HashMap<Atom, Atom>>,
 
-  // const symbol = __webpack_require__(module_id)
+  /**
+  const symbol = __webpack_require__(module_id)
+  */
   pub required: IdentifierIndexMap<ExternalInterop>,
 
-  // which module needs namespace objects
+  /**
+  which module needs namespace objects
+  */
   pub needed_namespace_objects: IdentifierIndexSet,
 
   pub namespace_object_sources: IdentifierMap<String>,
 
-  // modules that can be scope hoisted
+  /**
+  modules that can be scope hoisted
+  */
   pub hoisted_modules: IdentifierIndexSet,
 
-  // modules that needs wrapper
+  /**
+  modules that needs wrapper
+  */
   pub decl_modules: IdentifierIndexSet,
 
-  // modules that needs wrapper
+  /**
+  modules that needs wrapper
+  */
   pub refs: HashMap<String, Ref>,
 
-  // Map::<module, (is_module_in_chunk, symbol_binding)>
+  /**
+  Map::<module, (is_module_in_chunk, symbol_binding)>
+  */
   pub dyn_refs: HashMap<String, (bool, Ref)>,
 
-  // all used symbols in current chunk
+  /**
+  all used symbols in current chunk
+  */
   pub used_names: HashSet<Atom>,
 }
 
@@ -301,46 +326,55 @@ impl ChunkLinkContext {
       refs: Default::default(),
       dyn_refs: Default::default(),
       used_names: Default::default(),
+      exported_symbols: Default::default(),
     }
   }
 
-  pub fn add_export(
-    &mut self,
-    module_id: ModuleIdentifier,
-    local_name: Atom,
-    export_name: Atom,
-  ) -> &mut Atom {
-    self
-      .exports
-      .entry(module_id)
-      .or_default()
-      .entry(local_name)
-      .or_insert(export_name)
+  pub fn add_export(&mut self, local_name: Atom, export_name: Atom) -> &Atom {
+    let exported = if self.exported_symbols.insert(export_name.clone()) {
+      export_name
+    } else {
+      let new_name = find_new_name(&local_name, &self.used_names, &vec![]);
+      self.exported_symbols.insert(new_name.clone());
+      self.used_names.insert(new_name.clone());
+      new_name
+    };
+
+    let set = self.exports.entry(local_name.clone()).or_default();
+    set.insert(exported.clone());
+    set.get(&exported).expect("just inserted")
   }
 
-  pub fn add_re_export(
-    &mut self,
-    chunk: ChunkUkey,
-    local_name: Atom,
-    export_name: Atom,
-  ) -> &mut Atom {
-    self
+  pub fn add_re_export(&mut self, chunk: ChunkUkey, local_name: Atom, export_name: Atom) -> &Atom {
+    let export_name = if self.exported_symbols.insert(export_name.clone()) {
+      export_name
+    } else {
+      let new_name = find_new_name(&local_name, &self.used_names, &vec![]);
+      self.used_names.insert(new_name.clone());
+      self.exported_symbols.insert(new_name.clone());
+      new_name
+    };
+
+    let set = self
       .re_exports
       .entry(chunk)
       .or_default()
       .entry(local_name)
-      .or_insert(export_name)
+      .or_default();
+
+    set.insert(export_name.clone());
+    set.get(&export_name).expect("should have inserted")
   }
 
-  pub fn exports(&self) -> &IdentifierMap<HashMap<Atom, Atom>> {
+  pub fn exports(&self) -> &HashMap<Atom, HashSet<Atom>> {
     &self.exports
   }
 
-  pub fn exports_mut(&mut self) -> &mut IdentifierMap<HashMap<Atom, Atom>> {
+  pub fn exports_mut(&mut self) -> &mut HashMap<Atom, HashSet<Atom>> {
     &mut self.exports
   }
 
-  pub fn re_exports(&self) -> &UkeyMap<ChunkUkey, HashMap<Atom, Atom>> {
+  pub fn re_exports(&self) -> &UkeyIndexMap<ChunkUkey, HashMap<Atom, HashSet<Atom>>> {
     &self.re_exports
   }
 }

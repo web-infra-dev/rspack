@@ -22,7 +22,7 @@ export class EsmRunner<
 
 			const options = Array.isArray(this._options.compilerOptions)
 				? this._options.compilerOptions[0]
-				: this._options.compilerOptions.experiments;
+				: this._options.compilerOptions;
 
 			if (file.path.endsWith(".mjs") && options.experiments?.outputModule) {
 				return this.requirers.get("esm")!(currentDirectory, modulePath, {

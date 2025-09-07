@@ -12,6 +12,7 @@ exports.value = 42
 
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 Object.assign(__webpack_require__.m, {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 it('should support dynamic import', async () => {

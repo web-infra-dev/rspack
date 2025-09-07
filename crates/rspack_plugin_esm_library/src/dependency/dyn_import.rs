@@ -201,25 +201,27 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     }
 
     // importer and importee are both scope hoisted
-    let render_exports = if let Some(ref_exports) = &dep.referenced_exports {
+    let render_exports = if let Some(ref_exports) = &dep.referenced_exports
+      && !ref_exports.iter().any(|ref_exports| ref_exports.is_empty())
+    {
       // we only extract the named exports
       // const { a, b } = await import('./refModule');
       // const { a, b } = await import('./refChunk').then(mod => ({ a: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_a, b: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_b }));
-      ref_exports
+      let ref_exports = ref_exports
         .iter()
-        .map(|ref_export| {
+        .map(|ids| {
           format!(
             "{}: {}",
-            ref_export,
+            &ids[0],
             concatenation_scope.create_dynamic_module_reference(
               &ref_module.identifier(),
               already_in_chunk,
-              ref_export
+              &ids[0]
             )
           )
         })
-        .collect::<Vec<_>>()
-        .join(",")
+        .collect::<Vec<_>>();
+      ref_exports.join(",")
     } else {
       let ref_exports_info = module_graph.get_prefetched_exports_info(
         &ref_module.identifier(),

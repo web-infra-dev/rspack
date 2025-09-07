@@ -3,9 +3,9 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
-  Compilation, ConcatenatedModuleInfo, ConcatenationScope, DEFAULT_EXPORT_ATOM, InitFragment,
-  ModuleIdentifier, ModuleInfo, PathData, PathInfo, Ref, RuntimeGlobals, SourceType,
-  get_js_chunk_filename_template, render_init_fragments,
+  Compilation, ConcatenatedModuleInfo, ConcatenationScope, InitFragment, ModuleIdentifier,
+  PathData, PathInfo, Ref, RuntimeGlobals, SourceType, get_js_chunk_filename_template,
+  render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -152,9 +152,17 @@ impl EsmLibraryPlugin {
 
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
       let hooks = hooks.read().await;
-      for m in &decl_modules {
-        let Some((module_source, init_frags, init_frags2)) =
-          render_module(compilation, chunk_ukey, m, true, true, &output_path, &hooks).await?
+      for m in decl_modules.iter() {
+        let Some((module_source, init_frags, init_frags2)) = render_module(
+          compilation,
+          chunk_ukey,
+          m.as_ref(),
+          true,
+          true,
+          &output_path,
+          &hooks,
+        )
+        .await?
         else {
           continue;
         };
@@ -309,64 +317,26 @@ impl EsmLibraryPlugin {
     final_source.add(runtime_source);
     final_source.add(decl_source);
     final_source.add(render_source);
+    let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
+    exports.sort_by(|a, b| a.0.cmp(b.0));
 
-    // if the entry is wrapped, we should start from entry
-    // and export specifiers in entry
-    for entry_module in compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey) {
-      if matches!(
-        concatenated_modules_map
-          .get(&entry_module)
-          .expect("should have module info"),
-        ModuleInfo::External(_)
-      ) {
-        let required_info = chunk_link
-          .required
-          .get(&entry_module)
-          .expect("should have require info");
+    for (raw_symbol, exports) in exports {
+      let mut exports = exports.iter().collect::<Vec<_>>();
+      exports.sort_unstable();
+      for export_name in exports {
+        let is_default = export_name.as_str() == "default";
 
-        if already_rendered.insert(required_info.module) {
-          final_source.add(required_info.render(compilation));
-        }
-      }
-    }
-
-    for (id, exports) in chunk_link.exports() {
-      let info = concatenated_modules_map.get(id).expect("should have info");
-
-      match info {
-        ModuleInfo::Concatenated(info) => {
-          for (raw_symbol, exported) in exports {
-            let is_default = exported.as_str() == "default";
-            let symbol = if is_default {
-              info
-                .get_internal_name(&DEFAULT_EXPORT_ATOM)
-                .expect("should have internal name for atom")
-                .as_str()
-            } else {
-              raw_symbol.as_str()
-            };
-
-            if is_default {
-              if export_default.is_none() {
-                export_default = Some(symbol);
-              } else {
-                // multiple export default
-                export_specifiers.insert(Cow::Borrowed(symbol));
-              }
-            } else if symbol == exported {
-              export_specifiers.insert(Cow::Borrowed(symbol));
-            } else {
-              export_specifiers.insert(Cow::Owned(format!("{symbol} as {exported}")));
-            }
+        if is_default {
+          if export_default.is_none() {
+            export_default = Some(raw_symbol);
+          } else {
+            // multiple export default
+            export_specifiers.insert(Cow::Borrowed(raw_symbol));
           }
-        }
-        ModuleInfo::External(_info) => {
-          // export from external module
-          // no need to render, the caller
-          // will get exports by __webpack_require__
-          for (local, exported) in exports {
-            export_specifiers.insert(Cow::Owned(format!("{local} as {exported}")));
-          }
+        } else if raw_symbol == export_name {
+          export_specifiers.insert(Cow::Borrowed(raw_symbol));
+        } else {
+          export_specifiers.insert(Cow::Owned(format!("{raw_symbol} as {export_name}")));
         }
       }
     }
@@ -384,16 +354,23 @@ impl EsmLibraryPlugin {
 
     // render re-exports
     for (chunk, export_symbols) in chunk_link.re_exports() {
+      let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
+      export_symbols.sort_by(|a, b| a.0.cmp(b.0));
+
       final_source.add(RawStringSource::from(format!(
         "export {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
         export_symbols
           .iter()
-          .map(|(imported, local)| {
-            if imported == local {
-              Cow::Borrowed(imported.as_str())
-            } else {
-              Cow::Owned(format!("{imported} as {local}"))
-            }
+          .flat_map(|(imported, exports)| {
+            let mut vec = exports.iter().collect::<Vec<_>>();
+            vec.sort_unstable();
+            vec.into_iter().map(move |export_name| {
+              if *imported == export_name {
+                Cow::Borrowed(imported.as_str())
+              } else {
+                Cow::Owned(format!("{imported} as {export_name}"))
+              }
+            })
           })
           .collect::<Vec<_>>()
           .join(", "),
@@ -403,8 +380,7 @@ impl EsmLibraryPlugin {
 
     if let Some(default_export) = export_default {
       final_source.add(RawStringSource::from(format!(
-        "export default {};\n",
-        default_export
+        "export default {default_export};\n",
       )));
     }
 

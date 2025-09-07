@@ -42,9 +42,9 @@ use crate::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
-  ConnectionState, Context, DEFAULT_EXPORT, DependenciesBlock, DependencyId, DependencyType,
-  ExportMode, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
-  GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
+  DependencyType, ExportMode, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType,
+  FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
   MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
@@ -218,6 +218,10 @@ pub struct ConcatenatedModuleInfo {
 
 impl ConcatenatedModuleInfo {
   pub fn get_internal_name<'me>(&'me self, atom: &Atom) -> Option<&'me Atom> {
+    if atom.as_str() == "default" {
+      return self.internal_names.get(&DEFAULT_EXPORT_ATOM);
+    }
+
     if let Some(name) = self.internal_names.get(atom) {
       return Some(name);
     }

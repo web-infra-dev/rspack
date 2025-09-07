@@ -1,7 +1,4 @@
-use std::{
-  collections::hash_map::Entry,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 use anymap::CloneAny;
 use regex::Regex;
@@ -76,29 +73,17 @@ impl ConcatenationScope {
     self.modules_map.contains_key(module)
   }
 
+  /**
+  export { symbol as export_name }
+  */
   pub fn register_export(&mut self, export_name: Atom, symbol: Atom) {
-    let export_map: &mut std::collections::HashMap<Atom, Atom, rustc_hash::FxBuildHasher> =
-      self.current_module.export_map.get_or_insert_default();
-    match export_map.entry(export_name) {
-      Entry::Occupied(mut occ) => {
-        occ.insert(symbol);
-      }
-      Entry::Vacant(vac) => {
-        vac.insert(symbol);
-      }
-    }
+    let export_map = self.current_module.export_map.get_or_insert_default();
+    export_map.insert(export_name, symbol);
   }
 
   pub fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
     let raw_export_map = self.current_module.raw_export_map.get_or_insert_default();
-    match raw_export_map.entry(export_name) {
-      Entry::Occupied(mut occ) => {
-        occ.insert(symbol);
-      }
-      Entry::Vacant(vac) => {
-        vac.insert(symbol);
-      }
-    }
+    raw_export_map.insert(export_name, symbol);
   }
 
   pub fn register_star_export(&mut self, module: ModuleIdentifier, mode: ExportMode) {

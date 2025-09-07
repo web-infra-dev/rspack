@@ -114,6 +114,6 @@ const value = 1
 /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT___1 = (42);
 const value_0 = 2
 
-export { __WEBPACK_DEFAULT_EXPORT___1, value_0, __WEBPACK_DEFAULT_EXPORT___0, value };
+export { __WEBPACK_DEFAULT_EXPORT___0, __WEBPACK_DEFAULT_EXPORT___1, value, value_0 };
 
 ```

@@ -38,7 +38,7 @@ var __esModule_0 = index.__esModule;
 var bar_0 = index.bar;
 var foo_0 = index.foo;
 
-export { foo_0 as foo, __esModule_0 as __esModule, bar_0 as bar };
+export { __esModule_0 as __esModule, bar_0 as bar, foo_0 as foo };
 
 ```
 
