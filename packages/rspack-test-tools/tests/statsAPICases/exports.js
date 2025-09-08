@@ -24,7 +24,7 @@ module.exports = {
 		expect(typeof stats?.hash).toBe("string");
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		asset main.js 414 bytes [emitted] (name: main)
+		asset main.js 412 bytes [emitted] (name: main)
 		orphan modules 192 bytes [orphan] 4 modules
 		runtime modules 647 bytes 3 modules
 		./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
