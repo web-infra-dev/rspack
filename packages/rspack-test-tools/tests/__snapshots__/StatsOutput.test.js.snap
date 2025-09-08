@@ -71,7 +71,7 @@ ERROR in ./index.ts
   │     │    \`----
   │     │
   │   
-  ╰─▶   × Syntax Error
+  ╰─▶ Syntax Error
 
 Rspack compiled with 1 error
 `;
