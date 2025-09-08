@@ -8,10 +8,7 @@ use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_plugin_lazy_compilation::{
-  backend::Backend,
-  plugin::{LazyCompilationTest, LazyCompilationTestCheck},
-};
+use rspack_plugin_lazy_compilation::{Backend, LazyCompilationTest, LazyCompilationTestCheck};
 use rspack_regex::RspackRegex;
 
 use crate::module::ModuleObject;
