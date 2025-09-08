@@ -6,6 +6,10 @@ interface ResolvedRequest {
 	packageName: string;
 }
 
+interface ProcessedRequest extends ResolvedRequest {
+	url: URL;
+}
+
 interface BrowserHttpImportPluginOptions {
 	/**
 	 * ESM CDN domain
@@ -26,37 +30,13 @@ interface BrowserHttpImportPluginOptions {
 	 */
 	dependencyVersions?: Record<string, string | undefined>;
 	/**
-	 * Specify whether to bundle the dependencies. This option will attach `?bundle=<value>` query to the final URL.
+	 * You can attach additional queries supported by the CDN to the `request.url`.
 	 *
-	 * You should make sure your cdn domain supports this behavior.
-	 * @see https://esm.sh/#bundling-strategy
-	 */
-	bundle?: (resolvedRequest: ResolvedRequest) => boolean;
-	/**
-	 * Specify which exported members to include from the dependency if you want to import only a specific set of members.
-	 * This option will attach `?exports=<value>` query to the final URL.
+	 * For example, to specify the external dependencies under esm.sh, you can do:
 	 *
-	 * You should make sure your cdn domain supports this behavior.
-	 * @see https://esm.sh/#tree-shaking
+	 * `request.url.searchParams.set("external", "react,react-dom")`
 	 */
-	exports?: (resolvedRequest: ResolvedRequest) => string[];
-	/**
-	 * Specify which packages to be bundled under development mode.
-	 * This option will attach `?dev` query to the final URL if true.
-	 *
-	 * You should make sure your cdn domain supports this behavior.
-	 * @see https://esm.sh/#development-build
-	 */
-	dev?: string[] | ((resolvedRequest: ResolvedRequest) => boolean);
-	/**
-	 * Specify external dependencies.
-	 * This is useful if you don't want to include multiple instances of a package introduced by different dependencies.
-	 * This option will attach `?external=<value>` query to the final URL.
-	 *
-	 * You should make sure your cdn domain supports this behavior.
-	 * @see https://esm.sh/#using-import-maps
-	 */
-	externals?: string[];
+	postprocess?: (request: ProcessedRequest) => void;
 }
 
 /**
@@ -146,33 +126,15 @@ export class BrowserHttpImportEsmPlugin {
 	}
 
 	private parameterize(requestUrl: string, resolvedRequest: ResolvedRequest) {
+		if (!this.options.postprocess) {
+			return requestUrl;
+		}
+
 		const url = new URL(requestUrl);
-		if (this.options.bundle) {
-			const bundle = this.options.bundle(resolvedRequest);
-			url.searchParams.set("bundle", bundle.toString());
-		}
-		if (this.options.exports) {
-			const exports = this.options.exports(resolvedRequest);
-			if (exports.length > 0) {
-				url.searchParams.set("exports", exports.join(","));
-			}
-		}
-		if (this.options.dev) {
-			if (typeof this.options.dev === "function") {
-				const dev = this.options.dev(resolvedRequest);
-				if (dev) {
-					url.searchParams.set("dev", "");
-				}
-			} else {
-				const dev = this.options.dev.includes(resolvedRequest.packageName);
-				if (dev) {
-					url.searchParams.set("dev", "");
-				}
-			}
-		}
-		if (this.options.externals && this.options.externals.length > 0) {
-			url.searchParams.set("external", this.options.externals.join(","));
-		}
+		this.options.postprocess({
+			url,
+			...resolvedRequest
+		});
 		return url.toString();
 	}
 
