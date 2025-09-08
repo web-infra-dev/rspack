@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  NormalModuleFactory,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleFactory,
 };
 use rspack_error::Result;
 
@@ -28,29 +27,19 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
       .as_any()
       .downcast_ref()
       .expect("should be lazy compile dependency");
+    let options = dep.options();
 
-    let proxy_data = &dep.original_module_create_data;
+    data
+      .file_dependencies
+      .extend(options.file_dependencies.clone());
+    data
+      .context_dependencies
+      .extend(options.context_dependencies.clone());
+    data
+      .missing_dependencies
+      .extend(options.missing_dependencies.clone());
+    data.diagnostics.extend(options.diagnostics.clone());
 
-    let dep = dep.clone();
-
-    let mut create_data = ModuleFactoryCreateData {
-      compiler_id: data.compiler_id,
-      compilation_id: data.compilation_id,
-      resolve_options: proxy_data.resolve_options.clone(),
-      options: data.options.clone(),
-      request: dep.request().to_string(),
-      context: proxy_data.context.clone(),
-      dependencies: vec![Box::new(dep)],
-      issuer: proxy_data.issuer.clone(),
-      issuer_layer: proxy_data.issuer_layer.clone(),
-      issuer_identifier: proxy_data.issuer_identifier,
-      resolver_factory: proxy_data.resolver_factory.clone(),
-      file_dependencies: proxy_data.file_dependencies.clone(),
-      context_dependencies: proxy_data.context_dependencies.clone(),
-      missing_dependencies: proxy_data.missing_dependencies.clone(),
-      diagnostics: proxy_data.diagnostics.clone(),
-    };
-
-    self.normal_module_factory.create(&mut create_data).await
+    self.normal_module_factory.create(data).await
   }
 }

@@ -7,7 +7,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   CompilerMake, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleFactory,
-  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -16,6 +17,7 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
   backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
+  utils::calc_value_dependency_key,
 };
 
 static WEBPACK_DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
@@ -115,6 +117,10 @@ async fn compilation(
     )) as Arc<dyn ModuleFactory>,
   );
 
+  compilation
+    .value_cache_versions
+    .insert(calc_value_dependency_key("client"), self.client.clone());
+
   Ok(())
 }
 
@@ -189,8 +195,13 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  let module_identifier = module.identifier();
-
+  let module_identifier: ModuleIdentifier =
+    format!("lazy-compilation-proxy|{}", module.identifier()).into();
+  let active = self
+    .active_modules
+    .read()
+    .await
+    .contains(&module_identifier);
   let lib_ident = module.lib_ident(LibIdentOptions {
     context: module_factory_create_data.options.context.as_str(),
   });
@@ -198,13 +209,9 @@ async fn normal_module_factory_module(
   *module = Box::new(LazyCompilationProxyModule::new(
     module_identifier,
     lib_ident.map(|ident| ident.into_owned()),
-    module_factory_create_data.clone(),
+    module_factory_create_data,
     create_data.resource_resolve_data.resource.clone(),
-    self
-      .active_modules
-      .read()
-      .await
-      .contains(&format!("lazy-compilation-proxy|{module_identifier}").into()),
+    active,
     self.client.clone(),
   ));
 
@@ -227,7 +234,7 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
       continue;
     };
 
-    active_module.need_build = true;
+    active_module.invalid();
   }
 
   *self.active_modules.write().await = active_modules.into_iter().collect();

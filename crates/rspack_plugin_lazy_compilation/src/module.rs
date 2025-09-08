@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::Path, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifiable;
@@ -13,15 +13,19 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_paths::ArcPath;
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   ext::DynHash,
   json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
-use rustc_hash::FxHashSet;
+use rustc_hash::FxHashSet as HashSet;
 
-use crate::dependency::LazyCompilationDependency;
+use crate::{
+  dependency::{DependencyOptions, LazyCompilationDependency},
+  utils::calc_value_dependency_key,
+};
 
 static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
@@ -32,6 +36,7 @@ pub(crate) struct LazyCompilationProxyModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   factory_meta: Option<FactoryMeta>,
+
   readable_identifier: String,
   identifier: ModuleIdentifier,
   lib_ident: Option<String>,
@@ -40,17 +45,14 @@ pub(crate) struct LazyCompilationProxyModule {
   dependencies: Vec<DependencyId>,
 
   source_map_kind: SourceMapKind,
-  create_data: ModuleFactoryCreateData,
-  pub resource: String,
 
-  pub active: bool,
-
-  // TODO:
-  // The client field may be refreshed when rspack restart,
-  // so this is not safe to cache at the moment
-  pub client: String,
-
-  pub need_build: bool,
+  context: Box<Context>,
+  layer: Option<ModuleLayer>,
+  dep_options: DependencyOptions,
+  resource: String,
+  active: bool,
+  client: String,
+  need_build: bool,
 }
 
 impl ModuleSourceMapConfig for LazyCompilationProxyModule {
@@ -66,37 +68,50 @@ impl ModuleSourceMapConfig for LazyCompilationProxyModule {
 impl LazyCompilationProxyModule {
   #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
-    original_module: ModuleIdentifier,
+    identifier: ModuleIdentifier,
     lib_ident: Option<String>,
-    create_data: ModuleFactoryCreateData,
+    create_data: &ModuleFactoryCreateData,
     resource: String,
     active: bool,
     client: String,
   ) -> Self {
     let readable_identifier = format!(
       "lazy-compilation-proxy|{}",
-      create_data.context.shorten(&original_module)
+      create_data.context.shorten(&create_data.request)
     );
-    let identifier = format!("lazy-compilation-proxy|{original_module}").into();
 
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
+
+    let dep_options = DependencyOptions {
+      request: create_data.request.clone(),
+      file_dependencies: create_data.file_dependencies.clone(),
+      context_dependencies: create_data.context_dependencies.clone(),
+      missing_dependencies: create_data.missing_dependencies.clone(),
+      diagnostics: create_data.diagnostics.clone(),
+    };
 
     Self {
       build_info: Default::default(),
       build_meta: Default::default(),
-      create_data,
+      factory_meta: None,
       readable_identifier,
       lib_ident,
-      resource,
       identifier,
       source_map_kind: SourceMapKind::empty(),
-      factory_meta: None,
       blocks: vec![],
       dependencies: vec![],
+      context: Box::new(create_data.context.clone()),
+      layer: create_data.issuer_layer.clone(),
+      dep_options,
+      resource,
       active,
-      need_build: false,
       client,
+      need_build: false,
     }
+  }
+
+  pub fn invalid(&mut self) {
+    self.need_build = true;
   }
 }
 
@@ -115,8 +130,12 @@ impl Module for LazyCompilationProxyModule {
     &MODULE_TYPE
   }
 
+  fn get_context(&self) -> Option<Box<Context>> {
+    Some(self.context.clone())
+  }
+
   fn get_layer(&self) -> Option<&ModuleLayer> {
-    self.create_data.issuer_layer.as_ref()
+    self.layer.as_ref()
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -135,8 +154,25 @@ impl Module for LazyCompilationProxyModule {
     self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
-    self.need_build
+  fn need_build(&self, value_cache_versions: &ValueCacheVersions) -> bool {
+    if self.need_build {
+      return true;
+    }
+    // check client changes
+    let cache_key = calc_value_dependency_key("client");
+    if let Some(client) = value_cache_versions.get(&cache_key)
+      && client == &self.client
+    {
+      false
+    } else {
+      true
+    }
+  }
+
+  /// Lazy compilation module do not depends on any files.
+  /// The only way to make this module rebuild is self.need_build() return true.
+  fn depends_on(&self, _modified_file: &HashSet<ArcPath>) -> bool {
+    false
   }
 
   async fn build(
@@ -157,7 +193,7 @@ impl Module for LazyCompilationProxyModule {
     dependencies.push(Box::new(client_dep) as BoxDependency);
 
     if self.active {
-      let dep = LazyCompilationDependency::new(self.create_data.clone());
+      let dep = LazyCompilationDependency::new(self.dep_options.clone());
 
       blocks.push(Box::new(AsyncDependenciesBlock::new(
         self.identifier,
@@ -171,11 +207,6 @@ impl Module for LazyCompilationProxyModule {
       // when users modify real module, the proxy module will be untouched,
       // and the real module will be invalidated
       self.build_info.file_dependencies.clear();
-    } else {
-      let mut files = FxHashSet::default();
-      files.extend(self.create_data.file_dependencies.clone());
-      files.insert(Path::new(&self.resource).into());
-      self.build_info.file_dependencies = files;
     }
 
     Ok(BuildResult {
