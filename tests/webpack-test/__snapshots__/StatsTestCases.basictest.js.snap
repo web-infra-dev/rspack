@@ -705,8 +705,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset d4e3657fcff58763.js xx KiB [emitted] [immutable] (name: main)
-asset 861a015ed5554248.js xx bytes [emitted] [immutable]"
+"asset eae6a5a39c5de209.js xx KiB [emitted] [immutable] (name: main)
+asset 92c4383731fffcb4.js xx bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `

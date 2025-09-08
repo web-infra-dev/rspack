@@ -433,15 +433,9 @@ async fn content_hash(
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    self
-      .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
-      .await?;
-  } else {
+  if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
   }
-
-  self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
 
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation
@@ -604,7 +598,10 @@ impl Plugin for JsPlugin {
   }
 
   fn clear_cache(&self, id: CompilationId) {
-    crate::plugin::COMPILATION_HOOKS_MAP.remove(&id);
+    crate::plugin::COMPILATION_HOOKS_MAP
+      .write()
+      .expect("should have js plugin drive")
+      .remove(&id);
   }
 }
 
