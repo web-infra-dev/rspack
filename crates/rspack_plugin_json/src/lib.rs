@@ -115,36 +115,48 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         }
       });
 
-    let (diagnostics, data) = match parse_result {
-      Ok(data) => (vec![], Some(data)),
-      Err(err) => (
-        vec![Error::from(ModuleParseError::new(err, loaders)).into()],
-        None,
-      ),
+    let data = match parse_result {
+      Ok(data) => data,
+      Err(err) => {
+        return Ok(
+          rspack_core::ParseResult {
+            presentational_dependencies: vec![],
+            dependencies: vec![],
+            blocks: vec![],
+            code_generation_dependencies: vec![],
+            source: box_source,
+            side_effects_bailout: None,
+          }
+          .with_diagnostic(vec![
+            Error::from(ModuleParseError::new(err, loaders)).into(),
+          ]),
+        );
+      }
     };
-    build_info.json_data = data.clone();
+
+    build_info.json_data = Some(data.clone());
     build_info.strict = true;
     build_meta.exports_type = BuildMetaExportsType::Default;
-    // Ignore the json named exports warning, this violates standards, but other bundlers support it without warning.
-    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn { ignore: true };
+    build_meta.default_object = if data.is_object() || data.is_array() {
+      // Ignore the json named exports warning, this violates standards, but other bundlers support it without warning.
+      BuildMetaDefaultObject::RedirectWarn { ignore: true }
+    } else {
+      BuildMetaDefaultObject::False
+    };
 
     Ok(
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
-        dependencies: if let Some(data) = data {
-          vec![Box::new(JsonExportsDependency::new(
-            data,
-            self.exports_depth,
-          ))]
-        } else {
-          vec![]
-        },
+        dependencies: vec![Box::new(JsonExportsDependency::new(
+          data,
+          self.exports_depth,
+        ))],
         blocks: vec![],
         code_generation_dependencies: vec![],
         source: box_source,
         side_effects_bailout: None,
       }
-      .with_diagnostic(diagnostics),
+      .with_diagnostic(vec![]),
     )
   }
 
