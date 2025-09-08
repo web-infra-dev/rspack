@@ -244,6 +244,8 @@ impl SplitChunksPlugin {
       .await?;
     logger.time_end(start);
 
+    rayon::spawn(move || drop(combinator));
+
     Ok(())
   }
 }

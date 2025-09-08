@@ -548,7 +548,8 @@ impl SplitChunksPlugin {
       .collect::<Vec<_>>();
 
     keys_of_invalid_group.into_iter().for_each(|key| {
-      module_group_map.remove(&key);
+      let old = module_group_map.remove(&key);
+      rayon::spawn(move || drop(old));
     });
   }
 }
