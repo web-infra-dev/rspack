@@ -129,7 +129,6 @@ pub struct CompilationHooks {
   pub after_seal: CompilationAfterSealHook,
 }
 
-#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilationId(pub u32);
 
