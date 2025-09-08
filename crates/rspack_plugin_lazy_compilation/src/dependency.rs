@@ -1,38 +1,49 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ModuleFactoryCreateData,
+  DependencyType, FactorizeInfo, ModuleDependency,
 };
+use rspack_error::Diagnostic;
+use rspack_paths::ArcPath;
+use rustc_hash::FxHashSet as HashSet;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub(crate) struct LazyCompilationDependency {
+pub struct DependencyOptions {
+  pub request: String,
+
+  pub file_dependencies: HashSet<ArcPath>,
+  pub context_dependencies: HashSet<ArcPath>,
+  pub missing_dependencies: HashSet<ArcPath>,
+  pub diagnostics: Vec<Diagnostic>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct LazyCompilationDependency {
   id: DependencyId,
-  pub original_module_create_data: ModuleFactoryCreateData,
-  request: String,
   factorize_info: FactorizeInfo,
+  options: DependencyOptions,
 }
 
 impl LazyCompilationDependency {
-  pub fn new(original_module_create_data: ModuleFactoryCreateData) -> Self {
-    let dep = original_module_create_data.dependencies[0]
-      .as_module_dependency()
-      .expect("LazyCompilation: should convert to module dependency");
-    let request = dep.request().to_string();
-
+  pub fn new(options: DependencyOptions) -> Self {
     Self {
       id: DependencyId::new(),
-      original_module_create_data,
-      request,
       factorize_info: Default::default(),
+      options,
     }
+  }
+
+  pub fn options(&self) -> &DependencyOptions {
+    &self.options
   }
 }
 
 #[cacheable_dyn]
 impl ModuleDependency for LazyCompilationDependency {
   fn request(&self) -> &str {
-    &self.request
+    &self.options.request
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
