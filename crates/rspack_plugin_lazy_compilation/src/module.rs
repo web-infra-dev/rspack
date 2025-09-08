@@ -69,17 +69,13 @@ impl LazyCompilationProxyModule {
   #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
     identifier: ModuleIdentifier,
+    readable_identifier: String,
     lib_ident: Option<String>,
     create_data: &ModuleFactoryCreateData,
     resource: String,
     active: bool,
     client: String,
   ) -> Self {
-    let readable_identifier = format!(
-      "lazy-compilation-proxy|{}",
-      create_data.context.shorten(&create_data.request)
-    );
-
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
     let dep_options = DependencyOptions {
@@ -202,11 +198,6 @@ impl Module for LazyCompilationProxyModule {
         vec![Box::new(dep)],
         None,
       )));
-
-      // when module is activated, proxy module should not be modified again,
-      // when users modify real module, the proxy module will be untouched,
-      // and the real module will be invalidated
-      self.build_info.file_dependencies.clear();
     }
 
     Ok(BuildResult {

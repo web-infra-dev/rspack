@@ -197,6 +197,12 @@ async fn normal_module_factory_module(
 
   let module_identifier: ModuleIdentifier =
     format!("lazy-compilation-proxy|{}", module.identifier()).into();
+  let readable_identifier = format!(
+    "lazy-compilation-proxy|{}",
+    module_factory_create_data
+      .context
+      .shorten(&module.identifier())
+  );
   let active = self
     .active_modules
     .read()
@@ -208,6 +214,7 @@ async fn normal_module_factory_module(
 
   *module = Box::new(LazyCompilationProxyModule::new(
     module_identifier,
+    readable_identifier,
     lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data,
     create_data.resource_resolve_data.resource.clone(),
