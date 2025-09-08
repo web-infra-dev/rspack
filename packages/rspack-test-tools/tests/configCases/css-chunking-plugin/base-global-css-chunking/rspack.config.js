@@ -31,6 +31,7 @@ function getRspackConfig(strict) {
                         // - In loose mode, CssChunkingPlugin should merge global CSS files
                         //   within each page into separate chunks
                         // - Expected result: 2 CSS assets (one per page)
+                        console.log('stats json', json)
                         const cssAssets = json.assets.filter(asset => asset.name?.endsWith(".css"))
                         expect(cssAssets.length).toBe(2)
                     })
