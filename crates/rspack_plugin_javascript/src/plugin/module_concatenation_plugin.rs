@@ -1010,12 +1010,15 @@ impl ModuleConcatenationPlugin {
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let module_static_cache_artifact = &compilation.module_static_cache_artifact;
     let compilation_context = &compilation.options.context;
-    let modules_without_runtime_cache = relevant_modules
+    let cache_modules = relevant_modules
       .iter()
       .chain(possible_inners.iter())
-      .par_bridge()
+      .copied()
+      .collect::<IdentifierSet>();
+    let modules_without_runtime_cache = cache_modules
+      .into_par_iter()
       .map(|module_id| {
-        let exports_info = module_graph.get_exports_info(module_id);
+        let exports_info = module_graph.get_exports_info(&module_id);
         let exports_info_data = ExportsInfoGetter::prefetch(
           &exports_info,
           &module_graph,
@@ -1026,18 +1029,18 @@ impl ModuleConcatenationPlugin {
           ProvidedExports::ProvidedNames(_)
         );
         let module = module_graph
-          .module_by_identifier(module_id)
+          .module_by_identifier(&module_id)
           .expect("should have module");
         let mut runtime = RuntimeSpec::default();
         for r in compilation
           .chunk_graph
-          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+          .get_module_runtimes_iter(module_id, &compilation.chunk_by_ukey)
         {
           runtime.extend(r);
         }
 
         let _ = get_cached_readable_identifier(
-          module_id,
+          &module_id,
           &module_graph,
           module_static_cache_artifact,
           compilation_context,
@@ -1069,7 +1072,7 @@ impl ModuleConcatenationPlugin {
           })
           .collect::<Vec<_>>();
 
-        let incomings = module_graph.get_incoming_connections_by_origin_module(module_id);
+        let incomings = module_graph.get_incoming_connections_by_origin_module(&module_id);
         let mut active_incomings = HashMap::default();
         for connection in incomings.values().flatten() {
           active_incomings.insert(
@@ -1079,9 +1082,9 @@ impl ModuleConcatenationPlugin {
         }
         let number_of_chunks = compilation
           .chunk_graph
-          .get_number_of_module_chunks(*module_id);
+          .get_number_of_module_chunks(module_id);
         (
-          *module_id,
+          module_id,
           NoRuntimeModuleCache {
             runtime,
             provided_names,
@@ -1194,6 +1197,9 @@ impl ModuleConcatenationPlugin {
     }
 
     logger.time_end(start);
+
+    rayon::spawn(move || drop(modules_without_runtime_cache));
+
     if !concat_configurations.is_empty() {
       let mut concat_len_buffer = itoa::Buffer::new();
       let concat_len_str = concat_len_buffer.format(concat_configurations.len());
@@ -1373,6 +1379,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   self.optimize_chunk_modules_impl(compilation).await?;
+
   Ok(None)
 }
 
