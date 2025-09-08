@@ -549,7 +549,9 @@ impl SplitChunksPlugin {
 
     keys_of_invalid_group.into_iter().for_each(|key| {
       let old = module_group_map.remove(&key);
-      rayon::spawn(move || drop(old));
+      if let Some(old) = old {
+        rayon::spawn(move || drop(old));
+      }
     });
   }
 }
