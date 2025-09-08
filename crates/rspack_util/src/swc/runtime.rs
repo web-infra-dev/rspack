@@ -81,7 +81,7 @@ impl runtime::Runtime for WasmtimeRuntime {
   }
 
   fn store_cache(&self, path: &Path, cache: &runtime::ModuleCache) -> anyhow::Result<()> {
-    use std::io::Write;
+    use std::io::{ErrorKind, Write};
 
     let WasmtimeCache(module) = cache.0.downcast_ref().unwrap();
     let data = module.serialize()?;
@@ -94,10 +94,15 @@ impl runtime::Runtime for WasmtimeRuntime {
       ext.push(".tmp");
       path.with_extension(ext)
     };
-    let mut fd = std::fs::OpenOptions::new()
+    let mut fd = match std::fs::OpenOptions::new()
       .create_new(true)
       .write(true)
-      .open(&tmppath)?;
+      .open(&tmppath)
+    {
+      Ok(fd) => fd,
+      Err(ref err) if err.kind() == ErrorKind::AlreadyExists => return Ok(()),
+      Err(err) => return Err(err.into()),
+    };
     fd.write_all(&data)?;
     drop(fd);
     std::fs::rename(&tmppath, path)?;
