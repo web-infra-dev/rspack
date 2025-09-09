@@ -14,66 +14,42 @@ for (const { root, match, comment } of [
 		comment: `/** @type {import("@rspack/core").Configuration} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/configCases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/configCases"),
 		match: "**/test.config.js",
 		comment: `/** @type {import("../../../..").TConfigCaseConfig} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/compilerCases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/compilerCases"),
 		match: "*.js",
 		comment: `/** @type {import('../../').TCompilerCaseConfig} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/defaultsCases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/defaultsCases"),
 		match: "*/*.js",
 		comment: `/** @type {import('../../..').TDefaultsCaseConfig} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/errorCases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/errorCases"),
 		match: "*.js",
 		comment: `/** @type {import('../..').TErrorCaseConfig} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/hashCases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/hashCases"),
 		match: "**/test.config.js",
 		comment: `/** @type {import('../../..').THashCaseConfig} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/hookCases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/hookCases"),
 		match: "**/test.js",
 		comment: `/** @type {import("../../../..").THookCaseConfig} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/runtimeDiffCases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/runtimeDiffCases"),
 		match: "**/test.config.js",
 		comment: `/** @type {import("../../..").TDiffCaseConfig} */`
 	},
 	{
-		root: path.resolve(
-			__dirname,
-			"../../tests/rspack-test/statsAPICases"
-		),
+		root: path.resolve(__dirname, "../../tests/rspack-test/statsAPICases"),
 		match: "*.js",
 		comment: `/** @type {import('../..').TStatsAPICaseConfig} */`
 	}
