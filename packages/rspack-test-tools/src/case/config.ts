@@ -35,7 +35,7 @@ const creator = new BasicCaseCreator({
 		})
 	],
 	runner: MultipleRunnerFactory,
-	concurrent: false
+	concurrent: true
 });
 
 export function createConfigCase(name: string, src: string, dist: string) {
