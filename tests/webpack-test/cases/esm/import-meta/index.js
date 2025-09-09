@@ -6,8 +6,7 @@ const url = pathToFileURL(
 ).toString();
 const webpackVersion = parseInt(
 	/// DIFF
-	// require("../../../../package.json").version,
-	require("../../../../../packages/rspack/package.json").webpackVersion,
+	require("@rspack/core/package.json").webpackVersion,
 	10
 );
 

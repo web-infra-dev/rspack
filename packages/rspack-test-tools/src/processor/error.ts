@@ -37,7 +37,10 @@ export class ErrorProcessor<
 		super({
 			options: (context: ITestContext): TCompilerOptions<T> => {
 				let options = {
-					context: path.resolve(__dirname, "../../tests/fixtures/errors"),
+					context: path.resolve(
+						__dirname,
+						"../../../../tests/rspack-test/fixtures/errors"
+					),
 					mode: "none",
 					devtool: false,
 					optimization: {

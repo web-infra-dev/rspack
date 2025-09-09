@@ -11,7 +11,10 @@ const creator = new BasicCaseCreator({
 	steps: ({ name }) => [
 		new NormalProcessor({
 			name,
-			root: path.resolve(__dirname, "../../tests/normalCases"),
+			root: path.resolve(
+				__dirname,
+				"../../../../tests/rspack-test/normalCases"
+			),
 			compilerOptions: {}, // do not used in rspack
 			runable: true,
 			compilerType: ECompilerType.Rspack
