@@ -4,19 +4,19 @@ const path = require("node:path");
 
 for (const { root, match, comment } of [
 	{
-		root: path.resolve(__dirname, "../../packages/rspack-test-tools/tests"),
+		root: path.resolve(__dirname, "../../tests/rspack-test"),
 		match: "**/webpack.config.js",
 		comment: `/** @type {import("webpack").Configuration} */`
 	},
 	{
-		root: path.resolve(__dirname, "../../packages/rspack-test-tools/tests"),
+		root: path.resolve(__dirname, "../../tests/rspack-test"),
 		match: "**/rspack.config.js",
 		comment: `/** @type {import("@rspack/core").Configuration} */`
 	},
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/configCases"
+			"../../tests/rspack-test/configCases"
 		),
 		match: "**/test.config.js",
 		comment: `/** @type {import("../../../..").TConfigCaseConfig} */`
@@ -24,7 +24,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/compilerCases"
+			"../../tests/rspack-test/compilerCases"
 		),
 		match: "*.js",
 		comment: `/** @type {import('../../').TCompilerCaseConfig} */`
@@ -32,7 +32,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/defaultsCases"
+			"../../tests/rspack-test/defaultsCases"
 		),
 		match: "*/*.js",
 		comment: `/** @type {import('../../..').TDefaultsCaseConfig} */`
@@ -40,7 +40,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/errorCases"
+			"../../tests/rspack-test/errorCases"
 		),
 		match: "*.js",
 		comment: `/** @type {import('../..').TErrorCaseConfig} */`
@@ -48,7 +48,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/hashCases"
+			"../../tests/rspack-test/hashCases"
 		),
 		match: "**/test.config.js",
 		comment: `/** @type {import('../../..').THashCaseConfig} */`
@@ -56,7 +56,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/hookCases"
+			"../../tests/rspack-test/hookCases"
 		),
 		match: "**/test.js",
 		comment: `/** @type {import("../../../..").THookCaseConfig} */`
@@ -64,7 +64,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/runtimeDiffCases"
+			"../../tests/rspack-test/runtimeDiffCases"
 		),
 		match: "**/test.config.js",
 		comment: `/** @type {import("../../..").TDiffCaseConfig} */`
@@ -72,7 +72,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(
 			__dirname,
-			"../../packages/rspack-test-tools/tests/statsAPICases"
+			"../../tests/rspack-test/statsAPICases"
 		),
 		match: "*.js",
 		comment: `/** @type {import('../..').TStatsAPICaseConfig} */`

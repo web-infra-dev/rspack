@@ -11,7 +11,7 @@ const placeholderSerializer = createSnapshotSerializer({
 		: path.resolve(__dirname, "../../../../../"),
 	replace: [
 		{
-			match: path.resolve(__dirname, "../../../"),
+			match: path.resolve(__dirname, "../../../../../tests/rspack-test"),
 			mark: "test_tools_root"
 		},
 		{
