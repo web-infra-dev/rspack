@@ -1,7 +1,3 @@
-/**
- * Based on  https://github.com/oxc-project/oxc/blob/main/napi/parser/webcontainer-fallback.js
- */
-
 const fs = require('node:fs');
 const path = require('node:path');
 const childProcess = require('node:child_process');
