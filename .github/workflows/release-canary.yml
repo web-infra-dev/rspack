@@ -103,9 +103,6 @@ jobs:
       - name: Show binding packages
         run: ls -R npm
 
-      - name: Resolve dependencies for bindings
-        run: pnpm install --no-frozen-lockfile
-
       # Update npm to the latest version to enable OIDC
       - name: Update npm
         run: |
