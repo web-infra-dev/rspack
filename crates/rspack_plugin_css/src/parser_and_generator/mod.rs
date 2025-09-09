@@ -1,10 +1,9 @@
 use std::{
   borrow::Cow,
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, OnceLock},
 };
 
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -135,7 +134,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let source = remove_bom(source);
     let source_code = source.source();
     let resource_path = &resource_data.resource_path;
-    let cached_source_code = OnceCell::new();
+    let cached_source_code = OnceLock::new();
     let get_source_code = || {
       let s = cached_source_code.get_or_init(|| Arc::new(source_code.to_string()));
       s.clone()

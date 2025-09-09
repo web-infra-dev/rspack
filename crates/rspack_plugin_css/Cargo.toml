@@ -12,7 +12,6 @@ cow-utils             = { workspace = true }
 css-module-lexer      = { workspace = true }
 heck                  = { workspace = true }
 indexmap              = { workspace = true }
-once_cell             = { workspace = true }
 regex                 = { workspace = true }
 rspack_cacheable      = { workspace = true }
 rspack_collections    = { workspace = true }

@@ -13,7 +13,6 @@ memchr      = { workspace = true }
 rustc-hash  = { workspace = true }
 tokio       = { workspace = true, features = ["test-util"] }
 
-once_cell          = { workspace = true }
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_error       = { workspace = true }

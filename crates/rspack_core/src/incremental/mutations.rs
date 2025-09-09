@@ -1,7 +1,6 @@
-use std::fmt;
+use std::{fmt, sync::OnceLock};
 
 use itertools::{Either, Itertools};
-use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierSet, UkeySet};
 
@@ -13,9 +12,9 @@ use crate::{
 pub struct Mutations {
   inner: Vec<Mutation>,
 
-  affected_modules_with_module_graph: OnceCell<IdentifierSet>,
-  affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
-  affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
+  affected_modules_with_module_graph: OnceLock<IdentifierSet>,
+  affected_modules_with_chunk_graph: OnceLock<IdentifierSet>,
+  affected_chunks_with_chunk_graph: OnceLock<UkeySet<ChunkUkey>>,
 }
 
 impl fmt::Display for Mutations {

@@ -17,7 +17,6 @@ indoc = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
 num-bigint = { workspace = true }
-once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 regress = { workspace = true, features = ["pattern"] }

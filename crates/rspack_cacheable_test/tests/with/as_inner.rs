@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+  path::PathBuf,
+  sync::{Arc, OnceLock},
+};
 
 use rspack_cacheable::{
   enable_cacheable as cacheable,
@@ -9,9 +12,9 @@ use rspack_cacheable::{
 #[derive(Debug, PartialEq, Eq)]
 struct Data {
   #[cacheable(with=AsInner<AsString>)]
-  block1: once_cell::sync::OnceCell<PathBuf>,
+  block1: OnceLock<PathBuf>,
   #[cacheable(with=AsInner)]
-  block2: once_cell::sync::OnceCell<usize>,
+  block2: OnceLock<usize>,
   #[cacheable(with=AsInner)]
   block3: Arc<usize>,
 }
@@ -19,8 +22,8 @@ struct Data {
 #[test]
 fn test_as_inner() {
   let data = Data {
-    block1: once_cell::sync::OnceCell::with_value(PathBuf::from("/abc")),
-    block2: once_cell::sync::OnceCell::with_value(1),
+    block1: OnceLock::from(PathBuf::from("/abc")),
+    block2: OnceLock::from(1),
     block3: Arc::new(2),
   };
 

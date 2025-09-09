@@ -254,9 +254,11 @@ impl LoaderResult {
 
 #[cfg(test)]
 mod test {
-  use std::{cell::RefCell, sync::Arc};
+  use std::{
+    cell::RefCell,
+    sync::{Arc, OnceLock},
+  };
 
-  use once_cell::sync::OnceCell;
   use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
   use rspack_error::Result;
@@ -425,7 +427,7 @@ mod test {
     let p2 = Arc::new(Pitching2) as Arc<dyn Loader<()>>;
 
     let rs = Arc::new(ResourceData {
-      scheme: OnceCell::new(),
+      scheme: OnceLock::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
       resource_fragment: None,
@@ -529,7 +531,7 @@ mod test {
     }
 
     let rs = Arc::new(ResourceData {
-      scheme: OnceCell::new(),
+      scheme: OnceLock::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
       resource_fragment: None,
@@ -576,7 +578,7 @@ mod test {
     }
 
     let rs = Arc::new(ResourceData {
-      scheme: OnceCell::new(),
+      scheme: OnceLock::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
       resource_fragment: None,

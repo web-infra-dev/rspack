@@ -26,7 +26,6 @@ json = { workspace = true }
 mime_guess = { workspace = true }
 napi = { workspace = true, optional = true }
 num-bigint = { workspace = true }
-once_cell = { workspace = true }
 paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }

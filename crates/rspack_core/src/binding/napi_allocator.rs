@@ -1,5 +1,6 @@
+use std::cell::OnceCell;
+
 use napi::sys::{napi_env, napi_value};
-use once_cell::sync::OnceCell;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
 
@@ -7,7 +8,7 @@ use super::BindingCell;
 use crate::{AssetInfo, CodeGenerationResult, CodeGenerationResults, CompilationAsset, SourceType};
 
 thread_local! {
-  static NAPI_ALLOCATOR: OnceCell<Box<dyn NapiAllocator>> = OnceCell::default();
+  static NAPI_ALLOCATOR: OnceCell<Box<dyn NapiAllocator>> = OnceCell::new();
 }
 
 pub trait NapiAllocator {

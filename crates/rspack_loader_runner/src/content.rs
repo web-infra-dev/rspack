@@ -1,11 +1,10 @@
 use std::{
   fmt::Debug,
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{Arc, OnceLock},
 };
 
 use anymap::CloneAny;
-use once_cell::sync::OnceCell;
 use rspack_cacheable::{
   cacheable,
   with::{AsInner, AsOption, AsPreset, AsString},
@@ -135,7 +134,7 @@ pub struct ResourceData {
   pub encoded_content: Option<String>,
   pub context: Option<String>,
   #[cacheable(with=AsInner)]
-  pub(crate) scheme: OnceCell<Scheme>,
+  pub(crate) scheme: OnceLock<Scheme>,
 }
 
 impl ResourceData {
@@ -150,7 +149,7 @@ impl ResourceData {
       parameters: None,
       encoding: None,
       encoded_content: None,
-      scheme: OnceCell::new(),
+      scheme: OnceLock::new(),
       context: None,
     }
   }

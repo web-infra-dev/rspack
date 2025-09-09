@@ -10,7 +10,6 @@ version.workspace = true
 
 [dependencies]
 cow-utils = { workspace = true }
-once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_core = { workspace = true }

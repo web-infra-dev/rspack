@@ -1,11 +1,13 @@
 mod http_cache;
 mod lockfile;
 
-use std::{fmt::Debug, sync::Arc};
+use std::{
+  fmt::Debug,
+  sync::{Arc, LazyLock},
+};
 
 use http_cache::{ContentFetchResult, FetchResultType, fetch_content};
 pub use http_cache::{HttpClient, HttpResponse};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
@@ -17,8 +19,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 use url::Url;
 
-static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
+static EXTERNAL_HTTP_REQUEST: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
 
 #[plugin]
 #[derive(Debug)]

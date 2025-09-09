@@ -1,17 +1,18 @@
 //! temp fork from https://github.com/swc-project/swc/blob/main/crates/swc_plugin_backend_wasmtime/src/lib.rs
 
-use std::path::Path;
+use std::{path::Path, sync::OnceLock};
 
 use anyhow::Context;
-use once_cell::sync::OnceCell;
 use swc_plugin_runner::runtime;
+
+use crate::once_lock_get_or_try_init;
 
 /// Identifier for bytecode cache stored in local filesystem.
 ///
 /// This MUST be updated when bump up wasmtime.
 const MODULE_SERIALIZATION_IDENTIFIER: &str = concat!("wasmtime", "-", "v35");
 
-static ENGINE: OnceCell<wasmtime::Engine> = OnceCell::new();
+static ENGINE: OnceLock<wasmtime::Engine> = OnceLock::new();
 
 #[derive(Clone, Copy, Debug)]
 pub struct WasmtimeRuntime;
@@ -61,7 +62,7 @@ impl runtime::Runtime for WasmtimeRuntime {
   }
 
   fn prepare_module(&self, bytes: &[u8]) -> anyhow::Result<runtime::ModuleCache> {
-    let engine = ENGINE.get_or_try_init(init_engine)?;
+    let engine = once_lock_get_or_try_init(&ENGINE, init_engine)?;
     let cache = WasmtimeCache(wasmtime::Module::new(engine, bytes)?);
     Ok(runtime::ModuleCache(Box::new(cache)))
   }
@@ -74,7 +75,7 @@ impl runtime::Runtime for WasmtimeRuntime {
 
   unsafe fn load_cache(&self, path: &Path) -> Option<runtime::ModuleCache> {
     let module = std::fs::read(path).ok()?;
-    let engine = ENGINE.get_or_try_init(init_engine).ok()?;
+    let engine = once_lock_get_or_try_init(&ENGINE, init_engine).ok()?;
     let cache = unsafe { wasmtime::Module::deserialize(engine, module).ok()? };
     let cache = WasmtimeCache(cache);
     Some(runtime::ModuleCache(Box::new(cache)))
@@ -116,7 +117,7 @@ impl runtime::Runtime for WasmtimeRuntime {
     envs: Vec<(String, String)>,
     module: runtime::Module,
   ) -> anyhow::Result<Box<dyn runtime::Instance>> {
-    let engine = ENGINE.get_or_try_init(init_engine)?;
+    let engine = once_lock_get_or_try_init(&ENGINE, init_engine)?;
 
     let module = match module {
       runtime::Module::Cache(cache) => {

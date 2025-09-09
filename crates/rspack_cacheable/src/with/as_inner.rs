@@ -82,7 +82,7 @@ struct ArchivedOptionVariantSome<T>(ArchivedOptionTag, T);
 // well-defined byte.
 unsafe impl NoUndef for ArchivedOptionTag {}
 
-impl<O, A> ArchiveWith<once_cell::sync::OnceCell<O>> for AsInner<A>
+impl<O, A> ArchiveWith<std::sync::OnceLock<O>> for AsInner<A>
 where
   A: ArchiveWith<O>,
 {
@@ -90,7 +90,7 @@ where
   type Resolver = Option<<A as ArchiveWith<O>>::Resolver>;
 
   fn resolve_with(
-    field: &once_cell::sync::OnceCell<O>,
+    field: &std::sync::OnceLock<O>,
     resolver: Self::Resolver,
     out: Place<Self::Archived>,
   ) {
@@ -122,15 +122,12 @@ where
   }
 }
 
-impl<A, O, S> SerializeWith<once_cell::sync::OnceCell<O>, S> for AsInner<A>
+impl<A, O, S> SerializeWith<std::sync::OnceLock<O>, S> for AsInner<A>
 where
   S: Fallible + ?Sized,
   A: ArchiveWith<O> + SerializeWith<O, S>,
 {
-  fn serialize_with(
-    field: &once_cell::sync::OnceCell<O>,
-    s: &mut S,
-  ) -> Result<Self::Resolver, S::Error> {
+  fn serialize_with(field: &std::sync::OnceLock<O>, s: &mut S) -> Result<Self::Resolver, S::Error> {
     Ok(match field.get() {
       Some(inner) => Some(A::serialize_with(inner, s)?),
       None => None,
@@ -139,7 +136,7 @@ where
 }
 
 impl<A, O, D>
-  DeserializeWith<ArchivedOption<<A as ArchiveWith<O>>::Archived>, once_cell::sync::OnceCell<O>, D>
+  DeserializeWith<ArchivedOption<<A as ArchiveWith<O>>::Archived>, std::sync::OnceLock<O>, D>
   for AsInner<A>
 where
   D: Fallible + ?Sized,
@@ -148,12 +145,10 @@ where
   fn deserialize_with(
     field: &ArchivedOption<<A as ArchiveWith<O>>::Archived>,
     d: &mut D,
-  ) -> Result<once_cell::sync::OnceCell<O>, D::Error> {
+  ) -> Result<std::sync::OnceLock<O>, D::Error> {
     match field {
-      ArchivedOption::Some(value) => Ok(once_cell::sync::OnceCell::with_value(
-        A::deserialize_with(value, d)?,
-      )),
-      ArchivedOption::None => Ok(once_cell::sync::OnceCell::new()),
+      ArchivedOption::Some(value) => Ok(std::sync::OnceLock::from(A::deserialize_with(value, d)?)),
+      ArchivedOption::None => Ok(std::sync::OnceLock::new()),
     }
   }
 }

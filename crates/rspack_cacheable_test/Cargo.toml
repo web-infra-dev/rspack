@@ -14,7 +14,6 @@ camino           = { workspace = true }
 dashmap          = { workspace = true }
 json             = { workspace = true }
 lightningcss     = { workspace = true }
-once_cell        = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_resolver  = { workspace = true }
 rspack_sources   = { workspace = true }

@@ -1,4 +1,5 @@
 mod merge;
+mod once_cell;
 
 pub mod asset_condition;
 pub mod atom;
@@ -26,6 +27,7 @@ pub mod tracing_preset;
 use std::future::Future;
 
 pub use merge::{MergeFrom, merge_from_optional_with};
+pub use once_cell::{once_cell_get_or_try_init, once_lock_get_or_try_init};
 pub use span::SpanExt;
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>

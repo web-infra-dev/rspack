@@ -2,11 +2,10 @@ use std::{
   collections::HashMap,
   hash::Hash,
   path::Path,
-  sync::{LazyLock, Mutex, mpsc},
+  sync::{LazyLock, Mutex, OnceLock, mpsc},
 };
 
 use cow_utils::CowUtils;
-use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
@@ -60,9 +59,9 @@ pub struct MinimizerOptions {
   /// Internal fields for hashing only.
   /// This guaranteed these field should only be readonly.
   /// Otherwise, hash would be generated with inconsistencies.
-  pub __compress_cache: OnceCell<BoolOrDataConfig<String>>,
-  pub __mangle_cache: OnceCell<BoolOrDataConfig<String>>,
-  pub __format_cache: OnceCell<String>,
+  pub __compress_cache: OnceLock<BoolOrDataConfig<String>>,
+  pub __mangle_cache: OnceLock<BoolOrDataConfig<String>>,
+  pub __format_cache: OnceLock<String>,
 }
 
 impl std::hash::Hash for MinimizerOptions {

@@ -2,14 +2,13 @@ mod drive;
 
 use std::{
   hash::{BuildHasherDefault, Hasher},
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, OnceLock},
 };
 
 use aho_corasick::{AhoCorasick, MatchKind};
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 pub use drive::*;
-use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
@@ -300,9 +299,9 @@ struct AssetData {
   #[debug(skip)]
   content: AssetDataContent,
   #[debug(skip)]
-  new_source: OnceCell<BoxSource>,
+  new_source: OnceLock<BoxSource>,
   #[debug(skip)]
-  new_source_without_own: OnceCell<BoxSource>,
+  new_source_without_own: OnceLock<BoxSource>,
 }
 
 #[derive(Debug)]
@@ -335,8 +334,8 @@ impl AssetData {
       referenced_hashes,
       old_source: source,
       content,
-      new_source: OnceCell::new(),
-      new_source_without_own: OnceCell::new(),
+      new_source: OnceLock::new(),
+      new_source_without_own: OnceLock::new(),
     }
   }
 

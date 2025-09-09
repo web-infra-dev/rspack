@@ -9,7 +9,7 @@ macro_rules! define_symbols {
     thread_local! {
       $(
         $(#[$meta])*
-        pub(crate) static $cell: ::once_cell::unsync::OnceCell<::rspack_napi::OneShotRef> = Default::default();
+        pub(crate) static $cell: ::std::cell::OnceCell<::rspack_napi::OneShotRef> = Default::default();
       )*
     }
 

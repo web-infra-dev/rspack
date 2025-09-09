@@ -1,18 +1,19 @@
-use std::time::{Duration, Instant};
-
-use once_cell::sync::OnceCell;
+use std::{
+  sync::OnceLock,
+  time::{Duration, Instant},
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct TimeRange {
-  start: OnceCell<Instant>,
-  end: OnceCell<Instant>,
+  start: OnceLock<Instant>,
+  end: OnceLock<Instant>,
 }
 
 impl TimeRange {
   pub fn with_value(start: Instant, end: Instant) -> Self {
     Self {
-      start: OnceCell::with_value(start),
-      end: OnceCell::with_value(end),
+      start: OnceLock::from(start),
+      end: OnceLock::from(end),
     }
   }
 
@@ -30,7 +31,7 @@ impl TimeRange {
 #[derive(Debug, Default, Clone)]
 pub struct ModulePhaseProfile {
   range: TimeRange,
-  parallelism_factor: OnceCell<u16>,
+  parallelism_factor: OnceLock<u16>,
 }
 
 impl ModulePhaseProfile {

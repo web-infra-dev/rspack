@@ -22,12 +22,13 @@ use super::create_resource_identifier_for_esm_dependency;
 // This map is used to save the runtime conditions of modules and used by ESMAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
 pub mod import_emitted_runtime {
-  use once_cell::sync::OnceCell;
+  use std::sync::OnceLock;
+
   use rspack_collections::{IdentifierDashMap, IdentifierMap};
   use rspack_core::{ModuleIdentifier, RuntimeCondition};
 
-  static IMPORT_EMITTED_MAP: OnceCell<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
-    OnceCell::new();
+  static IMPORT_EMITTED_MAP: OnceLock<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
+    OnceLock::new();
 
   pub fn init_map() {
     IMPORT_EMITTED_MAP.get_or_init(Default::default);

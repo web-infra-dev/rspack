@@ -17,7 +17,6 @@ indexmap        = { workspace = true }
 inventory       = { workspace = true }
 json            = { workspace = true }
 lightningcss    = { workspace = true }
-once_cell       = { workspace = true }
 rkyv            = { workspace = true }
 rspack_macros   = { workspace = true }
 rspack_resolver = { workspace = true }

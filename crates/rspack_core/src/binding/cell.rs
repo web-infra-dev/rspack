@@ -14,7 +14,7 @@ mod napi_binding {
     any::{Any, TypeId},
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
-    sync::{Arc, Weak},
+    sync::{Arc, OnceLock, Weak},
   };
 
   use derive_more::Debug;
@@ -22,9 +22,9 @@ mod napi_binding {
     Env,
     bindgen_prelude::{Object, ToNapiValue},
   };
-  use once_cell::sync::OnceCell;
   use rspack_napi::{ThreadsafeOneShotRef, object_assign};
   use rspack_sources::BoxSource;
+  use rspack_util::once_lock_get_or_try_init;
   use rustc_hash::FxHashMap;
 
   use crate::{
@@ -60,7 +60,7 @@ mod napi_binding {
         )
       })?;
 
-      heap.jsobject.get_or_try_init(|| match &heap.variant {
+      once_lock_get_or_try_init(&heap.jsobject, || match &heap.variant {
         HeapVariant::AssetInfo(_asset_info) => ThreadsafeOneShotRef::new(env.raw(), object),
         _ => unreachable!(),
       })?;
@@ -81,7 +81,7 @@ mod napi_binding {
           )
         })?;
 
-        let raw_ref = heap.jsobject.get_or_try_init(|| match &heap.variant {
+        let raw_ref = once_lock_get_or_try_init(&heap.jsobject, || match &heap.variant {
           HeapVariant::AssetInfo(asset_info) => {
             let binding_cell = BindingCell {
               ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
@@ -172,7 +172,7 @@ mod napi_binding {
   struct Heap {
     variant: HeapVariant,
     #[debug(skip)]
-    jsobject: OnceCell<ThreadsafeOneShotRef>,
+    jsobject: OnceLock<ThreadsafeOneShotRef>,
   }
 
   unsafe impl Send for Heap {}
@@ -401,7 +401,7 @@ mod napi_binding {
               ptr,
               heap: Arc::new(Heap {
                 variant: $variant(boxed),
-                jsobject: OnceCell::default(),
+                jsobject: OnceLock::new(),
               }),
             });
           }
