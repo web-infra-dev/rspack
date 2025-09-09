@@ -2,6 +2,7 @@ mod module_graph;
 
 use std::sync::Arc;
 
+use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -68,21 +69,23 @@ impl MakeOccasion {
     artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies, isolated_modules);
 
     // regenerate statistical data
-    // TODO set make_failed_module after module.diagnostic are cacheable
-    // make failed module include diagnostic that do not support cache, so recovery will not include failed module
-    artifact.make_failed_module = Default::default();
-    // recovery *_dep
     let mg = artifact.get_module_graph();
+    // recovery make_failed_module
+    let mut make_failed_module = IdentifierSet::default();
+    // recovery *_dep
     let mut file_dep = FileCounter::default();
     let mut context_dep = FileCounter::default();
     let mut missing_dep = FileCounter::default();
     let mut build_dep = FileCounter::default();
-    for (_, module) in mg.modules() {
+    for (mid, module) in mg.modules() {
       let build_info = module.build_info();
       file_dep.add_batch_file(&build_info.file_dependencies);
       context_dep.add_batch_file(&build_info.context_dependencies);
       missing_dep.add_batch_file(&build_info.missing_dependencies);
       build_dep.add_batch_file(&build_info.build_dependencies);
+      if !module.diagnostics().is_empty() {
+        make_failed_module.insert(mid);
+      }
     }
     // recovery make_failed_dependencies
     let mut make_failed_dependencies = HashSet::default();
@@ -96,6 +99,7 @@ impl MakeOccasion {
         missing_dep.add_batch_file(&info.missing_dependencies());
       }
     }
+    artifact.make_failed_module = make_failed_module;
     artifact.make_failed_dependencies = make_failed_dependencies;
     artifact.file_dependencies = file_dep;
     artifact.context_dependencies = context_dep;
