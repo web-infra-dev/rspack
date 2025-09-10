@@ -3,42 +3,26 @@ import {fileURLToPath as __webpack_fileURLToPath__} from "node:url";
 import {dirname as __webpack_dirname__} from "node:path";
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
 import { __webpack_require__ } from "./runtime.mjs";
-Object.assign(__webpack_require__.m, {
-"node:fs": 
-/*!**************************!*\
-  !*** external "node:fs" ***!
-  \**************************/
-(function (module) {
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
+// node:fs
+const external_node_fs___WEBPACK_NAMESPACE_OBJECT__ = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
 
-}),
-"node:path": 
-/*!****************************!*\
-  !*** external "node:path" ***!
-  \****************************/
-(function (module) {
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
+var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs___WEBPACK_NAMESPACE_OBJECT__);// node:path
+const external_node_path___WEBPACK_NAMESPACE_OBJECT__ = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
 
-}),
-});
-// ./index.js
-const external_node_fs_ = __webpack_require__("node:fs");
-var external_node_fs__default = /*#__PURE__*/__webpack_require__.n(external_node_fs_);
-const external_node_path_ = __webpack_require__("node:path");
-var external_node_path__default = /*#__PURE__*/__webpack_require__.n(external_node_path_);
-var __dirname_0 = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
+var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path___WEBPACK_NAMESPACE_OBJECT__);// ./index.js
+var index__dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
 
 
 
 it('should support dynamic import', async () => {
-	const shared = external_node_path__default().resolve(__dirname_0, 'shared.mjs')
-	const content = external_node_fs__default().readFileSync(shared, 'utf-8')
+	const shared = external_node_path_default().resolve(index__dirname, 'shared.mjs')
+	const content = external_node_fs_default().readFileSync(shared, 'utf-8')
 
 	expect(content).toContain('// ./m1.js')
 	expect(content).toContain('// ./m2.js')
 
-	const value = await import("./shared.mjs").then((mod) => ({ default: mod.__WEBPACK_DEFAULT_EXPORT___0,value: mod.value }))
-	const value2 = await import("./shared.mjs").then((mod) => ({ default: mod.__WEBPACK_DEFAULT_EXPORT___1,value: mod.value_0 }))
+	const value = await import("./shared.mjs").then((mod) => ({ default: mod.m1__WEBPACK_DEFAULT_EXPORT__,value: mod.value }))
+	const value2 = await import("./shared.mjs").then((mod) => ({ default: mod.m2__WEBPACK_DEFAULT_EXPORT__,value: mod.m2_value }))
 
 	expect(value).toHaveProperty('default', 42)
 	expect(value).toHaveProperty('value', 1)
@@ -50,8 +34,6 @@ it('should support dynamic import', async () => {
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
 // The module cache
 var __webpack_module_cache__ = {};
 // The require function
@@ -71,8 +53,6 @@ __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
 return module.exports;
 }
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
 
 // webpack/runtime/compat_get_default_export
 (() => {
@@ -107,13 +87,13 @@ export { __webpack_require__ };
 
 ```mjs title=shared.mjs
 // ./m1.js
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT___0 = (42);
+/* ESM default export */ const m1__WEBPACK_DEFAULT_EXPORT__ = (42);
 const value = 1
 
 // ./m2.js
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT___1 = (42);
-const value_0 = 2
+/* ESM default export */ const m2__WEBPACK_DEFAULT_EXPORT__ = (42);
+const m2_value = 2
 
-export { __WEBPACK_DEFAULT_EXPORT___0, __WEBPACK_DEFAULT_EXPORT___1, value, value_0 };
+export { m1__WEBPACK_DEFAULT_EXPORT__, m2__WEBPACK_DEFAULT_EXPORT__, m2_value, value };
 
 ```

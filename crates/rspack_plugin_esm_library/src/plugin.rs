@@ -6,9 +6,9 @@ use rspack_core::{
   ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
   CompilationFinishModules, CompilationParams, CompilationProcessAssets, CompilerCompilation,
-  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportProvided, ExportsInfoGetter,
-  ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin, RuntimeCondition,
-  RuntimeGlobals, get_target, is_esm_dep_like,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoGetter,
+  ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, Plugin,
+  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -85,21 +85,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
     // make sure all exports are provided
-    let exports_info = module_graph.get_exports_info(module_identifier);
-
-    let prefetched_exports_info = module_graph.get_prefetched_exports_info(
-      module_identifier,
-      rspack_core::PrefetchExportsInfoMode::Default,
-    );
-
     let mut should_scope_hoisting = true;
 
-    if module.as_normal_module().is_none() {
-      logger.debug(format!(
-        "module {module_identifier} is not an normal module"
-      ));
-      should_scope_hoisting = false;
-    } else if let Some(reason) =
+    if let Some(reason) =
       module.get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
     {
       logger.debug(format!(
@@ -131,31 +119,24 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let other_export_info = exports_info.as_data(&module_graph).other_exports_info();
-      if matches!(other_export_info.provided(), Some(ExportProvided::Unknown)) {
-        logger.debug(format!("module {module_identifier} has unknown exports",));
+      let exports_info = module_graph
+        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+
+      let relevant_exports = exports_info.get_relevant_exports(None);
+      let unknown_exports = relevant_exports
+        .iter()
+        .filter(|export_info| {
+          export_info.is_reexport() && get_target(export_info, &module_graph).is_none()
+        })
+        .copied()
+        .collect::<Vec<_>>();
+
+      if !unknown_exports.is_empty() {
+        logger.debug(format!(
+          "module {module_identifier} has unknown reexport: {:?}",
+          unknown_exports.iter().map(|e| e.name()).collect::<Vec<_>>()
+        ));
         should_scope_hoisting = false;
-      }
-
-      for export_info in prefetched_exports_info.get_relevant_exports(None) {
-        if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
-          logger.debug(format!(
-            "module {module_identifier} has export {} that is not provided",
-            export_info
-              .name()
-              .map_or(String::new(), |name| name.to_string())
-          ));
-          should_scope_hoisting = false;
-          break;
-        }
-
-        if export_info.is_reexport() && get_target(export_info, &module_graph).is_none() {
-          logger.debug(format!(
-            "module {module_identifier} has re-export that is not provided",
-          ));
-          should_scope_hoisting = false;
-          break;
-        }
       }
     }
 
@@ -169,6 +150,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         })),
       );
     } else {
+      let exports_info = module_graph.get_exports_info(module_identifier);
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
         &exports_info,
         &module_graph,
@@ -312,7 +294,6 @@ async fn additional_chunk_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let info_map = self.concatenated_modules_map.lock().await;
   let info_map = info_map
     .get(&compilation.id().0)
@@ -323,6 +304,7 @@ async fn additional_chunk_runtime_requirements(
     .get_chunk_modules_identifier(chunk_ukey)
   {
     let info = info_map.get(m).expect("should have this info map");
+
     runtime_requirements.extend(*info.get_runtime_requirements());
 
     if info.get_interop_default_access_used() {
@@ -334,7 +316,7 @@ async fn additional_chunk_runtime_requirements(
     }
   }
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) && !runtime_requirements.is_empty() {
+  if !runtime_requirements.is_empty() {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }
 

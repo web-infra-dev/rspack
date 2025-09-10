@@ -4288,7 +4288,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_esm_library"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "rayon",
  "regex",

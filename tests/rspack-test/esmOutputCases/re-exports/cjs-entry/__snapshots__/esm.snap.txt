@@ -1,24 +1,44 @@
-```mjs title=dynamic_js.mjs
+```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 Object.assign(__webpack_require__.m, {
-"./dynamic.js": (function (__unused_webpack_module, exports) {
-exports.value = 42
+"./bar.js": (function (__unused_webpack_module, exports) {
+exports.bar = 2
 
 
 }),
+"./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
+  foo: () => (foo)
 });
+/* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
+const foo = 1
 
-```
 
-```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-it('should support dynamic import', async () => {
-	const mod = await import("./dynamic_js.mjs").then(__webpack_require__.t.bind(__webpack_require__, "./dynamic.js", 19))
-	expect(mod.value).toBe(42)
+
+}),
+"./index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+module.exports = __webpack_require__("./foo.js")
+
+it('should have correct output for entry re-exports', async () => {
+	const { foo, bar } = await import(/* webpackIgnore: true */ './main.mjs');
+
+	expect(foo).toBe(1);
+	expect(bar).toBe(2);
 })
 
 
 
+}),
+});
+const index = __webpack_require__("./index.js");
+var __esModule_0 = index.__esModule;
+var bar_0 = index.bar;
+var foo_0 = index.foo;
+
+export { __esModule_0 as __esModule, bar_0 as bar, foo_0 as foo };
 
 ```
 
@@ -47,35 +67,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/create_fake_namespace_object
-(() => {
-var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
-var leafPrototypes;
-// create a fake namespace object
-// mode & 1: value is a module id, require it
-// mode & 2: merge all properties of value into the ns
-// mode & 4: return value when already ns object
-// mode & 16: return value when it's Promise-like
-// mode & 8|1: behave like require
-__webpack_require__.t = function(value, mode) {
-	if(mode & 1) value = this(value);
-	if(mode & 8) return value;
-	if(typeof value === 'object' && value) {
-		if((mode & 4) && value.__esModule) return value;
-		if((mode & 16) && typeof value.then === 'function') return value;
-	}
-	var ns = Object.create(null);
-  __webpack_require__.r(ns);
-	var def = {};
-	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
-	for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
-	}
-	def['default'] = () => (value);
-	__webpack_require__.d(ns, def);
-	return ns;
-};
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {

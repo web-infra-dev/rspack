@@ -1,23 +1,27 @@
 use std::{borrow::Cow, sync::Arc};
 
+use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkLinkContext, ChunkRenderContext, ChunkUkey,
   Compilation, ConcatenatedModuleInfo, ConcatenationScope, InitFragment, ModuleIdentifier,
   PathData, PathInfo, Ref, RuntimeGlobals, SourceType, get_js_chunk_filename_template,
-  render_init_fragments,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, SourceExt},
+  get_undo_path, render_init_fragments,
+  rspack_sources::{
+    BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt,
+  },
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
-  runtime::{render_module, render_runtime_modules},
+  runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
 use rspack_util::{
   SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxIndexSet},
 };
+use swc_core::common::sync::Lazy;
 
 #[inline]
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
@@ -25,6 +29,9 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
 }
 
 use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
+
+static AUTO_PUBLIC_PATH_PLACEHOLDER_RE: Lazy<Regex> =
+  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("failed to create regex"));
 
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
@@ -77,6 +84,7 @@ impl EsmLibraryPlugin {
 
     let mut decl_modules: Vec<&BoxModule> = Default::default();
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> = vec![];
+    let mut replace_auto_public_path = false;
 
     let concatenated_modules_map_by_compilation = self.concatenated_modules_map.lock().await;
     let concatenated_modules_map = concatenated_modules_map_by_compilation
@@ -187,11 +195,13 @@ impl EsmLibraryPlugin {
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
+    let mut imported_chunks = UkeyIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      // render chunk needs to render *all* runtimes in the whole tree
       let chunk_runtime_requirements =
-        ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+        ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
       if chunk_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
         runtime_source.add(RawStringSource::from_static(
           "\nvar __webpack_modules__ = {};\n",
@@ -203,7 +213,10 @@ impl EsmLibraryPlugin {
       runtime_source.add(RawSource::from("\n"));
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey).await?);
       runtime_source.add(RawSource::from("\n"));
-      export_specifiers.insert(Cow::Borrowed(RuntimeGlobals::REQUIRE.name()));
+
+      if chunk_runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
+        export_specifiers.insert(Cow::Borrowed(RuntimeGlobals::REQUIRE.name()));
+      }
     }
 
     // render namespace object before render module contents
@@ -213,8 +226,13 @@ impl EsmLibraryPlugin {
 
     let mut already_rendered = IdentifierSet::default();
     for m in &chunk_link.hoisted_modules {
-      let info = concatenated_modules_map.get(m).expect("should have info");
-      let info = info.as_concatenated();
+      let info = concatenated_modules_map
+        .get(m)
+        .expect("should have info")
+        .as_concatenated();
+      if info.public_path_auto_replace == Some(true) {
+        replace_auto_public_path = true;
+      }
 
       let source = Self::render_module(info, chunk_link)?;
 
@@ -243,6 +261,53 @@ impl EsmLibraryPlugin {
       ));
       render_source.add(source);
       render_source.add(RawSource::from_static("\n"));
+
+      chunk_init_fragments.extend(info.chunk_init_fragments.clone());
+
+      if info.interop_namespace_object_used {
+        render_source.add(RawStringSource::from(format!(
+          "\nvar {} = /*#__PURE__*/{}({}, 2);",
+          info
+            .interop_namespace_object_name
+            .clone()
+            .expect("should have interop_namespace_object_name"),
+          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          info
+            .namespace_object_name
+            .as_ref()
+            .expect("should have name")
+        )));
+      }
+
+      if info.interop_namespace_object2_used {
+        render_source.add(RawStringSource::from(format!(
+          "\nvar {} = /*#__PURE__*/{}({});",
+          info
+            .interop_namespace_object2_name
+            .clone()
+            .expect("should have interop_namespace_object2_name"),
+          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          info
+            .namespace_object_name
+            .as_ref()
+            .expect("should have name")
+        )));
+      }
+
+      if info.interop_default_access_used {
+        render_source.add(RawStringSource::from(format!(
+          "\nvar {} = /*#__PURE__*/{}({});",
+          info
+            .interop_default_access_name
+            .clone()
+            .expect("should have interop_default_access_name"),
+          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          info
+            .namespace_object_name
+            .as_ref()
+            .expect("should have name")
+        )));
+      }
     }
 
     for (m, required_info) in &chunk_link.required {
@@ -258,7 +323,7 @@ impl EsmLibraryPlugin {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
-      if &runtime_chunk != chunk_ukey {
+      if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
         final_source.add(RawStringSource::from(format!(
           "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
           RuntimeGlobals::REQUIRE,
@@ -267,8 +332,42 @@ impl EsmLibraryPlugin {
       }
     }
 
+    for ((source, attr), symbols) in &chunk_link.raw_import_stmts {
+      let source_str = format!(
+        "{}{}",
+        serde_json::to_string(source).expect("should have source"),
+        if let Some(attr) = attr {
+          format!(" with {attr}")
+        } else {
+          String::new()
+        }
+      );
+
+      let import_str = if symbols.atoms.is_empty() && symbols.default_import.is_none() {
+        format!("import {source_str};\n")
+      } else {
+        let mut imports = Vec::new();
+        for (atom, local) in symbols.atoms.iter() {
+          if atom == local {
+            imports.push(atom.to_string());
+          } else {
+            imports.push(format!("{atom} as {local}"));
+          }
+        }
+        format!(
+          "import {}{{ {} }} from {source_str};\n",
+          if let Some(default_import) = &symbols.default_import {
+            format!("{default_import}, ")
+          } else {
+            String::new()
+          },
+          imports.join(", ")
+        )
+      };
+      final_source.add(RawStringSource::from(import_str));
+    }
+
     if !chunk_link.imports.is_empty() {
-      let mut imported_chunks = UkeyIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
       for (id, imports) in &chunk_link.imports {
         let chunk = Self::get_module_chunk(*id, compilation);
         if &chunk == chunk_ukey {
@@ -391,8 +490,34 @@ impl EsmLibraryPlugin {
       &mut ChunkRenderContext {},
     )?;
 
+    let final_source = if replace_auto_public_path {
+      let mut replace_source = ReplaceSource::new(final_source);
+      let mut replacement = vec![];
+      for captures in AUTO_PUBLIC_PATH_PLACEHOLDER_RE.find_iter(&replace_source.source()) {
+        let start = captures.range().start as u32;
+        let end = captures.range().end as u32;
+        let relative = get_undo_path(
+          &output_path,
+          compilation.options.output.path.to_string(),
+          true,
+        );
+        replacement.push((start, end, relative));
+      }
+
+      for (start, end, relative) in replacement {
+        replace_source.replace(start, end, &relative, None);
+      }
+
+      // concate module does this by render_module()
+      // however esm module does not have concate module,
+      // some replacement needs to be done here
+      replace_source.boxed()
+    } else {
+      Arc::new(final_source)
+    };
+
     Ok(Some(RenderSource {
-      source: Arc::new(final_source),
+      source: final_source,
     }))
   }
   pub async fn render_runtime(
@@ -476,10 +601,15 @@ impl EsmLibraryPlugin {
         };
 
         for ident in refs {
+          let name = if ident.shorthand {
+            Cow::Owned(format!("{}: {}", &ident.id.sym, &final_name))
+          } else {
+            final_name.clone()
+          };
           source.replace(
             ident.id.span.real_lo(),
             ident.id.span.real_hi() + 2,
-            &final_name,
+            &name,
             None,
           );
         }
@@ -501,10 +631,15 @@ impl EsmLibraryPlugin {
         };
 
         for ref_atom in refs {
+          let name = if ref_atom.shorthand {
+            Cow::Owned(format!("{}: {}", &ref_atom.id.sym, final_name.as_str()))
+          } else {
+            Cow::Borrowed(&final_name)
+          };
           source.replace(
             ref_atom.id.span.real_lo(),
             ref_atom.id.span.real_hi(),
-            final_name.as_str(),
+            &name,
             None,
           );
         }
@@ -516,11 +651,16 @@ impl EsmLibraryPlugin {
         continue;
       }
 
-      if let Some(internal_name) = info.internal_names.get(&ident.id.sym) {
+      if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
+        let name = if ident.shorthand {
+          format!("{}: {}", &ident.id.sym, &internal_name)
+        } else {
+          internal_name.to_string()
+        };
         source.replace(
           ident.id.span.real_lo(),
           ident.id.span.real_hi(),
-          internal_name,
+          &name,
           None,
         );
       }

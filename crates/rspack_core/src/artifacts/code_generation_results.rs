@@ -295,6 +295,26 @@ impl CodeGenerationResults {
       .unwrap_or_else(|| panic!("No code generation result for {module_identifier}"))
   }
 
+  /**
+   * This API should be used carefully, it will return one of the code generation result,
+   * make sure the module has the same code generation result for all runtimes.
+   */
+  pub fn get_one_mut(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+  ) -> &mut BindingCell<CodeGenerationResult> {
+    self
+      .map
+      .get(module_identifier)
+      .and_then(|entry| {
+        entry
+          .values()
+          .next()
+          .and_then(|m| self.module_generation_result_map.get_mut(m))
+      })
+      .unwrap_or_else(|| panic!("No code generation result for {module_identifier}"))
+  }
+
   pub fn get_mut(
     &mut self,
     module_identifier: &ModuleIdentifier,

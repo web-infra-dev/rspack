@@ -447,10 +447,10 @@ impl ModuleInfo {
   }
 }
 
-#[derive(Default)]
-struct ImportSpec {
-  atoms: BTreeMap<Atom, Atom>,
-  default_import: Option<Atom>,
+#[derive(Default, Clone, Debug)]
+pub struct ImportSpec {
+  pub atoms: BTreeMap<Atom, Atom>,
+  pub default_import: Option<Atom>,
 }
 
 #[impl_source_map_config]

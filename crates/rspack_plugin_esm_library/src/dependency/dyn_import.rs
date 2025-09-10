@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsModuleDependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode,
-  ModuleGraph, RuntimeGlobals, TemplateContext, UsageState, get_exports_type,
-  missing_module_promise, module_id,
+  DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode, ModuleGraph,
+  RuntimeGlobals, TemplateContext, UsageState, get_exports_type, missing_module_promise, module_id,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -92,7 +91,6 @@ fn then_expr(
       }
     }
   }
-
   appending
 }
 
@@ -110,13 +108,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       .as_any()
       .downcast_ref::<ImportDependency>()
       .expect("ImportDependencyTemplate can only be applied to ImportDependency");
-    let dep_id = dep
-      .as_module_dependency()
-      .expect("should be module dep")
-      .id();
+    let dep_id = dep.id;
     let module_graph = code_generatable_context.compilation.get_module_graph();
 
-    let Some(ref_module) = module_graph.get_module_by_dependency_id(dep_id) else {
+    let Some(ref_module) = module_graph.get_module_by_dependency_id(&dep_id) else {
       let missing_promise = missing_module_promise(dep.request.as_str());
       source.replace(dep.range.start, dep.range.end, &missing_promise, None);
       return;
@@ -129,7 +124,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
 
     let orig_chunk = EsmLibraryPlugin::get_module_chunk(
       *module_graph
-        .get_parent_module(dep_id)
+        .get_parent_module(&dep_id)
         .expect("should have parent module for import dep"),
       code_generatable_context.compilation,
     );
@@ -171,7 +166,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         dep.range.end,
         &format!(
           "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, &dep.request)
+          then_expr(code_generatable_context, &dep_id, &dep.request)
         ),
         None,
       );
@@ -192,7 +187,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         dep.range.end,
         &format!(
           "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, &dep.request)
+          then_expr(code_generatable_context, &dep_id, &dep.request)
         ),
         None,
       );

@@ -10,8 +10,8 @@ use rspack_util::{atom::Atom, env::has_query, fx_hash::FxIndexMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
-  RuntimeGlobals, find_new_name,
+  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ImportSpec,
+  ModuleIdentifier, RuntimeGlobals, find_new_name,
 };
 
 pub mod chunk_graph_chunk;
@@ -76,7 +76,7 @@ pub trait BindingRenderer {
   fn render<'a>(&'a self) -> Cow<'a, str>;
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ExternalInterop {
   pub module: ModuleIdentifier,
   pub from_module: IdentifierSet,
@@ -232,7 +232,7 @@ impl ExternalInterop {
         RuntimeGlobals::REQUIRE,
         serde_json::to_string(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
-            .expect("should set module id")
+            .unwrap_or_else(|| panic!("should set module id for {}", self.module))
             .as_str()
         )
         .expect("module id to string should success")
@@ -268,6 +268,11 @@ pub struct ChunkLinkContext {
   import order matters, it affects execution order
   */
   pub imports: IdentifierIndexMap<HashMap<Atom, Atom>>,
+
+  /**
+  raw import statements
+   */
+  pub raw_import_stmts: FxIndexMap<(String, Option<String>), ImportSpec>,
 
   /**
   const symbol = __webpack_require__(module_id)
@@ -327,6 +332,7 @@ impl ChunkLinkContext {
       dyn_refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),
+      raw_import_stmts: Default::default(),
     }
   }
 

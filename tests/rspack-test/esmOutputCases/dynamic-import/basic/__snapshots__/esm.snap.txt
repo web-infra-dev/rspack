@@ -1,32 +1,33 @@
+```mjs title=dynamic_js.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+Object.assign(__webpack_require__.m, {
+"./dynamic.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (42);
+
+
+}),
+});
+
+```
+
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 
 Object.assign(__webpack_require__.m, {
-"./bar.cjs": (function (module) {
-module.exports = 'bar'
-globalThis.testValue = 'bar';
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+it('should support dynamic import', async () => {
+	const value = await import("./dynamic_js.mjs").then(__webpack_require__.bind(__webpack_require__, "./dynamic.js"))
+	expect(value.default).toBe(42)
+})
 
 
-}),
-"./foo.cjs": (function (module) {
-module.exports = 'foo'
-globalThis.testValue = 'foo';
 
 }),
 });
-const foo = __webpack_require__("./foo.cjs");
-var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
-const bar = __webpack_require__("./bar.cjs");
-var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
-
-
-
-// the order should be import order not access order
-it('should have correct order', () => {
-	expect((bar_default())).toBe('bar');
-	expect((foo_default())).toBe('foo');
-	expect(globalThis.testValue).toBe('bar')
-})
+const index = __webpack_require__("./index.js");
 
 
 ```
@@ -56,18 +57,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {

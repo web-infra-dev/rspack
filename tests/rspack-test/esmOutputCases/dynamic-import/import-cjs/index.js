@@ -3,3 +3,4 @@ it('should support dynamic import', async () => {
 	expect(mod.value).toBe(42)
 })
 
+export {}

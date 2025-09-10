@@ -1,39 +1,35 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./foo.js
+var foo_namespaceObject = {};
+__webpack_require__.r(foo_namespaceObject);
+__webpack_require__.d(foo_namespaceObject, { 
+  foo1: () => (foo1),
+  foo2: () => (foo2) });
 
-Object.assign(__webpack_require__.m, {
-"./bar.cjs": (function (module) {
-module.exports = 'bar'
-globalThis.testValue = 'bar';
 
-
-}),
-"./foo.cjs": (function (module) {
-module.exports = 'foo'
-globalThis.testValue = 'foo';
-
-}),
-});
-const foo = __webpack_require__("./foo.cjs");
-var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
-const bar = __webpack_require__("./bar.cjs");
-var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
+const foo1 = 1
+const foo2 = 2
 
 
 
-// the order should be import order not access order
-it('should have correct order', () => {
-	expect((bar_default())).toBe('bar');
-	expect((foo_default())).toBe('foo');
-	expect(globalThis.testValue).toBe('bar')
+console.log; // side effect
+
+
+
+
+
+it('should import star export', () => {
+	expect(foo_namespaceObject).toHaveProperty('foo1')
+	expect(foo_namespaceObject).toHaveProperty('foo2')
+	expect(foo1).toBe(1)
+	expect(foo2).toBe(2)
 })
 
 
 ```
 
 ```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
 // The module cache
 var __webpack_module_cache__ = {};
 // The require function
@@ -53,21 +49,7 @@ __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
 return module.exports;
 }
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
@@ -81,6 +63,16 @@ __webpack_require__.d = (exports, definition) => {
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
 })();
 
 export { __webpack_require__ };

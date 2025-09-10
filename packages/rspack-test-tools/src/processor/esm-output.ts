@@ -7,7 +7,7 @@ import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { type ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
 export interface IConfigProcessorOptions<T extends ECompilerType>
-	extends ISnapshotProcessorOptions<T> {}
+	extends ISnapshotProcessorOptions<T> { }
 
 export class EsmOutputProcessor extends SnapshotProcessor<ECompilerType.Rspack> {
 	constructor(
@@ -40,7 +40,7 @@ export class EsmOutputProcessor extends SnapshotProcessor<ECompilerType.Rspack> 
 					options.output.path!,
 					(typeof options.output?.cssFilename === "string" &&
 						options.output?.cssFilename) ||
-						`bundle.css`
+					`bundle.css`
 				);
 				if (fs.existsSync(cssOutputPath)) {
 					bundlePath.push(`./bundle.css`);
@@ -88,7 +88,7 @@ export class EsmOutputProcessor extends SnapshotProcessor<ECompilerType.Rspack> 
 				css: true,
 				rspackFuture: {
 					bundlerInfo: {
-						force: false
+						force: false,
 					}
 				},
 				outputModule: true
