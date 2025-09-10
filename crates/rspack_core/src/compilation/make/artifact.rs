@@ -44,7 +44,7 @@ pub struct MakeArtifact {
   /// This field is empty on a cold start,
   /// but incremental rebuild will contain modules that need to be rebuilt or removed.
   pub revoked_modules: IdentifierSet,
-  /// The modules which mgm.issuer() has been update in cutout::fix_issuers.
+  /// The modules which mgm.issuer() has been updated in cutout::fix_issuers.
   ///
   /// This field is empty on a cold start.
   pub issuer_update_modules: IdentifierSet,
