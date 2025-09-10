@@ -68,6 +68,7 @@ impl Task<TaskContext> for FactorizeTask {
           .map(|d| d.request().to_string())
       })
       .unwrap_or_default();
+
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
@@ -114,17 +115,22 @@ impl Task<TaskContext> for FactorizeTask {
       current_profile.mark_factory_end();
     }
 
-    let factorize_info = FactorizeInfo::new(
-      create_data.diagnostics,
-      create_data
-        .dependencies
-        .iter()
-        .map(|dep| *dep.id())
-        .collect(),
-      create_data.file_dependencies,
-      create_data.context_dependencies,
-      create_data.missing_dependencies,
-    );
+    let factorize_info = if !create_data.diagnostics.is_empty() {
+      Some(FactorizeInfo::new(
+        create_data.diagnostics,
+        create_data
+          .dependencies
+          .iter()
+          .map(|dep| *dep.id())
+          .collect(),
+        create_data.file_dependencies,
+        create_data.context_dependencies,
+        create_data.missing_dependencies,
+      ))
+    } else {
+      None
+    };
+
     let exports_info = ExportsInfoData::default();
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
@@ -147,7 +153,7 @@ pub struct FactorizeResultTask {
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoData,
-  pub factorize_info: FactorizeInfo,
+  pub factorize_info: Option<FactorizeInfo>,
   pub from_unlazy: bool,
 }
 
@@ -168,20 +174,22 @@ impl Task<TaskContext> for FactorizeResultTask {
     } = *self;
 
     let artifact = &mut context.artifact;
-    artifact
-      .file_dependencies
-      .add_batch_file(&factorize_info.file_dependencies());
-    artifact
-      .context_dependencies
-      .add_batch_file(&factorize_info.context_dependencies());
-    artifact
-      .missing_dependencies
-      .add_batch_file(&factorize_info.missing_dependencies());
-
     let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
-    // write factorize_info to dependencies[0] and set success factorize_info to others
-    module_graph.insert_dependency_factorize_info(*dependencies[0].id(), factorize_info);
+    if let Some(factorize_info) = factorize_info {
+      artifact
+        .file_dependencies
+        .add_batch_file(&factorize_info.file_dependencies());
+      artifact
+        .context_dependencies
+        .add_batch_file(&factorize_info.context_dependencies());
+      artifact
+        .missing_dependencies
+        .add_batch_file(&factorize_info.missing_dependencies());
+
+      // write factorize_info to dependencies[0] and set success factorize_info to others
+      module_graph.insert_dependency_factorize_info(*dependencies[0].id(), factorize_info);
+    }
 
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
