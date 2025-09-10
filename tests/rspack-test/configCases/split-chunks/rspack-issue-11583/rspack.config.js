@@ -1,6 +1,6 @@
 module.exports = {
 	mode: "production",
-	entry: "./index",
+	entry: "./src/index",
 	output: {
 		filename: "[name].js",
 		chunkFilename: "[name].js"
