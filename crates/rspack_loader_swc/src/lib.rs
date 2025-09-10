@@ -54,7 +54,6 @@ impl SwcLoader {
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
-    dbg!(&resource_path);
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
       if swc_options.config.jsc.transform.as_ref().is_some() {
