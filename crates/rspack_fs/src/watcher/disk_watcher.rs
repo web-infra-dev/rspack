@@ -40,9 +40,9 @@ impl DiskWatcher {
 
           let kind = match event.kind {
             EventKind::Create(_) => FsEventKind::Create,
-            EventKind::Modify(ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_)) => {
-              FsEventKind::Change
-            }
+            EventKind::Modify(
+              ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
+            ) => FsEventKind::Change,
             EventKind::Remove(_) => FsEventKind::Remove,
             // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
             // path/to/index.js should be removed, and path/to/index.js.map should be changed
@@ -99,7 +99,7 @@ impl DiskWatcher {
         if let Err(e) = watcher.unwatch(pattern)
           && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
         {
-          return Err(rspack_error::error!(e));
+          return Err(rspack_error::error!(e.to_string()));
         }
       }
     }
@@ -112,7 +112,7 @@ impl DiskWatcher {
       if let Some(watcher) = &mut self.inner {
         watcher
           .watch(&pattern.path, pattern.mode)
-          .map_err(|e| rspack_error::error!(e))?;
+          .map_err(|e| rspack_error::error!(e.to_string()))?;
       }
 
       self.watch_patterns.insert(pattern);

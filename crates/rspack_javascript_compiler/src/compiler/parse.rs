@@ -62,9 +62,7 @@ impl JavaScriptCompiler {
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| {
-              rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, &fm))
-            })
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm))
             .collect::<Vec<_>>(),
         )
       })
@@ -87,9 +85,7 @@ impl JavaScriptCompiler {
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| {
-              rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, fm))
-            })
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm))
             .collect::<Vec<_>>(),
         )
       })
@@ -110,9 +106,7 @@ impl JavaScriptCompiler {
         errs
           .dedup_ecma_errors()
           .into_iter()
-          .map(|err| {
-            rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, &fm))
-          })
+          .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm))
           .collect::<Vec<_>>(),
       )
     })

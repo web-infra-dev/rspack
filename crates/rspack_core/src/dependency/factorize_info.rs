@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use rspack_cacheable::{cacheable, with::Skip};
+use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
@@ -19,8 +19,6 @@ pub enum FactorizeInfo {
     file_dependencies: HashSet<ArcPath>,
     context_dependencies: HashSet<ArcPath>,
     missing_dependencies: HashSet<ArcPath>,
-    // TODO remove skip after Diagnostic cacheable.
-    #[cacheable(with=Skip)]
     diagnostics: Vec<Diagnostic>,
   },
 }

@@ -3,7 +3,7 @@ use std::{
   collections::{HashMap, HashSet, hash_map::Entry},
   hash::Hash,
   ops::Deref,
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, RwLock as SyncRwLock},
 };
 
 use rayon::prelude::*;
@@ -25,9 +25,9 @@ pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, SpanExt, basic_function,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, basic_function,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -38,7 +38,8 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_javascript_compiler::ast::Ast;
-use rspack_util::{diff_mode, fx_hash::FxDashMap};
+use rspack_util::{SpanExt, diff_mode};
+use rustc_hash::FxHashMap;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,
@@ -52,7 +53,7 @@ use crate::runtime::{
 };
 
 static COMPILATION_HOOKS_MAP: LazyLock<
-  FxDashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>,
+  SyncRwLock<FxHashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
 > = LazyLock::new(Default::default);
 
 #[derive(Debug, Clone)]
@@ -109,17 +110,21 @@ pub struct JsPlugin {
 
 impl JsPlugin {
   pub fn get_compilation_hooks(id: CompilationId) -> Arc<RwLock<JavascriptModulesPluginHooks>> {
-    if !COMPILATION_HOOKS_MAP.contains_key(&id) {
-      COMPILATION_HOOKS_MAP.insert(id, Default::default());
-    }
     COMPILATION_HOOKS_MAP
+      .read()
+      .expect("should have js plugin drive")
       .get(&id)
       .expect("should have js plugin drive")
       .clone()
   }
 
   pub fn get_compilation_hooks_mut(id: CompilationId) -> Arc<RwLock<JavascriptModulesPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(id).or_default().clone()
+    COMPILATION_HOOKS_MAP
+      .write()
+      .expect("should have js plugin drive")
+      .entry(id)
+      .or_default()
+      .clone()
   }
 
   pub fn render_require(
@@ -358,8 +363,8 @@ impl JsPlugin {
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
           let bailout = hooks
-            .read()
-            .await
+            .try_read()
+            .expect("should have js plugin drive")
             .inline_in_runtime_bailout
             .call(compilation)
             .await?;
@@ -524,7 +529,9 @@ impl JsPlugin {
     output_path: &str,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
-    let hooks = js_plugin_hooks.read().await;
+    let hooks = js_plugin_hooks
+      .try_read()
+      .expect("should have js plugin drive");
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let supports_arrow_function = compilation
       .options
@@ -579,7 +586,7 @@ impl JsPlugin {
       }
     }
 
-    let chunk_modules: Vec<&Box<dyn Module>> = if let Some(inlined_modules) = inlined_modules {
+    let chunk_modules: Vec<&dyn Module> = if let Some(inlined_modules) = inlined_modules {
       all_modules
         .clone()
         .into_iter()
@@ -674,7 +681,7 @@ impl JsPlugin {
         let Some((mut rendered_module, fragments, additional_fragments)) = render_module(
           compilation,
           chunk_ukey,
-          m,
+          m.as_ref(),
           all_strict,
           false,
           output_path,
@@ -828,7 +835,7 @@ impl JsPlugin {
   #[allow(clippy::too_many_arguments)]
   pub async fn get_renamed_inline_module(
     &self,
-    all_modules: &[&BoxModule],
+    all_modules: &[&dyn Module],
     inlined_modules: &IdentifierLinkedMap<ChunkGroupUkey>,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
@@ -871,7 +878,7 @@ impl JsPlugin {
             render_module(
               compilation,
               chunk_ukey,
-              module,
+              *module,
               all_strict,
               false,
               output_path,
@@ -1175,7 +1182,9 @@ impl JsPlugin {
     output_path: &str,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
-    let hooks = js_plugin_hooks.read().await;
+    let hooks = js_plugin_hooks
+      .try_read()
+      .expect("should have js plugin drive");
     let module_graph = &compilation.get_module_graph();
     let is_module = compilation.options.output.module;
     let mut all_strict = compilation.options.output.module;
@@ -1244,8 +1253,8 @@ impl JsPlugin {
   ) -> Result<()> {
     let hooks = Self::get_compilation_hooks(compilation.id());
     hooks
-      .read()
-      .await
+      .try_read()
+      .expect("should have js plugin drive")
       .chunk_hash
       .call(compilation, chunk_ukey, hasher)
       .await?;

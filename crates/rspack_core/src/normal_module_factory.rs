@@ -1,26 +1,24 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_cacheable::cacheable;
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, Scheme, get_scheme};
 use rspack_paths::Utf8PathBuf;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
-use swc_core::common::Span;
 use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyRange, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, RunnerContext, SharedPluginDriver, diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory, FactoryMeta,
+  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
+  stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -133,7 +131,7 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     let dependency_type = *dependency.dependency_type();
     let dependency_category = *dependency.category();
-    let dependency_source_span = dependency.source_span();
+    let dependency_range = dependency.range();
     let dependency_optional = dependency.get_optional();
 
     let importer = data.issuer_identifier;
@@ -218,8 +216,7 @@ impl NormalModuleFactory {
         let second_char = request.next();
 
         if first_char.is_none() {
-          let span = dependency.source_span().unwrap_or_default();
-          return Err(EmptyDependency::new(DependencyRange::new(span.start, span.end)).into());
+          return Err(EmptyDependency::new(dependency.range()).into());
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline
@@ -314,7 +311,7 @@ impl NormalModuleFactory {
           specifier: &resource,
           dependency_type: &dependency_type,
           dependency_category: &dependency_category,
-          span: dependency_source_span,
+          span: dependency_range,
           resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
@@ -886,32 +883,6 @@ async fn resolve_each(
     .call(context, loader_resolver, l)
     .await?
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
-}
-
-/// Using `u32` instead of `usize` to reduce memory usage,
-/// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
-/// ## Warning
-/// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
-#[cacheable]
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
-pub struct ErrorSpan {
-  pub start: u32,
-  pub end: u32,
-}
-
-impl ErrorSpan {
-  pub fn new(start: u32, end: u32) -> Self {
-    Self { start, end }
-  }
-}
-
-impl From<Span> for ErrorSpan {
-  fn from(span: Span) -> Self {
-    Self {
-      start: span.lo.0.saturating_sub(1),
-      end: span.hi.0.saturating_sub(1),
-    }
-  }
 }
 
 #[derive(Debug)]

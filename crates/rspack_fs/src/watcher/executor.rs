@@ -9,7 +9,8 @@ use tokio::sync::{
   mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 
-use super::{EventAggregateHandler, EventHandler, FsEvent, FsEventKind};
+use super::{EventAggregateHandler, EventHandler, FsEventKind};
+use crate::watcher::EventBatch;
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -32,7 +33,7 @@ impl FilesData {
 /// deleted files, and coordinates the event handling logic.
 pub struct Executor {
   aggregate_timeout: u32,
-  rx: ThreadSafety<UnboundedReceiver<FsEvent>>,
+  rx: ThreadSafetyReceiver<EventBatch>,
   files_data: ThreadSafety<FilesData>,
   exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
@@ -59,13 +60,13 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(FsEvent),
+  Execute(EventBatch),
   Close,
 }
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  pub fn new(rx: UnboundedReceiver<FsEvent>, aggregate_timeout: Option<u32>) -> Self {
+  pub fn new(rx: UnboundedReceiver<EventBatch>, aggregate_timeout: Option<u32>) -> Self {
     let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 
@@ -134,24 +135,27 @@ impl Executor {
       let aggregate_running = Arc::clone(&self.aggregate_running);
 
       let future = async move {
-        while let Some(event) = rx.lock().await.recv().await {
-          let path = event.path.to_string_lossy().to_string();
-          match event.kind {
-            FsEventKind::Change => {
-              files_data.lock().await.changed.insert(path);
+        while let Some(events) = rx.lock().await.recv().await {
+          for event in &events {
+            let path = event.path.to_string_lossy().to_string();
+            match event.kind {
+              FsEventKind::Change => {
+                files_data.lock().await.changed.insert(path);
+              }
+              FsEventKind::Remove => {
+                files_data.lock().await.deleted.insert(path);
+              }
+              FsEventKind::Create => {
+                files_data.lock().await.changed.insert(path);
+              }
             }
-            FsEventKind::Remove => {
-              files_data.lock().await.deleted.insert(path);
-            }
-            FsEventKind::Create => {
-              files_data.lock().await.changed.insert(path);
-            }
-          };
+          }
 
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
           }
-          let _ = exec_tx.send(ExecEvent::Execute(event));
+
+          let _ = exec_tx.send(ExecEvent::Execute(events));
         }
 
         let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
@@ -194,19 +198,22 @@ fn create_execute_task(
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
-    while let Some(event) = exec_rx.lock().await.recv().await {
-      match event {
-        ExecEvent::Execute(event) => {
-          let path = event.path.to_string_lossy().to_string();
-          match event.kind {
-            super::FsEventKind::Change | super::FsEventKind::Create => {
-              if event_handler.on_change(path).is_err() {
-                break;
+    while let Some(exec_event) = exec_rx.lock().await.recv().await {
+      match exec_event {
+        ExecEvent::Execute(batch_events) => {
+          for event in batch_events {
+            // Handle each event based on its kind
+            let path = event.path.to_string_lossy().to_string();
+            match event.kind {
+              super::FsEventKind::Change | super::FsEventKind::Create => {
+                if event_handler.on_change(path).is_err() {
+                  break;
+                }
               }
-            }
-            super::FsEventKind::Remove => {
-              if event_handler.on_delete(path).is_err() {
-                break;
+              super::FsEventKind::Remove => {
+                if event_handler.on_delete(path).is_err() {
+                  break;
+                }
               }
             }
           }

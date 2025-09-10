@@ -15,6 +15,7 @@ pub struct Experiments {
   pub top_level_await: bool,
   pub rspack_future: RspackFuture,
   pub cache: ExperimentCacheOptions,
+  pub css: bool,
   pub inline_const: bool,
   pub inline_enum: bool,
   pub type_reexports_presence: bool,

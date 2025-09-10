@@ -1114,6 +1114,8 @@ export class Compiler {
     get __internal__ruleSet(): RuleSetCompiler;
     // @internal
     __internal__takeModuleExecutionResult(id: number): any;
+    // @internal
+    __internal_browser_require: (id: string) => unknown;
     // (undocumented)
     cache: Cache_2;
     // (undocumented)
@@ -2644,7 +2646,7 @@ export type Externals = ExternalItem | ExternalItem[];
 
 // @public (undocumented)
 export class ExternalsPlugin extends RspackBuiltinPlugin {
-    constructor(type: string, externals: Externals);
+    constructor(type: string, externals: Externals, placeInInitial?: boolean | undefined);
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
@@ -4319,16 +4321,16 @@ export interface LoaderContext<OptionsType = {}> {
 }
 
 // @public (undocumented)
-type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => void;
+type LoaderContextCallback = (err?: Error | null, content?: string | Buffer, sourceMap?: string | RawSourceMap, additionalData?: AdditionalData) => void;
 
-// @public (undocumented)
+// @public
 export type LoaderDefinition<OptionsType = {}, ContextAdditions = {}> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
     raw?: false;
     pitch?: PitchLoaderDefinitionFunction;
 };
 
 // @public (undocumented)
-export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | SourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer>;
+export type LoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, content: string, sourceMap?: string | RawSourceMap, additionalData?: AdditionalData) => string | void | Buffer | Promise<string | Buffer | void>;
 
 // @public (undocumented)
 interface LoaderExperiments {
@@ -4848,7 +4850,7 @@ class MultiWatching {
     // (undocumented)
     compiler: MultiCompiler;
     // (undocumented)
-    invalidate(callback: Callback<Error, void>): void;
+    invalidate(callback?: Callback<Error, void>): void;
     // (undocumented)
     invalidateWithChangesAndRemovals(changedFiles?: Set<string>, removedFiles?: Set<string>, callback?: Callback<Error, void>): void;
     // (undocumented)
@@ -5563,7 +5565,7 @@ type Performance_2 = false | {
 export { Performance_2 as Performance }
 
 // @public (undocumented)
-export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer>;
+export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer | void>;
 
 // @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;
@@ -5760,7 +5762,20 @@ export type PublicPath = "auto" | Filename;
 type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
-interface RawSourceMap {
+export interface RawSourceMap {
+    debugId?: string;
+    file: string;
+    ignoreList?: number[];
+    mappings: string;
+    names: string[];
+    sourceRoot?: string;
+    sources: string[];
+    sourcesContent?: string[];
+    version: number;
+}
+
+// @public (undocumented)
+interface RawSourceMap_2 {
     	debugId?: string;
 
     	file: string;
@@ -6382,6 +6397,7 @@ declare namespace rspackExports {
         SourceMapDevToolPlugin,
         SwcJsMinimizerRspackPlugin,
         experiments,
+        RawSourceMap,
         getRawResolve,
         LoaderContext,
         LoaderDefinition,
@@ -7141,7 +7157,7 @@ class Source {
     	// (undocumented)
     buffer(): Buffer_2;
     	// (undocumented)
-    map(options?: MapOptions): null | RawSourceMap;
+    map(options?: MapOptions): null | RawSourceMap_2;
     	// (undocumented)
     size(): number;
     	// (undocumented)
@@ -7154,27 +7170,9 @@ class Source {
 
 // @public (undocumented)
 interface SourceAndMap {
-    	map: null | RawSourceMap;
+    	map: null | RawSourceMap_2;
 
     	source: SourceValue;
-}
-
-// @public (undocumented)
-interface SourceMap {
-    // (undocumented)
-    file?: string;
-    // (undocumented)
-    mappings: string;
-    // (undocumented)
-    names?: string[];
-    // (undocumented)
-    sourceRoot?: string;
-    // (undocumented)
-    sources: string[];
-    // (undocumented)
-    sourcesContent?: string[];
-    // (undocumented)
-    version: number;
 }
 
 // @public (undocumented)

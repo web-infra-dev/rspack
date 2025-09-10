@@ -176,7 +176,10 @@ impl MakeArtifact {
         m.diagnostics()
           .iter()
           .cloned()
-          .map(|d| d.with_module_identifier(Some(*module_identifier)))
+          .map(|mut d| {
+            d.module_identifier = Some(*module_identifier);
+            d
+          })
           .collect::<Vec<_>>()
       });
     let make_failed_dependencies = mg
@@ -191,7 +194,10 @@ impl MakeArtifact {
         .diagnostics()
         .iter()
         .cloned()
-        .map(|d| d.with_module_identifier(origin_module_identifier.copied()))
+        .map(|mut d| {
+          d.module_identifier = origin_module_identifier.copied();
+          d
+        })
         .collect::<Vec<_>>()
     });
     module_diagnostics.chain(dep_diagnostics).collect()

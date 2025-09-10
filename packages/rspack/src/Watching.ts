@@ -334,7 +334,6 @@ export class Watching {
 	private _done(error: Error | null, compilation?: Compilation) {
 		this.running = false;
 
-		// biome-ignore lint/style/useConst: skip
 		let stats: undefined | Stats;
 
 		const handleError = (err: Error, cbs?: Callback<Error, void>[]) => {

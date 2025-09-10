@@ -4,9 +4,10 @@ mod max_size;
 mod min_size;
 mod module_group;
 
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
-use rspack_collections::UkeyMap;
+use itertools::Itertools;
+use rspack_collections::{IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -14,7 +15,11 @@ use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use rustc_hash::FxHashMap;
 use tracing::instrument;
 
-use crate::{CacheGroup, SplitChunkSizes, common::FallbackCacheGroup, module_group::ModuleGroup};
+use crate::{
+  CacheGroup, SplitChunkSizes,
+  common::FallbackCacheGroup,
+  module_group::{IndexedCacheGroup, ModuleGroup},
+};
 
 type ModuleGroupMap = FxHashMap<String, ModuleGroup>;
 
@@ -44,7 +49,7 @@ impl SplitChunksPlugin {
   #[instrument(name = "Compilation:SplitChunks",target=TRACING_BENCH_TARGET, skip_all)]
   async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger(self.name());
-    let start = logger.time("prepare module group map");
+    let start = logger.time("prepare module data");
 
     let all_modules = compilation
       .get_module_graph()
@@ -55,118 +60,181 @@ impl SplitChunksPlugin {
 
     let module_sizes = Self::get_module_sizes(&all_modules, compilation);
     let module_chunks = Self::get_module_chunks(&all_modules, compilation);
-
-    let mut module_group_map = self
-      .prepare_module_group_map(&all_modules, compilation, &module_sizes, &module_chunks)
-      .await?;
-    tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);
 
-    let start: rspack_core::StartTime = logger.time("ensure min size fit");
-    self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
-    logger.time_end(start);
+    let start = logger.time("prepare cache groups");
+    let mut priority_cache_groups = vec![];
 
-    let start = logger.time("process module group map");
+    for (priority, cache_groups) in self
+      .cache_groups
+      .iter()
+      .enumerate()
+      .map(|v| IndexedCacheGroup {
+        cache_group_index: v.0,
+        cache_group: v.1,
+      })
+      .sorted_by(|a, b| match b.compare_by_priority(a) {
+        Ordering::Equal => a.compare_by_index(b),
+        v => v,
+      })
+      .chunk_by(|v| v.cache_group.priority)
+      .into_iter()
+    {
+      priority_cache_groups.push((priority, cache_groups.into_iter().collect::<Vec<_>>()));
+    }
+
     let mut max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting> = Default::default();
+    let mut removed_module_chunks: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
 
-    while !module_group_map.is_empty() {
-      let (module_group_key, mut module_group) = self.find_best_module_group(&mut module_group_map);
-      tracing::trace!(
-        "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
-        module_group_key,
-        module_group_map.len(),
+    let mut combinator = module_group::Combinator::default();
+    let module_graph = compilation.get_module_graph();
+
+    if self
+      .cache_groups
+      .iter()
+      .any(|cache_group| !cache_group.used_exports)
+    {
+      combinator.prepare_group_by_chunks(&all_modules, &module_chunks);
+    }
+
+    if self
+      .cache_groups
+      .iter()
+      .any(|cache_group| cache_group.used_exports)
+    {
+      combinator.prepare_group_by_used_exports(
+        &all_modules,
+        &module_graph,
+        &compilation.chunk_by_ukey,
+        &module_chunks,
       );
-      // let process_span = tracing::trace_span!("Process ModuleGroup");
+    }
 
-      // process_span.in_scope(|| {
-      let cache_group = module_group.get_cache_group(&self.cache_groups);
+    logger.time_end(start);
 
-      let mut is_reuse_existing_chunk = false;
-      let mut is_reuse_existing_chunk_with_all_modules = false;
-      let new_chunk = self.get_corresponding_chunk(
-        compilation,
-        &mut module_group,
-        &mut is_reuse_existing_chunk,
-        &mut is_reuse_existing_chunk_with_all_modules,
-      );
+    let start = logger.time("process cache groups");
+    let priority_len = priority_cache_groups.len();
+    for (index, (_, cache_groups)) in priority_cache_groups.into_iter().enumerate() {
+      let mut module_group_map = self
+        .prepare_module_group_map(
+          &combinator,
+          &all_modules,
+          cache_groups,
+          &removed_module_chunks,
+          compilation,
+          &module_chunks,
+        )
+        .await?;
+      tracing::trace!("prepared module_group_map {:#?}", module_group_map);
 
-      let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
-      tracing::trace!(
-        "{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}",
-        new_chunk_mut.chunk_reason()
-      );
+      self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
-      if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
-        chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
-        if let Some(chunk_name) = &module_group.chunk_name {
-          chunk_reason.push_str(&format!(" (name: {chunk_name})"));
-        }
-      }
+      while !module_group_map.is_empty() {
+        let (module_group_key, mut module_group) =
+          self.find_best_module_group(&mut module_group_map);
 
-      if let Some(filename) = &cache_group.filename {
-        new_chunk_mut.set_filename_template(Some(filename.clone()));
-      }
-
-      new_chunk_mut.add_id_name_hints(cache_group.id_hint.clone());
-
-      if is_reuse_existing_chunk {
-        // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
-        // modules in this `Chunk/ModuleGroup` from other chunks. Other chunks is stored in `ModuleGroup.chunks`.
-        module_group.chunks.remove(&new_chunk);
-      }
-
-      let mut used_chunks = Cow::Borrowed(&module_group.chunks);
-
-      self.ensure_max_request_fit(compilation, cache_group, &mut used_chunks);
-
-      if used_chunks.len() != module_group.chunks.len() {
-        // There are some chunks removed by `ensure_max_request_fit`
-        let used_chunks_len = if is_reuse_existing_chunk {
-          used_chunks.len() + 1
-        } else {
-          used_chunks.len()
-        };
-
-        if used_chunks_len < cache_group.min_chunks as usize {
-          // `min_size` is not satisfied, ignore this invalid `ModuleGroup`
-          tracing::trace!(
-            "ModuleGroup({module_group_key}) is skipped. Reason: used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})",
-            cache_group.min_chunks
-          );
-          continue;
-          // return;
-        }
-      }
-
-      if !cache_group.max_initial_size.is_empty() || !cache_group.max_async_size.is_empty() {
-        max_size_setting_map.insert(
-          new_chunk,
-          MaxSizeSetting {
-            min_size: cache_group.min_size.clone(),
-            max_async_size: cache_group.max_async_size.clone(),
-            max_initial_size: cache_group.max_initial_size.clone(),
-            automatic_name_delimiter: cache_group.automatic_name_delimiter.clone(),
-          },
+        tracing::trace!(
+          "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
+          module_group_key,
+          module_group_map.len(),
         );
+        let cache_group = module_group.get_cache_group(&self.cache_groups);
+
+        let mut is_reuse_existing_chunk = false;
+        let mut is_reuse_existing_chunk_with_all_modules = false;
+        let new_chunk = self.get_corresponding_chunk(
+          compilation,
+          &mut module_group,
+          &mut is_reuse_existing_chunk,
+          &mut is_reuse_existing_chunk_with_all_modules,
+        );
+
+        let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
+        tracing::trace!(
+          "{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}",
+          new_chunk_mut.chunk_reason()
+        );
+
+        if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
+          chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
+          if let Some(chunk_name) = &module_group.chunk_name {
+            chunk_reason.push_str(&format!(" (name: {chunk_name})"));
+          }
+        }
+
+        if let Some(filename) = &cache_group.filename {
+          new_chunk_mut.set_filename_template(Some(filename.clone()));
+        }
+
+        new_chunk_mut.add_id_name_hints(cache_group.id_hint.clone());
+
+        if is_reuse_existing_chunk {
+          // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
+          // modules in this `Chunk/ModuleGroup` from other chunks. Other chunks is stored in `ModuleGroup.chunks`.
+          module_group.chunks.remove(&new_chunk);
+        }
+
+        let mut used_chunks = Cow::Borrowed(&module_group.chunks);
+
+        self.ensure_max_request_fit(compilation, cache_group, &mut used_chunks);
+
+        if used_chunks.len() != module_group.chunks.len() {
+          // There are some chunks removed by `ensure_max_request_fit`
+          let used_chunks_len = if is_reuse_existing_chunk {
+            used_chunks.len() + 1
+          } else {
+            used_chunks.len()
+          };
+
+          if used_chunks_len < cache_group.min_chunks as usize {
+            // `min_size` is not satisfied, ignore this invalid `ModuleGroup`
+            tracing::trace!(
+              "ModuleGroup({module_group_key}) is skipped. Reason: used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})",
+              cache_group.min_chunks
+            );
+            continue;
+            // return;
+          }
+        }
+
+        if !cache_group.max_initial_size.is_empty() || !cache_group.max_async_size.is_empty() {
+          max_size_setting_map.insert(
+            new_chunk,
+            MaxSizeSetting {
+              min_size: cache_group.min_size.clone(),
+              max_async_size: cache_group.max_async_size.clone(),
+              max_initial_size: cache_group.max_initial_size.clone(),
+              automatic_name_delimiter: cache_group.automatic_name_delimiter.clone(),
+            },
+          );
+        }
+
+        self.move_modules_to_new_chunk_and_remove_from_old_chunks(
+          &module_group,
+          new_chunk,
+          &used_chunks,
+          compilation,
+        );
+
+        self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
+
+        self.remove_all_modules_from_other_module_groups(
+          &module_group,
+          &mut module_group_map,
+          &used_chunks,
+          compilation,
+          &module_sizes,
+        );
+
+        if index != priority_len - 1 {
+          for module in module_group.modules.iter() {
+            removed_module_chunks
+              .entry(*module)
+              .or_default()
+              .extend(module_group.chunks.iter().copied());
+          }
+        }
       }
-
-      self.move_modules_to_new_chunk_and_remove_from_old_chunks(
-        &module_group,
-        new_chunk,
-        &used_chunks,
-        compilation,
-      );
-
-      self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
-
-      self.remove_all_modules_from_other_module_groups(
-        &module_group,
-        &mut module_group_map,
-        &used_chunks,
-        compilation,
-        &module_sizes,
-      );
-      // })
     }
     logger.time_end(start);
 
@@ -175,6 +243,8 @@ impl SplitChunksPlugin {
       .ensure_max_size_fit(compilation, &max_size_setting_map)
       .await?;
     logger.time_end(start);
+
+    rayon::spawn(move || drop(combinator));
 
     Ok(())
   }

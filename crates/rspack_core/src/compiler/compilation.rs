@@ -18,12 +18,9 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset},
 };
 use rspack_collections::{
-  DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
+  DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
-use rspack_error::{
-  Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity, Severity,
-  ToStringResultToRspackResultExt, error, miette::diagnostic,
-};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
@@ -46,8 +43,8 @@ use crate::{
   EntryOptions, EntryRuntime, Entrypoint, Filename, ImportVarMap, Logger, MemoryGCStorage,
   ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
   ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeMode, RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
+  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
@@ -132,7 +129,6 @@ pub struct CompilationHooks {
   pub after_seal: CompilationAfterSealHook,
 }
 
-#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilationId(pub u32);
 
@@ -261,7 +257,6 @@ pub struct Compilation {
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
   // artifact for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
-
   // artifact for chunk render cache
   pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
 
@@ -280,7 +275,7 @@ pub struct Compilation {
 
   pub value_cache_versions: ValueCacheVersions,
 
-  import_var_map: IdentifierDashMap<ImportVarMap>,
+  import_var_map: IdentifierDashMap<RuntimeKeyMap<ImportVarMap>>,
 
   // TODO move to MakeArtifact
   pub module_executor: Option<ModuleExecutor>,
@@ -588,7 +583,7 @@ impl Compilation {
   }
 
   // TODO move out from compilation
-  pub fn get_import_var(&self, dep_id: &DependencyId) -> String {
+  pub fn get_import_var(&self, dep_id: &DependencyId, runtime: Option<&RuntimeSpec>) -> String {
     let module_graph = self.get_module_graph();
     let parent_module_id = module_graph
       .get_parent_module(dep_id)
@@ -601,7 +596,14 @@ impl Compilation {
       .and_then(|dep| dep.as_module_dependency())
       .expect("should be module dependency");
     let user_request = to_identifier(module_dep.user_request());
-    let mut import_var_map_of_module = self.import_var_map.entry(*parent_module_id).or_default();
+    let mut runtime_map = self.import_var_map.entry(*parent_module_id).or_default();
+    let import_var_map_of_module = runtime_map
+      .entry(
+        runtime
+          .map(|r| get_runtime_key(r).to_string())
+          .unwrap_or_default(),
+      )
+      .or_default();
     let len = import_var_map_of_module.len();
 
     match import_var_map_of_module.entry(module_id) {
@@ -676,13 +678,9 @@ impl Compilation {
 
   pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
     if !self.in_finish_make.load(Ordering::Acquire) {
-      return Err(
-        InternalError::new(
-          "You can only call `add_include` during the finish make stage".to_string(),
-          RspackSeverity::Error,
-        )
-        .into(),
-      );
+      return Err(rspack_error::Error::error(
+        "You can only call `add_include` during the finish make stage".into(),
+      ));
     }
 
     for (entry, options) in args {
@@ -764,8 +762,9 @@ impl Compilation {
         (old_info, new_source, new_info)
       }
       _ => {
-        return Err(error!(
-          "Called Compilation.updateAsset for not existing filename {filename}"
+        return Err(rspack_error::error!(
+          "Called Compilation.updateAsset for not existing filename {}",
+          filename
         ));
       }
     };
@@ -793,7 +792,7 @@ impl Compilation {
           is_source_equal
         );
         self.push_diagnostic(
-          error!(
+          rspack_error::error!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
             filename,
             // TODO: source file name
@@ -923,10 +922,7 @@ impl Compilation {
   }
 
   pub fn get_errors(&self) -> impl Iterator<Item = &Diagnostic> {
-    self
-      .diagnostics
-      .iter()
-      .filter(|d| matches!(d.severity(), Severity::Error))
+    self.diagnostics.iter().filter(|d| d.is_error())
   }
 
   /// Get sorted errors based on the factors as follows in order:
@@ -936,25 +932,23 @@ impl Compilation {
   ///   However, when it comes to the case that there are multiple errors with the same offset,
   ///   the order of these errors will not be guaranteed.
   pub fn get_errors_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
-    let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
-      d.labels()
-        .and_then(|mut l| l.next())
-        .map(|l| l.offset())
+    let get_offset = |d: &Diagnostic| {
+      d.labels
+        .as_ref()
+        .and_then(|l| l.first())
+        .map(|l| l.offset)
         .unwrap_or_default()
     };
-    self.get_errors().sorted_by(
-      |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
-        std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
+    self
+      .get_errors()
+      .sorted_by(|a, b| match a.module_identifier.cmp(&b.module_identifier) {
+        std::cmp::Ordering::Equal => get_offset(a).cmp(&get_offset(b)),
         other => other,
-      },
-    )
+      })
   }
 
   pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
-    self
-      .diagnostics
-      .iter()
-      .filter(|d| matches!(d.severity(), Severity::Warn))
+    self.diagnostics.iter().filter(|d| d.is_warn())
   }
 
   /// Get sorted warnings based on the factors as follows in order:
@@ -964,18 +958,19 @@ impl Compilation {
   ///   However, when it comes to the case that there are multiple errors with the same offset,
   ///   the order of these errors will not be guaranteed.
   pub fn get_warnings_sorted(&self) -> impl Iterator<Item = &Diagnostic> {
-    let get_offset = |d: &dyn rspack_error::miette::Diagnostic| {
-      d.labels()
-        .and_then(|mut l| l.next())
-        .map(|l| l.offset())
+    let get_offset = |d: &Diagnostic| {
+      d.labels
+        .as_ref()
+        .and_then(|l| l.first())
+        .map(|l| l.offset)
         .unwrap_or_default()
     };
-    self.get_warnings().sorted_by(
-      |a, b| match a.module_identifier().cmp(&b.module_identifier()) {
-        std::cmp::Ordering::Equal => get_offset(a.as_ref()).cmp(&get_offset(b.as_ref())),
+    self
+      .get_warnings()
+      .sorted_by(|a, b| match a.module_identifier.cmp(&b.module_identifier) {
+        std::cmp::Ordering::Equal => get_offset(a).cmp(&get_offset(b)),
         other => other,
-      },
-    )
+      })
   }
 
   pub fn get_logging(&self) -> &CompilationLogging {
@@ -1168,7 +1163,9 @@ impl Compilation {
       let codegen_res = match codegen_res {
         Ok(codegen_res) => codegen_res,
         Err(err) => {
-          self.push_diagnostic(Diagnostic::from(err).with_module_identifier(Some(module)));
+          let mut diagnostic = Diagnostic::from(err);
+          diagnostic.module_identifier = Some(module);
+          self.push_diagnostic(diagnostic);
           let mut codegen_res = CodeGenerationResult::default();
           codegen_res.set_hash(
             &self.options.output.hash_function,
@@ -1539,10 +1536,10 @@ impl Compilation {
             dependency
               .get_diagnostics(&module_graph, module_graph_cache)
               .map(|diagnostics| {
-                diagnostics.into_iter().map(|diagnostic| {
+                diagnostics.into_iter().map(|mut diagnostic| {
+                  diagnostic.module_identifier = Some(*module_identifier);
+                  diagnostic.loc = dependency.loc();
                   diagnostic
-                    .with_module_identifier(Some(*module_identifier))
-                    .with_loc(dependency.loc())
                 })
               })
           })
@@ -1706,41 +1703,10 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.cgm_hash_artifact.remove(&revoked_module);
       }
-      let mg = self.get_module_graph();
-      let mut modules = mutations.get_affected_modules_with_module_graph(&mg);
-      for mutation in mutations.iter() {
-        match mutation {
-          Mutation::ModuleSetAsync { module } => {
-            modules.insert(*module);
-          }
-          Mutation::ModuleSetId { module } => {
-            modules.insert(*module);
-            modules.extend(
-              mg.get_incoming_connections(module)
-                .filter_map(|c| c.original_module_identifier),
-            );
-          }
-          Mutation::ChunkAdd { chunk } => {
-            modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
-          }
-          Mutation::ChunkSetId { chunk } => {
-            let chunk = self.chunk_by_ukey.expect_get(chunk);
-            modules.extend(
-              chunk
-                .groups()
-                .iter()
-                .flat_map(|group| {
-                  let group = self.chunk_group_by_ukey.expect_get(group);
-                  group.origins()
-                })
-                .filter_map(|origin| origin.module),
-            );
-          }
-          _ => {}
-        }
-      }
+      let mut modules = mutations.get_affected_modules_with_chunk_graph(self);
 
       // check if module runtime changes
+      let mg = self.get_module_graph();
       for mi in mg.modules().keys() {
         let module_runtimes = self
           .chunk_graph
@@ -1748,7 +1714,7 @@ impl Compilation {
         let module_runtime_keys = module_runtimes
           .values()
           .map(get_runtime_key)
-          .collect::<Vec<_>>();
+          .collect::<HashSet<_>>();
 
         if let Some(runtime_map) = self.cgm_hash_artifact.get_runtime_map(mi) {
           if module_runtimes.is_empty() {
@@ -1782,7 +1748,7 @@ impl Compilation {
             }
 
             for runtime_key in runtime_map.map.keys() {
-              if !module_runtime_keys.contains(&runtime_key.as_str()) {
+              if !module_runtime_keys.contains(runtime_key) {
                 modules.insert(*mi);
                 break;
               }
@@ -2121,13 +2087,10 @@ impl Compilation {
       .par_bridge()
       .map(|chunk_ukey| {
         let mut set = RuntimeGlobals::default();
-        for module in self
-          .chunk_graph
-          .get_chunk_modules(chunk_ukey, &self.get_module_graph())
-        {
+        for mid in self.chunk_graph.get_chunk_modules_identifier(chunk_ukey) {
           let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
           if let Some(runtime_requirements) =
-            ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
+            ChunkGraph::get_module_runtime_requirements(self, *mid, chunk.runtime())
           {
             set.insert(*runtime_requirements);
           }
@@ -2504,7 +2467,10 @@ impl Compilation {
             .unwrap_or("no id chunk")
         })
         .join(", ");
-      self.push_diagnostic(diagnostic!(severity = Severity::Warn, "Circular dependency between chunks with runtime ({})\nThis prevents using hashes of each other and should be avoided.", circular_names).boxed().into());
+      let error = rspack_error::Error::warning(format!(
+        "Circular dependency between chunks with runtime ({circular_names})\nThis prevents using hashes of each other and should be avoided."
+      ));
+      self.push_diagnostic(error.into());
     }
 
     // create hash for runtime chunks and the runtime modules within them
@@ -2675,15 +2641,19 @@ impl Compilation {
       .await?;
     let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
-    let mut content_hashes = HashMap::default();
+    let mut content_hashes: HashMap<SourceType, RspackHash> = HashMap::default();
     plugin_driver
       .compilation_hooks
       .content_hash
       .call(self, &chunk_ukey, &mut content_hashes)
       .await?;
+
     let content_hashes = content_hashes
       .into_iter()
-      .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
+      .map(|(t, mut hasher)| {
+        chunk_hash.hash(&mut hasher);
+        (t, hasher.digest(&self.options.output.hash_digest))
+      })
       .collect();
 
     Ok(ChunkHashResult {

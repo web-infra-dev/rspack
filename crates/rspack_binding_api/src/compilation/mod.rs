@@ -17,7 +17,7 @@ use rspack_core::{
   BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, FactorizeInfo,
   ModuleIdentifier, Reflector, rspack_sources::BoxSource,
 };
-use rspack_error::{Diagnostic, RspackSeverity, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
@@ -435,18 +435,12 @@ impl JsCompilation {
 
   #[napi(getter)]
   pub fn errors(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
-    Ok(Diagnostics::new(
-      RspackSeverity::Error,
-      reference.downgrade(),
-    ))
+    Ok(Diagnostics::new(Severity::Error, reference.downgrade()))
   }
 
   #[napi(getter)]
   pub fn warnings(&self, reference: Reference<JsCompilation>) -> Result<Diagnostics> {
-    Ok(Diagnostics::new(
-      RspackSeverity::Warn,
-      reference.downgrade(),
-    ))
+    Ok(Diagnostics::new(Severity::Warning, reference.downgrade()))
   }
 
   #[napi]

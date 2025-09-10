@@ -1,7 +1,5 @@
-use rspack_plugin_javascript::{
-  JavascriptParserPlugin,
-  visitors::{JavascriptParser, extract_member_root},
-};
+use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
+use swc_core::ecma::ast::Ident;
 
 #[derive(PartialEq, Debug, Default)]
 pub struct RslibParserPlugin {
@@ -17,32 +15,36 @@ impl RslibParserPlugin {
 }
 
 impl JavascriptParserPlugin for RslibParserPlugin {
+  fn identifier(
+    &self,
+    _parser: &mut JavascriptParser,
+    _ident: &Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    // Intercept CommonJsExportsParsePlugin, not APIPlugin, but put it here.
+    // crates/rspack_plugin_javascript/src/parser_plugin/common_js_exports_parse_plugin.rs
+    if for_name == "module" {
+      return Some(true);
+    }
+
+    None
+  }
+
   fn member(
     &self,
     _parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
-    _name: &str,
+    _member_expr: &swc_core::ecma::ast::MemberExpr,
+    for_name: &str,
   ) -> Option<bool> {
-    let expr = &swc_core::ecma::ast::Expr::Member(member_expr.to_owned());
-    // Intercept APIPlugin.
-    if self.intercept_api_plugin
-      && let Some(root) = extract_member_root(expr)
+    if for_name == "require.cache"
+      || for_name == "require.extensions"
+      || for_name == "require.config"
+      || for_name == "require.version"
+      || for_name == "require.include"
+      || for_name == "require.onError"
     {
-      let prop = &member_expr.prop;
-      if let swc_core::ecma::ast::MemberProp::Ident(id) = prop
-        && root.sym == "require"
-        && (id.sym == "cache"
-          // not_supported_expr
-            || id.sym == "extensions"
-            || id.sym == "config"
-            || id.sym == "version"
-            || id.sym == "include"
-            || id.sym == "onError")
-      {
-        return Some(true);
-      }
+      return Some(true);
     }
-
     None
   }
 }

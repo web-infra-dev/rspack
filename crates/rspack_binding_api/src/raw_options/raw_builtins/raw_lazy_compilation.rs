@@ -5,12 +5,10 @@ use napi::{
   bindgen_prelude::{FromNapiValue, ToNapiValue, ValidateNapiValue},
 };
 use napi_derive::napi;
+use rspack_collections::IdentifierSet;
 use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_plugin_lazy_compilation::{
-  backend::{Backend, ModuleInfo},
-  plugin::{LazyCompilationTest, LazyCompilationTestCheck},
-};
+use rspack_plugin_lazy_compilation::{Backend, LazyCompilationTest, LazyCompilationTestCheck};
 use rspack_regex::RspackRegex;
 
 use crate::module::ModuleObject;
@@ -88,21 +86,15 @@ pub struct RawModuleInfo {
 
 #[napi(object, object_to_js = false)]
 pub struct RawLazyCompilationOption {
-  pub module: ThreadsafeFunction<RawModuleArg, RawModuleInfo>,
+  pub current_active_modules: ThreadsafeFunction<(), std::collections::HashSet<String>>,
   pub test: Option<RawLazyCompilationTest>,
   pub entries: bool,
   pub imports: bool,
-  pub cacheable: bool,
-}
-
-#[napi(object)]
-pub struct RawModuleArg {
-  pub module: String,
-  pub path: String,
+  pub client: String,
 }
 
 pub(crate) struct JsBackend {
-  module: ThreadsafeFunction<RawModuleArg, RawModuleInfo>,
+  current_active_modules: ThreadsafeFunction<(), std::collections::HashSet<String>>,
 }
 
 impl std::fmt::Debug for JsBackend {
@@ -114,31 +106,20 @@ impl std::fmt::Debug for JsBackend {
 impl From<&RawLazyCompilationOption> for JsBackend {
   fn from(value: &RawLazyCompilationOption) -> Self {
     Self {
-      module: value.module.clone(),
+      current_active_modules: value.current_active_modules.clone(),
     }
   }
 }
 
 #[async_trait::async_trait]
 impl Backend for JsBackend {
-  async fn module(
-    &mut self,
-    identifier: ModuleIdentifier,
-    path: String,
-  ) -> rspack_error::Result<ModuleInfo> {
-    let module_info = self
-      .module
-      .call_with_sync(RawModuleArg {
-        module: identifier.to_string(),
-        path,
-      })
+  async fn current_active_modules(&mut self) -> rspack_error::Result<IdentifierSet> {
+    let active_modules = self
+      .current_active_modules
+      .call_with_sync(())
       .await
       .expect("channel should have result");
 
-    Ok(ModuleInfo {
-      active: module_info.active,
-      client: module_info.client,
-      data: module_info.data,
-    })
+    Ok(active_modules.into_iter().map(Into::into).collect())
   }
 }

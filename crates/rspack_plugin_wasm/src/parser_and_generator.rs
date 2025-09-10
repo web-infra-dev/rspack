@@ -70,11 +70,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           Payload::ImportSection(s) => {
             for import in s {
               match import {
-                Ok(Import { module, name, ty }) => {
+                Ok(Import { module, name, .. }) => {
                   dependencies.push(Box::new(WasmImportDependency::new(
                     module.into(),
                     name.into(),
-                    ty,
                   )));
                 }
                 Err(err) => diagnostic.push(Diagnostic::error(

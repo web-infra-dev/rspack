@@ -49,7 +49,10 @@
 				"noAssignInExpressions": "off",
 				"noControlCharactersInRegex": "off",
 				"noExplicitAny": "off",
-				"noImplicitAnyLet": "off"
+				"noImplicitAnyLet": "off",
+				"noUnknownAtRules": "off",
+				"useIterableCallbackReturn": "off",
+				"noTsIgnore": "off"
 			}
 		}
 	},

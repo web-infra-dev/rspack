@@ -13,6 +13,7 @@ import type { PathInfoFixtures } from "./pathInfo";
 class Rspack {
 	private config: RspackConfig;
 	projectDir: string;
+	outDir: string;
 	compiler: Compiler;
 	devServer: RspackDevServer;
 	private onDone: Array<() => void> = [];
@@ -24,6 +25,7 @@ class Rspack {
 		this.config = handleRspackConfig(require(configPath));
 		delete require.cache[configPath];
 		this.projectDir = projectDir;
+		this.outDir = this.config.output!.path!;
 	}
 
 	// waiting for build done, not hmr done
@@ -116,6 +118,12 @@ export const rspackFixtures = (): RspackFixtures => {
 					if (!config.context) {
 						config.context = tempProjectDir;
 					}
+
+					// set default output path
+					if (!config.output) {
+						config.output = {};
+					}
+					config.output.path = path.resolve(tempProjectDir, "dist");
 
 					if (incremental) {
 						config.experiments ??= {};

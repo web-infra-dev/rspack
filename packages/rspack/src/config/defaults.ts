@@ -90,14 +90,20 @@ export const applyRspackOptionsDefaults = (
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
+	if (options.cache === false) {
+		options.experiments.cache = false;
+	}
+
 	applyExperimentsDefaults(options.experiments, {
 		production,
 		development
 	});
 
-	if (options.cache === false) {
-		options.experiments.cache = false;
-	}
+	applyOptimizationDefaults(options.optimization, {
+		production,
+		development,
+		css: options.experiments.css!
+	});
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -107,6 +113,7 @@ export const applyRspackOptionsDefaults = (
 		targetProperties,
 		mode: options.mode,
 		uniqueName: options.output.uniqueName,
+		usedExports: !!options.optimization.usedExports,
 		inlineConst: options.experiments.inlineConst
 	});
 
@@ -162,12 +169,6 @@ export const applyRspackOptionsDefaults = (
 	);
 	applyPerformanceDefaults(options.performance!, {
 		production
-	});
-
-	applyOptimizationDefaults(options.optimization, {
-		production,
-		development,
-		css: options.experiments.css!
 	});
 
 	options.resolve = cleverMerge(
@@ -242,7 +243,7 @@ const applyExperimentsDefaults = (
 		D(experiments.incremental, "providedExports", true);
 		D(experiments.incremental, "dependenciesDiagnostics", true);
 		D(experiments.incremental, "sideEffects", true);
-		D(experiments.incremental, "buildChunkGraph", true);
+		D(experiments.incremental, "buildChunkGraph", false);
 		D(experiments.incremental, "moduleIds", true);
 		D(experiments.incremental, "chunkIds", true);
 		D(experiments.incremental, "modulesHashes", true);
@@ -302,7 +303,7 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
-	{ inlineConst }: { inlineConst?: boolean }
+	{ usedExports, inlineConst }: { usedExports: boolean; inlineConst?: boolean }
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
@@ -319,7 +320,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
-	D(parserOptions, "inlineConst", inlineConst);
+	D(parserOptions, "inlineConst", usedExports && inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
 };
 
@@ -337,6 +338,7 @@ const applyModuleDefaults = (
 		targetProperties,
 		mode,
 		uniqueName,
+		usedExports,
 		inlineConst
 	}: {
 		asyncWebAssembly: boolean;
@@ -344,6 +346,7 @@ const applyModuleDefaults = (
 		targetProperties: any;
 		mode?: Mode;
 		uniqueName?: string;
+		usedExports: boolean;
 		inlineConst?: boolean;
 	}
 ) => {
@@ -361,6 +364,7 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript, {
+		usedExports,
 		inlineConst
 	});
 

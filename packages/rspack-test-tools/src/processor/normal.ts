@@ -114,7 +114,6 @@ export class NormalProcessor<
 				rules: []
 			},
 			plugins: (compilerOptions?.plugins || [])
-				// @ts-ignore
 				.concat(testConfig.plugins || [])
 				.concat(function (this: TCompiler<T>) {
 					this.hooks.compilation.tap("TestCasesTest", compilation => {

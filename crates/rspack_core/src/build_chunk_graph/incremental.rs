@@ -9,15 +9,18 @@ use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, GroupOptions,
-  ModuleIdentifier, RuntimeSpec,
+  AsyncDependenciesBlockIdentifier, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
+  GroupOptions, ModuleIdentifier, RuntimeSpec,
   incremental::{IncrementalPasses, Mutation},
   is_runtime_equal,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ChunkReCreation {
-  Entry(String),
+  Entry {
+    name: String,
+    depend_on: Option<Vec<String>>,
+  },
   Normal(NormalChunkRecreation),
 }
 
@@ -32,7 +35,10 @@ pub struct NormalChunkRecreation {
 impl ChunkReCreation {
   pub fn rebuild(self, splitter: &mut CodeSplitter, compilation: &mut Compilation) -> Result<()> {
     match self {
-      ChunkReCreation::Entry(entry) => {
+      ChunkReCreation::Entry {
+        name: entry,
+        depend_on: _,
+      } => {
         let input = splitter.prepare_entry_input(&entry, compilation)?;
         splitter.set_entry_runtime_and_depend_on(&entry, compilation)?;
         splitter.prepare_entries(std::iter::once(input).collect(), compilation)?;
@@ -249,7 +255,34 @@ impl CodeSplitter {
       && chunk_group.is_initial()
       && chunk_group.parents.is_empty()
     {
-      return Ok(Some(vec![ChunkReCreation::Entry(name)]));
+      edges = vec![ChunkReCreation::Entry {
+        name,
+        depend_on: None,
+      }];
+    }
+
+    // If the invalidated chunk group is an entrypoint, we must also invalidate any
+    // other entrypoints that depend on it via the `dependOn` option.
+    if matches!(chunk_group.kind, ChunkGroupKind::Entrypoint { .. }) {
+      let dependent_entrypoints_to_invalidate: Vec<_> = compilation
+        .entrypoints
+        .values()
+        .filter_map(|entrypoint_ukey| {
+          compilation
+            .chunk_group_by_ukey
+            .get(entrypoint_ukey)
+            .filter(|entrypoint| entrypoint.parents.contains(&chunk_group_ukey))
+            .map(|_| *entrypoint_ukey)
+        })
+        .collect();
+
+      for entrypoint_ukey in dependent_entrypoints_to_invalidate {
+        if let Some(invalidation_result) =
+          self.invalidate_chunk_group(entrypoint_ukey, compilation)?
+        {
+          edges.extend(invalidation_result);
+        }
+      }
     }
 
     if edges.is_empty() {
@@ -431,12 +464,8 @@ impl CodeSplitter {
     }
     for chunk in compilation.chunk_by_ukey.keys() {
       let mut mask = BigUint::from(0u32);
-      for module in compilation
-        .chunk_graph
-        .get_chunk_modules(chunk, &module_graph)
-      {
-        let module_id = module.identifier();
-        let module_ordinal = self.get_module_ordinal(module_id);
+      for module_id in compilation.chunk_graph.get_chunk_modules_identifier(chunk) {
+        let module_ordinal = self.get_module_ordinal(*module_id);
         mask.set_bit(module_ordinal, true);
       }
       self.mask_by_chunk.insert(*chunk, mask);
@@ -496,6 +525,15 @@ impl CodeSplitter {
       }
     }
 
+    for m in affected_modules {
+      for module_map in self.block_modules_runtime_map.values_mut() {
+        module_map.remove(&DependenciesBlockIdentifier::Module(m));
+      }
+
+      let more_edges = self.invalidate_from_module(m, compilation)?;
+      edges.extend(more_edges);
+    }
+
     if !removed_modules.is_empty() {
       // TODO:
       // if we have removed module, we should invalidate its
@@ -505,15 +543,6 @@ impl CodeSplitter {
       for m in removed_modules {
         self.invalidate_from_module(m, compilation)?;
       }
-    }
-
-    for m in affected_modules {
-      for module_map in self.block_modules_runtime_map.values_mut() {
-        module_map.remove(&DependenciesBlockIdentifier::Module(m));
-      }
-
-      let more_edges = self.invalidate_from_module(m, compilation)?;
-      edges.extend(more_edges);
     }
 
     self.stat_invalidated_caches = dirty_blocks.len() as u32;
@@ -543,14 +572,20 @@ impl CodeSplitter {
 
       edges = compilation
         .entries
-        .keys()
-        .map(|name| ChunkReCreation::Entry(name.to_owned()))
+        .iter()
+        .map(|(name, entry_data)| ChunkReCreation::Entry {
+          name: name.to_owned(),
+          depend_on: entry_data.options.depend_on.clone(),
+        })
         .collect();
     } else {
       'outer: for (entry, data) in &compilation.entries {
         if !compilation.entrypoints.contains_key(entry) {
           // new entry
-          edges.push(ChunkReCreation::Entry(entry.to_owned()));
+          edges.push(ChunkReCreation::Entry {
+            name: entry.to_owned(),
+            depend_on: data.options.depend_on.clone(),
+          });
           continue 'outer;
         }
 
@@ -570,7 +605,10 @@ impl CodeSplitter {
         for m in &curr_modules {
           // there is new entry
           if !prev_entry_modules.contains(m) {
-            edges.push(ChunkReCreation::Entry(entry.to_owned()));
+            edges.push(ChunkReCreation::Entry {
+              name: entry.to_owned(),
+              depend_on: data.options.depend_on.clone(),
+            });
             continue 'outer;
           }
         }
@@ -578,13 +616,49 @@ impl CodeSplitter {
         for m in prev_entry_modules {
           if !curr_modules.contains(&m) {
             // there is removed entry modules
-            edges.push(ChunkReCreation::Entry(entry.to_owned()));
+            edges.push(ChunkReCreation::Entry {
+              name: entry.to_owned(),
+              depend_on: data.options.depend_on.clone(),
+            });
             continue 'outer;
           }
         }
       }
     }
 
+    // For entries with dependencies (`dependOn`), we must ensure that the dependency
+    // is processed before the entry that depends on it. This is a topological sort.
+    edges.sort_unstable_by(|a, b| {
+      let (a_name, a_depend_on) = if let ChunkReCreation::Entry { name, depend_on } = a {
+        (name, depend_on)
+      } else {
+        return std::cmp::Ordering::Equal;
+      };
+
+      let (b_name, b_depend_on) = if let ChunkReCreation::Entry { name, depend_on } = b {
+        (name, depend_on)
+      } else {
+        return std::cmp::Ordering::Equal;
+      };
+
+      let a_depends_on_b = a_depend_on
+        .as_deref()
+        .is_some_and(|deps| deps.contains(b_name));
+      let b_depends_on_a = b_depend_on
+        .as_deref()
+        .is_some_and(|deps| deps.contains(a_name));
+
+      // If a depends on b, b must come first (a > b).
+      // If b depends on a, a must come first (a < b).
+      // If there's no direct dependency, their relative order doesn't matter.
+      if a_depends_on_b {
+        std::cmp::Ordering::Greater
+      } else if b_depends_on_a {
+        std::cmp::Ordering::Less
+      } else {
+        std::cmp::Ordering::Equal
+      }
+    });
     for edge in edges {
       edge.rebuild(self, compilation)?;
     }
@@ -642,10 +716,10 @@ impl CodeSplitter {
             module,
             cache_result: can_rebuild.then(|| CacheResult {
               modules: chunk_graph
-                .get_chunk_modules(&chunk, &module_graph)
-                .into_iter()
-                .map(|m| m.identifier())
-                .collect(),
+                .get_chunk_modules_identifier(&chunk)
+                .iter()
+                .copied()
+                .collect::<Vec<_>>(),
               pre_order_indices: group.module_pre_order_indices.clone(),
               post_order_indices: group.module_post_order_indices.clone(),
               skipped_modules: cgi.skipped_items.clone(),

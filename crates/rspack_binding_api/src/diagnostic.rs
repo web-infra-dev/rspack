@@ -1,8 +1,5 @@
 use napi::bindgen_prelude::*;
-use rspack_error::{
-  Diagnostic,
-  miette::{self, LabeledSpan, MietteDiagnostic, Severity},
-};
+use rspack_error::{Diagnostic, Error as RspackError, Label, Severity};
 use rspack_util::location::{
   try_line_column_length_to_location, try_line_column_length_to_offset_length,
 };
@@ -42,12 +39,13 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
     module_identifier,
     file,
   } = diagnostic;
-  let mut d = MietteDiagnostic::new(message).with_severity(match severity.as_str() {
+  let mut error = RspackError::error(message);
+  error.severity = match severity.as_str() {
     "warning" => Severity::Warning,
     _ => Severity::Error,
-  });
+  };
   if let Some(help) = help {
-    d = d.with_help(help);
+    error.help = Some(help);
   }
   let mut loc = None;
   if let Some(ref source_code) = source_code {
@@ -84,29 +82,30 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
           "Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?",
         ));
       }
-      d = d.with_label(LabeledSpan::new(location.text, offset, length));
+      error.labels = Some(vec![Label {
+        name: location.text,
+        offset,
+        len: length,
+      }]);
     }
   }
 
-  let mut error = miette::Error::new(d);
-  if let Some(source_code) = source_code {
-    error = error.with_source_code(source_code);
-  }
-  Ok(External::new(
-    Diagnostic::from(error)
-      .with_file(file.map(Into::into))
-      .with_loc(loc.map(|l| {
-        rspack_core::DependencyLocation::Real(rspack_core::RealDependencyLocation {
-          start: rspack_core::SourcePosition {
-            line: l.sl as usize + 1,
-            column: l.sc as usize,
-          },
-          end: Some(rspack_core::SourcePosition {
-            line: l.el as usize + 1,
-            column: l.ec as usize,
-          }),
-        })
-      }))
-      .with_module_identifier(module_identifier.map(Into::into)),
-  ))
+  error.src = source_code;
+
+  let mut diagnostic = Diagnostic::from(error);
+  diagnostic.file = file.map(Into::into);
+  diagnostic.loc = loc.map(|l| {
+    rspack_core::DependencyLocation::Real(rspack_core::RealDependencyLocation {
+      start: rspack_core::SourcePosition {
+        line: l.sl as usize + 1,
+        column: l.sc as usize,
+      },
+      end: Some(rspack_core::SourcePosition {
+        line: l.el as usize + 1,
+        column: l.ec as usize,
+      }),
+    })
+  });
+  diagnostic.module_identifier = module_identifier.map(Into::into);
+  Ok(External::new(diagnostic))
 }

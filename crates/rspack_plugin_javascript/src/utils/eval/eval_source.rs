@@ -1,6 +1,7 @@
 use std::{fmt::Display, sync::Arc};
 
-use rspack_error::{TraceableError, miette::Severity};
+use rspack_error::{Error, Severity};
+use rspack_util::SpanExt;
 use serde_json::json;
 use swc_core::{
   common::{FileName, Spanned},
@@ -32,18 +33,16 @@ pub fn eval_source<T: Display>(
   );
   match result {
     Err(err) => {
-      let span = err.span();
       // Push the error to diagnostics
-      parser.warning_diagnostics.push(Box::new(
-        TraceableError::from_source_file(
-          &fm,
-          span.lo.0.saturating_sub(1) as usize,
-          span.hi.0.saturating_sub(1) as usize,
-          format!("{error_title} warning"),
-          format!("failed to parse {}", json!(fm.src.as_str())),
-        )
-        .with_severity(Severity::Warning),
-      ));
+      let mut error = Error::from_string(
+        Some(fm.src.clone().into_string()),
+        err.span().real_lo() as usize,
+        err.span().real_hi() as usize,
+        format!("{error_title} warning"),
+        format!("failed to parse {}", json!(fm.src.as_str())),
+      );
+      error.severity = Severity::Warning;
+      parser.add_warning(error.into());
       None
     }
     Ok(mut expr) => {

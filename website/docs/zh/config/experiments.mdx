@@ -715,7 +715,7 @@ import imageUrl from 'https://example.com/image.png';
 一般项目中，只有少量文件需要通过自定义文件系统访问，合理配置 `experiments.useInputFileSystem` 可以确保 Rspack 高效运行。
 
 下面的例子演示了如何替换默认的 inputFileSystem 为一个自定义的文件系统，只要自定义文件系统满足 [`InputFileSystem`](/zh/api/javascript-api/compiler#inputfilesystem-1) 的接口定义。
-更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-test-tools/tests/configCases/input-file-system/webpack.config.js)。
+更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/webpack.config.js)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -860,6 +860,14 @@ export default {
 
 是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
 
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyBarrel: true,
+  },
+};
+```
+
 无副作用模块是指满足以下条件之一的模块：
 
 - 其所属包的 `package.json` 文件中声明了 `"sideEffects": false`，详见 [副作用分析](/guide/optimization/tree-shaking#副作用分析)
@@ -881,6 +889,6 @@ export default {
    1. 重导出模块（barrel file）不是无副作用的
    2. star re-export 被使用了
 
-> 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
-
 :::
+
+> 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)

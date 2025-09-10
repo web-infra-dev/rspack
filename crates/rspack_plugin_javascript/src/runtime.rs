@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace,
-  Compilation, RuntimeGlobals, SourceType,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
+  Module, RuntimeGlobals, SourceType,
   chunk_graph_chunk::ChunkId,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -18,7 +18,7 @@ pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLI
 pub async fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  ordered_modules: &Vec<&BoxModule>,
+  ordered_modules: &Vec<&dyn Module>,
   all_strict: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
@@ -40,7 +40,7 @@ pub async fn render_chunk_modules(
           render_module(
             compilation,
             chunk_ukey,
-            module,
+            *module,
             all_strict,
             true,
             output_path,
@@ -102,7 +102,7 @@ pub async fn render_chunk_modules(
 pub async fn render_module(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   all_strict: bool,
   factory: bool,
   output_path: &str,

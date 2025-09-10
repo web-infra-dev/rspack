@@ -12,11 +12,10 @@ use tracing::instrument;
 
 use crate::{
   BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, FactoryMeta, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
-  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
-  resolve,
+  DependencyCategory, DependencyId, DependencyType, FactoryMeta, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
+  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve,
 };
 
 #[derive(Debug)]
@@ -279,9 +278,7 @@ impl ContextModuleFactory {
       specifier: specifier.as_str(),
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
-      span: dependency
-        .range()
-        .map(|range| ErrorSpan::new(range.start, range.end)),
+      span: dependency.range(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),

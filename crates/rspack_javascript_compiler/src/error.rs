@@ -3,33 +3,13 @@ use std::{
   sync::{Arc, mpsc},
 };
 
-use rspack_cacheable::cacheable;
-use rspack_error::{BatchErrors, TraceableError, error};
+use rspack_error::{BatchErrors, Error, error};
+use rspack_util::SpanExt;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
   SourceFile, SourceMap, Span, Spanned,
   errors::{Emitter, HANDLER, Handler},
 };
-
-/// Using `u32` instead of `usize` to reduce memory usage,
-/// `u32` is 4 bytes on 64bit machine, comparing to `usize` which is 8 bytes.
-/// ## Warning
-/// [ErrorSpan] start from zero, and `Span` of `swc` start from one. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
-#[cacheable]
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
-pub struct ErrorSpan {
-  pub start: u32,
-  pub end: u32,
-}
-
-impl From<Span> for ErrorSpan {
-  fn from(span: Span) -> Self {
-    Self {
-      start: span.lo.0.saturating_sub(1),
-      end: span.hi.0.saturating_sub(1),
-    }
-  }
-}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct EcmaError(String, Span);
@@ -73,12 +53,11 @@ pub trait DedupEcmaErrors {
 pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
   fm: &SourceFile,
-) -> TraceableError {
-  let span: ErrorSpan = span.into();
-  rspack_error::TraceableError::from_source_file(
-    fm,
-    span.start as usize,
-    span.end as usize,
+) -> Error {
+  Error::from_string(
+    Some(fm.src.clone().into_string()),
+    span.real_lo() as usize,
+    span.real_hi() as usize,
     "JavaScript parse error".into(),
     message,
   )
@@ -86,7 +65,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
 
 // keep this private to make sure with_rspack_error_handler is safety
 struct RspackErrorEmitter {
-  tx: mpsc::Sender<rspack_error::Error>,
+  tx: mpsc::Sender<Error>,
   source_map: Arc<SourceMap>,
   title: String,
 }
@@ -100,16 +79,13 @@ impl Emitter for RspackErrorEmitter {
     if let Some(source_file_and_byte_pos) = source_file_and_byte_pos {
       self
         .tx
-        .send(
-          TraceableError::from_source_file(
-            &source_file_and_byte_pos.sf,
-            source_file_and_byte_pos.pos.0 as usize,
-            source_file_and_byte_pos.pos.0 as usize,
-            self.title.to_string(),
-            db.message(),
-          )
-          .into(),
-        )
+        .send(Error::from_string(
+          Some(source_file_and_byte_pos.sf.src.clone().into_string()),
+          source_file_and_byte_pos.pos.0 as usize,
+          source_file_and_byte_pos.pos.0 as usize,
+          self.title.to_string(),
+          db.message(),
+        ))
         .expect("Sender should drop after emit called");
     } else {
       self

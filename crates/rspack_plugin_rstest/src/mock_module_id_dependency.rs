@@ -1,10 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, ConditionalInitFragment, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExtendedReferencedExport, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeCondition,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 use crate::import_dependency::module_id_rstest;
@@ -19,8 +18,6 @@ pub struct MockModuleIdDependency {
   optional: bool,
   category: DependencyCategory,
   pub suffix: Option<String>,
-  hoist: bool,
-  await_factory: bool,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -32,8 +29,6 @@ impl MockModuleIdDependency {
     optional: bool,
     category: DependencyCategory,
     suffix: Option<String>,
-    hoist: bool,
-    async_factory: bool,
   ) -> Self {
     Self {
       range,
@@ -43,8 +38,6 @@ impl MockModuleIdDependency {
       id: DependencyId::new(),
       category,
       suffix,
-      hoist,
-      await_factory: async_factory,
     }
   }
 }
@@ -63,8 +56,8 @@ impl Dependency for MockModuleIdDependency {
     &DependencyType::RstestMockModuleId
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(
@@ -126,8 +119,6 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { init_fragments, .. } = code_generatable_context;
-
     let dep = dep
       .as_any()
       .downcast_ref::<MockModuleIdDependency>()
@@ -139,18 +130,6 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
       &dep.request,
       dep.weak,
     );
-
-    if dep.hoist && dep.await_factory {
-      // Await exec init fragment.
-      init_fragments.push(Box::new(ConditionalInitFragment::new(
-        format!("await __webpack_require__.rstest_exec({module_id})\n"),
-        InitFragmentStage::StageAsyncESMImports,
-        i32::MAX - 1,
-        InitFragmentKey::ESMImport(format!("{}_{}", module_id, "mock")),
-        None,
-        RuntimeCondition::Boolean(true),
-      )));
-    }
 
     source.replace(
       dep.range.start,

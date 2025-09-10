@@ -325,7 +325,7 @@ chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{
   > ./index main
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
-    cjs require ./a ./index.js 1:8-14
+    cjs require ./a ./index.js 1:8-13
     X (resolving: X, building: X)
   ./index.js xx bytes [built] [code generated]
     entry ./index
@@ -364,8 +364,8 @@ chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) >{
   > ./index main
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
-    cjs require ./a ./e.js 1:8-14
-    cjs require ./a ./index.js 1:8-14
+    cjs require ./a ./e.js 1:8-13
+    cjs require ./a ./index.js 1:8-13
     X (resolving: X, building: X)
   ./index.js xx bytes [built] [code generated]
     entry ./index
@@ -705,8 +705,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset d4e3657fcff58763.js xx KiB [emitted] [immutable] (name: main)
-asset 861a015ed5554248.js xx bytes [emitted] [immutable]"
+"asset eae6a5a39c5de209.js xx KiB [emitted] [immutable] (name: main)
+asset 92c4383731fffcb4.js xx bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
@@ -721,7 +721,7 @@ cacheable modules xx bytes
     ./templates/baz.js xx bytes [built] [code generated]
     ./templates/foo.js xx bytes [built] [code generated]
   ./entry.js xx bytes [built] [code generated]
-  Xdir/import-xxx.js$/|groupOptions: {}|namespace object xx bytes [built] [code generated]
+  Xdir/import-xxx.js$/|referencedExports: [*]|groupOptions: {}|namespace object xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -1039,7 +1039,7 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for module-not-found-error 1`] = `
-"ERROR in ./index.js 1:8-17
+"ERROR in ./index.js 1:8-16
   × Module not found: Can't resolve 'buffer' in 'Xdir/module-not-found-error'
    ╭─[1:0]
  1 │ require('buffer')
@@ -1047,7 +1047,7 @@ exports[`StatsTestCases should print correct stats for module-not-found-error 1`
  2 │ require('os')
    ╰────
 
-ERROR in ./index.js 2:8-13
+ERROR in ./index.js 2:8-12
   × Module not found: Can't resolve 'os' in 'Xdir/module-not-found-error'
    ╭─[2:0]
  1 │ require('buffer')
@@ -1065,8 +1065,8 @@ cacheable modules xx bytes
   ./index.js + 2 modules xx bytes [code generated]
     entry ./index
   ./c.js xx bytes [built] [code generated]
-    cjs require ./c ./a.js 1:8-14
-    cjs require ./c ./b.js 1:8-14
+    cjs require ./c ./a.js 1:8-13
+    cjs require ./c ./b.js 1:8-13
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -1078,7 +1078,7 @@ modules with errors xx bytes [errors]
 ./index.js xx bytes [built] [code generated]
 ./inner.js xx bytes [built] [code generated]
 
-ERROR in ./not-xxx.js 1:8-25
+ERROR in ./not-xxx.js 1:8-24
   × Module not found: Can't resolve 'does-not-exist' in 'Xdir/module-trace-disabled-in-error'
    ╭────
  1 │ require('does-not-exist')
@@ -1111,7 +1111,7 @@ modules with errors xx bytes [errors]
 ./index.js xx bytes [built] [code generated]
 ./inner.js xx bytes [built] [code generated]
 
-ERROR in ./not-xxx.js 1:8-25
+ERROR in ./not-xxx.js 1:8-24
   × Module not found: Can't resolve 'does-not-exist' in 'Xdir/module-trace-enabled-in-error'
    ╭────
  1 │ require('does-not-exist')
@@ -1552,7 +1552,7 @@ LOG from LogTestPlugin
 <e> Error
 + 14 hidden lines
 
-ERROR in ./index.js 1:8-25
+ERROR in ./index.js 1:8-24
   × Module not found: Can't resolve 'does-not-exist' in 'Xdir/preset-errors-only-error'
    ╭────
  1 │ require('does-not-exist')

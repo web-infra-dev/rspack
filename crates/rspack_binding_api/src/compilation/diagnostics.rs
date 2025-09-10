@@ -1,17 +1,17 @@
 use napi::{Either, bindgen_prelude::WeakReference};
 use rspack_core::Compilation;
-use rspack_error::RspackSeverity;
+use rspack_error::Severity;
 
 use crate::{compilation::JsCompilation, error::RspackError};
 
 #[napi]
 pub struct Diagnostics {
-  severity: RspackSeverity,
+  severity: Severity,
   compiler_reference: WeakReference<JsCompilation>,
 }
 
 impl Diagnostics {
-  pub fn new(severity: RspackSeverity, compiler_reference: WeakReference<JsCompilation>) -> Self {
+  pub fn new(severity: Severity, compiler_reference: WeakReference<JsCompilation>) -> Self {
     Self {
       severity,
       compiler_reference,
@@ -46,7 +46,7 @@ impl Diagnostics {
     let diagnostics = compilation.diagnostics();
     let len = diagnostics
       .iter()
-      .filter(|diagnostic| diagnostic.severity() == self.severity)
+      .filter(|diagnostic| diagnostic.severity == self.severity)
       .count();
     Ok(len as u32)
   }
@@ -58,7 +58,7 @@ impl Diagnostics {
     let diagnostics = compilation.diagnostics();
     diagnostics
       .iter()
-      .filter(|diagnostic| diagnostic.severity() == self.severity)
+      .filter(|diagnostic| diagnostic.severity == self.severity)
       .map(|diagnostic| RspackError::try_from_diagnostic(compilation, diagnostic))
       .collect::<napi::Result<Vec<RspackError>>>()
   }
@@ -73,7 +73,7 @@ impl Diagnostics {
     let diagnostics = compilation.diagnostics();
     let diagnostic = diagnostics
       .iter()
-      .filter(|diagnostic| diagnostic.severity() == self.severity)
+      .filter(|diagnostic| diagnostic.severity == self.severity)
       .nth(index as usize);
     Ok(match diagnostic {
       Some(diagnostic) => {
@@ -95,7 +95,7 @@ impl Diagnostics {
     let diagnostics = compilation.diagnostics_mut();
     let len = diagnostics
       .iter()
-      .filter(|diagnostic| diagnostic.severity() == severity)
+      .filter(|diagnostic| diagnostic.severity == severity)
       .count();
 
     let index = index as usize;
@@ -110,7 +110,7 @@ impl Diagnostics {
 
     let mut i = 0;
     for diagnostic in diagnostics.iter_mut() {
-      if diagnostic.severity() == severity {
+      if diagnostic.severity == severity {
         if i == index {
           *diagnostic = error.into_diagnostic(severity);
           break;
@@ -136,7 +136,7 @@ impl Diagnostics {
 
     let len = diagnostics
       .iter()
-      .filter(|diagnostic| diagnostic.severity() == severity)
+      .filter(|diagnostic| diagnostic.severity == severity)
       .count();
     let len_f64 = len as f64;
 
@@ -164,7 +164,7 @@ impl Diagnostics {
     let mut new_diagnostics = Vec::with_capacity(len - delete_count + to_insert.len());
     let mut i = 0;
     for diagnostic in diagnostics.drain(..) {
-      if diagnostic.severity() != severity {
+      if diagnostic.severity != severity {
         new_diagnostics.push(diagnostic);
         continue;
       }

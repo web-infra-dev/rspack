@@ -639,6 +639,8 @@ inline 优化的条件是常量值为：
 - 长度 \<= 6 的 `string`
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineConst: true, // 目前为实验性功能，需开启此选项
@@ -646,12 +648,14 @@ export default {
   module: {
     parser: {
       javascript: {
-        inlineConst: true,
+        inlineConst: isProduction,
       },
     },
   },
 };
 ```
+
+由于该功能依赖模块导出的使用信息（[optimization.usedExports](/config/optimization#optimizationusedexports)），所以建议仅在 `mode = "production"` 时开启该功能。
 
 详细示例可参考：[inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
@@ -2299,16 +2303,33 @@ export default {
 
 所有 loader 都会进入以下两个阶段：
 
-- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/types#pitching-loader)。
+- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader)。
 - **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
 
 ### Rule.type
 
-- **类型：** `'javascript/auto' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`
+- **类型：**
+
+```ts
+type RuleType =
+  | 'asset'
+  | 'css'
+  | 'css/auto'
+  | 'css/module'
+  | 'javascript/auto'
+  | 'javascript/dynamic'
+  | 'javascript/esm'
+  | 'json';
+```
 
 用于标记匹配的模块的类型，这会影响 Rspack 内置对于该模块的处理方式。
 
-默认情况下，Rspack 会根据文件扩展名来决定模块的类型。例如，`.js` 和 `.mjs` 文件会被当作 `javascript/auto` 模块处理，`.json` 文件会被当作 `json` 模块处理。
+默认情况下，Rspack 会根据文件扩展名来决定模块的类型。例如：
+
+- `.js` 文件会被当作 `javascript/auto` 模块处理。
+- `.mjs` 文件，以及 package.json 中包含 `type="module"` 的 `.js` 文件会被当作 `javascript/esm` 模块处理。
+- `.json` 文件会被当作 `json` 模块处理。
+- `.css` 文件会被当作 `css/auto` 模块处理。
 
 例如，如果你想通过一个自定义 Loader 加载 `.json` 文件，你需要将类型设置为 `javascript/auto` 以绕过 Rspack 内置的 JSON 导入。
 
@@ -2327,13 +2348,13 @@ export default {
 };
 ```
 
-所有 `type` 如下：
+所有 `type` 的含义如下：
 
-- `'javascript/auto'`：JavaScript 模块，支持的模块系统：CommonJS、ES modules。
+- `'javascript/auto'`：JavaScript 模块，Rspack 会根据文件内容自动判断模块类型，兼容性最佳。
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
 - `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
-- `'css' | 'css/module' | 'css/auto'`：CSS 模块，参考 [原生 CSS 支持](/guide/tech/css#原生-css-支持)。
+- `'css' | 'css/module' | 'css/auto'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ### Rule.layer

@@ -8,14 +8,16 @@ pub struct LocalModule {
   name: Atom,
   idx: usize,
   used: bool,
+  amd_dep_idx: usize,
 }
 
 impl LocalModule {
-  pub fn new(name: Atom, idx: usize) -> Self {
+  pub fn new(name: Atom, idx: usize, amd_dep_idx: usize) -> Self {
     Self {
       name,
       idx,
       used: false,
+      amd_dep_idx,
     }
   }
 
@@ -35,7 +37,7 @@ impl LocalModule {
     &self.name
   }
 
-  pub fn get_idx(&self) -> usize {
-    self.idx
+  pub fn amd_dep_idx(&self) -> usize {
+    self.amd_dep_idx
   }
 }

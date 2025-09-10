@@ -112,8 +112,8 @@ impl Dependency for CssDependency {
   // it can keep the right order, but Rspack uses HashSet,
   // when determining the postOrderIndex, Rspack uses
   // dependency span to set correct order
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_layer(&self) -> Option<&rspack_core::ModuleLayer> {

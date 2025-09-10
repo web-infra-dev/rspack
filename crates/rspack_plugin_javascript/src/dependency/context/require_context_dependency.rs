@@ -47,8 +47,8 @@ impl Dependency for RequireContextDependency {
     &DependencyType::RequireContext
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

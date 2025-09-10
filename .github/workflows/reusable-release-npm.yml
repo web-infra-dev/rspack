@@ -43,7 +43,7 @@ jobs:
   build:
     needs: [get-runner-labels]
     strategy:
-      fail-fast: true # for better utilize ci runners
+      fail-fast: false # for better utilize ci runners
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu
@@ -112,9 +112,6 @@ jobs:
 
       - name: Show binding packages
         run: ls -R npm
-
-      - name: Link optional dependencies
-        run: pnpm install --no-frozen-lockfile
 
       # Update npm to the latest version to enable OIDC
       - name: Update npm

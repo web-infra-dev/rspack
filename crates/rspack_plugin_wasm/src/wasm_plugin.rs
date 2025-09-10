@@ -8,9 +8,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
-
-pub struct EnableWasmLoadingPlugin;
+use crate::{ModuleIdToFileName, parser_and_generator::AsyncWasmParserAndGenerator};
 
 #[plugin]
 #[derive(Debug, Default)]

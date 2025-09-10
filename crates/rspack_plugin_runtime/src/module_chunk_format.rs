@@ -122,11 +122,6 @@ async fn render_chunk(
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  // Skip processing if the chunk doesn't have any JavaScript
-  if !chunk_has_js(chunk_ukey, compilation) {
-    return Ok(());
-  }
-
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
@@ -248,8 +243,8 @@ async fn render_chunk(
       source: RawStringSource::from(startup_source.join("\n")).boxed(),
     };
     hooks
-      .read()
-      .await
+      .try_read()
+      .expect("should have js plugin drive")
       .render_startup
       .call(
         compilation,

@@ -37,8 +37,8 @@ impl Dependency for AMDRequireItemDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    self.range.as_ref()
+  fn range(&self) -> Option<DependencyRange> {
+    self.range
   }
 
   fn category(&self) -> &DependencyCategory {

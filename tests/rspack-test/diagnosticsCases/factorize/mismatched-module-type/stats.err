@@ -1,0 +1,120 @@
+ERROR in ./app.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:31]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                                ──────
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Unterminated regexp literal
+         ╭─[4:31]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                                ──────
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:25]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                          ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:30]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                               ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.jsx
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:31]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                                ──────
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.jsx
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Unterminated regexp literal
+         ╭─[4:31]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                                ──────
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.jsx
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:25]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                          ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.jsx
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[4:30]
+       2 │     createElement() {}
+       3 │ };
+       4 │ export const App = () => <div></div>;
+         ·                               ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./app.ts
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expected ',', got ':'
+         ╭─[2:21]
+       1 │ const React = {
+       2 │     createElement(elm: any) {}
+         ·                      ─
+       3 │ };
+       4 │ function Component<T>() {
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./index.js 34:14-25
+  × No parser registered for 'ts'

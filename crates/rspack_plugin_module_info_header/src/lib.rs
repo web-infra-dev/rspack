@@ -2,12 +2,11 @@ use std::{hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
-use rspack_collections::Identifiable;
 use rspack_core::{
-  BoxModule, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationParams, CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, Module,
-  ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  UsageState, get_target,
+  BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, Module, ModuleGraph,
+  ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState,
+  get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -225,14 +224,14 @@ async fn render_js_module_package(
   &self,
   compilation: &Compilation,
   chunk_key: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
   let mut new_source: ConcatSource = Default::default();
 
   new_source.add(RawStringSource::from(
-    ModuleInfoHeaderPlugin::generate_header(module.as_ref(), compilation),
+    ModuleInfoHeaderPlugin::generate_header(module, compilation),
   ));
 
   if self.verbose {

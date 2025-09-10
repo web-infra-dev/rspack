@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.5.0-rc.0",
+  "version": "1.5.3",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -12,7 +12,8 @@
   "files": [
     "binding.js",
     "binding.d.ts",
-    "napi-binding.d.ts"
+    "napi-binding.d.ts",
+    "webcontainer-fallback.cjs"
   ],
   "scripts": {
     "build:dev": "node scripts/build.js",
@@ -64,9 +65,14 @@
   },
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
-    "@rspack/binding-darwin-x64": "workspace:*",
-    "@rspack/binding-linux-x64-gnu": "workspace:*",
+    "@rspack/binding-win32-arm64-msvc": "workspace:*",
+    "@rspack/binding-linux-arm64-gnu": "workspace:*",
+    "@rspack/binding-linux-arm64-musl": "workspace:*",
+    "@rspack/binding-win32-ia32-msvc": "workspace:*",
     "@rspack/binding-wasm32-wasi": "workspace:*",
-    "@rspack/binding-win32-x64-msvc": "workspace:*"
+    "@rspack/binding-darwin-x64": "workspace:*",
+    "@rspack/binding-win32-x64-msvc": "workspace:*",
+    "@rspack/binding-linux-x64-gnu": "workspace:*",
+    "@rspack/binding-linux-x64-musl": "workspace:*"
   }
 }

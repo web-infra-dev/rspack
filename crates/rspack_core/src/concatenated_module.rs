@@ -10,23 +10,20 @@ use dashmap::DashMap;
 use indexmap::IndexMap;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsMap, Skip},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsMap};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
-use rspack_error::{
-  Diagnosable, Diagnostic, Result, ToStringResultToRspackResultExt, TraceableError,
-};
+use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_javascript_compiler::ast::Ast;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
-use rspack_util::{ext::DynHash, itoa, json_stringify, source_map::SourceMapKind, swc::join_atom};
+use rspack_util::{
+  SpanExt, ext::DynHash, itoa, json_stringify, source_map::SourceMapKind, swc::join_atom,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
@@ -46,17 +43,17 @@ use crate::{
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
   ConnectionState, Context, DEFAULT_EXPORT, DependenciesBlock, DependencyId, DependencyType,
-  ErrorSpan, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
-  GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam,
+  IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
   MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, UsageState, UsedName,
-  UsedNameItem, define_es_module_flag_statement, escape_identifier, filter_runtime,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
-  reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
-  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, UsageState, UsedName, UsedNameItem,
+  define_es_module_flag_statement, escape_identifier, filter_runtime, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name, reserved_names::RESERVED_NAMES,
+  returning_function, runtime_condition_expression, subtract_runtime_condition,
+  to_identifier_with_escaped, to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -389,7 +386,6 @@ pub struct ConcatenatedModule {
   dependencies: Vec<DependencyId>,
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
-  #[cacheable(with=Skip)]
   diagnostics: Vec<Diagnostic>,
   build_info: BuildInfo,
 }
@@ -1736,12 +1732,7 @@ impl ConcatenatedModule {
     mg_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ConcatenationEntry> {
     mg_cache.cached_concatenated_module_entries(
-      (
-        self.id,
-        runtime
-          .map(|r| get_runtime_key(r).to_string())
-          .unwrap_or_default(),
-      ),
+      (self.id, runtime.map(|r| get_runtime_key(r).to_string())),
       || {
         let root_module = self.root_module_ctxt.id;
         let module_set: IdentifierIndexSet = self.modules.iter().map(|item| item.id).collect();
@@ -2008,19 +1999,14 @@ impl ConcatenatedModule {
       ) {
         Ok(res) => Program::Module(res),
         Err(err) => {
-          let span: ErrorSpan = err.span().into();
-
           // return empty error as we already push error to compilation.diagnostics
-          return Err(
-            rspack_error::TraceableError::from_source_file(
-              &fm,
-              span.start as usize,
-              span.end as usize,
-              "JavaScript parse error:\n".to_string(),
-              err.kind().msg().to_string(),
-            )
-            .into(),
-          );
+          return Err(Error::from_string(
+            Some(fm.src.clone().into_string()),
+            err.span().real_lo() as usize,
+            err.span().real_hi() as usize,
+            "JavaScript parse error:\n".to_string(),
+            err.kind().msg().to_string(),
+          ));
         }
       };
       let mut ast = Ast::new(program, cm, Some(comments));
@@ -2642,12 +2628,9 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
 /// Mark boxed errors as [crate::diagnostics::ModuleParseError],
 /// then, map it to diagnostics
 pub fn map_box_diagnostics_to_module_parse_diagnostics(
-  errors: Vec<TraceableError>,
+  errors: Vec<Error>,
 ) -> Vec<rspack_error::Diagnostic> {
-  errors
-    .into_iter()
-    .map(|e| rspack_error::miette::Error::new(e).into())
-    .collect()
+  errors.into_iter().map(|e| e.into()).collect()
 }
 
 pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {
