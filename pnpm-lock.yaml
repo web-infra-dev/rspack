@@ -102,13 +102,13 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: 3.0.4
-        version: 3.0.4(@emnapi/runtime@1.4.5)(@types/node@24.1.0)(emnapi@1.4.5(node-addon-api@7.1.1))
+        version: 3.0.4(@emnapi/runtime@1.4.5)(@types/node@24.1.0)(emnapi@1.5.0(node-addon-api@7.1.1))
       '@napi-rs/wasm-runtime':
         specifier: ^1.0.1
         version: 1.0.1
       emnapi:
-        specifier: ^1.4.5
-        version: 1.4.5(node-addon-api@7.1.1)
+        specifier: ^1.5.0
+        version: 1.5.0(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
@@ -148,13 +148,13 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: 3.0.4
-        version: 3.0.4(@emnapi/runtime@1.4.5)(@types/node@24.1.0)(emnapi@1.4.5(node-addon-api@7.1.1))
+        version: 3.0.4(@emnapi/runtime@1.4.5)(@types/node@24.1.0)(emnapi@1.5.0(node-addon-api@7.1.1))
       '@napi-rs/wasm-runtime':
         specifier: ^1.0.1
         version: 1.0.1
       emnapi:
-        specifier: ^1.4.5
-        version: 1.4.5(node-addon-api@7.1.1)
+        specifier: ^1.5.0
+        version: 1.5.0(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
@@ -5276,8 +5276,8 @@ packages:
     resolution: {integrity: sha512-DeWwawk6r5yR9jFgnDKYt4sLS0LmHJJi3ZOnb5/JdbYwj3nW+FxQnHIjhBKz8YLC7oRNPVM9NQ47I3CVx34eqQ==}
     engines: {node: '>=12'}
 
-  emnapi@1.4.5:
-    resolution: {integrity: sha512-qYEfWKYngSahxc6Y+zajiiwzhhn5TkRci3BLQFKHVqT3vxj061IWCgaESZ9921OsbPiyetX43kckXw80dj9d6g==}
+  emnapi@1.5.0:
+    resolution: {integrity: sha512-adAaiwTxMnHbq1u2LUf+AfDR5MYrxDVBtezGspxwk5e/Zb6KHkGNdfuMU4JBIVm6ASY06K8KalhOPUht92MsnA==}
     peerDependencies:
       node-addon-api: '>= 6.1.0'
     peerDependenciesMeta:
@@ -10723,7 +10723,7 @@ snapshots:
       '@module-federation/runtime': 0.18.0
       '@module-federation/sdk': 0.18.0
 
-  '@napi-rs/cli@3.0.4(@emnapi/runtime@1.4.5)(@types/node@24.1.0)(emnapi@1.4.5(node-addon-api@7.1.1))':
+  '@napi-rs/cli@3.0.4(@emnapi/runtime@1.4.5)(@types/node@24.1.0)(emnapi@1.5.0(node-addon-api@7.1.1))':
     dependencies:
       '@inquirer/prompts': 7.5.3(@types/node@24.1.0)
       '@napi-rs/cross-toolchain': 1.0.0
@@ -10739,7 +10739,7 @@ snapshots:
       typanion: 3.14.0
     optionalDependencies:
       '@emnapi/runtime': 1.4.5
-      emnapi: 1.4.5(node-addon-api@7.1.1)
+      emnapi: 1.5.0(node-addon-api@7.1.1)
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
@@ -13774,7 +13774,7 @@ snapshots:
 
   emittery@0.13.1: {}
 
-  emnapi@1.4.5(node-addon-api@7.1.1):
+  emnapi@1.5.0(node-addon-api@7.1.1):
     optionalDependencies:
       node-addon-api: 7.1.1
 
