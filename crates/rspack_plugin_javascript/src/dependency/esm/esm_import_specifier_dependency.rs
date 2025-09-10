@@ -612,7 +612,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         )
         .and_then(|used| match used {
           UsedName::Normal(names) => names.last().cloned(),
-          UsedName::Inlined(_) => unreachable!("should not inline for destructuring"),
+          UsedName::Inlined(inlined) => {
+            unreachable!("should not inline for destructuring {:#?}", inlined)
+          }
         }) else {
           return;
         };

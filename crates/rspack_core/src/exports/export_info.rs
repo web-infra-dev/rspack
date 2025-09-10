@@ -4,12 +4,13 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{
-  ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, ResolvedExportInfoTarget,
+  ExportInfoTargetValue, ExportProvided, ExportsInfo, ResolvedExportInfoTarget,
   ResolvedExportInfoTargetWithCircular, UsageState,
 };
 use crate::{
-  DependencyId, FindTargetResult, ModuleGraph, ModuleIdentifier, ResolveFilterFnTy,
-  find_target_from_export_info, get_target_from_maybe_export_info, get_target_with_filter,
+  CanInlineUse, DependencyId, EvaluatedInlinableValue, FindTargetResult, ModuleGraph,
+  ModuleIdentifier, ResolveFilterFnTy, find_target_from_export_info,
+  get_target_from_maybe_export_info, get_target_with_filter,
 };
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -64,8 +65,8 @@ pub struct ExportInfoData {
   provided: Option<ExportProvided>,
   can_mangle_provide: Option<bool>,
   can_mangle_use: Option<bool>,
-  // only specific export info can be inlined, so other_export_info.inlinable is always NoByProvide
-  inlinable: Inlinable,
+  can_inline_provide: Option<EvaluatedInlinableValue>,
+  can_inline_use: Option<CanInlineUse>,
   terminal_binding: bool,
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
@@ -138,7 +139,10 @@ impl ExportInfoData {
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
-      inlinable: Inlinable::NoByProvide,
+      // only specific export info can be inlined, so other_export_info.can_inline_provide is always None
+      can_inline_provide: None,
+      // only specific export info can be inlined, so other_export_info.can_inline_use is always None
+      can_inline_use: None,
     }
   }
 
@@ -174,8 +178,12 @@ impl ExportInfoData {
     self.can_mangle_use
   }
 
-  pub fn inlinable(&self) -> &Inlinable {
-    &self.inlinable
+  pub fn can_inline_provide(&self) -> Option<&EvaluatedInlinableValue> {
+    self.can_inline_provide.as_ref()
+  }
+
+  pub fn can_inline_use(&self) -> Option<CanInlineUse> {
+    self.can_inline_use
   }
 
   pub fn terminal_binding(&self) -> bool {
@@ -233,6 +241,14 @@ impl ExportInfoData {
     self.can_mangle_use = value;
   }
 
+  pub fn set_can_inline_provide(&mut self, value: Option<EvaluatedInlinableValue>) {
+    self.can_inline_provide = value;
+  }
+
+  pub fn set_can_inline_use(&mut self, value: Option<CanInlineUse>) {
+    self.can_inline_use = value;
+  }
+
   pub fn set_terminal_binding(&mut self, value: bool) {
     self.terminal_binding = value;
   }
@@ -243,10 +259,6 @@ impl ExportInfoData {
 
   pub fn set_exports_info_owned(&mut self, value: bool) {
     self.exports_info_owned = value;
-  }
-
-  pub fn set_inlinable(&mut self, inlinable: Inlinable) {
-    self.inlinable = inlinable;
   }
 
   pub fn set_used_name(&mut self, name: Atom) {

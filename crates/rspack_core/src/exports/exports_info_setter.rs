@@ -2,8 +2,8 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  DependencyId, ExportInfoData, ExportProvided, ExportsInfo, ExportsInfoData, Nullable,
-  RuntimeSpec, UsageState,
+  CanInlineUse, DependencyId, ExportInfoData, ExportProvided, ExportsInfo, ExportsInfoData,
+  Nullable, RuntimeSpec, UsageState,
 };
 
 impl ExportsInfoData {
@@ -132,6 +132,10 @@ impl ExportsInfoData {
       other_exports_info.set_can_mangle_use(Some(false));
       changed = true;
     }
+    if other_exports_info.can_inline_use() != Some(CanInlineUse::No) {
+      other_exports_info.set_can_inline_use(Some(CanInlineUse::No));
+      changed = true;
+    }
     changed
   }
 
@@ -156,6 +160,10 @@ impl ExportsInfoData {
     }
     if other_exports_info.can_mangle_use() != Some(false) {
       other_exports_info.set_can_mangle_use(Some(false));
+      changed = true;
+    }
+    if other_exports_info.can_inline_use() != Some(CanInlineUse::No) {
+      other_exports_info.set_can_inline_use(Some(CanInlineUse::No));
       changed = true;
     }
     changed

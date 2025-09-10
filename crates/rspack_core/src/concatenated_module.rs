@@ -2444,11 +2444,10 @@ impl ConcatenatedModule {
                       "inlined export {}",
                       property_access(&export_name, 0)
                     )),
-                    inlined.render()
+                    inlined.inlined_value().render()
                   )
                   .into(),
-                  // Inlined export is definitely a terminal binding
-                  ids: vec![],
+                  ids: inlined.suffix_ids().to_vec(),
                   export_name,
                   info_id: info.module,
                   comment: None,
@@ -2487,7 +2486,34 @@ impl ConcatenatedModule {
         );
         match reexport {
           crate::FindTargetResult::NoTarget => {}
-          crate::FindTargetResult::NoValidTarget => {
+          crate::FindTargetResult::InvalidTarget(target) => {
+            if let Some(export) = target.export {
+              let exports_info = mg.get_prefetched_exports_info(
+                &target.module,
+                PrefetchExportsInfoMode::Nested(&export),
+              );
+              if let Some(UsedName::Inlined(inlined)) = ExportsInfoGetter::get_used_name(
+                GetUsedNameParam::WithNames(&exports_info),
+                runtime,
+                &export,
+              ) {
+                return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
+                  raw_name: format!(
+                    "{} {}",
+                    to_normal_comment(&format!(
+                      "inlined export {}",
+                      property_access(&export_name, 0)
+                    )),
+                    inlined.inlined_value().render()
+                  )
+                  .into(),
+                  ids: inlined.suffix_ids().to_vec(),
+                  export_name,
+                  info_id: info.module,
+                  comment: None,
+                }));
+              }
+            }
             panic!(
               "Target module of reexport is not part of the concatenation (export '{:?}')",
               &export_id
@@ -2544,9 +2570,16 @@ impl ConcatenatedModule {
             // Inlined namespace export symbol is not possible for now but we compat it here
             UsedName::Inlined(inlined) => Binding::Raw(RawBinding {
               info_id: info.module,
-              raw_name: inlined.render().into(),
-              // Inlined export is definitely a terminal binding
-              ids: vec![],
+              raw_name: format!(
+                "{} {}",
+                to_normal_comment(&format!(
+                  "inlined export {}",
+                  property_access(&export_name, 0)
+                )),
+                inlined.inlined_value().render()
+              )
+              .into(),
+              ids: inlined.suffix_ids().to_vec(),
               export_name,
               comment: None,
             }),
@@ -2585,20 +2618,21 @@ impl ConcatenatedModule {
                 comment: None,
               })
             }
-            UsedName::Inlined(inlined) => {
-              let comment = to_normal_comment(&format!(
-                "inlined export {}",
-                property_access(&export_name, 0)
-              ));
-              Binding::Raw(RawBinding {
-                raw_name: format!("{}{}", inlined.render(), comment).into(),
-                // Inlined export is definitely a terminal binding
-                ids: vec![],
-                export_name,
-                info_id: info.module,
-                comment: None,
-              })
-            }
+            UsedName::Inlined(inlined) => Binding::Raw(RawBinding {
+              raw_name: format!(
+                "{} {}",
+                to_normal_comment(&format!(
+                  "inlined export {}",
+                  property_access(&export_name, 0)
+                )),
+                inlined.inlined_value().render()
+              )
+              .into(),
+              ids: inlined.suffix_ids().to_vec(),
+              export_name,
+              info_id: info.module,
+              comment: None,
+            }),
           }
         } else {
           Binding::Raw(RawBinding {
