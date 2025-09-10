@@ -81,6 +81,7 @@ impl Dependency for ESMExportSpecifierDependency {
               ExportNameOrSpec::ExportSpec(ExportSpec {
                 name: enum_name.clone(),
                 inlinable: enum_value.clone(),
+                can_mangle: Some(false),
                 ..Default::default()
               })
             })
