@@ -40,7 +40,7 @@ pub struct ResolvedExportInfoTarget {
 #[derive(Clone, Debug)]
 pub enum FindTargetResult {
   NoTarget,
-  NoValidTarget,
+  InvalidTarget(FindTargetResultItem),
   ValidTarget(FindTargetResultItem),
 }
 
@@ -109,8 +109,8 @@ pub(crate) fn find_target_from_export_info(
       visited,
     );
     let new_target = match new_target {
-      FindTargetResult::NoTarget => return FindTargetResult::NoValidTarget,
-      FindTargetResult::NoValidTarget => return FindTargetResult::NoValidTarget,
+      FindTargetResult::NoTarget => return FindTargetResult::InvalidTarget(target),
+      FindTargetResult::InvalidTarget(module) => return FindTargetResult::InvalidTarget(module),
       FindTargetResult::ValidTarget(target) => target,
     };
     if target.export.as_ref().map(|item| item.len()) == Some(1) {

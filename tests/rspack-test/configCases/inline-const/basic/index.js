@@ -3,6 +3,8 @@ import * as reexported from "./re-export.js";
 import * as destructing from "./constants.destructing.js";
 import * as sideEffects from "./constants.side-effects.js";
 import * as reexportedSideEffects from "./re-export.side-effects.js";
+import * as reexportedBarrelSideEffects from "./re-export.barrel-side-effects.js";
+import * as reexportedDestructingBarrelSideEffects from "./re-export.destructing-barrel-side-effects.js";
 import * as constantsCjs from "./constants.cjs";
 
 const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
@@ -90,6 +92,41 @@ it("should not inline and link to re-export module when have side effects", () =
   } else {
     expect(block.includes(`inlined export`)).toBe(false);
   }
+})
+
+it("should not inline and link to re-export module when have barrel side effects", () => {
+  // START:G
+  expect(reexportedBarrelSideEffects.REMOVE_s).toBe("remove");
+  // END:G
+  expect(globalThis.__barrelSideEffects).toBe("re-export.barrel-side-effects.js");
+  const block = generated.match(/\/\/ START:G([\s\S]*)\/\/ END:G/)[1];
+  if (CONCATENATED) {
+    expect(block.includes(`inlined export`)).toBe(true);
+  } else {
+    const code = generated.match(/"\.\/re-export\.barrel-side-effects\.js": \(function.*{([\s\S]*?)}\),/)[1];
+    expect(code.includes(`__webpack_require__("./constants.js")`)).toBe(false);
+    expect(block.includes(`inlined export`)).toBe(false);
+  }
+})
+
+it("should not inline destructing with re-export", () => {
+  // START:H
+  const { REMOVE_n, REMOVE_u, REMOVE_b } = reexportedDestructingBarrelSideEffects.m;
+  expect(REMOVE_n).toBe(null);
+  expect(REMOVE_u).toBe(undefined);
+  expect(REMOVE_b).toBe(true);
+  expect(reexportedDestructingBarrelSideEffects.m.REMOVE_i).toBe(123456);
+  expect(reexportedDestructingBarrelSideEffects.m.REMOVE_f).toBe(123.45);
+  expect(reexportedDestructingBarrelSideEffects.m.REMOVE_s).toBe("remove");
+  // END:H
+  expect(globalThis.__destructingBarrelSideEffects).toBe("re-export.destructing-barrel-side-effects.js");
+  const block = generated.match(/\/\/ START:H([\s\S]*)\/\/ END:H/)[1];
+  expect(block.includes(`(REMOVE_n).toBe(null)`)).toBe(true);
+  expect(block.includes(`(REMOVE_u).toBe(undefined)`)).toBe(true);
+  expect(block.includes(`(REMOVE_b).toBe(true)`)).toBe(true);
+  expect(block.includes(`(123456)).toBe(123456)`)).toBe(true);
+  expect(block.includes(`(123.45)).toBe(123.45)`)).toBe(true);
+  expect(block.includes(`("remove")).toBe("remove")`)).toBe(true);
 })
 
 it("should not inline for cjs", () => {
