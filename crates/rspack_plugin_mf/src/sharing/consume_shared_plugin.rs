@@ -406,21 +406,20 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   let module_graph = compilation.get_module_graph();
 
-  // Iterate through all modules to find ConsumeShared modules
+  // Iterate through all modules to find ConsumeShared modules with a configured fallback import
   let mut consume_shared_modules = Vec::new();
   for (module_id, module) in module_graph.modules() {
-    // Only process ConsumeSharedModule instances with fallback dependencies
-    if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() {
-      // Check if this module has a fallback import
-      if consume_shared.get_options().import.is_some() {
-        consume_shared_modules.push(module_id);
-      }
+    if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
+      && consume_shared.get_options().import.is_some()
+    {
+      consume_shared_modules.push(module_id);
     }
   }
 
   // Process each ConsumeShared module
   for module_id in consume_shared_modules {
-    let fallback_module_id = {
+    // Compute fallback module id and metadata with a single immutable access to the module graph
+    let fallback_meta_info = {
       let module_graph = compilation.get_module_graph();
       if let Some(module) = module_graph.module_by_identifier(&module_id) {
         if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() {
@@ -460,7 +459,18 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
             }
           }
 
-          fallback_id
+          if let Some(fallback_id) = fallback_id {
+            module_graph
+              .module_by_identifier(&fallback_id)
+              .map(|fallback_module| {
+                (
+                  fallback_module.build_meta().clone(),
+                  fallback_module.build_info().clone(),
+                )
+              })
+          } else {
+            None
+          }
         } else {
           None
         }
@@ -469,20 +479,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       }
     };
 
-    // Copy metadata from fallback to ConsumeShared module
-    if let Some(fallback_id) = fallback_module_id {
-      let (fallback_meta, fallback_info) = {
-        let module_graph = compilation.get_module_graph();
-        if let Some(fallback_module) = module_graph.module_by_identifier(&fallback_id) {
-          (
-            fallback_module.build_meta().clone(),
-            fallback_module.build_info().clone(),
-          )
-        } else {
-          (Default::default(), Default::default())
-        }
-      };
-
+    if let Some((fallback_meta, fallback_info)) = fallback_meta_info {
       // Update the ConsumeShared module with fallback's metadata
       let mut module_graph_mut = compilation.get_module_graph_mut();
       if let Some(consume_module) = module_graph_mut.module_by_identifier_mut(&module_id) {
@@ -490,6 +487,24 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         // This ensures ConsumeSharedModule inherits ESM/CJS detection (exportsType) and other optimization metadata
         *consume_module.build_meta_mut() = fallback_meta;
         *consume_module.build_info_mut() = fallback_info;
+      }
+    } else {
+      // No fallback module found. Emit a warning instead of silently defaulting values.
+      // This avoids masking potential issues where a configured fallback import cannot be resolved.
+      {
+        let module_graph = compilation.get_module_graph();
+        if let Some(module) = module_graph.module_by_identifier(&module_id)
+          && let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
+          && let Some(req) = &consume_shared.get_options().import
+        {
+          compilation.push_diagnostic(Diagnostic::warn(
+            "ConsumeSharedFallbackMissing".into(),
+            format!(
+              "Fallback module for '{}' not found; skipping build meta copy",
+              req
+            ),
+          ));
+        }
       }
     }
   }
