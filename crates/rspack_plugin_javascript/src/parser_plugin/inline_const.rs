@@ -184,7 +184,7 @@ impl DependencyConditionFn for InlineValueDependencyCondition {
         return bailout;
       }
       for (_, export_info) in exports_info.exports() {
-        if !export_info.can_inline().is_some() {
+        if export_info.can_inline().is_none() {
           return bailout;
         }
       }
