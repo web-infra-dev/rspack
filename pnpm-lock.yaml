@@ -119,12 +119,27 @@ importers:
       '@rspack/binding-darwin-x64':
         specifier: workspace:*
         version: link:../../npm/darwin-x64
+      '@rspack/binding-linux-arm64-gnu':
+        specifier: workspace:*
+        version: link:../../npm/linux-arm64-gnu
+      '@rspack/binding-linux-arm64-musl':
+        specifier: workspace:*
+        version: link:../../npm/linux-arm64-musl
       '@rspack/binding-linux-x64-gnu':
         specifier: workspace:*
         version: link:../../npm/linux-x64-gnu
+      '@rspack/binding-linux-x64-musl':
+        specifier: workspace:*
+        version: link:../../npm/linux-x64-musl
       '@rspack/binding-wasm32-wasi':
         specifier: workspace:*
         version: link:../../npm/wasm32-wasi
+      '@rspack/binding-win32-arm64-msvc':
+        specifier: workspace:*
+        version: link:../../npm/win32-arm64-msvc
+      '@rspack/binding-win32-ia32-msvc':
+        specifier: workspace:*
+        version: link:../../npm/win32-ia32-msvc
       '@rspack/binding-win32-x64-msvc':
         specifier: workspace:*
         version: link:../../npm/win32-x64-msvc
@@ -148,13 +163,23 @@ importers:
 
   npm/darwin-x64: {}
 
+  npm/linux-arm64-gnu: {}
+
+  npm/linux-arm64-musl: {}
+
   npm/linux-x64-gnu: {}
+
+  npm/linux-x64-musl: {}
 
   npm/wasm32-wasi:
     dependencies:
       '@napi-rs/wasm-runtime':
         specifier: ^1.0.1
         version: 1.0.1
+
+  npm/win32-arm64-msvc: {}
+
+  npm/win32-ia32-msvc: {}
 
   npm/win32-x64-msvc: {}
 
@@ -945,7 +970,7 @@ importers:
         version: 3.45.0
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.2(@rspack/core@1.5.2(@swc/helpers@0.5.17))(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
+        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -13325,20 +13350,6 @@ snapshots:
       file-entry-cache: 9.1.0
       semver: 7.7.2
       tinyglobby: 0.2.14
-
-  css-loader@7.1.2(@rspack/core@1.5.2(@swc/helpers@0.5.17))(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))):
-    dependencies:
-      icss-utils: 5.1.0(postcss@8.5.4)
-      postcss: 8.5.4
-      postcss-modules-extract-imports: 3.1.0(postcss@8.5.4)
-      postcss-modules-local-by-default: 4.2.0(postcss@8.5.4)
-      postcss-modules-scope: 3.2.1(postcss@8.5.4)
-      postcss-modules-values: 4.0.0(postcss@8.5.4)
-      postcss-value-parser: 4.2.0
-      semver: 7.7.2
-    optionalDependencies:
-      '@rspack/core': 1.5.2(@swc/helpers@0.5.17)
-      webpack: 5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))
 
   css-loader@7.1.2(@rspack/core@packages+rspack)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))):
     dependencies:
