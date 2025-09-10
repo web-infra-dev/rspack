@@ -172,22 +172,21 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       for dep_id in module.get_dependencies() {
         if !has_error && let Some(factorize_info) = mg.dependency_factorize_info_by_id(dep_id) {
-          if factorize_info.is_success() {
-            continue;
-          }
-          let diagnostics = factorize_info.diagnostics();
-          let errors: Vec<_> = diagnostics
-            .iter()
-            .filter(|d| d.is_error())
-            .map(|d| d.message.clone())
-            .collect();
-          if !errors.is_empty() {
-            has_error = true;
-            if let Some(existing_error) = &mut execute_result.error {
-              existing_error.push('\n');
-              existing_error.push_str(&errors.join("\n"));
-            } else {
-              execute_result.error = Some(errors.join("\n"));
+          if !factorize_info.is_success() {
+            let diagnostics = factorize_info.diagnostics();
+            let errors: Vec<_> = diagnostics
+              .iter()
+              .filter(|d| d.is_error())
+              .map(|d| d.message.clone())
+              .collect();
+            if !errors.is_empty() {
+              has_error = true;
+              if let Some(existing_error) = &mut execute_result.error {
+                existing_error.push('\n');
+                existing_error.push_str(&errors.join("\n"));
+              } else {
+                execute_result.error = Some(errors.join("\n"));
+              }
             }
           }
         }
