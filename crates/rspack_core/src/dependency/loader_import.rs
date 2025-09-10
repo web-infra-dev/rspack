@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 
-use super::{AffectType, FactorizeInfo};
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyCategory,
   DependencyId, DependencyType, ModuleDependency,
@@ -14,7 +12,6 @@ pub struct LoaderImportDependency {
   id: DependencyId,
   context: Context,
   request: String,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl LoaderImportDependency {
@@ -23,7 +20,6 @@ impl LoaderImportDependency {
       request,
       context,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 
@@ -32,7 +28,6 @@ impl LoaderImportDependency {
       request,
       context,
       id,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -87,13 +82,5 @@ impl ModuleDependency for LoaderImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }

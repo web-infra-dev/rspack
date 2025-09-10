@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -8,10 +6,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, module_raw,
+  DependencyType, ExportsInfoGetter, ExtendedReferencedExport, GetUsedNameParam, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  UsedName, create_exports_object_referenced, module_raw,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -28,7 +26,6 @@ pub struct ProvideDependency {
   range: DependencyRange,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ProvideDependency {
@@ -46,7 +43,6 @@ impl ProvideDependency {
       identifier,
       ids,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -95,14 +91,6 @@ impl ModuleDependency for ProvideDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

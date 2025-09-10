@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AffectType, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource, module_raw,
+  ModuleDependency, TemplateContext, TemplateReplaceSource, module_raw,
 };
 use rspack_util::atom::Atom;
 
@@ -16,7 +14,6 @@ pub struct AMDRequireItemDependency {
   request: Atom,
   range: Option<DependencyRange>,
   optional: bool,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl AMDRequireItemDependency {
@@ -26,7 +23,6 @@ impl AMDRequireItemDependency {
       request,
       range,
       optional: false,
-      factorize_info: Default::default(),
     }
   }
 
@@ -66,14 +62,6 @@ impl ModuleDependency for AMDRequireItemDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

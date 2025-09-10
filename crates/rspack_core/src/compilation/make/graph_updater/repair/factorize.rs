@@ -158,13 +158,11 @@ impl Task<TaskContext> for FactorizeResultTask {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
-      mut dependencies,
+      dependencies,
       current_profile,
       exports_info_related,
       factorize_info,
     } = *self;
-
-    let factorize_info = Arc::new(factorize_info);
 
     let artifact = &mut context.artifact;
     if !factorize_info.diagnostics().is_empty() {
@@ -182,19 +180,11 @@ impl Task<TaskContext> for FactorizeResultTask {
       .missing_dependencies
       .add_batch_file(&factorize_info.missing_dependencies());
 
-    // write factorize_info to dependencies[0] and set success factorize_info to others
-    for dep in &mut dependencies {
-      let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
-        d.factorize_info_mut()
-      } else if let Some(d) = dep.as_module_dependency_mut() {
-        d.factorize_info_mut()
-      } else {
-        unreachable!("only module dependency and context dependency can factorize")
-      };
-      *dep_factorize_info = factorize_info.clone();
-    }
-
     let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+
+    // write factorize_info to dependencies[0] and set success factorize_info to others
+    module_graph.insert_dependency_factorize_info(*dependencies[0].id(), factorize_info);
+
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");

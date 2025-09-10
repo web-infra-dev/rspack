@@ -1,7 +1,5 @@
 mod create_script_url_dependency;
 
-use std::sync::Arc;
-
 pub use create_script_url_dependency::{
   CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
 };
@@ -9,7 +7,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
@@ -22,7 +20,6 @@ pub struct WorkerDependency {
   public_path: String,
   range: DependencyRange,
   range_path: DependencyRange,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl WorkerDependency {
@@ -38,7 +35,6 @@ impl WorkerDependency {
       public_path,
       range,
       range_path,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -83,14 +79,6 @@ impl ModuleDependency for WorkerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

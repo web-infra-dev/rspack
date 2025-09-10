@@ -1,13 +1,11 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, Unsupported},
 };
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
+  DependencyRange, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -26,7 +24,6 @@ pub struct WasmImportDependency {
   #[cacheable(with=Unsupported)]
   pub desc: WasmNode,
   span: Option<DependencyRange>,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl WasmImportDependency {
@@ -38,7 +35,6 @@ impl WasmImportDependency {
       desc,
       // only_direct_import,
       span: None,
-      factorize_info: Default::default(),
     }
   }
   pub fn name(&self) -> &str {
@@ -82,14 +78,6 @@ impl ModuleDependency for WasmImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

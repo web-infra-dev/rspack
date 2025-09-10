@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyType, FactorizeInfo,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  DependencyCategory, DependencyId, DependencyRange, DependencyType, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer,
 };
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet;
@@ -34,7 +32,6 @@ pub struct CssDependency {
   pub(crate) context_dependencies: FxHashSet<ArcPath>,
   pub(crate) missing_dependencies: FxHashSet<ArcPath>,
   pub(crate) build_dependencies: FxHashSet<ArcPath>,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CssDependency {
@@ -75,7 +72,6 @@ impl CssDependency {
       context_dependencies,
       missing_dependencies,
       build_dependencies,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -133,13 +129,5 @@ impl Dependency for CssDependency {
 impl ModuleDependency for CssDependency {
   fn request(&self) -> &str {
     &self.identifier
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }

@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, ModuleDependency, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  module_id,
+  ModuleDependency, SharedSourceMap, TemplateContext, TemplateReplaceSource, module_id,
 };
 
 #[cacheable]
@@ -18,7 +15,6 @@ pub struct CommonJsRequireDependency {
   range_expr: Option<DependencyRange>,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CommonJsRequireDependency {
@@ -36,7 +32,6 @@ impl CommonJsRequireDependency {
       range,
       range_expr,
       source_map,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -80,14 +75,6 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

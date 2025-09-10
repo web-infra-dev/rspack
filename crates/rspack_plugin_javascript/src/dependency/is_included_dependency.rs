@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -14,7 +12,6 @@ pub struct WebpackIsIncludedDependency {
   pub range: DependencyRange,
   pub id: DependencyId,
   pub request: String,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl WebpackIsIncludedDependency {
@@ -23,7 +20,6 @@ impl WebpackIsIncludedDependency {
       range,
       id: DependencyId::default(),
       request,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -66,14 +62,6 @@ impl ModuleDependency for WebpackIsIncludedDependency {
 
   fn request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

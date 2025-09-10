@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, ConditionalInitFragment, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExtendedReferencedExport, FactorizeInfo, InitFragmentKey,
+  DependencyTemplateType, DependencyType, ExtendedReferencedExport, InitFragmentKey,
   InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeCondition,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
@@ -19,7 +17,6 @@ pub struct MockModuleIdDependency {
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
-  factorize_info: Arc<FactorizeInfo>,
   category: DependencyCategory,
   pub suffix: Option<String>,
   hoist: bool,
@@ -44,7 +41,6 @@ impl MockModuleIdDependency {
       weak,
       optional,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
       category,
       suffix,
       hoist,
@@ -101,14 +97,6 @@ impl ModuleDependency for MockModuleIdDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

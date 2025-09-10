@@ -30,7 +30,7 @@ pub use dependency_template::*;
 pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
-pub use factorize_info::FactorizeInfo;
+pub use factorize_info::*;
 pub use loader_import::*;
 pub use module_dependency::*;
 pub use runtime_requirements_dependency::{

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec, Skip},
@@ -9,12 +7,11 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
-  to_normal_comment,
+  ExtendedReferencedExport, ForwardId, GetUsedNameParam, ImportAttributes, JavascriptParserOptions,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  export_from_import, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
@@ -54,7 +51,6 @@ pub struct ESMImportSpecifierDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   pub namespace_object_as_context: bool,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ESMImportSpecifierDependency {
@@ -94,7 +90,6 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       source_map,
-      factorize_info: Default::default(),
     }
   }
 
@@ -297,14 +292,6 @@ impl ModuleDependency for ESMImportSpecifierDependency {
     } else {
       Some(DependencyCondition::new_fn(inline_const_condition))
     }
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

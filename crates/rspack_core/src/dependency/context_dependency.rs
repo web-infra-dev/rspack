@@ -1,8 +1,5 @@
-use std::sync::Arc;
-
 use rspack_error::Diagnostic;
 
-use super::FactorizeInfo;
 use crate::{ContextOptions, ContextTypePrefix, Dependency};
 
 pub trait ContextDependency: Dependency {
@@ -19,9 +16,6 @@ pub trait ContextDependency: Dependency {
 
   fn critical(&self) -> &Option<Diagnostic>;
   fn critical_mut(&mut self) -> &mut Option<Diagnostic>;
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo>;
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo>;
 }
 
 pub trait AsContextDependency {

@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, FactorizeInfo};
+use crate::{BuildDependency, Compilation};
 
 /// Cutout module graph.
 ///
@@ -76,13 +76,10 @@ impl Cutout {
           );
           force_build_deps.extend(
             module_graph
-              .dependencies()
-              .values()
-              .par_bridge()
-              .filter_map(|dependency| {
-                FactorizeInfo::get_from(dependency)
-                  .filter(|factorize_info| factorize_info.depends_on(&files))
-                  .map(|_| *dependency.id())
+              .dependency_factorize_infos()
+              .par_iter()
+              .filter_map(|(dependency_id, factorize_info)| {
+                factorize_info.depends_on(&files).then_some(*dependency_id)
               })
               .collect::<Vec<_>>(),
           );

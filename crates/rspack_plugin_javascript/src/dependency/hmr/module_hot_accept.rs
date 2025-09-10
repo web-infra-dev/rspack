@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ModuleDependency, TemplateContext, TemplateReplaceSource, module_id,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ModuleDependency,
+  TemplateContext, TemplateReplaceSource, module_id,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -15,7 +13,6 @@ pub struct ModuleHotAcceptDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ModuleHotAcceptDependency {
@@ -24,7 +21,6 @@ impl ModuleHotAcceptDependency {
       id: DependencyId::new(),
       request,
       range,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -64,14 +60,6 @@ impl ModuleDependency for ModuleHotAcceptDependency {
 
   fn weak(&self) -> bool {
     true
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

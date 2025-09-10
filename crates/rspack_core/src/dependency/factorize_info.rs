@@ -5,12 +5,13 @@ use rspack_error::Diagnostic;
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::{BoxDependency, DependencyId};
+use super::DependencyId;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub enum FactorizeInfo {
   Success {
+    related_dep_ids: Vec<DependencyId>,
     missing_dependencies: HashSet<ArcPath>,
   },
   Failed {
@@ -27,6 +28,7 @@ pub enum FactorizeInfo {
 impl Default for FactorizeInfo {
   fn default() -> Self {
     Self::Success {
+      related_dep_ids: Default::default(),
       missing_dependencies: Default::default(),
     }
   }
@@ -42,6 +44,7 @@ impl FactorizeInfo {
   ) -> Self {
     if diagnostics.is_empty() {
       Self::Success {
+        related_dep_ids,
         missing_dependencies,
       }
     } else {
@@ -55,16 +58,6 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn get_from(dep: &BoxDependency) -> Option<&FactorizeInfo> {
-    if let Some(d) = dep.as_context_dependency() {
-      Some(d.factorize_info())
-    } else if let Some(d) = dep.as_module_dependency() {
-      Some(d.factorize_info())
-    } else {
-      None
-    }
-  }
-
   pub fn is_success(&self) -> bool {
     matches!(self, FactorizeInfo::Success { .. })
   }
@@ -73,6 +66,7 @@ impl FactorizeInfo {
     match self {
       FactorizeInfo::Success {
         missing_dependencies,
+        ..
       } => missing_dependencies
         .intersection(modified_file)
         .next()
@@ -96,12 +90,14 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn related_dep_ids(&self) -> Cow<'_, [DependencyId]> {
+  pub fn related_dep_ids(&self) -> &[DependencyId] {
     match &self {
-      Self::Success { .. } => Cow::Owned(vec![]),
+      Self::Success {
+        related_dep_ids, ..
+      } => related_dep_ids,
       Self::Failed {
         related_dep_ids, ..
-      } => Cow::Borrowed(related_dep_ids),
+      } => related_dep_ids,
     }
   }
 
@@ -128,6 +124,7 @@ impl FactorizeInfo {
     match &self {
       Self::Success {
         missing_dependencies,
+        ..
       } => Cow::Borrowed(missing_dependencies),
       Self::Failed {
         missing_dependencies,

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
@@ -7,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph,
+  ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedExport, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, module_namespace_promise,
 };
@@ -70,7 +68,6 @@ pub struct ImportDependency {
   pub attributes: Option<ImportAttributes>,
   pub comments: Vec<(bool, String)>,
   pub resource_identifier: String,
-  pub factorize_info: Arc<FactorizeInfo>,
   pub optional: bool,
 }
 
@@ -92,7 +89,6 @@ impl ImportDependency {
       referenced_exports,
       attributes,
       resource_identifier,
-      factorize_info: Default::default(),
       optional,
       comments,
     }
@@ -152,14 +148,6 @@ impl ModuleDependency for ImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 
   fn get_optional(&self) -> bool {

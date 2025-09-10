@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ModuleGraph, ModuleGraphCacheArtifact, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -23,7 +21,6 @@ pub struct ImportContextDependency {
   resource_identifier: String,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ImportContextDependency {
@@ -42,7 +39,6 @@ impl ImportContextDependency {
       resource_identifier,
       optional,
       critical: None,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -112,14 +108,6 @@ impl ContextDependency for ImportContextDependency {
 
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
     &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -9,7 +7,7 @@ use rspack_paths::Utf8Path;
 use rspack_util::json_stringify;
 use swc_core::ecma::atoms::Atom;
 
-use super::{AffectType, FactorizeInfo};
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
   ContextOptions, ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
@@ -34,7 +32,6 @@ pub struct ContextElementDependency {
   pub referenced_exports: Option<Vec<Atom>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
-  pub factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ContextElementDependency {
@@ -157,14 +154,6 @@ impl ModuleDependency for ContextElementDependency {
       self.options.mode,
       ContextMode::AsyncWeak | ContextMode::Weak
     )
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use dyn_clone::clone_trait_object;
 use rspack_cacheable::cacheable_dyn;
 
-use super::{Dependency, FactorizeInfo};
+use super::Dependency;
 use crate::{DependencyCondition, ErrorSpan};
 
 #[cacheable_dyn]
@@ -35,9 +33,6 @@ pub trait ModuleDependency: Dependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     None
   }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo>;
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo>;
 }
 
 clone_trait_object!(ModuleDependency);

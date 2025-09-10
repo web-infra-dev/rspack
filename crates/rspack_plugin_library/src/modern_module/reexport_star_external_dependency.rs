@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest, ExternalType,
-  FactorizeInfo, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, NormalInitFragment,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
@@ -19,7 +17,6 @@ pub struct ModernModuleReexportStarExternalDependency {
   target_request: ExternalRequest,
   external_type: ExternalType,
   resource_identifier: String,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ModernModuleReexportStarExternalDependency {
@@ -36,7 +33,6 @@ impl ModernModuleReexportStarExternalDependency {
       target_request,
       external_type,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -72,14 +68,6 @@ impl ModuleDependency for ModernModuleReexportStarExternalDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

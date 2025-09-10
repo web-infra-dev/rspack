@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ModuleDependency, TemplateContext, TemplateReplaceSource, module_id,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ModuleDependency,
+  TemplateContext, TemplateReplaceSource, module_id,
 };
 use swc_core::ecma::atoms::Atom;
 #[cacheable]
@@ -14,7 +12,6 @@ pub struct ImportMetaHotAcceptDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ImportMetaHotAcceptDependency {
@@ -23,7 +20,6 @@ impl ImportMetaHotAcceptDependency {
       request,
       range,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -63,14 +59,6 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
 
   fn weak(&self) -> bool {
     true
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

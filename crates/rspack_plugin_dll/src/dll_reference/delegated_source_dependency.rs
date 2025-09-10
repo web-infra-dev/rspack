@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory,
-  DependencyId, DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyId, DependencyType, ModuleDependency,
 };
 
 #[cacheable]
@@ -11,7 +9,6 @@ use rspack_core::{
 pub struct DelegatedSourceDependency {
   id: DependencyId,
   request: String,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl DelegatedSourceDependency {
@@ -19,7 +16,6 @@ impl DelegatedSourceDependency {
     Self {
       id: DependencyId::new(),
       request,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -47,14 +43,6 @@ impl Dependency for DelegatedSourceDependency {
 impl ModuleDependency for DelegatedSourceDependency {
   fn request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

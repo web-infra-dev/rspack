@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraphCacheArtifact, NormalInitFragment,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_no_exports_referenced,
+  DependencyTemplate, DependencyTemplateType, DependencyType, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_no_exports_referenced,
 };
 use rspack_util::ext::DynHash;
 
@@ -16,7 +14,6 @@ pub struct ModuleDecoratorDependency {
   decorator: RuntimeGlobals,
   allow_exports_access: bool,
   id: DependencyId,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl ModuleDecoratorDependency {
@@ -25,7 +22,6 @@ impl ModuleDecoratorDependency {
       decorator,
       allow_exports_access,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
     }
   }
 }
@@ -34,14 +30,6 @@ impl ModuleDecoratorDependency {
 impl ModuleDependency for ModuleDecoratorDependency {
   fn request(&self) -> &str {
     "self"
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

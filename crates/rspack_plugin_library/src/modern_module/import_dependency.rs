@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest,
-  ExternalType, FactorizeInfo, ImportAttributes, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  ExternalType, ImportAttributes, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
@@ -21,7 +18,6 @@ pub struct ModernModuleImportDependency {
   range: DependencyRange,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
-  factorize_info: Arc<FactorizeInfo>,
   pub comments: Vec<(bool, String)>,
 }
 
@@ -45,7 +41,6 @@ impl ModernModuleImportDependency {
       range,
       attributes,
       resource_identifier,
-      factorize_info: Default::default(),
       comments,
     }
   }
@@ -90,14 +85,6 @@ impl ModuleDependency for ModernModuleImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

@@ -1,17 +1,15 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ModuleFactoryCreateData,
+  DependencyType, ModuleDependency, ModuleFactoryCreateData,
 };
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub(crate) struct LazyCompilationDependency {
   id: DependencyId,
   pub original_module_create_data: ModuleFactoryCreateData,
   request: String,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl LazyCompilationDependency {
@@ -25,7 +23,6 @@ impl LazyCompilationDependency {
       id: DependencyId::new(),
       original_module_create_data,
       request,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -34,14 +31,6 @@ impl LazyCompilationDependency {
 impl ModuleDependency for LazyCompilationDependency {
   fn request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

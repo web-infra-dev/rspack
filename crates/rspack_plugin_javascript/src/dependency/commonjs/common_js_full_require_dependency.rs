@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec, Skip},
@@ -7,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, module_id,
-  property_access, to_normal_comment,
+  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, GetUsedNameParam, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, module_id, property_access,
+  to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -27,7 +25,6 @@ pub struct CommonJsFullRequireDependency {
   asi_safe: bool,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CommonJsFullRequireDependency {
@@ -49,7 +46,6 @@ impl CommonJsFullRequireDependency {
       optional,
       asi_safe,
       source_map,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -117,14 +113,6 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

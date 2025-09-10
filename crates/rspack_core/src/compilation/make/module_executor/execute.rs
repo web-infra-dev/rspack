@@ -10,8 +10,8 @@ use tokio::sync::oneshot::Sender;
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint, ModuleType,
+  PublicPath, RuntimeSpec, SourceType,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -173,8 +173,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
-          let dep = mg.dependency_by_id(dep_id).expect("should dep exist");
-          let diagnostics = FactorizeInfo::get_from(dep)
+          let diagnostics = mg
+            .dependency_factorize_info_by_id(dep_id)
             .expect("should have factorize info")
             .diagnostics();
           let errors: Vec<_> = diagnostics

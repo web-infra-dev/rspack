@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ModuleIdentifier,
-  TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ModuleDependency, ModuleIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use crate::utils::{AUTO_PUBLIC_PATH_PLACEHOLDER, css_escape_string};
@@ -18,7 +16,6 @@ pub struct CssUrlDependency {
   request: String,
   range: DependencyRange,
   replace_function: bool,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CssUrlDependency {
@@ -28,7 +25,6 @@ impl CssUrlDependency {
       range,
       id: DependencyId::new(),
       replace_function,
-      factorize_info: Default::default(),
     }
   }
 
@@ -86,14 +82,6 @@ impl ModuleDependency for CssUrlDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

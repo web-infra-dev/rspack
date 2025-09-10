@@ -1,4 +1,4 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::hash::BuildHasherDefault;
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
@@ -15,15 +15,15 @@ use rspack_core::{
   ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ForwardId, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name, to_normal_comment,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, ForwardId,
+  GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, to_normal_comment,
 };
 use rspack_error::{
   Diagnostic, DiagnosticExt, TraceableError,
@@ -59,7 +59,6 @@ pub struct ESMExportImportedSpecifierDependency {
   export_presence_mode: ExportPresenceMode,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  factorize_info: Arc<FactorizeInfo>,
   lazy_make: bool,
 }
 
@@ -90,7 +89,6 @@ impl ESMExportImportedSpecifierDependency {
       export_presence_mode,
       attributes,
       source_map,
-      factorize_info: Default::default(),
       lazy_make: false,
     }
   }
@@ -1428,14 +1426,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     Some(DependencyCondition::new_fn(
       ESMExportImportedSpecifierDependencyCondition(id),
     ))
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

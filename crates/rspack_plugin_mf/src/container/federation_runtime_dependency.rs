@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, ModuleDependency,
 };
 
 //TODO: consider adding a new variant to DependencyType enum for 'federation runtime dependency'
@@ -15,7 +13,6 @@ const FEDERATION_RUNTIME_DEPENDENCY_TYPE: DependencyType = DependencyType::EsmIm
 pub struct FederationRuntimeDependency {
   pub id: DependencyId,
   request: String,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl FederationRuntimeDependency {
@@ -23,7 +20,6 @@ impl FederationRuntimeDependency {
     Self {
       id: DependencyId::new(),
       request,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -51,14 +47,6 @@ impl Dependency for FederationRuntimeDependency {
 impl ModuleDependency for FederationRuntimeDependency {
   fn request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
   // Spawning_effect is not directly translatable, Rust's ownership and borrowing rules apply.
   // Side effects are generally handled by the module's build and code generation logic.

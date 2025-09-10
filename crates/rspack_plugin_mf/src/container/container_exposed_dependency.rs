@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, ModuleDependency,
 };
 
 #[cacheable]
@@ -13,7 +11,6 @@ pub struct ContainerExposedDependency {
   request: String,
   pub exposed_name: String,
   resource_identifier: String,
-  factorize_info:  Arc<FactorizeInfo>,
 }
 
 impl ContainerExposedDependency {
@@ -24,7 +21,6 @@ impl ContainerExposedDependency {
       request,
       exposed_name,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -60,14 +56,6 @@ impl ModuleDependency for ContainerExposedDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

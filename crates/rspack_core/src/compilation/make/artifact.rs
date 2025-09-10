@@ -3,7 +3,7 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  BuildDependency, DependencyId, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
   compilation::make::ModuleToLazyMake, utils::FileCounter,
 };
 
@@ -124,8 +124,9 @@ impl MakeArtifact {
         continue;
       }
       // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      let info = mg
+        .dependency_factorize_info_by_id(dep_id)
+        .expect("should have factorize info");
       self
         .file_dependencies
         .remove_batch_file(&info.file_dependencies());
@@ -151,8 +152,9 @@ impl MakeArtifact {
 
     let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
       // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      let info = mg
+        .dependency_factorize_info_by_id(dep_id)
+        .expect("should have factorize info");
       self
         .file_dependencies
         .remove_batch_file(&info.file_dependencies());
@@ -163,7 +165,7 @@ impl MakeArtifact {
         .missing_dependencies
         .remove_batch_file(&info.missing_dependencies());
       // related_dep_ids will contain dep_id it self
-      info.related_dep_ids().into_owned()
+      info.related_dep_ids().to_vec()
     } else {
       vec![*dep_id]
     };
@@ -189,9 +191,8 @@ impl MakeArtifact {
           .collect::<Vec<_>>()
       });
     let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
       let origin_module_identifier = mg.get_parent_module(dep_id);
-      FactorizeInfo::get_from(dep)
+      mg.dependency_factorize_info_by_id(dep_id)
         .expect("should have factorize info")
         .diagnostics()
         .iter()

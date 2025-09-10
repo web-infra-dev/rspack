@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, Skip},
@@ -10,12 +8,11 @@ use rspack_core::{
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
-  import_statement,
+  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, ForwardId, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  TypeReexportPresenceMode, filter_runtime, import_statement,
 };
 use rspack_error::{
   Diagnostic, DiagnosticExt, TraceableError,
@@ -75,7 +72,6 @@ pub struct ESMImportSideEffectDependency {
   resource_identifier: String,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
-  factorize_info: Arc<FactorizeInfo>,
   lazy_make: bool,
   star_export: bool,
 }
@@ -104,7 +100,6 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       source_map,
-      factorize_info: Default::default(),
       lazy_make: false,
       star_export,
     }
@@ -644,14 +639,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     Some(DependencyCondition::new_fn(
       ESMImportSideEffectDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 

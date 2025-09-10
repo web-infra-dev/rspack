@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -9,7 +7,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
   ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
+  ExtendedReferencedExport, GetUsedNameParam, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
   RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
   collect_referenced_export_items, module_raw, property_access, to_normal_comment,
@@ -33,7 +31,6 @@ pub struct CommonJsExportRequireDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   result_used: bool,
-  factorize_info: Arc<FactorizeInfo>,
 }
 
 impl CommonJsExportRequireDependency {
@@ -54,7 +51,6 @@ impl CommonJsExportRequireDependency {
       names,
       ids: vec![],
       result_used,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -389,14 +385,6 @@ impl ModuleDependency for CommonJsExportRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &Arc<FactorizeInfo> {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut Arc<FactorizeInfo> {
-    &mut self.factorize_info
   }
 }
 impl AsContextDependency for CommonJsExportRequireDependency {}

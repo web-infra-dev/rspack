@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
-  FactorizeInfo, FileCounter,
+  FileCounter,
   compilation::make::{MakeArtifact, MakeArtifactState},
 };
 
@@ -82,8 +82,8 @@ impl MakeOccasion {
     }
     // recovery make_failed_dependencies
     let mut make_failed_dependencies = HashSet::default();
-    for (dep_id, dep) in mg.dependencies() {
-      if let Some(info) = FactorizeInfo::get_from(dep)
+    for (dep_id, _) in mg.dependencies() {
+      if let Some(info) = mg.dependency_factorize_info_by_id(&dep_id)
         && !info.is_success()
       {
         make_failed_dependencies.insert(dep_id);
