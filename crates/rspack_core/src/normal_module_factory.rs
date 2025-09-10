@@ -350,10 +350,6 @@ impl NormalModuleFactory {
       }
     };
 
-    if !missing_dependencies.is_empty() {
-      println!("missing_dependencies {:#?}", &missing_dependencies);
-    }
-
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
       && let Ok((module, module_type)) = match_webpack_ext(&match_resource_data.resource)
     {
