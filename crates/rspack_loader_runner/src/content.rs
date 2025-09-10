@@ -139,12 +139,17 @@ pub struct ResourceData {
 }
 
 impl ResourceData {
-  pub fn new(resource: String) -> Self {
+  pub fn new_with_resource(resource: String) -> Self {
+    let (path, query, fragment) = if let Some(parsed) = parse_resource(&resource) {
+      (Some(parsed.path), parsed.query, parsed.fragment)
+    } else {
+      (None, None, None)
+    };
     Self {
       resource,
-      resource_path: None,
-      resource_query: None,
-      resource_fragment: None,
+      resource_path: path,
+      resource_query: query,
+      resource_fragment: fragment,
       resource_description: None,
       mimetype: None,
       parameters: None,
@@ -154,9 +159,32 @@ impl ResourceData {
       context: None,
     }
   }
+
+  pub fn new_with_path(
+    resource: String,
+    path: Utf8PathBuf,
+    query: Option<String>,
+    fragment: Option<String>,
+  ) -> Self {
+    Self {
+      resource,
+      resource_path: Some(path),
+      resource_query: query,
+      resource_fragment: fragment,
+      resource_description: None,
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
+      scheme: OnceCell::new(),
+      context: None,
+    }
+  }
+
   pub fn set_context(&mut self, context: Option<String>) {
     self.context = context;
   }
+
   pub fn get_context(&self) -> Option<&String> {
     self.context.as_ref()
   }

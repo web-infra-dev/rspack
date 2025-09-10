@@ -3,7 +3,6 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, Scheme, get_scheme};
-use rspack_paths::Utf8PathBuf;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
 use winnow::prelude::*;
@@ -185,12 +184,12 @@ impl NormalModuleFactory {
             query,
             fragment,
           } = parse_resource(&match_resource).expect("Should parse resource");
-          match_resource_data = Some(
-            ResourceData::new(match_resource)
-              .path(path)
-              .query_optional(query)
-              .fragment_optional(fragment),
-          );
+          match_resource_data = Some(ResourceData::new_with_path(
+            match_resource,
+            path,
+            query,
+            fragment,
+          ));
 
           // e.g. ./index.js!=!
           let whole_matched = full_matched;
@@ -273,7 +272,7 @@ impl NormalModuleFactory {
     let resource = unresolved_resource.to_owned();
     let resource_data = if !scheme.is_none() {
       // resource with scheme
-      let mut resource_data = ResourceData::new(resource);
+      let mut resource_data = ResourceData::new_with_resource(resource);
       plugin_driver
         .normal_module_factory_hooks
         .resolve_for_scheme
@@ -283,7 +282,7 @@ impl NormalModuleFactory {
     } else if !context_scheme.is_none()
       // resource within scheme
       && let Some(resource_data) = {
-        let mut resource_data = ResourceData::new(resource.clone());
+        let mut resource_data = ResourceData::new_with_resource(resource.clone());
         let handled = plugin_driver
           .normal_module_factory_hooks
           .resolve_in_scheme
@@ -297,7 +296,7 @@ impl NormalModuleFactory {
     } else {
       // resource without scheme and without path
       if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
-        ResourceData::new(resource.clone()).path(Utf8PathBuf::from(""))
+        ResourceData::new_with_resource(resource.clone())
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {
