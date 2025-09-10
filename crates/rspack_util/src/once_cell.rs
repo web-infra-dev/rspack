@@ -1,4 +1,6 @@
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
+
+static LOCK: Mutex<()> = Mutex::new(());
 
 /// Alternative to OnceLock.get_or_try_init
 ///
@@ -10,12 +12,13 @@ where
   if let Some(value) = cell.get() {
     return Ok(value);
   }
-  let new_value = init()?;
-  if cell.set(new_value).is_err() {
-    unreachable!()
+
+  let _guard = LOCK.lock().expect("should get lock success");
+  // Double-check after acquiring the lock
+  if let Some(value) = cell.get() {
+    return Ok(value);
   }
-  let Some(value) = cell.get() else {
-    unreachable!()
-  };
-  Ok(value)
+
+  let new_value = init()?;
+  Ok(cell.get_or_init(|| new_value))
 }
