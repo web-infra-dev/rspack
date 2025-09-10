@@ -140,16 +140,14 @@ pub struct ResourceData {
 
 impl ResourceData {
   pub fn new_with_resource(resource: String) -> Self {
-    let (path, query, fragment) = if let Some(parsed) = parse_resource(&resource) {
-      (Some(parsed.path), parsed.query, parsed.fragment)
-    } else {
-      (None, None, None)
+    if let Some(parsed) = parse_resource(&resource) {
+      return Self::new_with_path(resource, parsed.path, parsed.query, parsed.fragment);
     };
     Self {
       resource,
-      resource_path: path,
-      resource_query: query,
-      resource_fragment: fragment,
+      resource_path: None,
+      resource_query: None,
+      resource_fragment: None,
       resource_description: None,
       mimetype: None,
       parameters: None,
