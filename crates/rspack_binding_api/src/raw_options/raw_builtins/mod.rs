@@ -712,15 +712,15 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let js_backend = JsBackend::from(&options);
-        plugins.push(Box::new(
-          rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
+        plugins.push(
+          Box::new(rspack_plugin_lazy_compilation::LazyCompilationPlugin::new(
             js_backend,
             options.test.map(|test| test.into()),
             options.entries,
             options.imports,
             options.client,
-          ),
-        ) as Box<dyn Plugin>)
+          )) as Box<dyn Plugin>,
+        )
       }
       BuiltinPluginName::NoEmitOnErrorsPlugin => {
         plugins.push(NoEmitOnErrorsPlugin::default().boxed());

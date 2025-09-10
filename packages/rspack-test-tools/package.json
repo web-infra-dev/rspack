@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -12,16 +12,14 @@
     "./setup-expect": "./dist/helper/setup-expect.js",
     "./setup-env": "./dist/helper/setup-env.js",
     "./setup-wasm": "./dist/helper/setup-wasm.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./helper/*": "./dist/helper/*.js",
+    "./helper/legacy/*": "./dist/helper/legacy/*.js",
+    "./helper/util/*": "./dist/helper/util/*.js"
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
-    "testu": "pnpm run --stream /^test:.*/ -u",
-    "test:base": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
-    "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
-    "test:diff": "cross-env RSPACK_DIFF=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.diff.js --passWithNoTests",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
   },
@@ -58,7 +56,7 @@
     "jest-diff": "^29.7.0",
     "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
-    "memfs": "4.36.0",
+    "memfs": "4.38.2",
     "loader-utils": "^2.0.4",
     "path-serializer": "0.5.0",
     "pretty-format": "29.7.0",
@@ -97,7 +95,7 @@
     "html-webpack-plugin": "^5.6.3",
     "less-loader": "^12.3.0",
     "lodash": "^4.17.21",
-    "postcss-loader": "^8.1.1",
+    "postcss-loader": "^8.2.0",
     "postcss-pxtorem": "^6.1.0",
     "raw-loader": "^4.0.2",
     "react": "^19.1.0",

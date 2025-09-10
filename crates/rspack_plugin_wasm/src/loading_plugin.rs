@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::AsyncWasmLoadingRuntimeModule;
+use crate::runtime::AsyncWasmLoadingRuntimeModule;
 
 pub fn enable_wasm_loading_plugin(wasm_loading_type: WasmLoadingType) -> BoxPlugin {
   match wasm_loading_type {

@@ -6,15 +6,16 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportPresenceMode, ExportsInfoGetter, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
-  to_normal_comment,
+  DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided, ExportsInfoGetter,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam,
+  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode,
+  ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  UsedByExports, UsedName, create_exports_object_referenced, export_from_import, get_exports_type,
+  property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
+use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
@@ -49,6 +50,7 @@ pub struct ESMImportSpecifierDependency {
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   attributes: Option<ImportAttributes>,
+  pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
   factorize_info: FactorizeInfo,
@@ -87,6 +89,7 @@ impl ESMImportSpecifierDependency {
       direct_import,
       export_presence_mode,
       used_by_exports: None,
+      evaluated_in_operator: false,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
       attributes,
@@ -323,69 +326,21 @@ impl ESMImportSpecifierDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::EsmImportSpecifier)
   }
-}
 
-impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
-  fn render(
+  fn get_code_for_ids(
     &self,
-    dep: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
+    ids: &[Atom],
+    dep: &ESMImportSpecifierDependency,
+    connection: Option<&ModuleGraphConnection>,
     code_generatable_context: &mut TemplateContext,
-  ) {
-    let dep = dep
-      .as_any()
-      .downcast_ref::<ESMImportSpecifierDependency>()
-      .expect(
-        "ESMImportSpecifierDependencyTemplate should only be used for ESMImportSpecifierDependency",
-      );
+  ) -> String {
     let TemplateContext {
       compilation,
       runtime,
       concatenation_scope,
       ..
     } = code_generatable_context;
-    let module_graph = compilation.get_module_graph();
-    let ids = dep.get_ids(&module_graph);
-    let connection = module_graph.connection_by_dependency_id(&dep.id);
-    // Early return if target is not active and export is not inlined
-    if let Some(con) = connection
-      && !con.is_target_active(
-        &module_graph,
-        *runtime,
-        &compilation.module_graph_cache_artifact,
-      )
-      && {
-        let used_name = if ids.is_empty() {
-          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-            &module_graph.get_exports_info(con.module_identifier()),
-            &module_graph,
-            *runtime,
-            false,
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info),
-            *runtime,
-            ids,
-          )
-        } else {
-          let exports_info = module_graph.get_prefetched_exports_info(
-            con.module_identifier(),
-            PrefetchExportsInfoMode::Nested(ids),
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            *runtime,
-            ids,
-          )
-        };
-
-        !used_name.map(|used| used.is_inlined()).unwrap_or_default()
-      }
-    {
-      return;
-    }
-
-    let export_expr = if let Some(scope) = concatenation_scope
+    if let Some(scope) = concatenation_scope
       && let Some(con) = connection
       && scope.is_module_in_scope(con.module_identifier())
     {
@@ -432,7 +387,182 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
       )
+    }
+  }
+
+  fn render_evaluated_in_operator(
+    &self,
+    ids: &[Atom],
+    dep: &ESMImportSpecifierDependency,
+    connection: Option<&ModuleGraphConnection>,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let Some(con) = connection else {
+      return;
     };
+    let TemplateContext {
+      compilation,
+      runtime,
+      module: self_module,
+      ..
+    } = code_generatable_context;
+    let mg = compilation.get_module_graph();
+    let Some(module) = mg.get_module_by_dependency_id(&dep.id) else {
+      return;
+    };
+    let exports_info = mg.get_prefetched_exports_info(
+      con.module_identifier(),
+      PrefetchExportsInfoMode::Nested(ids),
+    );
+    let exports_type = module.get_exports_type(
+      &mg,
+      &code_generatable_context
+        .compilation
+        .module_graph_cache_artifact,
+      self_module.build_meta().strict_esm_module,
+    );
+    let first = ids
+      .first()
+      .expect("Empty ids is not possible for evaluated in operator esm import specifier");
+    let value = match exports_type {
+      ExportsType::DefaultWithNamed => {
+        if first == "default" {
+          if ids.len() == 1 {
+            Some(ExportProvided::Provided)
+          } else {
+            exports_info.is_export_provided(&ids[1..])
+          }
+        } else {
+          exports_info.is_export_provided(ids)
+        }
+      }
+      ExportsType::Namespace => {
+        if first == "__esModule" {
+          if ids.len() == 1 {
+            Some(ExportProvided::Provided)
+          } else {
+            None
+          }
+        } else {
+          exports_info.is_export_provided(ids)
+        }
+      }
+      ExportsType::Dynamic => {
+        if first != "default" {
+          exports_info.is_export_provided(ids)
+        } else {
+          None
+        }
+      }
+      ExportsType::DefaultOnly => None,
+    };
+    match value {
+      Some(ExportProvided::Provided) => {
+        source.replace(dep.range.start, dep.range.end, " true", None);
+      }
+      Some(ExportProvided::NotProvided) => {
+        source.replace(dep.range.start, dep.range.end, " false", None)
+      }
+      _ => {
+        let Some(used_name) = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          *runtime,
+          ids,
+        )
+        .and_then(|used_name| match used_name {
+          UsedName::Normal(names) => names.last().cloned(),
+          UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
+        }) else {
+          return;
+        };
+        let code = self.get_code_for_ids(
+          &ids[..(ids.len() - 1)],
+          dep,
+          connection,
+          code_generatable_context,
+        );
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          &format!("{} in {code}", json_stringify(&used_name)),
+          None,
+        )
+      }
+    }
+  }
+}
+
+impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMImportSpecifierDependency>()
+      .expect(
+        "ESMImportSpecifierDependencyTemplate should only be used for ESMImportSpecifierDependency",
+      );
+    let TemplateContext {
+      compilation,
+      runtime,
+      ..
+    } = code_generatable_context;
+    let module_graph = compilation.get_module_graph();
+    let ids = dep.get_ids(&module_graph);
+    let connection = module_graph.connection_by_dependency_id(&dep.id);
+    // Early return if target is not active and export is not inlined
+    if let Some(con) = connection
+      && !con.is_target_active(
+        &module_graph,
+        *runtime,
+        &compilation.module_graph_cache_artifact,
+      )
+      && {
+        let used_name = if ids.is_empty() {
+          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+            &module_graph.get_exports_info(con.module_identifier()),
+            &module_graph,
+            *runtime,
+            false,
+          );
+          ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithoutNames(&exports_info),
+            *runtime,
+            ids,
+          )
+        } else {
+          let exports_info = module_graph.get_prefetched_exports_info(
+            con.module_identifier(),
+            PrefetchExportsInfoMode::Nested(ids),
+          );
+          ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithNames(&exports_info),
+            *runtime,
+            ids,
+          )
+        };
+
+        !used_name.map(|used| used.is_inlined()).unwrap_or_default()
+      }
+    {
+      return;
+    }
+
+    if dep.evaluated_in_operator {
+      return self.render_evaluated_in_operator(
+        ids,
+        dep,
+        connection,
+        source,
+        code_generatable_context,
+      );
+    }
+
+    let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
     if dep.shorthand {
       source.insert(dep.range.end, format!(": {export_expr}").as_str(), None);

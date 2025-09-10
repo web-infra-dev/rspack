@@ -235,11 +235,7 @@ pub trait JavascriptParserPlugin {
 
   /// Return:
   /// - `None` means should walk left and right;
-  fn binary_expression(
-    &self,
-    _parser: &mut JavascriptParser,
-    _expr: &BinExpr,
-  ) -> Option<KeepRight> {
+  fn binary_expression(&self, _parser: &mut JavascriptParser, _expr: &BinExpr) -> Option<bool> {
     None
   }
 

@@ -12,11 +12,6 @@ pnpm-lock.yaml
 packages/**/etc/**/*
 packages/rspack-test-tools/template/**/*
 packages/rspack-test-tools/src/helper/legacy/**/*
-packages/rspack-test-tools/tests/**/*.*
-packages/rspack-test-tools/tests/**/DO_NOT_REMOVE
-!packages/rspack-test-tools/tests/**/*.test.ts
-!packages/rspack-test-tools/tests/**/*.test.js
-!packages/rspack-test-tools/tests/**/*.config.js
 
 crates/**/*
 target/**/*

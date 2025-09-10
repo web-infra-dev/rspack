@@ -1,8 +1,8 @@
-use rspack_core::{ConstDependency, DependencyType, ImportAttributes};
+use rspack_core::{ConstDependency, DependencyType, ExportPresenceMode, ImportAttributes};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{Callee, Expr, Ident, ImportDecl},
+  ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Ident, ImportDecl},
 };
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
@@ -82,6 +82,68 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
         attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
       }),
     );
+    Some(true)
+  }
+
+  fn binary_expression(&self, parser: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
+    if expr.op != BinaryOp::In {
+      return None;
+    }
+    let right = parser.evaluate_expression(&expr.right);
+    if !right.is_identifier() {
+      return None;
+    }
+    let root_info = right.root_info();
+    let settings = if let ExportedVariableInfo::VariableInfo(variable) = root_info
+      && let Some(variable_name) = &parser.definitions_db.expect_get_variable(*variable).name
+      && let Some(data) = parser.get_tag_data(&variable_name.clone(), ESM_SPECIFIER_TAG)
+    {
+      ESMSpecifierData::downcast(data)
+    } else {
+      return None;
+    };
+    let left = parser.evaluate_expression(&expr.left);
+    if left.could_have_side_effects() {
+      return None;
+    }
+    let left = left.as_string()?;
+    let members = right.members().map(|v| v.as_slice()).unwrap_or_default();
+    let direct_import = members.is_empty();
+    let mut ids = settings.ids;
+    ids.extend(members.iter().cloned());
+    ids.push(left.into());
+
+    let mut dep = ESMImportSpecifierDependency::new(
+      settings.source,
+      settings.name,
+      settings.source_order,
+      parser.in_short_hand,
+      !parser.is_asi_position(expr.span_lo()),
+      expr.span.into(),
+      ids,
+      parser.in_tagged_template_tag,
+      direct_import,
+      ExportPresenceMode::None,
+      None,
+      settings.attributes,
+      Some(parser.source_map.clone()),
+    );
+    dep.evaluated_in_operator = true;
+
+    let dep_idx = parser.next_dependency_idx();
+    parser.add_dependency(Box::new(dep));
+
+    InnerGraphPlugin::on_usage(
+      parser,
+      Box::new(move |parser, used_by_exports| {
+        if let Some(dep) = parser.get_dependency_mut(dep_idx)
+          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
+        {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }),
+    );
+
     Some(true)
   }
 

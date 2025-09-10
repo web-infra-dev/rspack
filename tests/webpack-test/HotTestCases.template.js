@@ -66,11 +66,10 @@ const describeCases = config => {
 							if (!options.output) options.output = {};
 							if (!options.output.path) options.output.path = outputDirectory;
 							if (!options.output.filename) {
-								options.output.filename = `bundle${
-									options.experiments && options.experiments.outputModule
+								options.output.filename = `bundle${options.experiments && options.experiments.outputModule
 										? ".mjs"
 										: ".js"
-								}`;
+									}`;
 							}
 							if (!options.output.chunkFilename)
 								options.output.chunkFilename = "[name].chunk.[fullhash].js";
@@ -101,7 +100,7 @@ const describeCases = config => {
 							);
 							if (!options.recordsPath) options.recordsPath = recordsPath;
 							// CHANGE: test incremental: "safe" in webpack-test, we test default incremental in
-							// rspack-test-tools/tests/Incremental-*.test.js, including cases in webpack-test
+							// rspack-test/tests/Incremental-*.test.js, including cases in webpack-test
 							{
 								if (!options.experiments) options.experiments = {};
 								if (!options.experiments.incremental) options.experiments.incremental = "safe";

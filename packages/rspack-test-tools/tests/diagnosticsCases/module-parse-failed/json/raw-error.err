@@ -1,7 +1,0 @@
-Array [
-  Object {
-    code: ModuleParseError,
-    moduleIdentifier: json|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/json/syntax-error.json,
-    moduleName: ./syntax-error.json,
-  },
-]

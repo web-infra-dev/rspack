@@ -129,7 +129,6 @@ pub struct CompilationHooks {
   pub after_seal: CompilationAfterSealHook,
 }
 
-#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilationId(pub u32);
 
@@ -258,7 +257,6 @@ pub struct Compilation {
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
   // artifact for caching module static info
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
-
   // artifact for chunk render cache
   pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
 
@@ -2643,15 +2641,19 @@ impl Compilation {
       .await?;
     let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
-    let mut content_hashes = HashMap::default();
+    let mut content_hashes: HashMap<SourceType, RspackHash> = HashMap::default();
     plugin_driver
       .compilation_hooks
       .content_hash
       .call(self, &chunk_ukey, &mut content_hashes)
       .await?;
+
     let content_hashes = content_hashes
       .into_iter()
-      .map(|(t, hasher)| (t, hasher.digest(&self.options.output.hash_digest)))
+      .map(|(t, mut hasher)| {
+        chunk_hash.hash(&mut hasher);
+        (t, hasher.digest(&self.options.output.hash_digest))
+      })
       .collect();
 
     Ok(ChunkHashResult {

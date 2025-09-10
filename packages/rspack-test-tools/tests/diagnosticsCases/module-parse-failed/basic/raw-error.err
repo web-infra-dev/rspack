@@ -1,7 +1,0 @@
-Array [
-  Object {
-    code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/basic/index.js,
-    moduleName: ./index.js,
-  },
-]

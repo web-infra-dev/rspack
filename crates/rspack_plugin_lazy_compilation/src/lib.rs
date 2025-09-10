@@ -1,5 +1,9 @@
-pub mod backend;
+mod backend;
 mod dependency;
 mod factory;
 mod module;
-pub mod plugin;
+mod plugin;
+mod utils;
+
+pub use backend::Backend;
+pub use plugin::{LazyCompilationPlugin, LazyCompilationTest, LazyCompilationTestCheck};
