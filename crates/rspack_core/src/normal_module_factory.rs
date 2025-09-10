@@ -350,10 +350,10 @@ impl NormalModuleFactory {
     };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Ok((module, module_type)) = match_webpack_ext(&match_resource_data.resource)
+      && let Ok((module, module_type)) = match_webpack_ext(match_resource_data.resource())
     {
       match_module_type = Some(module_type.into());
-      match_resource_data.resource = module.into();
+      match_resource_data.set_resource(module.into());
 
       vec![]
     } else {
@@ -380,9 +380,9 @@ impl NormalModuleFactory {
 
     let user_request = {
       let suffix =
-        stringify_loaders_and_resource(&resolved_inline_loaders, &resource_data.resource);
-      if let Some(ResourceData { resource, .. }) = match_resource_data.as_ref() {
-        let mut resource = resource.to_owned();
+        stringify_loaders_and_resource(&resolved_inline_loaders, resource_data.resource());
+      if let Some(match_resource_data) = &match_resource_data {
+        let mut resource = match_resource_data.resource().to_owned();
         resource += "!=!";
         resource += &*suffix;
         resource
@@ -403,13 +403,10 @@ impl NormalModuleFactory {
             let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
             let context = FuncUseCtx {
               // align with webpack https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/NormalModuleFactory.js#L576
-              resource: resource_data_for_rules
-                .resource_path
-                .as_ref()
-                .map(|x| x.to_string()),
-              resource_query: resource_data_for_rules.resource_query.clone(),
-              resource_fragment: resource_data_for_rules.resource_fragment.clone(),
-              real_resource: resource_data.resource_path.as_ref().map(|p| p.to_string()),
+              resource: resource_data_for_rules.path().map(|x| x.to_string()),
+              resource_query: resource_data_for_rules.query().map(|q| q.to_owned()),
+              resource_fragment: resource_data_for_rules.fragment().map(|f| f.to_owned()),
+              real_resource: resource_data.path().map(|p| p.to_string()),
               issuer: data.issuer.clone(),
               issuer_layer: data.issuer_layer.clone(),
             };
@@ -476,12 +473,12 @@ impl NormalModuleFactory {
         .map(|i| i.identifier().as_str())
         .collect::<Vec<_>>()
         .join("!");
-      format!("{s}!{}", resource_data.resource)
+      format!("{s}!{}", resource_data.resource())
     } else {
-      resource_data.resource.clone()
+      resource_data.resource().to_owned()
     };
 
-    let file_dependency = resource_data.resource_path.clone();
+    let file_dependency = resource_data.path().map(|p| p.to_owned());
 
     let resolved_module_type =
       self.calculate_module_type(match_module_type, &resolved_module_rules);
@@ -532,9 +529,11 @@ impl NormalModuleFactory {
         raw_request,
         request,
         user_request,
-        match_resource: match_resource_data.as_ref().map(|d| d.resource.clone()),
+        match_resource: match_resource_data
+          .as_ref()
+          .map(|d| d.resource().to_owned()),
         side_effects: resolved_side_effects,
-        context: resource_data.context.clone(),
+        context: resource_data.context().map(|c| c.to_owned()),
         resource_resolve_data: resource_data,
       };
       if let Some(plugin_result) = self

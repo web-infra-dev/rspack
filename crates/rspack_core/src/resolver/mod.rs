@@ -94,13 +94,14 @@ impl Resource {
 
 impl From<Resource> for ResourceData {
   fn from(resource: Resource) -> Self {
-    Self::new_with_path(
+    let mut resource_data = Self::new_with_path(
       resource.full_path(),
       resource.path,
       Some(resource.query),
       Some(resource.fragment),
-    )
-    .description_optional(resource.description_data)
+    );
+    resource_data.set_description_optional(resource.description_data);
+    resource_data
   }
 }
 

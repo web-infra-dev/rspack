@@ -109,7 +109,7 @@ async fn resolve_for_scheme(
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
   // Try to parse the URL and handle it
-  let Some(url) = parse_url_as_http(&resource_data.resource) else {
+  let Some(url) = parse_url_as_http(resource_data.resource()) else {
     return Ok(None);
   };
 
@@ -139,11 +139,12 @@ async fn resolve_in_scheme(
     .unwrap_or(true);
 
   // Only handle relative urls (./xxx, ../xxx, /xxx, //xxx) and non-url dependencies
+  let resource = resource_data.resource();
   if is_not_url_dependency
-    && (!resource_data.resource.starts_with("./")
-      && !resource_data.resource.starts_with("../")
-      && !resource_data.resource.starts_with("/")
-      && !resource_data.resource.starts_with("//"))
+    && (!resource.starts_with("./")
+      && !resource.starts_with("../")
+      && !resource.starts_with("/")
+      && !resource.starts_with("//"))
   {
     return Ok(None);
   }
@@ -154,7 +155,7 @@ async fn resolve_in_scheme(
   };
 
   // Join the base URL with the resource
-  match base_url.join(&resource_data.resource) {
+  match base_url.join(resource_data.resource()) {
     Ok(url) => match self
       .respond_with_url_module(resource_data, &url, None)
       .await
@@ -170,9 +171,9 @@ async fn resolve_in_scheme(
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
-    && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
+    && EXTERNAL_HTTP_REQUEST.is_match(resource_data.resource())
   {
-    let content_result = get_info(&resource_data.resource, &self.options).await?;
+    let content_result = get_info(resource_data.resource(), &self.options).await?;
 
     return Ok(Some(Content::from(content_result.content().to_vec())));
   }

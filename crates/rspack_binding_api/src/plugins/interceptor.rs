@@ -1531,7 +1531,7 @@ impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForScheme
     let (bail, new_resource_data) = self
       .function
       .call_with_promise(JsResolveForSchemeArgs {
-        resource_data: resource_data.clone().into(),
+        resource_data: (&*resource_data).into(),
         scheme: scheme.to_string(),
       })
       .await?;
@@ -1584,7 +1584,7 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
       .call_with_promise(JsNormalModuleFactoryCreateModuleArgs {
         dependency_type: data.dependencies[0].dependency_type().to_string(),
         raw_request: create_data.raw_request.clone(),
-        resource_resolve_data: create_data.resource_resolve_data.clone().into(),
+        resource_resolve_data: (&create_data.resource_resolve_data).into(),
         context: data.context.to_string(),
         match_resource: create_data.match_resource.clone(),
       })

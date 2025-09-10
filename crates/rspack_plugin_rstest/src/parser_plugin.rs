@@ -449,16 +449,15 @@ impl RstestParserPlugin {
 
   fn process_import_meta(&self, parser: &mut JavascriptParser, r#type: ModulePathType) -> String {
     if r#type == ModulePathType::FileName {
-      if let Some(resource_path) = &parser.resource_data.resource_path {
-        json_stringify(&resource_path.clone().into_string())
+      if let Some(resource_path) = parser.resource_data.path() {
+        json_stringify(resource_path.as_str())
       } else {
         "''".to_string()
       }
     } else {
       let resource_path = parser
         .resource_data
-        .resource_path
-        .as_deref()
+        .path()
         .and_then(|p| p.parent())
         .map(|p| p.to_string())
         .unwrap_or_default();

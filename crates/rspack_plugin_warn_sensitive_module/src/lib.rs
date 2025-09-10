@@ -59,7 +59,7 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
     if let Some(normal_module) = module.as_normal_module()
       && normal_module
         .resource_resolved_data()
-        .encoded_content
+        .encoded_content()
         .is_some()
     {
       continue;

@@ -18,7 +18,7 @@ async fn normal_module_factory_resolve_for_scheme(
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if scheme.is_file() {
-    let url = Url::parse(&resource_data.resource).to_rspack_result()?;
+    let url = Url::parse(resource_data.resource()).to_rspack_result()?;
     let path = url
       .to_file_path()
       .map_err(|_| error!("Failed to get file path of {url}"))?
