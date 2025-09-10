@@ -77,10 +77,10 @@ impl Dependency for ESMExportSpecifierDependency {
         exports: self.enum_value.as_ref().map(|enum_value| {
           enum_value
             .iter()
-            .map(|(enum_name, enum_value)| {
+            .map(|(enum_name, enum_member)| {
               ExportNameOrSpec::ExportSpec(ExportSpec {
                 name: enum_name.clone(),
-                inlinable: enum_value.clone(),
+                inlinable: enum_member.clone(),
                 can_mangle: Some(false),
                 ..Default::default()
               })
