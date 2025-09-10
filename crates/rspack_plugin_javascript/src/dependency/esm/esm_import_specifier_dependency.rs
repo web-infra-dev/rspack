@@ -7,12 +7,12 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided, ExportsInfoGetter,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam,
-  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode,
-  ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  UsedByExports, UsedName, create_exports_object_referenced, export_from_import, get_exports_type,
-  property_access, to_normal_comment,
+  ExportsType, ExtendedReferencedExport, ForwardId, GetUsedNameParam, ImportAttributes,
+  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
+  to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;

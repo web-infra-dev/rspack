@@ -168,14 +168,12 @@ impl Task<TaskContext> for FactorizeResultTask {
     } = *self;
 
     let artifact = &mut context.artifact;
-    if !factorize_info.diagnostics().is_empty() {
-      artifact
-        .file_dependencies
-        .add_batch_file(&factorize_info.file_dependencies());
-      artifact
-        .context_dependencies
-        .add_batch_file(&factorize_info.context_dependencies());
-    }
+    artifact
+      .file_dependencies
+      .add_batch_file(&factorize_info.file_dependencies());
+    artifact
+      .context_dependencies
+      .add_batch_file(&factorize_info.context_dependencies());
     artifact
       .missing_dependencies
       .add_batch_file(&factorize_info.missing_dependencies());

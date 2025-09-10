@@ -245,9 +245,6 @@ impl<'a> ModuleGraph<'a> {
     if force {
       active_partial.dependencies.insert(*dep_id, None);
       active_partial
-        .dependency_factorize_infos
-        .insert(*dep_id, None);
-      active_partial
         .dependency_id_to_parents
         .insert(*dep_id, None);
       active_partial.connection_to_condition.remove(dep_id);
@@ -262,6 +259,9 @@ impl<'a> ModuleGraph<'a> {
         block.remove_dependency_id(*dep_id);
       }
     }
+    active_partial
+      .dependency_factorize_infos
+      .insert(*dep_id, None);
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier
@@ -708,6 +708,15 @@ impl<'a> ModuleGraph<'a> {
         .get(dependency_id)
         .and_then(|factorize_info| factorize_info.as_ref())
     })
+  }
+
+  pub fn remove_dependency_factorize_info_by_id(&mut self, dependency_id: &DependencyId) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    active_partial
+      .dependency_factorize_infos
+      .insert(*dependency_id, None);
   }
 
   pub fn dependency_by_id_mut(

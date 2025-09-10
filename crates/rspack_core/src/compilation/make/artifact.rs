@@ -110,6 +110,7 @@ impl MakeArtifact {
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info
+    let mut revoked_dependency_ids: HashSet<DependencyId> = HashSet::default();
     let mgm = mg
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
@@ -118,7 +119,11 @@ impl MakeArtifact {
       .iter()
       .chain(mgm.incoming_connections())
     {
-      if let Some(info) = mg.dependency_factorize_info_by_id(dep_id) {
+      if !revoked_dependency_ids.contains(dep_id)
+        && let Some(info) = mg.dependency_factorize_info_by_id(dep_id)
+      {
+        revoked_dependency_ids.insert(*dep_id);
+
         self
           .file_dependencies
           .remove_batch_file(&info.file_dependencies());
@@ -129,6 +134,9 @@ impl MakeArtifact {
           .missing_dependencies
           .remove_batch_file(&info.missing_dependencies());
       }
+    }
+    for dep_id in revoked_dependency_ids {
+      mg.remove_dependency_factorize_info_by_id(&dep_id);
     }
 
     self.revoked_modules.insert(*module_identifier);
