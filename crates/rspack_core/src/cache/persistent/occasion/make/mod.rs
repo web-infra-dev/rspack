@@ -32,6 +32,7 @@ impl MakeOccasion {
       module_to_lazy_make,
       revoked_modules,
       built_modules,
+      issuer_update_modules,
       // skip
       entry_dependencies: _,
       file_dependencies: _,
@@ -43,11 +44,14 @@ impl MakeOccasion {
       make_failed_module: _,
     } = artifact;
 
+    let mut need_update_modules = built_modules.clone();
+    need_update_modules.extend(issuer_update_modules);
+
     module_graph::save_module_graph(
       module_graph_partial,
       module_to_lazy_make,
       revoked_modules,
-      built_modules,
+      &need_update_modules,
       &self.storage,
       &self.context,
     );
