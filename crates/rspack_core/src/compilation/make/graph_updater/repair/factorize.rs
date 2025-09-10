@@ -172,9 +172,6 @@ impl Task<TaskContext> for FactorizeResultTask {
       artifact
         .context_dependencies
         .add_batch_file(&factorize_info.context_dependencies());
-      artifact
-        .make_failed_dependencies
-        .insert(*dependencies[0].id());
     }
     artifact
       .missing_dependencies

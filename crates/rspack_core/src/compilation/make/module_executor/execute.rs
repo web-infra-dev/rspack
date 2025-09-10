@@ -123,7 +123,6 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       return Ok(vec![]);
     };
     let make_failed_module = &origin_context.artifact.make_failed_module;
-    let make_failed_dependencies = &origin_context.artifact.make_failed_dependencies;
     let mut queue = VecDeque::from(vec![entry_module_identifier]);
     let mut assets = CompilationAssets::default();
     let mut modules = IdentifierSet::default();
@@ -172,11 +171,11 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         }
       }
       for dep_id in module.get_dependencies() {
-        if !has_error && make_failed_dependencies.contains(dep_id) {
-          let diagnostics = mg
-            .dependency_factorize_info_by_id(dep_id)
-            .expect("should have factorize info")
-            .diagnostics();
+        if !has_error && let Some(factorize_info) = mg.dependency_factorize_info_by_id(dep_id) {
+          if factorize_info.is_success() {
+            continue;
+          }
+          let diagnostics = factorize_info.diagnostics();
           let errors: Vec<_> = diagnostics
             .iter()
             .filter(|d| matches!(d.severity(), RspackSeverity::Error))

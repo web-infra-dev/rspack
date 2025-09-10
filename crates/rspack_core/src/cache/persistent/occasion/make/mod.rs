@@ -3,7 +3,6 @@ mod module_graph;
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rustc_hash::FxHashSet as HashSet;
 
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
@@ -39,7 +38,6 @@ impl MakeOccasion {
       missing_dependencies: _,
       build_dependencies: _,
       state: _,
-      make_failed_dependencies: _,
       make_failed_module: _,
     } = artifact;
 
@@ -80,19 +78,13 @@ impl MakeOccasion {
       missing_dep.add_batch_file(&build_info.missing_dependencies);
       build_dep.add_batch_file(&build_info.build_dependencies);
     }
-    // recovery make_failed_dependencies
-    let mut make_failed_dependencies = HashSet::default();
-    for (dep_id, _) in mg.dependencies() {
-      if let Some(info) = mg.dependency_factorize_info_by_id(&dep_id)
-        && !info.is_success()
-      {
-        make_failed_dependencies.insert(dep_id);
-        file_dep.add_batch_file(&info.file_dependencies());
-        context_dep.add_batch_file(&info.context_dependencies());
-        missing_dep.add_batch_file(&info.missing_dependencies());
-      }
+
+    for (_, factorize_info) in mg.dependency_factorize_infos() {
+      file_dep.add_batch_file(&factorize_info.file_dependencies());
+      context_dep.add_batch_file(&factorize_info.context_dependencies());
+      missing_dep.add_batch_file(&factorize_info.missing_dependencies());
     }
-    artifact.make_failed_dependencies = make_failed_dependencies;
+
     artifact.file_dependencies = file_dep;
     artifact.context_dependencies = context_dep;
     artifact.missing_dependencies = missing_dep;

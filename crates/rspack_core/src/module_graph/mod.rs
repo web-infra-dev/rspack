@@ -55,7 +55,7 @@ pub struct ModuleGraphPartial {
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
 
-  dependency_factorize_infos: HashMap<DependencyId, FactorizeInfo>,
+  dependency_factorize_infos: HashMap<DependencyId, Option<FactorizeInfo>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
@@ -244,7 +244,9 @@ impl<'a> ModuleGraph<'a> {
     }
     if force {
       active_partial.dependencies.insert(*dep_id, None);
-      active_partial.dependency_factorize_infos.remove(dep_id);
+      active_partial
+        .dependency_factorize_infos
+        .insert(*dep_id, None);
       active_partial
         .dependency_id_to_parents
         .insert(*dep_id, None);
@@ -650,12 +652,20 @@ impl<'a> ModuleGraph<'a> {
     let mut res = HashMap::default();
     for item in self.partials.iter().flatten() {
       for (dependency_id, factorize_info) in &item.dependency_factorize_infos {
-        res.insert(*dependency_id, factorize_info);
+        if let Some(factorize_info) = factorize_info {
+          res.insert(*dependency_id, factorize_info);
+        } else {
+          res.remove(dependency_id);
+        }
       }
     }
     if let Some(active) = &self.active {
       for (dependency_id, factorize_info) in &active.dependency_factorize_infos {
-        res.insert(*dependency_id, factorize_info);
+        if let Some(factorize_info) = factorize_info {
+          res.insert(*dependency_id, factorize_info);
+        } else {
+          res.remove(dependency_id);
+        }
       }
     }
     res
@@ -686,14 +696,18 @@ impl<'a> ModuleGraph<'a> {
     };
     active_partial
       .dependency_factorize_infos
-      .insert(dependency_id, factorize_info);
+      .insert(dependency_id, Some(factorize_info));
   }
 
   pub fn dependency_factorize_info_by_id(
     &self,
     dependency_id: &DependencyId,
   ) -> Option<&FactorizeInfo> {
-    self.loop_partials(|p| p.dependency_factorize_infos.get(dependency_id))
+    self.loop_partials(|p| {
+      p.dependency_factorize_infos
+        .get(dependency_id)
+        .and_then(|factorize_info| factorize_info.as_ref())
+    })
   }
 
   pub fn dependency_by_id_mut(
