@@ -10,7 +10,7 @@ module.exports = {
   mode: "development",
   plugins: [new rspack.HtmlRspackPlugin()],
 	lazyCompilation: {
-		entries: true,
+		entries: false,
 		imports: true
 		// Using default prefix (not specifying prefix option)
 	},

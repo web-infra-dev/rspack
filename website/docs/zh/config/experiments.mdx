@@ -715,7 +715,7 @@ import imageUrl from 'https://example.com/image.png';
 一般项目中，只有少量文件需要通过自定义文件系统访问，合理配置 `experiments.useInputFileSystem` 可以确保 Rspack 高效运行。
 
 下面的例子演示了如何替换默认的 inputFileSystem 为一个自定义的文件系统，只要自定义文件系统满足 [`InputFileSystem`](/zh/api/javascript-api/compiler#inputfilesystem-1) 的接口定义。
-更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-test-tools/tests/configCases/input-file-system/webpack.config.js)。
+更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/webpack.config.js)。
 
 ```js title="rspack.config.mjs"
 export default {

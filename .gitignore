@@ -63,8 +63,8 @@ node_modules/
 !scripts/node_modules/
 !tests/webpack-examples/*/node_modules
 !tests/webpack-test/*/**/node_modules
+!tests/rspack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
-!packages/rspack-test-tools/tests/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -171,9 +171,10 @@ webpack-dist
 
 .pnpm-store/
 
-!packages/rspack-test-tools/tests/configCases/target
+!tests/rspack-test/configCases/target
 tests/e2e/temp
 packages/*/tests/js
+tests/rspack-test/js
 
 
 # Benchmark
@@ -190,7 +191,7 @@ esbuild.cpuprofile
 
 
 # this node_modules is used for tree-shaking snapshot
-!packages/rspack-test-tools/tests/treeShakingCases/node_modules
+!tests/rspack-test/treeShakingCases/node_modules
 
 # Binding artifacts
 /artifacts/

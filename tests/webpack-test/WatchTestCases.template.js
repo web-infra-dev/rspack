@@ -152,7 +152,7 @@ const describeCases = config => {
 										options.cache.name = `config-${idx}`;
 									}
 									// CHANGE: test incremental: "safe" in webpack-test, we test default incremental in
-									// rspack-test-tools/tests/Incremental-*.test.js, including cases in webpack-test
+									// rspack-test/tests/Incremental-*.test.js, including cases in webpack-test
 									{
 										if (!options.experiments) options.experiments = {};
 										if (!options.experiments.incremental) options.experiments.incremental = "safe";

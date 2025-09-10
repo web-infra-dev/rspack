@@ -16,8 +16,14 @@ import type {
 } from "../type";
 import { type ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
-const srcDir = path.resolve(__dirname, "../../tests/fixtures");
-const distDir = path.resolve(__dirname, "../../tests/js/hook");
+const srcDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/fixtures"
+);
+const distDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/js/hook"
+);
 
 const sourceSerializer = {
 	test(val: unknown) {

@@ -1,7 +1,0 @@
-Array [
-  Object {
-    loc: 1:0-14,
-    moduleIdentifier: javascript/esm|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/fully-specified-resolve-suggestions/index.js,
-    moduleName: ./index.js,
-  },
-]
