@@ -1,14 +1,14 @@
 use rspack_core::{
   ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ExportsInfoGetter,
   GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  PrefetchExportsInfoMode, RuntimeSpec, UsedName,
+  PrefetchExportsInfoMode, RuntimeSpec, UsageState, UsedName,
 };
 use rspack_util::ryu_js;
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::ESMImportSpecifierDependency,
+  dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
   utils::eval::{
     BasicEvaluatedExpression, evaluate_to_boolean, evaluate_to_null, evaluate_to_number,
     evaluate_to_string, evaluate_to_undefined,
@@ -168,12 +168,27 @@ impl DependencyConditionFn for InlineValueDependencyCondition {
     let dependency = mg
       .dependency_by_id(&self.dependency_id)
       .expect("should have dependency");
-    let dependency = dependency
-      .downcast_ref::<ESMImportSpecifierDependency>()
-      .expect("should be ESMImportSpecifierDependency");
-    let ids = dependency.get_ids(mg);
+    let ids = if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
+      dependency.get_ids(mg)
+    } else if let Some(dependency) =
+      dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
+    {
+      dependency.get_ids(mg)
+    } else {
+      panic!("should be ESMImportSpecifierDependency or ESMExportImportedSpecifierDependency")
+    };
     if ids.is_empty() {
-      return bailout;
+      // Optimize if all exports are inlinable for star export
+      let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+      if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
+        return bailout;
+      }
+      for (_, export_info) in exports_info.exports() {
+        if export_info.can_inline().is_none() {
+          return bailout;
+        }
+      }
+      return ConnectionState::Active(false);
     }
     let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
     if matches!(

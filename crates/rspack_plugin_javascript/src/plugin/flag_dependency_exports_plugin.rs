@@ -3,7 +3,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationFinishModules, DependenciesBlock, DependencyId,
   EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
-  ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Inlinable, Logger, ModuleGraph,
+  ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
@@ -596,9 +596,9 @@ fn set_export_base_info(
   }
 
   if let Some(inlined) = inlinable
-    && !export_info.inlinable().can_inline()
+    && export_info.can_inline_provide().is_none()
   {
-    export_info.set_inlinable(Inlinable::Inlined(inlined.clone()));
+    export_info.set_can_inline_provide(Some(inlined.clone()));
     changed = true;
   }
 
