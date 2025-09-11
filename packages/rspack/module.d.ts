@@ -177,7 +177,7 @@ declare namespace Rspack {
 		loaded: boolean;
 		parents: NodeJS.Module["id"][] | null | undefined;
 		children: NodeJS.Module["id"][];
-		hot?: Hot | undefined;
+		hot?: Hot;
 	}
 
 	interface RequireResolve {
