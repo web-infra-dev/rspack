@@ -73,11 +73,7 @@ impl JavascriptParserPlugin for ConstPlugin {
   ) -> Option<bool> {
     match for_name {
       WEBPACK_RESOURCE_FRAGMENT => {
-        let resource_fragment = parser
-          .resource_data
-          .resource_fragment
-          .as_deref()
-          .unwrap_or("");
+        let resource_fragment = parser.resource_data.fragment().unwrap_or("");
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceFragment".into(),
@@ -88,7 +84,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         Some(true)
       }
       WEBPACK_RESOURCE_QUERY => {
-        let resource_query = parser.resource_data.resource_query.as_deref().unwrap_or("");
+        let resource_query = parser.resource_data.query().unwrap_or("");
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceQuery".into(),
@@ -113,8 +109,8 @@ impl JavascriptParserPlugin for ConstPlugin {
       WEBPACK_RESOURCE_QUERY => Some(evaluate_to_string(
         parser
           .resource_data
-          .resource_query
-          .clone()
+          .query()
+          .map(ToOwned::to_owned)
           .unwrap_or_default(),
         start,
         end,
@@ -122,8 +118,8 @@ impl JavascriptParserPlugin for ConstPlugin {
       WEBPACK_RESOURCE_FRAGMENT => Some(evaluate_to_string(
         parser
           .resource_data
-          .resource_fragment
-          .clone()
+          .fragment()
+          .map(ToOwned::to_owned)
           .unwrap_or_default(),
         start,
         end,

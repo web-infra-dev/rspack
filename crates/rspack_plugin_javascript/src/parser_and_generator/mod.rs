@@ -119,7 +119,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource = parse_context.resource_data.resource.as_str()
+    resource = parse_context.resource_data.resource()
   ))]
   async fn parse<'a>(
     &mut self,
@@ -171,8 +171,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let fm = cm.new_source_file(
       Arc::new(FileName::Custom(
         resource_data
-          .resource_path
-          .as_ref()
+          .path()
           .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
       )),

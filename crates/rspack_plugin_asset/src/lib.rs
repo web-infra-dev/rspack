@@ -152,7 +152,7 @@ impl AssetParserAndGenerator {
     compilation: &Compilation,
   ) -> Option<String> {
     let func_ctx = AssetGeneratorDataUrlFnCtx {
-      filename: resource_data.resource.clone(),
+      filename: resource_data.resource().to_owned(),
       module,
       compilation,
     };
@@ -177,12 +177,12 @@ impl AssetParserAndGenerator {
     {
       return Ok(mimetype.to_owned());
     }
-    if let Some(mimetype) = &resource_data.mimetype
-      && let Some(parameters) = &resource_data.parameters
+    if let Some(mimetype) = resource_data.mimetype()
+      && let Some(parameters) = resource_data.parameters()
     {
       return Ok(format!("{mimetype}{parameters}"));
     }
-    if let Some(resource_path) = &resource_data.resource_path {
+    if let Some(resource_path) = resource_data.path() {
       return mime_guess::MimeGuess::from_path(resource_path)
         .first_raw()
         .map(ToOwned::to_owned)
@@ -208,7 +208,7 @@ impl AssetParserAndGenerator {
     {
       return encoding.to_string();
     }
-    if let Some(encoding) = &resource_data.encoding {
+    if let Some(encoding) = resource_data.encoding() {
       return encoding.to_owned();
     }
     String::from(DEFAULT_ENCODING)
@@ -220,8 +220,8 @@ impl AssetParserAndGenerator {
     encoding: &str,
     source: &BoxSource,
   ) -> Result<String> {
-    if let Some(encoded_content) = &resource_data.encoded_content
-      && let Some(resource_encoding) = &resource_data.encoding
+    if let Some(encoded_content) = resource_data.encoded_content()
+      && let Some(resource_encoding) = resource_data.encoding()
       && resource_encoding == encoding
       && AssetParserAndGenerator::decode_data_uri_content(encoding, encoded_content, source)
         .eq(&source.buffer().to_vec())
@@ -241,10 +241,10 @@ impl AssetParserAndGenerator {
   fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
     let relative = make_paths_relative(
       compilation.options.context.as_ref(),
-      &module
+      module
         .match_resource()
         .unwrap_or(module.resource_resolved_data())
-        .resource,
+        .resource(),
     );
     if let Some(stripped) = relative.strip_prefix("./") {
       return stripped.to_owned();
