@@ -126,20 +126,31 @@ fn parse_with_lexer(
 ) -> Result<(SwcProgram, Option<Vec<TokenAndSpan>>), Vec<parser::error::Error>> {
   use swc_ecma_lexer::common::parser::{Parser as _, buffer::Buffer};
   let inner = || {
-    let lexer = Capturing::new(lexer);
-    let mut parser = Parser::new_from(lexer);
-    let program_result = match is_module {
-      IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
-      IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
-      IsModule::Unknown => parser.parse_program(),
-      IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
-    };
-    let tokens = if with_tokens {
-      Some(parser.input_mut().iter_mut().take())
+    // don't call capturing when with_tokens is false to avoid performance cost
+    let (tokens, program_result, mut errors) = if with_tokens {
+      let lexer = Capturing::new(lexer);
+      let mut parser = Parser::new_from(lexer);
+      let program_result = match is_module {
+        IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
+        IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
+        IsModule::Unknown => parser.parse_program(),
+        IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
+      };
+      (
+        Some(parser.input_mut().iter_mut().take()),
+        program_result,
+        parser.take_errors(),
+      )
     } else {
-      None
+      let mut parser = Parser::new_from(lexer);
+      let program_result = match is_module {
+        IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
+        IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
+        IsModule::Unknown => parser.parse_program(),
+        IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
+      };
+      (None, program_result, parser.take_errors())
     };
-    let mut errors = parser.take_errors();
 
     // Using combinator will let rustc unhappy.
     match program_result {
