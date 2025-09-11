@@ -219,7 +219,7 @@ interface ImportMeta {
 	url: string;
 	// TODO: unsupported
 	// webpack: number;
-	webpackHot?: Rspack.Hot | undefined;
+	webpackHot?: Rspack.Hot;
 	webpackContext: (
 		request: string,
 		options?: {
