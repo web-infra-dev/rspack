@@ -1267,6 +1267,7 @@ impl<'a> ModuleGraph<'a> {
   }
 }
 
+#[allow(clippy::type_complexity)]
 pub enum FactorizeInfos<'a> {
   // An optimized iterator for when there's only a single, read-only layer of data.
   // It directly iterates over the underlying `HashMap` without any merging overhead,
