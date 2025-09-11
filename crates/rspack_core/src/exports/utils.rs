@@ -98,18 +98,11 @@ impl EvaluatedInlinableValue {
   }
 }
 
-#[cacheable]
-#[derive(Debug, Clone, Hash)]
-pub enum Inlinable {
-  NoByProvide,
-  NoByUse,
-  Inlined(EvaluatedInlinableValue),
-}
-
-impl Inlinable {
-  pub fn can_inline(&self) -> bool {
-    matches!(self, Inlinable::Inlined(_))
-  }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CanInlineUse {
+  HasInfo,
+  Yes,
+  No,
 }
 
 #[derive(Debug, Clone)]
@@ -136,6 +129,14 @@ impl InlinedUsedName {
     let mut inlined = self.value.render();
     inlined.push_str(&property_access(&self.suffix, 0));
     inlined
+  }
+
+  pub fn inlined_value(&self) -> &EvaluatedInlinableValue {
+    &self.value
+  }
+
+  pub fn suffix_ids(&self) -> &[Atom] {
+    &self.suffix
   }
 }
 

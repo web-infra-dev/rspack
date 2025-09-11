@@ -177,7 +177,8 @@ impl JsPlugin {
         __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
         module = execOptions.module;
         if (!execOptions.factory) {
-          console.error("undefined factory", moduleId)
+          console.error("undefined factory", moduleId);
+          throw Error("RuntimeError: factory is undefined (" + moduleId + ")");
         }
         execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
       "#}.into()

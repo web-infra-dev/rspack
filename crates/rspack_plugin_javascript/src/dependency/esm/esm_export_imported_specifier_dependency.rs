@@ -33,6 +33,7 @@ use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
+use crate::InlineValueDependencyCondition;
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
@@ -1413,9 +1414,9 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let id = self.id;
-    Some(DependencyCondition::new_fn(
-      ESMExportImportedSpecifierDependencyCondition(id),
+    Some(DependencyCondition::new_composed(
+      InlineValueDependencyCondition::new(self.id),
+      DependencyCondition::new_fn(ESMExportImportedSpecifierDependencyCondition(self.id)),
     ))
   }
 
