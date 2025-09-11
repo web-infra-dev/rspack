@@ -46,7 +46,7 @@ pub fn save_module_graph(
   partial: &ModuleGraphPartial,
   module_to_lazy_make: &ModuleToLazyMake,
   revoked_modules: &IdentifierSet,
-  built_modules: &IdentifierSet,
+  need_update_modules: &IdentifierSet,
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
 ) {
@@ -56,7 +56,7 @@ pub fn save_module_graph(
   }
 
   // save module_graph
-  let nodes = built_modules
+  let nodes = need_update_modules
     .par_iter()
     .filter_map(|identifier| {
       let mgm = mg
@@ -121,7 +121,7 @@ pub fn save_module_graph(
     .collect::<Vec<_>>();
 
   let saved = nodes.len();
-  tracing::debug!("save info {}/{}", saved, built_modules.len());
+  tracing::debug!("save info {}/{}", saved, need_update_modules.len());
 
   for (id, bytes) in nodes {
     storage.set(SCOPE, id, bytes)
