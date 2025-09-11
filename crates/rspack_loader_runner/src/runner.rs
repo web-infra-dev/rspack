@@ -256,7 +256,6 @@ impl LoaderResult {
 mod test {
   use std::{cell::RefCell, sync::Arc};
 
-  use once_cell::sync::OnceCell;
   use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
   use rspack_error::Result;
