@@ -1,6 +1,8 @@
 mod fix_build_meta;
 mod fix_issuers;
 
+use std::time::Instant;
+
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
@@ -76,10 +78,11 @@ impl Cutout {
           );
           force_build_deps.extend(
             module_graph
-              .dependency_factorize_infos()
+              .dependency_factorize_info_iter()
+              .collect::<Vec<_>>()
               .par_iter()
               .filter_map(|(dependency_id, factorize_info)| {
-                factorize_info.depends_on(&files).then_some(*dependency_id)
+                factorize_info.depends_on(&files).then_some(dependency_id)
               })
               .collect::<Vec<_>>(),
           );

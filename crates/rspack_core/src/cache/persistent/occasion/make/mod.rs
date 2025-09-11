@@ -79,7 +79,7 @@ impl MakeOccasion {
       build_dep.add_batch_file(&build_info.build_dependencies);
     }
 
-    for (_, factorize_info) in mg.dependency_factorize_infos() {
+    for (_, factorize_info) in mg.dependency_factorize_info_iter() {
       file_dep.add_batch_file(&factorize_info.file_dependencies());
       context_dep.add_batch_file(&factorize_info.context_dependencies());
       missing_dep.add_batch_file(&factorize_info.missing_dependencies());

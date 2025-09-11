@@ -191,8 +191,7 @@ impl MakeArtifact {
           .collect::<Vec<_>>()
       });
     let make_failed_dependencies = mg
-      .dependency_factorize_infos()
-      .into_iter()
+      .dependency_factorize_info_iter()
       .filter(|(_, info)| !info.is_success());
     let dep_diagnostics = make_failed_dependencies.flat_map(|(dep_id, factorize_info)| {
       let origin_module_identifier = mg.get_parent_module(&dep_id);
