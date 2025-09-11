@@ -28,14 +28,14 @@ pub fn collect_modules(
       let ukey = module_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
       let depth = module_graph.get_depth(module_id);
       let path = if let Some(module) = module.as_normal_module() {
-        module.resource_resolved_data().resource.clone()
+        module.resource_resolved_data().resource().to_owned()
       } else if let Some(module) = module.as_concatenated_module() {
         let root = module.get_root();
         if let Some(module) = module_graph
           .module_by_identifier(&root)
           .and_then(|m| m.as_normal_module())
         {
-          module.resource_resolved_data().resource.clone()
+          module.resource_resolved_data().resource().to_owned()
         } else {
           root.to_string()
         }
@@ -136,7 +136,7 @@ pub fn collect_module_original_sources(
         module.as_normal_module()?
       };
       let module_ukey = module_ukeys.get(module_id)?;
-      let resource = module.resource_resolved_data().resource.clone();
+      let resource = module.resource_resolved_data().resource().to_owned();
       let source = module
         .source()
         .and_then(|s| s.map(&MapOptions::default()))

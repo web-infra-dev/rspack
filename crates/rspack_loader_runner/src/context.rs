@@ -98,25 +98,25 @@ impl<Context: Send> LoaderContext<Context> {
   /// The resource part of the request, including query and fragment.
   /// E.g. /abc/resource.js?query=1#some-fragment
   pub fn resource(&self) -> &str {
-    &self.resource_data.resource
+    self.resource_data.resource()
   }
 
   /// The resource part of the request.
   /// E.g. /abc/resource.js
   pub fn resource_path(&self) -> Option<&Utf8Path> {
-    self.resource_data.resource_path.as_deref()
+    self.resource_data.path()
   }
 
   /// The query of the request
   /// E.g. query=1
   pub fn resource_query(&self) -> Option<&str> {
-    self.resource_data.resource_query.as_deref()
+    self.resource_data.query()
   }
 
   /// The fragment of the request
   /// E.g. some-fragment
   pub fn resource_fragment(&self) -> Option<&str> {
-    self.resource_data.resource_fragment.as_deref()
+    self.resource_data.fragment()
   }
 
   pub fn content(&self) -> Option<&Content> {

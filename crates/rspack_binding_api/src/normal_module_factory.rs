@@ -55,7 +55,7 @@ impl From<&NormalModuleCreateData> for JsCreateData {
     Self {
       request: value.request.to_owned(),
       user_request: value.user_request.to_owned(),
-      resource: value.resource_resolve_data.resource.to_owned(),
+      resource: value.resource_resolve_data.resource().to_owned(),
     }
   }
 }
@@ -64,7 +64,7 @@ impl JsCreateData {
   pub fn update_nmf_data(self, create_data: &mut NormalModuleCreateData) {
     create_data.request = self.request;
     create_data.user_request = self.user_request;
-    if create_data.resource_resolve_data.resource != self.resource {
+    if create_data.resource_resolve_data.resource() != self.resource {
       create_data
         .resource_resolve_data
         .update_resource_data(self.resource);
@@ -119,7 +119,7 @@ impl JsResolveData {
       create_data: create_data.map(|create_data| JsCreateData {
         request: create_data.request.to_owned(),
         user_request: create_data.user_request.to_owned(),
-        resource: create_data.resource_resolve_data.resource.to_owned(),
+        resource: create_data.resource_resolve_data.resource().to_owned(),
       }),
     }
   }

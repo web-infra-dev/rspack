@@ -134,7 +134,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let source = remove_bom(source);
     let source_code = source.source();
-    let resource_path = &resource_data.resource_path;
+    let resource_path = resource_data.path();
     let cached_source_code = OnceCell::new();
     let get_source_code = || {
       let s = cached_source_code.get_or_init(|| Arc::new(source_code.to_string()));

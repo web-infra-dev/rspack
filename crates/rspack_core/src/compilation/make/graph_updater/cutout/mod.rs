@@ -1,8 +1,6 @@
 mod fix_build_meta;
 mod fix_issuers;
 
-use std::time::Instant;
-
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;

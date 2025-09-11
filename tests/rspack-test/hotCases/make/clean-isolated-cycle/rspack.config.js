@@ -2,7 +2,7 @@ function check_issuer(modules) {
 	let available = [];
 	let map = {};
 	for (const m of modules) {
-		map[m.identifier] = m.issuer;
+		map[m.identifier] = m.issuer || true;
 	}
 	for (const m of modules) {
 		if (available.includes(m.identifier)) {
@@ -11,15 +11,19 @@ function check_issuer(modules) {
 		let paths = [];
 		let current = m.identifier;
 		while (true) {
-			if (!current) {
-				available = available.concat(paths);
-				break;
-			}
 			if (paths.includes(current)) {
 				throw new Error("has cycle issuer");
 			}
 			paths.push(current);
-			current = map[current];
+			const next = map[current];
+			if (next == undefined) {
+				throw new Error("current issuer module not exist");
+			}
+			if (next == true) {
+				available = available.concat(paths);
+				break;
+			}
+			current = next;
 		}
 	}
 }

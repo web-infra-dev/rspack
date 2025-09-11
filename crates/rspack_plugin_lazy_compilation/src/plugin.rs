@@ -183,7 +183,7 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if WEBPACK_DEV_SERVER_CLIENT_RE.test(&create_data.resource_resolve_data.resource)
+  if WEBPACK_DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
     || !self
       .check_test(
         module_factory_create_data.compiler_id,
@@ -217,7 +217,7 @@ async fn normal_module_factory_module(
     readable_identifier,
     lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data,
-    create_data.resource_resolve_data.resource.clone(),
+    create_data.resource_resolve_data.resource().to_owned(),
     active,
     self.client.clone(),
   ));

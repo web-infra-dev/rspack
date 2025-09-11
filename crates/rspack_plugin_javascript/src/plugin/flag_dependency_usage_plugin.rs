@@ -3,12 +3,11 @@ use std::collections::{VecDeque, hash_map::Entry};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExportsInfoData, ExtendedReferencedExport, GroupOptions, Inlinable, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
-  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
-  is_no_exports_referenced,
+  ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState, get_entry_runtime,
+  incremental::IncrementalPasses, is_exports_object_referenced, is_no_exports_referenced,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -377,8 +376,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             if !can_mangle {
               export_info.set_can_mangle_use(Some(false));
             }
-            if !can_inline {
-              export_info.set_inlinable(Inlinable::NoByUse);
+            if export_info.can_inline_use() == Some(CanInlineUse::HasInfo) {
+              export_info.set_can_inline_use(Some(if can_inline {
+                CanInlineUse::Yes
+              } else {
+                CanInlineUse::No
+              }));
             }
             let last_one = i == len - 1;
             if !last_one && let Some(nested_info) = export_info.exports_info() {
@@ -702,8 +705,12 @@ fn process_referenced_module_without_nested(
         if !can_mangle {
           export_info.set_can_mangle_use(Some(false));
         }
-        if !can_inline {
-          export_info.set_inlinable(Inlinable::NoByUse);
+        if export_info.can_inline_use() == Some(CanInlineUse::HasInfo) {
+          export_info.set_can_inline_use(Some(if can_inline {
+            CanInlineUse::Yes
+          } else {
+            CanInlineUse::No
+          }));
         }
 
         let changed_flag = export_info.set_used_conditionally(

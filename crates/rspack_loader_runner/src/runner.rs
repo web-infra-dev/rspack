@@ -29,7 +29,7 @@ impl<Context: Send> LoaderContext<Context> {
 
 #[tracing::instrument("LoaderRunner:process_resource",
   skip_all,
-  fields(resource= loader_context.resource_data.resource)
+  fields(resource = loader_context.resource_data.resource())
 )]
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
@@ -41,32 +41,32 @@ async fn process_resource<Context: Send>(
       .await?
   {
     loader_context.content = Some(processed_resource);
+    return Ok(());
   }
 
   let resource_data = &loader_context.resource_data;
-  if loader_context.content.is_none() {
-    if let Some(resource_path) = resource_data.resource_path.as_deref()
+  let scheme = resource_data.get_scheme();
+  if scheme.is_none() {
+    if let Some(resource_path) = resource_data.path()
       && !resource_path.as_str().is_empty()
     {
       let resource_path_owned = resource_path.to_owned();
-      // use spawn_blocking to avoid block,see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
+      // use spawn_blocking to avoid block, see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
       let result = spawn_blocking(move || fs.read_sync(resource_path_owned.as_path()))
         .await
         .map_err(|e| error!("{e}, spawn task failed"))?;
       let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
-    } else if !resource_data.get_scheme().is_none() {
-      let resource = &resource_data.resource;
-      let scheme = resource_data.get_scheme();
-      return Err(error!(
-        r#"Reading from "{resource}" is not handled by plugins (Unhandled scheme).
-Rspack supports "data:" and "file:" URIs by default.
-You may need an additional plugin to handle "{scheme}:" URIs."#
-      ));
     }
+    return Ok(());
   }
 
-  Ok(())
+  let resource = resource_data.resource();
+  Err(error!(
+    r#"Reading from "{resource}" is not handled by plugins (Unhandled scheme).
+Rspack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "{scheme}:" URIs."#
+  ))
 }
 
 fn create_loader_context<Context: Send>(
@@ -76,10 +76,10 @@ fn create_loader_context<Context: Send>(
   context: Context,
 ) -> LoaderContext<Context> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
-  if let Some(resource_path) = &resource_data.resource_path
+  if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
   {
-    file_dependencies.insert(resource_path.clone().into_std_path_buf());
+    file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 
   LoaderContext {
@@ -256,7 +256,6 @@ impl LoaderResult {
 mod test {
   use std::{cell::RefCell, sync::Arc};
 
-  use once_cell::sync::OnceCell;
   use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
   use rspack_error::Result;
@@ -424,19 +423,9 @@ mod test {
     let p1 = Arc::new(Pitching) as Arc<dyn Loader<()>>;
     let p2 = Arc::new(Pitching2) as Arc<dyn Loader<()>>;
 
-    let rs = Arc::new(ResourceData {
-      scheme: OnceCell::new(),
-      resource: "/rspack/main.js?abc=123#efg".to_owned(),
-      resource_description: None,
-      resource_fragment: None,
-      resource_query: None,
-      resource_path: Default::default(),
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      context: None,
-    });
+    let rs = Arc::new(ResourceData::new_with_resource(
+      "/rspack/main.js?abc=123#efg".to_owned(),
+    ));
 
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
@@ -528,19 +517,9 @@ mod test {
       }
     }
 
-    let rs = Arc::new(ResourceData {
-      scheme: OnceCell::new(),
-      resource: "/rspack/main.js?abc=123#efg".to_owned(),
-      resource_description: None,
-      resource_fragment: None,
-      resource_query: None,
-      resource_path: Default::default(),
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      context: None,
-    });
+    let rs = Arc::new(ResourceData::new_with_resource(
+      "/rspack/main.js?abc=123#efg".to_owned(),
+    ));
 
     assert!(
       run_loaders(
@@ -575,19 +554,9 @@ mod test {
       }
     }
 
-    let rs = Arc::new(ResourceData {
-      scheme: OnceCell::new(),
-      resource: "/rspack/main.js?abc=123#efg".to_owned(),
-      resource_description: None,
-      resource_fragment: None,
-      resource_query: None,
-      resource_path: Default::default(),
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      context: None,
-    });
+    let rs = Arc::new(ResourceData::new_with_resource(
+      "/rspack/main.js?abc=123#efg".to_owned(),
+    ));
 
     #[cacheable]
     struct Normal2;

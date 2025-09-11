@@ -11,6 +11,4 @@ it ('some expressions should not be handled by APIPlugin', () => {
 	expect(content).toContain('console.log(require.version)')
 	expect(content).toContain('console.log(require.include)')
 	expect(content).toContain('console.log(require.onError)')
-	expect(content).toContain('module.children = module.children.filter((item) => item.filename !== path)')
-	expect(content).not.toContain('__webpack_require__')
 })

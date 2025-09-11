@@ -177,7 +177,7 @@ declare namespace Rspack {
 		loaded: boolean;
 		parents: NodeJS.Module["id"][] | null | undefined;
 		children: NodeJS.Module["id"][];
-		hot?: Hot | undefined;
+		hot?: Hot;
 	}
 
 	interface RequireResolve {
@@ -219,7 +219,7 @@ interface ImportMeta {
 	url: string;
 	// TODO: unsupported
 	// webpack: number;
-	webpackHot: Rspack.Hot;
+	webpackHot?: Rspack.Hot;
 	webpackContext: (
 		request: string,
 		options?: {

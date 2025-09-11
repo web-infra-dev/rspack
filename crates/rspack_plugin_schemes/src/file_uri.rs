@@ -18,23 +18,20 @@ async fn normal_module_factory_resolve_for_scheme(
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if scheme.is_file() {
-    let url = Url::parse(&resource_data.resource).to_rspack_result()?;
+    let url = Url::parse(resource_data.resource()).to_rspack_result()?;
     let path = url
       .to_file_path()
       .map_err(|_| error!("Failed to get file path of {url}"))?
       .assert_utf8();
     let query = url.query().map(|q| format!("?{q}"));
     let fragment = url.fragment().map(|f| format!("#{f}"));
-    let new_resource_data = ResourceData::new(format!(
+    let resource = format!(
       "{}{}{}",
       path,
       query.as_deref().unwrap_or(""),
       fragment.as_deref().unwrap_or("")
-    ))
-    .path(path)
-    .query_optional(query)
-    .fragment_optional(fragment);
-    *resource_data = new_resource_data;
+    );
+    *resource_data = ResourceData::new_with_path(resource, path, query, fragment);
     return Ok(Some(true));
   }
   Ok(None)

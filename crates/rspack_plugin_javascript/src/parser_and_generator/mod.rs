@@ -1,6 +1,5 @@
 use std::{borrow::Cow, sync::Arc};
 
-use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
@@ -120,7 +119,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource = parse_context.resource_data.resource.as_str()
+    resource = parse_context.resource_data.resource()
   ))]
   async fn parse<'a>(
     &mut self,
@@ -172,8 +171,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let fm = cm.new_source_file(
       Arc::new(FileName::Custom(
         resource_data
-          .resource_path
-          .as_ref()
+          .path()
           .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
       )),
@@ -196,27 +194,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Some(&comments),
     );
 
-    let lexer = swc_ecma_lexer::Lexer::new(
-      Syntax::Es(EsSyntax {
-        allow_return_outside_function: matches!(
-          module_type,
-          ModuleType::JsDynamic | ModuleType::JsAuto
-        ),
-        import_attributes: true,
-        ..Default::default()
-      }),
-      target,
-      SourceFileInput::from(&*fm),
-      Some(&comments),
-    );
-
     let javascript_compiler = JavaScriptCompiler::new();
 
-    let mut ast = match javascript_compiler.parse_with_lexer(
+    let (mut ast, tokens) = match javascript_compiler.parse_with_lexer(
       &fm,
       parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
+      true,
     ) {
       Ok(ast) => ast,
       Err(e) => {
@@ -235,7 +220,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ));
       program.visit_with(&mut semicolon::InsertedSemicolons {
         semicolons: &mut semicolons,
-        tokens: &lexer.collect_vec(),
+        // safety: it's safe to assert tokens is some since we pass with_tokens = true
+        tokens: &tokens.expect("should get tokens from parser"),
       });
     });
 

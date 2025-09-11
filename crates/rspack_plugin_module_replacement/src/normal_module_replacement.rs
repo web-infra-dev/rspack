@@ -61,7 +61,7 @@ async fn nmf_after_resolve(
 ) -> Result<Option<bool>> {
   if self
     .resource_reg_exp
-    .test(&create_data.resource_resolve_data.resource)
+    .test(create_data.resource_resolve_data.resource())
   {
     match &self.new_resource {
       NormalModuleReplacer::String(new_resource) => {
@@ -71,7 +71,7 @@ async fn nmf_after_resolve(
             .resource_resolve_data
             .update_resource_data(new_resource.clone());
         } else if let Some(dir) =
-          Utf8PathBuf::from(&create_data.resource_resolve_data.resource).parent()
+          Utf8PathBuf::from(create_data.resource_resolve_data.resource()).parent()
         {
           create_data
             .resource_resolve_data

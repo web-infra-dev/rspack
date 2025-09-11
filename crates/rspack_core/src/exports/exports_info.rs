@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use super::{ExportInfo, ExportInfoData, ExportProvided, NEXT_EXPORTS_INFO_UKEY, UsageState};
-use crate::{DependencyId, ModuleGraph, Nullable, RuntimeSpec};
+use crate::{CanInlineUse, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -181,6 +181,10 @@ impl ExportsInfo {
         other_exports_info.set_can_mangle_use(Some(false));
         changed = true;
       }
+      if other_exports_info.can_inline_use() != Some(CanInlineUse::No) {
+        other_exports_info.set_can_inline_use(Some(CanInlineUse::No));
+        changed = true;
+      }
     }
     changed
   }
@@ -212,6 +216,10 @@ impl ExportsInfo {
       }
       if other_exports_info.can_mangle_use() != Some(false) {
         other_exports_info.set_can_mangle_use(Some(false));
+        changed = true;
+      }
+      if other_exports_info.can_inline_use() != Some(CanInlineUse::No) {
+        other_exports_info.set_can_inline_use(Some(CanInlineUse::No));
         changed = true;
       }
     }

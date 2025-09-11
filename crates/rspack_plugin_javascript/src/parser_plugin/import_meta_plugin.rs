@@ -21,7 +21,7 @@ pub struct ImportMetaPlugin;
 
 impl ImportMetaPlugin {
   fn import_meta_url(&self, parser: &JavascriptParser) -> String {
-    Url::from_file_path(&parser.resource_data.resource)
+    Url::from_file_path(parser.resource_data.resource())
       .expect("should be a path")
       .to_string()
   }

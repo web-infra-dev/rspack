@@ -279,7 +279,7 @@ impl NormalModule {
 
   #[tracing::instrument(
     "NormalModule:build_hash", skip_all,fields(
-    resource = self.resource_data.resource.as_str()
+    resource = self.resource_data.resource()
   )
 )]
   fn init_build_hash(
@@ -371,7 +371,7 @@ impl Module for NormalModule {
   #[tracing::instrument("NormalModule:build", skip_all, fields(
     perfetto.track_name = format!("Module Build"),
     perfetto.process_name = format!("Rspack Build Detail"),
-    module.resource = self.resource_resolved_data().resource.as_str(),
+    module.resource = self.resource_resolved_data().resource(),
     module.identifier = self.identifier().as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
@@ -670,7 +670,7 @@ impl Module for NormalModule {
 
   fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/NormalModule.js#L375
-    let resource = self.resource_data.resource.as_str();
+    let resource = self.resource_data.resource();
     let idx = resource.find('?');
     if let Some(idx) = idx {
       Some(resource[..idx].into())

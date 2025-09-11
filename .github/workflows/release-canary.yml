@@ -1,6 +1,9 @@
 name: Release Canary
 
 on:
+  schedule:
+    - cron: "0 17 * * *"
+
   workflow_dispatch:
     inputs:
       commit:

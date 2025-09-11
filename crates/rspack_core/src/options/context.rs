@@ -114,35 +114,21 @@ fn dirname(path: &str) -> &str {
   if path == "/" {
     return path;
   }
-  let i = path.rfind('/');
-  let j = path.rfind("\\\\");
-  let i2 = path.find('/');
-  let j2 = path.find("\\\\");
-  let (idx, is_i) = match (i, j) {
-    (None, None) => return path,
-    (None, Some(j)) => (j, false),
-    (Some(i), None) => (i, true),
-    (Some(i), Some(j)) => {
-      if i > j {
-        (i, true)
-      } else {
-        (j, false)
-      }
-    }
+  let Some(i) = path.rfind(['/', '\\']) else {
+    return path;
   };
-  let idx2 = (if is_i { i2 } else { j2 }).expect("should have value");
-  if idx == idx2 {
-    return &path[..idx + 1];
+  let c = path.chars().nth(i).expect("should exist");
+  let i2 = path.find(c).expect("should exist");
+  if i == i2 {
+    return &path[..i + 1];
   }
-  &path[..idx]
+  &path[..i]
 }
 
 pub fn get_context(resource_data: &ResourceData) -> Context {
-  if let Some(resource_path) = &resource_data.resource_path
-    && let Some(dirname) = resource_path.parent()
-  {
-    dirname.into()
-  } else if let Some(parsed) = parse_resource(&resource_data.resource) {
+  if let Some(resource_path) = resource_data.path() {
+    dirname(resource_path.as_str()).into()
+  } else if let Some(parsed) = parse_resource(resource_data.resource()) {
     dirname(parsed.path.as_str()).into()
   } else {
     Context::from("")

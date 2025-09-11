@@ -131,7 +131,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
-      resource: cx.resource_data.resource.clone(),
+      resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
         NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,

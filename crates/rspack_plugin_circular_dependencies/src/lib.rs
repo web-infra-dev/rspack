@@ -284,7 +284,7 @@ impl CircularDependencyRspackPlugin {
 
       // Not all cycles are errors, so filter out any cycles containing
       // explicitly-ignored modules.
-      if self.is_ignored_module(module.resource_resolved_data().resource.as_str())
+      if self.is_ignored_module(module.resource_resolved_data().resource())
         || self.is_ignored_connection(module_id, target_id)
       {
         return true;

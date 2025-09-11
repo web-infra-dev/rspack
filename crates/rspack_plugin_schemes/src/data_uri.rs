@@ -24,7 +24,7 @@ async fn resolve_for_scheme(
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if scheme.is_data()
-    && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+    && let Some(captures) = URI_REGEX.captures(resource_data.resource())
   {
     let mimetype = captures
       .get(1)
@@ -58,14 +58,14 @@ async fn resolve_for_scheme(
 #[plugin_hook(NormalModuleReadResource for DataUriPlugin,tracing=false)]
 async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
   if resource_data.get_scheme().is_data()
-    && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+    && let Some(captures) = URI_REGEX.captures(resource_data.resource())
   {
     let body = captures.get(4).expect("should have data uri body").as_str();
     let is_base64 = captures.get(3).is_some();
     if is_base64 && let Some(cleaned) = rspack_base64::clean_base64(body) {
       return match rspack_base64::decode_to_vec(cleaned.as_bytes()) {
         Ok(buffer) => Ok(Some(Content::Buffer(buffer))),
-        Err(_) => Ok(Some(Content::String(resource_data.resource.to_string()))),
+        Err(_) => Ok(Some(Content::String(resource_data.resource().to_string()))),
       };
     }
 

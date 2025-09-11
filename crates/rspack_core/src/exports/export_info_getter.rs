@@ -4,10 +4,8 @@ use itertools::Itertools;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{
-  ExportInfoData, ExportInfoTargetValue, ExportProvided, Inlinable, UsageState, UsedNameItem,
-};
-use crate::{DependencyId, RuntimeSpec};
+use super::{ExportInfoData, ExportInfoTargetValue, ExportProvided, UsageState, UsedNameItem};
+use crate::{CanInlineUse, DependencyId, EvaluatedInlinableValue, RuntimeSpec};
 
 impl ExportInfoData {
   pub fn get_used_name(
@@ -15,7 +13,7 @@ impl ExportInfoData {
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
-    if let Inlinable::Inlined(inlined) = &self.inlinable() {
+    if let Some(inlined) = self.can_inline() {
       return Some(UsedNameItem::Inlined(inlined.clone()));
     }
     if self.has_use_in_runtime_info() {
@@ -185,6 +183,15 @@ impl ExportInfoData {
         }
       }
     }
+  }
+
+  pub fn can_inline(&self) -> Option<&EvaluatedInlinableValue> {
+    if let Some(provided) = self.can_inline_provide()
+      && self.can_inline_use() == Some(CanInlineUse::Yes)
+    {
+      return Some(provided);
+    }
+    None
   }
 
   pub fn has_used_name(&self) -> bool {
