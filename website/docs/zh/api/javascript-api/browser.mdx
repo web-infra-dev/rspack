@@ -118,18 +118,24 @@ interface BrowserHttpImportPluginOptions {
   /**
    * ESM CDN 域名
    */
-  domain: string | ((request: string, packageName: string) => string);
+  domain: string | ((resolvedRequest: ResolvedRequest) => string);
   /**
    * 为特定的依赖指定 URL
    */
   dependencyUrl?:
     | Record<string, string | undefined>
-    | ((packageName: string) => string | undefined);
+    | ((resolvedRequest: ResolvedRequest) => string | undefined);
   /**
    * 为依赖指定版本。
    * 如果未指定，默认为 "latest"。
    */
   dependencyVersions?: Record<string, string | undefined>;
+  /**
+   * 你可以在此函数中对生成的 URL 进行额外处理。
+   * 例如，你可以为 esm.sh 下的外部依赖指定 `external` 参数：
+   * `request.url.searchParams.set("external", "react,react-dom")`
+   */
+  postprocess?: (request: ProcessedRequest) => void;
 }
 ```
 
