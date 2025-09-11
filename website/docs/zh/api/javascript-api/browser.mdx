@@ -223,7 +223,7 @@ new rspack.BrowserHttpImportEsmPlugin({
 }),
 ```
 
-3. 所有 [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) 配置必须设置 `import: false`，即在线打包的消费者项目不能打包共享模块，共享模块必须由预先打包好的生存者项目提供。
+3. 所有 [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) 配置必须设置 `import: false`，即在线打包的消费者项目不能打包共享模块，共享模块必须由预先打包好的生产者项目提供。
 4. 不支持设置 [ModuleFederationPlugin.implementation](/plugins/webpack/module-federation-plugin#implementation) 选项。
 
 ## 已知问题
