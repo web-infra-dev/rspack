@@ -1,7 +1,7 @@
 use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
+use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -172,11 +172,6 @@ impl<'a> ModuleGraph<'a> {
       }
     }
     res
-  }
-
-  #[inline]
-  pub fn modules_iter(&'a self) -> Modules<'a> {
-    Modules::new(self)
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
@@ -1293,7 +1288,7 @@ impl<'a> FactorizeInfos<'a> {
         .iter()
         .find_map(|p| p.as_ref())
         .unwrap();
-      Self::Direct(
+      FactorizeInfos::Direct(
         partial
           .dependency_factorize_infos
           .iter()
@@ -1319,7 +1314,7 @@ impl<'a> FactorizeInfos<'a> {
           }
         }
       }
-      Self::Merged(merged.into_iter())
+      FactorizeInfos::Merged(merged.into_iter())
     }
   }
 }
@@ -1330,92 +1325,16 @@ impl<'a> Iterator for FactorizeInfos<'a> {
   #[inline]
   fn next(&mut self) -> Option<Self::Item> {
     match self {
-      Self::Direct(iter) => iter.next(),
-      Self::Merged(iter) => iter.next(),
+      FactorizeInfos::Direct(iter) => iter.next(),
+      FactorizeInfos::Merged(iter) => iter.next(),
     }
   }
 
   #[inline]
   fn size_hint(&self) -> (usize, Option<usize>) {
     match self {
-      Self::Direct(iter) => iter.size_hint(),
-      Self::Merged(iter) => iter.size_hint(),
-    }
-  }
-}
-
-pub enum Modules<'a> {
-  // An optimized iterator for when there's only a single, read-only layer of data.
-  // It directly iterates over the underlying `HashMap` without any merging overhead,
-  // filtering out deleted entries (`None` values).
-  Direct(
-    std::iter::FilterMap<
-      std::collections::hash_map::Iter<'a, Identifier, Option<BoxModule>>,
-      fn((&Identifier, &'a Option<BoxModule>)) -> Option<(Identifier, &'a BoxModule)>,
-    >,
-  ),
-  // An iterator for when multiple data layers exist (e.g., during the seal phase).
-  // It merges all layers into a temporary `HashMap` to correctly resolve overrides
-  // and deletions, then iterates over the merged result.
-  Merged(std::collections::hash_map::IntoIter<Identifier, &'a BoxModule>),
-}
-
-impl<'a> Modules<'a> {
-  pub fn new(module_graph: &'a ModuleGraph<'a>) -> Self {
-    if module_graph.partials.iter().flatten().count() == 1 && module_graph.active.is_none() {
-      #[allow(clippy::unwrap_used)]
-      let partial = module_graph
-        .partials
-        .iter()
-        .find_map(|p| p.as_ref())
-        .unwrap();
-      Self::Direct(
-        partial
-          .modules
-          .iter()
-          .filter_map(|item| item.1.as_ref().map(|info| (*item.0, info))),
-      )
-    } else {
-      let mut merged = HashMap::default();
-      for item in module_graph.partials.iter().flatten() {
-        for (identifier, module) in &item.modules {
-          if let Some(module) = module {
-            merged.insert(*identifier, module);
-          } else {
-            merged.remove(identifier);
-          }
-        }
-      }
-      if let Some(active) = &module_graph.active {
-        for (identifier, module) in &active.modules {
-          if let Some(module) = module {
-            merged.insert(*identifier, module);
-          } else {
-            merged.remove(identifier);
-          }
-        }
-      }
-      Self::Merged(merged.into_iter())
-    }
-  }
-}
-
-impl<'a> Iterator for Modules<'a> {
-  type Item = (Identifier, &'a BoxModule);
-
-  #[inline]
-  fn next(&mut self) -> Option<Self::Item> {
-    match self {
-      Self::Direct(iter) => iter.next(),
-      Self::Merged(iter) => iter.next(),
-    }
-  }
-
-  #[inline]
-  fn size_hint(&self) -> (usize, Option<usize>) {
-    match self {
-      Self::Direct(iter) => iter.size_hint(),
-      Self::Merged(iter) => iter.size_hint(),
+      FactorizeInfos::Direct(iter) => iter.size_hint(),
+      FactorizeInfos::Merged(iter) => iter.size_hint(),
     }
   }
 }

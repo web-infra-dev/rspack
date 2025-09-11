@@ -1,6 +1,8 @@
 mod fix_build_meta;
 mod fix_issuers;
 
+use std::time::Instant;
+
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
@@ -62,10 +64,10 @@ impl Cutout {
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
           force_build_modules.extend(
             module_graph
-              .modules_iter()
-              .collect::<Vec<_>>()
-              .par_iter()
-              .filter_map(|(_, module)| {
+              .modules()
+              .values()
+              .par_bridge()
+              .filter_map(|module| {
                 if module.depends_on(&files) {
                   Some(module.identifier())
                 } else {
