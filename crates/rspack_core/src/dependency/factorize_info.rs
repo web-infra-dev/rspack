@@ -2,8 +2,7 @@ use std::borrow::Cow;
 
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::ArcPath;
-use rustc_hash::FxHashSet as HashSet;
+use rspack_paths::ArcPathSet;
 
 use super::{BoxDependency, DependencyId};
 
@@ -14,9 +13,9 @@ pub enum FactorizeInfo {
   Success,
   Failed {
     related_dep_ids: Vec<DependencyId>,
-    file_dependencies: HashSet<ArcPath>,
-    context_dependencies: HashSet<ArcPath>,
-    missing_dependencies: HashSet<ArcPath>,
+    file_dependencies: ArcPathSet,
+    context_dependencies: ArcPathSet,
+    missing_dependencies: ArcPathSet,
     diagnostics: Vec<Diagnostic>,
   },
 }
@@ -25,9 +24,9 @@ impl FactorizeInfo {
   pub fn new(
     diagnostics: Vec<Diagnostic>,
     related_dep_ids: Vec<DependencyId>,
-    file_dependencies: HashSet<ArcPath>,
-    context_dependencies: HashSet<ArcPath>,
-    missing_dependencies: HashSet<ArcPath>,
+    file_dependencies: ArcPathSet,
+    context_dependencies: ArcPathSet,
+    missing_dependencies: ArcPathSet,
   ) -> Self {
     if diagnostics.is_empty() {
       Self::Success
@@ -56,7 +55,7 @@ impl FactorizeInfo {
     matches!(self, FactorizeInfo::Success)
   }
 
-  pub fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
+  pub fn depends_on(&self, modified_file: &ArcPathSet) -> bool {
     if let FactorizeInfo::Failed {
       file_dependencies,
       context_dependencies,
@@ -86,7 +85,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn file_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
+  pub fn file_dependencies(&self) -> Cow<'_, ArcPathSet> {
     match &self {
       Self::Success => Cow::Owned(Default::default()),
       Self::Failed {
@@ -95,7 +94,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn context_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
+  pub fn context_dependencies(&self) -> Cow<'_, ArcPathSet> {
     match &self {
       Self::Success => Cow::Owned(Default::default()),
       Self::Failed {
@@ -105,7 +104,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn missing_dependencies(&self) -> Cow<'_, HashSet<ArcPath>> {
+  pub fn missing_dependencies(&self) -> Cow<'_, ArcPathSet> {
     match &self {
       Self::Success => Cow::Owned(Default::default()),
       Self::Failed {

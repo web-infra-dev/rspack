@@ -1,7 +1,6 @@
 use std::{ops::Deref, sync::Arc, time::SystemTime};
 
-use dashmap::DashSet;
-use rspack_paths::ArcPath;
+use rspack_paths::{ArcPath, ArcPathDashSet};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
@@ -64,7 +63,7 @@ impl Scanner {
 
 fn scan_path_missing(
   paths: &[ArcPath],
-  missing: &DashSet<ArcPath>,
+  missing: &ArcPathDashSet,
   tx: &UnboundedSender<EventBatch>,
 ) -> bool {
   let remove_event = paths
