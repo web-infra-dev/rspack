@@ -10,7 +10,7 @@ use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{
   Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey,
-  UkeyIndexMap, UkeyIndexSet, UkeySet, impl_item_ukey,
+  UkeyIndexMap, UkeyIndexSet, impl_item_ukey,
 };
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_util::itoa;
@@ -230,7 +230,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) chunk_group_infos: Database<ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
   pub(crate) incoming_blocks_by_cgi: HashMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
-  pub(crate) runtime_chunks: UkeySet<ChunkUkey>,
+  pub(crate) runtime_chunks: HashSet<ChunkUkey>,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
   next_chunk_group_index: u32,
@@ -244,7 +244,7 @@ pub(crate) struct CodeSplitter {
 
   // outgoing blocks for a chunk group
   // 2 direction map
-  pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, UkeySet<CgiUkey>>,
+  pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, HashSet<CgiUkey>>,
 
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,

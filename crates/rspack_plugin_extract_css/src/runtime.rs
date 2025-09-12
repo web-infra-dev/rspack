@@ -1,12 +1,11 @@
 use cow_utils::CowUtils;
-use rspack_collections::UkeySet;
 use rspack_core::{
   ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
   impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::get_chunk_runtime_requirements;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::plugin::{InsertType, SOURCE_TYPE};
 
@@ -33,8 +32,8 @@ impl CssLoadingRuntimeModule {
     Self::with_default(chunk, attributes, link_type, insert)
   }
 
-  fn get_css_chunks(&self, compilation: &Compilation) -> UkeySet<ChunkUkey> {
-    let mut set: UkeySet<ChunkUkey> = Default::default();
+  fn get_css_chunks(&self, compilation: &Compilation) -> FxHashSet<ChunkUkey> {
+    let mut set: FxHashSet<ChunkUkey> = Default::default();
     let module_graph = compilation.get_module_graph();
 
     let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);

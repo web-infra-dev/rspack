@@ -1,5 +1,5 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
+use rspack_collections::{DatabaseItem, UkeyIndexSet};
 use rspack_core::{
   ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds, Logger, Plugin,
   chunk_graph_chunk::ChunkId,
@@ -13,7 +13,7 @@ use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_c
 
 #[tracing::instrument(skip_all)]
 fn assign_named_chunk_ids(
-  chunks: UkeySet<ChunkUkey>,
+  chunks: FxHashSet<ChunkUkey>,
   compilation: &Compilation,
   delimiter: &str,
   used_ids: &mut FxHashMap<ChunkId, ChunkUkey>,
@@ -183,7 +183,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     .mutations_read(IncrementalPasses::CHUNK_IDS)
   {
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNK_IDS, %mutations);
-    let mut affected_chunks: UkeySet<ChunkUkey> = UkeySet::default();
+    let mut affected_chunks: FxHashSet<ChunkUkey> = FxHashSet::default();
     for mutation in mutations.iter() {
       match mutation {
         Mutation::ChunkRemove { chunk } => {
@@ -200,10 +200,10 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
       .retain(|chunk, _| compilation.chunk_by_ukey.contains(chunk));
     affected_chunks
   } else {
-    UkeySet::default()
+    FxHashSet::default()
   };
 
-  let mut chunks: UkeySet<ChunkUkey> = compilation
+  let mut chunks: FxHashSet<ChunkUkey> = compilation
     .chunk_by_ukey
     .values()
     .filter(|chunk| chunk.id(&compilation.chunk_ids_artifact).is_none())

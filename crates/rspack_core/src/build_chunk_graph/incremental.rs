@@ -1,10 +1,9 @@
 use std::{collections::HashSet, hash::BuildHasherDefault, sync::Arc};
 
 use num_bigint::BigUint;
-use rspack_collections::{
-  IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeySet,
-};
+use rspack_collections::{IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
@@ -78,7 +77,7 @@ impl CodeSplitter {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk);
         chunk.groups().clone()
       })
-      .collect::<UkeySet<ChunkGroupUkey>>();
+      .collect::<FxHashSet<ChunkGroupUkey>>();
 
     chunk_graph.remove_module(module);
 
@@ -298,7 +297,7 @@ impl CodeSplitter {
     modules: impl Iterator<Item = ModuleIdentifier>,
   ) -> HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
     let chunk_graph: &crate::ChunkGraph = &compilation.chunk_graph;
-    let mut chunk_groups = UkeySet::default();
+    let mut chunk_groups = FxHashSet::default();
     let mut removed: HashSet<
       AsyncDependenciesBlockIdentifier,
       BuildHasherDefault<IdentifierHasher>,
@@ -518,7 +517,7 @@ impl CodeSplitter {
         .copied(),
     );
 
-    let mut removed_entries = UkeySet::default();
+    let mut removed_entries = FxHashSet::default();
     for (name, chunk_group) in compilation.entrypoints() {
       if !compilation.entries.contains_key(name) {
         removed_entries.insert(*chunk_group);

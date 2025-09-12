@@ -1,6 +1,7 @@
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, IdentifierMap, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation};
+use rustc_hash::FxHashSet;
 
 use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
 
@@ -172,7 +173,7 @@ impl SplitChunksPlugin {
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
-    original_chunks: &UkeySet<ChunkUkey>,
+    original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
     let modules = item
@@ -210,7 +211,7 @@ impl SplitChunksPlugin {
   pub(crate) fn split_from_original_chunks(
     &self,
     _item: &ModuleGroup,
-    original_chunks: &UkeySet<ChunkUkey>,
+    original_chunks: &FxHashSet<ChunkUkey>,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,
   ) {

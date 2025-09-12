@@ -1,5 +1,5 @@
 use std::{
-  collections::{HashMap, HashSet},
+  collections::HashMap,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
 };
@@ -23,7 +23,6 @@ macro_rules! impl_item_ukey {
 pub type UkeyIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyDashMap<K, V> = DashMap<K, V, BuildHasherDefault<UkeyHasher>>;
 
-pub type UkeySet<K> = HashSet<K, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyIndexSet<K> = IndexSet<K, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyDashSet<K> = DashSet<K, BuildHasherDefault<UkeyHasher>>;
 

@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use rspack_collections::{
-  Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeySet,
+  Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams, CompilerCompilation,
@@ -11,7 +11,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::CssPlugin;
 use rspack_regex::RspackRegex;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 const MIN_CSS_CHUNK_SIZE: f64 = 30_f64 * 1024_f64;
 const MAX_CSS_CHUNK_SIZE: f64 = 100_f64 * 1024_f64;
@@ -388,7 +388,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let start = logger.time("apply split chunks");
   let chunk_graph = &mut compilation.chunk_graph;
   for chunk_state in chunk_states.values() {
-    let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
+    let mut chunks: FxHashSet<ChunkUkey> = FxHashSet::default();
     for module_identifier in &chunk_state.modules {
       if let Some(new_chunk_ukey) = new_chunks_by_module.get(module_identifier) {
         chunk_graph.disconnect_chunk_and_module(&chunk_state.chunk, *module_identifier);

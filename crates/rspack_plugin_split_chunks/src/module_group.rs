@@ -2,9 +2,9 @@ use std::cmp::Ordering;
 
 use derive_more::Debug;
 use itertools::Itertools;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   CacheGroup,
@@ -52,7 +52,7 @@ pub(crate) struct ModuleGroup {
   pub source_types_modules: FxHashMap<SourceType, IdentifierSet>,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
-  pub chunks: UkeySet<ChunkUkey>,
+  pub chunks: FxHashSet<ChunkUkey>,
   added: Vec<ModuleIdentifier>,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,

@@ -17,7 +17,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
 };
-use rspack_collections::{DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -1256,7 +1256,7 @@ impl Compilation {
       self
         .chunk_render_artifact
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let chunks: UkeySet<ChunkUkey> = mutations
+      let chunks: HashSet<ChunkUkey> = mutations
         .iter()
         .filter_map(|mutation| match mutation {
           Mutation::ChunkSetHashes { chunk } => Some(*chunk),
@@ -2073,8 +2073,8 @@ impl Compilation {
   #[instrument(name = "Compilation:process_chunks_runtime_requirements", target=TRACING_BENCH_TARGET skip_all)]
   pub async fn process_chunks_runtime_requirements(
     &mut self,
-    chunks: UkeySet<ChunkUkey>,
-    entries: UkeySet<ChunkUkey>,
+    chunks: HashSet<ChunkUkey>,
+    entries: HashSet<ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
@@ -2240,7 +2240,7 @@ impl Compilation {
     // possible to depend on full hash, but for library type commonjs/module, it's possible to
     // have non-runtime chunks depend on full hash, the library format plugin is using
     // dependent_full_hash hook to declare it.
-    let mut full_hash_chunks = UkeySet::default();
+    let mut full_hash_chunks = HashSet::default();
     for chunk_ukey in self.chunk_by_ukey.keys() {
       let chunk_dependent_full_hash = plugin_driver
         .compilation_hooks
@@ -2314,7 +2314,7 @@ impl Compilation {
       Ok(())
     }
 
-    let unordered_runtime_chunks: UkeySet<ChunkUkey> = self.get_chunk_graph_entries().collect();
+    let unordered_runtime_chunks: HashSet<ChunkUkey> = self.get_chunk_graph_entries().collect();
     let start = logger.time("hashing: hash chunks");
     let other_chunks: Vec<_> = create_hash_chunks
       .iter()
