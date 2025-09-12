@@ -45,6 +45,13 @@ export default {
 
 You can dynamically create or modify virtual modules using the `writeModule` method:
 
+:::note
+Because the plugin’s virtual modules are managed on the Rust side,
+the `writeModule` method becomes available only after the Rust compiler has been initialized.
+For example, invoking `writeModule` within the `beforeCompile` or `compile` hooks
+will throw the following error: `Error: Virtual file store has not been initialized.`
+:::
+
 - **Type:**
 
 ```ts
@@ -67,7 +74,7 @@ export default {
     virtualModulesPlugin,
     {
       apply(compiler) {
-        compiler.hooks.beforeCompile.tap('MyPlugin', () => {
+        compiler.hooks.thisCompilation.tap('MyPlugin', () => {
           // Dynamically create virtual modules
           const moduleContent = generateSomeContent();
           virtualModulesPlugin.writeModule('src/dynamic.js', moduleContent);
