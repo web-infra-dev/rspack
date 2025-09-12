@@ -12,7 +12,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
-use rspack_paths::{ArcPath, Utf8PathBuf};
+use rspack_paths::{ArcPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
@@ -20,7 +20,7 @@ use rspack_util::{
   itoa, json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
 use crate::{
@@ -989,7 +989,7 @@ impl Module for ContextModule {
         .collect();
     }
 
-    let mut context_dependencies: HashSet<ArcPath> = Default::default();
+    let mut context_dependencies: ArcPathSet = Default::default();
     context_dependencies.insert(self.options.resource.as_std_path().into());
 
     self.build_info.context_dependencies = context_dependencies;

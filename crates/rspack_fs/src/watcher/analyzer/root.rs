@@ -2,7 +2,7 @@
 use std::ops::Deref;
 
 use dashmap::DashSet as HashSet;
-use rspack_paths::ArcPath;
+use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
@@ -42,7 +42,7 @@ impl Analyzer for WatcherRootAnalyzer {
 
 #[derive(Debug, Default)]
 struct PathTree {
-  inner: HashMap<ArcPath, TreeNode>,
+  inner: ArcPathDashMap<TreeNode>,
 }
 
 impl PathTree {
@@ -70,7 +70,7 @@ impl PathTree {
     }
   }
 
-  pub fn update_paths(&self, added_paths: &HashSet<ArcPath>, removed_paths: &HashSet<ArcPath>) {
+  pub fn update_paths(&self, added_paths: &ArcPathDashSet, removed_paths: &ArcPathDashSet) {
     for added in added_paths.iter() {
       self.add_path(added.deref());
     }
@@ -116,7 +116,7 @@ impl PathTree {
   fn add_path_recursive(&self, path: &ArcPath) {
     let tree = &self.inner;
     if let Some(parent) = path.parent() {
-      if let Some(node) = tree.get_mut(parent) {
+      if let Some(node) = tree.get_mut(&ArcPath::from(parent)) {
         node.add_child(path.clone());
         return;
       }
@@ -130,7 +130,7 @@ impl PathTree {
 
 #[derive(Debug, Default)]
 struct TreeNode {
-  children: HashSet<ArcPath>,
+  children: ArcPathDashSet,
 }
 
 impl TreeNode {

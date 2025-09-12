@@ -4088,7 +4088,10 @@ name = "rspack_paths"
 version = "0.5.3"
 dependencies = [
  "camino",
+ "dashmap 6.1.0",
  "rspack_cacheable",
+ "rustc-hash",
+ "ustr-fxhash",
 ]
 
 [[package]]

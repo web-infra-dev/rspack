@@ -28,10 +28,10 @@ pub struct CssDependency {
   range: DependencyRange,
   resource_identifier: String,
   pub(crate) cacheable: bool,
-  pub(crate) file_dependencies: FxHashSet<ArcPath>,
-  pub(crate) context_dependencies: FxHashSet<ArcPath>,
-  pub(crate) missing_dependencies: FxHashSet<ArcPath>,
-  pub(crate) build_dependencies: FxHashSet<ArcPath>,
+  pub(crate) file_dependencies: FxArcPathSet,
+  pub(crate) context_dependencies: FxArcPathSet,
+  pub(crate) missing_dependencies: FxArcPathSet,
+  pub(crate) build_dependencies: FxArcPathSet,
   factorize_info: FactorizeInfo,
 }
 
@@ -49,10 +49,10 @@ impl CssDependency {
     identifier_index: u32,
     range: DependencyRange,
     cacheable: bool,
-    file_dependencies: FxHashSet<ArcPath>,
-    context_dependencies: FxHashSet<ArcPath>,
-    missing_dependencies: FxHashSet<ArcPath>,
-    build_dependencies: FxHashSet<ArcPath>,
+    file_dependencies: FxArcPathSet,
+    context_dependencies: FxArcPathSet,
+    missing_dependencies: FxArcPathSet,
+    build_dependencies: FxArcPathSet,
   ) -> Self {
     let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index);
     Self {

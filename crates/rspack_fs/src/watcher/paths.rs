@@ -1,8 +1,8 @@
 use std::{fmt::Debug, ops::Deref, path::PathBuf};
 
-use dashmap::{DashSet as HashSet, setref::multiple::RefMulti};
+use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::ArcPath;
+use rspack_paths::{ArcPath, ArcPathDashSet};
 
 use super::FsWatcherIgnored;
 
@@ -15,9 +15,9 @@ pub(crate) struct All<'a> {
 impl<'a> All<'a> {
   /// Creates a new `All` iterator from the given sets of files, directories, and missing paths.
   fn new(
-    files: &'a HashSet<ArcPath>,
-    directories: &'a HashSet<ArcPath>,
-    missing: &'a HashSet<ArcPath>,
+    files: &'a ArcPathDashSet,
+    directories: &'a ArcPathDashSet,
+    missing: &'a ArcPathDashSet,
   ) -> Self {
     let files_iter = files.iter();
     let directories_iter = directories.iter();
@@ -56,24 +56,12 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the sets of files, including added and removed files.
-  pub fn files(
-    &self,
-  ) -> (
-    &'a HashSet<ArcPath>,
-    &'a HashSet<ArcPath>,
-    &'a HashSet<ArcPath>,
-  ) {
+  pub fn files(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
     (&self.files.all, &self.files.added, &self.files.removed)
   }
 
   /// Returns references to the set of directories, including added and removed directories.
-  pub fn directories(
-    &self,
-  ) -> (
-    &'a HashSet<ArcPath>,
-    &'a HashSet<ArcPath>,
-    &'a HashSet<ArcPath>,
-  ) {
+  pub fn directories(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
     (
       &self.directories.all,
       &self.directories.added,
@@ -82,13 +70,7 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the set of missing paths, including added and removed missing paths.
-  pub fn missing(
-    &self,
-  ) -> (
-    &'a HashSet<ArcPath>,
-    &'a HashSet<ArcPath>,
-    &'a HashSet<ArcPath>,
-  ) {
+  pub fn missing(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
     (
       &self.missing.all,
       &self.missing.added,
@@ -173,9 +155,9 @@ impl PathUpdater {
 /// This struct enables efficient updates and queries for the file system watcher,
 /// ensuring that changes to the set of watched paths are tracked and managed correctly.
 struct PathTracker {
-  added: HashSet<ArcPath>,
-  removed: HashSet<ArcPath>,
-  all: HashSet<ArcPath>,
+  added: ArcPathDashSet,
+  removed: ArcPathDashSet,
+  all: ArcPathDashSet,
 }
 
 impl PathTracker {

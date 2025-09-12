@@ -1,8 +1,7 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
-use rspack_paths::ArcPath;
-use rustc_hash::FxHashSet as HashSet;
+use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
   BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
@@ -23,9 +22,9 @@ pub struct ModuleFactoryCreateData {
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
 
-  pub file_dependencies: HashSet<ArcPath>,
-  pub context_dependencies: HashSet<ArcPath>,
-  pub missing_dependencies: HashSet<ArcPath>,
+  pub file_dependencies: ArcPathSet,
+  pub context_dependencies: ArcPathSet,
+  pub missing_dependencies: ArcPathSet,
   pub diagnostics: Vec<Diagnostic>,
 }
 
