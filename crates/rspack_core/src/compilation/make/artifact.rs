@@ -12,16 +12,11 @@ use crate::{
 /// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`.
 /// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
 /// the previous MakeArtifact, so persistent cache will never recovery again.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum MakeArtifactState {
+  #[default]
   Uninitialized,
   Initialized,
-}
-
-impl Default for MakeArtifactState {
-  fn default() -> Self {
-    MakeArtifactState::Uninitialized
-  }
 }
 
 /// Make Artifact, including all side effects of the make stage.

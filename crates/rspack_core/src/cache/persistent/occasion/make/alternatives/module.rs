@@ -4,10 +4,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 use rspack_collections::Identifiable;
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::RspackHashDigest;
-use rspack_paths::ArcPath;
+use rspack_paths::ArcPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
-use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildInfo, BuildMeta, CodeGenerationResult,
@@ -103,7 +102,7 @@ impl Module for TempModule {
     true
   }
 
-  fn depends_on(&self, _modified_file: &HashSet<ArcPath>) -> bool {
+  fn depends_on(&self, _modified_file: &ArcPathSet) -> bool {
     // return true to make sure this module always rebuild
     true
   }

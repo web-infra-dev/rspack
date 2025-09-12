@@ -6,17 +6,12 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TempDependency {
   id: DependencyId,
 }
 
 impl TempDependency {
-  pub fn new() -> Self {
-    Self {
-      id: DependencyId::new(),
-    }
-  }
   pub fn transform_from(dep: OwnedOrRef<BoxDependency>) -> OwnedOrRef<BoxDependency> {
     OwnedOrRef::Owned(Box::new(TempDependency {
       id: *dep.as_ref().id(),
