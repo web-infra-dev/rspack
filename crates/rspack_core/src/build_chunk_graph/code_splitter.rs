@@ -10,10 +10,10 @@ use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{
   Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey,
-  UkeyIndexMap, UkeyIndexSet, impl_item_ukey,
+  UkeyIndexSet, impl_item_ukey,
 };
 use rspack_error::{Diagnostic, Error, Result, error};
-use rspack_util::itoa;
+use rspack_util::{fx_hash::FxIndexMap, itoa};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
@@ -236,7 +236,7 @@ pub(crate) struct CodeSplitter {
   next_chunk_group_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
-  queue_connect: UkeyIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
+  queue_connect: FxIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
   chunk_groups_for_combining: UkeyIndexSet<CgiUkey>,
   pub(crate) outdated_chunk_group_info: UkeyIndexSet<CgiUkey>,
   chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
@@ -669,9 +669,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     all_modules: &Vec<ModuleIdentifier>,
     compilation: &mut Compilation,
-  ) -> Result<UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
-    let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
-      UkeyIndexMap::default();
+  ) -> Result<FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
+    let mut input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
+      FxIndexMap::default();
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
 
@@ -724,7 +724,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   pub fn prepare_entries(
     &mut self,
-    input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>,
+    input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>,
     compilation: &mut Compilation,
   ) -> Result<()> {
     let logger = compilation.get_logger("rspack.buildChunkGraph");

@@ -7,9 +7,10 @@ use std::{
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, IdentifierSet, UkeyIndexMap, UkeyIndexSet};
+use rspack_collections::{DatabaseItem, IdentifierSet, UkeyIndexSet};
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
@@ -784,7 +785,7 @@ impl Chunk {
       }
     });
 
-    let mut result: UkeyIndexMap<ChunkGroupUkey, UkeyIndexSet<ChunkUkey>> = UkeyIndexMap::default();
+    let mut result: FxIndexMap<ChunkGroupUkey, UkeyIndexSet<ChunkUkey>> = FxIndexMap::default();
     for (_, group_ukey, child_group_ukey) in list.iter() {
       let child_group = chunk_group_by_ukey.expect_get(child_group_ukey);
       result

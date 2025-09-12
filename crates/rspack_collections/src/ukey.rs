@@ -4,8 +4,8 @@ use std::{
   hash::{BuildHasherDefault, Hash},
 };
 
-use dashmap::{DashMap, DashSet};
-use indexmap::{IndexMap, IndexSet};
+use dashmap::DashSet;
+use indexmap::IndexSet;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -19,9 +19,6 @@ macro_rules! impl_item_ukey {
     }
   };
 }
-
-pub type UkeyIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyDashMap<K, V> = DashMap<K, V, BuildHasherDefault<UkeyHasher>>;
 
 pub type UkeyIndexSet<K> = IndexSet<K, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyDashSet<K> = DashSet<K, BuildHasherDefault<UkeyHasher>>;

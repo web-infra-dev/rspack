@@ -7,13 +7,13 @@ use std::{
 use dashmap::DashMap;
 use futures::future::join_all;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyIndexMap};
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
   PrefetchExportsInfoMode, RuntimeKeyMap, UsageKey, get_runtime_key,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
+use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 use tracing::instrument;
 
@@ -148,7 +148,7 @@ impl Combinator {
 
   fn get_combinations(
     chunk_sets_in_graph: FxHashMap<ChunksKey, FxHashSet<ChunkUkey>>,
-    chunk_sets_by_count: UkeyIndexMap<u32, Vec<FxHashSet<ChunkUkey>>>,
+    chunk_sets_by_count: FxIndexMap<u32, Vec<FxHashSet<ChunkUkey>>>,
   ) -> FxHashMap<ChunksKey, Vec<FxHashSet<ChunkUkey>>> {
     chunk_sets_in_graph
       .into_par_iter()
@@ -190,7 +190,7 @@ impl Combinator {
       })
       .collect::<FxHashMap<_, _>>();
 
-    let mut chunk_sets_by_count = UkeyIndexMap::<u32, Vec<FxHashSet<ChunkUkey>>>::default();
+    let mut chunk_sets_by_count = FxIndexMap::<u32, Vec<FxHashSet<ChunkUkey>>>::default();
     for chunks in chunk_sets_in_graph.values() {
       let count = chunks.len();
 
@@ -243,7 +243,7 @@ impl Combinator {
 
     let mut used_exports_chunk_sets_in_graph = FxHashMap::default();
     let mut used_exports_chunk_sets_by_count =
-      UkeyIndexMap::<u32, Vec<FxHashSet<ChunkUkey>>>::default();
+      FxIndexMap::<u32, Vec<FxHashSet<ChunkUkey>>>::default();
     for used_exports_chunks in used_exports_chunks {
       for (chunk_key, chunks) in used_exports_chunks {
         if used_exports_chunk_sets_in_graph
