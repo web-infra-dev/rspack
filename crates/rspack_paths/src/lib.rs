@@ -1,17 +1,20 @@
 use std::{
   borrow::Borrow,
-  hash::{Hash, Hasher},
+  collections::{HashMap, HashSet},
+  hash::{BuildHasherDefault, Hash, Hasher},
   ops::{Deref, DerefMut},
   path::{Path, PathBuf},
   sync::Arc,
 };
 
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
+use dashmap::{DashMap, DashSet};
 use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
 };
 use rustc_hash::FxHasher;
+use ustr::IdentityHasher;
 
 pub trait AssertUtf8 {
   type Output;
@@ -52,6 +55,8 @@ impl<'a> AssertUtf8 for &'a Path {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArcPath {
   path: Arc<Path>,
+  // Pre-calculating and caching the hash value upon creation, making hashing operations
+  // in collections virtually free.
   hash: u64,
 }
 
@@ -128,3 +133,19 @@ fn _assert_size() {
   use std::mem::size_of;
   assert_eq!(size_of::<ArcPath>(), size_of::<[usize; 2]>());
 }
+
+/// A standard `HashMap` using `ArcPath` as the key type with a custom `Hasher`
+/// that just uses the precomputed hash for speed instead of calculating it.
+pub type ArcPathMap<V> = HashMap<ArcPath, V, BuildHasherDefault<IdentityHasher>>;
+
+/// A standard `HashSet` using `ArcPath` as the key type with a custom `Hasher`
+/// that just uses the precomputed hash for speed instead of calculating it.
+pub type ArcPathSet = HashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+
+/// A standard `DashMap` using `ArcPath` as the key type with a custom `Hasher`
+/// that just uses the precomputed hash for speed instead of calculating it.
+pub type ArcPathDashMap<V> = DashMap<ArcPath, V, BuildHasherDefault<IdentityHasher>>;
+
+/// A standard `DashSet` using `ArcPath` as the key type with a custom `Hasher`
+/// that just uses the precomputed hash for speed instead of calculating it.
+pub type ArcPathDashSet = DashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;

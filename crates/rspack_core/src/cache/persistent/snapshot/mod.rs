@@ -6,8 +6,7 @@ use std::{path::Path, sync::Arc};
 use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, AssertUtf8};
-use rustc_hash::FxHashSet as HashSet;
+use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 
 pub use self::option::{PathMatcher, SnapshotOptions};
 use self::strategy::{Strategy, StrategyHelper, ValidateResult};
@@ -118,12 +117,10 @@ impl Snapshot {
 
   #[allow(clippy::type_complexity)]
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
-  pub async fn calc_modified_paths(
-    &self,
-  ) -> Result<(bool, HashSet<ArcPath>, HashSet<ArcPath>, HashSet<ArcPath>)> {
-    let mut modified_path = HashSet::default();
-    let mut deleted_path = HashSet::default();
-    let mut no_change_path = HashSet::default();
+  pub async fn calc_modified_paths(&self) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
+    let mut modified_path = ArcPathSet::default();
+    let mut deleted_path = ArcPathSet::default();
+    let mut no_change_path = ArcPathSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
 
     let data = self.storage.load(self.scope).await?;

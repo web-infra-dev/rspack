@@ -16,7 +16,7 @@ use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet}
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
-use rspack_paths::ArcPath;
+use rspack_paths::ArcPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
@@ -56,10 +56,10 @@ pub struct BuildInfo {
   pub strict: bool,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  pub file_dependencies: HashSet<ArcPath>,
-  pub context_dependencies: HashSet<ArcPath>,
-  pub missing_dependencies: HashSet<ArcPath>,
-  pub build_dependencies: HashSet<ArcPath>,
+  pub file_dependencies: ArcPathSet,
+  pub context_dependencies: ArcPathSet,
+  pub missing_dependencies: ArcPathSet,
+  pub build_dependencies: ArcPathSet,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -87,10 +87,10 @@ impl Default for BuildInfo {
       strict: false,
       module_argument: Default::default(),
       exports_argument: Default::default(),
-      file_dependencies: HashSet::default(),
-      context_dependencies: HashSet::default(),
-      missing_dependencies: HashSet::default(),
-      build_dependencies: HashSet::default(),
+      file_dependencies: ArcPathSet::default(),
+      context_dependencies: ArcPathSet::default(),
+      missing_dependencies: ArcPathSet::default(),
+      build_dependencies: ArcPathSet::default(),
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
@@ -396,7 +396,7 @@ pub trait Module:
       || self.diagnostics().iter().any(|item| item.is_error())
   }
 
-  fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
+  fn depends_on(&self, modified_file: &ArcPathSet) -> bool {
     let build_info = self.build_info();
     for item in modified_file {
       if build_info.file_dependencies.contains(item)

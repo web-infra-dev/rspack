@@ -1,4 +1,8 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{
+  borrow::Cow,
+  hash::{BuildHasherDefault, Hash},
+  sync::Arc,
+};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -20,8 +24,9 @@ use rspack_util::{
   itoa, json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
+use ustr::IdentityHasher;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
@@ -989,7 +994,10 @@ impl Module for ContextModule {
         .collect();
     }
 
-    let mut context_dependencies: HashSet<ArcPath> = Default::default();
+    let mut context_dependencies: std::collections::HashSet<
+      ArcPath,
+      BuildHasherDefault<IdentityHasher>,
+    > = Default::default();
     context_dependencies.insert(self.options.resource.as_std_path().into());
 
     self.build_info.context_dependencies = context_dependencies;

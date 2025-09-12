@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use dashmap::DashSet as HashSet;
-use rspack_paths::ArcPath;
+use rspack_paths::{ArcPath, ArcPathDashSet};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind};
@@ -13,11 +12,11 @@ use crate::watcher::{EventBatch, paths::PathManager};
 /// or missing paths) are related to a specific filesystem path, such as when handling file system events.
 pub struct DependencyFinder<'a> {
   /// Reference to the set of registered file paths.
-  pub files: &'a HashSet<ArcPath>,
+  pub files: &'a ArcPathDashSet,
   /// Reference to the set of registered directory paths.
-  pub directories: &'a HashSet<ArcPath>,
+  pub directories: &'a ArcPathDashSet,
   /// Reference to the set of registered missing paths (paths that were expected but not found).
-  pub missing: &'a HashSet<ArcPath>,
+  pub missing: &'a ArcPathDashSet,
 }
 
 impl<'a> DependencyFinder<'a> {
@@ -159,9 +158,9 @@ mod tests {
 
   #[test]
   fn test_find_dependency_for_file() {
-    let files = HashSet::new();
-    let directories = HashSet::new();
-    let missing = HashSet::new();
+    let files = ArcPathDashSet::default();
+    let directories = ArcPathDashSet::default();
+    let missing = ArcPathDashSet::default();
 
     let file_0 = ArcPath::from(Path::new("/path/a/b/c/index.js"));
     let dir_0 = ArcPath::from(Path::new("/path/a/b"));
@@ -184,9 +183,9 @@ mod tests {
 
   #[test]
   fn test_find_dependency_for_directory() {
-    let files = HashSet::new();
-    let directories = HashSet::new();
-    let missing = HashSet::new();
+    let files = ArcPathDashSet::default();
+    let directories = ArcPathDashSet::default();
+    let missing = ArcPathDashSet::default();
 
     let dir_0 = ArcPath::from(Path::new("/path/a/b/c"));
     let dir_1 = ArcPath::from(Path::new("/path/a/b"));

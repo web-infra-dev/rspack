@@ -1,13 +1,12 @@
 mod incremental_info;
 
 use incremental_info::IncrementalInfo;
-use rspack_paths::ArcPath;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rspack_paths::{ArcPath, ArcPathMap, ArcPathSet};
 
 /// Used to count file usage
 #[derive(Debug, Default)]
 pub struct FileCounter {
-  inner: HashMap<ArcPath, usize>,
+  inner: ArcPathMap<usize>,
   incremental_info: IncrementalInfo,
 }
 
@@ -43,14 +42,14 @@ impl FileCounter {
   }
 
   /// Add batch [`PathBuf``] to counter
-  pub fn add_batch_file(&mut self, paths: &HashSet<ArcPath>) {
+  pub fn add_batch_file(&mut self, paths: &ArcPathSet) {
     for path in paths {
       self.add_file(path.clone());
     }
   }
 
   /// Remove batch [`PathBuf`] to counter
-  pub fn remove_batch_file(&mut self, paths: &HashSet<ArcPath>) {
+  pub fn remove_batch_file(&mut self, paths: &ArcPathSet) {
     for path in paths {
       self.remove_file(path);
     }
@@ -67,12 +66,12 @@ impl FileCounter {
   }
 
   /// Added files compared to the `files()` when call reset_incremental_info
-  pub fn added_files(&self) -> &HashSet<ArcPath> {
+  pub fn added_files(&self) -> &ArcPathSet {
     self.incremental_info.added_files()
   }
 
   /// Removed files compared to the `files()` when call reset_incremental_info
-  pub fn removed_files(&self) -> &HashSet<ArcPath> {
+  pub fn removed_files(&self) -> &ArcPathSet {
     self.incremental_info.removed_files()
   }
 }

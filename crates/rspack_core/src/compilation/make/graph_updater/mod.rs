@@ -3,7 +3,7 @@ pub mod repair;
 
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rspack_paths::ArcPath;
+use rspack_paths::ArcPathSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, repair::repair};
@@ -21,9 +21,9 @@ pub enum UpdateParam {
   /// Build the module which module.need_build is true, i.e. modules where loader.cacheable is false
   CheckNeedBuild,
   /// Build the module and dependency which depend on these modified file.
-  ModifiedFiles(HashSet<ArcPath>),
+  ModifiedFiles(ArcPathSet),
   /// Build the module and dependency which depend on these removed file.
-  RemovedFiles(HashSet<ArcPath>),
+  RemovedFiles(ArcPathSet),
   /// Force build some dependencies.
   ForceBuildDeps(HashSet<DependencyId>),
   /// Force build some modules.

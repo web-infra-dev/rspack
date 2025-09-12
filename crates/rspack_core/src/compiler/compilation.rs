@@ -24,7 +24,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
-use rspack_paths::ArcPath;
+use rspack_paths::{ArcPath, ArcPathSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_tasks::CompilerContext;
 use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
@@ -281,8 +281,8 @@ pub struct Compilation {
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
 
-  pub modified_files: HashSet<ArcPath>,
-  pub removed_files: HashSet<ArcPath>,
+  pub modified_files: ArcPathSet,
+  pub removed_files: ArcPathSet,
   pub make_artifact: MakeArtifact,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
@@ -329,8 +329,8 @@ impl Compilation {
     old_cache: Arc<OldCache>,
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
-    modified_files: HashSet<ArcPath>,
-    removed_files: HashSet<ArcPath>,
+    modified_files: ArcPathSet,
+    removed_files: ArcPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,

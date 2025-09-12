@@ -3,8 +3,8 @@ use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
 use rspack_error::Error;
-use rspack_paths::ArcPath;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rspack_paths::ArcPathSet;
+use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::oneshot::Sender;
 
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
@@ -32,10 +32,10 @@ pub type ExecuteModuleId = u32;
 pub struct ExecuteModuleResult {
   pub error: Option<String>,
   pub cacheable: bool,
-  pub file_dependencies: HashSet<ArcPath>,
-  pub context_dependencies: HashSet<ArcPath>,
-  pub missing_dependencies: HashSet<ArcPath>,
-  pub build_dependencies: HashSet<ArcPath>,
+  pub file_dependencies: ArcPathSet,
+  pub context_dependencies: ArcPathSet,
+  pub missing_dependencies: ArcPathSet,
+  pub build_dependencies: ArcPathSet,
   pub code_generated_modules: IdentifierSet,
   pub id: ExecuteModuleId,
 }

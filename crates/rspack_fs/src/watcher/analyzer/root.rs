@@ -2,8 +2,7 @@
 use std::ops::Deref;
 
 use dashmap::DashSet as HashSet;
-use rspack_paths::ArcPath;
-use rspack_util::fx_hash::FxDashMap as HashMap;
+use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 
 use super::{Analyzer, WatchPattern};
 use crate::watcher::paths::PathAccessor;
@@ -42,7 +41,7 @@ impl Analyzer for WatcherRootAnalyzer {
 
 #[derive(Debug, Default)]
 struct PathTree {
-  inner: HashMap<ArcPath, TreeNode>,
+  inner: ArcPathDashMap<TreeNode>,
 }
 
 impl PathTree {
@@ -70,7 +69,7 @@ impl PathTree {
     }
   }
 
-  pub fn update_paths(&self, added_paths: &HashSet<ArcPath>, removed_paths: &HashSet<ArcPath>) {
+  pub fn update_paths(&self, added_paths: &ArcPathDashSet, removed_paths: &ArcPathDashSet) {
     for added in added_paths.iter() {
       self.add_path(added.deref());
     }
@@ -130,7 +129,7 @@ impl PathTree {
 
 #[derive(Debug, Default)]
 struct TreeNode {
-  children: HashSet<ArcPath>,
+  children: ArcPathDashSet,
 }
 
 impl TreeNode {
