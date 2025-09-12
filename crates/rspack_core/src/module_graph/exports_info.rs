@@ -61,8 +61,7 @@ impl<'a> ModuleGraph<'a> {
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
-    let old = active_partial.exports_info_map.insert(id, info);
-    rayon::spawn(move || drop(old));
+    active_partial.exports_info_map.insert(id, info);
   }
 
   pub fn active_all_exports_info(&mut self) {
