@@ -4089,6 +4089,7 @@ version = "0.5.3"
 dependencies = [
  "camino",
  "rspack_cacheable",
+ "rustc-hash",
 ]
 
 [[package]]

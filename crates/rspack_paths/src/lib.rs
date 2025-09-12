@@ -1,5 +1,6 @@
 use std::{
   borrow::Borrow,
+  hash::{Hash, Hasher},
   ops::{Deref, DerefMut},
   path::{Path, PathBuf},
   sync::Arc,
@@ -10,6 +11,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
 };
+use rustc_hash::FxHasher;
 
 pub trait AssertUtf8 {
   type Output;
@@ -47,38 +49,50 @@ impl<'a> AssertUtf8 for &'a Path {
 }
 
 #[cacheable(with=AsRefStr, hashable)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ArcPath(Arc<Path>);
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ArcPath {
+  path: Arc<Path>,
+  hash: u64,
+}
+
+impl ArcPath {
+  pub fn new(path: Arc<Path>) -> Self {
+    let mut hasher = FxHasher::default();
+    path.hash(&mut hasher);
+    let hash = hasher.finish();
+    Self { path, hash }
+  }
+}
 
 impl Deref for ArcPath {
   type Target = Arc<Path>;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.path
   }
 }
 
 impl DerefMut for ArcPath {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    &mut self.path
   }
 }
 
 impl From<PathBuf> for ArcPath {
   fn from(value: PathBuf) -> Self {
-    ArcPath(value.into())
+    ArcPath::new(value.into())
   }
 }
 
 impl From<&Path> for ArcPath {
   fn from(value: &Path) -> Self {
-    ArcPath(value.into())
+    ArcPath::new(value.into())
   }
 }
 
 impl From<&Utf8Path> for ArcPath {
   fn from(value: &Utf8Path) -> Self {
-    ArcPath(value.as_std_path().into())
+    ArcPath::new(value.as_std_path().into())
   }
 }
 
@@ -90,16 +104,23 @@ impl From<&ArcPath> for ArcPath {
 
 impl Borrow<Path> for ArcPath {
   fn borrow(&self) -> &Path {
-    &self.0
+    &self.path
   }
 }
 
 impl AsRefStrConverter for ArcPath {
   fn as_str(&self) -> &str {
-    self.0.to_str().expect("expect utf8 str")
+    self.path.to_str().expect("expect utf8 str")
   }
   fn from_str(s: &str) -> Self {
     Self::from(Path::new(s))
+  }
+}
+
+impl Hash for ArcPath {
+  #[inline]
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    state.write_u64(self.hash);
   }
 }
 

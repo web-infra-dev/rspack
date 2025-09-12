@@ -11,3 +11,4 @@ version.workspace = true
 [dependencies]
 camino           = { workspace = true }
 rspack_cacheable = { workspace = true }
+rustc-hash       = { workspace = true }
