@@ -4,7 +4,6 @@ use std::{
   hash::{BuildHasherDefault, Hash},
 };
 
-use dashmap::DashSet;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -18,8 +17,6 @@ macro_rules! impl_item_ukey {
     }
   };
 }
-
-pub type UkeyDashSet<K> = DashSet<K, BuildHasherDefault<UkeyHasher>>;
 
 pub trait ItemUkey {
   fn ukey(&self) -> Ukey;
