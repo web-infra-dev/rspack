@@ -8,7 +8,10 @@ use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   SourceType, get_filename_without_hash_length, impl_runtime_module,
 };
-use rspack_util::itoa;
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use rustc_hash::FxHashMap;
 
 use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};

@@ -9,6 +9,7 @@ use rspack_core::{
 use rspack_error::{Result, error};
 use rspack_hash::RspackHash;
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHashSet as HashSet;
 
 pub fn update_hash_for_entry_startup(

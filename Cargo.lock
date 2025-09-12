@@ -3720,6 +3720,7 @@ dependencies = [
  "indexmap",
  "rayon",
  "rspack_cacheable",
+ "rustc-hash",
  "serde",
  "ustr-fxhash",
 ]

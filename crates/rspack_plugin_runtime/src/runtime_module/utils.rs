@@ -4,8 +4,11 @@ use rspack_core::{
   Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType, chunk_graph_chunk::ChunkId,
   get_js_chunk_filename_template, get_undo_path,
 };
-use rspack_util::test::{
-  HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  test::{
+    HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
+  },
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
