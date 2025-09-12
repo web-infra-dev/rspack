@@ -88,8 +88,7 @@ impl Task<TaskContext> for AddTask {
           let pending_forwarded_ids = context
             .artifact
             .module_to_lazy_make
-            .as_pending_forwarded_ids(module_identifier)
-            .expect("should be pending if module is not in the module graph");
+            .pending_forwarded_ids(module_identifier);
           pending_forwarded_ids.append(forwarded_ids);
         }
       }

@@ -190,17 +190,19 @@ impl ModuleToLazyMake {
     self.module_to_lazy_dependencies.contains_key(module)
   }
 
-  pub fn as_pending_forwarded_ids(
-    &mut self,
-    module: ModuleIdentifier,
-  ) -> Option<&mut ForwardedIdSet> {
+  pub fn pending_forwarded_ids(&mut self, module: ModuleIdentifier) -> &mut ForwardedIdSet {
     match self
       .module_to_lazy_dependencies
       .entry(module)
+      .and_modify(|info| {
+        if matches!(info, HasLazyDependencies::Has(_)) {
+          *info = HasLazyDependencies::Pending(ForwardedIdSet::empty())
+        }
+      })
       .or_insert_with(|| HasLazyDependencies::Pending(ForwardedIdSet::empty()))
     {
-      HasLazyDependencies::Pending(forwarded_ids) => Some(forwarded_ids),
-      HasLazyDependencies::Has(_) => None,
+      HasLazyDependencies::Pending(forwarded_ids) => forwarded_ids,
+      HasLazyDependencies::Has(_) => unreachable!(),
     }
   }
 }
