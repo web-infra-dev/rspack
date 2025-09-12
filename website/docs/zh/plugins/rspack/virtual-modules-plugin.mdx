@@ -43,7 +43,12 @@ export default {
 
 ### 动态模块创建
 
-你可以使用 `writeModule` 方法动态创建或修改虚拟模块：
+你可以使用 `writeModule` 方法动态创建或修改虚拟模块。
+
+:::note
+因为插件的虚拟模块是在 Rust 侧管理的，所以 `writeModule` 方法只有在 Rust 编译器初始化后才可用。
+例如，在 `beforeCompile` 或 `compile` 钩子中调用 `writeModule` 会抛出以下错误：`Error: Virtual file store has not been initialized.`
+:::
 
 - **类型：**
 
@@ -67,7 +72,7 @@ export default {
     virtualModulesPlugin,
     {
       apply(compiler) {
-        compiler.hooks.beforeCompile.tap('MyPlugin', () => {
+        compiler.hooks.thisCompilation.tap('MyPlugin', () => {
           // 动态创建模块
           const moduleContent = generateSomeContent();
           virtualModulesPlugin.writeModule('src/dynamic.js', moduleContent);

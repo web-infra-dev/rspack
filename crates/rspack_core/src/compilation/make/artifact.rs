@@ -9,25 +9,14 @@ use crate::{
 
 /// Enum used to mark whether module graph has been built.
 ///
-/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`,
-/// and inject the dependencies that need to be forced to build.
+/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`.
 /// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
 /// the previous MakeArtifact, so persistent cache will never recovery again.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum MakeArtifactState {
-  Uninitialized(
-    /// force build dependencies
-    HashSet<DependencyId>,
-    /// isolated modules
-    IdentifierSet,
-  ),
+  #[default]
+  Uninitialized,
   Initialized,
-}
-
-impl Default for MakeArtifactState {
-  fn default() -> Self {
-    MakeArtifactState::Uninitialized(Default::default(), Default::default())
-  }
 }
 
 /// Make Artifact, including all side effects of the make stage.
@@ -44,6 +33,10 @@ pub struct MakeArtifact {
   /// This field is empty on a cold start,
   /// but incremental rebuild will contain modules that need to be rebuilt or removed.
   pub revoked_modules: IdentifierSet,
+  /// The modules which mgm.issuer() has been updated in cutout::fix_issuers.
+  ///
+  /// This field is empty on a cold start.
+  pub issuer_update_modules: IdentifierSet,
 
   // data
   /// Field to mark whether artifact has been initialized.
@@ -54,6 +47,7 @@ pub struct MakeArtifact {
   /// Module graph data
   pub module_graph_partial: ModuleGraphPartial,
   pub module_to_lazy_make: ModuleToLazyMake,
+
   // statistical data, which can be regenerated from module_graph_partial and used as index.
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
@@ -139,6 +133,7 @@ impl MakeArtifact {
 
     self.revoked_modules.insert(*module_identifier);
     self.built_modules.remove(module_identifier);
+    self.issuer_update_modules.remove(module_identifier);
     mg.revoke_module(module_identifier)
   }
 

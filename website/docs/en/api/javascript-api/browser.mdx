@@ -117,18 +117,27 @@ interface BrowserHttpImportPluginOptions {
   /**
    * ESM CDN domain
    */
-  domain: string | ((request: string, packageName: string) => string);
+  domain: string | ((resolvedRequest: ResolvedRequest) => string);
   /**
-   * Specify URLs for particular dependencies
+   * Specify ESM CDN URL for dependencies.
+   * If a record is provided, it will be used to map package names to their CDN URLs.
+   *
+   * Once this function resolves a dependency, other options are ignored.
    */
   dependencyUrl?:
     | Record<string, string | undefined>
-    | ((packageName: string) => string | undefined);
+    | ((resolvedRequest: ResolvedRequest) => string | undefined);
   /**
    * Specify versions for dependencies.
-   * Defaults to "latest" if not specified.
+   * Default to "latest" if not specified.
    */
   dependencyVersions?: Record<string, string | undefined>;
+  /**
+   * You can attach additional queries supported by the CDN to the `request.url`.
+   * For example, to specify the external dependencies under esm.sh, you can do:
+   * `request.url.searchParams.set("external", "react,react-dom")`
+   */
+  postprocess?: (request: ProcessedRequest) => void;
 }
 ```
 
@@ -190,6 +199,34 @@ If your project does not require dynamic loading and execution of JavaScript cod
 
 If your project does not distribute untrusted code or distributing such code does not cause security issues, you can directly use `BrowserRequirePlugin.unsafeExecute`. For example, the [Rspack Playground](https://playground.rspack.rs/) does not involve user privacy or account security.
 :::
+
+## Using Module Federation
+
+`@rspack/browser` supports Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin). With this feature, you can pre-bundle complex dependency modules as provider projects deployed to CDN, and then use them in consumer projects that are bundled online in the browser.
+
+When using ModuleFederationPlugin in the browser, please note the following:
+
+1. You need to enable the [BrowserHttpImportEsmPlugin](/api/javascript-api/browser#browserhttpimportesmplugin) plugin, as module federation needs to load its runtime dependencies. The CDN needs to provide the development version of `@module-federation/webpack-bundler-runtime` (Magic Comments in the output shouldn't be removed).
+2. Shared modules set in ModuleFederationPlugin also need to be configured with `external` and specified versions in BrowserHttpImportEsmPlugin. If you're using `esm.sh` as CDN, you can refer to the following code:
+
+```js title="rspack.config.mjs"
+new rspack.BrowserHttpImportEsmPlugin({
+  domain: "https://esm.sh",
+  dependencyVersions: {
+    "react": "19.1.1"
+  },
+  postprocess: (request) => {
+    // Set the `dev` parameter for `react-dom` here as well, as you need to ensure that the provider and consumer projects use the same mode of `react` and `react-dom`.
+    if (request.packageName === "@module-federation/webpack-bundler-runtime" || request.packageName === "react-dom") {
+      request.url.searchParams.set("dev", "");
+    }
+    request.url.searchParams.set("external", "react");
+  }
+}),
+```
+
+3. All [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) configurations must set `import: false`, meaning that consumer projects bundled online cannot bundle shared modules themselves; shared modules must be provided by pre-bundled provider projects.
+4. [ModuleFederationPlugin.implementation](/plugins/webpack/module-federation-plugin#implementation) option is not supported.
 
 ## Known issues
 

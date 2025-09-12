@@ -3900,6 +3900,7 @@ dependencies = [
  "stacker",
  "swc_config",
  "swc_core",
+ "swc_ecma_lexer",
  "swc_ecma_minifier",
  "swc_error_reporters",
  "swc_node_comments",
@@ -4087,7 +4088,10 @@ name = "rspack_paths"
 version = "0.5.3"
 dependencies = [
  "camino",
+ "dashmap 6.1.0",
  "rspack_cacheable",
+ "rustc-hash",
+ "ustr-fxhash",
 ]
 
 [[package]]
@@ -4421,7 +4425,6 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
- "swc_ecma_lexer",
  "swc_node_comments",
  "tokio",
  "tracing",
@@ -4458,7 +4461,6 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
- "rustc-hash",
  "serde_json",
  "tokio",
  "tracing",

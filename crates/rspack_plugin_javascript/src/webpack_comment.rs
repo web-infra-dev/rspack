@@ -467,7 +467,7 @@ fn analyze_comments(
                 WebpackComment::Exports,
                 item_value_match.as_str().trim().to_string(),
               );
-              return;
+              continue;
             } else if let Some(item_value_match) = captures.name("_7")
               && let Some(exports) =
                 item_value_match
@@ -481,7 +481,7 @@ fn analyze_comments(
                   })
             {
               result.insert(WebpackComment::Exports, exports);
-              return;
+              continue;
             }
             add_magic_comment_warning(
               source_file,

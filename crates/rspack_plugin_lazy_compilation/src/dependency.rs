@@ -4,17 +4,16 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency,
 };
 use rspack_error::Diagnostic;
-use rspack_paths::ArcPath;
-use rustc_hash::FxHashSet as HashSet;
+use rspack_paths::ArcPathSet;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct DependencyOptions {
   pub request: String,
 
-  pub file_dependencies: HashSet<ArcPath>,
-  pub context_dependencies: HashSet<ArcPath>,
-  pub missing_dependencies: HashSet<ArcPath>,
+  pub file_dependencies: ArcPathSet,
+  pub context_dependencies: ArcPathSet,
+  pub missing_dependencies: ArcPathSet,
   pub diagnostics: Vec<Diagnostic>,
 }
 

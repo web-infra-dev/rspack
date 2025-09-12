@@ -3,10 +3,10 @@ use swc_core::{
   common::{BytePos, Span},
   ecma::{
     ast::ClassMember,
+    parser::unstable::{Token, TokenAndSpan},
     visit::{Visit, VisitWith},
   },
 };
-use swc_ecma_lexer::token::{Token, TokenAndSpan};
 
 /// Auto inserted semicolon
 /// See: https://262.ecma-international.org/7.0/#sec-rules-of-automatic-semicolon-insertion

@@ -40,7 +40,8 @@ impl<'a> LocalIdentOptions<'a> {
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
   ) -> Self {
-    let relative_resource = make_paths_relative(&compiler_options.context, &resource_data.resource);
+    let relative_resource =
+      make_paths_relative(&compiler_options.context, resource_data.resource());
     Self {
       relative_resource,
       local_name_ident,

@@ -118,18 +118,24 @@ interface BrowserHttpImportPluginOptions {
   /**
    * ESM CDN 域名
    */
-  domain: string | ((request: string, packageName: string) => string);
+  domain: string | ((resolvedRequest: ResolvedRequest) => string);
   /**
    * 为特定的依赖指定 URL
    */
   dependencyUrl?:
     | Record<string, string | undefined>
-    | ((packageName: string) => string | undefined);
+    | ((resolvedRequest: ResolvedRequest) => string | undefined);
   /**
    * 为依赖指定版本。
    * 如果未指定，默认为 "latest"。
    */
   dependencyVersions?: Record<string, string | undefined>;
+  /**
+   * 你可以在此函数中对生成的 URL 进行额外处理。
+   * 例如，你可以为 esm.sh 下的外部依赖指定 `external` 参数：
+   * `request.url.searchParams.set("external", "react,react-dom")`
+   */
+  postprocess?: (request: ProcessedRequest) => void;
 }
 ```
 
@@ -191,6 +197,34 @@ interface BrowserRequirePluginOptions {
 
 若项目不会分发不可信代码，或即使分发也不会造成安全问题，可直接使用 `BrowserRequirePlugin.unsafeExecute`。例如 [Rspack Playground](https://playground.rspack.rs/) 就不涉及用户隐私或账户安全。
 :::
+
+## 使用模块联邦
+
+`@rspack/browser` 支持 Rspack 的 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) 插件。你可以通过这个功能，将一些复杂的依赖模块提前打包为生产者项目部署到 CDN 上，然后在浏览器中在线打包的消费者项目中使用。
+
+在浏览器中使用 ModuleFederationPlugin 时，有以下注意事项：
+
+1. 你需要启用 [BrowserHttpImportEsmPlugin](/api/javascript-api/browser#browserhttpimportesmplugin) 插件，因为模块联邦需要加载固有的运行时依赖。其中 CDN 需要提供开发版的 `@module-federation/webpack-bundler-runtime`（不能移除产物中的 Magic Comments）。
+2. ModuleFederationPlugin 中设置的共享依赖，还需要在 BrowserHttpImportEsmPlugin 相应地配置 `external` 和指定版本号。如果你使用的是 `esm.sh` 作为 CDN，可以参考以下代码：
+
+```js title="rspack.config.mjs"
+new rspack.BrowserHttpImportEsmPlugin({
+  domain: "https://esm.sh",
+  dependencyVersions: {
+    "react": "19.1.1"
+  },
+  postprocess: (request) => {
+    // 这里也设置 `react-dom` 的 `dev` 参数，因为你需要确保模块联邦的生产者项目和消费者项目使用相同模式的 `react` 和 `react-dom`。
+    if (request.packageName === "@module-federation/webpack-bundler-runtime" || request.packageName === "react-dom") {
+      request.url.searchParams.set("dev", "");
+    }
+    request.url.searchParams.set("external", "react");
+  }
+}),
+```
+
+3. 所有 [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) 配置必须设置 `import: false`，即在线打包的消费者项目不能打包共享模块，共享模块必须由预先打包好的生产者项目提供。
+4. 不支持设置 [ModuleFederationPlugin.implementation](/plugins/webpack/module-federation-plugin#implementation) 选项。
 
 ## 已知问题
 

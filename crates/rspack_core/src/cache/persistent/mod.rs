@@ -11,9 +11,8 @@ use std::{
 
 pub use cacheable_context::{CacheableContext, FromContext};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
-use rspack_paths::ArcPath;
+use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
-use rustc_hash::FxHashSet as HashSet;
 
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
@@ -159,14 +158,14 @@ impl Cache for PersistentCache {
     let (_, file_added, file_removed) = compilation.file_dependencies();
     let (_, context_added, context_removed) = compilation.context_dependencies();
     let (_, build_added, _) = compilation.build_dependencies();
-    let modified_paths: HashSet<ArcPath> = compilation
+    let modified_paths: ArcPathSet = compilation
       .modified_files
       .iter()
       .chain(file_added)
       .chain(context_added)
       .cloned()
       .collect();
-    let removed_paths: HashSet<ArcPath> = compilation
+    let removed_paths: ArcPathSet = compilation
       .removed_files
       .iter()
       .chain(file_removed)
@@ -189,7 +188,7 @@ impl Cache for PersistentCache {
 
   async fn before_make(&mut self, make_artifact: &mut MakeArtifact) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
-    if matches!(make_artifact.state, MakeArtifactState::Uninitialized(..)) {
+    if matches!(make_artifact.state, MakeArtifactState::Uninitialized) {
       match self.make_occasion.recovery().await {
         Ok(artifact) => *make_artifact = artifact,
         Err(err) => self.warnings.push(err.to_string()),

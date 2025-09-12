@@ -5,7 +5,7 @@ use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, AssertUtf8};
+use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{helper::Helper, utils::is_node_package_path};
@@ -24,11 +24,11 @@ pub struct BuildDeps {
   /// The build dependencies has been added to snapshot.
   ///
   /// This field is used to avoid adding duplicate build dependencies to the snapshot.
-  added: HashSet<ArcPath>,
+  added: ArcPathSet,
   /// The pending dependencies.
   ///
   /// The next time the add method is called, this path will be additionally added.
-  pending: HashSet<ArcPath>,
+  pending: ArcPathSet,
   /// The snapshot which is used to save build dependencies.
   snapshot: Snapshot,
   storage: Arc<dyn Storage>,

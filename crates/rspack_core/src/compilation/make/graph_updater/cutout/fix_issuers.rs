@@ -207,7 +207,7 @@ impl FixIssuers {
       mut force_build_module_issuers,
       need_check_modules,
     } = self;
-    let mut module_graph = artifact.get_module_graph_mut();
+    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
     need_check_modules
       .into_iter()
       .filter_map(|mid| {
@@ -216,6 +216,7 @@ impl FixIssuers {
           return None;
         };
         if let Some(origin_issuer) = force_build_module_issuers.remove(&mid) {
+          artifact.issuer_update_modules.insert(mgm.module_identifier);
           mgm.set_issuer(origin_issuer);
         }
 
@@ -256,7 +257,7 @@ impl FixIssuers {
       queue.push_back((mid, parents));
     }
 
-    let mut module_graph = artifact.get_module_graph_mut();
+    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
     let mut revoke_module = IdentifierSet::default();
     let mut need_check_available_modules = IdentifierMap::default();
     loop {
@@ -306,6 +307,7 @@ impl FixIssuers {
       let mgm = module_graph
         .module_graph_module_by_identifier_mut(&mid)
         .expect("should mgm exist");
+      artifact.issuer_update_modules.insert(mgm.module_identifier);
       mgm.set_issuer(match first_parent {
         Some(id) => ModuleIssuer::Some(*id),
         None => ModuleIssuer::None,
@@ -347,7 +349,7 @@ impl FixIssuers {
     helper: &mut IssuerHelper,
     need_check_available_modules: IdentifierMap<Vec<Option<ModuleIdentifier>>>,
   ) -> IdentifierMap<IdentifierSet> {
-    let mut module_graph = artifact.get_module_graph_mut();
+    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
     let mut need_clean_cycle_modules: IdentifierMap<IdentifierMap<IdentifierSet>> =
       IdentifierMap::default();
     for (mid, parents) in need_check_available_modules {
@@ -356,6 +358,7 @@ impl FixIssuers {
           let mgm = module_graph
             .module_graph_module_by_identifier_mut(&mid)
             .expect("should have mgm");
+          artifact.issuer_update_modules.insert(mgm.module_identifier);
           mgm.set_issuer(issuer);
           // check cycled modules.
           // the parent which cycle_paths contains current module can be set as issuer.
@@ -371,6 +374,7 @@ impl FixIssuers {
                   let mgm = module_graph
                     .module_graph_module_by_identifier_mut(id)
                     .expect("should have mgm");
+                  artifact.issuer_update_modules.insert(mgm.module_identifier);
                   mgm.set_issuer(ModuleIssuer::Some(*issuer));
                   // this module issuer has been update, add module to queue to recheck need_clean_cycle_modules
                   queue.push_back(*id);
@@ -406,7 +410,7 @@ impl FixIssuers {
     clean_modules: IdentifierMap<IdentifierSet>,
   ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
     let mut revoke_module = IdentifierSet::default();
-    let mut module_graph = artifact.get_module_graph_mut();
+    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
     for (mid, paths) in clean_modules {
       if revoke_module.contains(&mid) {
         continue;
@@ -435,6 +439,7 @@ impl FixIssuers {
               let mgm = module_graph
                 .module_graph_module_by_identifier_mut(&mid)
                 .expect("should have mgm");
+              artifact.issuer_update_modules.insert(mgm.module_identifier);
               mgm.set_issuer(issuer);
               // fix child issuer
               let mut fixing_queue = VecDeque::new();
@@ -455,6 +460,7 @@ impl FixIssuers {
                     let mgm = module_graph
                       .module_graph_module_by_identifier_mut(&child_mid)
                       .expect("should have mgm");
+                    artifact.issuer_update_modules.insert(mgm.module_identifier);
                     mgm.set_issuer(ModuleIssuer::Some(mid));
                     fixing_queue.push_back(child_mid);
                   }
@@ -516,6 +522,7 @@ impl FixIssuers {
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
     let mut need_update_issuer_modules = self.apply_force_build_module_issuer(artifact);
 
+    let mut helper = IssuerHelper::default();
     loop {
       if need_update_issuer_modules.is_empty() {
         return;
@@ -526,7 +533,6 @@ impl FixIssuers {
         return;
       }
 
-      let mut helper = IssuerHelper::default();
       let need_clean_cycle_modules =
         Self::set_available_issuer(artifact, &mut helper, need_check_available_modules);
       if need_clean_cycle_modules.is_empty() {

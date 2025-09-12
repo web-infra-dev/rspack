@@ -68,11 +68,11 @@ jobs:
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      ref: ${{inputs.commit}}
+      ref: ${{inputs.commit || github.sha}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: ${{inputs.profile}}
-      test: ${{inputs.test}}
+      profile: ${{inputs.profile || 'release'}}
+      test: ${{inputs.test || false}}
 
   release:
     name: Release Canary

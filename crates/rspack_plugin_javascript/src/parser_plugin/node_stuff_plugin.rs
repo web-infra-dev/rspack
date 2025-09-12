@@ -61,8 +61,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeDirnameOption::True => Some(
           parser
             .resource_data
-            .resource_path
-            .as_deref()?
+            .path()?
             .parent()?
             .as_std_path()
             .relative(&parser.compiler_options.context)
@@ -112,8 +111,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeFilenameOption::True => Some(
           parser
             .resource_data
-            .resource_path
-            .as_deref()?
+            .path()?
             .as_std_path()
             .relative(&parser.compiler_options.context)
             .to_string_lossy()
@@ -177,7 +175,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       {
         return None;
       }
-      let resource = parse_resource(parser.resource_data.resource_path.as_deref()?.as_str())?;
+      let resource = parse_resource(parser.resource_data.path()?.as_str())?;
       Some(eval::evaluate_to_string(
         resource.path.to_string(),
         start,
