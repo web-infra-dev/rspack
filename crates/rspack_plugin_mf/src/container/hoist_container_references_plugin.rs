@@ -19,7 +19,7 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
+  Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyIdSet,
   ModuleIdentifier, Plugin, incremental::Mutation,
 };
 use rspack_error::Result;

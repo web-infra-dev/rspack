@@ -3,7 +3,7 @@ use std::{cell::RefCell, ptr::NonNull};
 use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
 use rspack_collections::UkeyMap;
-use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraph};
+use rspack_core::{Compilation, CompilationId, DependencyId, DependencyIdMap, ModuleGraph};
 use rspack_napi::OneShotRef;
 
 use crate::{dependency::DependencyWrapper, module::ModuleObject};
@@ -89,7 +89,7 @@ impl ModuleGraphConnection {
   }
 }
 
-type ModuleGraphConnectionRefs = UkeyMap<DependencyId, OneShotRef>;
+type ModuleGraphConnectionRefs = DependencyIdMap<OneShotRef>;
 
 type ModuleGraphConnectionRefsByCompilationId =
   RefCell<UkeyMap<CompilationId, ModuleGraphConnectionRefs>>;
@@ -134,7 +134,7 @@ impl ToNapiValue for ModuleGraphConnectionWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = UkeyMap::default();
+            let refs = DependencyIdMap::default();
             entry.insert(refs)
           }
         };

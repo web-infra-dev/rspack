@@ -8,14 +8,13 @@ use std::sync::{Arc, Mutex};
 
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
-  RuntimeGlobals,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, DependencyIdSet,
+  ModuleIdentifier, Plugin, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
 use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
-use rustc_hash::FxHashSet;
 
 use super::{
   embed_federation_runtime_module::{
@@ -49,7 +48,7 @@ pub struct EmbedFederationRuntimePlugin {
 
 impl EmbedFederationRuntimePlugin {
   pub fn new() -> Self {
-    Self::new_inner(Arc::new(Mutex::new(FxHashSet::default())))
+    Self::new_inner(Arc::new(Mutex::new(DependencyIdSet::default())))
   }
 }
 

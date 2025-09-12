@@ -5,7 +5,7 @@ use napi::{
   bindgen_prelude::{Array, ToNapiValue},
 };
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, DependencyId};
+use rspack_core::{Compilation, CompilationId, DependencyId, DependencyIdMap};
 use rspack_napi::OneShotInstanceRef;
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -165,7 +165,7 @@ impl Dependency {
   }
 }
 
-type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<Dependency>>;
+type DependencyInstanceRefs = DependencyIdMap<OneShotInstanceRef<Dependency>>;
 
 type DependencyInstanceRefsByCompilationId =
   RefCell<HashMap<CompilationId, DependencyInstanceRefs>>;
@@ -222,7 +222,7 @@ impl ToNapiValue for DependencyWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = HashMap::default();
+            let refs = DependencyIdMap::default();
             entry.insert(refs)
           }
         };

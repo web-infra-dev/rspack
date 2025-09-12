@@ -4,9 +4,9 @@ use std::{borrow::Cow, collections::VecDeque, sync::Arc};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, ExportProvided,
-  ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
+  BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, DependencyIdMap,
+  ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
+  ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
   ModuleIdentifier, Plugin, PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition,
   RuntimeSpec, SourceType,
   concatenated_module::{
@@ -1073,7 +1073,7 @@ impl ModuleConcatenationPlugin {
           .collect::<Vec<_>>();
 
         let incomings = module_graph.get_incoming_connections_by_origin_module(&module_id);
-        let mut active_incomings = HashMap::default();
+        let mut active_incomings = DependencyIdMap::default();
         for connection in incomings.values().flatten() {
           active_incomings.insert(
             connection.dependency_id,
@@ -1415,7 +1415,7 @@ pub struct NoRuntimeModuleCache {
   provided_names: bool,
   connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>>,
-  active_incomings: HashMap<DependencyId, bool>,
+  active_incomings: DependencyIdMap<bool>,
   number_of_chunks: usize,
 }
 
@@ -1681,7 +1681,7 @@ fn add_concatenated_module(
 fn is_connection_active_in_runtime(
   connection: &ModuleGraphConnection,
   runtime: Option<&RuntimeSpec>,
-  cached_active_incomings: &HashMap<DependencyId, bool>,
+  cached_active_incomings: &DependencyIdMap<bool>,
   cached_runtime: &RuntimeSpec,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,

@@ -1,7 +1,6 @@
-use rspack_collections::UkeyMap;
 use rspack_util::atom::Atom;
 
-use crate::{DependencyId, ExportInfo, ModuleIdentifier};
+use crate::{DependencyIdMap, ExportInfo, ModuleIdentifier};
 
 #[derive(Debug, Clone)]
 pub struct SideEffectsDoOptimize {
@@ -16,4 +15,4 @@ pub struct SideEffectsDoOptimizeMoveTarget {
   pub target_export: Option<Vec<Atom>>,
 }
 
-pub type SideEffectsOptimizeArtifact = UkeyMap<DependencyId, Option<SideEffectsDoOptimize>>;
+pub type SideEffectsOptimizeArtifact = DependencyIdMap<Option<SideEffectsDoOptimize>>;

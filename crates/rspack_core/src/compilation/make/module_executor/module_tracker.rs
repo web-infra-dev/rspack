@@ -1,10 +1,9 @@
 use std::collections::{VecDeque, hash_map::Entry};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rustc_hash::FxHashMap as HashMap;
 
 use super::{super::graph_updater::repair::context::TaskContext, context::ExecutorTaskContext};
-use crate::{DependencyId, ModuleIdentifier, ModuleIssuer, task_loop::Task};
+use crate::{DependencyId, DependencyIdMap, ModuleIdentifier, ModuleIssuer, task_loop::Task};
 
 type BoxTask = Box<dyn Task<ExecutorTaskContext>>;
 
@@ -22,7 +21,7 @@ pub struct ModuleTracker {
   /// when entry dependency submodules are built,
   /// 1. if reused_unfinished_module is empty, return box tasks directly.
   /// 2. if reused_unfinished_module is not empty, add box tasks to pending_callbacks.
-  entry_finish_tasks: HashMap<DependencyId, Vec<BoxTask>>,
+  entry_finish_tasks: DependencyIdMap<Vec<BoxTask>>,
 
   /// Reused and unfinished modules.
   ///

@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
+  Dependency, DependencyIdMap, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -53,7 +53,7 @@ pub struct ModuleGraphPartial {
   pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, Option<BoxDependency>>,
+  dependencies: DependencyIdMap<Option<BoxDependency>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
@@ -62,7 +62,7 @@ pub struct ModuleGraphPartial {
   module_graph_modules: IdentifierMap<Option<ModuleGraphModule>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: HashMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: DependencyIdMap<Option<ModuleGraphConnection>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -82,13 +82,13 @@ pub struct ModuleGraphPartial {
   ///     assert_eq!(parents_info, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
+  dependency_id_to_parents: DependencyIdMap<Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
   exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  connection_to_condition: DependencyIdMap<DependencyCondition>,
+  dep_meta_map: DependencyIdMap<DependencyExtraMeta>,
 }
 
 #[derive(Debug, Default)]
