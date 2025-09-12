@@ -1,24 +1,24 @@
 use std::{
   collections::{HashMap, HashSet},
-  hash::{BuildHasherDefault, Hash},
+  hash::{BuildHasherDefault, Hash, Hasher},
 };
 
 use rspack_cacheable::cacheable;
 use rspack_tasks::fetch_new_dependency_id;
+use rustc_hash::FxHasher;
 use serde::Serialize;
 use ustr::IdentityHasher;
 
-const K: u32 = 0x93d765dd;
-const ROTATE: u32 = 15;
-
 #[cacheable(hashable)]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct DependencyId(u32);
+pub struct DependencyId(u64);
 
 impl DependencyId {
   pub fn new() -> Self {
     let id = fetch_new_dependency_id();
-    Self(id.wrapping_mul(K).rotate_left(ROTATE))
+    let mut hasher = FxHasher::default();
+    id.hash(&mut hasher);
+    Self(hasher.finish())
   }
 }
 
@@ -29,7 +29,7 @@ impl Default for DependencyId {
 }
 
 impl std::ops::Deref for DependencyId {
-  type Target = u32;
+  type Target = u64;
 
   fn deref(&self) -> &Self::Target {
     &self.0
