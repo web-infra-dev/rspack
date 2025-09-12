@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
+use rspack_collections::IdentifierLinkedMap;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
   RuntimeGlobals, SourceType, get_js_chunk_filename_template,
@@ -52,14 +52,14 @@ pub fn get_all_chunks(
   exclude_chunk1: &ChunkUkey,
   exclude_chunk2: Option<&ChunkUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> UkeyIndexSet<ChunkUkey> {
+) -> FxIndexSet<ChunkUkey> {
   fn add_chunks(
     chunk_group_by_ukey: &ChunkGroupByUkey,
-    chunks: &mut UkeyIndexSet<ChunkUkey>,
+    chunks: &mut FxIndexSet<ChunkUkey>,
     entrypoint_ukey: &ChunkGroupUkey,
     exclude_chunk1: &ChunkUkey,
     exclude_chunk2: Option<&ChunkUkey>,
-    visit_chunk_groups: &mut UkeyIndexSet<ChunkGroupUkey>,
+    visit_chunk_groups: &mut FxIndexSet<ChunkGroupUkey>,
   ) {
     if let Some(entrypoint) = chunk_group_by_ukey.get(entrypoint_ukey) {
       for chunk in &entrypoint.chunks {
@@ -95,8 +95,8 @@ pub fn get_all_chunks(
     }
   }
 
-  let mut chunks = UkeyIndexSet::default();
-  let mut visit_chunk_groups = UkeyIndexSet::default();
+  let mut chunks = FxIndexSet::default();
+  let mut visit_chunk_groups = FxIndexSet::default();
 
   add_chunks(
     chunk_group_by_ukey,

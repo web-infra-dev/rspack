@@ -10,10 +10,13 @@ use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{
   Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey,
-  UkeyIndexSet, impl_item_ukey,
+  impl_item_ukey,
 };
 use rspack_error::{Diagnostic, Error, Result, error};
-use rspack_util::{fx_hash::FxIndexMap, itoa};
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
@@ -54,11 +57,11 @@ pub struct ChunkGroupInfo {
   pub skipped_items: IdentifierIndexSet,
   pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
-  pub children: UkeyIndexSet<CgiUkey>,
+  pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
-  pub available_sources: UkeyIndexSet<CgiUkey>,
+  pub available_sources: FxIndexSet<CgiUkey>,
   // set of chunk groups which depend on the this chunk group as available_source
-  pub available_children: UkeyIndexSet<CgiUkey>,
+  pub available_children: FxIndexSet<CgiUkey>,
 
   // set of modules available including modules from this chunk group
   // A derived attribute, therefore utilizing interior mutability to manage updates
@@ -237,8 +240,8 @@ pub(crate) struct CodeSplitter {
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
   queue_connect: FxIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
-  chunk_groups_for_combining: UkeyIndexSet<CgiUkey>,
-  pub(crate) outdated_chunk_group_info: UkeyIndexSet<CgiUkey>,
+  chunk_groups_for_combining: FxIndexSet<CgiUkey>,
+  pub(crate) outdated_chunk_group_info: FxIndexSet<CgiUkey>,
   chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
   pub(crate) block_to_chunk_group: HashMap<DependenciesBlockIdentifier, CgiUkey>,
 

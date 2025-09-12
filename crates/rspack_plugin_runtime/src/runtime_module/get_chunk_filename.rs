@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fmt};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
-use rspack_collections::{DatabaseItem, Identifier, UkeyIndexSet};
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   SourceType, get_filename_without_hash_length, impl_runtime_module,
@@ -178,7 +178,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             None
           }
         })
-        .collect::<UkeyIndexSet<ChunkUkey>>();
+        .collect::<FxIndexSet<ChunkUkey>>();
       let (fake_filename, hash_len_map) =
         get_filename_without_hash_length(&Filename::from(dynamic_filename.to_string()));
 

@@ -5,7 +5,6 @@ use std::{
 };
 
 use dashmap::DashSet;
-use indexmap::IndexSet;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -20,7 +19,6 @@ macro_rules! impl_item_ukey {
   };
 }
 
-pub type UkeyIndexSet<K> = IndexSet<K, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyDashSet<K> = DashSet<K, BuildHasherDefault<UkeyHasher>>;
 
 pub trait ItemUkey {

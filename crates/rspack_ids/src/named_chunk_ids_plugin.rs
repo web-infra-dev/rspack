@@ -1,12 +1,12 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{DatabaseItem, UkeyIndexSet};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds, Logger, Plugin,
   chunk_graph_chunk::ChunkId,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::itoa;
+use rspack_util::{fx_hash::FxIndexSet, itoa};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_chunk_name};
@@ -40,7 +40,7 @@ fn assign_named_chunk_ids(
       (item, name)
     })
     .collect();
-  let mut name_to_items: FxHashMap<String, UkeyIndexSet<ChunkUkey>> = FxHashMap::default();
+  let mut name_to_items: FxHashMap<String, FxIndexSet<ChunkUkey>> = FxHashMap::default();
   let mut invalid_and_repeat_names: FxHashSet<String> = std::iter::once(String::new()).collect();
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
