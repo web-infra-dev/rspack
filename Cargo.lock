@@ -4203,6 +4203,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_css",
  "rspack_regex",
+ "rustc-hash",
  "tokio",
  "tracing",
 ]
@@ -4510,6 +4511,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rustc-hash",
  "tracing",
 ]
 

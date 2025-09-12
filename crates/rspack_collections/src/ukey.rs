@@ -20,7 +20,6 @@ macro_rules! impl_item_ukey {
   };
 }
 
-pub type UkeyMap<K, V> = HashMap<K, V, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<UkeyHasher>>;
 pub type UkeyDashMap<K, V> = DashMap<K, V, BuildHasherDefault<UkeyHasher>>;
 

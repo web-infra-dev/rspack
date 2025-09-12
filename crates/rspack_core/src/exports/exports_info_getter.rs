@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use either::Either;
 use itertools::Itertools;
-use rspack_collections::UkeyMap;
 use rspack_util::{atom::Atom, ext::DynHash};
+use rustc_hash::FxHashMap;
 
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
@@ -31,7 +31,7 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  exports: Arc<UkeyMap<ExportsInfo, &'a ExportsInfoData>>,
+  exports: Arc<FxHashMap<ExportsInfo, &'a ExportsInfoData>>,
   /**
    * The entry of the current exports info
    */
@@ -569,7 +569,7 @@ impl ExportsInfoGetter {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
       mg: &'a ModuleGraph,
-      res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
+      res: &mut FxHashMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
       if res.contains_key(id) {
@@ -617,7 +617,7 @@ impl ExportsInfoGetter {
       }
     }
 
-    let mut res = UkeyMap::default();
+    let mut res = FxHashMap::default();
     prefetch_exports(id, mg, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
@@ -745,7 +745,7 @@ impl ExportsInfoGetter {
     let exports = exports
       .into_iter()
       .map(|e| (e, mg.get_exports_info_by_id(&e)))
-      .collect::<UkeyMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
 
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(exports),

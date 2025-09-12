@@ -10,7 +10,7 @@ use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{
   Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey,
-  UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet, impl_item_ukey,
+  UkeyIndexMap, UkeyIndexSet, UkeySet, impl_item_ukey,
 };
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_util::itoa;
@@ -106,7 +106,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &mut self,
     chunk_group: &ChunkGroup,
-    mask_by_chunk: &UkeyMap<ChunkUkey, BigUint>,
+    mask_by_chunk: &HashMap<ChunkUkey, BigUint>,
   ) {
     if self.resulting_available_modules.is_some() {
       return;
@@ -226,10 +226,10 @@ pub(crate) type BlockModulesRuntimeMap = HashMap<Option<Arc<RuntimeSpec>>, Block
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct CodeSplitter {
-  pub(crate) chunk_group_info_map: UkeyMap<ChunkGroupUkey, CgiUkey>,
+  pub(crate) chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: Database<ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
-  pub(crate) incoming_blocks_by_cgi: UkeyMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
+  pub(crate) incoming_blocks_by_cgi: HashMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
   pub(crate) runtime_chunks: UkeySet<ChunkUkey>,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
@@ -250,7 +250,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
-  pub(crate) mask_by_chunk: UkeyMap<ChunkUkey, BigUint>,
+  pub(crate) mask_by_chunk: HashMap<ChunkUkey, BigUint>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,

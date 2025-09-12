@@ -3,16 +3,17 @@ mod chunk_combination;
 use std::collections::HashSet;
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
-use rspack_collections::{UkeyMap, UkeySet};
+use rspack_collections::UkeySet;
 use rspack_core::{
   ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
   compare_chunks_with_graph, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::FxHashMap;
 
 fn add_to_set_map(
-  map: &mut UkeyMap<ChunkUkey, UkeySet<ChunkCombinationUkey>>,
+  map: &mut FxHashMap<ChunkUkey, UkeySet<ChunkCombinationUkey>>,
   key: &ChunkUkey,
   value: ChunkCombinationUkey,
 ) {
@@ -93,8 +94,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   // we keep a mapping from chunk to all combinations
   // but this mapping is not kept up-to-date with deletions
   // so `deleted` flag need to be considered when iterating this
-  let mut combinations_by_chunk: UkeyMap<ChunkUkey, UkeySet<ChunkCombinationUkey>> =
-    UkeyMap::default();
+  let mut combinations_by_chunk: FxHashMap<ChunkUkey, UkeySet<ChunkCombinationUkey>> =
+    FxHashMap::default();
 
   let chunk_size_option = ChunkSizeOptions {
     chunk_overhead: self.options.chunk_overhead,

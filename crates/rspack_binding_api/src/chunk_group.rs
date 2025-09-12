@@ -2,9 +2,9 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{Either, Env, JsString, bindgen_prelude::ToNapiValue};
 use napi_derive::napi;
-use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
+use rustc_hash::FxHashMap;
 
 use crate::{
   chunk::ChunkWrapper,
@@ -183,7 +183,7 @@ impl ChunkGroup {
 }
 
 thread_local! {
-  static CHUNK_GROUP_INSTANCE_REFS: RefCell<UkeyMap<CompilationId, UkeyMap<rspack_core::ChunkGroupUkey, OneShotRef>>> = Default::default();
+  static CHUNK_GROUP_INSTANCE_REFS: RefCell<FxHashMap<CompilationId, FxHashMap<rspack_core::ChunkGroupUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct ChunkGroupWrapper {
@@ -222,7 +222,7 @@ impl ToNapiValue for ChunkGroupWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = UkeyMap::default();
+            let refs = FxHashMap::default();
             entry.insert(refs)
           }
         };

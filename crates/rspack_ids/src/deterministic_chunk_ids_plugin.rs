@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, UkeyMap};
+use rspack_collections::DatabaseItem;
 use rspack_core::{CompilationChunkIds, Plugin, incremental::IncrementalPasses};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -72,7 +72,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
         ),
       )
     })
-    .collect::<UkeyMap<_, _>>();
+    .collect::<FxHashMap<_, _>>();
 
   let mut ordered_chunk_modules_cache = Default::default();
 

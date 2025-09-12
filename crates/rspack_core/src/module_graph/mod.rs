@@ -1,7 +1,7 @@
 use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -85,7 +85,7 @@ pub struct ModuleGraphPartial {
   dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: HashMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,

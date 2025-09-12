@@ -17,9 +17,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
 };
-use rspack_collections::{
-  DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
-};
+use rspack_collections::{DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -1302,7 +1300,7 @@ impl Compilation {
     })
     .await;
 
-    let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();
+    let mut chunk_render_results: HashMap<ChunkUkey, ChunkRenderResult> = Default::default();
     for result in results {
       let item = result.to_rspack_result()?;
       let (key, value) = item?;
@@ -2098,7 +2096,7 @@ impl Compilation {
 
         (*chunk_ukey, set)
       })
-      .collect::<UkeyMap<_, _>>();
+      .collect::<HashMap<_, _>>();
 
     for (chunk_ukey, mut set) in chunk_requirements {
       plugin_driver
