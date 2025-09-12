@@ -108,7 +108,7 @@ impl From<&ArcPath> for ArcPath {
 
 impl From<&str> for ArcPath {
   fn from(value: &str) -> Self {
-    ArcPath::new(Arc::from(PathBuf::from(value)))
+    ArcPath::new(<str as std::convert::AsRef<Path>>::as_ref(value).into())
   }
 }
 
