@@ -4461,7 +4461,6 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
- "rustc-hash",
  "serde_json",
  "tokio",
  "tracing",

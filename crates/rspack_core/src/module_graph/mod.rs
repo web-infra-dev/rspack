@@ -1288,7 +1288,7 @@ impl<'a> FactorizeInfos<'a> {
         .iter()
         .find_map(|p| p.as_ref())
         .unwrap();
-      FactorizeInfos::Direct(
+      Self::Direct(
         partial
           .dependency_factorize_infos
           .iter()
@@ -1314,7 +1314,7 @@ impl<'a> FactorizeInfos<'a> {
           }
         }
       }
-      FactorizeInfos::Merged(merged.into_iter())
+      Self::Merged(merged.into_iter())
     }
   }
 }
@@ -1325,16 +1325,16 @@ impl<'a> Iterator for FactorizeInfos<'a> {
   #[inline]
   fn next(&mut self) -> Option<Self::Item> {
     match self {
-      FactorizeInfos::Direct(iter) => iter.next(),
-      FactorizeInfos::Merged(iter) => iter.next(),
+      Self::Direct(iter) => iter.next(),
+      Self::Merged(iter) => iter.next(),
     }
   }
 
   #[inline]
   fn size_hint(&self) -> (usize, Option<usize>) {
     match self {
-      FactorizeInfos::Direct(iter) => iter.size_hint(),
-      FactorizeInfos::Merged(iter) => iter.size_hint(),
+      Self::Direct(iter) => iter.size_hint(),
+      Self::Merged(iter) => iter.size_hint(),
     }
   }
 }

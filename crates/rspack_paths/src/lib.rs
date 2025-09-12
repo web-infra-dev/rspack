@@ -1,5 +1,4 @@
 use std::{
-  borrow::Borrow,
   collections::{HashMap, HashSet},
   hash::{BuildHasherDefault, Hash, Hasher},
   ops::{Deref, DerefMut},
@@ -107,9 +106,9 @@ impl From<&ArcPath> for ArcPath {
   }
 }
 
-impl Borrow<Path> for ArcPath {
-  fn borrow(&self) -> &Path {
-    &self.path
+impl From<&str> for ArcPath {
+  fn from(value: &str) -> Self {
+    ArcPath::new(Arc::from(PathBuf::from(value)))
   }
 }
 
@@ -127,11 +126,6 @@ impl Hash for ArcPath {
   fn hash<H: Hasher>(&self, state: &mut H) {
     state.write_u64(self.hash);
   }
-}
-
-fn _assert_size() {
-  use std::mem::size_of;
-  assert_eq!(size_of::<ArcPath>(), size_of::<[usize; 2]>());
 }
 
 /// A standard `HashMap` using `ArcPath` as the key type with a custom `Hasher`

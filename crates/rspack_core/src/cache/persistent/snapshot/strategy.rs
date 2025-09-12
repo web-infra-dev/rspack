@@ -79,7 +79,7 @@ impl StrategyHelper {
 
   /// get path file version in package.json
   #[async_recursion::async_recursion]
-  async fn package_version_with_cache(&self, path: &Path) -> Option<String> {
+  async fn package_version_with_cache(&self, path: &ArcPath) -> Option<String> {
     if let Some(version) = self.package_version_cache.get(path) {
       return version.clone();
     }
@@ -96,7 +96,7 @@ impl StrategyHelper {
     if res.is_none()
       && let Some(p) = path.parent()
     {
-      res = self.package_version_with_cache(p).await;
+      res = self.package_version_with_cache(&ArcPath::from(p)).await;
     }
 
     self.package_version_cache.insert(path.into(), res.clone());
@@ -120,7 +120,7 @@ impl StrategyHelper {
     Strategy::CompileTime(self.compile_time)
   }
   /// get path file package version strategy
-  pub async fn package_version(&self, path: &Path) -> Option<Strategy> {
+  pub async fn package_version(&self, path: &ArcPath) -> Option<Strategy> {
     self
       .package_version_with_cache(path)
       .await
@@ -136,7 +136,7 @@ impl StrategyHelper {
   }
 
   /// validate path file by target strategy
-  pub async fn validate(&self, path: &Path, strategy: &Strategy) -> ValidateResult {
+  pub async fn validate(&self, path: &ArcPath, strategy: &Strategy) -> ValidateResult {
     let Some(modified_time) = self.modified_time(path).await else {
       return ValidateResult::Deleted;
     };
@@ -177,9 +177,10 @@ impl StrategyHelper {
 
 #[cfg(test)]
 mod tests {
-  use std::{path::Path, sync::Arc};
+  use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use rspack_paths::ArcPath;
 
   use super::{Strategy, StrategyHelper, ValidateResult};
 
@@ -207,13 +208,13 @@ mod tests {
     let helper = StrategyHelper::new(fs.clone());
     assert_eq!(
       helper
-        .package_version(Path::new("/packages/p1/file.js"))
+        .package_version(&ArcPath::from("/packages/p1/file.js"))
         .await,
       Some(Strategy::PackageVersion("1.2.0".into()))
     );
     assert_eq!(
       helper
-        .package_version(Path::new("/packages/p2/file.js"))
+        .package_version(&ArcPath::from("/packages/p2/file.js"))
         .await,
       None
     );
@@ -226,17 +227,20 @@ mod tests {
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
 
     let helper = StrategyHelper::new(fs.clone());
-    assert_eq!(helper.path_hash(Path::new("/not_exist.js")).await, None);
+    assert_eq!(
+      helper.path_hash(&ArcPath::from("/not_exist.js")).await,
+      None
+    );
 
-    let hash1 = helper.path_hash(Path::new("/hash.js")).await;
+    let hash1 = helper.path_hash(&ArcPath::from("/hash.js")).await;
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
-    let hash2 = helper.path_hash(Path::new("/hash.js")).await;
+    let hash2 = helper.path_hash(&ArcPath::from("/hash.js")).await;
     assert_eq!(hash1, hash2);
 
     fs.write("/hash.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
-    let hash3 = helper.path_hash(Path::new("/hash.js")).await;
+    let hash3 = helper.path_hash(&ArcPath::from("/hash.js")).await;
     assert_ne!(hash1, hash3);
   }
 
@@ -252,7 +256,9 @@ mod tests {
     let helper = StrategyHelper::new(fs.clone());
     let strategy = helper.compile_time();
     assert!(matches!(
-      helper.validate(Path::new("/file1.js"), &strategy).await,
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
       ValidateResult::NoChanged
     ));
 
@@ -261,14 +267,18 @@ mod tests {
       .await
       .unwrap();
     assert!(matches!(
-      helper.validate(Path::new("/file1.js"), &strategy).await,
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
       ValidateResult::Modified
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
     fs.remove_file("/file1.js".into()).await.unwrap();
     assert!(matches!(
-      helper.validate(Path::new("/file1.js"), &strategy).await,
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
       ValidateResult::Deleted
     ));
   }
@@ -291,7 +301,7 @@ mod tests {
     let helper = StrategyHelper::new(fs.clone());
     assert!(matches!(
       helper
-        .validate(Path::new("/packages/lib/file.js"), &strategy)
+        .validate(&ArcPath::from("/packages/lib/file.js"), &strategy)
         .await,
       ValidateResult::NoChanged
     ));
@@ -305,7 +315,7 @@ mod tests {
     .unwrap();
     assert!(matches!(
       helper
-        .validate(Path::new("/packages/lib/file.js"), &strategy)
+        .validate(&ArcPath::from("/packages/lib/file.js"), &strategy)
         .await,
       ValidateResult::Modified
     ));
@@ -316,7 +326,7 @@ mod tests {
       .unwrap();
     assert!(matches!(
       helper
-        .validate(Path::new("/packages/lib/file.js"), &strategy)
+        .validate(&ArcPath::from("/packages/lib/file.js"), &strategy)
         .await,
       ValidateResult::Deleted
     ));
@@ -332,9 +342,11 @@ mod tests {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
     let helper = StrategyHelper::new(fs.clone());
-    let strategy = helper.path_hash(Path::new("/file1.js")).await.unwrap();
+    let strategy = helper.path_hash(&ArcPath::from("/file1.js")).await.unwrap();
     assert!(matches!(
-      helper.validate(Path::new("/file1.js"), &strategy).await,
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
       ValidateResult::NoChanged
     ));
 
@@ -343,7 +355,9 @@ mod tests {
       .await
       .unwrap();
     assert!(matches!(
-      helper.validate(Path::new("/file1.js"), &strategy).await,
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
       ValidateResult::NoChanged
     ));
 
@@ -352,14 +366,18 @@ mod tests {
       .await
       .unwrap();
     assert!(matches!(
-      helper.validate(Path::new("/file1.js"), &strategy).await,
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
       ValidateResult::Modified
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
     fs.remove_file("/file1.js".into()).await.unwrap();
     assert!(matches!(
-      helper.validate(Path::new("/file1.js"), &strategy).await,
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
       ValidateResult::Deleted
     ));
   }
