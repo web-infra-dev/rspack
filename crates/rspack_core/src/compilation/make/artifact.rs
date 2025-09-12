@@ -9,25 +9,14 @@ use crate::{
 
 /// Enum used to mark whether module graph has been built.
 ///
-/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`,
-/// and inject the dependencies that need to be forced to build.
+/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`.
 /// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
 /// the previous MakeArtifact, so persistent cache will never recovery again.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum MakeArtifactState {
-  Uninitialized(
-    /// force build dependencies
-    HashSet<DependencyId>,
-    /// isolated modules
-    IdentifierSet,
-  ),
+  #[default]
+  Uninitialized,
   Initialized,
-}
-
-impl Default for MakeArtifactState {
-  fn default() -> Self {
-    MakeArtifactState::Uninitialized(Default::default(), Default::default())
-  }
 }
 
 /// Make Artifact, including all side effects of the make stage.
