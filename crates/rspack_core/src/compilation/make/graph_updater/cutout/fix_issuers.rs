@@ -1,10 +1,9 @@
 use std::collections::VecDeque;
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rustc_hash::FxHashSet as HashSet;
 
 use super::MakeArtifact;
-use crate::{DependencyId, ModuleGraph, ModuleIdentifier, ModuleIssuer};
+use crate::{DependencyIdSet, ModuleGraph, ModuleIdentifier, ModuleIssuer};
 
 /// Result of IssuerHelper.is_issuer.
 enum IsIssuerResult {
@@ -158,7 +157,7 @@ impl FixIssuers {
   pub fn analyze_force_build_dependencies(
     &mut self,
     artifact: &MakeArtifact,
-    ids: &HashSet<DependencyId>,
+    ids: &DependencyIdSet,
   ) {
     let module_graph = artifact.get_module_graph();
     for dep_id in ids {

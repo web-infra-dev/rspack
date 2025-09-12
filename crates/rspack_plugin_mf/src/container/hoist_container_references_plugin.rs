@@ -36,11 +36,11 @@ use super::{
 #[plugin]
 #[derive(Debug, Default)]
 pub struct HoistContainerReferencesPlugin {
-  federation_deps: Arc<Mutex<FxHashSet<DependencyId>>>,
+  federation_deps: Arc<Mutex<DependencyIdSet>>,
 }
 
 struct ContainerEntryDepCollector {
-  set: Arc<Mutex<FxHashSet<DependencyId>>>,
+  set: Arc<Mutex<DependencyIdSet>>,
 }
 
 #[async_trait]
@@ -58,7 +58,7 @@ impl super::federation_modules_plugin::AddContainerEntryDependencyHook
 }
 
 struct FederationRuntimeDepCollector {
-  set: Arc<Mutex<FxHashSet<DependencyId>>>,
+  set: Arc<Mutex<DependencyIdSet>>,
 }
 
 #[async_trait]
@@ -76,7 +76,7 @@ impl super::federation_modules_plugin::AddFederationRuntimeDependencyHook
 }
 
 struct RemoteDepCollector {
-  set: Arc<Mutex<FxHashSet<DependencyId>>>,
+  set: Arc<Mutex<DependencyIdSet>>,
 }
 
 #[async_trait]

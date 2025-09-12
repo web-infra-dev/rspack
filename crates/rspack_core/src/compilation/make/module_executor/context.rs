@@ -1,7 +1,7 @@
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::{super::graph_updater::repair::context::TaskContext, module_tracker::ModuleTracker};
-use crate::{DependencyId, ModuleIdentifier};
+use crate::{DependencyId, DependencyIdSet, ModuleIdentifier};
 
 /// The meta data for import_module.
 ///
@@ -28,5 +28,5 @@ pub struct ExecutorTaskContext {
   ///
   /// When Module Executor stops, entries that are not in use
   /// and whose origin_module_identifier has been revoked are removed.
-  pub executed_entry_deps: HashSet<DependencyId>,
+  pub executed_entry_deps: DependencyIdSet,
 }

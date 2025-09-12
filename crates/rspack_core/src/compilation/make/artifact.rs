@@ -1,10 +1,9 @@
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
-use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  compilation::make::ModuleToLazyMake, utils::FileCounter,
+  BuildDependency, DependencyId, DependencyIdSet, FactorizeInfo, ModuleGraph, ModuleGraphPartial,
+  ModuleIdentifier, compilation::make::ModuleToLazyMake, utils::FileCounter,
 };
 
 /// Enum used to mark whether module graph has been built.
@@ -52,9 +51,9 @@ pub struct MakeArtifact {
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
   /// Factorize failed dependencies in module graph
-  pub make_failed_dependencies: HashSet<DependencyId>,
+  pub make_failed_dependencies: DependencyIdSet,
   /// Entry dependencies in the module graph
-  pub entry_dependencies: HashSet<DependencyId>,
+  pub entry_dependencies: DependencyIdSet,
   /// The files that current module graph depends on.
   pub file_dependencies: FileCounter,
   /// The directory that current module graph depends on.

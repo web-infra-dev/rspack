@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, FactorizeInfo};
+use crate::{BuildDependency, Compilation, DependencyIdSet, FactorizeInfo};
 
 /// Cutout module graph.
 ///
@@ -32,11 +32,11 @@ impl Cutout {
     params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
     // the entry dependencies after update module graph
-    let mut next_entry_dependencies = HashSet::default();
+    let mut next_entry_dependencies = DependencyIdSet::default();
     // whether to clean up useless entry dependencies
     let mut clean_entry_dependencies = false;
     let mut force_build_modules = IdentifierSet::default();
-    let mut force_build_deps = HashSet::default();
+    let mut force_build_deps = DependencyIdSet::default();
 
     let module_graph = artifact.get_module_graph();
 

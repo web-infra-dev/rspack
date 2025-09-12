@@ -6,7 +6,7 @@ use rspack_collections::IdentifierMap;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{BoxDependency, DependencyId, ModuleIdentifier};
+use crate::{BoxDependency, DependencyId, DependencyIdSet, ModuleIdentifier};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ForwardId {
@@ -89,10 +89,10 @@ pub struct LazyDependencies {
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   forward_id_to_request: FxHashMap<Atom, Atom>,
   #[cacheable(with=AsMap<AsPreset>)]
-  request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
+  request_to_dependencies: FxHashMap<Atom, DependencyIdSet>,
   #[cacheable(with=AsVec<AsPreset>)]
   terminal_forward_ids: FxHashSet<Atom>,
-  fallback_dependencies: FxHashSet<DependencyId>,
+  fallback_dependencies: DependencyIdSet,
 }
 
 impl LazyDependencies {
@@ -129,10 +129,7 @@ impl LazyDependencies {
       .copied()
   }
 
-  pub fn requested_lazy_dependencies(
-    &self,
-    forwarded_ids: &ForwardedIdSet,
-  ) -> FxHashSet<DependencyId> {
+  pub fn requested_lazy_dependencies(&self, forwarded_ids: &ForwardedIdSet) -> DependencyIdSet {
     match forwarded_ids {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
       ForwardedIdSet::IdSet(set) => set

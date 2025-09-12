@@ -5,11 +5,10 @@ use std::sync::Arc;
 
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rustc_hash::FxHashSet as HashSet;
 
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
-  FactorizeInfo, FileCounter, ModuleGraph,
+  DependencyIdSet, FactorizeInfo, FileCounter, ModuleGraph,
   compilation::make::{MakeArtifact, MakeArtifactState},
 };
 
@@ -84,7 +83,7 @@ impl MakeOccasion {
       }
     }
     // recovery make_failed_dependencies
-    let mut make_failed_dependencies = HashSet::default();
+    let mut make_failed_dependencies = DependencyIdSet::default();
     for (dep_id, dep) in mg.dependencies() {
       if let Some(info) = FactorizeInfo::get_from(dep)
         && !info.is_success()

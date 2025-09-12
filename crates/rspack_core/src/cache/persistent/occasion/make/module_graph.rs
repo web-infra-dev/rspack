@@ -8,7 +8,6 @@ use rspack_cacheable::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rustc_hash::FxHashSet as HashSet;
 
 use super::{
   Storage,
@@ -16,7 +15,7 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
+  DependencyIdSet, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
   ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier, RayonConsumer,
   cache::persistent::cacheable_context::CacheableContext,
   compilation::make::{LazyDependencies, ModuleToLazyMake},
@@ -141,7 +140,7 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
-) -> Result<(ModuleGraphPartial, ModuleToLazyMake, HashSet<DependencyId>)> {
+) -> Result<(ModuleGraphPartial, ModuleToLazyMake, DependencyIdSet)> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
@@ -206,7 +205,7 @@ pub async fn recovery_module_graph(
       entry_module.push(mgm.module_identifier);
     };
   }
-  let mut entry_dependencies: HashSet<DependencyId> = Default::default();
+  let mut entry_dependencies: DependencyIdSet = Default::default();
   for mid in entry_module {
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, true, false);

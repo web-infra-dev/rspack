@@ -1,16 +1,17 @@
 use rspack_cacheable::{cacheable, with::Skip};
-use rustc_hash::FxHashSet as HashSet;
 
-use crate::{DependencyId, ExportsInfo, ModuleIdentifier, ModuleIssuer, ModuleProfile};
+use crate::{
+  DependencyId, DependencyIdSet, ExportsInfo, ModuleIdentifier, ModuleIssuer, ModuleProfile,
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  outgoing_connections: HashSet<DependencyId>,
+  outgoing_connections: DependencyIdSet,
   // incoming connections will regenerate by persistent cache recovery.
   #[cacheable(with=Skip)]
-  incoming_connections: HashSet<DependencyId>,
+  incoming_connections: DependencyIdSet,
 
   issuer: ModuleIssuer,
 
@@ -62,11 +63,11 @@ impl ModuleGraphModule {
     self.outgoing_connections.remove(dependency_id);
   }
 
-  pub fn incoming_connections(&self) -> &HashSet<DependencyId> {
+  pub fn incoming_connections(&self) -> &DependencyIdSet {
     &self.incoming_connections
   }
 
-  pub fn outgoing_connections(&self) -> &HashSet<DependencyId> {
+  pub fn outgoing_connections(&self) -> &DependencyIdSet {
     &self.outgoing_connections
   }
 

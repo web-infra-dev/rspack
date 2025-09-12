@@ -26,7 +26,7 @@ use super::{
 };
 
 struct FederationRuntimeDependencyCollector {
-  collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
+  collected_dependency_ids: Arc<Mutex<DependencyIdSet>>,
 }
 
 #[async_trait::async_trait]
@@ -44,7 +44,7 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 #[plugin]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimePlugin {
-  collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
+  collected_dependency_ids: Arc<Mutex<DependencyIdSet>>,
 }
 
 impl EmbedFederationRuntimePlugin {
