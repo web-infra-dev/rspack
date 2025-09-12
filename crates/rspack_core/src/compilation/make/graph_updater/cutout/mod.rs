@@ -90,16 +90,8 @@ impl Cutout {
               .collect::<Vec<_>>(),
           );
         }
-        UpdateParam::ForceBuildDeps(deps) => {
-          force_build_deps.extend(deps);
-        }
         UpdateParam::ForceBuildModules(modules) => {
           force_build_modules.extend(modules);
-        }
-        UpdateParam::CheckIsolatedModules(modules) => {
-          for mid in modules {
-            self.fix_issuers.add_need_check_module(mid);
-          }
         }
       };
     }

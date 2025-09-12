@@ -24,12 +24,8 @@ pub enum UpdateParam {
   ModifiedFiles(ArcPathSet),
   /// Build the module and dependency which depend on these removed file.
   RemovedFiles(ArcPathSet),
-  /// Force build some dependencies.
-  ForceBuildDeps(HashSet<DependencyId>),
   /// Force build some modules.
   ForceBuildModules(IdentifierSet),
-  /// Need check isolated modules.
-  CheckIsolatedModules(IdentifierSet),
 }
 
 /// Update module graph through `UpdateParam`

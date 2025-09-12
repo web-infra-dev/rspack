@@ -42,11 +42,6 @@ pub async fn make(compilation: &Compilation, mut artifact: MakeArtifact) -> Resu
   if !compilation.removed_files.is_empty() {
     params.push(UpdateParam::RemovedFiles(compilation.removed_files.clone()));
   }
-  // MakeArtifactState::Uninitialized set by persistent cache.
-  if let MakeArtifactState::Uninitialized(force_build_deps, isolated_modules) = &artifact.state {
-    params.push(UpdateParam::ForceBuildDeps(force_build_deps.clone()));
-    params.push(UpdateParam::CheckIsolatedModules(isolated_modules.clone()));
-  }
 
   // reset temporary data
   artifact.reset_temporary_data();
