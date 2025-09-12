@@ -668,7 +668,7 @@ impl<'a> ModuleGraph<'a> {
       .as_ref()
   }
 
-  pub fn insert_dependency_factorize_info(
+  pub fn set_dependency_factorize_info(
     &mut self,
     dependency_id: DependencyId,
     factorize_info: FactorizeInfo,

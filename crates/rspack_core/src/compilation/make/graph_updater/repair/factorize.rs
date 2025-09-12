@@ -181,7 +181,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     // write factorize_info to dependencies[0] and set success factorize_info to others
-    module_graph.insert_dependency_factorize_info(*dependencies[0].id(), factorize_info);
+    module_graph.set_dependency_factorize_info(*dependencies[0].id(), factorize_info);
 
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
