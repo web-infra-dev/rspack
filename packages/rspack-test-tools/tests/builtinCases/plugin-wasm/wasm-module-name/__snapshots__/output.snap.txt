@@ -1,0 +1,30 @@
+```js title=main.js
+"use strict";
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+"./index.js": (function (module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+__webpack_require__.r(__webpack_exports__);
+/* ESM import */var _factorial_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./factorial.wasm");
+var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_factorial_wasm__WEBPACK_IMPORTED_MODULE_0__]);
+_factorial_wasm__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+
+const factorial = _factorial_wasm__WEBPACK_IMPORTED_MODULE_0__._Z4facti;
+
+document.querySelector("#root").innerHTML = factorial(3);
+
+__webpack_async_result__();
+} catch(e) { __webpack_async_result__(e); } });
+
+}),
+"./factorial.wasm": (function (module, exports, __webpack_require__) {
+ module.exports = __webpack_require__.v(exports, module.id, "4f244726a350135b", "factorial" );
+
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
