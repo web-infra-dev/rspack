@@ -2242,6 +2242,17 @@ interface Es6Config extends BaseModuleConfig {
 }
 
 // @public (undocumented)
+const EsmLibraryPlugin: {
+    new (): {
+        name: string;
+        _args: [];
+        affectedHooks: "done" | "compilation" | "run" | "afterDone" | "thisCompilation" | "invalid" | "compile" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "emit" | "assetEmitted" | "afterEmit" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "make" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
 interface EsParserConfig {
     allowReturnOutsideFunction?: boolean;
     allowSuperOutsideMethod?: boolean;
@@ -2397,6 +2408,8 @@ interface Experiments_2 {
     createNativePlugin: typeof createNativePlugin;
     // (undocumented)
     CssChunkingPlugin: typeof CssChunkingPlugin;
+    // (undocumented)
+    EsmLibraryPlugin: typeof EsmLibraryPlugin;
     // (undocumented)
     globalTrace: {
         register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;

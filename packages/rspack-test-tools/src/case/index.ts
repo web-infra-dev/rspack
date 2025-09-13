@@ -6,6 +6,7 @@ export * from "./defaults";
 export * from "./diagnostic";
 export * from "./diff";
 export * from "./error";
+export * from "./esm-output";
 export * from "./hash";
 export * from "./hook";
 export * from "./hot";
