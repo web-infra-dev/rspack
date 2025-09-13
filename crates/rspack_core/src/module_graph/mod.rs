@@ -619,8 +619,8 @@ impl<'a> ModuleGraph<'a> {
       .expect("block has been removed to None")
   }
 
-  pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
-    let mut res = HashMap::default();
+  pub fn dependencies(&self) -> DependencyIdMap<&BoxDependency> {
+    let mut res = DependencyIdMap::default();
     for item in self.partials.iter().flatten() {
       for (k, v) in &item.dependencies {
         if let Some(v) = v {

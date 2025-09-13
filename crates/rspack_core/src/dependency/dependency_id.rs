@@ -3,6 +3,7 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
 };
 
+use indexmap::IndexSet;
 use rspack_cacheable::cacheable;
 use rspack_tasks::fetch_new_dependency_id;
 use rustc_hash::FxHasher;
@@ -39,3 +40,5 @@ impl std::ops::Deref for DependencyId {
 pub type DependencyIdMap<V> = HashMap<DependencyId, V, BuildHasherDefault<IdentityHasher>>;
 
 pub type DependencyIdSet = HashSet<DependencyId, BuildHasherDefault<IdentityHasher>>;
+
+pub type DependencyIdIndexSet = IndexSet<DependencyId, BuildHasherDefault<IdentityHasher>>;

@@ -2,15 +2,14 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationFinishModules, DependenciesBlock, DependencyId,
-  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
-  ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
+  DependencyIdIndexSet, DependencyIdMap, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
+  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec,
+  ExportsSpec, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
@@ -234,11 +233,11 @@ fn collect_module_exports_specs(
   module_id: &ModuleIdentifier,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
-) -> Option<(FxIndexMap<DependencyId, ExportsSpec>, bool)> {
+) -> Option<(DependencyIdMap<ExportsSpec>, bool)> {
   let mut has_nested_exports = false;
   fn walk_block<B: DependenciesBlock + ?Sized>(
     block: &B,
-    dep_ids: &mut FxIndexSet<DependencyId>,
+    dep_ids: &mut DependencyIdIndexSet,
     mg: &ModuleGraph,
   ) {
     dep_ids.extend(block.get_dependencies().iter().copied());
@@ -250,7 +249,7 @@ fn collect_module_exports_specs(
   }
 
   let block = &**mg.module_by_identifier(module_id)?;
-  let mut dep_ids = FxIndexSet::default();
+  let mut dep_ids = DependencyIdIndexSet::default();
   walk_block(block, &mut dep_ids, mg);
 
   // There is no need to use the cache here
@@ -264,7 +263,7 @@ fn collect_module_exports_specs(
       has_nested_exports |= exports_spec.has_nested_exports();
       Some((id, exports_spec))
     })
-    .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
+    .collect::<DependencyIdMap<ExportsSpec>>();
   // mg_cache.unfreeze();
   Some((res, has_nested_exports))
 }
