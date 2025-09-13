@@ -194,11 +194,15 @@ export class CommonJsRunner<T extends ECompilerType = ECompilerType.Rspack> exte
     // (undocumented)
     protected createGlobalContext(): IBasicGlobalContext;
     // (undocumented)
+    protected createJsonRequirer(): TRunnerRequirer;
+    // (undocumented)
     protected createMissRequirer(): TRunnerRequirer;
     // (undocumented)
     protected createModuleScope(requireFn: TRunnerRequirer, m: TModuleObject, file: TBasicRunnerFile): IBasicModuleScope;
     // (undocumented)
     protected createRunner(): void;
+    // (undocumented)
+    protected requireCache: any;
 }
 
 // @public (undocumented)
@@ -457,8 +461,6 @@ export class FakeDocumentWebRunner<T extends ECompilerType = ECompilerType.Rspac
     // (undocumented)
     protected createGlobalContext(): IBasicGlobalContext_2;
     // (undocumented)
-    protected createJsonRequirer(): TRunnerRequirer;
-    // (undocumented)
     protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope_2;
     // (undocumented)
     protected createRunner(): void;
@@ -556,7 +558,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     // (undocumented)
     static defaultOptions<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext): TCompilerOptions<T>;
     // (undocumented)
-    static findBundle<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext): string[];
+    static findBundle<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext): string | string[];
     // (undocumented)
     protected _hotOptions: IHotProcessorOptions<T>;
     // (undocumented)
@@ -1641,12 +1643,12 @@ export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.R
 export type TTestConfig<T extends ECompilerType> = {
     documentType?: EDocumentType;
     validate?: (stats: TCompilerStats<T> | TCompilerMultiStats<T>, stderr?: string) => void;
-    noTest?: boolean;
+    noTests?: boolean;
     writeStatsOuptut?: boolean;
     writeStatsJson?: boolean;
-    beforeExecute?: () => void;
-    afterExecute?: () => void;
-    moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
+    beforeExecute?: (options: TCompilerOptions<T>) => void;
+    afterExecute?: (options: TCompilerOptions<T>) => void;
+    moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>, options?: TCompilerOptions<T>) => IBasicModuleScope;
     checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T> | undefined, stringStats: String) => boolean;
     findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
     bundlePath?: string[];

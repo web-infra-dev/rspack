@@ -557,10 +557,13 @@ const describeCases = config => {
 															);
 														}
 													}
+
 													const isModule =
 														p.endsWith(".mjs") &&
 														options.experiments &&
 														options.experiments.outputModule;
+
+													console.log("isModule", isModule, p);
 
 													if (isModule) {
 														if (!vm.SourceTextModule)

@@ -14,6 +14,6 @@ if (process.env.NODE_ENV === "production") {
 }
 
 it("should not skip transitive side effects", () => {
-	expect(global.value).toBe(true);
-	delete global.value;
+	expect(global.__test_value__).toBe(true);
+	delete global.__test_value__;
 });

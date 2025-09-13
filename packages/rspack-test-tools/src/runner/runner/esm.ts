@@ -42,6 +42,7 @@ export class EsmRunner<
 		});
 		const esmCache = new Map<string, SourceTextModule>();
 		const esmIdentifier = this._options.name;
+
 		return (currentDirectory, modulePath, context = {}) => {
 			if (!SourceTextModule) {
 				throw new Error(
@@ -52,6 +53,10 @@ export class EsmRunner<
 			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
+			}
+
+			if (file.content.includes("__STATS__")) {
+				esmContext.__STATS__ = this._options.stats?.();
 			}
 
 			let esm = esmCache.get(file.path);

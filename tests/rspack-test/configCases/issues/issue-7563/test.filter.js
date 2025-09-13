@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: support hash with length in get chunk filename";

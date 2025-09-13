@@ -196,14 +196,15 @@ export type TTestConfig<T extends ECompilerType> = {
 		stats: TCompilerStats<T> | TCompilerMultiStats<T>,
 		stderr?: string
 	) => void;
-	noTest?: boolean;
+	noTests?: boolean;
 	writeStatsOuptut?: boolean;
 	writeStatsJson?: boolean;
-	beforeExecute?: () => void;
-	afterExecute?: () => void;
+	beforeExecute?: (options: TCompilerOptions<T>) => void;
+	afterExecute?: (options: TCompilerOptions<T>) => void;
 	moduleScope?: (
 		ms: IBasicModuleScope,
-		stats?: TCompilerStatsCompilation<T>
+		stats?: TCompilerStatsCompilation<T>,
+		options?: TCompilerOptions<T>
 	) => IBasicModuleScope;
 	checkStats?: (
 		stepName: string,

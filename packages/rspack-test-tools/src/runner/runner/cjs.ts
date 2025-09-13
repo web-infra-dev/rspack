@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 
@@ -15,14 +16,10 @@ declare global {
 	var printLogger: boolean;
 }
 
-const define = (...args: unknown[]) => {
-	const factory = args.pop() as () => {};
-	factory();
-};
-
 export class CommonJsRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends BasicRunner<T> {
+	protected requireCache = Object.create(null);
 	protected createGlobalContext(): IBasicGlobalContext {
 		return {
 			console: {
@@ -85,6 +82,11 @@ export class CommonJsRunner<
 				});
 				return m;
 			},
+			process,
+			URL,
+			Blob,
+			Symbol,
+			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			...this._options.env
 		};
@@ -105,14 +107,14 @@ export class CommonJsRunner<
 			__filename: file.path,
 			_globalAssign: {
 				expect: this._options.env.expect
-			},
-			define
+			}
 		};
 	}
 
 	protected createRunner() {
 		this.requirers.set("miss", this.createMissRequirer());
 		this.requirers.set("entry", this.createCjsRequirer());
+		this.requirers.set("json", this.createJsonRequirer());
 	}
 
 	protected createMissRequirer(): TRunnerRequirer {
@@ -130,9 +132,22 @@ export class CommonJsRunner<
 		};
 	}
 
-	protected createCjsRequirer(): TRunnerRequirer {
-		const requireCache = Object.create(null);
+	protected createJsonRequirer(): TRunnerRequirer {
+		return (currentDirectory, modulePath, context = {}) => {
+			if (Array.isArray(modulePath)) {
+				throw new Error("Array module path is not supported in hot cases");
+			}
+			const file = context.file || this.getFile(modulePath, currentDirectory);
+			if (!file) {
+				return this.requirers.get("miss")!(currentDirectory, modulePath);
+			}
+			return JSON.parse(
+				fs.readFileSync(path.join(this._options.dist, modulePath), "utf-8")
+			);
+		};
+	}
 
+	protected createCjsRequirer(): TRunnerRequirer {
 		return (currentDirectory, modulePath, context = {}) => {
 			if (modulePath === "@rspack/test-tools") {
 				return require("@rspack/test-tools");
@@ -142,14 +157,22 @@ export class CommonJsRunner<
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
 
-			if (file.path in requireCache) {
-				return requireCache[file.path].exports;
+			if (file.path.endsWith(".json")) {
+				return this.requirers.get("json")!(
+					currentDirectory,
+					modulePath,
+					context
+				);
+			}
+
+			if (file.path in this.requireCache) {
+				return this.requireCache[file.path].exports;
 			}
 
 			const m = {
 				exports: {}
 			};
-			requireCache[file.path] = m;
+			this.requireCache[file.path] = m;
 			const currentModuleScope = this.createModuleScope(
 				this.getRequire(),
 				m,
@@ -157,7 +180,11 @@ export class CommonJsRunner<
 			);
 
 			if (this._options.testConfig.moduleScope) {
-				this._options.testConfig.moduleScope(currentModuleScope);
+				this._options.testConfig.moduleScope(
+					currentModuleScope,
+					this._options.stats,
+					this._options.compilerOptions
+				);
 			}
 
 			if (!this._options.runInNewContext) {
@@ -165,6 +192,12 @@ export class CommonJsRunner<
 			}
 			if (file.content.includes("__STATS__") && this._options.stats) {
 				currentModuleScope.__STATS__ = this._options.stats();
+			}
+			if (file.content.includes("__STATS_I__")) {
+				const statsIndex = this._options.stats?.()?.__index__;
+				if (typeof statsIndex === "number") {
+					currentModuleScope.__STATS_I__ = statsIndex;
+				}
 			}
 
 			const args = Object.keys(currentModuleScope);

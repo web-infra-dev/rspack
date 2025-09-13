@@ -86,7 +86,7 @@ Rspack 的测试用例包括如下：
 
 ```ts {16-20} title="test.config.js"
 type TConfigCaseConfig = {
-  noTest?: boolean; // 不运行测试产物并结束测试
+  noTests?: boolean; // 不运行测试产物并结束测试
   beforeExecute?: () => void; // 运行产物前回调
   afterExecute?: () => void; // 运行产物后回调
   moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope; // 运行产物时的模块上下文变量

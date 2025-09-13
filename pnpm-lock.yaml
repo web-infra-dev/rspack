@@ -794,6 +794,9 @@ importers:
 
   tests/rspack-test:
     devDependencies:
+      '@babel/preset-react':
+        specifier: ^7.27.1
+        version: 7.27.1(@babel/core@7.28.0)
       '@rspack/binding-testing':
         specifier: workspace:*
         version: link:../../crates/rspack_binding_builder_testing
@@ -848,15 +851,30 @@ importers:
       babel-plugin-import:
         specifier: ^1.13.8
         version: 1.13.8
+      bundle-loader:
+        specifier: ^0.5.6
+        version: 0.5.6
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
+      coffee-loader:
+        specifier: ^1.0.1
+        version: 1.0.1(coffeescript@2.7.0)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
+      coffeescript:
+        specifier: ^2.7.0
+        version: 2.7.0
       core-js:
         specifier: 3.45.0
         version: 3.45.0
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
+      csv-to-markdown-table:
+        specifier: ^1.5.0
+        version: 1.5.0
+      es5-ext:
+        specifier: ^0.10.64
+        version: 0.10.64
       exports-loader:
         specifier: ^5.0.0
         version: 5.0.0(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
@@ -872,15 +890,30 @@ importers:
       html-webpack-plugin:
         specifier: ^5.6.3
         version: 5.6.3(@rspack/core@packages+rspack)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
+      is-ci:
+        specifier: 4.1.0
+        version: 4.1.0
+      less:
+        specifier: 4.4.0
+        version: 4.4.0
       less-loader:
         specifier: ^12.3.0
         version: 12.3.0(@rspack/core@packages+rspack)(less@4.4.0)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
       memfs:
         specifier: 4.38.2
         version: 4.38.2
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.1
+      mini-svg-data-uri:
+        specifier: ^1.4.4
+        version: 1.4.4
       postcss-loader:
         specifier: ^8.2.0
         version: 8.2.0(@rspack/core@packages+rspack)(postcss@8.5.6)(typescript@5.9.2)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
@@ -899,6 +932,9 @@ importers:
       react-refresh:
         specifier: ^0.17.0
         version: 0.17.0
+      rimraf:
+        specifier: ^5.0.10
+        version: 5.0.10
       sass-loader:
         specifier: ^16.0.5
         version: 16.0.5(@rspack/core@packages+rspack)(sass-embedded@1.91.0)(sass@1.91.0)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
@@ -914,9 +950,21 @@ importers:
       terser:
         specifier: 5.43.1
         version: 5.43.1
+      terser-webpack-plugin:
+        specifier: ^5.3.14
+        version: 5.3.14(@swc/core@1.12.0(@swc/helpers@0.5.17))(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
+      toml:
+        specifier: ^3.0.0
+        version: 3.0.0
+      ts-loader:
+        specifier: ^9.5.2
+        version: 9.5.2(typescript@5.9.2)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
+      url-loader:
+        specifier: ^4.1.1
+        version: 4.1.1(file-loader@6.2.0(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17))))(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))
       wast-loader:
         specifier: ^1.14.1
         version: 1.14.1
@@ -1044,6 +1092,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      '@rspack/test-tools':
+        specifier: workspace:*
+        version: link:../../packages/rspack-test-tools
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
         version: 2.11.1(enhanced-resolve@5.18.2)(pug@3.0.3)(webpack@5.99.9(@swc/core@1.12.0(@swc/helpers@0.5.17)))

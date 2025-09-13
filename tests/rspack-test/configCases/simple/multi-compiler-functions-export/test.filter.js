@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: Unrecognized key(s) \"default\" in object";

@@ -48,7 +48,7 @@ export class CacheRunnerFactory<
 					moduleScope(ms, stats) {
 						const moduleScope =
 							typeof testConfig.moduleScope === "function"
-								? testConfig.moduleScope(ms, stats)
+								? testConfig.moduleScope(ms, stats, compilerOptions)
 								: ms;
 
 						moduleScope.COMPILER_INDEX = compilerIndex;

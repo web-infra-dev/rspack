@@ -63,7 +63,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		if (!this._options.runable) return;
 
 		const testConfig = context.getTestConfig();
-		if (testConfig.noTest) return;
+		if (testConfig.noTests) return;
 
 		if (testConfig.documentType) {
 			context.setValue(
@@ -73,10 +73,11 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			);
 		}
 
-		if (typeof testConfig.beforeExecute === "function") {
-			testConfig.beforeExecute();
-		}
 		const compiler = this.getCompiler(context);
+		if (typeof testConfig.beforeExecute === "function") {
+			testConfig.beforeExecute(compiler.getOptions());
+		}
+
 		let bundles: string[] | void | string;
 		if (testConfig.bundlePath) {
 			bundles = testConfig.bundlePath;
@@ -127,13 +128,13 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		await Promise.all(results);
 
 		if (typeof testConfig.afterExecute === "function") {
-			testConfig.afterExecute();
+			testConfig.afterExecute(compiler.getOptions());
 		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const testConfig = context.getTestConfig();
-		if (testConfig.noTest) return;
+		if (testConfig.noTests) return;
 
 		const errors: Array<{ message: string; stack?: string }> = (
 			context.getError(this._options.name) || []
