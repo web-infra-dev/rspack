@@ -58,7 +58,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "10.14.0"
+    "pnpm": "10.16.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.2",
@@ -89,7 +89,7 @@
     "webpack": "5.99.9",
     "zx": "8.7.1"
   },
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "pnpm@10.16.0",
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",
