@@ -51,11 +51,21 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	static findBundle<T extends ECompilerType>(
 		this: HotProcessor<T>,
 		context: ITestContext
-	): string[] {
-		const files: string[] = [];
-		const prefiles: string[] = [];
+	): string | string[] {
 		const compiler = context.getCompiler(this._hotOptions.name);
 		if (!compiler) throw new Error("Compiler should exists when find bundle");
+
+		const testConfig = context.getTestConfig();
+		if (typeof testConfig.findBundle === "function") {
+			return testConfig.findBundle!(
+				this.updateOptions.updateIndex,
+				compiler.getOptions()
+			);
+		}
+
+		const files: string[] = [];
+		const prefiles: string[] = [];
+
 		const stats = compiler.getStats();
 		if (!stats) throw new Error("Stats should exists when find bundle");
 		const info = stats.toJson({ all: false, entrypoints: true });

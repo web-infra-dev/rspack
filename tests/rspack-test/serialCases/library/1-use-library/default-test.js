@@ -1,6 +1,7 @@
-import { bar, foo } from "library";
+import d from "library";
+var data = require("library");
 
 it("should get default export from library (" + NAME + ")", function() {
-	expect(bar).toBe("bar");
-	expect(foo).toBe("foo");
+	expect(data).toBe("default-value");
+	expect(d).toBe("default-value");
 });

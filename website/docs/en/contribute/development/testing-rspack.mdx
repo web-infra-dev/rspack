@@ -88,7 +88,7 @@ This test case is similar to a regular rspack project. You can specify the build
 
 ```ts {16-20} title="test.config.js"
 type TConfigCaseConfig = {
-  noTest?: boolean; // Do not run the test output and end the test
+  noTests?: boolean; // Do not run the test output and end the test
   beforeExecute?: () => void; // Callback before running the output
   afterExecute?: () => void; // Callback after running the output
   moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope; // Module context variables when running the output

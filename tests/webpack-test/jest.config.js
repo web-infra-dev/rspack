@@ -5,7 +5,6 @@ const wasmConfig = process.env.WASM && {
 		// Skip because they reply on snapshots
 		"<rootDir>/StatsTestCases.basictest.js",
 		// Skip temporarily and should investigate in the future
-		"<rootDir>/ConfigTestCases.basictest.js",
 		"<rootDir>/HotTestCasesWeb.test.js",
 		"<rootDir>/Watch.test.js",
 	],
@@ -34,7 +33,7 @@ module.exports = {
 		// "<rootDir>/Compiler-caching.test.js",
 		"<rootDir>/Compiler.test.js",
 		// "<rootDir>/ConfigCacheTestCases.longtest.js",
-		"<rootDir>/ConfigTestCases.basictest.js",
+		// "<rootDir>/ConfigTestCases.basictest.js",
 		// "<rootDir>/ContextModule.unittest.js",
 		// "<rootDir>/ContextModuleFactory.unittest.js",
 		// "<rootDir>/Defaults.unittest.js",

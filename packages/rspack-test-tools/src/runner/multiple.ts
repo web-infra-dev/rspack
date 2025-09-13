@@ -23,17 +23,31 @@ export class MultipleRunnerFactory<
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
+		const { getIndex, flagIndex } = this.getFileIndexHandler(file);
+		const key = this.getRunnerKey(file);
+		const exists = this.context.getRunner(key);
+		if (exists) {
+			flagIndex();
+			return exists;
+		}
 		const multiCompilerOptions: TCompilerOptions<T>[] =
 			this.context.getValue(this.name, "multiCompilerOptions") || [];
-		const { getIndex, flagIndex } = this.getFileIndexHandler(file);
 		const [index] = getIndex();
 		const runner = super.createRunner(
 			file,
-			() => stats().children![index],
+			() => {
+				const s = stats();
+				if (s.children?.length && s.children.length > 1) {
+					s.__index__ = index;
+					return s;
+				}
+				return s.children![index];
+			},
 			multiCompilerOptions[index],
 			env
 		);
 		flagIndex();
+		this.context.setRunner(key, runner);
 		return runner;
 	}
 
