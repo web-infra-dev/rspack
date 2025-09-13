@@ -4521,7 +4521,6 @@ name = "rspack_plugin_merge_duplicate_chunks"
 version = "0.5.3"
 dependencies = [
  "rayon",
- "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
