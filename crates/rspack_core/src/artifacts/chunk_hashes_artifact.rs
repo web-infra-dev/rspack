@@ -1,10 +1,10 @@
-use rspack_collections::UkeyMap;
+use rustc_hash::FxHashMap;
 
 use crate::{ChunkHashesResult, ChunkUkey};
 
 #[derive(Debug, Default)]
 pub struct ChunkHashesArtifact {
-  chunk_to_hashes: UkeyMap<ChunkUkey, ChunkHashesResult>,
+  chunk_to_hashes: FxHashMap<ChunkUkey, ChunkHashesResult>,
 }
 
 impl ChunkHashesArtifact {

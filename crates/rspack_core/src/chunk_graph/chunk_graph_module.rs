@@ -7,10 +7,10 @@ use std::{
 };
 
 use rspack_cacheable::cacheable;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
-use rustc_hash::FxHasher;
+use rustc_hash::{FxHashSet, FxHasher};
 use serde::{Serialize, Serializer};
 
 use crate::{
@@ -75,9 +75,9 @@ impl ModuleId {
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
-  pub(super) entry_in_chunks: UkeySet<ChunkUkey>,
-  pub chunks: UkeySet<ChunkUkey>,
-  pub(super) runtime_in_chunks: UkeySet<ChunkUkey>,
+  pub(super) entry_in_chunks: FxHashSet<ChunkUkey>,
+  pub chunks: FxHashSet<ChunkUkey>,
+  pub(super) runtime_in_chunks: FxHashSet<ChunkUkey>,
 }
 
 impl ChunkGraphModule {
@@ -176,7 +176,7 @@ impl ChunkGraph {
       .get_mut(&module_identifier)
   }
 
-  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &UkeySet<ChunkUkey> {
+  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &FxHashSet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)
@@ -298,7 +298,7 @@ impl ChunkGraph {
   pub fn try_get_module_chunks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<&UkeySet<ChunkUkey>> {
+  ) -> Option<&FxHashSet<ChunkUkey>> {
     self
       .chunk_graph_module_by_module_identifier
       .get(module_identifier)

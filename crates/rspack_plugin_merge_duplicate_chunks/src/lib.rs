@@ -1,5 +1,4 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use rspack_collections::UkeySet;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfo, ModuleGraph, Plugin, RuntimeSpec,
   incremental::Mutation, is_runtime_equal,
@@ -29,7 +28,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       // already remove by duplicates
       continue;
     }
-    let mut possible_duplicates: Option<UkeySet<ChunkUkey>> = None;
+    let mut possible_duplicates: Option<HashSet<ChunkUkey>> = None;
     for module in compilation
       .chunk_graph
       .get_chunk_modules_identifier(&chunk_ukey)

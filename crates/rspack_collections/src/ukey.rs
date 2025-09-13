@@ -1,12 +1,7 @@
-use std::{
-  collections::{HashMap, HashSet},
-  fmt::Debug,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{fmt::Debug, hash::Hash};
 
-use dashmap::{DashMap, DashSet};
-use indexmap::{IndexMap, IndexSet};
 use rayon::prelude::*;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 #[macro_export]
@@ -19,14 +14,6 @@ macro_rules! impl_item_ukey {
     }
   };
 }
-
-pub type UkeyMap<K, V> = HashMap<K, V, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyDashMap<K, V> = DashMap<K, V, BuildHasherDefault<UkeyHasher>>;
-
-pub type UkeySet<K> = HashSet<K, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyIndexSet<K> = IndexSet<K, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyDashSet<K> = DashSet<K, BuildHasherDefault<UkeyHasher>>;
 
 pub trait ItemUkey {
   fn ukey(&self) -> Ukey;
@@ -59,23 +46,6 @@ impl From<Ukey> for u32 {
   }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
-pub struct UkeyHasher(u32);
-
-impl std::hash::Hasher for UkeyHasher {
-  fn write(&mut self, _bytes: &[u8]) {
-    unimplemented!("UkeyHasher should only used for UKey")
-  }
-
-  fn write_u32(&mut self, i: u32) {
-    self.0 = i;
-  }
-
-  fn finish(&self) -> u64 {
-    self.0 as u64
-  }
-}
-
 pub trait DatabaseItem
 where
   Self: Sized,
@@ -85,7 +55,7 @@ where
 }
 
 pub struct Database<Item: DatabaseItem> {
-  inner: HashMap<<Item as DatabaseItem>::ItemUkey, Item, BuildHasherDefault<UkeyHasher>>,
+  inner: FxHashMap<<Item as DatabaseItem>::ItemUkey, Item>,
 }
 
 impl<Item: DatabaseItem> Debug for Database<Item> {

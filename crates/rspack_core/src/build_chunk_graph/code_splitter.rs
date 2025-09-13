@@ -10,10 +10,13 @@ use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{
   Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey,
-  UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet, impl_item_ukey,
+  impl_item_ukey,
 };
 use rspack_error::{Diagnostic, Error, Result, error};
-use rspack_util::itoa;
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
@@ -54,11 +57,11 @@ pub struct ChunkGroupInfo {
   pub skipped_items: IdentifierIndexSet,
   pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
-  pub children: UkeyIndexSet<CgiUkey>,
+  pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
-  pub available_sources: UkeyIndexSet<CgiUkey>,
+  pub available_sources: FxIndexSet<CgiUkey>,
   // set of chunk groups which depend on the this chunk group as available_source
-  pub available_children: UkeyIndexSet<CgiUkey>,
+  pub available_children: FxIndexSet<CgiUkey>,
 
   // set of modules available including modules from this chunk group
   // A derived attribute, therefore utilizing interior mutability to manage updates
@@ -106,7 +109,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &mut self,
     chunk_group: &ChunkGroup,
-    mask_by_chunk: &UkeyMap<ChunkUkey, BigUint>,
+    mask_by_chunk: &HashMap<ChunkUkey, BigUint>,
   ) {
     if self.resulting_available_modules.is_some() {
       return;
@@ -226,31 +229,31 @@ pub(crate) type BlockModulesRuntimeMap = HashMap<Option<Arc<RuntimeSpec>>, Block
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct CodeSplitter {
-  pub(crate) chunk_group_info_map: UkeyMap<ChunkGroupUkey, CgiUkey>,
+  pub(crate) chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: Database<ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
-  pub(crate) incoming_blocks_by_cgi: UkeyMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
-  pub(crate) runtime_chunks: UkeySet<ChunkUkey>,
+  pub(crate) incoming_blocks_by_cgi: HashMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
+  pub(crate) runtime_chunks: HashSet<ChunkUkey>,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
   next_chunk_group_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
-  queue_connect: UkeyIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
-  chunk_groups_for_combining: UkeyIndexSet<CgiUkey>,
-  pub(crate) outdated_chunk_group_info: UkeyIndexSet<CgiUkey>,
+  queue_connect: FxIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
+  chunk_groups_for_combining: FxIndexSet<CgiUkey>,
+  pub(crate) outdated_chunk_group_info: FxIndexSet<CgiUkey>,
   chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
   pub(crate) block_to_chunk_group: HashMap<DependenciesBlockIdentifier, CgiUkey>,
 
   // outgoing blocks for a chunk group
   // 2 direction map
-  pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, UkeySet<CgiUkey>>,
+  pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, HashSet<CgiUkey>>,
 
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
-  pub(crate) mask_by_chunk: UkeyMap<ChunkUkey, BigUint>,
+  pub(crate) mask_by_chunk: HashMap<ChunkUkey, BigUint>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -669,9 +672,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     all_modules: &Vec<ModuleIdentifier>,
     compilation: &mut Compilation,
-  ) -> Result<UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
-    let mut input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
-      UkeyIndexMap::default();
+  ) -> Result<FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
+    let mut input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
+      FxIndexMap::default();
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
 
@@ -724,7 +727,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   pub fn prepare_entries(
     &mut self,
-    input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>,
+    input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>,
     compilation: &mut Compilation,
   ) -> Result<()> {
     let logger = compilation.get_logger("rspack.buildChunkGraph");

@@ -1,19 +1,19 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds, Logger, Plugin,
   chunk_graph_chunk::ChunkId,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::itoa;
+use rspack_util::{fx_hash::FxIndexSet, itoa};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_chunk_name};
 
 #[tracing::instrument(skip_all)]
 fn assign_named_chunk_ids(
-  chunks: UkeySet<ChunkUkey>,
+  chunks: FxHashSet<ChunkUkey>,
   compilation: &Compilation,
   delimiter: &str,
   used_ids: &mut FxHashMap<ChunkId, ChunkUkey>,
@@ -40,7 +40,7 @@ fn assign_named_chunk_ids(
       (item, name)
     })
     .collect();
-  let mut name_to_items: FxHashMap<String, UkeyIndexSet<ChunkUkey>> = FxHashMap::default();
+  let mut name_to_items: FxHashMap<String, FxIndexSet<ChunkUkey>> = FxHashMap::default();
   let mut invalid_and_repeat_names: FxHashSet<String> = std::iter::once(String::new()).collect();
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
@@ -183,7 +183,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     .mutations_read(IncrementalPasses::CHUNK_IDS)
   {
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNK_IDS, %mutations);
-    let mut affected_chunks: UkeySet<ChunkUkey> = UkeySet::default();
+    let mut affected_chunks: FxHashSet<ChunkUkey> = FxHashSet::default();
     for mutation in mutations.iter() {
       match mutation {
         Mutation::ChunkRemove { chunk } => {
@@ -200,10 +200,10 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
       .retain(|chunk, _| compilation.chunk_by_ukey.contains(chunk));
     affected_chunks
   } else {
-    UkeySet::default()
+    FxHashSet::default()
   };
 
-  let mut chunks: UkeySet<ChunkUkey> = compilation
+  let mut chunks: FxHashSet<ChunkUkey> = compilation
     .chunk_by_ukey
     .values()
     .filter(|chunk| chunk.id(&compilation.chunk_ids_artifact).is_none())

@@ -6,9 +6,9 @@ use std::{
 use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierMap, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_error::{Result, error};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
@@ -37,13 +37,13 @@ pub struct ChunkGroup {
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
   pub index: Option<u32>,
-  pub parents: UkeySet<ChunkGroupUkey>,
+  pub parents: FxHashSet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
 
   // keep order for children
   pub children: IndexSet<ChunkGroupUkey>,
-  async_entrypoints: UkeySet<ChunkGroupUkey>,
+  async_entrypoints: FxHashSet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
@@ -190,9 +190,9 @@ impl ChunkGroup {
     self.async_entrypoints.iter()
   }
 
-  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> UkeySet<ChunkGroupUkey> {
+  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> FxHashSet<ChunkGroupUkey> {
     let mut queue = vec![];
-    let mut ancestors = UkeySet::default();
+    let mut ancestors = FxHashSet::default();
 
     queue.extend(self.parents.iter().copied());
 

@@ -9,7 +9,7 @@ use indexmap::IndexSet;
 use rayon::prelude::*;
 use rspack_collections::{
   DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
-  IdentifierMap, IdentifierSet, Ukey, UkeyMap,
+  IdentifierMap, IdentifierSet, Ukey,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -54,7 +54,7 @@ pub struct CacheableChunkItem {
 #[derive(Debug, Default)]
 pub struct CodeSplitter {
   cache_chunk_desc: HashMap<CreateChunkRoot, Vec<CacheableChunkItem>>,
-  cache_chunks: UkeyMap<CacheUkey, Chunk>,
+  cache_chunks: HashMap<CacheUkey, Chunk>,
   pub module_deps: ModuleDeps,
   pub module_ordinal: IdentifierMap<u64>,
 }
@@ -916,7 +916,7 @@ impl CodeSplitter {
 
     let mut pre_order_indices = IdentifierMap::default();
     let mut post_order_indices = IdentifierMap::default();
-    let mut chunk_group_indices = UkeyMap::default();
+    let mut chunk_group_indices = HashMap::default();
 
     let global_deps = compilation.global_entry.dependencies.iter();
     let global_included_deps = compilation.global_entry.include_dependencies.iter();

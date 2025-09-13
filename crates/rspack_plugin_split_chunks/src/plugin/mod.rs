@@ -7,12 +7,12 @@ mod module_group;
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierMap, UkeyMap, UkeySet};
+use rspack_collections::IdentifierMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::instrument;
 
 use crate::{
@@ -83,8 +83,8 @@ impl SplitChunksPlugin {
       priority_cache_groups.push((priority, cache_groups.into_iter().collect::<Vec<_>>()));
     }
 
-    let mut max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting> = Default::default();
-    let mut removed_module_chunks: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
+    let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
+    let mut removed_module_chunks: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
 
     let mut combinator = module_group::Combinator::default();
     let module_graph = compilation.get_module_graph();

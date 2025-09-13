@@ -1,5 +1,5 @@
-use rspack_collections::UkeyMap;
 use rspack_util::atom::Atom;
+use rustc_hash::FxHashMap;
 
 use crate::{DependencyId, ExportInfo, ModuleIdentifier};
 
@@ -16,4 +16,4 @@ pub struct SideEffectsDoOptimizeMoveTarget {
   pub target_export: Option<Vec<Atom>>,
 }
 
-pub type SideEffectsOptimizeArtifact = UkeyMap<DependencyId, Option<SideEffectsDoOptimize>>;
+pub type SideEffectsOptimizeArtifact = FxHashMap<DependencyId, Option<SideEffectsDoOptimize>>;

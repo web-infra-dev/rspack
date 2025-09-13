@@ -1,12 +1,14 @@
 use cow_utils::CowUtils;
 use itertools::Itertools;
-use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType, chunk_graph_chunk::ChunkId,
   get_js_chunk_filename_template, get_undo_path,
 };
-use rspack_util::test::{
-  HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  test::{
+    HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
+  },
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -142,8 +144,8 @@ pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
 
 pub fn stringify_dynamic_chunk_map<F>(
   f: F,
-  chunks: &UkeyIndexSet<ChunkUkey>,
-  chunk_map: &UkeyIndexMap<ChunkUkey, &Chunk>,
+  chunks: &FxIndexSet<ChunkUkey>,
+  chunk_map: &FxIndexMap<ChunkUkey, &Chunk>,
   compilation: &Compilation,
 ) -> String
 where

@@ -14,6 +14,7 @@ rspack_error       = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_plugin_css  = { workspace = true }
 rspack_regex       = { workspace = true }
+rustc-hash         = { workspace = true }
 tokio              = { workspace = true }
 tracing            = { workspace = true }
 

@@ -5,9 +5,9 @@ use napi::{
   bindgen_prelude::{Object, ToNapiValue},
 };
 use napi_derive::napi;
-use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
+use rustc_hash::FxHashMap;
 
 use crate::{chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO};
 
@@ -247,7 +247,7 @@ impl Chunk {
 }
 
 thread_local! {
-  static CHUNK_INSTANCE_REFS: RefCell<UkeyMap<CompilationId, UkeyMap<rspack_core::ChunkUkey, OneShotRef>>> = Default::default();
+  static CHUNK_INSTANCE_REFS: RefCell<FxHashMap<CompilationId, FxHashMap<rspack_core::ChunkUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct ChunkWrapper {
@@ -289,7 +289,7 @@ impl ToNapiValue for ChunkWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = UkeyMap::default();
+            let refs = FxHashMap::default();
             entry.insert(refs)
           }
         };

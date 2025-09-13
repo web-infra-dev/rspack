@@ -3,12 +3,15 @@ use std::{cmp::Ordering, fmt};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
-use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   SourceType, get_filename_without_hash_length, impl_runtime_module,
 };
-use rspack_util::itoa;
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use rustc_hash::FxHashMap;
 
 use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
@@ -124,7 +127,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let mut max_chunk_set_size = 0;
     let mut chunk_filenames = Vec::<(Filename, ChunkUkey)>::new();
     let mut chunk_set_sizes_by_filenames = FxHashMap::<String, usize>::default();
-    let mut chunk_map = UkeyIndexMap::default();
+    let mut chunk_map = FxIndexMap::default();
 
     if let Some(chunks) = chunks {
       chunks
@@ -178,7 +181,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             None
           }
         })
-        .collect::<UkeyIndexSet<ChunkUkey>>();
+        .collect::<FxIndexSet<ChunkUkey>>();
       let (fake_filename, hash_len_map) =
         get_filename_without_hash_length(&Filename::from(dynamic_filename.to_string()));
 
