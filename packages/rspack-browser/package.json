@@ -32,9 +32,9 @@
     "directory": "packages/rspack-browser"
   },
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^1.0.1",
+    "@napi-rs/wasm-runtime": "^1.0.5",
     "@rspack/lite-tapable": "1.0.1",
-    "@swc/types": "0.1.24",
+    "@swc/types": "0.1.25",
     "@types/watchpack": "^2.4.4",
     "memfs": "4.38.2",
     "webpack-sources": "3.3.3"
