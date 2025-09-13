@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, FactorizeInfo, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -54,6 +54,8 @@ pub struct ModuleGraphPartial {
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
+
+  dependency_factorize_infos: HashMap<DependencyId, Option<FactorizeInfo>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
@@ -257,6 +259,9 @@ impl<'a> ModuleGraph<'a> {
         block.remove_dependency_id(*dep_id);
       }
     }
+    active_partial
+      .dependency_factorize_infos
+      .insert(*dep_id, None);
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier
@@ -643,6 +648,11 @@ impl<'a> ModuleGraph<'a> {
     res
   }
 
+  #[inline]
+  pub fn dependency_factorize_info_iter(&'a self) -> FactorizeInfos<'a> {
+    FactorizeInfos::new(self)
+  }
+
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
@@ -656,6 +666,39 @@ impl<'a> ModuleGraph<'a> {
     self
       .loop_partials(|p| p.dependencies.get(dependency_id))?
       .as_ref()
+  }
+
+  pub fn set_dependency_factorize_info(
+    &mut self,
+    dependency_id: DependencyId,
+    factorize_info: FactorizeInfo,
+  ) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    active_partial
+      .dependency_factorize_infos
+      .insert(dependency_id, Some(factorize_info));
+  }
+
+  pub fn dependency_factorize_info_by_id(
+    &self,
+    dependency_id: &DependencyId,
+  ) -> Option<&FactorizeInfo> {
+    self.loop_partials(|p| {
+      p.dependency_factorize_infos
+        .get(dependency_id)
+        .and_then(|factorize_info| factorize_info.as_ref())
+    })
+  }
+
+  pub fn remove_dependency_factorize_info_by_id(&mut self, dependency_id: &DependencyId) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    active_partial
+      .dependency_factorize_infos
+      .insert(*dependency_id, None);
   }
 
   pub fn dependency_by_id_mut(
@@ -1215,6 +1258,83 @@ impl<'a> ModuleGraph<'a> {
           data.side_effects_only_info_mut().set_used_name(used_name);
         }
       }
+    }
+  }
+}
+
+#[allow(clippy::type_complexity)]
+pub enum FactorizeInfos<'a> {
+  // An optimized iterator for when there's only a single, read-only layer of data.
+  // It directly iterates over the underlying `HashMap` without any merging overhead,
+  // filtering out deleted entries (`None` values).
+  Direct(
+    std::iter::FilterMap<
+      std::collections::hash_map::Iter<'a, DependencyId, Option<FactorizeInfo>>,
+      fn((&DependencyId, &'a Option<FactorizeInfo>)) -> Option<(DependencyId, &'a FactorizeInfo)>,
+    >,
+  ),
+  // An iterator for when multiple data layers exist (e.g., during the seal phase).
+  // It merges all layers into a temporary `HashMap` to correctly resolve overrides
+  // and deletions, then iterates over the merged result.
+  Merged(std::collections::hash_map::IntoIter<DependencyId, &'a FactorizeInfo>),
+}
+
+impl<'a> FactorizeInfos<'a> {
+  pub fn new(module_graph: &'a ModuleGraph<'a>) -> Self {
+    if module_graph.partials.iter().flatten().count() == 1 && module_graph.active.is_none() {
+      #[allow(clippy::unwrap_used)]
+      let partial = module_graph
+        .partials
+        .iter()
+        .find_map(|p| p.as_ref())
+        .unwrap();
+      Self::Direct(
+        partial
+          .dependency_factorize_infos
+          .iter()
+          .filter_map(|item| item.1.as_ref().map(|info| (*item.0, info))),
+      )
+    } else {
+      let mut merged = HashMap::default();
+      for item in module_graph.partials.iter().flatten() {
+        for (dependency_id, factorize_info) in &item.dependency_factorize_infos {
+          if let Some(factorize_info) = factorize_info {
+            merged.insert(*dependency_id, factorize_info);
+          } else {
+            merged.remove(dependency_id);
+          }
+        }
+      }
+      if let Some(active) = &module_graph.active {
+        for (dependency_id, factorize_info) in &active.dependency_factorize_infos {
+          if let Some(factorize_info) = factorize_info {
+            merged.insert(*dependency_id, factorize_info);
+          } else {
+            merged.remove(dependency_id);
+          }
+        }
+      }
+      Self::Merged(merged.into_iter())
+    }
+  }
+}
+
+impl<'a> Iterator for FactorizeInfos<'a> {
+  type Item = (DependencyId, &'a FactorizeInfo);
+
+  #[inline]
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      Self::Direct(iter) => iter.next(),
+      Self::Merged(iter) => iter.next(),
+    }
+  }
+
+  #[inline]
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    match self {
+      Self::Direct(iter) => iter.size_hint(),
+      Self::Merged(iter) => iter.size_hint(),
     }
   }
 }

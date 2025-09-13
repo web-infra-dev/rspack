@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, ModuleDependency,
 };
 
 #[cacheable]
@@ -11,7 +11,6 @@ pub struct ContainerExposedDependency {
   request: String,
   pub exposed_name: String,
   resource_identifier: String,
-  factorize_info: FactorizeInfo,
 }
 
 impl ContainerExposedDependency {
@@ -22,7 +21,6 @@ impl ContainerExposedDependency {
       request,
       exposed_name,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -58,14 +56,6 @@ impl ModuleDependency for ContainerExposedDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

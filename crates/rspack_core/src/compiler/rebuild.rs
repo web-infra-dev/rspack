@@ -42,9 +42,9 @@ impl Compiler {
 
     // build without stats
     {
-      let mut modified_files: ArcPathSet = ArcPathSet::default();
+      let mut modified_files = ArcPathSet::default();
       modified_files.extend(changed_files.iter().map(|files| Path::new(files).into()));
-      let mut removed_files: ArcPathSet = ArcPathSet::default();
+      let mut removed_files = ArcPathSet::default();
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();

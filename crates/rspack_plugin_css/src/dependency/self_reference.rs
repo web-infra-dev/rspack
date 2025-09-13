@@ -2,8 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  ExtendedReferencedExport, ModuleDependency, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -22,7 +21,6 @@ pub struct CssSelfReferenceLocalIdentDependency {
   id: DependencyId,
   names: Vec<String>,
   replaces: Vec<CssSelfReferenceLocalIdentReplacement>,
-  factorize_info: FactorizeInfo,
 }
 
 impl CssSelfReferenceLocalIdentDependency {
@@ -31,7 +29,6 @@ impl CssSelfReferenceLocalIdentDependency {
       id: DependencyId::new(),
       names,
       replaces,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -76,14 +73,6 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
 impl ModuleDependency for CssSelfReferenceLocalIdentDependency {
   fn request(&self) -> &str {
     "self"
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

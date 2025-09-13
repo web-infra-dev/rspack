@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, FactorizeInfo, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, UsedByExports, module_id,
+  DependencyType, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedByExports, module_id,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -19,7 +19,6 @@ pub struct URLDependency {
   range_url: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   relative: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl URLDependency {
@@ -36,7 +35,6 @@ impl URLDependency {
       range_url,
       used_by_exports: None,
       relative,
-      factorize_info: Default::default(),
     }
   }
 
@@ -80,14 +78,6 @@ impl ModuleDependency for URLDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

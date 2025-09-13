@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyType, FactorizeInfo,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  DependencyCategory, DependencyId, DependencyRange, DependencyType, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer,
 };
 use rspack_paths::ArcPathSet;
 
@@ -31,7 +31,6 @@ pub struct CssDependency {
   pub(crate) context_dependencies: ArcPathSet,
   pub(crate) missing_dependencies: ArcPathSet,
   pub(crate) build_dependencies: ArcPathSet,
-  factorize_info: FactorizeInfo,
 }
 
 impl CssDependency {
@@ -72,7 +71,6 @@ impl CssDependency {
       context_dependencies,
       missing_dependencies,
       build_dependencies,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -130,13 +128,5 @@ impl Dependency for CssDependency {
 impl ModuleDependency for CssDependency {
   fn request(&self) -> &str {
     &self.identifier
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }

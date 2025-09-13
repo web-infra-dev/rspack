@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, ModuleDependency,
 };
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
@@ -21,7 +21,6 @@ pub struct DependencyOptions {
 #[derive(Debug, Clone)]
 pub struct LazyCompilationDependency {
   id: DependencyId,
-  factorize_info: FactorizeInfo,
   options: DependencyOptions,
 }
 
@@ -29,7 +28,6 @@ impl LazyCompilationDependency {
   pub fn new(options: DependencyOptions) -> Self {
     Self {
       id: DependencyId::new(),
-      factorize_info: Default::default(),
       options,
     }
   }
@@ -43,14 +41,6 @@ impl LazyCompilationDependency {
 impl ModuleDependency for LazyCompilationDependency {
   fn request(&self) -> &str {
     &self.options.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

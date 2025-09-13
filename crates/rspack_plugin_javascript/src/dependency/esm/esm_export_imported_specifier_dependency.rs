@@ -15,15 +15,15 @@ use rspack_core::{
   ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ForwardId, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name, to_normal_comment,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, ForwardId,
+  GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
@@ -56,7 +56,6 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
   lazy_make: bool,
 }
 
@@ -88,7 +87,6 @@ impl ESMExportImportedSpecifierDependency {
       export_presence_mode,
       attributes,
       loc,
-      factorize_info: Default::default(),
       lazy_make: false,
     }
   }
@@ -1418,14 +1416,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
       InlineValueDependencyCondition::new(self.id),
       DependencyCondition::new_fn(ESMExportImportedSpecifierDependencyCondition(self.id)),
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

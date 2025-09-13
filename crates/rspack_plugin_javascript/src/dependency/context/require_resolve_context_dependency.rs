@@ -2,12 +2,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
-
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RequireResolveContextDependency {
@@ -17,7 +16,6 @@ pub struct RequireResolveContextDependency {
   resource_identifier: String,
   optional: bool,
   critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
 }
 
 impl RequireResolveContextDependency {
@@ -30,7 +28,6 @@ impl RequireResolveContextDependency {
       resource_identifier,
       optional,
       critical: None,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -89,14 +86,6 @@ impl ContextDependency for RequireResolveContextDependency {
 
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
     &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

@@ -1,12 +1,13 @@
 mod fix_build_meta;
 mod fix_issuers;
 
+use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, FactorizeInfo};
+use crate::{BuildDependency, Compilation};
 
 /// Cutout module graph.
 ///
@@ -59,23 +60,41 @@ impl Cutout {
           }));
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
-          for module in module_graph.modules().values() {
-            // check has dependencies modified
-            if module.depends_on(&files) {
-              // add module id
-              force_build_modules.insert(module.identifier());
-            }
-          }
-          // only failed dependencies need to check
-          for dep_id in &artifact.make_failed_dependencies {
-            let dep = module_graph
-              .dependency_by_id(dep_id)
-              .expect("should have dependency");
-            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-            if info.depends_on(&files) {
-              force_build_deps.insert(*dep_id);
-            }
-          }
+          force_build_modules.extend(
+            module_graph
+              .modules()
+              .values()
+              // The cost of `module.depends_on` can be highly non-uniform.
+              // To enable Rayon's work-stealing for better load balancing, we first
+              // materialize the iterator into a Vec. This allows `par_iter` to create
+              // perfectly divisible slices, which is much more efficient than using
+              // `par_bridge()` on a non-indexable iterator.
+              .collect::<Vec<_>>()
+              .par_iter()
+              .filter_map(|module| {
+                if module.depends_on(&files) {
+                  Some(module.identifier())
+                } else {
+                  None
+                }
+              })
+              .collect::<Vec<_>>(),
+          );
+          force_build_deps.extend(
+            module_graph
+              .dependency_factorize_info_iter()
+              // The cost of `factorize_info.depends_on` can be highly non-uniform.
+              // To enable Rayon's work-stealing for better load balancing, we first
+              // materialize the iterator into a Vec. This allows `par_iter` to create
+              // perfectly divisible slices, which is much more efficient than using
+              // `par_bridge()` on a non-indexable iterator.
+              .collect::<Vec<_>>()
+              .par_iter()
+              .filter_map(|(dependency_id, factorize_info)| {
+                factorize_info.depends_on(&files).then_some(dependency_id)
+              })
+              .collect::<Vec<_>>(),
+          );
         }
         UpdateParam::ForceBuildModules(modules) => {
           force_build_modules.extend(modules);

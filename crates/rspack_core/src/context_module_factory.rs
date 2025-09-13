@@ -490,7 +490,6 @@ fn visit_dirs(
           attributes: options.context_options.attributes.clone(),
           referenced_exports: options.context_options.referenced_exports.clone(),
           dependency_type: DependencyType::ContextElement(options.type_prefix),
-          factorize_info: Default::default(),
         });
       })
     }

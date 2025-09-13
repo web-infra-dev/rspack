@@ -5,12 +5,11 @@ use rspack_core::{
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
-  import_statement,
+  ExportProvided, ExportsType, ExtendedReferencedExport, ForwardId, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, PrefetchExportsInfoMode, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  TypeReexportPresenceMode, filter_runtime, import_statement,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
@@ -65,7 +64,6 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
   lazy_make: bool,
   star_export: bool,
 }
@@ -93,7 +91,6 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
       lazy_make: false,
       star_export,
     }
@@ -625,14 +622,6 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     Some(DependencyCondition::new_fn(
       ESMImportSideEffectDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

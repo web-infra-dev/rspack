@@ -4,13 +4,15 @@ use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
 
-use super::{BoxDependency, DependencyId};
+use super::DependencyId;
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub enum FactorizeInfo {
-  #[default]
-  Success,
+  Success {
+    related_dep_ids: Vec<DependencyId>,
+    missing_dependencies: ArcPathSet,
+  },
   Failed {
     related_dep_ids: Vec<DependencyId>,
     file_dependencies: ArcPathSet,
@@ -18,6 +20,15 @@ pub enum FactorizeInfo {
     missing_dependencies: ArcPathSet,
     diagnostics: Vec<Diagnostic>,
   },
+}
+
+impl Default for FactorizeInfo {
+  fn default() -> Self {
+    Self::Success {
+      related_dep_ids: Default::default(),
+      missing_dependencies: Default::default(),
+    }
+  }
 }
 
 impl FactorizeInfo {
@@ -29,7 +40,10 @@ impl FactorizeInfo {
     missing_dependencies: ArcPathSet,
   ) -> Self {
     if diagnostics.is_empty() {
-      Self::Success
+      Self::Success {
+        related_dep_ids,
+        missing_dependencies,
+      }
     } else {
       Self::Failed {
         related_dep_ids,
@@ -41,53 +55,52 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn get_from(dep: &BoxDependency) -> Option<&FactorizeInfo> {
-    if let Some(d) = dep.as_context_dependency() {
-      Some(d.factorize_info())
-    } else if let Some(d) = dep.as_module_dependency() {
-      Some(d.factorize_info())
-    } else {
-      None
-    }
-  }
-
   pub fn is_success(&self) -> bool {
-    matches!(self, FactorizeInfo::Success)
+    matches!(self, FactorizeInfo::Success { .. })
   }
 
   pub fn depends_on(&self, modified_file: &ArcPathSet) -> bool {
-    if let FactorizeInfo::Failed {
-      file_dependencies,
-      context_dependencies,
-      missing_dependencies,
-      ..
-    } = self
-    {
-      for item in modified_file {
-        if file_dependencies.contains(item)
-          || context_dependencies.contains(item)
-          || missing_dependencies.contains(item)
-        {
-          return true;
+    match self {
+      FactorizeInfo::Success {
+        missing_dependencies,
+        ..
+      } => missing_dependencies
+        .intersection(modified_file)
+        .next()
+        .is_some(),
+      FactorizeInfo::Failed {
+        file_dependencies,
+        context_dependencies,
+        missing_dependencies,
+        ..
+      } => {
+        for item in modified_file {
+          if file_dependencies.contains(item)
+            || context_dependencies.contains(item)
+            || missing_dependencies.contains(item)
+          {
+            return true;
+          }
         }
+        false
       }
     }
-
-    false
   }
 
-  pub fn related_dep_ids(&self) -> Cow<'_, [DependencyId]> {
+  pub fn related_dep_ids(&self) -> &[DependencyId] {
     match &self {
-      Self::Success => Cow::Owned(vec![]),
+      Self::Success {
+        related_dep_ids, ..
+      } => related_dep_ids,
       Self::Failed {
         related_dep_ids, ..
-      } => Cow::Borrowed(related_dep_ids),
+      } => related_dep_ids,
     }
   }
 
   pub fn file_dependencies(&self) -> Cow<'_, ArcPathSet> {
     match &self {
-      Self::Success => Cow::Owned(Default::default()),
+      Self::Success { .. } => Cow::Owned(Default::default()),
       Self::Failed {
         file_dependencies, ..
       } => Cow::Borrowed(file_dependencies),
@@ -96,7 +109,7 @@ impl FactorizeInfo {
 
   pub fn context_dependencies(&self) -> Cow<'_, ArcPathSet> {
     match &self {
-      Self::Success => Cow::Owned(Default::default()),
+      Self::Success { .. } => Cow::Owned(Default::default()),
       Self::Failed {
         context_dependencies,
         ..
@@ -106,7 +119,10 @@ impl FactorizeInfo {
 
   pub fn missing_dependencies(&self) -> Cow<'_, ArcPathSet> {
     match &self {
-      Self::Success => Cow::Owned(Default::default()),
+      Self::Success {
+        missing_dependencies,
+        ..
+      } => Cow::Borrowed(missing_dependencies),
       Self::Failed {
         missing_dependencies,
         ..
@@ -116,7 +132,7 @@ impl FactorizeInfo {
 
   pub fn diagnostics(&self) -> Cow<'_, [Diagnostic]> {
     match &self {
-      Self::Success => Cow::Owned(vec![]),
+      Self::Success { .. } => Cow::Owned(vec![]),
       Self::Failed { diagnostics, .. } => Cow::Borrowed(diagnostics),
     }
   }
