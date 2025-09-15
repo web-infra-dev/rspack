@@ -504,12 +504,13 @@ const describeCases = config => {
 														: ns;
 												})();
 											} else {
-												const fn = vm.runInThisContext(
-													"(function(require, module, exports, __dirname, __filename, it, expect) {" +
+												const c = "(function(require, module, exports, __dirname, __filename, it, expect) {" +
 													"global.expect = expect;" +
 													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
 													content +
-													"\n})",
+													"\n})";
+												const fn = vm.runInThisContext(
+													c,
 													p
 												);
 												const m = {
