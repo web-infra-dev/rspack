@@ -40,7 +40,7 @@ it("should not tree-shake if reassigin", async () => {
 	expect(m.default).toBe(3);
 	expect(m.usedExports).toBe(true);
 	m = {};
-})
+});
 
 it("should tree-shake if its member call and strictThisContextOnImports is false", async () => {
 	let m = await import("./dir4/a");
@@ -50,4 +50,13 @@ it("should tree-shake if its member call and strictThisContextOnImports is false
 	expect(m2.b.f()).toBe(1);
 	expect(m2.b.usedExports).toEqual(true);
 	expect(m2.usedExports).toEqual(["b", "usedExports"]);
-})
+});
+
+it("should analyze arguments in call member chain", async () => {
+	let m = await import("./dir4/lib?2");
+	m.b.f((async () => {
+		let m2 = await import("./dir4/a?2");
+		expect(m2.a).toBe(1);
+		expect(m2.usedExports).toEqual(["a", "usedExports"]);
+	})());
+});
