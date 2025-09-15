@@ -956,28 +956,44 @@ impl JavascriptParser<'_> {
           // (function(…) { }(…))
           self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
-          if let Expr::Member(member) = &**callee
-            && let Some(MemberExpressionInfo::Call(expr_info)) =
+          if let Expr::Member(member) = &**callee {
+            if let Some(MemberExpressionInfo::Call(expr_info)) =
               self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
-            && expr_info
-              .root_info
-              .call_hooks_name(self, |this, for_name| {
-                this
-                  .plugin_drive
-                  .clone()
-                  .call_member_chain_of_call_member_chain(
-                    this,
-                    expr,
-                    &expr_info.callee_members,
-                    &expr_info.call,
-                    &expr_info.members,
-                    &expr_info.member_ranges,
-                    for_name,
-                  )
-              })
-              .unwrap_or_default()
-          {
-            return;
+              && expr_info
+                .root_info
+                .call_hooks_name(self, |this, for_name| {
+                  this
+                    .plugin_drive
+                    .clone()
+                    .call_member_chain_of_call_member_chain(
+                      this,
+                      expr,
+                      &expr_info.callee_members,
+                      &expr_info.call,
+                      &expr_info.members,
+                      &expr_info.member_ranges,
+                      for_name,
+                    )
+                })
+                .unwrap_or_default()
+            {
+              return;
+            }
+            if let Some(call) = member.obj.as_call()
+              && call.callee.is_import()
+              && let Some(prop) = member.prop.as_ident()
+              && prop.sym == "then"
+            {
+              // import(…).then(…)
+              if self
+                .plugin_drive
+                .clone()
+                .import_call(self, call, Some(expr))
+                .unwrap_or_default()
+              {
+                return;
+              }
+            }
           }
           let evaluated_callee = self.evaluate_expression(callee);
           if evaluated_callee.is_identifier() {
@@ -1041,7 +1057,7 @@ impl JavascriptParser<'_> {
         if self
           .plugin_drive
           .clone()
-          .import_call(self, expr)
+          .import_call(self, expr, None)
           .unwrap_or_default()
         {
           return;
@@ -1056,7 +1072,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  pub fn walk_expr_or_spread(&mut self, args: &Vec<ExprOrSpread>) {
+  pub fn walk_expr_or_spread(&mut self, args: &[ExprOrSpread]) {
     for arg in args {
       self.walk_expression(&arg.expr)
     }
@@ -1313,7 +1329,7 @@ impl JavascriptParser<'_> {
     self.top_level_scope = was_top_level;
   }
 
-  fn walk_pattern(&mut self, pat: &Pat) {
+  pub fn walk_pattern(&mut self, pat: &Pat) {
     match pat {
       Pat::Array(array) => self.walk_array_pattern(array),
       Pat::Assign(assign) => self.walk_assignment_pattern(assign),

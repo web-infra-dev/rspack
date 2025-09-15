@@ -148,7 +148,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     None
   }
 
-  fn collect_destructuring_assignment_properties(
+  fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser,
     expr: &Expr,

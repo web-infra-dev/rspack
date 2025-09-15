@@ -148,7 +148,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     }
   }
 
-  fn collect_destructuring_assignment_properties(
+  fn can_collect_destructuring_assignment_properties(
     &self,
     _parser: &mut JavascriptParser,
     expr: &Expr,
