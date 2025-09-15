@@ -14,7 +14,6 @@ export class NormalRunner<
 	protected createBaseModuleScope(): IBasicModuleScope {
 		const baseModuleScope = Object.assign(super.createBaseModuleScope(), {
 			process,
-			global,
 			URL,
 			Buffer,
 			setImmediate
@@ -29,6 +28,10 @@ export class NormalRunner<
 	): IBasicModuleScope {
 		const moduleScope = super.createModuleScope(requireFn, m, file);
 		delete moduleScope.define;
+		moduleScope._globalAssign = {
+			...(moduleScope._globalAssign || {}),
+			expect: this._options.env.expect
+		};
 		return moduleScope;
 	}
 }

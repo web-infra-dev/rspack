@@ -98,9 +98,13 @@ export class CommonJsRunner<
 		m: TModuleObject,
 		file: TBasicRunnerFile
 	): IBasicModuleScope {
+		const requirer: TRunnerRequirer & {
+			webpackTestSuiteRequire?: boolean;
+		} = requireFn.bind(null, path.dirname(file.path));
+		requirer.webpackTestSuiteRequire = true;
 		return {
 			...this.baseModuleScope!,
-			require: requireFn.bind(null, path.dirname(file.path)),
+			require: requirer,
 			module: m,
 			exports: m.exports,
 			__dirname: path.dirname(file.path),
@@ -170,7 +174,8 @@ export class CommonJsRunner<
 			}
 
 			const m = {
-				exports: {}
+				exports: {},
+				webpackTestSuiteModule: true
 			};
 			this.requireCache[file.path] = m;
 			const currentModuleScope = this.createModuleScope(
@@ -199,7 +204,6 @@ export class CommonJsRunner<
 					currentModuleScope.__STATS_I__ = statsIndex;
 				}
 			}
-
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
 			const code = `(function(${args.join(", ")}) {
