@@ -70,13 +70,16 @@ export abstract class BasicRunner<
 		if (typeof this._options.testConfig.moduleScope === "function") {
 			this._options.testConfig.moduleScope(
 				this.baseModuleScope,
-				this._options.stats
+				this._options.stats,
+				this._options.compilerOptions
 			);
 		}
 		this.createRunner();
 		const res = this.getRequire()(
 			this._options.dist,
-			file.startsWith("./") ? file : `./${file}`
+			file.startsWith("./") || file.startsWith("https://test.cases/")
+				? file
+				: `./${file}`
 		);
 		if (typeof res === "object" && "then" in res) {
 			return res;
@@ -125,6 +128,14 @@ export abstract class BasicRunner<
 					.join(", ")});`,
 				subPath: ""
 			};
+		} else if (modulePath.startsWith("https://test.cases/")) {
+			const relativePath = urlToRelativePath(modulePath);
+			const absPath = path.join(currentDirectory, relativePath);
+			res = {
+				path: absPath,
+				content: fs.readFileSync(absPath, "utf-8"),
+				subPath: ""
+			};
 		} else if (isRelativePath(modulePath)) {
 			const p = path.join(currentDirectory, modulePath);
 			res = {
@@ -137,14 +148,6 @@ export abstract class BasicRunner<
 				path: modulePath,
 				content: fs.readFileSync(modulePath, "utf-8"),
 				subPath: "absolute_path"
-			};
-		} else if (modulePath.startsWith("https://test.cases/path/")) {
-			const relativePath = urlToRelativePath(modulePath);
-			const absPath = path.join(currentDirectory, relativePath);
-			res = {
-				path: absPath,
-				content: fs.readFileSync(absPath, "utf-8"),
-				subPath: ""
 			};
 		}
 		if (this._options.cachable && res) {

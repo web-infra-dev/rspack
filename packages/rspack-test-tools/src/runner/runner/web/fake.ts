@@ -141,21 +141,6 @@ export class FakeDocumentWebRunner<
 		return moduleScope;
 	}
 
-	protected createJsonRequirer(): TRunnerRequirer {
-		return (currentDirectory, modulePath, context = {}) => {
-			if (Array.isArray(modulePath)) {
-				throw new Error("Array module path is not supported in hot cases");
-			}
-			const file = context.file || this.getFile(modulePath, currentDirectory);
-			if (!file) {
-				return this.requirers.get("miss")!(currentDirectory, modulePath);
-			}
-			return JSON.parse(
-				fs.readFileSync(path.join(this._options.dist, modulePath), "utf-8")
-			);
-		};
-	}
-
 	protected createRunner() {
 		super.createRunner();
 		this.requirers.set("cjs", this.getRequire());

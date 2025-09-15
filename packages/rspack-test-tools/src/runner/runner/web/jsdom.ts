@@ -18,7 +18,6 @@ export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends CommonJsRunner<T> {
 	private dom: JSDOM;
-	private requireCache: Record<string, any> = Object.create(null);
 	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
 		super(_webOptions);
 
@@ -193,7 +192,11 @@ export class JSDOMWebRunner<
 		);
 
 		if (this._options.testConfig.moduleScope) {
-			this._options.testConfig.moduleScope(currentModuleScope);
+			this._options.testConfig.moduleScope(
+				currentModuleScope,
+				this._options.stats,
+				this._options.compilerOptions
+			);
 		}
 
 		const scopeKey = escapeSep(file!.path);

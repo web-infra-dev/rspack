@@ -15,6 +15,7 @@
   ],
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
+    "@rspack/test-tools": "workspace:*",
     "@babel/preset-react": "^7.27.1",
     "@rspack/core": "workspace:*",
     "@webdiscus/pug-loader": "^2.11.1",

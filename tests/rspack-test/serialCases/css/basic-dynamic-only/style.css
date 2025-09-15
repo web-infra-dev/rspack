@@ -1,0 +1,6 @@
+@import url(https://test.cases/path/../../../../serialCases/css/import/external.css);
+@import "style-imported.css";
+
+body {
+	background: red;
+}

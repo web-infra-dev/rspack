@@ -1,1 +1,1 @@
-global.value = true;
+global.__test_value__ = true;

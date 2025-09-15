@@ -306,7 +306,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	}
 
 	protected createEnv(testConfig: TTestConfig<T>): ITestEnv {
-		if (typeof this._options.runner === "function" && !testConfig.noTest) {
+		if (typeof this._options.runner === "function" && !testConfig.noTests) {
 			return createLazyTestEnv(10000);
 		}
 		return {

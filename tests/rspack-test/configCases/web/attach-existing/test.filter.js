@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: no such file or directory when loading script";
