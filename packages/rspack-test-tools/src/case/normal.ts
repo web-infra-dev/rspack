@@ -2,7 +2,10 @@ import path from "node:path";
 import { HotModuleReplacementPlugin } from "@rspack/core";
 import { NormalProcessor } from "../processor/normal";
 import { NormalRunnerFactory } from "../runner";
-import { BasicCaseCreator, type IBasicCaseCreatorOptions } from "../test/creator";
+import {
+	BasicCaseCreator,
+	type IBasicCaseCreatorOptions
+} from "../test/creator";
 import { ECompilerType } from "../type";
 
 const NORMAL_CASES_ROOT = path.resolve(
