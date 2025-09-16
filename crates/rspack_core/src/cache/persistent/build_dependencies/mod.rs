@@ -92,7 +92,6 @@ impl BuildDeps {
   pub async fn validate(&mut self) -> Result<()> {
     let (_, modified_files, removed_files, no_changed_files) =
       self.snapshot.calc_modified_paths().await?;
-
     if !modified_files.is_empty() || !removed_files.is_empty() {
       self.storage.reset().await;
 

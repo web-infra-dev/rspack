@@ -29,6 +29,7 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.done.tapPromise("Test Plugin", async function () {
+					console.log("done hook", new Date().valueOf());
 					if (index === 0) {
 						await fs.writeFile(buildDependencyA, String(content));
 						index++;
@@ -42,6 +43,11 @@ module.exports = {
 						index++;
 						content++;
 					}
+					console.log(
+						"aaaa",
+						new Date().valueOf(),
+						await fs.readFile(buildDependencyA)
+					);
 				});
 			}
 		}

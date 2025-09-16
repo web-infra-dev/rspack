@@ -159,6 +159,10 @@ impl StrategyHelper {
         }
       }
       Strategy::PathHash { compile_time, hash } => {
+        println!(
+          "compare {:?} {:?} {:?} {:?}",
+          path, compile_time, hash, modified_time
+        );
         if &modified_time < compile_time {
           return ValidateResult::NoChanged;
         }

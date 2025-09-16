@@ -112,6 +112,7 @@ impl PersistentCache {
         return;
       }
     };
+    println!("self.async_mode {:?}", self.async_mode);
     if self.async_mode {
       tokio::spawn(async {
         if let Err(err) = rx.await.expect("should receive message") {
