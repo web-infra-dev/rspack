@@ -3494,14 +3494,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_base64"
-version = "0.5.4"
-dependencies = [
- "base64-simd 0.8.0",
- "regex",
-]
-
-[[package]]
 name = "rspack_benchmark"
 version = "0.5.4"
 dependencies = [
@@ -3754,7 +3746,6 @@ dependencies = [
  "regex",
  "rkyv 0.8.8",
  "ropey",
- "rspack_base64",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_dojang",
@@ -4101,7 +4092,6 @@ dependencies = [
  "async-trait",
  "mime_guess",
  "rayon",
- "rspack_base64",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
@@ -4219,7 +4209,6 @@ dependencies = [
  "memchr",
  "rayon",
  "regex",
- "rspack_base64",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -4358,7 +4347,6 @@ dependencies = [
  "itertools 0.14.0",
  "path-clean 1.0.1",
  "rayon",
- "rspack_base64",
  "rspack_core",
  "rspack_dojang",
  "rspack_error",
@@ -4746,7 +4734,6 @@ dependencies = [
  "cow-utils",
  "once_cell",
  "regex",
- "rspack_base64",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -4810,7 +4797,6 @@ dependencies = [
  "pathdiff",
  "rayon",
  "regex",
- "rspack_base64",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -5031,6 +5017,7 @@ name = "rspack_util"
 version = "0.5.4"
 dependencies = [
  "anyhow",
+ "base64-simd 0.8.0",
  "bitflags 2.9.1",
  "concat-string",
  "cow-utils",

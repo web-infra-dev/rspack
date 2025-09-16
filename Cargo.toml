@@ -145,7 +145,6 @@ rspack_dojang = { version = "0.1.11", default-features = false }
 # all rspack workspace dependencies
 rspack                                 = { version = "=0.5.4", path = "crates/rspack", default-features = false }
 rspack_allocator                       = { version = "=0.5.4", path = "crates/rspack_allocator", default-features = false }
-rspack_base64                          = { version = "=0.5.4", path = "crates/rspack_base64", default-features = false }
 rspack_binding_api                     = { version = "=0.5.4", path = "crates/rspack_binding_api", default-features = false }
 rspack_binding_build                   = { version = "=0.5.4", path = "crates/rspack_binding_build", default-features = false }
 rspack_binding_builder                 = { version = "=0.5.4", path = "crates/rspack_binding_builder", default-features = false }
