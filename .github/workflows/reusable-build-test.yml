@@ -68,10 +68,7 @@ jobs:
     strategy:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
       matrix:
-        node: ${{ fromJSON(
-          inputs.target == 'wasm32-wasip1-threads'&& '[20]'
-          || contains(inputs.target, 'linux') && '[18, 20, 22]'
-          || '[22]') }}
+        node: ${{ fromJSON('[22]') }}
     name: Test Node ${{ matrix.node }}
     defaults:
       run:
@@ -104,6 +101,9 @@ jobs:
         uses: ./.github/actions/pnpm/install-dependencies
         with:
           save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
+
+      - name: Debug
+        uses: ./.github/actions/debugger
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
