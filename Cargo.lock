@@ -2061,6 +2061,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06432fb54d3be7964ecd3649233cddf80db2832f47fec34c01f65b3d9d774983"
 
 [[package]]
+name = "io-uring"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "046fa2d4d00aea763528b4950358d0ead425372445dc8ff86312b3c69ff7727b"
+dependencies = [
+ "bitflags 2.9.1",
+ "cfg-if",
+ "libc",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4909,9 +4920,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbe5f72302219f584a16ffabdc8f89a4fc245d7c8b185df09db9fc11d55ac846"
+checksum = "c8680fe2525e9823c41cd53103aa27a2d1a22f412ea00913a91d5dd300a2d767"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -6793,13 +6804,17 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.44.2"
+version = "1.47.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6b88822cbe49de4185e3a4cbf8321dd487cf5fe0c5c65695fef6346371e9c48"
+checksum = "89e49afdadebb872d3145a5638b59eb0691ea23e46ca484037cfab3b76b95038"
 dependencies = [
  "backtrace",
+ "io-uring",
+ "libc",
+ "mio",
  "parking_lot",
  "pin-project-lite",
+ "slab",
  "tokio-macros",
  "tracing",
 ]
