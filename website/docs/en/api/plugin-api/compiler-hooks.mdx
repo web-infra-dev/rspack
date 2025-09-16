@@ -105,7 +105,6 @@ HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
 HookNeedAdditionalPass --> |true| HookAdditionalDone(hooks.done)
 HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
 HookAdditionPass --> Compile
-HookNeedAdditionalPass --> |false| HookEmitRecords(hooks.emitRecords)
 HookEmitRecords --> HookDone
 HookDone --> HookFailed(<a href="#failed">hooks.failed</a>)
 HookFailed --> Callback("callback(err, stats)")
