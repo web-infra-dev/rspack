@@ -2,7 +2,7 @@
 
 import type EventEmitter from "node:events";
 import type {
-	Compilation as RspackCompilation, 
+	Compilation as RspackCompilation,
 	Compiler as RspackCompiler,
 	MultiStats as RspackMultiStats,
 	RspackOptions,
@@ -10,7 +10,7 @@ import type {
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
 import type {
-	Compilation as WebpackCompilation, 
+	Compilation as WebpackCompilation,
 	Compiler as WebpackCompiler,
 	MultiStats as WebpackMultiStats,
 	Configuration as WebpackOptions,
