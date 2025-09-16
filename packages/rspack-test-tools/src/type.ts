@@ -2,6 +2,7 @@
 
 import type EventEmitter from "node:events";
 import type {
+	Compilation as RspackCompilation,
 	Compiler as RspackCompiler,
 	MultiStats as RspackMultiStats,
 	RspackOptions,
@@ -9,6 +10,7 @@ import type {
 	StatsCompilation as RspackStatsCompilation
 } from "@rspack/core";
 import type {
+	Compilation as WebpackCompilation,
 	Compiler as WebpackCompiler,
 	MultiStats as WebpackMultiStats,
 	Configuration as WebpackOptions,
@@ -56,6 +58,9 @@ export type TCompilerOptions<T> = T extends ECompilerType.Rspack
 export type TCompiler<T> = T extends ECompilerType.Rspack
 	? RspackCompiler
 	: WebpackCompiler;
+export type TCompilation<T> = T extends ECompilerType.Rspack
+	? RspackCompilation
+	: WebpackCompilation;
 export type TCompilerStats<T> = T extends ECompilerType.Rspack
 	? RspackStats
 	: WebpackStats;
@@ -73,6 +78,9 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 	mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
 	getCompiler(): TCompiler<T> | null;
 	createCompiler(): TCompiler<T>;
+	createCompilerWithCallback(
+		callback: (error: Error | null, stats: TCompilerStats<T> | null) => void
+	): TCompiler<T>;
 	build(): Promise<TCompilerStats<T>>;
 	watch(timeout?: number): void;
 	getStats(): TCompilerStats<T> | TCompilerMultiStats<T> | null;
@@ -93,7 +101,7 @@ export interface ITesterConfig {
 	temp?: string;
 	steps?: ITestProcessor[];
 	testConfig?: TTestConfig<ECompilerType>;
-	compilerFactories?: TCompilerFactories;
+	compilerFactories?: TCompilerFactories<ECompilerType>;
 	contextValue?: Record<string, unknown>;
 	runnerFactory?: new (
 		name: string,
@@ -239,7 +247,8 @@ export interface ITestRunner {
 }
 
 export type TCompilerFactory<T extends ECompilerType> = (
-	options: TCompilerOptions<T> | TCompilerOptions<T>[]
+	options: TCompilerOptions<T> | TCompilerOptions<T>[],
+	callback?: (error: Error | null, stats: TCompilerStats<T> | null) => void
 ) => TCompiler<T>;
 
 export interface TRunnerFactory<T extends ECompilerType> {
@@ -256,7 +265,7 @@ export type TUpdateOptions = {
 	changedFiles: string[];
 };
 
-export type TCompilerFactories = Record<
-	ECompilerType,
-	TCompilerFactory<ECompilerType>
+export type TCompilerFactories<T extends ECompilerType> = Record<
+	T,
+	TCompilerFactory<T>
 >;

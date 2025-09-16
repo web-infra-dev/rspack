@@ -1,4 +1,4 @@
-/** @type {import('../..').TCompilerCaseConfig} */
+/** @type {import('@rspack/core').TCompilerCaseConfig} */
 module.exports = {
 	description: "splitChunks.minChunks equals 0",
 	options(context) {
@@ -21,7 +21,7 @@ module.exports = {
 			});
 		});
 	},
-	async check(context) {
+	async check({ context }) {
 		const errors = context.getError('compiler/splitchunks-minchunks');
 		expect(Array.isArray(errors)).toBeTruthy();
 		expect(errors.length).toBe(1);

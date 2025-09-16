@@ -4,6 +4,8 @@
 
 ```ts
 
+import type { Compilation } from '@rspack/core';
+import type { Compilation as Compilation_2 } from 'webpack';
 import { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
@@ -967,6 +969,8 @@ export interface ISimpleProcessorOptions<T extends ECompilerType> {
     // (undocumented)
     compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
     // (undocumented)
+    compilerCallback?: (error: Error | null, stats: TCompilerStats<T> | null) => void;
+    // (undocumented)
     compilerType: T;
     // (undocumented)
     name: string;
@@ -1025,6 +1029,8 @@ export interface ITestCompilerManager<T extends ECompilerType> {
     close(): Promise<void>;
     // (undocumented)
     createCompiler(): TCompiler<T>;
+    // (undocumented)
+    createCompilerWithCallback(callback: (error: Error | null, stats: TCompilerStats<T> | null) => void): TCompiler<T>;
     // (undocumented)
     getCompiler(): TCompiler<T> | null;
     // (undocumented)
@@ -1112,7 +1118,7 @@ export interface ITester {
 // @public (undocumented)
 export interface ITesterConfig {
     // (undocumented)
-    compilerFactories?: TCompilerFactories;
+    compilerFactories?: TCompilerFactories<ECompilerType>;
     // (undocumented)
     contextValue?: Record<string, unknown>;
     // (undocumented)
@@ -1441,18 +1447,30 @@ export type TCompareResult = {
 };
 
 // @public (undocumented)
+export type TCompilation<T> = T extends ECompilerType.Rspack ? Compilation : Compilation_2;
+
+// @public (undocumented)
 export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_2;
 
 // @public (undocumented)
-export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType" | "check"> & {
     description: string;
+    error?: boolean;
+    skip?: boolean;
+    check?: ({ context, stats, files, compiler, compilation }: {
+        context: ITestContext;
+        stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
+        files?: Record<string, string>;
+        compiler: TCompiler<ECompilerType.Rspack>;
+        compilation?: TCompilation<ECompilerType.Rspack>;
+    }) => Promise<void>;
 };
 
 // @public (undocumented)
-export type TCompilerFactories = Record<ECompilerType, TCompilerFactory<ECompilerType>>;
+export type TCompilerFactories<T extends ECompilerType> = Record<T, TCompilerFactory<T>>;
 
 // @public (undocumented)
-export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
+export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[], callback?: (error: Error | null, stats: TCompilerStats<T> | null) => void) => TCompiler<T>;
 
 // @public (undocumented)
 export type TCompilerMultiStats<T> = T extends ECompilerType.Rspack ? MultiStats : MultiStats_2;

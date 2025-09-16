@@ -48,7 +48,7 @@ class MyPlugin {
 
 const outputFileSystem = createFsFromVolume(new Volume());
 
-/** @type {import('../..').TCompilerCaseConfig} */
+/** @type {import('@rspack/core').TCompilerCaseConfig} */
 module.exports = {
 	description:
 		"should pass the new compiler and compilation instance in loader",
