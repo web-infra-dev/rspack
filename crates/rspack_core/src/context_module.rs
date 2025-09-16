@@ -888,14 +888,30 @@ impl Module for ContextModule {
       id += ")/";
     }
     id += &contextify(options.context, self.options.resource.as_str());
-    id.push(' ');
-    id.push_str(self.options.context_options.mode.as_str());
+    id += " ";
+    id += self.options.context_options.mode.as_str();
     if self.options.context_options.recursive {
-      id.push_str(" recursive");
+      id += " recursive";
+    }
+    if !self.options.addon.is_empty() {
+      id += " ";
+      id += &self.options.addon;
     }
     if let Some(regexp) = &self.options.context_options.reg_exp {
-      id.push(' ');
-      id.push_str(&regexp.to_pretty_string(true));
+      id += " ";
+      id += &regexp.to_pretty_string(true);
+    }
+    if let Some(include) = &self.options.context_options.include {
+      id += " include: ";
+      id += &include.to_pretty_string(true);
+    }
+    if let Some(exclude) = &self.options.context_options.exclude {
+      id += " exclude: ";
+      id += &exclude.to_pretty_string(true);
+    }
+    if let Some(exports) = &self.options.context_options.referenced_exports {
+      id += " referencedExports: ";
+      id += &exports.iter().map(|ids| ids.iter().join(".")).join(", ");
     }
     Some(Cow::Owned(id))
   }
@@ -1115,17 +1131,7 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   }
   if let Some(exports) = &options.context_options.referenced_exports {
     id += "|referencedExports: ";
-    id += &format!(
-      "[{}]",
-      exports
-        .iter()
-        .map(|ids| if ids.is_empty() {
-          String::from("*")
-        } else {
-          ids.iter().join(".")
-        })
-        .join(", ")
-    );
+    id += &exports.iter().map(|ids| ids.iter().join(".")).join(", ");
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {

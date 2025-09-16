@@ -499,7 +499,7 @@ fn walk_import_then_fulfilled_callback(
       .map(|p| Cow::Borrowed(&p.pat))
       .collect()
   } else if let Some(arrow_expr) = fulfilled_callback.as_arrow() {
-    arrow_expr.params.iter().map(|p| Cow::Borrowed(p)).collect()
+    arrow_expr.params.iter().map(Cow::Borrowed).collect()
   } else {
     unreachable!()
   };
