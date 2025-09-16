@@ -196,7 +196,49 @@ When this configuration is `["testExports", "exports"]`, the result of `import v
 - **Type:** `string[]`
 - **Default:** `[".js", ".json", ".wasm"]`
 
-Parse modules in order, e.g. `require('. /index')`, will try to parse `'. /index.js'`, `'. /index.json'`...
+Automatically resolve file extensions when importing modules. This means you can import files without explicitly writing their extensions.
+
+For example, if importing `./index`, Rspack will try to resolve using the following order:
+
+- `./index.js`
+- `./index.json`
+- `./index.wasm`
+
+### Example
+
+Here's how to configure custom extensions including TypeScript and JSX files:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
+  },
+};
+```
+
+When multiple files with the same name but different extensions exist, Rspack will resolve the file with the extension that appears first in the array.
+
+For example, if both `index.js` and `index.ts` exist in the same directory, and your configuration is `['.ts', '.js']`, then `import './index'` will resolve to `index.ts`.
+
+### Extend default value
+
+Note that configuring `resolve.extensions` will completely override the default array, which means Rspack will no longer attempt to resolve modules using the default extensions.
+
+To include the default extensions alongside your custom ones, you can use the spread syntax `'...'`:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    // equivalent to ['.ts', '.js', '.json', '.wasm']
+    extensions: ['.ts', '...'],
+  },
+};
+```
+
+### Performance considerations
+
+- Avoid adding too many extensions as each one adds overhead to the resolution process. Keep the `extensions` array as short as possible to improve resolution performance.
+- Place the most commonly used extensions first in the array.
 
 ## resolve.extensionAlias
 
