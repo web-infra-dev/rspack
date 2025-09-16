@@ -264,6 +264,9 @@ export function createHotCase(name: string, src: string, dist: string, target: T
 export function createHotIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
 
 // @public (undocumented)
+export function createHotNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
