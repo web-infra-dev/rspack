@@ -8,9 +8,6 @@ import { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
 import type { Configuration } from 'webpack';
 import type EventEmitter from 'node:events';
-import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
-import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
-import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
 import { MultiCompiler } from '@rspack/core';
 import type { MultiStats } from '@rspack/core';
 import type { MultiStats as MultiStats_2 } from 'webpack';
@@ -22,7 +19,6 @@ import type { Stats as Stats_2 } from 'webpack';
 import type { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
 import type { StatsError } from '@rspack/core';
-import { TRunnerRequirer as TRunnerRequirer_2 } from '..';
 import type { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
@@ -84,7 +80,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
     // (undocumented)
     config(context: ITestContext): Promise<void>;
     // (undocumented)
-    protected getCompiler(context: ITestContext): ITestCompilerManager_2<T>;
+    protected getCompiler(context: ITestContext): ITestCompilerManager<T>;
     // (undocumented)
     protected _options: IBasicProcessorOptions<T>;
     // (undocumented)
@@ -310,7 +306,7 @@ export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTask
     // (undocumented)
     protected _defaultsConfigOptions: IDefaultsConfigProcessorOptions<T>;
     // (undocumented)
-    protected getCompiler(context: ITestContext): ITestCompilerManager_2<T>;
+    protected getCompiler(context: ITestContext): ITestCompilerManager<T>;
     // (undocumented)
     static getDefaultConfig(cwd: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
     // (undocumented)
@@ -457,11 +453,11 @@ export class EsmRunner<T extends ECompilerType = ECompilerType.Rspack> extends C
 export class FakeDocumentWebRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
     constructor(_webOptions: IBasicRunnerOptions<T>);
     // (undocumented)
-    protected createBaseModuleScope(): IBasicModuleScope_2;
+    protected createBaseModuleScope(): IBasicModuleScope;
     // (undocumented)
-    protected createGlobalContext(): IBasicGlobalContext_2;
+    protected createGlobalContext(): IBasicGlobalContext;
     // (undocumented)
-    protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope_2;
+    protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope;
     // (undocumented)
     protected createRunner(): void;
     // (undocumented)
@@ -1216,7 +1212,7 @@ export interface IWebRunnerOptions<T extends ECompilerType = ECompilerType.Rspac
 export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
     constructor(_webOptions: IBasicRunnerOptions<T>);
     // (undocumented)
-    protected createBaseModuleScope(): IBasicModuleScope_2;
+    protected createBaseModuleScope(): IBasicModuleScope;
     // (undocumented)
     protected createJSDOMRequirer(): TRunnerRequirer;
     // (undocumented)
@@ -1364,7 +1360,7 @@ export class SimpleTaskProcessor<T extends ECompilerType> implements ITestProces
     // (undocumented)
     config(context: ITestContext): Promise<void>;
     // (undocumented)
-    protected getCompiler(context: ITestContext): ITestCompilerManager_2<T>;
+    protected getCompiler(context: ITestContext): ITestCompilerManager<T>;
     // (undocumented)
     protected _options: ISimpleProcessorOptions<T>;
     // (undocumented)
@@ -1763,7 +1759,7 @@ export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> implement
     // (undocumented)
     getGlobal(name: string): unknown;
     // (undocumented)
-    getRequire(): TRunnerRequirer_2;
+    getRequire(): TRunnerRequirer;
     // (undocumented)
     protected originMethods: Partial<CommonJsRunner>;
     // (undocumented)
