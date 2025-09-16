@@ -196,7 +196,49 @@ export default {
 - **类型：** `string[]`
 - **默认值：** `[".js", ".json", ".wasm"]`
 
-按照顺序解析模块，例如 `require('./index')`，会依次尝试解析 `'./index.js'`、`'./index.json'`...
+自动添加导入文件的扩展名。这意味着你可以导入文件，而不需要显式地写它们的扩展名。
+
+例如，当导入 `./index` 时，Rspack 将尝试按以下顺序解析：
+
+- `./index.js`
+- `./index.json`
+- `./index.wasm`
+
+### 示例
+
+下面演示如何配置自定义扩展名来包含 TypeScript 和 JSX 文件：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
+  },
+};
+```
+
+当同一目录下存在同名但扩展名不同的多个文件时，Rspack 会选择在数组中位置更靠前的扩展名对应的文件进行解析。
+
+例如，如果同一目录下同时存在 `index.js` 和 `index.ts`，而你的配置是 `['.ts', '.js']`，那么 `import './index'` 将会解析为 `index.ts`。
+
+### 扩展默认值
+
+注意：显式配置 `resolve.extensions` 会完全覆盖默认数组，这意味着 Rspack 将不再尝试使用默认扩展名进行解析。
+
+如果你希望在自定义扩展名的同时保留默认扩展名，可以使用展开语法 `'...'`：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    // 等价于 ['.ts', '.js', '.json', '.wasm']
+    extensions: ['.ts', '...'],
+  },
+};
+```
+
+### 性能建议
+
+- 避免添加过多扩展名，因为每个扩展名都会增加解析开销。尽量保持 `extensions` 数组精简以提升解析性能。
+- 将最常用的扩展名放在数组前面。
 
 ## resolve.extensionAlias
 
