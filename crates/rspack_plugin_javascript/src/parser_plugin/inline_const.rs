@@ -1,7 +1,7 @@
 use rspack_core::{
-  ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ExportsInfoGetter,
-  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  PrefetchExportsInfoMode, RuntimeSpec, UsageState, UsedName,
+  ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ExportsInfo,
+  ExportsInfoGetter, GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, PrefetchExportsInfoMode, RuntimeSpec, UsageState, UsedName,
 };
 use rspack_util::ryu_js;
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDeclarator};
@@ -168,28 +168,20 @@ impl DependencyConditionFn for InlineValueDependencyCondition {
     let dependency = mg
       .dependency_by_id(&self.dependency_id)
       .expect("should have dependency");
-    let ids = if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-      dependency.get_ids(mg)
-    } else if let Some(dependency) =
+    let ids = if let Some(dependency) =
       dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
     {
+      let ids = dependency.get_ids(mg);
+      // Optimize if all exports are inlinable for star re-export (export * as a from "./m", export * from "./m")
+      if ids.is_empty() {
+        return ConnectionState::Active(is_export_active(mg, mg.get_exports_info(module), runtime));
+      }
+      ids
+    } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
       dependency.get_ids(mg)
     } else {
-      panic!("should be ESMImportSpecifierDependency or ESMExportImportedSpecifierDependency")
+      unreachable!("should be ESMImportSpecifierDependency or ESMExportImportedSpecifierDependency")
     };
-    if ids.is_empty() {
-      // Optimize if all exports are inlinable for star export
-      let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
-      if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
-        return bailout;
-      }
-      for (_, export_info) in exports_info.exports() {
-        if export_info.can_inline().is_none() {
-          return bailout;
-        }
-      }
-      return ConnectionState::Active(false);
-    }
     let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
     if matches!(
       ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids),
@@ -206,4 +198,24 @@ impl DependencyConditionFn for InlineValueDependencyCondition {
     }
     rest
   }
+}
+
+fn is_export_active(
+  mg: &ModuleGraph,
+  exports_info: ExportsInfo,
+  runtime: Option<&RuntimeSpec>,
+) -> bool {
+  let exports_info = exports_info.as_data(mg);
+  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
+    return true;
+  }
+  if let Some(redirect_to) = exports_info.redirect_to() {
+    return is_export_active(mg, redirect_to, runtime);
+  }
+  for export_info in exports_info.exports().values() {
+    if export_info.can_inline().is_none() {
+      return true;
+    }
+  }
+  false
 }
