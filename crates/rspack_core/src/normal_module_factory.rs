@@ -592,6 +592,14 @@ impl NormalModuleFactory {
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);
 
+    let build_info = module.build_info_mut();
+    build_info
+      .file_dependencies
+      .extend(data.file_dependencies.iter().cloned());
+    build_info
+      .missing_dependencies
+      .extend(data.missing_dependencies.iter().cloned());
+
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
 
