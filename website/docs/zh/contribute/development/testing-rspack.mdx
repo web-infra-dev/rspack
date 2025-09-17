@@ -10,11 +10,11 @@ Rspack 的测试用例包括如下：
 可以通过如下方式运行这些测试用例：
 
 - 根目录下运行 `./x test unit` 或 `pnpm run test:unit`。
-- 或在 `packages/rspack-test-tools` 目录下运行 `npm run test`。
-- 如需更新 snapshot，在 `packages/rspack-test-tools` 目录下运行 `npm run test -- -u`。
-- 如需传入特定 jest cli 参数，在 `packages/rspack-test-tools` 目录下运行 `npm run test -- {args}`。
-- 如需过滤特定测试用例，在 `packages/rspack-test-tools` 目录下运行 `npm run test  -- -t path-of-spec`。
-  - 如 `npm run test -- -t config/asset` 即可仅运行 `packages/rspack-test-tools/configCases/asset` 文件夹下的用例（config 会自动映射到 configCases，其他文件夹类似）。
+- 或在 `tests/rspack-test` 目录下运行 `npm run test`。
+- 如需更新 snapshot，在 `tests/rspack-test` 目录下运行 `npm run test -- -u`。
+- 如需传入特定 jest cli 参数，在 `tests/rspack-test` 目录下运行 `npm run test -- {args}`。
+- 如需过滤特定测试用例，在 `tests/rspack-test` 目录下运行 `npm run test  -- -t path-of-spec`。
+  - 如 `npm run test -- -t config/asset` 即可仅运行 `tests/rspack-test/configCases/asset` 文件夹下的用例（config 会自动映射到 configCases，其他文件夹类似）。
 - 如需使用 Rspack Wasm 运行测试用例，需要额外配置以下环境变量：
   1. `NAPI_RS_FORCE_WASI=1`： 强制使用 Rspack Wasm 而不是原生绑定
   2. `WASM=1`：启用 Wasm 专用的测试配置
@@ -206,7 +206,7 @@ Snapshot 结构如下：
 | 默认配置 | [StatsProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats.ts#L190) |
 | 产物运行 | `否`                                                                                                                       |
 
-用例的编写与常规的 rspack 项目相同，运行后会将控制台输出信息生成快照并存放在 `rspack-test-tools/tests/__snapshots__/StatsOutput.test.js.snap` 中。
+用例的编写与常规的 rspack 项目相同，运行后会将控制台输出信息生成快照并存放在 `tests/rspack-test/__snapshots__/StatsOutput.test.js.snap` 中。
 
 :::tip
 由于部分 StatsOutput 测试用例包含 hash。因此当你修改了产物代码时，请通过 `-u` 参数刷新这些用例的快照。
@@ -221,7 +221,7 @@ Snapshot 结构如下：
 | 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats-api.ts) |
 | 产物运行 | `否`                                                                                                            |
 
-此测试固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
+此测试固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
 ```js title="{case}.js"
 type TStatsAPICaseConfig = {
@@ -281,7 +281,7 @@ module.exports = {
 | 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/simple.ts) |
 | 产物运行 | `否`                                                                                                         |
 
-此测试固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
+此测试固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
 ```js title="{case.js}"
 interface TCompilerCaseConfig {
@@ -312,14 +312,14 @@ module.exports = {
 | 默认配置 | [`无`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/defaults.ts) |
 | 产物运行 | `否`                                                                                                           |
 
-此测试不会执行真实的构建，仅会生成构建配置并观察与默认配置的差异。基础的默认配置会生成快照并存放在 `rspack-test-tools/tests/__snapshots__/Defaults.test.js.snap` 中。
+此测试不会执行真实的构建，仅会生成构建配置并观察与默认配置的差异。基础的默认配置会生成快照并存放在 `tests/rspack-test/__snapshots__/Defaults.test.js.snap` 中。
 
-此测试固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
+此测试固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此用例以单文件编写，其输出结构如下：
 
 ```js title="{case}.js"
 interface TDefaultsCaseConfig {
   description: string; // 用例描述
-  cwd?: string; // 用例的生成构建配置时的 process.cwd，默认为 `rspack-test-tools` 目录
+  cwd?: string; // 用例的生成构建配置时的 process.cwd，默认为 `tests/rspack-test` 目录
   options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>; // 用例构建配置
   diff: (
     diff: jest.JestMatchers<Diff>,
@@ -343,7 +343,7 @@ module.exports = {
 | 默认配置 | [ErrorProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/error.ts#L84) |
 | 产物运行 | `否`                                                                                                                      |
 
-此测试的用例固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此测试用例以特定的配置结构编写：
+此测试的用例固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此测试用例以特定的配置结构编写：
 
 ```js title="{case}.js"
 interface TErrorCaseConfig {
@@ -374,7 +374,7 @@ module.exports = {
 
 会记录 hook 的出入参并存放在快照 `hooks.snap.txt` 中，最终产物代码的快照存放在 `output.snap.txt` 中。
 
-此测试的用例固定使用 `rspack-test-tools/tests/fixtures` 作为构建的源码，因此测试用例以特定的配置结构编写：
+此测试的用例固定使用 `tests/rspack-test/fixtures` 作为构建的源码，因此测试用例以特定的配置结构编写：
 
 ```js title="{case}/test.js"
 interface THookCaseConfig {
