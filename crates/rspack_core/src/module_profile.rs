@@ -1,48 +1,34 @@
-use std::time::{Duration, Instant};
-
-use once_cell::sync::OnceCell;
+use std::time::Instant;
 
 #[derive(Debug, Default, Clone)]
-pub struct TimeRange {
-  start: OnceCell<Instant>,
-  end: OnceCell<Instant>,
+enum ProfileState {
+  #[default]
+  Pending,
+  Started(Instant),
+  // u64 is enough to store the time consumption
+  Finish(u64),
 }
 
-impl TimeRange {
-  pub fn with_value(start: Instant, end: Instant) -> Self {
-    Self {
-      start: OnceCell::with_value(start),
-      end: OnceCell::with_value(end),
+impl ProfileState {
+  fn start(&mut self) {
+    *self = Self::Started(Instant::now())
+  }
+
+  fn end(&mut self) {
+    match self {
+      Self::Started(i) => {
+        let time = Instant::now().duration_since(*i);
+        *self = Self::Finish(time.as_millis() as u64)
+      }
+      _ => panic!("Unable to end a unstarted profiler"),
     }
   }
 
-  pub fn duration(&self) -> Option<Duration> {
-    if let Some(end) = self.end.get()
-      && let Some(start) = self.start.get()
-    {
-      Some(end.duration_since(*start))
-    } else {
-      None
+  fn duration(&self) -> Option<u64> {
+    match self {
+      Self::Finish(time) => Some(*time),
+      _ => None,
     }
-  }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct ModulePhaseProfile {
-  range: TimeRange,
-  parallelism_factor: OnceCell<u16>,
-}
-
-impl ModulePhaseProfile {
-  pub fn duration(&self) -> Option<Duration> {
-    self.range.duration()
-  }
-
-  pub fn set_parallelism_factor(&self, factor: u16) {
-    self
-      .parallelism_factor
-      .set(factor)
-      .expect("should only call once");
   }
 }
 
@@ -51,44 +37,32 @@ impl ModulePhaseProfile {
 
 #[derive(Debug, Default, Clone)]
 pub struct ModuleProfile {
-  pub factory: ModulePhaseProfile,
-  pub building: ModulePhaseProfile,
+  factory: ProfileState,
+  building: ProfileState,
 }
 
 impl ModuleProfile {
-  pub fn mark_factory_start(&self) {
-    self
-      .factory
-      .range
-      .start
-      .set(Instant::now())
-      .expect("should only call once");
+  pub fn mark_factory_start(&mut self) {
+    self.factory.start();
   }
 
-  pub fn mark_factory_end(&self) {
-    self
-      .factory
-      .range
-      .end
-      .set(Instant::now())
-      .expect("should only call once");
+  pub fn mark_factory_end(&mut self) {
+    self.factory.end();
   }
 
-  pub fn mark_building_start(&self) {
-    self
-      .building
-      .range
-      .start
-      .set(Instant::now())
-      .expect("should only call once");
+  pub fn mark_building_start(&mut self) {
+    self.building.start();
   }
 
-  pub fn mark_building_end(&self) {
-    self
-      .building
-      .range
-      .end
-      .set(Instant::now())
-      .expect("should only call once");
+  pub fn mark_building_end(&mut self) {
+    self.building.end();
+  }
+
+  pub fn factory_duration(&self) -> Option<u64> {
+    self.factory.duration()
+  }
+
+  pub fn building_duration(&self) -> Option<u64> {
+    self.building.duration()
   }
 }

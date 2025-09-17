@@ -38,12 +38,12 @@ impl Task<TaskContext> for BuildTask {
       compiler_options,
       resolver_factory,
       plugin_driver,
-      current_profile,
+      mut current_profile,
       mut module,
       fs,
       forwarded_ids,
     } = *self;
-    if let Some(current_profile) = &current_profile {
+    if let Some(current_profile) = &mut current_profile {
       current_profile.mark_building_start();
     }
 
@@ -67,7 +67,7 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
-    if let Some(current_profile) = &current_profile {
+    if let Some(current_profile) = &mut current_profile {
       current_profile.mark_building_end();
     }
 

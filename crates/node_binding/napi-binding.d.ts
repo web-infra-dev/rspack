@@ -1353,11 +1353,6 @@ export interface JsStatsLogging {
   trace?: Array<string>
 }
 
-export interface JsStatsMillisecond {
-  secs: number
-  subsecMillis: number
-}
-
 export interface JsStatsModule {
   commonAttributes: JsStatsModuleCommonAttributes
   dependent?: boolean
@@ -1402,8 +1397,8 @@ export interface JsStatsModuleIssuer {
 }
 
 export interface JsStatsModuleProfile {
-  factory: JsStatsMillisecond
-  building: JsStatsMillisecond
+  factory: number
+  building: number
 }
 
 export interface JsStatsModuleReason {

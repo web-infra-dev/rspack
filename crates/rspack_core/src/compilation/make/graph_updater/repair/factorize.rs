@@ -35,8 +35,8 @@ impl Task<TaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Background
   }
-  async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
-    if let Some(current_profile) = &self.current_profile {
+  async fn background_run(mut self: Box<Self>) -> TaskResult<TaskContext> {
+    if let Some(current_profile) = &mut self.current_profile {
       current_profile.mark_factory_start();
     }
     let dependency = &self.dependencies[0];
@@ -110,7 +110,7 @@ impl Task<TaskContext> for FactorizeTask {
       }
     };
 
-    if let Some(current_profile) = &self.current_profile {
+    if let Some(current_profile) = &mut self.current_profile {
       current_profile.mark_factory_end();
     }
 
