@@ -10,11 +10,11 @@ Rspack's test cases include the following:
 You can run these test cases in the following ways:
 
 - Run `./x test unit` or `pnpm run test:unit` from the root directory.
-- Or run `npm run test` from the `packages/rspack-test-tools` directory.
-- To update snapshots, run `npm run test -- -u` from the `packages/rspack-test-tools` directory.
-- To pass specific jest cli arguments, run `npm run test -- {args}` from the `packages/rspack-test-tools` directory.
-- To filter specific test cases, run `npm run test -- -t path-of-spec` from the `packages/rspack-test-tools` directory.
-  - Like `npm run test -- -t config/asset` to only run test cases from the `packages/rspack-test-tools/configCases/asset` folder (config will be automatically mapped to configCases, and other folders will work in a similar way).
+- Or run `npm run test` from the `tests/rspack-test` directory.
+- To update snapshots, run `npm run test -- -u` from the `tests/rspack-test` directory.
+- To pass specific jest cli arguments, run `npm run test -- {args}` from the `tests/rspack-test` directory.
+- To filter specific test cases, run `npm run test -- -t path-of-spec` from the `tests/rspack-test` directory.
+  - Like `npm run test -- -t config/asset` to only run test cases from the `tests/rspack-test/configCases/asset` folder (config will be automatically mapped to configCases, and other folders will work in a similar way).
 - To use Rspack Wasm for running test cases, you need to additionally configure the following environment variables:
   1. `NAPI_RS_FORCE_WASI=1`: Forces the use of Rspack Wasm instead of native binding
   2. `WASM=1`: Enables Wasm-specific test configurations
@@ -208,7 +208,7 @@ In the test code, you can use the `WATCH_STEP` variable to get the current batch
 | Default Configuration | [StatsProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats.ts#L190) |
 | Run Output            | `No`                                                                                                                       |
 
-The writing of the cases is the same as in a regular rspack project. After running, the console output information will be captured in snapshots and stored in `rspack-test-tools/tests/__snapshots__/StatsOutput.test.js.snap`.
+The writing of the cases is the same as in a regular rspack project. After running, the console output information will be captured in snapshots and stored in `tests/rspack-test/__snapshots__/StatsOutput.test.js.snap`.
 
 :::tip
 As some StatsOutput test cases contain hashes, when you modify the output code, please use the `-u` parameter to update the snapshots for these cases.
@@ -223,7 +223,7 @@ As some StatsOutput test cases contain hashes, when you modify the output code, 
 | Default Configuration | [`None`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats-api.ts) |
 | Run Output            | `No`                                                                                                              |
 
-This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
+This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
 ```js title="{case}.js"
 type TStatsAPICaseConfig = {
@@ -283,7 +283,7 @@ module.exports = {
 | Default Configuration | [None](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/simple.ts) |
 | Run Output            | No                                                                                                           |
 
-This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
+This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
 ```js title="{case.js}"
 interface TCompilerCaseConfig {
@@ -314,14 +314,14 @@ module.exports = {
 | Default Configuration | [None](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/defaults.ts) |
 | Run Output            | No                                                                                                             |
 
-This test does not execute real builds; it only generates build configurations and observes the differences from the default configuration. The basic default configuration will be snapshot and stored in `rspack-test-tools/tests/__snapshots__/Defaults.test.js.snap`.
+This test does not execute real builds; it only generates build configurations and observes the differences from the default configuration. The basic default configuration will be snapshot and stored in `tests/rspack-test/__snapshots__/Defaults.test.js.snap`.
 
-This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
+This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
 ```js title="{case}.js"
 interface TDefaultsCaseConfig {
   description: string; // Description of the test case
-  cwd?: string; // process.cwd for generating the build configuration of the test case, default is the `rspack-test-tools` directory
+  cwd?: string; // process.cwd for generating the build configuration of the test case, default is the `tests/rspack-test` directory
   options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>; // Test case build configuration
   diff: (
     diff: jest.JestMatchers<Diff>,
@@ -347,7 +347,7 @@ The details for the Error test are as follows:
 | Default Configuration | [ErrorProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/error.ts#L84) |
 | Run Output            | No                                                                                                                        |
 
-This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
+This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
 ```js title="{case}.js"
 interface TErrorCaseConfig {
@@ -378,7 +378,7 @@ module.exports = {
 
 This test records the input and output of the hook and stores it in the snapshot `hooks.snap.txt`. The snapshot of the final product code is stored in `output.snap.txt`.
 
-This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
+This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
 ```js title="{case}/test.js"
 interface THookCaseConfig {

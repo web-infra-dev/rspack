@@ -55,10 +55,10 @@ Rspack's test cases are stored in the `tests/rspack-test` folder, including uniq
 
 You can run Rspack tests by running `./x test unit` or `pnpm run test:unit` at the root folder.
 
-You can also go to the `packages/rspack-test-tools` folder and run `npm run test` to run test cases and add some arguments:
+You can also go to the `tests/rspack-test` folder and run `npm run test` to run test cases and add some arguments:
 
 - **When refreshing test snapshots is needed**: Add `-u`, like `npm run test -- -u`
-- **When filtering test cases is needed**: Add `-t`, like `npm run test -- -t config/asset` to only run test cases from the `packages/rspack-test-tools/configCases/asset` folder (`config` will be automatically mapped to `configCases`, and other folders work similarly). Pattern matching supports regex, see [jest](https://jestjs.io/docs/cli#--testnamepatternregex) for details.
+- **When filtering test cases is needed**: Add `-t`, like `npm run test -- -t config/asset` to only run test cases from the `tests/rspack-test/configCases/asset` folder (`config` will be automatically mapped to `configCases`, and other folders work similarly). Pattern matching supports regex, see [jest](https://jestjs.io/docs/cli#--testnamepatternregex) for details.
 
 > For more details, please refer to: [Rspack Testing](./testing-rspack).
 
