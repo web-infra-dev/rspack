@@ -1459,8 +1459,14 @@ fn determine_export_assignments(
   let mut dependency_indices =
     Vec::with_capacity(dependencies.len() + usize::from(additional_dependency.is_some()));
 
+  let mut handled_modules = IdentifierSet::default();
+
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
+      if !handled_modules.insert(*module_identifier) {
+        dependency_indices.push(names.len());
+        continue;
+      }
       let exports_info = module_graph
         .get_exports_info(module_identifier)
         .as_data(module_graph);
