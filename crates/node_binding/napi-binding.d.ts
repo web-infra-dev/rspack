@@ -1538,7 +1538,7 @@ export interface NapiResolveOptions {
    * Create aliases to import or require certain modules more easily.
    * A trailing $ can also be added to the given object's keys to signify an exact match.
    */
-  alias?: Record<string, Array<string | undefined | null>>
+  alias?: Record<string, string | false | string[]>
   /**
    * A list of alias fields in description files.
    * Specify a field, such as `browser`, to be parsed according to [this specification](https://github.com/defunctzombie/package-browser-field-spec).

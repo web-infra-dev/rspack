@@ -1,8 +1,9 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use napi::Either;
+use napi::bindgen_prelude::{Either, Either3};
 use napi_derive::napi;
 use regex::Regex;
+use rspack_resolver::AliasValue;
 
 /// Module Resolution Options
 ///
@@ -23,7 +24,8 @@ pub struct NapiResolveOptions {
   /// AliasValue::Path(String)`
   /// Create aliases to import or require certain modules more easily.
   /// A trailing $ can also be added to the given object's keys to signify an exact match.
-  pub alias: Option<HashMap<String, Vec<Option<String>>>>,
+  #[napi(ts_type = "Record<string, string | false | string[]>")]
+  pub alias: Option<HashMap<String, AliasRawValueType>>,
 
   /// A list of alias fields in description files.
   /// Specify a field, such as `browser`, to be parsed according to [this specification](https://github.com/defunctzombie/package-browser-field-spec).
@@ -266,6 +268,30 @@ impl From<StrOrStrList> for Vec<String> {
     match value {
       StrOrStrList(Either::A(s)) => Vec::from([s]),
       StrOrStrList(Either::B(a)) => a,
+    }
+  }
+}
+
+pub type AliasRawValueType = Either3<Option<String>, bool, Vec<Option<String>>>;
+pub(crate) struct AliasRawValue(pub AliasRawValueType);
+
+impl From<AliasRawValue> for Vec<AliasValue> {
+  fn from(value: AliasRawValue) -> Self {
+    match value.0 {
+      Either3::A(opt) => match opt {
+        Some(s) => vec![AliasValue::Path(s)],
+        None => vec![AliasValue::Ignore],
+      },
+      Either3::B(_) => {
+        vec![AliasValue::Ignore]
+      }
+      Either3::C(vec) => vec
+        .into_iter()
+        .map(|opt| match opt {
+          Some(s) => AliasValue::Path(s),
+          None => AliasValue::Ignore,
+        })
+        .collect(),
     }
   }
 }
