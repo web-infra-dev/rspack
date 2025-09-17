@@ -501,7 +501,7 @@ cacheable modules 1 MiB
   modules by path ./src/ xx KiB
     ./src/index.js xx bytes [built] [code generated]
     ./src/pages/home.js xx KiB [built] [code generated]
-  Xdir/dynamic-import/src/pages|lazy|/^\\\\.\\\\/.*$/|chunkName: pages/[request]|groupOptions: {}|namespace object xx bytes [built] [code generated]
+  Xdir/dynamic-import/src/pages|lazy|/^\\\\.\\\\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -721,7 +721,7 @@ cacheable modules xx bytes
     ./templates/baz.js xx bytes [built] [code generated]
     ./templates/foo.js xx bytes [built] [code generated]
   ./entry.js xx bytes [built] [code generated]
-  Xdir/import-xxx.js$/|referencedExports: [*]|groupOptions: {}|namespace object xx bytes [built] [code generated]
+  Xdir/import-xxx.js$/|referencedExports: |groupOptions: {}|namespace object xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -2151,6 +2151,7 @@ cacheable modules xx bytes
       |   esm export import specifier ./CompAB ./components/src/index.js 1:0-40 (skipped side-effect-free modules)
       |   esm import specifier ./components ./main.js 4:15-20 (skipped side-effect-free modules)
     ./foo.js xx bytes [built] [code generated]
+      [only some exports used: default]
       import() ./foo ./main.js
 Rspack x.x.x compiled successfully in X.23"
 `;
@@ -2947,7 +2948,7 @@ chunk (runtime: main) 28c603ffa1d25701.module.wasm, 448bdf8d3829b42d.module.wasm
   ./tests.js xx KiB [built] [code generated]
 chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   ./index.js xx bytes [built] [code generated]
-runtime modules xx KiB 11 modules
+runtime modules xx KiB 10 modules
 cacheable modules xx KiB (wasm) xx KiB (javascript)
   webassembly modules xx KiB (wasm) xx bytes (javascript)
     ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
