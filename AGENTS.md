@@ -33,6 +33,9 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 ### Key Commands
 
 ```bash
+# Setup up the develop environment
+pnpm run setup
+
 # Build Rust bindings (development)
 pnpm run build:binding:dev
 
@@ -50,6 +53,10 @@ pnpm run test:webpack   # webpack compatibility tests
 # Linting
 pnpm run lint:js        # Linting with Biome
 pnpm run lint:type      # Type checking with Rslint
+
+# Format
+pnpm run format:js      # Format using prettier
+pnpm run format:rs      # Format using cargo fmt
 ```
 
 ### File Organization
