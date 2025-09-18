@@ -8,7 +8,7 @@ import {
 	type TCompilerStatsCompilation,
 	type TRunnerFactory
 } from "../type";
-import { BasicRunner } from "./runner/basic";
+import { NodeRunner } from "./runner/node";
 import { WebRunner } from "./runner/web";
 
 export class BasicRunnerFactory<T extends ECompilerType>
@@ -88,6 +88,6 @@ export class BasicRunnerFactory<T extends ECompilerType>
 					this.context.getValue(this.name, "documentType") || EDocumentType.Fake
 			});
 		}
-		return new BasicRunner<T>(runnerOptions);
+		return new NodeRunner<T>(runnerOptions);
 	}
 }

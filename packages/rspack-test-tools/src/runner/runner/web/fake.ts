@@ -12,20 +12,16 @@ import FakeDocument, {
 } from "../../../helper/legacy/FakeDocument";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
-import {
-	EEsmMode,
-	type TBasicRunnerFile,
-	type TRunnerRequirer
-} from "../../type";
-import { BasicRunner, type IBasicRunnerOptions } from "../basic";
+import { EEsmMode, type TRunnerFile, type TRunnerRequirer } from "../../type";
+import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 export class FakeDocumentWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends BasicRunner<T> {
+> extends NodeRunner<T> {
 	private document: FakeDocument;
 	private oldCurrentScript: CurrentScript | null = null;
 
-	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
+	constructor(protected _webOptions: INodeRunnerOptions<T>) {
 		super(_webOptions);
 		this.document = new FakeDocument(_webOptions.dist, {
 			onScript: (node: FakeElement) => {
@@ -105,7 +101,7 @@ export class FakeDocumentWebRunner<
 	protected createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: any,
-		file: TBasicRunnerFile
+		file: TRunnerFile
 	) {
 		const subModuleScope = super.createModuleScope(requireFn, m, file);
 		subModuleScope.importScripts = (url: string) => {
@@ -140,13 +136,13 @@ export class FakeDocumentWebRunner<
 		return moduleScope;
 	}
 
-	protected preExecute(_: string, file: TBasicRunnerFile): void {
+	protected preExecute(_: string, file: TRunnerFile): void {
 		this.oldCurrentScript = this.document.currentScript;
 		this.document.currentScript = new CurrentScript(file.subPath);
 		super.preExecute(_, file);
 	}
 
-	protected postExecute(_: Object, file: TBasicRunnerFile): void {
+	protected postExecute(_: Object, file: TRunnerFile): void {
 		super.postExecute(_, file);
 		this.document.currentScript = this.oldCurrentScript;
 		this.oldCurrentScript = null;

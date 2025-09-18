@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import vm, { SourceTextModule } from "node:vm";
-import asModule from "../../helper/legacy/asModule";
-import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
+import asModule from "../../../helper/legacy/asModule";
+import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type {
 	ECompilerType,
 	ITestEnv,
@@ -11,15 +11,15 @@ import type {
 	TCompilerOptions,
 	TCompilerStatsCompilation,
 	TTestConfig
-} from "../../type";
+} from "../../../type";
 import {
 	EEsmMode,
-	type IBasicGlobalContext,
-	type IBasicModuleScope,
-	type TBasicRunnerFile,
+	type IGlobalContext,
+	type IModuleScope,
 	type TModuleObject,
+	type TRunnerFile,
 	type TRunnerRequirer
-} from "../type";
+} from "../../type";
 
 declare global {
 	var printLogger: boolean;
@@ -47,9 +47,9 @@ const getSubPath = (p: string) => {
 	return "";
 };
 
-const cached = new Map<string, TBasicRunnerFile>();
+const cached = new Map<string, TRunnerFile>();
 
-export interface IBasicRunnerOptions<T extends ECompilerType> {
+export interface INodeRunnerOptions<T extends ECompilerType> {
 	env: ITestEnv;
 	stats?: () => TCompilerStatsCompilation<T>;
 	name: string;
@@ -60,15 +60,15 @@ export interface IBasicRunnerOptions<T extends ECompilerType> {
 	compilerOptions: TCompilerOptions<T>;
 	cachable?: boolean;
 }
-export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
+export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 	implements ITestRunner
 {
 	protected requireCache = Object.create(null);
 
-	protected globalContext: IBasicGlobalContext | null = null;
-	protected baseModuleScope: IBasicModuleScope | null = null;
+	protected globalContext: IGlobalContext | null = null;
+	protected baseModuleScope: IModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
-	constructor(protected _options: IBasicRunnerOptions<T>) {}
+	constructor(protected _options: INodeRunnerOptions<T>) {}
 
 	run(file: string): Promise<unknown> {
 		if (!this.globalContext) {
@@ -109,7 +109,7 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 		return ((this.globalContext || {}) as Record<string, unknown>)[name];
 	}
 
-	protected createGlobalContext(): IBasicGlobalContext {
+	protected createGlobalContext(): IGlobalContext {
 		return {
 			console: {
 				log: (...args: any[]) => {
@@ -159,8 +159,8 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 			clearTimeout: clearTimeout
 		};
 	}
-	protected createBaseModuleScope(): IBasicModuleScope {
-		const baseModuleScope: IBasicModuleScope = {
+	protected createBaseModuleScope(): IModuleScope {
+		const baseModuleScope: IModuleScope = {
 			console: this.globalContext!.console,
 			setTimeout: this.globalContext!.setTimeout,
 			clearTimeout: this.globalContext!.clearTimeout,
@@ -185,8 +185,8 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 	protected createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: TModuleObject,
-		file: TBasicRunnerFile
-	): IBasicModuleScope {
+		file: TRunnerFile
+	): IModuleScope {
 		const requirer: TRunnerRequirer & {
 			webpackTestSuiteRequire?: boolean;
 		} = requireFn.bind(null, path.dirname(file.path));
@@ -207,7 +207,7 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 	protected getFile(
 		modulePath: string[] | string,
 		currentDirectory: string
-	): TBasicRunnerFile | null {
+	): TRunnerFile | null {
 		const cacheKey = `${currentDirectory}|${modulePath}`;
 		if (this._options.cachable && cached.has(cacheKey)) {
 			return cached.get(cacheKey)!;
@@ -251,8 +251,8 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 		return res;
 	}
 
-	protected preExecute(code: string, file: TBasicRunnerFile) {}
-	protected postExecute(m: Object, file: TBasicRunnerFile) {}
+	protected preExecute(code: string, file: TRunnerFile) {}
+	protected postExecute(m: Object, file: TRunnerFile) {}
 
 	protected createRunner() {
 		this.requirers.set("cjs", this.createCjsRequirer());
@@ -322,6 +322,7 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 				return require("@rspack/test-tools");
 			}
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			console.log("file", file);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -335,6 +336,11 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 				webpackTestSuiteModule: true
 			};
 			this.requireCache[file.path] = m;
+
+			if (!this._options.runInNewContext) {
+				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
+			}
+
 			const currentModuleScope = this.createModuleScope(
 				this.getRequire(),
 				m,
@@ -347,10 +353,6 @@ export class BasicRunner<T extends ECompilerType = ECompilerType.Rspack>
 					this._options.stats,
 					this._options.compilerOptions
 				);
-			}
-
-			if (!this._options.runInNewContext) {
-				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
 			}
 			if (file.content.includes("__STATS__") && this._options.stats) {
 				currentModuleScope.__STATS__ = this._options.stats();

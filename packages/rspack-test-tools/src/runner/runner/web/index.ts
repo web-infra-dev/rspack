@@ -3,21 +3,21 @@ import {
 	EDocumentType,
 	type ITestRunner
 } from "../../../type";
-import type { BasicRunner, IBasicRunnerOptions } from "../basic";
+import type { INodeRunnerOptions, NodeRunner } from "../node";
 import { FakeDocumentWebRunner } from "./fake";
 import { JSDOMWebRunner } from "./jsdom";
 
 export interface IWebRunnerOptions<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends IBasicRunnerOptions<T> {
+> extends INodeRunnerOptions<T> {
 	dom: EDocumentType;
 }
 
 export class WebRunner<T extends ECompilerType = ECompilerType.Rspack>
 	implements ITestRunner
 {
-	protected originMethods: Partial<BasicRunner<T>> = {};
-	private implement: BasicRunner<T>;
+	protected originMethods: Partial<NodeRunner<T>> = {};
+	private implement: NodeRunner<T>;
 	constructor(protected _webOptions: IWebRunnerOptions<T>) {
 		const { dom } = _webOptions;
 		if (dom === EDocumentType.Fake) {
