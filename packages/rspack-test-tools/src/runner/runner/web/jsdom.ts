@@ -8,15 +8,14 @@ import EventSource from "../../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
 import type { TBasicRunnerFile, TRunnerRequirer } from "../../type";
-import type { IBasicRunnerOptions } from "../basic";
-import { CommonJsRunner } from "../cjs";
+import { BasicRunner, type IBasicRunnerOptions } from "../basic";
 
 // Compatibility code to suppress iconv-lite warnings
 require("iconv-lite").skipDecodeWarning = true;
 
 export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends CommonJsRunner<T> {
+> extends BasicRunner<T> {
 	private dom: JSDOM;
 	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
 		super(_webOptions);

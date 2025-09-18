@@ -17,12 +17,11 @@ import {
 	type TBasicRunnerFile,
 	type TRunnerRequirer
 } from "../../type";
-import type { IBasicRunnerOptions } from "../basic";
-import { CommonJsRunner } from "../cjs";
+import { BasicRunner, type IBasicRunnerOptions } from "../basic";
 
 export class FakeDocumentWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends CommonJsRunner<T> {
+> extends BasicRunner<T> {
 	private document: FakeDocument;
 	private oldCurrentScript: CurrentScript | null = null;
 
@@ -141,37 +140,6 @@ export class FakeDocumentWebRunner<
 		return moduleScope;
 	}
 
-	protected createRunner() {
-		super.createRunner();
-		this.requirers.set("cjs", this.getRequire());
-		this.requirers.set("mjs", this.createESMRequirer());
-		this.requirers.set("json", this.createJsonRequirer());
-
-		this.requirers.set("entry", (_, modulePath, context) => {
-			if (Array.isArray(modulePath)) {
-				throw new Error("Array module path is not supported in web runner");
-			}
-			if (modulePath.endsWith(".json")) {
-				return this.requirers.get("json")!(
-					this._options.dist,
-					modulePath,
-					context
-				);
-			} else if (modulePath.endsWith(".mjs")) {
-				return this.requirers.get("mjs")!(
-					this._options.dist,
-					modulePath,
-					context
-				);
-			}
-			return this.requirers.get("cjs")!(
-				this._options.dist,
-				modulePath,
-				context
-			);
-		});
-	}
-
 	protected preExecute(_: string, file: TBasicRunnerFile): void {
 		this.oldCurrentScript = this.document.currentScript;
 		this.document.currentScript = new CurrentScript(file.subPath);
@@ -184,7 +152,7 @@ export class FakeDocumentWebRunner<
 		this.oldCurrentScript = null;
 	}
 
-	private createESMRequirer(): TRunnerRequirer {
+	protected createEsmRequirer(): TRunnerRequirer {
 		const esmContext = vm.createContext(
 			{
 				...this.baseModuleScope!,
