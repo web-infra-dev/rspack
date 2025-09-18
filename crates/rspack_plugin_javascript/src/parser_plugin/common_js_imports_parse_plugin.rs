@@ -21,6 +21,7 @@ use crate::{
   visitors::{
     JavascriptParser, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
   },
+  webpack_comment::try_extract_webpack_magic_comment,
 };
 
 fn create_commonjs_require_context_dependency(
@@ -131,6 +132,21 @@ impl CommonJsImportsParserPlugin {
       return;
     }
 
+    if let ExprOrSpread {
+      spread: None,
+      expr: argument_expr,
+    } = &call_expr.args[0]
+    {
+      let magic_comment_options =
+        try_extract_webpack_magic_comment(parser, call_expr.span, argument_expr.span());
+      if magic_comment_options
+        .get_webpack_ignore()
+        .unwrap_or_default()
+      {
+        return;
+      }
+    }
+
     let argument_expr = &call_expr.args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
     let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
@@ -196,6 +212,20 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
     let arg = &call_expr.args[0];
+    if let ExprOrSpread {
+      spread: None,
+      expr: argument_expr,
+    } = arg
+    {
+      let magic_comment_options =
+        try_extract_webpack_magic_comment(parser, call_expr.span, argument_expr.span());
+      if magic_comment_options
+        .get_webpack_ignore()
+        .unwrap_or_default()
+      {
+        return None;
+      }
+    }
     let param = parser.evaluate_expression(&arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
@@ -252,8 +282,22 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let argument_expr = &args[0].expr;
-    let param = parser.evaluate_expression(argument_expr);
+    if let ExprOrSpread {
+      spread: None,
+      expr: argument_expr,
+    } = &args[0]
+    {
+      let magic_comment_options =
+        try_extract_webpack_magic_comment(parser, expr.span(), argument_expr.span());
+      if magic_comment_options
+        .get_webpack_ignore()
+        .unwrap_or_default()
+      {
+        return None;
+      }
+    }
+
+    let param = parser.evaluate_expression(&args[0].expr);
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {
