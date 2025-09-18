@@ -365,7 +365,7 @@ When this configuration is ["testImports", "imports"], the result of `import val
 - **Type:** `string[]`
 - **Default:** Based on the [target](/config/target) option
 
-When importing from an npm package, for example `import React from 'react'`, `resolve.mainFields` is used to determine which fields in `package.json` are resolved.
+Controls the priority of fields in a package.json used to locate a package's entry file. It is the ordered list of package.json fields Rspack will try when resolving an npm package's entry point.
 
 If `target` is `'web'`, `'webworker'`, or not specified, the default value is `["browser", "module", "main"]`.
 
@@ -398,6 +398,20 @@ For example, consider an arbitrary library called `foo` with a `package.json` th
 ```
 
 When `import foo from 'foo'`, Rspack resolves to the module in the `browser` field, because the `browser` field has the highest priority in `mainFields` array.
+
+Note that the ["exports"](#resolveconditionnames) field takes precedence over `mainFields`. If an entry is resolved via `exports`, Rspack ignores the `browser`, `module`, and `main` fields.
+
+For example, with the following package.json, `lib` is resolved via the `exports` field to `./dist/index.mjs`, and the `main` field is ignored.
+
+```json title="package.json"
+{
+  "name": "lib",
+  "main": "./dist/index.cjs",
+  "exports": {
+    ".": "./dist/index.mjs"
+  }
+}
+```
 
 ## resolve.mainFiles
 
