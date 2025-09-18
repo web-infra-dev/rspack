@@ -2327,6 +2327,7 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+  commonjsMagicComments?: boolean
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental

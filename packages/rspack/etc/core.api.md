@@ -3377,6 +3377,7 @@ export type JavascriptParserOptions = {
     requireDynamic?: boolean;
     requireResolve?: boolean;
     importDynamic?: boolean;
+    commonjsMagicComments?: boolean;
     inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 };

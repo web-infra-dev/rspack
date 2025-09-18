@@ -127,6 +127,24 @@ impl CallOrNewExpr<'_> {
 pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
+  fn has_webpack_ignore_comment(
+    parser: &mut JavascriptParser,
+    error_span: Span,
+    span: Span,
+  ) -> bool {
+    if !parser
+      .javascript_options
+      .commonjs_magic_comments
+      .unwrap_or(false)
+    {
+      return false;
+    }
+
+    try_extract_webpack_magic_comment(parser, error_span, span)
+      .get_webpack_ignore()
+      .unwrap_or_default()
+  }
+
   fn process_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, weak: bool) {
     if call_expr.args.len() != 1 {
       return;
@@ -137,12 +155,7 @@ impl CommonJsImportsParserPlugin {
       expr: argument_expr,
     } = &call_expr.args[0]
     {
-      let magic_comment_options =
-        try_extract_webpack_magic_comment(parser, call_expr.span, argument_expr.span());
-      if magic_comment_options
-        .get_webpack_ignore()
-        .unwrap_or_default()
-      {
+      if Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span()) {
         return;
       }
     }
@@ -217,12 +230,7 @@ impl CommonJsImportsParserPlugin {
       expr: argument_expr,
     } = arg
     {
-      let magic_comment_options =
-        try_extract_webpack_magic_comment(parser, call_expr.span, argument_expr.span());
-      if magic_comment_options
-        .get_webpack_ignore()
-        .unwrap_or_default()
-      {
+      if Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span()) {
         return None;
       }
     }
@@ -287,12 +295,7 @@ impl CommonJsImportsParserPlugin {
       expr: argument_expr,
     } = &args[0]
     {
-      let magic_comment_options =
-        try_extract_webpack_magic_comment(parser, expr.span(), argument_expr.span());
-      if magic_comment_options
-        .get_webpack_ignore()
-        .unwrap_or_default()
-      {
+      if Self::has_webpack_ignore_comment(parser, expr.span(), argument_expr.span()) {
         return None;
       }
     }

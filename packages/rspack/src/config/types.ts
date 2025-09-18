@@ -1108,6 +1108,11 @@ export type JavascriptParserOptions = {
 	// TODO: add docs
 	importDynamic?: boolean;
 
+	/**
+	 * Enable magic comments for CommonJS require() expressions.
+	 */
+	commonjsMagicComments?: boolean;
+
 	/** Inline const values in this module */
 	inlineConst?: boolean;
 
