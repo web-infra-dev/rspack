@@ -323,9 +323,6 @@ name = "bitflags"
 version = "2.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "bitvec"
@@ -1082,7 +1079,6 @@ dependencies = [
  "dtoa-short",
  "itoa",
  "phf",
- "serde",
  "smallvec",
 ]
 
@@ -2249,7 +2245,6 @@ dependencies = [
  "parcel_sourcemap",
  "paste",
  "pathdiff",
- "serde",
  "smallvec",
  "static-self",
 ]
@@ -2778,7 +2773,6 @@ dependencies = [
  "phf_codegen",
  "precomputed-hash",
  "rustc-hash",
- "serde",
  "smallvec",
  "static-self",
 ]
