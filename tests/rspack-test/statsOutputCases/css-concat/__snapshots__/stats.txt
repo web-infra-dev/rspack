@@ -1,0 +1,8 @@
+asset main.js xx KiB [emitted] (name: main)
+asset main.css 24 bytes [emitted] (name: main)
+Entrypoint main xx KiB = main.js xx KiB main.css 24 bytes
+runtime modules xx KiB 6 modules
+cacheable modules 62 bytes (javascript) 23 bytes (css)
+  ./index.js 20 bytes [built] [code generated]
+  ./foo.css 42 bytes (javascript) 23 bytes (css) [built] [code generated]
+Rspack x.x.x compiled successfully in X s
