@@ -1,0 +1,12 @@
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Unexpected token `let`. Expected let is reserved in const, let, class declaration
+         ╭────
+       1 │ let let = let;
+         ·     ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+Rspack compiled with 1 error

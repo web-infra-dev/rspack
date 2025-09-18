@@ -922,7 +922,7 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
 // @public (undocumented)
 export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
     // (undocumented)
-    snapshotName?: string;
+    snapshotName: string;
     // (undocumented)
     writeStatsOuptut?: boolean;
 }

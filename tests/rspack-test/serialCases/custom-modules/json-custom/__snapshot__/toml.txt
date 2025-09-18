@@ -1,0 +1,10 @@
+Object {
+  owner: Object {
+    bio: GitHub Cofounder & CEO
+Likes tater tots and beer.,
+    dob: 1979-05-27T07<LINE_COL>.000Z,
+    name: Tom Preston-Werner,
+    organization: GitHub,
+  },
+  title: TOML Example,
+}

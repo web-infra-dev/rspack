@@ -9,7 +9,7 @@ it("should compile", () => {
 		css.push(link.sheet.css);
 	}
 
-	expect(css).toMatchSnapshot();
+	expect(css).toMatchFileSnapshot(`${__SNAPSHOT__}/css.txt`);
 });
 
 it("should re-export", (done) => {
