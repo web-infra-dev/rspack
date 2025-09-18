@@ -658,6 +658,7 @@ export const getRspackOptionsSchema = memoize(() => {
 		"tolerant",
 		"tolerant-no-check"
 	]);
+	const jsx = z.boolean();
 
 	const javascriptParserOptions = z
 		.strictObject({
@@ -684,7 +685,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			requireResolve: requireResolve,
 			importDynamic: importDynamic,
 			inlineConst: inlineConst,
-			typeReexportsPresence: typeReexportsPresence
+			typeReexportsPresence: typeReexportsPresence,
+			jsx: jsx
 			// #endregion
 		})
 		.partial() satisfies z.ZodType<t.JavascriptParserOptions>;

@@ -298,6 +298,9 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub type_reexports_presence: Option<String>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  pub jsx: Option<bool>,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -344,6 +347,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       import_dynamic: value.import_dynamic,
       commonjs_magic_comments: value.commonjs_magic_comments,
       inline_const: value.inline_const,
+      jsx: value.jsx,
     }
   }
 }

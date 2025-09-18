@@ -7,11 +7,13 @@ use swc_core::{
     ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
     BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class, ClassExpr,
     ClassMember, CondExpr, DefaultDecl, DoWhileStmt, ExportDefaultDecl, Expr, ExprOrSpread,
-    ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetterProp, Ident, IfStmt,
-    KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr, ModuleDecl, ModuleItem,
-    NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat, Prop,
-    PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget, Stmt,
-    SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp,
+    ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetterProp, Ident,
+    IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild,
+    JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr, JSXNamespacedName,
+    JSXObject, KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr, ModuleDecl,
+    ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat,
+    Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget,
+    Stmt, SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp,
     UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
   },
 };
@@ -431,12 +433,18 @@ impl JavascriptParser<'_> {
       Expr::Update(expr) => self.walk_update_expression(expr),
       Expr::Yield(expr) => self.walk_yield_expression(expr),
       Expr::SuperProp(_) | Expr::Lit(_) | Expr::PrivateName(_) | Expr::Invalid(_) => (),
+      Expr::JSXMember(_) | Expr::JSXNamespacedName(_) | Expr::JSXEmpty(_) => {
+        self.ensure_jsx_enabled();
+      }
+      Expr::JSXElement(element) => {
+        self.ensure_jsx_enabled();
+        self.walk_jsx_element(element);
+      }
+      Expr::JSXFragment(fragment) => {
+        self.ensure_jsx_enabled();
+        self.walk_jsx_fragment(fragment);
+      }
       Expr::Paren(_)
-      | Expr::JSXMember(_)
-      | Expr::JSXNamespacedName(_)
-      | Expr::JSXEmpty(_)
-      | Expr::JSXElement(_)
-      | Expr::JSXFragment(_)
       | Expr::TsTypeAssertion(_)
       | Expr::TsConstAssertion(_)
       | Expr::TsNonNull(_)
@@ -514,6 +522,114 @@ impl JavascriptParser<'_> {
     } else {
       self.walk_expressions(exprs);
     }
+  }
+
+  fn ensure_jsx_enabled(&self) {
+    if !self.javascript_options.jsx.unwrap_or_default() {
+      unreachable!();
+    }
+  }
+
+  fn walk_jsx_element(&mut self, element: &JSXElement) {
+    self.walk_jsx_element_name(&element.opening.name);
+    if element.opening.type_args.is_some() {
+      // JSX type arguments only exist in TSX; this walker assumes pure JSX input.
+      unreachable!();
+    }
+    for attr in &element.opening.attrs {
+      self.walk_jsx_attr_or_spread(attr);
+    }
+    for child in &element.children {
+      self.walk_jsx_child(child);
+    }
+    if let Some(closing) = &element.closing {
+      self.walk_jsx_element_name(&closing.name);
+    }
+  }
+
+  fn walk_jsx_fragment(&mut self, fragment: &JSXFragment) {
+    for child in &fragment.children {
+      self.walk_jsx_child(child);
+    }
+  }
+
+  fn walk_jsx_child(&mut self, child: &JSXElementChild) {
+    match child {
+      JSXElementChild::JSXElement(element) => self.walk_jsx_element(element),
+      JSXElementChild::JSXFragment(fragment) => self.walk_jsx_fragment(fragment),
+      JSXElementChild::JSXExprContainer(container) => self.walk_jsx_expr_container(container),
+      JSXElementChild::JSXSpreadChild(spread) => self.walk_expression(&spread.expr),
+      JSXElementChild::JSXText(_) => (),
+    }
+  }
+
+  fn walk_jsx_expr_container(&mut self, container: &JSXExprContainer) {
+    match &container.expr {
+      JSXExpr::Expr(expr) => self.walk_expression(expr),
+      JSXExpr::JSXEmptyExpr(_) => (),
+    }
+  }
+
+  fn walk_jsx_attr_or_spread(&mut self, attr: &JSXAttrOrSpread) {
+    match attr {
+      JSXAttrOrSpread::JSXAttr(attr) => self.walk_jsx_attr(attr),
+      JSXAttrOrSpread::SpreadElement(spread) => self.walk_expression(&spread.expr),
+    }
+  }
+
+  fn walk_jsx_attr(&mut self, attr: &JSXAttr) {
+    if let Some(value) = &attr.value {
+      self.walk_jsx_attr_value(value);
+    }
+  }
+
+  fn walk_jsx_attr_value(&mut self, value: &JSXAttrValue) {
+    match value {
+      JSXAttrValue::Lit(_) => (),
+      JSXAttrValue::JSXExprContainer(container) => self.walk_jsx_expr_container(container),
+      JSXAttrValue::JSXElement(element) => self.walk_jsx_element(element),
+      JSXAttrValue::JSXFragment(fragment) => self.walk_jsx_fragment(fragment),
+    }
+  }
+
+  fn walk_jsx_element_name(&mut self, name: &JSXElementName) {
+    match name {
+      JSXElementName::Ident(ident) => self.walk_identifier(ident),
+      JSXElementName::JSXMemberExpr(member) => self.walk_jsx_member_expr(member),
+      JSXElementName::JSXNamespacedName(namespaced) => self.walk_jsx_namespaced_name(namespaced),
+    }
+  }
+
+  fn walk_jsx_member_expr(&mut self, member: &JSXMemberExpr) {
+    let member_expr = Self::jsx_member_expr_to_member_expr(member);
+    self.walk_member_expression(&member_expr);
+  }
+
+  fn jsx_member_expr_to_member_expr(member: &JSXMemberExpr) -> MemberExpr {
+    MemberExpr {
+      span: member.span,
+      obj: Box::new(Self::jsx_object_to_expr(&member.obj)),
+      prop: MemberProp::Ident(member.prop.clone()),
+    }
+  }
+
+  fn jsx_object_to_expr(obj: &JSXObject) -> Expr {
+    match obj {
+      JSXObject::Ident(ident) => Expr::Ident(ident.clone()),
+      JSXObject::JSXMemberExpr(member) => {
+        Expr::Member(Self::jsx_member_expr_to_member_expr(member))
+      }
+    }
+  }
+
+  fn walk_jsx_namespaced_name(&mut self, name: &JSXNamespacedName) {
+    self.walk_ident_name(&name.ns);
+    self.walk_ident_name(&name.name);
+  }
+
+  fn walk_ident_name(&mut self, name: &IdentName) {
+    let ident: Ident = name.clone().into();
+    self.walk_identifier(&ident);
   }
 
   fn walk_object_expression(&mut self, expr: &ObjectLit) {

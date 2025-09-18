@@ -1716,6 +1716,7 @@ impl ModuleOptionsBuilder {
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
           inline_const: Some(false),
+          jsx: Some(false),
           ..Default::default()
         }),
       );
