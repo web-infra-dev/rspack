@@ -288,6 +288,8 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub require_resolve: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub import_dynamic: Option<bool>,
   pub commonjs_magic_comments: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
