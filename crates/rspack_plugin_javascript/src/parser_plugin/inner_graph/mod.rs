@@ -26,5 +26,5 @@ pub fn connection_active_used_by_exports(
     mg.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
   used_by_exports
     .iter()
-    .any(|name| exports_info.get_used(&[name.clone()], runtime) != UsageState::Unused)
+    .any(|name| exports_info.get_used(std::slice::from_ref(name), runtime) != UsageState::Unused)
 }

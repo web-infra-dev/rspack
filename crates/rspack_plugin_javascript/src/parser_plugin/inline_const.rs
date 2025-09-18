@@ -161,7 +161,7 @@ pub fn connection_active_inline_value_for_esm_import_specifier(
   let Some(export_info) = exports_info.get_read_only_export_info_recursive(ids) else {
     return true;
   };
-  !export_info.get_inline().is_some()
+  export_info.get_inline().is_none()
 }
 
 pub fn connection_active_inline_value_for_esm_export_imported_specifier(
@@ -191,7 +191,7 @@ pub fn connection_active_inline_value_for_esm_export_imported_specifier(
     let Some(export_info) = exports_info.get_read_only_export_info_recursive(&item.ids) else {
       return true;
     };
-    if !export_info.get_inline().is_some() {
+    if export_info.get_inline().is_none() {
       return true;
     }
   }
