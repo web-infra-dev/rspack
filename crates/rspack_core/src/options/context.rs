@@ -147,6 +147,6 @@ fn dirname_data_uri() {
 
 #[test]
 fn dirname_non_ascii_path() {
-  let d = dirname("C:/项目/src/index.js");
-  assert_eq!(d, "C:/项目/src");
+  let d = dirname("C:/非常长的中文来测试宽字符溢出问题/src/index.js");
+  assert_eq!(d, "C:/非常长的中文来测试宽字符溢出问题/src");
 }
