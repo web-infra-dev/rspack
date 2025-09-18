@@ -399,7 +399,7 @@ export default {
 
 当 `import foo from 'foo'` 时，Rspack 会解析到 `browser` 字段中的模块，因为 `browser` 字段在 `mainFields` 数组中优先级最高。
 
-注意 ["exports"](#resolveconditionnames) 字段的优先级高于 `mainFields`。如果入口通过 `exports` 解析成功，Rspack 会忽略 `browser`、`module` 和 `main` 字段。
+注意 [`exports` 字段](https://nodejs.org/api/packages.html#packages_exports) 的优先级高于 `mainFields`。如果入口通过 `exports` 解析成功，Rspack 会忽略 `browser`、`module` 和 `main` 字段。
 
 例如，下面的 package.json 中，`lib` 会通过 `exports` 字段解析到 `./dist/index.mjs`，而 `main` 字段将被忽略。
 

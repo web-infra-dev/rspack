@@ -399,7 +399,7 @@ For example, consider an arbitrary library called `foo` with a `package.json` th
 
 When `import foo from 'foo'`, Rspack resolves to the module in the `browser` field, because the `browser` field has the highest priority in `mainFields` array.
 
-Note that the ["exports"](#resolveconditionnames) field takes precedence over `mainFields`. If an entry is resolved via `exports`, Rspack ignores the `browser`, `module`, and `main` fields.
+Note that the [`exports` field](https://nodejs.org/api/packages.html#packages_exports) takes precedence over `mainFields`. If an entry is resolved via `exports`, Rspack ignores the `browser`, `module`, and `main` fields.
 
 For example, with the following package.json, `lib` is resolved via the `exports` field to `./dist/index.mjs`, and the `main` field is ignored.
 
