@@ -30,7 +30,8 @@ impl WasmImportDependency {
       factorize_info: Default::default(),
     }
   }
-  pub fn name(&self) -> &str {
+
+  pub fn name(&self) -> &Atom {
     &self.name
   }
 }

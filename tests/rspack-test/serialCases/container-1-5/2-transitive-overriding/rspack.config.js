@@ -24,5 +24,9 @@ module.exports = {
 				}
 			}
 		})
-	]
+	],
+	experiments: {
+		// inlineConst will inline shared.js
+		inlineConst: false,
+	}
 };

@@ -950,7 +950,7 @@ impl Module for ContextModule {
             let name = if !(name.contains(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER)
               || name.contains(WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER))
             {
-              Cow::Owned(format!("{name}[index]"))
+              Cow::Owned(format!("{name}{WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER}"))
             } else {
               Cow::Borrowed(name)
             };

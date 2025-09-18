@@ -73,8 +73,8 @@ return __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
 }
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {
   try {
-    var WEBPACK_IMPORTED_MODULE_0 = __webpack_require__("./module.js");
-var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
+/* ESM import */var WEBPACK_IMPORTED_MODULE_0 = __webpack_require__("./module.js");
+/* ESM import */var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
 
     var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]);
     var [WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;

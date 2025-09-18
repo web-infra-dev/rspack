@@ -77,7 +77,9 @@ export class ConfigProcessor<
 					bundlerInfo: {
 						force: false
 					}
-				}
+				},
+				inlineConst: true,
+				lazyBarrel: true
 			}
 		} as TCompilerOptions<T>;
 	}

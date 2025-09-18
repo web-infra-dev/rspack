@@ -118,7 +118,9 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 					bundlerInfo: {
 						force: false
 					}
-				}
+				},
+				inlineConst: true,
+				lazyBarrel: true
 			}
 		} as TCompilerOptions<T>;
 
