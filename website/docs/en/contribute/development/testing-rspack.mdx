@@ -91,7 +91,7 @@ type TConfigCaseConfig = {
   noTests?: boolean; // Do not run the test output and end the test
   beforeExecute?: () => void; // Callback before running the output
   afterExecute?: () => void; // Callback after running the output
-  moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope; // Module context variables when running the output
+  moduleScope?: (ms: IModuleScope) => IModuleScope; // Module context variables when running the output
   findBundle?: (
     // Function for obtaining output when running the output, can control the output at a finer granularity
     index: number, // Compiler index in multi-compiler scenario
