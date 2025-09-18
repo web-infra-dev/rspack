@@ -3,7 +3,6 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
 };
-use rspack_paths::Utf8Path;
 use rspack_util::json_stringify;
 use swc_core::ecma::atoms::Atom;
 
@@ -38,7 +37,7 @@ pub struct ContextElementDependency {
 impl ContextElementDependency {
   pub fn create_resource_identifier(
     resource: &str,
-    path: &Utf8Path,
+    path: &str,
     attributes: Option<&ImportAttributes>,
   ) -> String {
     let mut ident = format!("context{resource}|{path}");
