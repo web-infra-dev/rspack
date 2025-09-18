@@ -365,7 +365,7 @@ export default {
 - **类型：** `string[]`
 - **默认值：** 根据 [target](/config/target) 选项确定
 
-当从 npm 包导入时，例如 `import React from 'react'`，`resolve.mainFields` 用于确定其 `package.json` 中的哪些字段会被解析。
+控制用于定位包入口文件的 package.json 字段优先级。Rspack 在解析 npm 包入口时，会按该列表的顺序依次尝试这些字段。
 
 当 `target` 配置为 `'web'`, `'webworker'`, 或未指定时，默认值为 `["browser", "module", "main"]`。
 
@@ -398,6 +398,20 @@ export default {
 ```
 
 当 `import foo from 'foo'` 时，Rspack 会解析到 `browser` 字段中的模块，因为 `browser` 字段在 `mainFields` 数组中优先级最高。
+
+注意 [`exports` 字段](https://nodejs.org/api/packages.html#packages_exports) 的优先级高于 `mainFields`。如果入口通过 `exports` 解析成功，Rspack 会忽略 `browser`、`module` 和 `main` 字段。
+
+例如，下面的 package.json 中，`lib` 会通过 `exports` 字段解析到 `./dist/index.mjs`，而 `main` 字段将被忽略。
+
+```json title="package.json"
+{
+  "name": "lib",
+  "main": "./dist/index.cjs",
+  "exports": {
+    ".": "./dist/index.mjs"
+  }
+}
+```
 
 ## resolve.mainFiles
 
