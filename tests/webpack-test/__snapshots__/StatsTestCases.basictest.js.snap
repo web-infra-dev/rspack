@@ -2121,20 +2121,20 @@ cacheable modules xx bytes
       modules by path ./components/src/CompC/*.js xx bytes 2 modules
       ./components/src/index.js xx bytes [orphan] [built]
         [module unused]
-        esm import ./components ./foo.js 1:0-37
-        esm import ./components ./main.js 1:0-44
+        [inactive] esm import ./components ./foo.js 1:0-37
+        [inactive] esm import ./components ./main.js 1:0-44
     code generated modules xx bytes [code generated]
       ./components/src/CompAB/CompA.js xx bytes [built] [code generated]
         [only some exports used: default]
-        esm export ./CompA ./components/src/CompAB/index.js 1:0-43
-        esm export import specifier ./CompA ./components/src/CompAB/index.js 1:0-43
-        esm export import specifier ./CompAB ./components/src/index.js 1:0-40 (skipped side-effect-free modules)
+        [inactive] esm export ./CompA ./components/src/CompAB/index.js 1:0-43
+        [inactive] esm export import specifier ./CompA ./components/src/CompAB/index.js 1:0-43
+        [inactive] esm export import specifier ./CompAB ./components/src/index.js 1:0-40 (skipped side-effect-free modules)
         esm import specifier ./components ./foo.js 3:20-25 (skipped side-effect-free modules)
         esm import specifier ./components ./main.js 3:15-20 (skipped side-effect-free modules)
       ./components/src/CompAB/utils.js xx bytes [built] [code generated]
-        esm import ./utils ./components/src/CompAB/CompA.js 1:0-35
+        [inactive] esm import ./utils ./components/src/CompAB/CompA.js 1:0-35
         esm import specifier ./utils ./components/src/CompAB/CompA.js 5:5-12
-        esm import ./utils ./components/src/CompAB/CompB.js 1:0-30
+        [inactive] esm import ./utils ./components/src/CompAB/CompB.js 1:0-30
         esm import specifier ./utils ./components/src/CompAB/CompB.js 5:2-5
   modules by path ./*.js xx bytes
     ./main.js xx bytes [orphan] [built]
@@ -2146,9 +2146,9 @@ cacheable modules xx bytes
       |   [no exports used]
       | ./components/src/CompAB/CompB.js xx bytes [orphan] [built]
       |   [only some exports used: default]
-      |   esm export ./CompB ./components/src/CompAB/index.js 2:0-43
-      |   esm export import specifier ./CompB ./components/src/CompAB/index.js 2:0-43
-      |   esm export import specifier ./CompAB ./components/src/index.js 1:0-40 (skipped side-effect-free modules)
+      |   [inactive] esm export ./CompB ./components/src/CompAB/index.js 2:0-43
+      |   [inactive] esm export import specifier ./CompB ./components/src/CompAB/index.js 2:0-43
+      |   [inactive] esm export import specifier ./CompAB ./components/src/index.js 1:0-40 (skipped side-effect-free modules)
       |   esm import specifier ./components ./main.js 4:15-20 (skipped side-effect-free modules)
     ./foo.js xx bytes [built] [code generated]
       import() ./foo ./main.js
@@ -2160,23 +2160,23 @@ exports[`StatsTestCases should print correct stats for side-effects-simple-unuse
 modules by path ./node_modules/pmodule/*.js xx bytes
   ./node_modules/pmodule/index.js xx bytes [orphan] [built]
     [only some exports used: default]
-    esm import pmodule ./index.js 1:0-33
+    [inactive] esm import pmodule ./index.js 1:0-33
     esm import specifier pmodule ./index.js 3:12-15
   ./node_modules/pmodule/c.js xx bytes [orphan] [built]
     [only some exports used: z]
     esm import specifier pmodule ./index.js 3:17-18 (skipped side-effect-free modules)
-    esm export ./c ./node_modules/pmodule/b.js 5:0-24
-    esm export import specifier ./c ./node_modules/pmodule/b.js 5:0-24
-    esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30 (skipped side-effect-free modules)
+    [inactive] esm export ./c ./node_modules/pmodule/b.js 5:0-24
+    [inactive] esm export import specifier ./c ./node_modules/pmodule/b.js 5:0-24
+    [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30 (skipped side-effect-free modules)
   ./node_modules/pmodule/a.js xx bytes [orphan] [built]
     [module unused]
-    esm export ./a ./node_modules/pmodule/index.js 1:0-20
-    esm export import specifier ./a ./node_modules/pmodule/index.js 1:0-20
+    [inactive] esm export ./a ./node_modules/pmodule/index.js 1:0-20
+    [inactive] esm export import specifier ./a ./node_modules/pmodule/index.js 1:0-20
   ./node_modules/pmodule/b.js xx bytes [orphan] [built]
     [module unused]
-    esm export ./b ./node_modules/pmodule/index.js 2:0-30
-    esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30
-    esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30
+    [inactive] esm export ./b ./node_modules/pmodule/index.js 2:0-30
+    [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30
+    [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30
 modules by path ./*.js xx bytes
   ./index.js xx bytes [orphan] [built]
     [no exports used]
@@ -2187,14 +2187,14 @@ modules by path ./*.js xx bytes
     |   [no exports used]
     | ./node_modules/pmodule/index.js xx bytes [orphan] [built]
     |   [only some exports used: default]
-    |   esm import pmodule ./index.js 1:0-33
+    |   [inactive] esm import pmodule ./index.js 1:0-33
     |   esm import specifier pmodule ./index.js 3:12-15
     | ./node_modules/pmodule/c.js xx bytes [orphan] [built]
     |   [only some exports used: z]
     |   esm import specifier pmodule ./index.js 3:17-18 (skipped side-effect-free modules)
-    |   esm export ./c ./node_modules/pmodule/b.js 5:0-24
-    |   esm export import specifier ./c ./node_modules/pmodule/b.js 5:0-24
-    |   esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30 (skipped side-effect-free modules)
+    |   [inactive] esm export ./c ./node_modules/pmodule/b.js 5:0-24
+    |   [inactive] esm export import specifier ./c ./node_modules/pmodule/b.js 5:0-24
+    |   [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30 (skipped side-effect-free modules)
 Rspack x.x.x compiled successfully in X.23"
 `;
 

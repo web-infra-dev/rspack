@@ -33,7 +33,7 @@ use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
-use crate::InlineValueDependencyCondition;
+use crate::connection_active_inline_value_for_esm_export_imported_specifier;
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
@@ -1379,30 +1379,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 }
 
-struct ESMExportImportedSpecifierDependencyCondition(DependencyId);
-
-impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
-  fn get_connection_state(
-    &self,
-    _conn: &rspack_core::ModuleGraphConnection,
-    runtime: Option<&RuntimeSpec>,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> ConnectionState {
-    let dep = module_graph
-      .dependency_by_id(&self.0)
-      .expect("should have dependency");
-    let down_casted_dep = dep
-      .downcast_ref::<ESMExportImportedSpecifierDependency>()
-      .expect("should be ESMExportImportedSpecifierDependency");
-    let mode = down_casted_dep.get_mode(module_graph, runtime, module_graph_cache);
-    ConnectionState::Active(!matches!(
-      mode,
-      ExportMode::Unused(_) | ExportMode::EmptyStar(_)
-    ))
-  }
-}
-
 #[cacheable_dyn]
 impl ModuleDependency for ESMExportImportedSpecifierDependency {
   fn request(&self) -> &str {
@@ -1414,9 +1390,8 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::new_composed(
-      InlineValueDependencyCondition::new(self.id),
-      DependencyCondition::new_fn(ESMExportImportedSpecifierDependencyCondition(self.id)),
+    Some(DependencyCondition::new(
+      ESMExportImportedSpecifierDependencyCondition,
     ))
   }
 
@@ -1558,5 +1533,36 @@ fn render_used_name(used: Option<&UsedName>) -> String {
     None => "/* unused export */ undefined".to_string(),
     Some(UsedName::Normal(value_key)) if value_key.len() == 1 => value_key[0].to_string(),
     _ => unreachable!("export should only have one name"),
+  }
+}
+
+struct ESMExportImportedSpecifierDependencyCondition;
+
+impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &rspack_core::ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph
+      .dependency_by_id(&connection.dependency_id)
+      .expect("should have dependency");
+    let dependency = dependency
+      .downcast_ref::<ESMExportImportedSpecifierDependency>()
+      .expect("should be ESMExportImportedSpecifierDependency");
+    let mode = dependency.get_mode(module_graph, runtime, module_graph_cache);
+    let used = !matches!(mode, ExportMode::Unused(_) | ExportMode::EmptyStar(_));
+    ConnectionState::Active(
+      used
+        && connection_active_inline_value_for_esm_export_imported_specifier(
+          dependency,
+          &mode,
+          connection,
+          runtime,
+          module_graph,
+        ),
+    )
   }
 }

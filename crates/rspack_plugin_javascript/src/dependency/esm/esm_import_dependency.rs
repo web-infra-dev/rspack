@@ -622,7 +622,7 @@ impl ModuleDependency for ESMImportSideEffectDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::new_fn(
+    Some(DependencyCondition::new(
       ESMImportSideEffectDependencyCondition,
     ))
   }
