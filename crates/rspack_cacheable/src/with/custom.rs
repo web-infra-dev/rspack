@@ -21,10 +21,10 @@ pub trait CustomConverter {
     Self: Sized;
 }
 
-/// A wrapper that use CustomConverter to serialization.
+/// A wrapper that uses CustomConverter for serialization.
 pub struct Custom;
 
-/// A simple structure to save the generated CustomConverter::Target,
+/// A simple structure to save the generated `CustomConverter::Target`,
 /// which can avoid some deserialization conflicts.
 #[cacheable(crate=crate)]
 pub struct DataBox<T: Archive>(T);
