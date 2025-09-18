@@ -154,10 +154,9 @@ impl CommonJsImportsParserPlugin {
       spread: None,
       expr: argument_expr,
     } = &call_expr.args[0]
+      && Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span())
     {
-      if Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span()) {
-        return;
-      }
+      return;
     }
 
     let argument_expr = &call_expr.args[0].expr;
@@ -229,10 +228,9 @@ impl CommonJsImportsParserPlugin {
       spread: None,
       expr: argument_expr,
     } = arg
+      && Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span())
     {
-      if Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span()) {
-        return None;
-      }
+      return None;
     }
     let param = parser.evaluate_expression(&arg.expr);
     param.is_string().then(|| {
@@ -294,10 +292,9 @@ impl CommonJsImportsParserPlugin {
       spread: None,
       expr: argument_expr,
     } = &args[0]
+      && Self::has_webpack_ignore_comment(parser, expr.span(), argument_expr.span())
     {
-      if Self::has_webpack_ignore_comment(parser, expr.span(), argument_expr.span()) {
-        return Some(true);
-      }
+      return Some(true);
     }
 
     let param = parser.evaluate_expression(&args[0].expr);
