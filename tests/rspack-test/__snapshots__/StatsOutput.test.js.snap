@@ -32,7 +32,7 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
     ./stringModule.js 1 bytes [depth 1] [orphan] [built]
       [module unused]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-      esm import ./stringModule [765] ./index.js 1:0-41
+      [inactive] esm import ./stringModule [765] ./index.js 1:0-41
   code generated modules 159 bytes (javascript) 7 bytes (asset) [code generated]
     ./index.js + 1 modules [765] 117 bytes {889} [depth 0] [code generated]
       [no exports]
