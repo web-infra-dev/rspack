@@ -318,7 +318,6 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "requireDynamic", true);
 	D(parserOptions, "requireResolve", true);
 	D(parserOptions, "importDynamic", true);
-	D(parserOptions, "commonjsMagicComments", false);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
 	D(parserOptions, "inlineConst", usedExports && inlineConst);
