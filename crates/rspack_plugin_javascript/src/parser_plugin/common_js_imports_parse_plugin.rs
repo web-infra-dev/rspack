@@ -296,7 +296,7 @@ impl CommonJsImportsParserPlugin {
     } = &args[0]
     {
       if Self::has_webpack_ignore_comment(parser, expr.span(), argument_expr.span()) {
-        return None;
+        return Some(true);
       }
     }
 
