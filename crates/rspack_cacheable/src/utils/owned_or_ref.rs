@@ -98,7 +98,7 @@ where
   fn resolve(&self, resolver: Self::Resolver, out: rkyv::Place<Self::Archived>) {
     let field_ptr = unsafe { &raw mut (*out.ptr()).0 };
     let field_out = unsafe { rkyv::Place::from_field_unchecked(out, field_ptr) };
-    <F as Archive>::resolve(&self.as_ref(), resolver.0, field_out);
+    <F as Archive>::resolve(self.as_ref(), resolver.0, field_out);
   }
 }
 unsafe impl<F> rkyv::traits::Portable for ArchivedOwnedOrRef<F>
@@ -130,7 +130,7 @@ where
     serializer: &mut S,
   ) -> Result<<Self as Archive>::Resolver, <S as Fallible>::Error> {
     Ok(OwnedOrRefResolver(<F as Serialize<S>>::serialize(
-      &self.as_ref(),
+      self.as_ref(),
       serializer,
     )?))
   }
