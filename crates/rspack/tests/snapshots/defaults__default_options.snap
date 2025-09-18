@@ -1441,6 +1441,9 @@ CompilerOptions {
                             inline_const: Some(
                                 false,
                             ),
+                            jsx: Some(
+                                false,
+                            ),
                         },
                     ),
                 },

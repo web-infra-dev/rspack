@@ -253,7 +253,7 @@ export const getZodSwcLoaderOptionsSchema = memoize(() => {
 					})
 					.partial()
 			),
-			runtime: z.enum(["automatic", "classic"]),
+			runtime: z.enum(["automatic", "classic", "preserve"]),
 			importSource: z.string()
 		})
 		.partial() satisfies z.ZodType<ReactConfig>;
