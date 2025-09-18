@@ -37,7 +37,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
     // (undocumented)
     protected createEnv(testConfig: TTestConfig<T>): ITestEnv;
     // (undocumented)
-    protected createTester(name: string, src: string, dist: string, temp: string | void, testConfig: TTestConfig<T>): ITester;
+    protected createTester(name: string, src: string, dist: string, temp: string | undefined, testConfig: TTestConfig<T>): ITester;
     // (undocumented)
     protected currentConcurrent: number;
     // (undocumented)

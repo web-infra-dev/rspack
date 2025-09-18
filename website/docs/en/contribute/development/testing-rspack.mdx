@@ -14,7 +14,7 @@ You can run these test cases in the following ways:
 - To update snapshots, run `npm run test -- -u` from the `tests/rspack-test` directory.
 - To pass specific jest cli arguments, run `npm run test -- {args}` from the `tests/rspack-test` directory.
 - To filter specific test cases, run `npm run test -- -t path-of-spec` from the `tests/rspack-test` directory.
-  - Like `npm run test -- -t config/asset` to only run test cases from the `tests/rspack-test/configCases/asset` folder (config will be automatically mapped to configCases, and other folders will work in a similar way).
+  - Like `npm run test -- -t configCases/asset` to only run test cases from the `tests/rspack-test/configCases/asset` folder (config will be automatically mapped to configCases, and other folders will work in a similar way).
 - To use Rspack Wasm for running test cases, you need to additionally configure the following environment variables:
   1. `NAPI_RS_FORCE_WASI=1`: Forces the use of Rspack Wasm instead of native binding
   2. `WASM=1`: Enables Wasm-specific test configurations

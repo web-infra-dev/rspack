@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`statsAPI statsAPI/basic should have stats 1`] = `
+exports[`statsAPI statsAPICases/basic should have stats 1`] = `
 Object {
   assets: Array [
     Object {
@@ -281,7 +281,7 @@ Object {
 }
 `;
 
-exports[`statsAPI statsAPI/exports should have usedExports and providedExports stats 1`] = `
+exports[`statsAPI statsAPICases/exports should have usedExports and providedExports stats 1`] = `
 Object {
   assets: Array [
     Object {
@@ -1478,7 +1478,7 @@ Object {
 }
 `;
 
-exports[`statsAPI statsAPI/ids should have ids when ids is true 1`] = `
+exports[`statsAPI statsAPICases/ids should have ids when ids is true 1`] = `
 Object {
   assets: Array [
     Object {
@@ -1582,7 +1582,7 @@ Object {
 }
 `;
 
-exports[`statsAPI statsAPI/layer-stats should have module layer 1`] = `
+exports[`statsAPI statsAPICases/layer-stats should have module layer 1`] = `
 Object {
   filteredModules: undefined,
   modules: Array [
@@ -1612,7 +1612,7 @@ Object {
 }
 `;
 
-exports[`statsAPI statsAPI/with-query should output stats with query 1`] = `
+exports[`statsAPI statsAPICases/with-query should output stats with query 1`] = `
 Object {
   assets: Array [
     Object {

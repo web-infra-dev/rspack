@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`serial serial/css/css-modules-no-space exported tests should allow to create css modules: cssContent 1`] = `
+exports[`serial serialCases/css/css-modules-no-space exported tests should allow to create css modules: cssContent 1`] = `
 /*!**************************!*\\
   !*** ./style.module.css ***!
   \\**************************/
@@ -31,13 +31,13 @@ exports[`serial serial/css/css-modules-no-space exported tests should allow to c
 }
 `;
 
-exports[`serial serial/css/css-modules-no-space exported tests should allow to create css modules: x 1`] = `
+exports[`serial serialCases/css/css-modules-no-space exported tests should allow to create css modules: x 1`] = `
 Object {
   class: _style_module_css-class,
 }
 `;
 
-exports[`serial serial/css/escape-unescape exported tests should work with URLs in CSS: classes 1`] = `
+exports[`serial serialCases/css/escape-unescape exported tests should work with URLs in CSS: classes 1`] = `
 Object {
   #: _style_modules_css-#,
   ##: _style_modules_css-##,
@@ -92,7 +92,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/escape-unescape exported tests should work with URLs in CSS: classes 2`] = `
+exports[`serial serialCases/css/escape-unescape exported tests should work with URLs in CSS: classes 2`] = `
 Object {
   #: _style_modules_css-#,
   ##: _style_modules_css-##,
@@ -147,7 +147,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/escape-unescape exported tests should work with URLs in CSS: css 1`] = `
+exports[`serial serialCases/css/escape-unescape exported tests should work with URLs in CSS: css 1`] = `
 Array [
   /*!***************************!*\\
   !*** ./style.modules.css ***!
@@ -289,7 +289,7 @@ details {
 ]
 `;
 
-exports[`serial serial/css/escape-unescape exported tests should work with URLs in CSS: css 2`] = `
+exports[`serial serialCases/css/escape-unescape exported tests should work with URLs in CSS: css 2`] = `
 Array [
   /*!***************************!*\\
   !*** ./style.modules.css ***!
@@ -431,19 +431,19 @@ details {
 ]
 `;
 
-exports[`serial serial/css/large exported tests should allow to create css modules: 0_dev 1`] = `
+exports[`serial serialCases/css/large exported tests should allow to create css modules: 0_dev 1`] = `
 Object {
   placeholder: my-app-_tailwind_module_css-placeholder-gray-700,
 }
 `;
 
-exports[`serial serial/css/large exported tests should allow to create css modules: 1_prod 1`] = `
+exports[`serial serialCases/css/large exported tests should allow to create css modules: 1_prod 1`] = `
 Object {
   placeholder: _6d72b53b84605386-placeholder-gray-700,
 }
 `;
 
-exports[`serial serial/css/no-extra-runtime-in-js exported tests should compile 1`] = `
+exports[`serial serialCases/css/no-extra-runtime-in-js exported tests should compile 1`] = `
 Array [
   /*!*******************!*\\
   !*** ./style.css ***!
@@ -510,7 +510,7 @@ Array [
 ]
 `;
 
-exports[`serial serial/css/pseudo-import exported tests should compile 1`] = `
+exports[`serial serialCases/css/pseudo-import exported tests should compile 1`] = `
 Array [
   /*!***************************!*\\
   !*** ./style.modules.css ***!
@@ -683,7 +683,7 @@ Array [
 ]
 `;
 
-exports[`serial serial/css/pure-css exported tests should compile 1`] = `
+exports[`serial serialCases/css/pure-css exported tests should compile 1`] = `
 Array [
   /*!***************************************!*\\
   !*** ../css-modules/style.module.css ***!
@@ -924,7 +924,7 @@ Array [
 ]
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 0_style1 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 0_style1 1`] = `
 Object {
   getPropertyValue: [Function],
   nested-dir: url(../../bundle0/assets/img2.png),
@@ -933,7 +933,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 0_style2 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 0_style2 1`] = `
 Object {
   getPropertyValue: [Function],
   nested-dir: url(../../bundle0/assets/img3.png),
@@ -942,7 +942,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 0_style3 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 0_style3 1`] = `
 Object {
   getPropertyValue: [Function],
   outer-dir: url(../../bundle0/assets/img2.png),
@@ -951,7 +951,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 1_style1 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 1_style1 1`] = `
 Object {
   getPropertyValue: [Function],
   nested-dir: url(https://test.cases/path/bundle1/assets/img2.png),
@@ -960,7 +960,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 1_style2 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 1_style2 1`] = `
 Object {
   getPropertyValue: [Function],
   nested-dir: url(https://test.cases/path/bundle1/assets/img3.png),
@@ -969,7 +969,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 1_style3 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 1_style3 1`] = `
 Object {
   getPropertyValue: [Function],
   outer-dir: url(https://test.cases/path/bundle1/assets/img2.png),
@@ -978,7 +978,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 2_style1 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 2_style1 1`] = `
 Object {
   getPropertyValue: [Function],
   nested-dir: url(https://test.cases/path/bundle2/assets/bundle2/assets/img2.png),
@@ -987,7 +987,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 2_style2 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 2_style2 1`] = `
 Object {
   getPropertyValue: [Function],
   nested-dir: url(https://test.cases/path/bundle2/assets/bundle2/assets/img3.png),
@@ -996,7 +996,7 @@ Object {
 }
 `;
 
-exports[`serial serial/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 2_style3 1`] = `
+exports[`serial serialCases/css/url-and-asset-module-filename exported tests should generate correct url public path with css filename: 2_style3 1`] = `
 Object {
   getPropertyValue: [Function],
   outer-dir: url(https://test.cases/path/bundle2/assets/bundle2/assets/img2.png),
@@ -1005,7 +1005,7 @@ Object {
 }
 `;
 
-exports[`serial serial/custom-modules/json-custom exported tests should transform toml to json 1`] = `
+exports[`serial serialCases/custom-modules/json-custom exported tests should transform toml to json 1`] = `
 Object {
   owner: Object {
     bio: GitHub Cofounder & CEO

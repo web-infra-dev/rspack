@@ -360,13 +360,14 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		name: string,
 		src: string,
 		dist: string,
-		temp: string | void,
+		temp: string | undefined,
 		testConfig: TTestConfig<T>
 	): ITester {
 		return new Tester({
 			name,
 			src,
 			dist,
+			temp,
 			testConfig,
 			contextValue: this._options.contextValue,
 			runnerFactory: this._options.runner,
