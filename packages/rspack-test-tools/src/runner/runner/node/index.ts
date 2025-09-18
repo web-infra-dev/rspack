@@ -322,7 +322,6 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 				return require("@rspack/test-tools");
 			}
 			const file = context.file || this.getFile(modulePath, currentDirectory);
-			console.log("file", file);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
