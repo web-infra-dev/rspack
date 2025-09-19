@@ -25,7 +25,7 @@ pub struct FactorizeTask {
   pub dependencies: Vec<BoxDependency>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub from_unlazy: bool,
 }
@@ -145,7 +145,7 @@ pub struct FactorizeResultTask {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<BoxDependency>,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,

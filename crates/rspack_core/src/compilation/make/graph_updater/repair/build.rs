@@ -18,7 +18,7 @@ pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
@@ -88,7 +88,7 @@ struct BuildResultTask {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub forwarded_ids: ForwardedIdSet,
 }
 
