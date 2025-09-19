@@ -117,7 +117,11 @@ fn dirname(path: &str) -> &str {
   let Some(i) = path.rfind(['/', '\\']) else {
     return path;
   };
-  let c = path.chars().nth(i).expect("should exist");
+  let c = match path.as_bytes().get(i) {
+    Some(b'/') => '/',
+    Some(b'\\') => '\\',
+    _ => unreachable!("path delimiter should be slash or backslash"),
+  };
   let i2 = path.find(c).expect("should exist");
   if i == i2 {
     return &path[..i + 1];
@@ -139,4 +143,10 @@ pub fn get_context(resource_data: &ResourceData) -> Context {
 fn dirname_data_uri() {
   let d = dirname("data:text/javascript,import \"a\"");
   assert_eq!(d, "data:text/");
+}
+
+#[test]
+fn dirname_non_ascii_path() {
+  let d = dirname("C:/非常长的中文来测试宽字符溢出问题/src/index.js");
+  assert_eq!(d, "C:/非常长的中文来测试宽字符溢出问题/src");
 }

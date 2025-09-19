@@ -122,14 +122,14 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       Box::new(dep) as BoxDependency
     } else {
       let inlinable = parser
-        .get_tag_data(export_name, INLINABLE_CONST_TAG)
+        .get_tag_data(local_id, INLINABLE_CONST_TAG)
         .map(InlinableConstData::downcast)
         .map(|data| data.value);
       let enum_value = parser
         .build_info
         .collected_typescript_info
         .as_ref()
-        .and_then(|info| info.exported_enums.get(export_name).cloned());
+        .and_then(|info| info.exported_enums.get(local_id).cloned());
       if enum_value.is_some() && !parser.compiler_options.experiments.inline_enum {
         parser.add_error(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
       }

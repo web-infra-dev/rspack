@@ -12,21 +12,16 @@ import FakeDocument, {
 } from "../../../helper/legacy/FakeDocument";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
-import {
-	EEsmMode,
-	type TBasicRunnerFile,
-	type TRunnerRequirer
-} from "../../type";
-import type { IBasicRunnerOptions } from "../basic";
-import { CommonJsRunner } from "../cjs";
+import { EEsmMode, type TRunnerFile, type TRunnerRequirer } from "../../type";
+import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 export class FakeDocumentWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends CommonJsRunner<T> {
+> extends NodeRunner<T> {
 	private document: FakeDocument;
 	private oldCurrentScript: CurrentScript | null = null;
 
-	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
+	constructor(protected _webOptions: INodeRunnerOptions<T>) {
 		super(_webOptions);
 		this.document = new FakeDocument(_webOptions.dist, {
 			onScript: (node: FakeElement) => {
@@ -106,7 +101,7 @@ export class FakeDocumentWebRunner<
 	protected createModuleScope(
 		requireFn: TRunnerRequirer,
 		m: any,
-		file: TBasicRunnerFile
+		file: TRunnerFile
 	) {
 		const subModuleScope = super.createModuleScope(requireFn, m, file);
 		subModuleScope.importScripts = (url: string) => {
@@ -141,65 +136,19 @@ export class FakeDocumentWebRunner<
 		return moduleScope;
 	}
 
-	protected createJsonRequirer(): TRunnerRequirer {
-		return (currentDirectory, modulePath, context = {}) => {
-			if (Array.isArray(modulePath)) {
-				throw new Error("Array module path is not supported in hot cases");
-			}
-			const file = context.file || this.getFile(modulePath, currentDirectory);
-			if (!file) {
-				return this.requirers.get("miss")!(currentDirectory, modulePath);
-			}
-			return JSON.parse(
-				fs.readFileSync(path.join(this._options.dist, modulePath), "utf-8")
-			);
-		};
-	}
-
-	protected createRunner() {
-		super.createRunner();
-		this.requirers.set("cjs", this.getRequire());
-		this.requirers.set("mjs", this.createESMRequirer());
-		this.requirers.set("json", this.createJsonRequirer());
-
-		this.requirers.set("entry", (_, modulePath, context) => {
-			if (Array.isArray(modulePath)) {
-				throw new Error("Array module path is not supported in web runner");
-			}
-			if (modulePath.endsWith(".json")) {
-				return this.requirers.get("json")!(
-					this._options.dist,
-					modulePath,
-					context
-				);
-			} else if (modulePath.endsWith(".mjs")) {
-				return this.requirers.get("mjs")!(
-					this._options.dist,
-					modulePath,
-					context
-				);
-			}
-			return this.requirers.get("cjs")!(
-				this._options.dist,
-				modulePath,
-				context
-			);
-		});
-	}
-
-	protected preExecute(_: string, file: TBasicRunnerFile): void {
+	protected preExecute(_: string, file: TRunnerFile): void {
 		this.oldCurrentScript = this.document.currentScript;
 		this.document.currentScript = new CurrentScript(file.subPath);
 		super.preExecute(_, file);
 	}
 
-	protected postExecute(_: Object, file: TBasicRunnerFile): void {
+	protected postExecute(_: Object, file: TRunnerFile): void {
 		super.postExecute(_, file);
 		this.document.currentScript = this.oldCurrentScript;
 		this.oldCurrentScript = null;
 	}
 
-	private createESMRequirer(): TRunnerRequirer {
+	protected createEsmRequirer(): TRunnerRequirer {
 		const esmContext = vm.createContext(
 			{
 				...this.baseModuleScope!,

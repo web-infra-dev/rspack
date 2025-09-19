@@ -85,7 +85,7 @@ class MyPlugin {
     }
 }
 
-/** @type {import('../..').TCompilerCaseConfig} */
+/** @type {import('@rspack/core').TCompilerCaseConfig} */
 module.exports = {
     description: "The hooks should access the correct closure",
     options(context) {

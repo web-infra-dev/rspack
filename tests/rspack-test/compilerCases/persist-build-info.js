@@ -12,7 +12,7 @@ class MyPlugin {
     }
 }
 
-/** @type {import('../..').TCompilerCaseConfig} */
+/** @type {import('@rspack/core').TCompilerCaseConfig} */
 module.exports = {
     description: "should persist build info custom fields",
     options(context) {

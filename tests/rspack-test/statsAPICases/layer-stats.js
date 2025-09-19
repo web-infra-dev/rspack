@@ -12,7 +12,7 @@ module.exports = {
 				legacy: {
 					import: "./fixtures/abc",
 					layer: "legacy"
-				},
+				}
 			},
 			experiments: {
 				layers: true
@@ -27,11 +27,39 @@ module.exports = {
 		};
 		const statsData = stats?.toJson(options);
 		statsData.modules.forEach(mod => {
-			mod.issuer = '';
-			mod.issuerName = '';
+			mod.issuer = "";
+			mod.issuerName = "";
 			mod.children = [];
 		});
 
-		expect(statsData).toMatchSnapshot();
+		expect(statsData).toMatchInlineSnapshot(`
+		Object {
+		  filteredModules: undefined,
+		  modules: Array [
+		    Object {
+		      children: Array [],
+		      issuer: ,
+		      issuerName: ,
+		      layer: test,
+		      size: 304,
+		      sizes: Object {
+		        javascript: 304,
+		      },
+		      type: modules by layer,
+		    },
+		    Object {
+		      children: Array [],
+		      issuer: ,
+		      issuerName: ,
+		      layer: legacy,
+		      size: 304,
+		      sizes: Object {
+		        javascript: 304,
+		      },
+		      type: modules by layer,
+		    },
+		  ],
+		}
+	`);
 	}
 };

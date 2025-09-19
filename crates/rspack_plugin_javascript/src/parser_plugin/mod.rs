@@ -55,8 +55,11 @@ pub(crate) use self::{
   import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin},
   import_parser_plugin::{ImportParserPlugin, ImportsReferencesState},
   initialize_evaluating::InitializeEvaluating,
-  inline_const::{InlineConstPlugin, InlineValueDependencyCondition},
-  inner_graph::{get_dependency_used_by_exports_condition, plugin::*, state::InnerGraphState},
+  inline_const::{
+    InlineConstPlugin, connection_active_inline_value_for_esm_export_imported_specifier,
+    connection_active_inline_value_for_esm_import_specifier,
+  },
+  inner_graph::{connection_active_used_by_exports, plugin::*, state::InnerGraphState},
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,
   node_stuff_plugin::NodeStuffPlugin,
   override_strict_plugin::OverrideStrictPlugin,

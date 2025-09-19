@@ -1,4 +1,4 @@
-# Contributor covenant code of conduct
+# AGENTS.md
 
 ## Our pledge
 

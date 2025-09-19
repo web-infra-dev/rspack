@@ -16,7 +16,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
-use rspack_util::identifier::make_paths_absolute;
+use rspack_util::{base64, identifier::make_paths_absolute};
 
 use crate::{
   ModuleFilenameTemplate, ModuleOrSource, SourceMapDevToolPluginOptions,
@@ -202,7 +202,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
       map
         .to_writer(&mut map_buffer)
         .unwrap_or_else(|e| panic!("{}", e.to_string()));
-      let base64 = rspack_base64::encode_to_string(&map_buffer);
+      let base64 = base64::encode_to_string(&map_buffer);
       let footer = format!(
         "\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}\n//# sourceURL=webpack-internal:///{module_id}\n"
       );

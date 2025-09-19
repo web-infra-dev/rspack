@@ -2,6 +2,7 @@ mod merge;
 
 pub mod asset_condition;
 pub mod atom;
+pub mod base64;
 pub mod comparators;
 #[cfg(feature = "debug_tool")]
 pub mod debug_tool;

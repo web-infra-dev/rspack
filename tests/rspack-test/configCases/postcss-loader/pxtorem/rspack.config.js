@@ -11,7 +11,7 @@ module.exports = {
 						loader: "postcss-loader",
 						options: {
 							postcssOptions: {
-								plugins: ["postcss-pxtorem"]
+								plugins: [require.resolve("postcss-pxtorem")]
 							}
 						}
 					}

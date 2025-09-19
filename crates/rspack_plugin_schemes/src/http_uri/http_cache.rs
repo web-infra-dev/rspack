@@ -8,10 +8,9 @@ use std::{
 use anyhow::Result;
 use async_trait::async_trait;
 use cow_utils::CowUtils;
-use rspack_base64::encode_to_string;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
-use rspack_util::fx_hash::FxHashMap;
+use rspack_util::{base64, fx_hash::FxHashMap};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use url::Url;
@@ -466,7 +465,7 @@ fn compute_integrity(content: &[u8]) -> String {
   hasher.update(content);
   let digest = hasher.finalize();
   // Use base64 for integrity as that's the standard format
-  format!("sha512-{}", encode_to_string(digest))
+  format!("sha512-{}", base64::encode_to_string(digest))
 }
 
 // Helper function to convert ContentFetchResult to FetchResultType

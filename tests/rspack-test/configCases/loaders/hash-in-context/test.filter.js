@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: support loaderContext.utils.createHash";

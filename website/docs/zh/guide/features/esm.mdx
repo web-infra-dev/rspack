@@ -37,13 +37,13 @@ export default {
   output: {
     module: true,
     chunkFormat: 'module',
-    externalsType: 'module-import',
     library: {
       type: 'modern-module',
     },
     chunkLoading: 'import',
     workerChunkLoading: 'import',
   },
+  externalsType: 'module-import',
   optimization: {
     concatenateModules: true,
     avoidEntryIife: true,

@@ -166,7 +166,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    _expr: &CallExpr,
+    expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
@@ -188,6 +188,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     parser
       .dynamic_import_references
       .add_import_reference(data.import_span, ids.to_vec());
+    parser.walk_expr_or_spread(&expr.args);
     Some(true)
   }
 

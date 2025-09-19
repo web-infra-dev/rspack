@@ -1,5 +1,5 @@
 import { HotSnapshotProcessor } from "../processor/hot-step";
-import { HotStepRunnerFactory } from "../runner";
+import { HotRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType, type TCompilerOptions } from "../type";
 
@@ -26,7 +26,7 @@ function getCreator(target: TTarget) {
 						configFiles: ["rspack.config.js", "webpack.config.js"]
 					})
 				],
-				runner: HotStepRunnerFactory,
+				runner: HotRunnerFactory,
 				concurrent: true
 			})
 		);

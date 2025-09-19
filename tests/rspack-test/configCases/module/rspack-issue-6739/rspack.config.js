@@ -4,7 +4,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: require.resolve("foo"),
+				test: /foo/,
 				loader: "./loader",
 				descriptionData: {
 					componentId: componentIdData => {
@@ -18,7 +18,7 @@ module.exports = {
 				}
 			},
 			{
-				test: require.resolve("bar"),
+				test: /bar/,
 				loader: "./empty-loader",
 				descriptionData: {
 					_custom_key: customKey => {

@@ -680,30 +680,17 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsModuleProfile {
-  pub factory: JsStatsMillisecond,
-  pub building: JsStatsMillisecond,
+  // use f64 to make js side as a number type
+  pub factory: f64,
+  pub building: f64,
 }
 
 impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
   fn from(value: rspack_core::StatsModuleProfile) -> Self {
     Self {
-      factory: value.factory.into(),
-      building: value.building.into(),
-    }
-  }
-}
-
-#[napi(object, object_from_js = false)]
-pub struct JsStatsMillisecond {
-  pub secs: u32,
-  pub subsec_millis: u32,
-}
-
-impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
-  fn from(value: rspack_core::StatsMillisecond) -> Self {
-    Self {
-      secs: value.secs as u32,
-      subsec_millis: value.subsec_millis,
+      // The time is short and no data will be lost when converting from u64 to f64
+      factory: value.factory as f64,
+      building: value.building as f64,
     }
   }
 }

@@ -45,10 +45,7 @@ pub async fn repair(
           let dependency = module_graph
             .dependency_by_id(&dep_id)
             .expect("dependency not found");
-          let current_profile = compilation
-            .options
-            .profile
-            .then(Box::<ModuleProfile>::default);
+          let current_profile = compilation.options.profile.then(ModuleProfile::default);
           Box::new(factorize::FactorizeTask {
             compiler_id: compilation.compiler_id(),
             compilation_id: compilation.id(),

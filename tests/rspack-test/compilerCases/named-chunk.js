@@ -10,7 +10,7 @@ class MyPlugin {
 	}
 }
 
-/** @type {import('../..').TCompilerCaseConfig} */
+/** @type {import('@rspack/core').TCompilerCaseConfig} */
 module.exports = {
 	description: "should work with `namedChunks`",
 	options(context) {

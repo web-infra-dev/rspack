@@ -4,6 +4,7 @@ import * as destructing from "./enum.destructing";
 import * as sideEffects from "./enum.side-effects";
 import * as reexportedSideEffects from "./re-export.side-effects";
 import * as notOnlyPropertiesUsed from "./enum.not-only-properties-used";
+import * as exportAs from "./enum.export-as";
 
 const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
 
@@ -116,4 +117,9 @@ it("should keep the module if part of the enum members are inlined and side effe
       expect(generated.includes(`"${m}": (function`)).toBe(true);
     })
   }
+})
+
+it("should not inline no-inlinable enums", () => {
+  expect(exportAs.InlineE1.A).toEqual({});
+  expect(exportAs.InlineE.A).toBe(0);
 })

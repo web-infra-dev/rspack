@@ -29,19 +29,15 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.done.tapPromise("Test Plugin", async function () {
-					if (index === 0) {
+					if (index === 1) {
 						await fs.writeFile(buildDependencyA, String(content));
-						index++;
-						content++;
-					} else if (index === 1) {
-						await fs.writeFile(buildDependencyB, String(content));
-						index++;
-						content++;
 					} else if (index === 2) {
+						await fs.writeFile(buildDependencyB, String(content));
+					} else if (index === 3) {
 						await fs.writeFile(buildDependencyIndex, String(content));
-						index++;
-						content++;
 					}
+					index++;
+					content++;
 				});
 			}
 		}

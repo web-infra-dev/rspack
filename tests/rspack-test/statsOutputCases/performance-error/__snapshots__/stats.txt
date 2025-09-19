@@ -1,0 +1,23 @@
+asset main.js xx KiB [emitted] [big] (name: main)
+asset 266.js 128 bytes [emitted]
+asset 327.js 128 bytes [emitted]
+Entrypoint main [big] xx KiB = main.js
+runtime modules xx KiB 12 modules
+cacheable modules xx KiB
+  ./index.js 48 bytes [built] [code generated]
+  ./a.js xx KiB [built] [code generated]
+  ./b.js 22 bytes [built] [code generated]
+  ./c.js 28 bytes [built] [code generated]
+  ./d.js 22 bytes [built] [code generated]
+  ./e.js 22 bytes [built] [code generated]
+
+ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
+  │   main.js (xx KiB)
+
+
+ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.Entrypoints:
+  │   main (xx KiB)
+  │       main.js
+
+
+Rspack x.x.x compiled with 2 errors in X s

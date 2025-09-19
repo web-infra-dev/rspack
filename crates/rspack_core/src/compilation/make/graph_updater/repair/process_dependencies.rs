@@ -73,7 +73,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       let current_profile = context
         .compiler_options
         .profile
-        .then(Box::<ModuleProfile>::default);
+        .then(ModuleProfile::default);
       let original_module_source = module_graph
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())

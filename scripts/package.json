@@ -14,7 +14,7 @@
     "@actions/core": "1.11.1",
     "chalk": "^5.4.1",
     "@types/fs-extra": "11.0.4",
-    "fs-extra": "^11.3.0",
+    "fs-extra": "^11.3.2",
     "typescript": "^5.9.2",
     "jest-environment-jsdom": "^29.7.0",
     "glob":"^11.0.3",

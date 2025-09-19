@@ -660,10 +660,6 @@ export const mergeToObject = (
 	return obj;
 };
 
-export function resolveStatsMillisecond(s: binding.JsStatsMillisecond) {
-	return s.secs * 1000 + s.subsecMillis;
-}
-
 export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
 	let filtered = 0;
 	// Can not fit into limit

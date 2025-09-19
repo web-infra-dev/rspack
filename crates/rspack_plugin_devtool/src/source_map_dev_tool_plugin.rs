@@ -20,7 +20,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{asset_condition::AssetConditions, identifier::make_paths_absolute};
+use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 
@@ -613,7 +613,7 @@ impl SourceMapDevToolPlugin {
                 ))
                   }
                 };
-                let base64 = rspack_base64::encode_to_string(source_map_json.as_bytes());
+                let base64 = base64::encode_to_string(source_map_json.as_bytes());
                 asset.source = Some(
                   ConcatSource::new([
                     source.clone(),

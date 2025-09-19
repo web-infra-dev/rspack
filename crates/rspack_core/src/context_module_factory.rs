@@ -468,25 +468,28 @@ fn visit_dirs(
         if !reg_exp.test(&r.request) {
           return;
         }
+        let request = format!(
+          "{}{}{}{}",
+          options.addon,
+          r.request,
+          options.resource_query.clone(),
+          options.resource_fragment.clone(),
+        );
+        let resource_identifier = ContextElementDependency::create_resource_identifier(
+          options.resource.as_str(),
+          &request,
+          options.context_options.attributes.as_ref(),
+        );
+
         dependencies.push(ContextElementDependency {
           id: DependencyId::new(),
-          request: format!(
-            "{}{}{}{}",
-            options.addon,
-            r.request,
-            options.resource_query.clone(),
-            options.resource_fragment.clone(),
-          ),
+          request,
           user_request: r.request.to_string(),
           category: options.context_options.category,
           context: options.resource.clone().into(),
           layer: options.layer.clone(),
           options: options.context_options.clone(),
-          resource_identifier: ContextElementDependency::create_resource_identifier(
-            options.resource.as_str(),
-            &path,
-            options.context_options.attributes.as_ref(),
-          ),
+          resource_identifier,
           attributes: options.context_options.attributes.clone(),
           referenced_exports: options.context_options.referenced_exports.clone(),
           dependency_type: DependencyType::ContextElement(options.type_prefix),

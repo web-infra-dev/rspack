@@ -4,12 +4,12 @@ export type TRunnerRequirer = (
 	currentDirectory: string,
 	modulePath: string[] | string,
 	context?: {
-		file?: TBasicRunnerFile;
+		file?: TRunnerFile;
 		esmMode?: EEsmMode;
 	}
 ) => Object | Promise<Object>;
 
-export type TBasicRunnerFile = {
+export type TRunnerFile = {
 	path: string;
 	content: string;
 	subPath: string;
@@ -21,13 +21,13 @@ export enum EEsmMode {
 	Unlinked = 2
 }
 
-export interface IBasicModuleScope extends ITestEnv {
+export interface IModuleScope extends ITestEnv {
 	console: Record<string, (...args: any[]) => void>;
 	expect: jest.Expect;
 	[key: string]: any;
 }
 
-export interface IBasicGlobalContext {
+export interface IGlobalContext {
 	console: Record<string, (...args: any[]) => void>;
 	setTimeout: typeof setTimeout;
 	clearTimeout: typeof clearTimeout;

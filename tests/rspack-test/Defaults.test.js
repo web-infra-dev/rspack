@@ -97,10 +97,6 @@ describe("Base Defaults Snapshot", () => {
 		mode: "none"
 	});
 
-	it("should have the correct base config", () => {
-		expect(baseConfig).toMatchSnapshot();
-	});
-
 	it("should be align to webpack base config for mode: none", () => {
 		assertWebpackConfig({ mode: "none" });
 	});

@@ -18,6 +18,7 @@ on:
           - rspress
           - rsbuild
           - rslib
+          - rstest
           - examples
           - devserver
           - plugin
@@ -115,6 +116,7 @@ jobs:
               // "nx",
               "rspress",
               "rslib",
+              "rstest",
               "rsbuild",
               "rsdoctor",
               "examples",

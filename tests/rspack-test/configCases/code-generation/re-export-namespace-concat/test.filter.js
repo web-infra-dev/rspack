@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: module interop not matched";

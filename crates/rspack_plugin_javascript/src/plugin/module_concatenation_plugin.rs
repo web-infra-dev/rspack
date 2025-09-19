@@ -1583,10 +1583,7 @@ where
       .connection_by_dependency_id(dep_id)
       .expect("should have connection");
     let dependency = mg.dependency_by_id(dep_id).expect("should have dependency");
-    // the inactive connection should not be updated
-    if filter_connection(root_module_id, connection, dependency)
-      && (connection.conditional || connection.active)
-    {
+    if filter_connection(root_module_id, connection, dependency) {
       incomings.push(*dep_id);
     }
   }

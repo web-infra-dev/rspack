@@ -1,12 +1,13 @@
-import type {
-	ECompilerType,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStatsCompilation
+import {
+	type ECompilerType,
+	EDocumentType,
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStatsCompilation
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
-import { WatchRunner } from "./runner/watch";
+import { WebRunner } from "./runner";
 
 export class WatchRunnerFactory<
 	T extends ECompilerType
@@ -67,16 +68,27 @@ export class WatchRunnerFactory<
 			: compilerOptions.target === "web" ||
 				compilerOptions.target === "webworker";
 
-		return new WatchRunner({
+		const testConfig = this.context.getTestConfig();
+		const documentType: EDocumentType =
+			this.context.getValue(this.name, "documentType") || EDocumentType.Fake;
+		return new WebRunner({
+			dom: documentType,
 			env,
 			stats,
 			name: this.name,
-			state,
-			stepName,
 			runInNewContext: isWeb,
-			isWeb,
 			cachable: false,
-			testConfig: this.context.getTestConfig(),
+			testConfig: {
+				...(testConfig || {}),
+				moduleScope: (ms, stats, options) => {
+					ms.STATE = state;
+					ms.WATCH_STEP = stepName;
+					if (typeof testConfig.moduleScope === "function") {
+						return testConfig.moduleScope(ms, stats, options);
+					}
+					return ms;
+				}
+			},
 			source: this.context.getSource(),
 			dist: this.context.getDist(),
 			compilerOptions

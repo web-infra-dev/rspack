@@ -1,1 +1,1 @@
-exports.noTest = true;
+exports.noTests = true;

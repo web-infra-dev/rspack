@@ -16,7 +16,6 @@ itertools                = { workspace = true }
 memchr                   = { workspace = true }
 rayon                    = { workspace = true }
 regex                    = { workspace = true }
-rspack_base64            = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }

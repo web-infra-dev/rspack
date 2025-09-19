@@ -4,7 +4,7 @@ import { createErrorMap, fromZodError } from "zod-validation-error/v4";
 import type * as t from "../config/types";
 import { memoize } from "../util/memoize";
 import { getZodSwcLoaderOptionsSchema } from "./loaders";
-import { anyFunction, numberOrInfinity } from "./utils";
+import { anyFunction, intOrInfinity, numberOrInfinity } from "./utils";
 
 z.config({
 	jitless: true
@@ -1132,16 +1132,16 @@ export const getRspackOptionsSchema = memoize(() => {
 			groupModulesByAttributes: z.boolean(),
 			groupModulesByPath: z.boolean(),
 			groupModulesByExtension: z.boolean(),
-			modulesSpace: z.int(),
-			chunkModulesSpace: z.int(),
-			nestedModulesSpace: z.int(),
+			modulesSpace: intOrInfinity,
+			chunkModulesSpace: intOrInfinity,
+			nestedModulesSpace: intOrInfinity,
 			relatedAssets: z.boolean(),
 			groupAssetsByEmitStatus: z.boolean(),
 			groupAssetsByInfo: z.boolean(),
 			groupAssetsByPath: z.boolean(),
 			groupAssetsByExtension: z.boolean(),
 			groupAssetsByChunk: z.boolean(),
-			assetsSpace: z.int(),
+			assetsSpace: intOrInfinity,
 			orphanModules: z.boolean(),
 			excludeModules: z
 				.array(z.string().or(z.instanceof(RegExp)).or(anyFunction))
@@ -1168,7 +1168,7 @@ export const getRspackOptionsSchema = memoize(() => {
 			chunkOrigins: z.boolean(),
 			runtime: z.boolean(),
 			depth: z.boolean(),
-			reasonsSpace: z.int(),
+			reasonsSpace: intOrInfinity,
 			groupReasonsByOrigin: z.boolean(),
 			errorDetails: z.boolean(),
 			errorStack: z.boolean(),
@@ -1176,8 +1176,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			cachedModules: z.boolean(),
 			cachedAssets: z.boolean(),
 			cached: z.boolean(),
-			errorsSpace: z.int(),
-			warningsSpace: z.int()
+			errorsSpace: intOrInfinity,
+			warningsSpace: intOrInfinity
 		})
 		.partial() satisfies z.ZodType<t.StatsOptions>;
 

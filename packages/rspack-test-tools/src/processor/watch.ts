@@ -86,7 +86,7 @@ export class WatchProcessor<
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const testConfig = context.getTestConfig();
-		if (testConfig.noTest) return;
+		if (testConfig.noTests) return;
 
 		const errors: Array<{ message: string; stack?: string }> = (
 			context.getError(this._options.name) || []

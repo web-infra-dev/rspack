@@ -16,7 +16,7 @@ pub use r#struct::*;
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
   Compilation, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType, UsedExports,
   compilation::make::ExecutedRuntimeModule,
 };
 
@@ -245,6 +245,7 @@ impl Stats<'_> {
           module,
           false,
           None,
+          None,
           options,
         )
       })
@@ -270,6 +271,7 @@ impl Stats<'_> {
             &executor_module_graph_cache,
             module,
             true,
+            None,
             None,
             options,
           )
@@ -353,6 +355,7 @@ impl Stats<'_> {
                 m,
                 false,
                 Some(&root_modules),
+                Some(c.runtime()),
                 options,
               )
             })
@@ -762,6 +765,7 @@ impl Stats<'_> {
     module: &'a BoxModule,
     executed: bool,
     root_modules: Option<&IdentifierSet>,
+    runtime: Option<&RuntimeSpec>,
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
@@ -900,13 +904,10 @@ impl Stats<'_> {
         .count() as u32;
 
       let profile = if let Some(p) = mgm.profile()
-        && let Some(factory) = p.factory.duration()
-        && let Some(building) = p.building.duration()
+        && let Some(factory) = p.factory_duration()
+        && let Some(building) = p.building_duration()
       {
-        Some(StatsModuleProfile {
-          factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
-          building: StatsMillisecond::new(building.as_secs(), building.subsec_millis()),
-        })
+        Some(StatsModuleProfile { factory, building })
       } else {
         None
       };
@@ -1053,7 +1054,7 @@ impl Stats<'_> {
             r#type,
             user_request,
             explanation,
-            active: connection.active,
+            active: connection.is_active(module_graph, runtime, module_graph_cache),
             loc,
           })
         })
@@ -1122,6 +1123,7 @@ impl Stats<'_> {
             module,
             executed,
             root_modules,
+            runtime,
             options,
           )
         })

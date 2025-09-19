@@ -10,6 +10,10 @@ import type {
 
 export interface ISimpleProcessorOptions<T extends ECompilerType> {
 	options?: (context: ITestContext) => TCompilerOptions<T>;
+	compilerCallback?: (
+		error: Error | null,
+		stats: TCompilerStats<T> | null
+	) => void;
 	compilerType: T;
 	name: string;
 	build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
@@ -35,7 +39,9 @@ export class SimpleTaskProcessor<T extends ECompilerType>
 
 	async compiler(context: ITestContext) {
 		const compiler = this.getCompiler(context);
-		const instance = compiler.createCompiler();
+		const instance = this._options.compilerCallback
+			? compiler.createCompilerWithCallback(this._options.compilerCallback)
+			: compiler.createCompiler();
 		if (typeof this._options.compiler === "function") {
 			await this._options.compiler(context, instance);
 		}

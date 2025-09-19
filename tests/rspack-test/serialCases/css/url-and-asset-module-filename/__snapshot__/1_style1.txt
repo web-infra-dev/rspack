@@ -1,0 +1,6 @@
+Object {
+  getPropertyValue: [Function],
+  nested-dir: url(https://test.cases/path/bundle1/assets/img2.png),
+  nested-nested-dir: url(https://test.cases/path/bundle1/assets/img3.png),
+  same-dir: url(https://test.cases/path/bundle1/assets/img1.png),
+}

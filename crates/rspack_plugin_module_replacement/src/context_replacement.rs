@@ -93,19 +93,21 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
         let deps = new_content_create_context_map
           .iter()
           .map(|(key, value)| {
+            let request = format!(
+              "{}{}{}",
+              value,
+              options.resource_query.clone(),
+              options.resource_fragment.clone(),
+            );
+
             let resource_identifier = ContextElementDependency::create_resource_identifier(
               options.resource.as_str(),
-              value.as_str().into(),
+              &request,
               options.context_options.attributes.as_ref(),
             );
             ContextElementDependency {
               id: DependencyId::new(),
-              request: format!(
-                "{}{}{}",
-                value,
-                options.resource_query.clone(),
-                options.resource_fragment.clone(),
-              ),
+              request,
               user_request: key.to_string(),
               category: options.context_options.category,
               context: options.resource.clone().into(),

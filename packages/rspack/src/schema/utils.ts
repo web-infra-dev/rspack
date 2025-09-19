@@ -6,6 +6,8 @@ export const numberOrInfinity = z
 	.number()
 	.or(z.literal(Number.POSITIVE_INFINITY));
 
+export const intOrInfinity = z.int().or(z.literal(Number.POSITIVE_INFINITY));
+
 export const anyFunction = z.custom<(...args: unknown[]) => any>(
 	data => typeof data === "function",
 	// Make the similar error message as zod v3

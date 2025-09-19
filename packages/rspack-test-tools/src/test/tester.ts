@@ -1,3 +1,4 @@
+import fs from "fs-extra";
 import type {
 	ITestContext,
 	ITestEnv,
@@ -30,6 +31,11 @@ export class Tester implements ITester {
 		return this.context;
 	}
 	async prepare() {
+		fs.mkdirSync(this.context.getDist(), { recursive: true });
+		const tempDir = this.context.getTemp();
+		if (tempDir) {
+			fs.mkdirSync(tempDir, { recursive: true });
+		}
 		for (const i of this.steps) {
 			if (typeof i.beforeAll === "function") {
 				await i.beforeAll(this.context);

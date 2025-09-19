@@ -13,7 +13,7 @@ impl ExportInfoData {
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
-    if let Some(inlined) = self.can_inline() {
+    if let Some(inlined) = self.get_inline() {
       return Some(UsedNameItem::Inlined(inlined.clone()));
     }
     if self.has_use_in_runtime_info() {
@@ -185,7 +185,7 @@ impl ExportInfoData {
     }
   }
 
-  pub fn can_inline(&self) -> Option<&EvaluatedInlinableValue> {
+  pub fn get_inline(&self) -> Option<&EvaluatedInlinableValue> {
     if let Some(provided) = self.can_inline_provide()
       && self.can_inline_use() == Some(CanInlineUse::Yes)
     {

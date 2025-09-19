@@ -14,7 +14,7 @@ class MyPlugin {
   }
 }
 
-/** @type {import('../..').TCompilerCaseConfig} */
+/** @type {import('@rspack/core').TCompilerCaseConfig} */
 module.exports = {
   description: "should not panic get stats when chunkGraphModule is not available",
   options(context) {

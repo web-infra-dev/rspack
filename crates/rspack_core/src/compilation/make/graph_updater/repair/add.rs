@@ -14,7 +14,7 @@ pub struct AddTask {
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub from_unlazy: bool,
 }
 

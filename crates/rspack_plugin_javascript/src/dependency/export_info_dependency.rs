@@ -91,9 +91,9 @@ impl ExportInfoDependency {
         let inlinable = if let Some(export_info) =
           exports_info.get_read_only_export_info_recursive(export_name)
         {
-          export_info.can_inline()
+          export_info.get_inline()
         } else {
-          exports_info.other_exports_info().can_inline()
+          exports_info.other_exports_info().get_inline()
         };
         Some(match inlinable {
           Some(inlined) => format!("inlined {}", inlined.render()),

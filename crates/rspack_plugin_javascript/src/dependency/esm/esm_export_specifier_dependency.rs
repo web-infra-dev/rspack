@@ -169,7 +169,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    // remove the enum decl if all the enum members are inlined
+    // remove the enum decl export if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
       let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
         // if there are enum member need to keep origin/non-inlineable, then we need to keep the enum decl
@@ -181,12 +181,11 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
           &module.identifier(),
           PrefetchExportsInfoMode::Nested(export_name),
         );
-        let enum_member_used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          *runtime,
-          export_name,
-        );
-        matches!(enum_member_used_name, Some(UsedName::Inlined(_)))
+        let Some(export_info) = exports_info.get_read_only_export_info_recursive(export_name)
+        else {
+          return false;
+        };
+        export_info.get_inline().is_some()
       });
       if all_enum_member_inlined {
         return;

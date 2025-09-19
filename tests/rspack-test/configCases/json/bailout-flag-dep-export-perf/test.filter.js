@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: support module.parser.json";
