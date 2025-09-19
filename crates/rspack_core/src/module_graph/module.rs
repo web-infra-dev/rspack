@@ -22,7 +22,6 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub exports: ExportsInfo,
-  #[cacheable(with=Skip)]
   pub profile: Option<ModuleProfile>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,

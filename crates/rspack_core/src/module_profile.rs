@@ -1,5 +1,11 @@
 use std::time::Instant;
 
+use rspack_cacheable::{
+  cacheable,
+  with::{Custom, CustomConverter},
+};
+
+#[cacheable(with=Custom)]
 #[derive(Debug, Default, Clone)]
 enum ProfileState {
   #[default]
@@ -7,6 +13,26 @@ enum ProfileState {
   Started(Instant),
   // u64 is enough to store the time consumption
   Finish(u64),
+}
+
+impl CustomConverter for ProfileState {
+  type Target = Option<u64>;
+  fn serialize(
+    &self,
+    _ctx: &dyn std::any::Any,
+  ) -> Result<Self::Target, rspack_cacheable::SerializeError> {
+    Ok(self.duration())
+  }
+  fn deserialize(
+    data: Self::Target,
+    _ctx: &dyn std::any::Any,
+  ) -> Result<Self, rspack_cacheable::DeserializeError> {
+    if let Some(time) = data {
+      Ok(ProfileState::Finish(time))
+    } else {
+      Ok(ProfileState::default())
+    }
+  }
 }
 
 impl ProfileState {
@@ -35,6 +61,7 @@ impl ProfileState {
 // https://github.com/webpack/webpack/blob/4809421990a20dfefa06e6445191e65001e75f88/lib/ModuleProfile.js
 // NOTE: Rspack has different cache design, remove cache related profiles
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct ModuleProfile {
   factory: ProfileState,
