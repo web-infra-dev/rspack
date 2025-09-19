@@ -5,7 +5,10 @@ use std::{
 };
 
 use indexmap::IndexMap;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsInner, AsMap},
+};
 use rspack_collections::Identifier;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
@@ -26,7 +29,7 @@ use crate::{ModuleIdToFileName, dependency::WasmImportDependency};
 #[cacheable]
 #[derive(Debug)]
 pub struct AsyncWasmParserAndGenerator {
-  #[cacheable(with=Unsupported)]
+  #[cacheable(with=AsInner<AsMap>)]
   pub(crate) module_id_to_filename: ModuleIdToFileName,
 }
 
