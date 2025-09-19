@@ -6,7 +6,7 @@ use rspack_cacheable::{
 use rspack_util::json_stringify;
 use swc_core::ecma::atoms::Atom;
 
-use super::{AffectType, FactorizeInfo};
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
   ContextOptions, ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
@@ -31,7 +31,6 @@ pub struct ContextElementDependency {
   pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
-  pub factorize_info: FactorizeInfo,
 }
 
 impl ContextElementDependency {
@@ -152,14 +151,6 @@ impl ModuleDependency for ContextElementDependency {
       self.options.mode,
       ContextMode::AsyncWeak | ContextMode::Weak
     )
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

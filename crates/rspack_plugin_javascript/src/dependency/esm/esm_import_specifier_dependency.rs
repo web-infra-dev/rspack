@@ -7,8 +7,8 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, ForwardId, GetUsedNameParam,
+  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode,
   ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
   UsedByExports, UsedName, create_exports_object_referenced, export_from_import, get_exports_type,
@@ -53,7 +53,6 @@ pub struct ESMImportSpecifierDependency {
   pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSpecifierDependency {
@@ -95,7 +94,6 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       loc,
-      factorize_info: Default::default(),
     }
   }
 
@@ -290,14 +288,6 @@ impl ModuleDependency for ESMImportSpecifierDependency {
     Some(DependencyCondition::new(
       ESMImportSpecifierDependencyCondition,
     ))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

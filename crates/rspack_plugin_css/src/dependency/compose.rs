@@ -4,8 +4,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  RuntimeSpec,
+  DependencyRange, DependencyType, ExtendedReferencedExport, ModuleDependency, RuntimeSpec,
 };
 use rspack_util::atom::Atom;
 
@@ -17,7 +16,6 @@ pub struct CssComposeDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
   range: DependencyRange,
-  factorize_info: FactorizeInfo,
 }
 
 impl CssComposeDependency {
@@ -27,7 +25,6 @@ impl CssComposeDependency {
       request,
       names,
       range,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -76,14 +73,6 @@ impl ModuleDependency for CssComposeDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

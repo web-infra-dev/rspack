@@ -160,41 +160,29 @@ impl Task<TaskContext> for FactorizeResultTask {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
-      mut dependencies,
+      dependencies,
       current_profile,
       exports_info_related,
-      mut factorize_info,
+      factorize_info,
       from_unlazy,
     } = *self;
 
     let artifact = &mut context.artifact;
-    if !factorize_info.diagnostics().is_empty() {
-      artifact
-        .file_dependencies
-        .add_batch_file(&factorize_info.file_dependencies());
-      artifact
-        .context_dependencies
-        .add_batch_file(&factorize_info.context_dependencies());
-      artifact
-        .missing_dependencies
-        .add_batch_file(&factorize_info.missing_dependencies());
-      artifact
-        .make_failed_dependencies
-        .insert(*dependencies[0].id());
-    }
-    // write factorize_info to dependencies[0] and set success factorize_info to others
-    for dep in &mut dependencies {
-      let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
-        d.factorize_info_mut()
-      } else if let Some(d) = dep.as_module_dependency_mut() {
-        d.factorize_info_mut()
-      } else {
-        unreachable!("only module dependency and context dependency can factorize")
-      };
-      *dep_factorize_info = std::mem::take(&mut factorize_info);
-    }
+    artifact
+      .file_dependencies
+      .add_batch_file(&factorize_info.file_dependencies());
+    artifact
+      .context_dependencies
+      .add_batch_file(&factorize_info.context_dependencies());
+    artifact
+      .missing_dependencies
+      .add_batch_file(&factorize_info.missing_dependencies());
 
     let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+
+    // write factorize_info to dependencies[0] and set success factorize_info to others
+    module_graph.set_dependency_factorize_info(*dependencies[0].id(), factorize_info);
+
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");

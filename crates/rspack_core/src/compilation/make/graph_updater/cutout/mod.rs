@@ -1,12 +1,13 @@
 mod fix_build_meta;
 mod fix_issuers;
 
+use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, FactorizeInfo};
+use crate::{BuildDependency, Compilation};
 
 /// Cutout module graph.
 ///
@@ -59,23 +60,34 @@ impl Cutout {
           }));
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
-          for module in module_graph.modules().values() {
-            // check has dependencies modified
-            if module.depends_on(&files) {
-              // add module id
-              force_build_modules.insert(module.identifier());
-            }
-          }
-          // only failed dependencies need to check
-          for dep_id in &artifact.make_failed_dependencies {
-            let dep = module_graph
-              .dependency_by_id(dep_id)
-              .expect("should have dependency");
-            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-            if info.depends_on(&files) {
-              force_build_deps.insert(*dep_id);
-            }
-          }
+          rayon::join(
+            || {
+              force_build_modules.extend(
+                module_graph
+                  .modules()
+                  .par_iter()
+                  .filter_map(|(_, module)| {
+                    if module.depends_on(&files) {
+                      Some(module.identifier())
+                    } else {
+                      None
+                    }
+                  })
+                  .collect::<Vec<_>>(),
+              )
+            },
+            || {
+              force_build_deps.extend(
+                module_graph
+                  .dependency_factorize_infos()
+                  .par_iter()
+                  .filter_map(|(dependency_id, factorize_info)| {
+                    factorize_info.depends_on(&files).then_some(dependency_id)
+                  })
+                  .collect::<Vec<_>>(),
+              )
+            },
+          );
         }
         UpdateParam::ForceBuildModules(modules) => {
           force_build_modules.extend(modules);

@@ -3,7 +3,7 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  BuildDependency, DependencyId, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
   compilation::make::ModuleToLazyMake, utils::FileCounter,
 };
 
@@ -51,8 +51,6 @@ pub struct MakeArtifact {
   // statistical data, which can be regenerated from module_graph_partial and used as index.
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
-  /// Factorize failed dependencies in module graph
-  pub make_failed_dependencies: HashSet<DependencyId>,
   /// Entry dependencies in the module graph
   pub entry_dependencies: HashSet<DependencyId>,
   /// The files that current module graph depends on.
@@ -106,6 +104,7 @@ impl MakeArtifact {
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info
+    let mut revoked_dependency_ids: HashSet<DependencyId> = HashSet::default();
     let mgm = mg
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
@@ -114,21 +113,24 @@ impl MakeArtifact {
       .iter()
       .chain(mgm.incoming_connections())
     {
-      if !self.make_failed_dependencies.remove(dep_id) {
-        continue;
+      if !revoked_dependency_ids.contains(dep_id)
+        && let Some(info) = mg.dependency_factorize_info_by_id(dep_id)
+      {
+        revoked_dependency_ids.insert(*dep_id);
+
+        self
+          .file_dependencies
+          .remove_batch_file(&info.file_dependencies());
+        self
+          .context_dependencies
+          .remove_batch_file(&info.context_dependencies());
+        self
+          .missing_dependencies
+          .remove_batch_file(&info.missing_dependencies());
       }
-      // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-      self
-        .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
-      self
-        .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
-      self
-        .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+    }
+    for dep_id in revoked_dependency_ids {
+      mg.remove_dependency_factorize_info_by_id(&dep_id);
     }
 
     self.revoked_modules.insert(*module_identifier);
@@ -144,21 +146,18 @@ impl MakeArtifact {
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
     let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
 
-    let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
-      // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+    let revoke_dep_ids = if let Some(factorize_info) = mg.dependency_factorize_info_by_id(dep_id) {
       self
         .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
+        .remove_batch_file(&factorize_info.file_dependencies());
       self
         .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
+        .remove_batch_file(&factorize_info.context_dependencies());
       self
         .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+        .remove_batch_file(&factorize_info.missing_dependencies());
       // related_dep_ids will contain dep_id it self
-      info.related_dep_ids().into_owned()
+      factorize_info.related_dep_ids().to_vec()
     } else {
       vec![*dep_id]
     };
@@ -186,11 +185,13 @@ impl MakeArtifact {
           })
           .collect::<Vec<_>>()
       });
-    let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let origin_module_identifier = mg.get_parent_module(dep_id);
-      FactorizeInfo::get_from(dep)
-        .expect("should have factorize info")
+    let make_failed_dependencies = mg
+      .dependency_factorize_infos()
+      .into_iter()
+      .filter(|(_, info)| !info.is_success());
+    let dep_diagnostics = make_failed_dependencies.flat_map(|(dep_id, factorize_info)| {
+      let origin_module_identifier = mg.get_parent_module(&dep_id);
+      factorize_info
         .diagnostics()
         .iter()
         .cloned()

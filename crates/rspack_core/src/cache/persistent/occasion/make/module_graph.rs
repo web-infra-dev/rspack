@@ -12,8 +12,8 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
-  ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier, RayonConsumer,
+  DependencyId, DependencyParents, ExportsInfoData, FactorizeInfo, ModuleGraph,
+  ModuleGraphConnection, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier, RayonConsumer,
   cache::persistent::cacheable_context::CacheableContext,
   compilation::make::{LazyDependencies, ModuleToLazyMake},
 };
@@ -25,9 +25,11 @@ const SCOPE: &str = "occasion_make_module_graph";
 struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
   pub module: OwnedOrRef<'a, BoxModule>,
+  #[allow(clippy::type_complexity)]
   pub dependencies: Vec<(
     OwnedOrRef<'a, BoxDependency>,
     Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
+    Option<OwnedOrRef<'a, FactorizeInfo>>,
   )>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
@@ -72,6 +74,7 @@ pub fn save_module_graph(
               .expect("should have dependency")
               .into(),
             mg.get_parent_block(dep_id).map(Into::into),
+            mg.dependency_factorize_info_by_id(dep_id).map(Into::into),
           )
         })
         .collect::<Vec<_>>();
@@ -104,7 +107,7 @@ pub fn save_module_graph(
           node.dependencies = node
             .dependencies
             .into_iter()
-            .map(|(dep, _)| (TempDependency::transform_from(dep), None))
+            .map(|(dep, _, _)| (TempDependency::transform_from(dep), None, None))
             .collect();
           node.blocks = vec![];
           if let Ok(bytes) = to_bytes(&node, context) {
@@ -148,7 +151,9 @@ pub async fn recovery_module_graph(
     .consume(|node| {
       let mut mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
-      for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
+      for (index_in_block, (dep, parent_block, factorize_info)) in
+        node.dependencies.into_iter().enumerate()
+      {
         let dep = dep.into_owned();
         mg.set_parents(
           *dep.id(),
@@ -158,6 +163,9 @@ pub async fn recovery_module_graph(
             index_in_block,
           },
         );
+        if let Some(factorize_info) = factorize_info.map(OwnedOrRef::into_owned) {
+          mg.set_dependency_factorize_info(*dep.id(), factorize_info);
+        }
         mg.add_dependency(dep);
       }
       for con in node.connections {

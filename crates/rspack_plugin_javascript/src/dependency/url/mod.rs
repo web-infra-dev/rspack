@@ -2,9 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedByExports, module_id,
+  DependencyTemplateType, DependencyType, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedByExports, module_id,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -20,7 +20,6 @@ pub struct URLDependency {
   range_url: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   relative: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl URLDependency {
@@ -37,7 +36,6 @@ impl URLDependency {
       range_url,
       used_by_exports: None,
       relative,
-      factorize_info: Default::default(),
     }
   }
 
@@ -81,14 +79,6 @@ impl ModuleDependency for URLDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::new(URLDependencyCondition))
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

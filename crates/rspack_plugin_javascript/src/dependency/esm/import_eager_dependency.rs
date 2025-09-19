@@ -4,9 +4,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, TemplateContext,
-  TemplateReplaceSource, module_namespace_promise,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ImportAttributes,
+  ModuleDependency, ModuleGraphCacheArtifact, TemplateContext, TemplateReplaceSource,
+  module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -26,7 +26,6 @@ pub struct ImportEagerDependency {
   pub referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
-  factorize_info: FactorizeInfo,
 }
 
 impl ImportEagerDependency {
@@ -45,7 +44,6 @@ impl ImportEagerDependency {
       referenced_exports,
       attributes,
       resource_identifier,
-      factorize_info: Default::default(),
     }
   }
 }
@@ -103,14 +101,6 @@ impl ModuleDependency for ImportEagerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

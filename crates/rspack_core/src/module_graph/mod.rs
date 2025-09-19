@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, FactorizeInfo, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -54,6 +54,8 @@ pub struct ModuleGraphPartial {
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
+
+  dependency_factorize_infos: HashMap<DependencyId, Option<FactorizeInfo>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
@@ -257,6 +259,9 @@ impl<'a> ModuleGraph<'a> {
         block.remove_dependency_id(*dep_id);
       }
     }
+    active_partial
+      .dependency_factorize_infos
+      .insert(*dep_id, None);
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier
@@ -641,6 +646,30 @@ impl<'a> ModuleGraph<'a> {
     res
   }
 
+  #[inline]
+  pub fn dependency_factorize_infos(&self) -> HashMap<DependencyId, &FactorizeInfo> {
+    let mut res = HashMap::default();
+    for item in self.partials.iter().flatten() {
+      for (k, v) in &item.dependency_factorize_infos {
+        if let Some(v) = v {
+          res.insert(*k, v);
+        } else {
+          res.remove(k);
+        }
+      }
+    }
+    if let Some(active) = &self.active {
+      for (k, v) in &active.dependency_factorize_infos {
+        if let Some(v) = v {
+          res.insert(*k, v);
+        } else {
+          res.remove(k);
+        }
+      }
+    }
+    res
+  }
+
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
@@ -654,6 +683,39 @@ impl<'a> ModuleGraph<'a> {
     self
       .loop_partials(|p| p.dependencies.get(dependency_id))?
       .as_ref()
+  }
+
+  pub fn set_dependency_factorize_info(
+    &mut self,
+    dependency_id: DependencyId,
+    factorize_info: FactorizeInfo,
+  ) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    active_partial
+      .dependency_factorize_infos
+      .insert(dependency_id, Some(factorize_info));
+  }
+
+  pub fn dependency_factorize_info_by_id(
+    &self,
+    dependency_id: &DependencyId,
+  ) -> Option<&FactorizeInfo> {
+    self.loop_partials(|p| {
+      p.dependency_factorize_infos
+        .get(dependency_id)
+        .and_then(|factorize_info| factorize_info.as_ref())
+    })
+  }
+
+  pub fn remove_dependency_factorize_info_by_id(&mut self, dependency_id: &DependencyId) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+    active_partial
+      .dependency_factorize_infos
+      .insert(*dependency_id, None);
   }
 
   pub fn dependency_by_id_mut(

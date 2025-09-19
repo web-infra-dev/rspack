@@ -3,7 +3,6 @@ use std::ops::Deref;
 
 use dashmap::DashSet as HashSet;
 use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
-use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
 use crate::watcher::paths::PathAccessor;
@@ -116,14 +115,15 @@ impl PathTree {
   fn add_path_recursive(&self, path: &ArcPath) {
     let tree = &self.inner;
     if let Some(parent) = path.parent() {
-      if let Some(node) = tree.get_mut(&ArcPath::from(parent)) {
+      let parent = ArcPath::from(parent);
+      if let Some(node) = tree.get_mut(&parent) {
         node.add_child(path.clone());
         return;
       }
       let parent_node = TreeNode::default();
       parent_node.add_child(path.clone());
-      tree.insert(ArcPath::from(parent), parent_node);
-      self.add_path_recursive(&ArcPath::from(parent))
+      tree.insert(parent.clone(), parent_node);
+      self.add_path_recursive(&parent)
     }
   }
 }
