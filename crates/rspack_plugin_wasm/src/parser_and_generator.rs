@@ -7,9 +7,8 @@ use std::{
 use indexmap::IndexMap;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsMap, Unsupported},
+  with::{AsInner, AsMap},
 };
-use rspack_collections::Identifier;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationData, Compilation,
   Dependency, DependencyId, DependencyType, Filename, GenerateContext, Module, ModuleDependency,
