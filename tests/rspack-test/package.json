@@ -22,7 +22,7 @@
     "@rspack/plugin-react-refresh": "^1.5.1",
     "@rspack/test-tools": "workspace:*",
     "@swc/helpers": "0.5.17",
-    "@swc/plugin-remove-console": "^9.0.0",
+    "@swc/plugin-remove-console": "^9.1.0",
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
     "@types/fs-extra": "11.0.4",
