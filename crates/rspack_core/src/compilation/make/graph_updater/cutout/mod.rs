@@ -76,7 +76,8 @@ impl Cutout {
           );
           force_build_deps.extend(
             module_graph
-              .dependency_factorize_info_iter()
+              .dependency_factorize_infos()
+              .into_iter()
               // The cost of `factorize_info.depends_on` can be highly non-uniform.
               // To enable Rayon's work-stealing for better load balancing, we first
               // materialize the iterator into a Vec. This allows `par_iter` to create

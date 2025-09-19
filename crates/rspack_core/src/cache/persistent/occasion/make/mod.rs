@@ -61,7 +61,6 @@ impl MakeOccasion {
   pub async fn recovery(&self) -> Result<MakeArtifact> {
     let (partial, module_to_lazy_make, entry_dependencies) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
-
     // regenerate statistical data
     let mg = ModuleGraph::new([Some(&partial), None], None);
     // recovery make_failed_module
@@ -71,22 +70,66 @@ impl MakeOccasion {
     let mut context_dep = FileCounter::default();
     let mut missing_dep = FileCounter::default();
     let mut build_dep = FileCounter::default();
-    for (mid, module) in mg.modules() {
-      let build_info = module.build_info();
-      file_dep.add_batch_file(&build_info.file_dependencies);
-      context_dep.add_batch_file(&build_info.context_dependencies);
-      missing_dep.add_batch_file(&build_info.missing_dependencies);
-      build_dep.add_batch_file(&build_info.build_dependencies);
-      if !module.diagnostics().is_empty() {
-        make_failed_module.insert(mid);
-      }
-    }
 
-    for (_, factorize_info) in mg.dependency_factorize_info_iter() {
-      file_dep.add_batch_file(&factorize_info.file_dependencies());
-      context_dep.add_batch_file(&factorize_info.context_dependencies());
-      missing_dep.add_batch_file(&factorize_info.missing_dependencies());
-    }
+    let modules = mg.modules();
+    rayon::scope(|s| {
+      s.spawn(|_| {
+        modules.iter().for_each(|(_, module)| {
+          let build_info = module.build_info();
+          file_dep.add_batch_file(&build_info.file_dependencies);
+        });
+      });
+      s.spawn(|_| {
+        modules.iter().for_each(|(_, module)| {
+          let build_info = module.build_info();
+          context_dep.add_batch_file(&build_info.context_dependencies);
+        });
+      });
+      s.spawn(|_| {
+        modules.iter().for_each(|(_, module)| {
+          let build_info = module.build_info();
+          missing_dep.add_batch_file(&build_info.missing_dependencies);
+        });
+      });
+      s.spawn(|_| {
+        modules.iter().for_each(|(_, module)| {
+          let build_info = module.build_info();
+          build_dep.add_batch_file(&build_info.build_dependencies);
+        });
+      });
+      s.spawn(|_| {
+        modules.iter().for_each(|(identifier, module)| {
+          if !module.diagnostics().is_empty() {
+            make_failed_module.insert(*identifier);
+          }
+        });
+      });
+    });
+
+    let dependency_factorize_infos = mg.dependency_factorize_infos();
+    rayon::scope(|s| {
+      s.spawn(|_| {
+        dependency_factorize_infos
+          .iter()
+          .for_each(|(_, factorize_info)| {
+            file_dep.add_batch_file(&factorize_info.file_dependencies());
+          });
+      });
+      s.spawn(|_| {
+        dependency_factorize_infos
+          .iter()
+          .for_each(|(_, factorize_info)| {
+            context_dep.add_batch_file(&factorize_info.context_dependencies());
+          });
+      });
+      s.spawn(|_| {
+        dependency_factorize_infos
+          .iter()
+          .for_each(|(_, factorize_info)| {
+            missing_dep.add_batch_file(&factorize_info.missing_dependencies());
+          });
+      });
+    });
 
     Ok(MakeArtifact {
       // write all of field here to avoid forget to update occasion when add new fields

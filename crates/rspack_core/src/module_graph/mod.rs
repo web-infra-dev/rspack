@@ -649,8 +649,27 @@ impl<'a> ModuleGraph<'a> {
   }
 
   #[inline]
-  pub fn dependency_factorize_info_iter(&'a self) -> FactorizeInfos<'a> {
-    FactorizeInfos::new(self)
+  pub fn dependency_factorize_infos(&self) -> HashMap<DependencyId, &FactorizeInfo> {
+    let mut res = HashMap::default();
+    for item in self.partials.iter().flatten() {
+      for (k, v) in &item.dependency_factorize_infos {
+        if let Some(v) = v {
+          res.insert(*k, v);
+        } else {
+          res.remove(k);
+        }
+      }
+    }
+    if let Some(active) = &self.active {
+      for (k, v) in &active.dependency_factorize_infos {
+        if let Some(v) = v {
+          res.insert(*k, v);
+        } else {
+          res.remove(k);
+        }
+      }
+    }
+    res
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
@@ -1258,83 +1277,6 @@ impl<'a> ModuleGraph<'a> {
           data.side_effects_only_info_mut().set_used_name(used_name);
         }
       }
-    }
-  }
-}
-
-#[allow(clippy::type_complexity)]
-pub enum FactorizeInfos<'a> {
-  // An optimized iterator for when there's only a single, read-only layer of data.
-  // It directly iterates over the underlying `HashMap` without any merging overhead,
-  // filtering out deleted entries (`None` values).
-  Direct(
-    std::iter::FilterMap<
-      std::collections::hash_map::Iter<'a, DependencyId, Option<FactorizeInfo>>,
-      fn((&DependencyId, &'a Option<FactorizeInfo>)) -> Option<(DependencyId, &'a FactorizeInfo)>,
-    >,
-  ),
-  // An iterator for when multiple data layers exist (e.g., during the seal phase).
-  // It merges all layers into a temporary `HashMap` to correctly resolve overrides
-  // and deletions, then iterates over the merged result.
-  Merged(std::collections::hash_map::IntoIter<DependencyId, &'a FactorizeInfo>),
-}
-
-impl<'a> FactorizeInfos<'a> {
-  pub fn new(module_graph: &'a ModuleGraph<'a>) -> Self {
-    if module_graph.partials.iter().flatten().count() == 1 && module_graph.active.is_none() {
-      #[allow(clippy::unwrap_used)]
-      let partial = module_graph
-        .partials
-        .iter()
-        .find_map(|p| p.as_ref())
-        .unwrap();
-      Self::Direct(
-        partial
-          .dependency_factorize_infos
-          .iter()
-          .filter_map(|item| item.1.as_ref().map(|info| (*item.0, info))),
-      )
-    } else {
-      let mut merged = HashMap::default();
-      for item in module_graph.partials.iter().flatten() {
-        for (dependency_id, factorize_info) in &item.dependency_factorize_infos {
-          if let Some(factorize_info) = factorize_info {
-            merged.insert(*dependency_id, factorize_info);
-          } else {
-            merged.remove(dependency_id);
-          }
-        }
-      }
-      if let Some(active) = &module_graph.active {
-        for (dependency_id, factorize_info) in &active.dependency_factorize_infos {
-          if let Some(factorize_info) = factorize_info {
-            merged.insert(*dependency_id, factorize_info);
-          } else {
-            merged.remove(dependency_id);
-          }
-        }
-      }
-      Self::Merged(merged.into_iter())
-    }
-  }
-}
-
-impl<'a> Iterator for FactorizeInfos<'a> {
-  type Item = (DependencyId, &'a FactorizeInfo);
-
-  #[inline]
-  fn next(&mut self) -> Option<Self::Item> {
-    match self {
-      Self::Direct(iter) => iter.next(),
-      Self::Merged(iter) => iter.next(),
-    }
-  }
-
-  #[inline]
-  fn size_hint(&self) -> (usize, Option<usize>) {
-    match self {
-      Self::Direct(iter) => iter.size_hint(),
-      Self::Merged(iter) => iter.size_hint(),
     }
   }
 }
