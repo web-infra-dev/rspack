@@ -20,7 +20,7 @@ impl ProfileState {
         let time = Instant::now().duration_since(*i);
         *self = Self::Finish(time.as_millis() as u64)
       }
-      _ => panic!("Unable to end a unstarted profiler"),
+      _ => panic!("Unable to end an unstarted profiler"),
     }
   }
 
