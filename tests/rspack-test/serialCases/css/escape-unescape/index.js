@@ -9,7 +9,7 @@ it(`should work with URLs in CSS`, done => {
 		css.push(link.sheet.css);
 	}
 
-	expect(css).toMatchSnapshot('css');
-	expect(styles).toMatchSnapshot('classes');
+	expect(css).toMatchFileSnapshot(`${__SNAPSHOT__}/css.txt`);
+	expect(styles).toMatchFileSnapshot(`${__SNAPSHOT__}/classes.txt`);
 	done();
 });

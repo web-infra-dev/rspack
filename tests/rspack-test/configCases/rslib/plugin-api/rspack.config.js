@@ -11,6 +11,11 @@ module.exports = [
 			__filename: false,
 			__dirname: false
 		},
+		output: {
+			library: {
+				type: "commonjs"
+			}
+		},
 		plugins: [
 			new RslibPlugin({
 				interceptApiPlugin: true
@@ -19,6 +24,9 @@ module.exports = [
 	},
 	{
 		entry: "./test.js",
+		externals: {
+			"./bundle0.js": "commonjs ./bundle0.js"
+		},
 		target: "node",
 		node: {
 			__filename: false,

@@ -16,8 +16,8 @@ pub struct ModuleGraphConnection {
   /// The referenced module identifier
   module_identifier: ModuleIdentifier,
 
-  pub active: bool,
-  pub conditional: bool,
+  active: bool,
+  conditional: bool,
 }
 
 impl Hash for ModuleGraphConnection {
@@ -37,14 +37,13 @@ impl ModuleGraphConnection {
     dependency_id: DependencyId,
     original_module_identifier: Option<ModuleIdentifier>,
     module_identifier: ModuleIdentifier,
-    active: bool,
     conditional: bool,
   ) -> Self {
     Self {
       dependency_id,
       original_module_identifier,
       module_identifier,
-      active,
+      active: true,
       conditional,
       resolved_original_module_identifier: original_module_identifier,
       resolved_module: module_identifier,

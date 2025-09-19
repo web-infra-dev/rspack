@@ -6,7 +6,7 @@ it("should allow to create css modules", done => {
 		: __non_webpack_require__("./use-style_js.bundle0.js");
 	import("./use-style.js").then(({ default: x }) => {
 		try {
-			expect(x).toMatchSnapshot(prod ? "prod" : "dev");
+			expect(x).toMatchSnapshot(`${__SNAPSHOT__}/${prod ? "prod" : "dev"}.txt`);
 		} catch (e) {
 			return done(e);
 		}

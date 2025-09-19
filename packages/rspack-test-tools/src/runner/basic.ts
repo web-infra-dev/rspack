@@ -8,7 +8,7 @@ import {
 	type TCompilerStatsCompilation,
 	type TRunnerFactory
 } from "../type";
-import { EsmRunner } from "./runner/esm";
+import { NodeRunner } from "./runner/node";
 import { WebRunner } from "./runner/web";
 
 export class BasicRunnerFactory<T extends ECompilerType>
@@ -67,6 +67,8 @@ export class BasicRunnerFactory<T extends ECompilerType>
 		env: ITestEnv
 	): ITestRunner {
 		const runnerOptions = {
+			runInNewContext: false,
+			cachable: true,
 			env,
 			stats,
 			name: this.name,
@@ -82,11 +84,10 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			return new WebRunner<T>({
 				...runnerOptions,
 				runInNewContext: true,
-				cachable: true,
 				dom:
 					this.context.getValue(this.name, "documentType") || EDocumentType.Fake
 			});
 		}
-		return new EsmRunner<T>(runnerOptions);
+		return new NodeRunner<T>(runnerOptions);
 	}
 }

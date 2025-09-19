@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use rspack_cacheable::{
-  SerializeError, cacheable, from_bytes, to_bytes,
-  utils::OwnedOrRef,
-  with::{AsOption, AsOwned, AsTuple2, AsVec},
-};
+use rspack_cacheable::{SerializeError, cacheable, from_bytes, to_bytes, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
@@ -27,20 +23,14 @@ const SCOPE: &str = "occasion_make_module_graph";
 /// The value struct of current storage scope
 #[cacheable]
 struct Node<'a> {
-  #[cacheable(with=AsOwned)]
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
-  #[cacheable(with=AsOwned)]
   pub module: OwnedOrRef<'a, BoxModule>,
-  #[cacheable(with=AsVec<AsTuple2<AsOwned, AsOption<AsOwned>>>)]
   pub dependencies: Vec<(
     OwnedOrRef<'a, BoxDependency>,
     Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   )>,
-  #[cacheable(with=AsVec<AsOwned>)]
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
-  #[cacheable(with=AsVec<AsOwned>)]
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlock>>,
-  #[cacheable(with=AsOption<AsOwned>)]
   pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
 }
 
@@ -209,7 +199,7 @@ pub async fn recovery_module_graph(
   let mut entry_dependencies: HashSet<DependencyId> = Default::default();
   for mid in entry_module {
     let dep = TempDependency::default();
-    let connection = ModuleGraphConnection::new(*dep.id(), None, mid, true, false);
+    let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
     mg.add_dependency(Box::new(dep));
     mg.cache_recovery_connection(connection);

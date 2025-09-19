@@ -9,11 +9,11 @@ it(`should generate correct url public path with css filename`, done => {
 		try {
 			expect(x).toEqual(nsObj({}));
 			const style1 = getComputedStyle(h1);
-			expect(style1).toMatchSnapshot(`${__STATS_I__}_style1`);
+			expect(style1).toMatchFileSnapshot(`${__SNAPSHOT__}/${__STATS_I__}_style1.txt`);
 			const style2 = getComputedStyle(h2);
-			expect(style2).toMatchSnapshot(`${__STATS_I__}_style2`);
+			expect(style2).toMatchFileSnapshot(`${__SNAPSHOT__}/${__STATS_I__}_style2.txt`);
 			const style3 = getComputedStyle(h3);
-			expect(style3).toMatchSnapshot(`${__STATS_I__}_style3`);
+			expect(style3).toMatchFileSnapshot(`${__SNAPSHOT__}/${__STATS_I__}_style3.txt`);
 			done();
 		} catch (e) {
 			done(e);
