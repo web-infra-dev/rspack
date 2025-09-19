@@ -18,7 +18,7 @@ use rspack_error::{
 };
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{ext::DynHash, identifier::make_paths_relative};
+use rspack_util::{base64, ext::DynHash, identifier::make_paths_relative};
 
 mod asset_exports_dependency;
 
@@ -121,9 +121,9 @@ impl AssetParserAndGenerator {
 
   fn decode_data_uri_content(encoding: &str, content: &str, source: &BoxSource) -> Vec<u8> {
     if encoding == "base64"
-      && let Some(cleaned) = rspack_base64::clean_base64(content)
+      && let Some(cleaned) = base64::clean_base64(content)
     {
-      return rspack_base64::decode_to_vec(cleaned.as_bytes())
+      return base64::decode_to_vec(cleaned.as_bytes())
         .unwrap_or_else(|_| source.buffer().to_vec());
     }
 
@@ -233,7 +233,7 @@ impl AssetParserAndGenerator {
       return Ok(urlencoding::encode_binary(&source.buffer()).into_owned());
     }
     if encoding == DEFAULT_ENCODING {
-      return Ok(rspack_base64::encode_to_string(source.buffer()));
+      return Ok(base64::encode_to_string(source.buffer()));
     }
     Err(error!("Unsupported encoding {encoding}"))
   }

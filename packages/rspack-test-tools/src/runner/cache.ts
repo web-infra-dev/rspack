@@ -48,7 +48,7 @@ export class CacheRunnerFactory<
 					moduleScope(ms, stats) {
 						const moduleScope =
 							typeof testConfig.moduleScope === "function"
-								? testConfig.moduleScope(ms, stats)
+								? testConfig.moduleScope(ms, stats, compilerOptions)
 								: ms;
 
 						moduleScope.COMPILER_INDEX = compilerIndex;
@@ -74,6 +74,7 @@ export class CacheRunnerFactory<
 			const jsonStats = stats.toJson({
 				// errorDetails: true
 			});
+			const compilerOptions = compiler.getOptions();
 
 			const updateIndex = updatePlugin.getUpdateIndex();
 			await checkArrayExpectation(
@@ -81,14 +82,16 @@ export class CacheRunnerFactory<
 				jsonStats,
 				"error",
 				`errors${updateIndex}`,
-				"Error"
+				"Error",
+				compilerOptions
 			);
 			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
 				`warnings${updateIndex}`,
-				"Warning"
+				"Warning",
+				compilerOptions
 			);
 
 			const updatedModules = await m.hot.check(options || true);
@@ -110,6 +113,7 @@ export class CacheRunnerFactory<
 			const jsonStats = stats.toJson({
 				// errorDetails: true
 			});
+			const compilerOptions = compiler.getOptions();
 
 			const updateIndex = updatePlugin.getUpdateIndex();
 			await checkArrayExpectation(
@@ -117,14 +121,16 @@ export class CacheRunnerFactory<
 				jsonStats,
 				"error",
 				`errors${updateIndex}`,
-				"Error"
+				"Error",
+				compilerOptions
 			);
 			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
 				`warnings${updateIndex}`,
-				"Warning"
+				"Warning",
+				compilerOptions
 			);
 			env.it(
 				`NEXT_START run with compilerIndex==${compilerIndex + 1}`,

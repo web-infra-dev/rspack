@@ -63,7 +63,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		if (!this._options.runable) return;
 
 		const testConfig = context.getTestConfig();
-		if (testConfig.noTest) return;
+		if (testConfig.noTests) return;
 
 		if (testConfig.documentType) {
 			context.setValue(
@@ -73,10 +73,11 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			);
 		}
 
-		if (typeof testConfig.beforeExecute === "function") {
-			testConfig.beforeExecute();
-		}
 		const compiler = this.getCompiler(context);
+		if (typeof testConfig.beforeExecute === "function") {
+			testConfig.beforeExecute(compiler.getOptions());
+		}
+
 		let bundles: string[] | void | string;
 		if (testConfig.bundlePath) {
 			bundles = testConfig.bundlePath;
@@ -127,13 +128,13 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		await Promise.all(results);
 
 		if (typeof testConfig.afterExecute === "function") {
-			testConfig.afterExecute();
+			testConfig.afterExecute(compiler.getOptions());
 		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const testConfig = context.getTestConfig();
-		if (testConfig.noTest) return;
+		if (testConfig.noTests) return;
 
 		const errors: Array<{ message: string; stack?: string }> = (
 			context.getError(this._options.name) || []
@@ -144,6 +145,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		const warnings: Array<{ message: string; stack?: string }> = [];
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
+		const options = compiler.getOptions();
 		if (stats) {
 			if (testConfig.writeStatsOuptut) {
 				fs.writeFileSync(
@@ -189,7 +191,8 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			{ errors },
 			"error",
 			"errors",
-			"Error"
+			"Error",
+			options
 		);
 
 		await checkArrayExpectation(
@@ -197,7 +200,8 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			{ warnings },
 			"warning",
 			"warnings",
-			"Warning"
+			"Warning",
+			options
 		);
 
 		// clear error if checked

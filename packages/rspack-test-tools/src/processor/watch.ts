@@ -86,7 +86,7 @@ export class WatchProcessor<
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const testConfig = context.getTestConfig();
-		if (testConfig.noTest) return;
+		if (testConfig.noTests) return;
 
 		const errors: Array<{ message: string; stack?: string }> = (
 			context.getError(this._options.name) || []
@@ -97,6 +97,7 @@ export class WatchProcessor<
 		const warnings: Array<{ message: string; stack?: string }> = [];
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
+		const options = compiler.getOptions();
 		const checkStats = testConfig.checkStats || (() => true);
 
 		if (stats) {
@@ -182,7 +183,8 @@ export class WatchProcessor<
 			{ errors },
 			"error",
 			"errors",
-			"Error"
+			"Error",
+			options
 		);
 
 		await checkArrayExpectation(
@@ -190,7 +192,8 @@ export class WatchProcessor<
 			{ warnings },
 			"warning",
 			"warnings",
-			"Warning"
+			"Warning",
+			options
 		);
 
 		// clear error if checked

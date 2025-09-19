@@ -1,8 +1,13 @@
-/** @type {import('../..').TCompilerCaseConfig} */
+/** @type {import('@rspack/core').TCompilerCaseConfig} */
 module.exports = {
-	description: "should successfully resolve module paths",
-	async check(_, compiler, __) {
-		let resolver = compiler.rspack.experiments.resolver;
+  description: "should successfully resolve module paths",
+  options(context) {
+    return {
+      entry: "./a.js",
+    }
+  },
+  async check({ compiler }) {
+    let resolver = compiler.rspack.experiments.resolver;
 
     async function testResolver(path, request) {
       expect(resolver.sync(path, request).path).toBeDefined();
@@ -14,9 +19,9 @@ module.exports = {
     }
 
     const path = require("node:path");
-		await Promise.all([
+    await Promise.all([
       testResolver(path.resolve(__dirname, "../fixtures"), "./main1.js"),
       testResolver(".", "react")
-		]);
-	}
+    ]);
+  }
 }

@@ -77,7 +77,9 @@ export class ConfigProcessor<
 					bundlerInfo: {
 						force: false
 					}
-				}
+				},
+				inlineConst: true,
+				lazyBarrel: true
 			}
 		} as TCompilerOptions<T>;
 	}
@@ -89,6 +91,9 @@ export class ConfigProcessor<
 		if (!options.entry) {
 			options.entry = "./index.js";
 		}
+		if (options.amd === undefined) {
+			options.amd = {};
+		}
 		if (!options.output?.filename) {
 			const outputModule = options.experiments?.outputModule;
 			options.output ??= {};
@@ -96,6 +101,8 @@ export class ConfigProcessor<
 				outputModule ? ".mjs" : ".js"
 			}`;
 		}
+
+		if (options.cache === undefined) options.cache = false;
 		if (!global.printLogger) {
 			options.infrastructureLogging = {
 				level: "error"

@@ -1,1 +1,1 @@
-global.value = 42;
+global.__test_value__ = 42;

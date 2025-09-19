@@ -21,6 +21,12 @@ export class NormalProcessor<
 	constructor(protected _normalOptions: INormalProcessorOptions<T>) {
 		super({
 			findBundle: (context, options) => {
+				const testConfig = context.getTestConfig();
+
+				if (typeof testConfig.findBundle === "function") {
+					return testConfig.findBundle!(0, options);
+				}
+
 				const filename = options.output?.filename;
 				return typeof filename === "string" ? filename : undefined;
 			},
@@ -44,6 +50,7 @@ export class NormalProcessor<
 		});
 		const { root, compilerOptions } = this._normalOptions;
 		return {
+			amd: {},
 			context: root,
 			entry: `./${path.relative(root, context.getSource())}/`,
 			target: compilerOptions?.target || "async-node",
@@ -111,7 +118,21 @@ export class NormalProcessor<
 				]
 			},
 			module: {
-				rules: []
+				rules: [
+					{
+						test: /\.coffee$/,
+						loader: "coffee-loader"
+					},
+					{
+						test: /\.pug/,
+						loader: "@webdiscus/pug-loader"
+					},
+					{
+						test: /\.wat$/i,
+						loader: "wast-loader",
+						type: "webassembly/async"
+					}
+				]
 			},
 			plugins: (compilerOptions?.plugins || [])
 				.concat(testConfig.plugins || [])
@@ -134,7 +155,7 @@ export class NormalProcessor<
 					});
 				}),
 			experiments: {
-				css: true,
+				css: false,
 				rspackFuture: {
 					bundlerInfo: {
 						force: false
@@ -142,6 +163,8 @@ export class NormalProcessor<
 				},
 				asyncWebAssembly: true,
 				topLevelAwait: true,
+				inlineConst: true,
+				lazyBarrel: true,
 				// CHANGE: rspack does not support `backCompat` yet.
 				// backCompat: false,
 				// CHANGE: Rspack enables `css` by default.

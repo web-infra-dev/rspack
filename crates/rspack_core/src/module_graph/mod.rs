@@ -424,9 +424,7 @@ impl<'a> ModuleGraph<'a> {
       let dependency = self
         .dependency_by_id(&dep_id)
         .expect("should have dependency");
-      // the inactive connection should not be updated
-      if filter_connection(connection, dependency) && (connection.conditional || connection.active)
-      {
+      if filter_connection(connection, dependency) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
           .expect("should have connection");
@@ -773,13 +771,11 @@ impl<'a> ModuleGraph<'a> {
       return Ok(());
     }
 
-    let active = !matches!(condition, Some(DependencyCondition::False));
     let conditional = condition.is_some();
     let new_connection = ModuleGraphConnection::new(
       dependency_id,
       original_module_identifier,
       module_identifier,
-      active,
       conditional,
     );
     self.add_connection(new_connection, condition);

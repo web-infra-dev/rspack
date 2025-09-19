@@ -1,1 +1,1 @@
-global.value = __webpack_runtime_id__;
+global.__test_value__ = __webpack_runtime_id__;

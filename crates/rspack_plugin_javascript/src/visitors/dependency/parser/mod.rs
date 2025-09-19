@@ -247,9 +247,9 @@ pub struct JavascriptParser<'parser> {
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
-  pub(crate) is_esm: bool,
+  pub is_esm: bool,
   pub(crate) destructuring_assignment_properties:
-    Option<FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>>,
+    FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
@@ -417,7 +417,7 @@ impl<'parser> JavascriptParser<'parser> {
       worker_index: 0,
       module_identifier,
       member_expr_in_optional_chain: false,
-      destructuring_assignment_properties: None,
+      destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
       semicolons,
       statement_path: Default::default(),
@@ -1080,7 +1080,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.prev_statement = self.statement_path.pop();
   }
 
-  fn enter_destructuring_assignment<'a>(
+  pub fn enter_destructuring_assignment<'a>(
     &mut self,
     pattern: &ObjectPat,
     expr: &'a Expr,
@@ -1099,27 +1099,20 @@ impl<'parser> JavascriptParser<'parser> {
       let can_collect = self
         .plugin_drive
         .clone()
-        .collect_destructuring_assignment_properties(self, expr)
+        .can_collect_destructuring_assignment_properties(self, expr)
         .unwrap_or_default();
       can_collect.then_some(expr)
     };
     if let Some(destructuring) = destructuring
-      && let Some(keys) = self._pre_walk_object_pattern(pattern)
-      && let Some(destructuring_assignment_properties) =
-        &mut self.destructuring_assignment_properties
+      && let Some(keys) = self.collect_destructuring_assignment_properties(pattern)
     {
-      // check multiple assignments
-      let props = destructuring_assignment_properties
-        .entry(destructuring.span())
-        .or_default();
-      props.extend(keys);
+      self.add_destructuring_assignment_properties(destructuring.span(), keys);
     }
     destructuring
   }
 
   pub fn walk_program(&mut self, ast: &Program) {
     if self.plugin_drive.clone().program(self, ast).is_none() {
-      self.destructuring_assignment_properties = Some(FxHashMap::default());
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
@@ -1142,7 +1135,6 @@ impl<'parser> JavascriptParser<'parser> {
           self.walk_statements(&s.body);
         }
       };
-      self.destructuring_assignment_properties = None;
     }
     self.plugin_drive.clone().finish(self);
   }
@@ -1178,14 +1170,23 @@ impl<'parser> JavascriptParser<'parser> {
     !info.is_free()
   }
 
+  pub fn add_destructuring_assignment_properties(
+    &mut self,
+    span: Span,
+    props: FxHashSet<DestructuringAssignmentProperty>,
+  ) {
+    self
+      .destructuring_assignment_properties
+      .entry(span)
+      .or_default()
+      .extend(props)
+  }
+
   pub fn destructuring_assignment_properties_for(
     &self,
     span: &Span,
   ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
-    self
-      .destructuring_assignment_properties
-      .as_ref()
-      .and_then(|x| x.get(span).cloned())
+    self.destructuring_assignment_properties.get(span).cloned()
   }
 }
 

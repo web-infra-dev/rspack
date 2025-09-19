@@ -51,11 +51,7 @@ fn create_resource_identifier_for_context_dependency(
   let referenced_exports = options
     .referenced_exports
     .as_ref()
-    .map(|x| {
-      x.iter()
-        .map(|x| x.iter().map(|x| format!(r#""{x}""#)).join("."))
-        .join(",")
-    })
+    .map(|ids| ids.iter().map(|ids| ids.iter().join(".")).join(", "))
     .unwrap_or_default();
   let mut group_options = String::new();
 

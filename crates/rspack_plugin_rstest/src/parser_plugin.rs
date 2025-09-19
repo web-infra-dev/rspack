@@ -600,7 +600,12 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     None
   }
 
-  fn import_call(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) -> Option<bool> {
+  fn import_call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    _import_then: Option<&CallExpr>,
+  ) -> Option<bool> {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {
       let tag_data = parser.get_tag_data(

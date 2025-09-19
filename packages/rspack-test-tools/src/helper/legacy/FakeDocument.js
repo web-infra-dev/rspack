@@ -81,7 +81,7 @@ export class FakeElement {
 		return new FakeElement(this._document, this._type, this._basePath)
 	}
 
-	addEventListener() {}
+	addEventListener() { }
 
 	insertBefore(node, before) {
 		this._document._onElementAttached(node);
@@ -252,15 +252,20 @@ export class FakeSheet {
 				currentRule[property] = value;
 			}
 		};
-		const filepath = /file:\/\//.test(this._element.href)
-			? new URL(this._element.href)
+		let filepath = /file:\/\//.test(this._element.href)
+			? new URL(this._element.href).pathname
 			: path.resolve(
-					this._basePath,
-					this._element.href
-						.replace(/^https:\/\/test\.cases\/path\//, "")
-						.replace(/^https:\/\/example\.com\/public\/path\//, "")
-						.replace(/^https:\/\/example\.com\//, "")
-				);
+				this._basePath,
+				this._element.href
+					.replace(/^https:\/\/test\.cases\/path\//, "")
+					.replace(/^https:\/\/example\.com\/public\/path\//, "")
+					.replace(/^https:\/\/example\.com\//, "")
+			);
+
+		if (require("os").platform() === "win32" && filepath.startsWith("/")) {
+			filepath = filepath.slice(1);
+		}
+
 		let css = fs.readFileSync(filepath.replace(/\?hmr=\d*/, ""), "utf-8");
 		css = css.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
 			if (!/^https:\/\/test\.cases\/path\//.test(url)) {
@@ -279,8 +284,7 @@ export class FakeSheet {
 				"utf-8"
 			);
 		})
-		.replace(/\/\*[\s\S]*?\*\//g, '')
-		.replace("//", "");
+			.replace(/\/\*[\s\S]*?\*\//g, '');
 		walkCssTokens(css, {
 			isSelector() {
 				return selector === undefined;

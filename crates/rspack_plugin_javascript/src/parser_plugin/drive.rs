@@ -519,13 +519,13 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn collect_destructuring_assignment_properties(
+  fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser,
     expr: &Expr,
   ) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.collect_destructuring_assignment_properties(parser, expr);
+      let res = plugin.can_collect_destructuring_assignment_properties(parser, expr);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -610,10 +610,15 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn import_call(&self, parser: &mut JavascriptParser, expr: &CallExpr) -> Option<bool> {
+  fn import_call(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &CallExpr,
+    import_then: Option<&CallExpr>,
+  ) -> Option<bool> {
     assert!(expr.callee.is_import());
     for plugin in &self.plugins {
-      let res = plugin.import_call(parser, expr);
+      let res = plugin.import_call(parser, expr, import_then);
       // `SyncBailHook`
       if res.is_some() {
         return res;

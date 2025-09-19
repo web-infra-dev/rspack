@@ -377,10 +377,10 @@ pub fn module_id(
 
 pub fn import_statement(
   module: &dyn Module,
-  runtime: Option<&RuntimeSpec>,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
   id: &DependencyId,
+  import_var: &str,
   request: &str,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
@@ -395,8 +395,6 @@ pub fn import_statement(
   let module_id_expr = module_id(compilation, id, request, false);
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-
-  let import_var = compilation.get_import_var(id, runtime);
 
   let opt_declaration = if update { "" } else { "var " };
 

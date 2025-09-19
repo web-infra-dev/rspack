@@ -7,19 +7,17 @@ import createFakeWorker from "../../../helper/legacy/createFakeWorker";
 import EventSource from "../../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
 import type { ECompilerType } from "../../../type";
-import type { TBasicRunnerFile, TRunnerRequirer } from "../../type";
-import type { IBasicRunnerOptions } from "../basic";
-import { CommonJsRunner } from "../cjs";
+import type { TRunnerFile, TRunnerRequirer } from "../../type";
+import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 // Compatibility code to suppress iconv-lite warnings
 require("iconv-lite").skipDecodeWarning = true;
 
 export class JSDOMWebRunner<
 	T extends ECompilerType = ECompilerType.Rspack
-> extends CommonJsRunner<T> {
+> extends NodeRunner<T> {
 	private dom: JSDOM;
-	private requireCache: Record<string, any> = Object.create(null);
-	constructor(protected _webOptions: IBasicRunnerOptions<T>) {
+	constructor(protected _webOptions: INodeRunnerOptions<T>) {
 		super(_webOptions);
 
 		const virtualConsole = new VirtualConsole();
@@ -103,7 +101,7 @@ export class JSDOMWebRunner<
 						throw new Error(`File not found: ${filePath}`);
 					}
 
-					const [_m, code] = that.getModuleContent(file);
+					const [_scope, _m, code] = that.getModuleContent(file);
 					finalCode = code;
 				} else {
 					finalCode = fs.readFileSync(filePath);
@@ -177,7 +175,8 @@ export class JSDOMWebRunner<
 		return moduleScope;
 	}
 
-	protected getModuleContent(file: TBasicRunnerFile): [
+	protected getModuleContent(file: TRunnerFile): [
+		Record<string, unknown>,
 		{
 			exports: Record<string, unknown>;
 		},
@@ -193,7 +192,11 @@ export class JSDOMWebRunner<
 		);
 
 		if (this._options.testConfig.moduleScope) {
-			this._options.testConfig.moduleScope(currentModuleScope);
+			this._options.testConfig.moduleScope(
+				currentModuleScope,
+				this._options.stats,
+				this._options.compilerOptions
+			);
 		}
 
 		const scopeKey = escapeSep(file!.path);
@@ -205,6 +208,7 @@ export class JSDOMWebRunner<
 			.join(", ");
 		this.dom.window[scopeKey] = currentModuleScope;
 		return [
+			this.dom.window[scopeKey],
 			m,
 			`
 			// hijack document.currentScript for auto public path
@@ -243,7 +247,18 @@ export class JSDOMWebRunner<
 				return this.requireCache[file.path].exports;
 			}
 
-			const [m, code] = this.getModuleContent(file);
+			const [scope, m, code] = this.getModuleContent(file);
+
+			if (code.includes("__STATS__")) {
+				scope.__STATS__ = this._options.stats?.();
+			}
+			if (code.includes("__STATS_I__")) {
+				const statsIndex = this._options.stats?.()?.__index__;
+				if (typeof statsIndex === "number") {
+					scope.__STATS_I__ = statsIndex;
+				}
+			}
+
 			this.preExecute(code, file);
 			this.dom.window.eval(code);
 			this.postExecute(m, file);

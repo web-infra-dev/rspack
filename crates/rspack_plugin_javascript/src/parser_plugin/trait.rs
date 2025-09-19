@@ -116,7 +116,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn collect_destructuring_assignment_properties(
+  fn can_collect_destructuring_assignment_properties(
     &self,
     _parser: &mut JavascriptParser,
     _expr: &Expr,
@@ -325,7 +325,12 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn import_call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr) -> Option<bool> {
+  fn import_call(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &CallExpr,
+    _import_then: Option<&CallExpr>,
+  ) -> Option<bool> {
     None
   }
 
