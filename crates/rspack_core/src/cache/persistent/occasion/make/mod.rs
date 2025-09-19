@@ -74,60 +74,54 @@ impl MakeOccasion {
     let modules = mg.modules();
     rayon::scope(|s| {
       s.spawn(|_| {
-        modules.iter().for_each(|(_, module)| {
+        for module in modules.values() {
           let build_info = module.build_info();
           file_dep.add_batch_file(&build_info.file_dependencies);
-        });
+        }
       });
       s.spawn(|_| {
-        modules.iter().for_each(|(_, module)| {
+        for module in modules.values() {
           let build_info = module.build_info();
           context_dep.add_batch_file(&build_info.context_dependencies);
-        });
+        }
       });
       s.spawn(|_| {
-        modules.iter().for_each(|(_, module)| {
+        for module in modules.values() {
           let build_info = module.build_info();
           missing_dep.add_batch_file(&build_info.missing_dependencies);
-        });
+        }
       });
       s.spawn(|_| {
-        modules.iter().for_each(|(_, module)| {
+        for module in modules.values() {
           let build_info = module.build_info();
           build_dep.add_batch_file(&build_info.build_dependencies);
-        });
+        }
       });
       s.spawn(|_| {
-        modules.iter().for_each(|(identifier, module)| {
+        for (identifier, module) in &modules {
           if !module.diagnostics().is_empty() {
             make_failed_module.insert(*identifier);
           }
-        });
+        }
       });
     });
 
     let dependency_factorize_infos = mg.dependency_factorize_infos();
     rayon::scope(|s| {
       s.spawn(|_| {
-        dependency_factorize_infos
-          .iter()
-          .for_each(|(_, factorize_info)| {
-            file_dep.add_batch_file(&factorize_info.file_dependencies());
-          });
+        for factorize_info in dependency_factorize_infos.values() {
+          file_dep.add_batch_file(&factorize_info.file_dependencies());
+        }
       });
       s.spawn(|_| {
-        dependency_factorize_infos
-          .iter()
-          .for_each(|(_, factorize_info)| {
-            context_dep.add_batch_file(&factorize_info.context_dependencies());
-          });
+        for factorize_info in dependency_factorize_infos.values() {
+          context_dep.add_batch_file(&factorize_info.context_dependencies());
+        }
       });
       s.spawn(|_| {
-        dependency_factorize_infos
-          .iter()
-          .for_each(|(_, factorize_info)| {
-            missing_dep.add_batch_file(&factorize_info.missing_dependencies());
-          });
+        for factorize_info in dependency_factorize_infos.values() {
+          missing_dep.add_batch_file(&factorize_info.missing_dependencies());
+        }
       });
     });
 

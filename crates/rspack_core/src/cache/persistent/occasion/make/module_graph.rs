@@ -25,6 +25,7 @@ const SCOPE: &str = "occasion_make_module_graph";
 struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
   pub module: OwnedOrRef<'a, BoxModule>,
+  #[allow(clippy::type_complexity)]
   pub dependencies: Vec<(
     OwnedOrRef<'a, BoxDependency>,
     Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
