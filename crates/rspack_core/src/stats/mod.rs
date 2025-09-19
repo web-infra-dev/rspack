@@ -904,13 +904,10 @@ impl Stats<'_> {
         .count() as u32;
 
       let profile = if let Some(p) = mgm.profile()
-        && let Some(factory) = p.factory.duration()
-        && let Some(building) = p.building.duration()
+        && let Some(factory) = p.factory_duration()
+        && let Some(building) = p.building_duration()
       {
-        Some(StatsModuleProfile {
-          factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
-          building: StatsMillisecond::new(building.as_secs(), building.subsec_millis()),
-        })
+        Some(StatsModuleProfile { factory, building })
       } else {
         None
       };

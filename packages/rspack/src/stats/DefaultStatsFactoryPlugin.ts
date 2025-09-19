@@ -60,7 +60,6 @@ import {
 	iterateConfig,
 	mergeToObject,
 	moduleGroup,
-	resolveStatsMillisecond,
 	sortByField,
 	spaceLimited
 } from "./statsFactoryUtils";
@@ -1352,8 +1351,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	},
 	profile: {
 		_: (object, profile) => {
-			const factory = resolveStatsMillisecond(profile.factory);
-			const building = resolveStatsMillisecond(profile.building);
+			const factory = profile.factory;
+			const building = profile.building;
 			const statsProfile: StatsProfile = {
 				total: factory + building,
 				resolving: factory,
