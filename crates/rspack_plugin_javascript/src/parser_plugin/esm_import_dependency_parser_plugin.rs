@@ -147,7 +147,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     Some(true)
   }
 
-  fn collect_destructuring_assignment_properties(
+  fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser,
     expr: &Expr,

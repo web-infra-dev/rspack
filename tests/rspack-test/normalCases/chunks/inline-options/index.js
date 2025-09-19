@@ -127,9 +127,9 @@ if (process.env.NODE_ENV === "production") {
 
 	it("should contain only webpackExports from module", function () {
 		return import(
-			/* webpackExports: ["a", "usedExports", "b"] */ "./dir12/a?2"
+			/* webpackExports: ["usedExports"] */ "./dir12/a?2"
 		).then(module => {
-			expect(module.usedExports).toEqual(["a", "b", "usedExports"]);
+			expect(module.usedExports).toEqual(["usedExports"]);
 		});
 	});
 
@@ -137,10 +137,10 @@ if (process.env.NODE_ENV === "production") {
 		return import(
 			/*
 			webpackMode: "eager",
-			webpackExports: ["a", "usedExports", "b"]
+			webpackExports: ["usedExports"]
 		*/ "./dir12/a?3"
 		).then(module => {
-			expect(module.usedExports).toEqual(["a", "b", "usedExports"]);
+			expect(module.usedExports).toEqual(["usedExports"]);
 		});
 	});
 
@@ -149,10 +149,10 @@ if (process.env.NODE_ENV === "production") {
 		return import(
 			/*
 			webpackMode: "weak",
-			webpackExports: ["a", "usedExports", "b"]
+			webpackExports: ["usedExports"]
 		*/ "./dir12/a?4"
 		).then(module => {
-			expect(module.usedExports).toEqual(["a", "b", "usedExports"]);
+			expect(module.usedExports).toEqual(["usedExports"]);
 		});
 	});
 
@@ -180,6 +180,46 @@ if (process.env.NODE_ENV === "production") {
 			}
 		);
 	});
+
+	it("should be able to load with webpackFetchPriority high, low and auto", function () {
+		return Promise.all([
+			import(/* webpackFetchPriority: "high"*/ "./dir14/a"),
+			import(/* webpackFetchPriority: "low"*/ "./dir14/b"),
+			import(/* webpackFetchPriority: "auto"*/ "./dir14/c"),
+		])
+	})
+
+	it("should not tree-shake default export for exportsType=default module", async function () {
+		const jsonObject = await import(/* webpackExports: ["default"] */ "./dir15/json/object.json");
+		const jsonArray = await import(/* webpackExports: ["default"] */ "./dir15/json/array.json");
+		const jsonPrimitive = await import(/* webpackExports: ["default"] */ "./dir15/json/primitive.json");
+		expect(jsonObject.default).toEqual({ a: 1 });
+		expect(jsonObject.a).toEqual(1);
+		expect(jsonArray.default).toEqual(["a"]);
+		expect(jsonArray[0]).toBe("a");
+		expect(jsonPrimitive.default).toBe("a");
+		const a = await import(/* webpackExports: ["default"] */"./dir15/a");
+		expect(a.default).toEqual({ a: 1, b: 2 });
+		expect(a.a).toBe(1);
+		expect(a.b).toBe(2);
+	})
+
+	it("should not tree-shake default export for exportsType=default context module", async function () {
+		const dir = "json";
+		const jsonObject = await import(/* webpackExports: ["default"] */ `./dir16/${dir}/object.json`);
+		const jsonArray = await import(/* webpackExports: ["default"] */ `./dir16/${dir}/array.json`);
+		const jsonPrimitive = await import(/* webpackExports: ["default"] */ `./dir16/${dir}/primitive.json`);
+		expect(jsonObject.default).toEqual({ a: 1 });
+		expect(jsonObject.a).toEqual(1);
+		expect(jsonArray.default).toEqual(["a"]);
+		expect(jsonArray[0]).toBe("a");
+		expect(jsonPrimitive.default).toBe("a");
+		const file = "a";
+		const a = await import(/* webpackExports: ["default"] */`./dir16/${file}`);
+		expect(a.default).toEqual({ a: 1, b: 2 });
+		expect(a.a).toBe(1);
+		expect(a.b).toBe(2);
+	})
 }
 
 function testChunkLoading(load, expectedSyncInitial, expectedSyncRequested) {

@@ -19,7 +19,7 @@ export interface IFormatCodeOptions {
 
 export interface IFormatCodeReplacement {
 	from: string | RegExp;
-	to: string;
+	to: string | ((substring: string, ...args: any[]) => string);
 }
 
 const SWC_HELPER_PATH_REG =
@@ -211,7 +211,11 @@ export function formatCode(
 
 	if (options.replacements) {
 		for (const { from, to } of options.replacements) {
-			result = result.replaceAll(from, to);
+			if (typeof to === "string") {
+				result = result.replaceAll(from, to);
+			} else {
+				result = result.replaceAll(from, to);
+			}
 		}
 	}
 

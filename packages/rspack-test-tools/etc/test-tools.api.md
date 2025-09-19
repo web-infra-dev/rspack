@@ -752,7 +752,7 @@ export interface IFormatCodeReplacement {
     // (undocumented)
     from: string | RegExp;
     // (undocumented)
-    to: string;
+    to: string | ((substring: string, ...args: any[]) => string);
 }
 
 // @public (undocumented)

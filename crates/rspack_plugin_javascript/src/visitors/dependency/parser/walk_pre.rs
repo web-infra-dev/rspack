@@ -206,7 +206,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  pub(crate) fn _pre_walk_object_pattern(
+  pub(crate) fn collect_destructuring_assignment_properties(
     &mut self,
     obj_pat: &ObjectPat,
   ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {

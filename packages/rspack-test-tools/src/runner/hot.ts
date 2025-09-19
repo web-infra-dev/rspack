@@ -49,6 +49,7 @@ export class HotRunnerFactory<
 				const jsonStats = stats.toJson({
 					// errorDetails: true
 				});
+				const compilerOptions = compiler.getOptions();
 
 				const checker = this.context.getValue(
 					this.name,
@@ -72,14 +73,16 @@ export class HotRunnerFactory<
 					jsonStats,
 					"error",
 					`errors${hotUpdateContext.updateIndex}`,
-					"Error"
+					"Error",
+					compilerOptions
 				);
 				await checkArrayExpectation(
 					source,
 					jsonStats,
 					"warning",
 					`warnings${hotUpdateContext.updateIndex}`,
-					"Warning"
+					"Warning",
+					compilerOptions
 				);
 				if (usePromise) {
 					// old callback style hmr cases
