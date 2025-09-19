@@ -1,7 +1,6 @@
 use rspack_core::{
-  ConnectionState, DependencyConditionFn, DependencyId, EvaluatedInlinableValue, ExportsInfoGetter,
-  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  PrefetchExportsInfoMode, RuntimeSpec, UsageState, UsedName,
+  Dependency, DependencyId, EvaluatedInlinableValue, ExportMode, ModuleGraph,
+  ModuleGraphConnection, PrefetchExportsInfoMode, RuntimeSpec, UsageState,
 };
 use rspack_util::ryu_js;
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDeclarator};
@@ -125,85 +124,76 @@ fn to_evaluated_inlinable_value(
   }
 }
 
-#[derive(Clone)]
-pub struct InlineValueDependencyCondition {
-  dependency_id: DependencyId,
+fn inline_value_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool {
+  let module = mg
+    .get_module_by_dependency_id(dependency_id)
+    .expect("should have target module");
+  let inline_const_enabled = module
+    .as_normal_module()
+    .and_then(|m| m.get_parser_options())
+    .and_then(|options| options.get_javascript())
+    .map(|options| options.inline_const == Some(true))
+    .unwrap_or_default();
+  let inline_enum_enabled = module
+    .build_info()
+    .collected_typescript_info
+    .as_ref()
+    .map(|info| !info.exported_enums.is_empty())
+    .unwrap_or_default();
+  inline_const_enabled || inline_enum_enabled
 }
 
-impl InlineValueDependencyCondition {
-  pub fn new(dependency_id: DependencyId) -> Self {
-    Self { dependency_id }
+pub fn connection_active_inline_value_for_esm_import_specifier(
+  dependency: &ESMImportSpecifierDependency,
+  connection: &ModuleGraphConnection,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> bool {
+  if !inline_value_enabled(dependency.id(), mg) {
+    return true;
   }
+  let module = connection.module_identifier();
+  let ids = dependency.get_ids(mg);
+  let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
+  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
+    return true;
+  }
+  let Some(export_info) = exports_info.get_read_only_export_info_recursive(ids) else {
+    return true;
+  };
+  export_info.get_inline().is_none()
 }
 
-impl DependencyConditionFn for InlineValueDependencyCondition {
-  fn get_connection_state(
-    &self,
-    _conn: &ModuleGraphConnection,
-    runtime: Option<&RuntimeSpec>,
-    mg: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> ConnectionState {
-    let bailout = ConnectionState::Active(true);
-    let module = mg
-      .get_module_by_dependency_id(&self.dependency_id)
-      .expect("should have target module");
-    let inline_const_enabled = module
-      .as_normal_module()
-      .and_then(|m| m.get_parser_options())
-      .and_then(|options| options.get_javascript())
-      .map(|options| options.inline_const == Some(true))
-      .unwrap_or_default();
-    let inline_enum_enabled = module
-      .build_info()
-      .collected_typescript_info
-      .as_ref()
-      .map(|info| !info.exported_enums.is_empty())
-      .unwrap_or_default();
-    if !inline_const_enabled && !inline_enum_enabled {
-      // bailout if the target module didn't enable inline const/enum
-      return bailout;
+pub fn connection_active_inline_value_for_esm_export_imported_specifier(
+  dependency: &ESMExportImportedSpecifierDependency,
+  mode: &ExportMode,
+  connection: &ModuleGraphConnection,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> bool {
+  if !inline_value_enabled(dependency.id(), mg) {
+    return true;
+  }
+  let ExportMode::NormalReexport(mode) = mode else {
+    return true;
+  };
+  let module = connection.module_identifier();
+  let exports_info = mg.get_exports_info(module).as_data(mg);
+  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
+    return true;
+  }
+  for item in &mode.items {
+    if item.hidden || item.checked {
+      return true;
     }
-    let module = &module.identifier();
-    let dependency = mg
-      .dependency_by_id(&self.dependency_id)
-      .expect("should have dependency");
-    let ids = if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-      dependency.get_ids(mg)
-    } else if let Some(dependency) =
-      dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
-    {
-      dependency.get_ids(mg)
-    } else {
-      panic!("should be ESMImportSpecifierDependency or ESMExportImportedSpecifierDependency")
+    let exports_info =
+      mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(&item.ids));
+    let Some(export_info) = exports_info.get_read_only_export_info_recursive(&item.ids) else {
+      return true;
     };
-    if ids.is_empty() {
-      // Optimize if all exports are inlinable for star export
-      let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
-      if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
-        return bailout;
-      }
-      for (_, export_info) in exports_info.exports() {
-        if export_info.can_inline().is_none() {
-          return bailout;
-        }
-      }
-      return ConnectionState::Active(false);
+    if export_info.get_inline().is_none() {
+      return true;
     }
-    let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
-    if matches!(
-      ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids),
-      Some(UsedName::Inlined(_))
-    ) {
-      return ConnectionState::Active(false);
-    }
-    bailout
   }
-
-  fn handle_composed(&self, primary: ConnectionState, rest: ConnectionState) -> ConnectionState {
-    if primary.is_false() {
-      return primary;
-    }
-    rest
-  }
+  false
 }

@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided, ExportsInfoGetter,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam,
-  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
+  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
+  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode,
   ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
   UsedByExports, UsedName, create_exports_object_referenced, export_from_import, get_exports_type,
@@ -24,7 +24,7 @@ use super::{
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{
-  InlineValueDependencyCondition, get_dependency_used_by_exports_condition,
+  connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
   visitors::DestructuringAssignmentProperty,
 };
 
@@ -287,17 +287,9 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let inline_const_condition = InlineValueDependencyCondition::new(self.id);
-    if let Some(used_by_exports_condition) =
-      get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
-    {
-      Some(DependencyCondition::new_composed(
-        inline_const_condition,
-        used_by_exports_condition,
-      ))
-    } else {
-      Some(DependencyCondition::new_fn(inline_const_condition))
-    }
+    Some(DependencyCondition::new(
+      ESMImportSpecifierDependencyCondition,
+    ))
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
@@ -633,5 +625,37 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         source.replace(prop.range.start, prop.range.end, &content, None);
       }
     }
+  }
+}
+
+struct ESMImportSpecifierDependencyCondition;
+
+impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph
+      .dependency_by_id(&connection.dependency_id)
+      .expect("should have dependency");
+    let dependency = dependency
+      .downcast_ref::<ESMImportSpecifierDependency>()
+      .expect("should be ESMImportSpecifierDependency");
+    ConnectionState::Active(
+      connection_active_inline_value_for_esm_import_specifier(
+        dependency,
+        connection,
+        runtime,
+        module_graph,
+      ) && connection_active_used_by_exports(
+        connection,
+        runtime,
+        module_graph,
+        dependency.used_by_exports.as_ref(),
+      ),
+    )
   }
 }

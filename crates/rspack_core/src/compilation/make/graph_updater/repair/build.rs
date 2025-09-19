@@ -18,7 +18,7 @@ pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
@@ -38,12 +38,12 @@ impl Task<TaskContext> for BuildTask {
       compiler_options,
       resolver_factory,
       plugin_driver,
-      current_profile,
+      mut current_profile,
       mut module,
       fs,
       forwarded_ids,
     } = *self;
-    if let Some(current_profile) = &current_profile {
+    if let Some(current_profile) = &mut current_profile {
       current_profile.mark_building_start();
     }
 
@@ -67,7 +67,7 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
-    if let Some(current_profile) = &current_profile {
+    if let Some(current_profile) = &mut current_profile {
       current_profile.mark_building_end();
     }
 
@@ -88,7 +88,7 @@ struct BuildResultTask {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub forwarded_ids: ForwardedIdSet,
 }
 

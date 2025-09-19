@@ -39,12 +39,12 @@ it("should have correct convention for css exports name", (done) => {
 		import("./style.module.css?dashes-only"),
 		import("./style.module.css?upper"),
 	]).then(([asIs, camelCase, camelCaseOnly, dashes, dashesOnly, upper]) => {
-		expect(asIs).toMatchSnapshot('as-is');
-		expect(camelCase).toMatchSnapshot('camel-case');
-		expect(camelCaseOnly).toMatchSnapshot('camel-case-only');
-		expect(dashes).toMatchSnapshot('dashes');
-		expect(dashesOnly).toMatchSnapshot('dashes-only');
-		expect(upper).toMatchSnapshot('upper');
+		expect(asIs).toMatchFileSnapshot(`${__SNAPSHOT__}/as-is.txt`);
+		expect(camelCase).toMatchFileSnapshot(`${__SNAPSHOT__}/camel-case.txt`);
+		expect(camelCaseOnly).toMatchFileSnapshot(`${__SNAPSHOT__}/camel-case-only.txt`);
+		expect(dashes).toMatchFileSnapshot(`${__SNAPSHOT__}/dashes.txt`);
+		expect(dashesOnly).toMatchFileSnapshot(`${__SNAPSHOT__}/dashes-only.txt`);
+		expect(upper).toMatchFileSnapshot(`${__SNAPSHOT__}/upper.txt`);
 		done()
 	}).catch(done)
 });

@@ -1,13 +1,14 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, FactorizeInfo, ModuleDependency, RuntimeGlobals, TemplateContext,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports, module_id,
 };
 use swc_core::ecma::atoms::Atom;
 
-use crate::get_dependency_used_by_exports_condition;
+use crate::connection_active_used_by_exports;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -79,7 +80,7 @@ impl ModuleDependency for URLDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+    Some(DependencyCondition::new(URLDependencyCondition))
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
@@ -158,5 +159,30 @@ impl DependencyTemplate for URLDependencyTemplate {
         None,
       );
     }
+  }
+}
+
+struct URLDependencyCondition;
+
+impl DependencyConditionFn for URLDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> ConnectionState {
+    let dependency = module_graph
+      .dependency_by_id(&connection.dependency_id)
+      .expect("should have dependency");
+    let dependency = dependency
+      .downcast_ref::<URLDependency>()
+      .expect("should be URLDependency");
+    ConnectionState::Active(connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      dependency.used_by_exports.as_ref(),
+    ))
   }
 }

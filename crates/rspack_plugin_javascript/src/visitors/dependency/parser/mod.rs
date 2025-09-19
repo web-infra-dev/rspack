@@ -247,7 +247,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
-  pub(crate) is_esm: bool,
+  pub is_esm: bool,
   pub(crate) destructuring_assignment_properties:
     FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>,
   pub(crate) dynamic_import_references: ImportsReferencesState,

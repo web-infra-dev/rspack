@@ -14,7 +14,7 @@ import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IStatsProcessorOptions<T extends ECompilerType>
 	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
-	snapshotName?: string;
+	snapshotName: string;
 	writeStatsOuptut?: boolean;
 }
 
@@ -28,7 +28,7 @@ export class StatsProcessor<
 	T extends ECompilerType
 > extends MultiTaskProcessor<T> {
 	private stderr: any;
-	private snapshotName?: string;
+	private snapshotName: string;
 	private writeStatsOuptut?: boolean;
 	constructor(_statsOptions: IStatsProcessorOptions<T>) {
 		super({
@@ -168,11 +168,15 @@ export class StatsProcessor<
 				.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB");
 		}
 
-		if (this.snapshotName) {
-			env.expect(new RspackStats(actual)).toMatchSnapshot(this.snapshotName);
-		} else {
-			env.expect(new RspackStats(actual)).toMatchSnapshot();
-		}
+		const snapshotPath = path.isAbsolute(this.snapshotName)
+			? this.snapshotName
+			: path.resolve(
+					context.getSource(),
+					`./__snapshots__/${this.snapshotName}`
+				);
+
+		env.expect(new RspackStats(actual)).toMatchFileSnapshot(snapshotPath);
+
 		const testConfig = context.getTestConfig();
 		if (typeof testConfig?.validate === "function") {
 			testConfig.validate(stats, this.stderr.toString());
@@ -212,7 +216,9 @@ export class StatsProcessor<
 					bundlerInfo: {
 						force: false
 					}
-				}
+				},
+				inlineConst: true,
+				lazyBarrel: true
 			}
 		} as TCompilerOptions<T>;
 	}

@@ -61,7 +61,9 @@ export class HashProcessor<
 					bundlerInfo: {
 						force: false
 					}
-				}
+				},
+				inlineConst: true,
+				lazyBarrel: true
 			}
 		} as TCompilerOptions<T>;
 	}

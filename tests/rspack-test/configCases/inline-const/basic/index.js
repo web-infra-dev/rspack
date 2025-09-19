@@ -6,6 +6,7 @@ import * as reexportedSideEffects from "./re-export.side-effects.js";
 import * as reexportedBarrelSideEffects from "./re-export.barrel-side-effects.js";
 import * as reexportedDestructingBarrelSideEffects from "./re-export.destructing-barrel-side-effects.js";
 import * as constantsCjs from "./constants.cjs";
+import * as constantsNoInline from "./constants.no-inline.js";
 
 const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
 
@@ -174,4 +175,8 @@ it("should keep the module if part of the exports is inlined and side effects fr
       expect(generated.includes(`"${m}": (function`)).toBe(true);
     })
   }
+})
+
+it("should not inline no-inlinable constants", () => {
+  expect(constantsNoInline.INLINE_1).toEqual({});
 })

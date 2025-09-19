@@ -163,6 +163,8 @@ export class NormalProcessor<
 				},
 				asyncWebAssembly: true,
 				topLevelAwait: true,
+				inlineConst: true,
+				lazyBarrel: true,
 				// CHANGE: rspack does not support `backCompat` yet.
 				// backCompat: false,
 				// CHANGE: Rspack enables `css` by default.

@@ -18,12 +18,25 @@ export enum ECompilerEvent {
 	Close = "close"
 }
 
-export const COMPILER_FACTORIES: TCompilerFactories = {
-	[ECompilerType.Rspack]: ((options: TCompilerOptions<ECompilerType.Rspack>) =>
-		require("@rspack/core")(options)) as TCompilerFactory<ECompilerType>,
+export const COMPILER_FACTORIES: TCompilerFactories<ECompilerType> = {
+	[ECompilerType.Rspack]: ((
+		options: TCompilerOptions<ECompilerType.Rspack>,
+		callback?: (
+			error: Error | null,
+			stats: TCompilerStats<ECompilerType.Rspack> | null
+		) => void
+	) =>
+		require("@rspack/core")(
+			options,
+			callback
+		)) as TCompilerFactory<ECompilerType>,
 	[ECompilerType.Webpack]: ((
-		options: TCompilerOptions<ECompilerType.Webpack>
-	) => require("webpack")(options)) as TCompilerFactory<ECompilerType>
+		options: TCompilerOptions<ECompilerType.Webpack>,
+		callback?: (
+			error: Error | null,
+			stats: TCompilerStats<ECompilerType.Webpack> | null
+		) => void
+	) => require("webpack")(options, callback)) as TCompilerFactory<ECompilerType>
 };
 export class TestCompilerManager<T extends ECompilerType>
 	implements ITestCompilerManager<T>
@@ -35,7 +48,7 @@ export class TestCompilerManager<T extends ECompilerType>
 
 	constructor(
 		protected type: T,
-		protected factories: TCompilerFactories = COMPILER_FACTORIES
+		protected factories: TCompilerFactories<T> = COMPILER_FACTORIES
 	) {}
 
 	getOptions(): TCompilerOptions<T> {
@@ -61,6 +74,17 @@ export class TestCompilerManager<T extends ECompilerType>
 	createCompiler(): TCompiler<T> {
 		this.compilerInstance = this.factories[this.type](
 			this.compilerOptions
+		) as TCompiler<T>;
+		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
+		return this.compilerInstance;
+	}
+
+	createCompilerWithCallback(
+		callback: (error: Error | null, stats: TCompilerStats<T> | null) => void
+	): TCompiler<T> {
+		this.compilerInstance = this.factories[this.type](
+			this.compilerOptions,
+			callback
 		) as TCompiler<T>;
 		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
 		return this.compilerInstance;

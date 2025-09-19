@@ -78,7 +78,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           current_profile: origin_context
             .compiler_options
             .profile
-            .then(Box::<ModuleProfile>::default),
+            .then(ModuleProfile::default),
           resolver_factory: origin_context.resolver_factory.clone(),
           from_unlazy: false,
         })]));
