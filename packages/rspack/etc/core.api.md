@@ -3379,6 +3379,7 @@ export type JavascriptParserOptions = {
     importDynamic?: boolean;
     inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+    jsx?: boolean;
 };
 
 // @public (undocumented)

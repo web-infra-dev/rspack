@@ -1715,6 +1715,7 @@ impl ModuleOptionsBuilder {
           require_resolve: Some(true),
           import_dynamic: Some(true),
           inline_const: Some(false),
+          jsx: Some(false),
           ..Default::default()
         }),
       );

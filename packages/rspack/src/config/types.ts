@@ -1113,6 +1113,9 @@ export type JavascriptParserOptions = {
 
 	/** Whether to tolerant exportsPresence for type reexport */
 	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+
+	/** Whether to enable JSX parsing */
+	jsx?: boolean;
 };
 
 export type JsonParserOptions = {
