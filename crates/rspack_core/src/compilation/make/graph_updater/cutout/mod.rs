@@ -60,35 +60,33 @@ impl Cutout {
           }));
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
-          force_build_modules.extend(
-            module_graph
-              .modules()
-              .values()
-              .par_bridge()
-              .filter_map(|module| {
-                if module.depends_on(&files) {
-                  Some(module.identifier())
-                } else {
-                  None
-                }
-              })
-              .collect::<Vec<_>>(),
-          );
-          force_build_deps.extend(
-            module_graph
-              .dependency_factorize_infos()
-              .into_iter()
-              // The cost of `factorize_info.depends_on` can be highly non-uniform.
-              // To enable Rayon's work-stealing for better load balancing, we first
-              // materialize the iterator into a Vec. This allows `par_iter` to create
-              // perfectly divisible slices, which is much more efficient than using
-              // `par_bridge()` on a non-indexable iterator.
-              .collect::<Vec<_>>()
-              .par_iter()
-              .filter_map(|(dependency_id, factorize_info)| {
-                factorize_info.depends_on(&files).then_some(dependency_id)
-              })
-              .collect::<Vec<_>>(),
+          rayon::join(
+            || {
+              force_build_modules.extend(
+                module_graph
+                  .modules()
+                  .par_iter()
+                  .filter_map(|(_, module)| {
+                    if module.depends_on(&files) {
+                      Some(module.identifier())
+                    } else {
+                      None
+                    }
+                  })
+                  .collect::<Vec<_>>(),
+              )
+            },
+            || {
+              force_build_deps.extend(
+                module_graph
+                  .dependency_factorize_infos()
+                  .par_iter()
+                  .filter_map(|(dependency_id, factorize_info)| {
+                    factorize_info.depends_on(&files).then_some(dependency_id)
+                  })
+                  .collect::<Vec<_>>(),
+              )
+            },
           );
         }
         UpdateParam::ForceBuildModules(modules) => {
