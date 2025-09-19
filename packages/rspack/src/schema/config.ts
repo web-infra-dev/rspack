@@ -651,6 +651,7 @@ export const getRspackOptionsSchema = memoize(() => {
 	const requireDynamic = z.boolean();
 	const requireResolve = z.boolean();
 	const importDynamic = z.boolean();
+	const commonjsMagicComments = z.boolean();
 	const inlineConst = z.boolean();
 	const typeReexportsPresence = z.enum([
 		"no-tolerant",
@@ -676,6 +677,7 @@ export const getRspackOptionsSchema = memoize(() => {
 			strictExportPresence: strictExportPresence,
 			worker: worker,
 			overrideStrict: overrideStrict,
+			commonjsMagicComments: commonjsMagicComments,
 			// #region Not available in webpack yet.
 			requireAsExpression: requireAsExpression,
 			requireDynamic: requireDynamic,

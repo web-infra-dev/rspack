@@ -1714,6 +1714,7 @@ impl ModuleOptionsBuilder {
           require_dynamic: Some(true),
           require_resolve: Some(true),
           import_dynamic: Some(true),
+          commonjs_magic_comments: Some(false),
           inline_const: Some(false),
           ..Default::default()
         }),
