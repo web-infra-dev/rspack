@@ -22,5 +22,10 @@ module.exports = {
 				"container-no-shared": "./container-no-shared.js"
 			}
 		})
-	]
+	],
+	experiments: {
+		// inlineConst will inline shared.js into b.js, and 2-transitive-overriding will check
+		// the __webpack_modules__ of this container, so disable inlineConst to avoid test fail
+		inlineConst: false,
+	}
 };
