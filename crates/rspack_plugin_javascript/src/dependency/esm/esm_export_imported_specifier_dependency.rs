@@ -1486,6 +1486,9 @@ impl ESMExportImportedSpecifierDependencyTemplate {
   }
 }
 
+#[derive(Clone)]
+pub struct ReExportsExternalModule;
+
 impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
   fn render(
     &self,
@@ -1509,12 +1512,54 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     let mode = dep.get_mode(&module_graph, *runtime, module_graph_cache);
 
     if let Some(scope) = concatenation_scope {
-      if let ExportMode::ReexportUndefined(mode) = mode {
-        scope.register_raw_export(
-          mode.name.clone(),
-          String::from("/* reexport non-default export from non-ESM */ undefined"),
-        );
+      if let Some(ref_module) = module_graph.get_module_by_dependency_id(&dep.id) {
+        // optimize `export * from 'external module'`
+        let possible_to_optimize_mode = matches!(
+          &mode,
+          ExportMode::DynamicReexport(_) | ExportMode::EmptyStar(_)
+        ) || matches!(&mode, ExportMode::Unused(mode) if &mode.name == "*");
+
+        let optimize_reexport_star = possible_to_optimize_mode
+          && ref_module
+            .as_external_module()
+            .map(|m| matches!(m.get_external_type().as_str(), "module-import" | "module"))
+            .unwrap_or(false)
+          && scope.data.get::<ReExportsExternalModule>().is_some();
+
+        if optimize_reexport_star {
+          // render export * from 'external module'
+          scope.register_star_export(
+            serde_json::to_string(&dep.request).expect("should have correct request"),
+            Some(ref_module.identifier()),
+          );
+          return;
+        }
+
+        match &mode {
+          ExportMode::ReexportUndefined(mode) => {
+            scope.register_raw_export(
+              mode.name.clone(),
+              String::from("/* reexport non-default export from non-ESM */ undefined"),
+            );
+          }
+
+          // list all possible export mode instead of _,
+          // so that when this changes we will notice
+          ExportMode::ReexportDynamicDefault(_)
+          | ExportMode::Unused(_)
+          | ExportMode::EmptyStar(_)
+          | ExportMode::ReexportNamedDefault(_)
+          | ExportMode::ReexportNamespaceObject(_)
+          | ExportMode::ReexportFakeNamespaceObject(_)
+          | ExportMode::Missing
+          | ExportMode::LazyMake
+          | ExportMode::DynamicReexport(_)
+          | ExportMode::NormalReexport(_) => {
+            scope.register_re_export(ref_module.identifier(), mode.clone());
+          }
+        };
       }
+
       return;
     }
 

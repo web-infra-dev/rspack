@@ -182,7 +182,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       };
 
       if let Some(scope) = concatenation_scope {
-        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
+        scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string().into());
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(
           &mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
@@ -217,7 +217,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       // 'var' is a little bit incorrect as TDZ is not correct, but we can't use 'const'
       let supports_const = compilation.options.output.environment.supports_const();
       let content = if let Some(scope) = concatenation_scope {
-        scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
+        scope.register_export(
+          JS_DEFAULT_KEYWORD.clone(),
+          DEFAULT_EXPORT.to_string().into(),
+        );
         format!(
           "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
