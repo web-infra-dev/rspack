@@ -586,6 +586,14 @@ impl NormalModuleFactory {
       .call(data, &mut create_data, &mut module)
       .await?;
 
+    let build_info = module.build_info_mut();
+    build_info
+      .file_dependencies
+      .extend(file_dependencies.iter().map(|f| f.clone().into()));
+    build_info
+      .missing_dependencies
+      .extend(missing_dependencies.iter().map(|f| f.clone().into()));
+
     if let Some(file_dependency) = file_dependency {
       data.add_file_dependency(file_dependency.into_std_path_buf());
     }

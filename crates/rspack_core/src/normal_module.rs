@@ -420,26 +420,26 @@ impl Module for NormalModule {
     .await;
     if let Some(err) = err {
       self.build_info.cacheable = loader_result.cacheable;
-      self.build_info.file_dependencies = loader_result
+      self
+        .build_info
         .file_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.context_dependencies = loader_result
-        .context_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.missing_dependencies = loader_result
-        .missing_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.build_dependencies = loader_result
+        .extend(loader_result.file_dependencies.into_iter().map(Into::into));
+      self.build_info.context_dependencies.extend(
+        loader_result
+          .context_dependencies
+          .into_iter()
+          .map(Into::into),
+      );
+      self.build_info.missing_dependencies.extend(
+        loader_result
+          .missing_dependencies
+          .into_iter()
+          .map(Into::into),
+      );
+      self
+        .build_info
         .build_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
+        .extend(loader_result.build_dependencies.into_iter().map(Into::into));
 
       self.source = None;
       let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(err)));
@@ -480,26 +480,26 @@ impl Module for NormalModule {
     let source = self.create_source(content, loader_result.source_map)?;
 
     self.build_info.cacheable = loader_result.cacheable;
-    self.build_info.file_dependencies = loader_result
+    self
+      .build_info
       .file_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.context_dependencies = loader_result
-      .context_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.missing_dependencies = loader_result
-      .missing_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.build_dependencies = loader_result
+      .extend(loader_result.file_dependencies.into_iter().map(Into::into));
+    self.build_info.context_dependencies.extend(
+      loader_result
+        .context_dependencies
+        .into_iter()
+        .map(Into::into),
+    );
+    self.build_info.missing_dependencies.extend(
+      loader_result
+        .missing_dependencies
+        .into_iter()
+        .map(Into::into),
+    );
+    self
+      .build_info
       .build_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
+      .extend(loader_result.build_dependencies.into_iter().map(Into::into));
 
     if no_parse {
       self.parsed = false;

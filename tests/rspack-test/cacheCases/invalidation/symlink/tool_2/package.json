@@ -1,0 +1,5 @@
+{
+  "name": "managed-paths-test-lib",
+  "version": "0.200.0",
+  "main": "./file.js"
+}
