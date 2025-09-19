@@ -15,7 +15,7 @@ __webpack_async_result__();
 
 }),
 "./v128.wasm": (function (module, exports, __webpack_require__) {
- module.exports = __webpack_require__.v(exports, module.id, "a92a2e151ead6e03" );
+module.exports = __webpack_require__.v(exports, module.id, "a92a2e151ead6e03" );
 
 }),
 

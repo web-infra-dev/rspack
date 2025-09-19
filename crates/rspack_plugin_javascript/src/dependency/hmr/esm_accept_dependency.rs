@@ -107,12 +107,13 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
           .map(|d| d.request())
       };
       if let Some(request) = request {
+        let import_var = compilation.get_import_var(id, *runtime);
         let stmts = import_statement(
           *module,
-          *runtime,
           compilation,
           runtime_requirements,
           id,
+          &import_var,
           request,
           true,
         );

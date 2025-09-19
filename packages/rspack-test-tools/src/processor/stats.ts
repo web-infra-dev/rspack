@@ -216,7 +216,9 @@ export class StatsProcessor<
 					bundlerInfo: {
 						force: false
 					}
-				}
+				},
+				inlineConst: true,
+				lazyBarrel: true
 			}
 		} as TCompilerOptions<T>;
 	}
