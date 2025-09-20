@@ -1241,8 +1241,8 @@ importers:
         specifier: 0.0.4
         version: 0.0.4
       heading-case:
-        specifier: ^0.1.6
-        version: 0.1.6
+        specifier: ^1.0.2
+        version: 1.0.2
       prettier:
         specifier: 3.6.2
         version: 3.6.2
@@ -5837,8 +5837,8 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
-  heading-case@0.1.6:
-    resolution: {integrity: sha512-SuymMv+TxrW2df/5arvKzoZu+HsMU+OpYVkmkCuI2qpdLUd7QDvkzpupFbBy180XpSp+Y5jTLdY3lZRGDjtn8A==}
+  heading-case@1.0.2:
+    resolution: {integrity: sha512-/auUg52lwuEOlb3IhtTj5UQvqdr3J/e07ibuK+YU/JI8QI+FVWsMbxGbYbwSpD5qLXXUAs2MzdiBt1/K/Q0fTw==}
     hasBin: true
 
   hmac-drbg@1.0.1:
@@ -14329,7 +14329,7 @@ snapshots:
 
   he@1.2.0: {}
 
-  heading-case@0.1.6: {}
+  heading-case@1.0.2: {}
 
   hmac-drbg@1.0.1:
     dependencies:
