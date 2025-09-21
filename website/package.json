@@ -38,7 +38,7 @@
     "@types/node": "^20.19.15",
     "@types/react": "^19.1.13",
     "@types/semver": "^7.7.1",
-    "case-police": "~0.7.2",
+    "case-police": "~2.0.0",
     "cspell": "^8.19.4",
     "cspell-ban-words": "0.0.4",
     "heading-case": "^0.1.6",
