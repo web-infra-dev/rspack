@@ -504,6 +504,7 @@ bitflags! {
   impl AssetGeneratorImportModeFlags: u8 {
     const URL = 1 << 0;
     const PRESERVE = 1 << 1;
+    const NEW_URL = 1 << 2;
   }
 }
 
@@ -518,6 +519,9 @@ impl AssetGeneratorImportMode {
   pub fn is_preserve(&self) -> bool {
     self.0.contains(AssetGeneratorImportModeFlags::PRESERVE)
   }
+  pub fn is_new_url(&self) -> bool {
+    self.0.contains(AssetGeneratorImportModeFlags::NEW_URL)
+  }
 }
 
 impl From<String> for AssetGeneratorImportMode {
@@ -525,7 +529,8 @@ impl From<String> for AssetGeneratorImportMode {
     match s.as_str() {
       "url" => Self(AssetGeneratorImportModeFlags::URL),
       "preserve" => Self(AssetGeneratorImportModeFlags::PRESERVE),
-      _ => unreachable!("AssetGeneratorImportMode error"),
+      "newURL" => Self(AssetGeneratorImportModeFlags::NEW_URL),
+      _ => unreachable!("asset generator import mode should be url, preserve or newURL"),
     }
   }
 }

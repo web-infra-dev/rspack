@@ -1202,7 +1202,7 @@ export type AssetModuleOutputPath = Filename;
  * Only for modules with module type 'asset' or 'asset/resource'.
  * @default "url"
  */
-export type AssetModuleImportMode = "url" | "preserve";
+export type AssetModuleImportMode = "url" | "preserve" | "newURL";
 
 /** Options for asset modules. */
 export type AssetResourceGeneratorOptions = {
@@ -1224,6 +1224,7 @@ export type AssetResourceGeneratorOptions = {
 	/**
 	 * If "url", a URL pointing to the asset will be generated based on publicPath.
 	 * If "preserve", preserve import/require statement from generated asset.
+	 * If "newURL", a new URL object will be created for the asset.
 	 * Only for modules with module type 'asset' or 'asset/resource'.
 	 * @default "url"
 	 */

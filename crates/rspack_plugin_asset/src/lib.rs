@@ -562,7 +562,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             )
             .await?;
 
-          let asset_path = if import_mode.is_preserve() {
+          let asset_path = if import_mode.is_preserve() || import_mode.is_new_url() {
             generate_context
               .data
               .insert(CodeGenerationPublicPathAutoReplace(true));
@@ -631,37 +631,60 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           return Ok(RawStringSource::from("").boxed());
         }
 
-        if import_mode.is_preserve() && parsed_asset_config.is_resource() {
-          let is_module = compilation.options.output.module;
-          if let Some(ref mut scope) = generate_context.concatenation_scope {
-            scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
-            if is_module {
+        if parsed_asset_config.is_resource() {
+          if import_mode.is_preserve() {
+            let is_module = compilation.options.output.module;
+            if let Some(ref mut scope) = generate_context.concatenation_scope {
+              scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+              if is_module {
+                return Ok(
+                  RawStringSource::from(format!(
+                    r#"import {NAMESPACE_OBJECT_EXPORT} from {exported_content};"#
+                  ))
+                  .boxed(),
+                );
+              } else {
+                let supports_const = compilation.options.output.environment.supports_const();
+                let declaration_kind = if supports_const { "const" } else { "var" };
+                return Ok(
+                  RawStringSource::from(format!(
+                    r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} = require({exported_content});"#
+                  ))
+                  .boxed(),
+                );
+              }
+            } else {
+              generate_context
+                .runtime_requirements
+                .insert(RuntimeGlobals::MODULE);
+              return Ok(
+                RawStringSource::from(format!(r#"module.exports = require({exported_content});"#))
+                  .boxed(),
+              );
+            }
+          };
+
+          if import_mode.is_new_url() {
+            if let Some(ref mut scope) = generate_context.concatenation_scope {
+              let supports_const = compilation.options.output.environment.supports_const();
+              let declaration_kind = if supports_const { "const" } else { "var" };
+              scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
               return Ok(
                 RawStringSource::from(format!(
-                  r#"import {NAMESPACE_OBJECT_EXPORT} from {exported_content};"#
+                  r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} = /*#__PURE__*/ new URL({exported_content}, import.meta.url).href;"#
                 ))
                 .boxed(),
               );
             } else {
-              let supports_const = compilation.options.output.environment.supports_const();
-              let declaration_kind = if supports_const { "const" } else { "var" };
               return Ok(
                 RawStringSource::from(format!(
-                  r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} = require({exported_content});"#
+                  r#"module.exports = /*#__PURE__*/ new URL({exported_content}, import.meta.url).href;"#
                 ))
                 .boxed(),
               );
             }
-          } else {
-            generate_context
-              .runtime_requirements
-              .insert(RuntimeGlobals::MODULE);
-            return Ok(
-              RawStringSource::from(format!(r#"module.exports = require({exported_content});"#))
-                .boxed(),
-            );
           }
-        };
+        }
 
         if let Some(ref mut scope) = generate_context.concatenation_scope {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
