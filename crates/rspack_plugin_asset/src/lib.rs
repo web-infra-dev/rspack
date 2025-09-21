@@ -665,22 +665,31 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           };
 
           if import_mode.is_new_url() {
+            let supports_arrow_function = compilation
+              .options
+              .output
+              .environment
+              .supports_arrow_function();
+            let url_function_call = if supports_arrow_function {
+              format!(r#"/*#__PURE__*/(()=>new URL({exported_content}, import.meta.url).href)()"#)
+            } else {
+              format!(
+                r#"/*#__PURE__*/(function(){{return new URL({exported_content}, import.meta.url).href}})()"#
+              )
+            };
             if let Some(ref mut scope) = generate_context.concatenation_scope {
               let supports_const = compilation.options.output.environment.supports_const();
               let declaration_kind = if supports_const { "const" } else { "var" };
               scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
               return Ok(
                 RawStringSource::from(format!(
-                  r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} = /*#__PURE__*/ new URL({exported_content}, import.meta.url).href;"#
+                  r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} =  {url_function_call};"#
                 ))
                 .boxed(),
               );
             } else {
               return Ok(
-                RawStringSource::from(format!(
-                  r#"module.exports = /*#__PURE__*/ new URL({exported_content}, import.meta.url).href;"#
-                ))
-                .boxed(),
+                RawStringSource::from(format!(r#"module.exports = {url_function_call};"#)).boxed(),
               );
             }
           }
