@@ -1,20 +1,23 @@
-export * from "./builtin";
-export * from "./cache";
-export * from "./compiler";
-export * from "./config";
-export * from "./defaults";
-export * from "./diagnostic";
-export * from "./diff";
-export * from "./error";
-export * from "./hash";
-export * from "./hook";
-export * from "./hot";
-export * from "./hot-step";
-export * from "./incremental";
-export * from "./native-watcher";
-export * from "./normal";
-export * from "./serial";
-export * from "./stats-api";
-export * from "./stats-output";
-export * from "./treeshaking";
-export * from "./watch";
+export { createBuiltinCase } from "./builtin";
+export { createCacheCase } from "./cache";
+export { createCompilerCase } from "./compiler";
+export { createConfigCase } from "./config";
+export { createDefaultsCase, getRspackDefaultConfig } from "./defaults";
+export { createDiagnosticCase } from "./diagnostic";
+export { createDiffCase } from "./diff";
+export { createErrorCase } from "./error";
+export { createHashCase } from "./hash";
+export { createHookCase } from "./hook";
+export { createHotCase } from "./hot";
+export { createHotStepCase } from "./hot-step";
+export {
+	createHotIncrementalCase,
+	createWatchIncrementalCase
+} from "./incremental";
+export { createNativeWatcher } from "./native-watcher";
+export { createHotNormalCase, createNormalCase } from "./normal";
+export { createSerialCase } from "./serial";
+export { createStatsAPICase } from "./stats-api";
+export { createStatsOutputCase } from "./stats-output";
+export { createTreeShakingCase } from "./treeshaking";
+export { createWatchCase } from "./watch";

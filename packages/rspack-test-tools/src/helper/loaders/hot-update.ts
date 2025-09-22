@@ -1,4 +1,4 @@
-import type { TUpdateOptions } from "../../type";
+import type { THotUpdateContext } from "../../type";
 
 export default function (this: any, c: string) {
 	let content = c;
@@ -29,7 +29,7 @@ export default function (this: any, c: string) {
 	}
 	content = content.replace(/NEXT_HMR/g, "NEXT_HMR.bind(null, module)");
 
-	const options: TUpdateOptions = this.getOptions();
+	const options: THotUpdateContext = this.getOptions();
 	const items = content.split(/---+\r?\n/g);
 	if (items.length <= 1) {
 		return content;

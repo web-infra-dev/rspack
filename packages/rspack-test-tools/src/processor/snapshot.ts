@@ -4,7 +4,7 @@ import type {
 	Compilation as WebpackCompilation,
 	Compiler as WebpackCompiler
 } from "webpack";
-
+import { normalizePlaceholder } from "../helper/expect/placeholder";
 import type {
 	ECompilerType,
 	ITestContext,
@@ -70,10 +70,10 @@ export class SnapshotProcessor<
 			((file: string) => file.endsWith(".js") && !file.includes("runtime.js"));
 
 		const fileContents = Object.entries(compilation.assets)
-			.filter(([file]) => snapshotFileFilter(file))
+			.filter(([file]) => snapshotFileFilter.call(this, file))
 			.map(([file, source]) => {
 				const tag = path.extname(file).slice(1) || "txt";
-				let content = this.serializeEachFile(source.source().toString());
+				let content = normalizePlaceholder(source.source().toString());
 				const testConfig = context.getTestConfig();
 				if (testConfig.snapshotContent) {
 					content = testConfig.snapshotContent(content);
@@ -94,6 +94,6 @@ export class SnapshotProcessor<
 	}
 
 	serializeEachFile(content: string): string {
-		return content;
+		return normalizePlaceholder(content);
 	}
 }

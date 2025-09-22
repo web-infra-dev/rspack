@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const {
-	DefaultsConfigProcessor,
+	getRspackDefaultConfig,
 	createDefaultsCase,
 	describeByWalk
 } = require("@rspack/test-tools");
@@ -69,7 +69,7 @@ function trimObjectPaths(obj, paths) {
 const cwd = __dirname;
 
 function assertWebpackConfig(config) {
-	const rspackBaseConfig = DefaultsConfigProcessor.getDefaultConfig(
+	const rspackBaseConfig = getRspackDefaultConfig(
 		cwd,
 		config
 	);
@@ -93,7 +93,7 @@ function assertWebpackConfig(config) {
 }
 
 describe("Base Defaults Snapshot", () => {
-	const baseConfig = DefaultsConfigProcessor.getDefaultConfig(cwd, {
+	const baseConfig = getRspackDefaultConfig(cwd, {
 		mode: "none"
 	});
 

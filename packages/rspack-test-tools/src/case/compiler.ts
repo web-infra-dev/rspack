@@ -120,7 +120,7 @@ export function createCompilerCase(
 						);
 						await caseConfig.compiler?.(context, compiler);
 					},
-					async check(context, compiler, stats) {
+					async check(env, context, compiler, stats) {
 						if (caseConfig.error) {
 							const statsJson = stats?.toJson({
 								modules: true,

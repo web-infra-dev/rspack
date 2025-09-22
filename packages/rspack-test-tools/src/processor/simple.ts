@@ -19,6 +19,7 @@ export interface ISimpleProcessorOptions<T extends ECompilerType> {
 	build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
 	check?: (
+		env: ITestEnv,
 		context: ITestContext,
 		compiler: TCompiler<T>,
 		stats: TCompilerStats<T>
@@ -33,7 +34,7 @@ export class SimpleTaskProcessor<T extends ECompilerType>
 	async config(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		if (typeof this._options.options === "function") {
-			compiler.setOptions(this._options.options(context));
+			compiler.setOptions(this._options.options.call(this, context));
 		}
 	}
 
@@ -43,14 +44,14 @@ export class SimpleTaskProcessor<T extends ECompilerType>
 			? compiler.createCompilerWithCallback(this._options.compilerCallback)
 			: compiler.createCompiler();
 		if (typeof this._options.compiler === "function") {
-			await this._options.compiler(context, instance);
+			await this._options.compiler.call(this, context, instance);
 		}
 	}
 
 	async build(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		if (typeof this._options.build === "function") {
-			await this._options.build(context, compiler.getCompiler()!);
+			await this._options.build.call(this, context, compiler.getCompiler()!);
 		} else {
 			await compiler.build();
 		}
@@ -62,7 +63,13 @@ export class SimpleTaskProcessor<T extends ECompilerType>
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats() as TCompilerStats<T>;
 		if (typeof this._options.check === "function") {
-			await this._options.check(context, compiler.getCompiler()!, stats);
+			await this._options.check.call(
+				this,
+				env,
+				context,
+				compiler.getCompiler()!,
+				stats
+			);
 		}
 	}
 
