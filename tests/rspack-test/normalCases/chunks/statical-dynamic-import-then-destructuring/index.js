@@ -62,3 +62,11 @@ it("should analyze arguments in call member chain", async () => {
 		})());
 	});
 });
+
+it("should static analyze dynamic import variable destructuring assignment", async () => {
+	await import("../statical-dynamic-import/dir1/a?3").then(m => {
+		const { default: def, usedExports } = m;
+		expect(def).toBe(3);
+		expect(usedExports).toEqual(["default", "usedExports"]);
+	});
+});

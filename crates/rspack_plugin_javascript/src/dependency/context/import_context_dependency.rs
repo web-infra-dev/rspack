@@ -6,6 +6,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
+use swc_core::atoms::Atom;
 
 use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
@@ -15,7 +16,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
   id: DependencyId,
-  pub options: ContextOptions,
+  options: ContextOptions,
   range: DependencyRange,
   value_range: DependencyRange,
   resource_identifier: String,
@@ -42,6 +43,10 @@ impl ImportContextDependency {
       critical: None,
       factorize_info: Default::default(),
     }
+  }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.options.referenced_exports = Some(referenced_exports);
   }
 }
 

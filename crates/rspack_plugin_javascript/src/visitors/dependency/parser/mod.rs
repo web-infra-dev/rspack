@@ -210,6 +210,21 @@ impl From<Span> for StatementPath {
   }
 }
 
+#[derive(Debug, Default)]
+pub struct DestructuringAssignmentProperties {
+  inner: FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>,
+}
+
+impl DestructuringAssignmentProperties {
+  pub fn add(&mut self, span: Span, props: FxHashSet<DestructuringAssignmentProperty>) {
+    self.inner.entry(span).or_default().extend(props)
+  }
+
+  pub fn get(&self, span: &Span) -> Option<&FxHashSet<DestructuringAssignmentProperty>> {
+    self.inner.get(span)
+  }
+}
+
 pub struct JavascriptParser<'parser> {
   // ===== results =======
   errors: Vec<Diagnostic>,
@@ -248,8 +263,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub is_esm: bool,
-  pub(crate) destructuring_assignment_properties:
-    FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>,
+  pub(crate) destructuring_assignment_properties: DestructuringAssignmentProperties,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
@@ -1106,7 +1120,9 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(destructuring) = destructuring
       && let Some(keys) = self.collect_destructuring_assignment_properties(pattern)
     {
-      self.add_destructuring_assignment_properties(destructuring.span(), keys);
+      self
+        .destructuring_assignment_properties
+        .add(destructuring.span(), keys);
     }
     destructuring
   }
@@ -1168,25 +1184,6 @@ impl<'parser> JavascriptParser<'parser> {
       return false;
     };
     !info.is_free()
-  }
-
-  pub fn add_destructuring_assignment_properties(
-    &mut self,
-    span: Span,
-    props: FxHashSet<DestructuringAssignmentProperty>,
-  ) {
-    self
-      .destructuring_assignment_properties
-      .entry(span)
-      .or_default()
-      .extend(props)
-  }
-
-  pub fn destructuring_assignment_properties_for(
-    &self,
-    span: &Span,
-  ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
-    self.destructuring_assignment_properties.get(span).cloned()
   }
 }
 
