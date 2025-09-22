@@ -10,7 +10,7 @@ use std::{
 
 use dashmap::DashSet;
 use futures::future::BoxFuture;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_cacheable::{

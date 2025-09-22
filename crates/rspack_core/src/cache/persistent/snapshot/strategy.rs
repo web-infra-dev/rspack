@@ -5,7 +5,6 @@ use std::{
   time::{SystemTime, UNIX_EPOCH},
 };
 
-use dashmap::DashMap;
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
