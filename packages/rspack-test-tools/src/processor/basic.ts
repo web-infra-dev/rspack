@@ -8,7 +8,10 @@ import type {
 	ITestContext,
 	ITestEnv,
 	ITestProcessor,
-	TCompilerOptions
+	TCompiler,
+	TCompilerMultiStats,
+	TCompilerOptions,
+	TCompilerStats
 } from "../type";
 
 export interface IBasicProcessorOptions<T extends ECompilerType> {
@@ -25,6 +28,14 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
 	compilerType: T;
 	runable: boolean;
 	name: string;
+	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+	build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+	check?: (
+		env: ITestEnv,
+		context: ITestContext,
+		compiler: TCompiler<T>,
+		stats: TCompilerStats<T> | TCompilerMultiStats<T> | null
+	) => Promise<void>;
 }
 
 export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
@@ -33,7 +44,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 	async config(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		if (typeof this._options.defaultOptions === "function") {
-			compiler.setOptions(this._options.defaultOptions.apply(this, [context]));
+			compiler.setOptions(this._options.defaultOptions.call(this, context));
 		}
 
 		if (Array.isArray(this._options.configFiles)) {
@@ -45,18 +56,25 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 
 		if (typeof this._options.overrideOptions === "function") {
 			const compilerOptions = compiler.getOptions();
-			this._options.overrideOptions.apply(this, [context, compilerOptions]);
+			this._options.overrideOptions.call(this, context, compilerOptions);
 		}
 	}
 
 	async compiler(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		compiler.createCompiler();
+		if (typeof this._options.compiler === "function") {
+			await this._options.compiler.call(this, context, compiler.getCompiler()!);
+		}
 	}
 
 	async build(context: ITestContext) {
 		const compiler = this.getCompiler(context);
-		await compiler.build();
+		if (typeof this._options.build === "function") {
+			await this._options.build.call(this, context, compiler.getCompiler()!);
+		} else {
+			await compiler.build();
+		}
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {
@@ -75,17 +93,18 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 
 		const compiler = this.getCompiler(context);
 		if (typeof testConfig.beforeExecute === "function") {
-			testConfig.beforeExecute(compiler.getOptions());
+			testConfig.beforeExecute.call(this, compiler.getOptions());
 		}
 
 		let bundles: string[] | void | string;
 		if (testConfig.bundlePath) {
 			bundles = testConfig.bundlePath;
 		} else if (typeof this._options.findBundle === "function") {
-			bundles = this._options.findBundle.apply(this, [
+			bundles = this._options.findBundle.call(
+				this,
 				context,
 				compiler.getOptions()
-			]);
+			);
 		} else {
 			bundles = [];
 		}
@@ -128,13 +147,26 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		await Promise.all(results);
 
 		if (typeof testConfig.afterExecute === "function") {
-			testConfig.afterExecute(compiler.getOptions());
+			testConfig.afterExecute.call(this, compiler.getOptions());
 		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const testConfig = context.getTestConfig();
 		if (testConfig.noTests) return;
+
+		const compiler = this.getCompiler(context);
+		if (typeof this._options.check === "function") {
+			const stats = compiler.getStats();
+			await this._options.check.call(
+				this,
+				env,
+				context,
+				compiler.getCompiler()!,
+				stats
+			);
+			return;
+		}
 
 		const errors: Array<{ message: string; stack?: string }> = (
 			context.getError(this._options.name) || []
@@ -143,7 +175,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			stack: e.stack
 		}));
 		const warnings: Array<{ message: string; stack?: string }> = [];
-		const compiler = this.getCompiler(context);
+
 		const stats = compiler.getStats();
 		const options = compiler.getOptions();
 		if (stats) {

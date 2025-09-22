@@ -1,8 +1,8 @@
 import type { Compiler } from "@rspack/core";
-import type { TUpdateOptions } from "../../type";
+import type { THotUpdateContext } from "../../type";
 
 export class TestHotUpdatePlugin {
-	constructor(private updateOptions: TUpdateOptions) {}
+	constructor(private updateOptions: THotUpdateContext) {}
 	apply(compiler: Compiler) {
 		let isRebuild = false;
 		compiler.hooks.beforeRun.tap("TestHotUpdatePlugin", () => {

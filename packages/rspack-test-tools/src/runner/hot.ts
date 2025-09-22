@@ -9,7 +9,7 @@ import {
 	type TCompilerOptions,
 	type TCompilerStats,
 	type TCompilerStatsCompilation,
-	type TUpdateOptions
+	type THotUpdateContext
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";
@@ -28,7 +28,7 @@ export class HotRunnerFactory<
 		const testConfig = this.context.getTestConfig();
 		const source = this.context.getSource();
 		const dist = this.context.getDist();
-		const hotUpdateContext = this.context.getValue<TUpdateOptions>(
+		const hotUpdateContext = this.context.getValue<THotUpdateContext>(
 			this.name,
 			"hotUpdateContext"
 		)!;

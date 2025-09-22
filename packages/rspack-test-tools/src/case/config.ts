@@ -1,12 +1,109 @@
-import { ConfigProcessor } from "../processor/config";
+import fs from "fs-extra";
+import path from "path";
+import { parseResource } from "../helper/legacy/parseResource";
+import { MultiTaskProcessor } from "../processor";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, type TTestConfig } from "../type";
+import {
+	ECompilerType,
+	type ITestContext,
+	type TCompilerOptions,
+	type TTestConfig
+} from "../type";
 
 export type TConfigCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
 	"validate"
 >;
+
+export function defaultOptions(
+	index: number,
+	context: ITestContext
+): TCompilerOptions<ECompilerType.Rspack> {
+	return {
+		context: context.getSource(),
+		mode: "production",
+		target: "async-node",
+		devtool: false,
+		cache: false,
+		output: {
+			path: context.getDist()
+		},
+		optimization: {
+			minimize: false
+		},
+		experiments: {
+			css: true,
+			rspackFuture: {
+				bundlerInfo: {
+					force: false
+				}
+			},
+			inlineConst: true,
+			lazyBarrel: true
+		}
+	};
+}
+
+export function overrideOptions(
+	index: number,
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>
+) {
+	if (!options.entry) {
+		options.entry = "./index.js";
+	}
+	if (options.amd === undefined) {
+		options.amd = {};
+	}
+	if (!options.output?.filename) {
+		const outputModule = options.experiments?.outputModule;
+		options.output ??= {};
+		options.output.filename = `bundle${index}${outputModule ? ".mjs" : ".js"}`;
+	}
+
+	if (options.cache === undefined) options.cache = false;
+	if (!global.printLogger) {
+		options.infrastructureLogging = {
+			level: "error"
+		};
+	}
+}
+
+export function findBundle(
+	index: number,
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>
+) {
+	const testConfig = context.getTestConfig();
+
+	if (typeof testConfig.findBundle === "function") {
+		return testConfig.findBundle!(index, options);
+	}
+
+	const ext = path.extname(parseResource(options.output?.filename).path);
+	const bundlePath = [];
+	if (
+		options.output?.path &&
+		fs.existsSync(path.join(options.output.path!, `bundle${index}${ext}`))
+	) {
+		if (options.experiments?.css) {
+			const cssOutputPath = path.join(
+				options.output.path!,
+				(typeof options.output?.cssFilename === "string" &&
+					options.output?.cssFilename) ||
+					`bundle${index}.css`
+			);
+			if (fs.existsSync(cssOutputPath)) {
+				bundlePath.push(`./bundle${index}.css`);
+			}
+		}
+
+		bundlePath.push(`./bundle${index}${ext}`);
+	}
+
+	return bundlePath;
+}
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -23,10 +120,13 @@ const creator = new BasicCaseCreator({
 		};
 	},
 	steps: ({ name }) => [
-		new ConfigProcessor({
+		new MultiTaskProcessor({
 			name,
 			runable: true,
 			compilerType: ECompilerType.Rspack,
+			defaultOptions,
+			overrideOptions,
+			findBundle,
 			configFiles: [
 				"rspack.config.cjs",
 				"rspack.config.js",

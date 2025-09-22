@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { HotIncrementalProcessor } from "../processor/hot-incremental";
 import { WatchProcessor, WatchStepProcessor } from "../processor/watch";
 import { HotRunnerFactory, WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, type TCompilerOptions } from "../type";
+import { ECompilerType, EDocumentType, type TCompilerOptions } from "../type";
+import { createHotProcessor } from "./hot";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
@@ -13,6 +13,36 @@ const hotCreators: Map<
 	string,
 	BasicCaseCreator<ECompilerType.Rspack>
 > = new Map();
+
+function createHotIncrementalProcessor(
+	name: string,
+	target: TTarget,
+	webpackCases: boolean
+) {
+	const processor = createHotProcessor(name, target, true);
+
+	processor.before = async context => {
+		context.setValue(
+			name,
+			"documentType",
+			webpackCases ? EDocumentType.Fake : EDocumentType.JSDOM
+		);
+	};
+
+	const originalAfterAll = processor.afterAll;
+	processor.afterAll = async function (context) {
+		try {
+			await originalAfterAll.call(this, context);
+		} catch (e: any) {
+			const isFake =
+				context.getValue(name, "documentType") === EDocumentType.Fake;
+			if (isFake && /Should run all hot steps/.test(e.message)) return;
+			throw e;
+		}
+	};
+
+	return processor;
+}
 
 function getHotCreator(target: TTarget, webpackCases: boolean) {
 	const key = JSON.stringify({ target, webpackCases });
@@ -24,13 +54,7 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 				describe: true,
 				target,
 				steps: ({ name, target }) => [
-					new HotIncrementalProcessor({
-						name,
-						target: target as TTarget,
-						compilerType: ECompilerType.Rspack,
-						configFiles: ["rspack.config.js", "webpack.config.js"],
-						webpackCases
-					})
+					createHotIncrementalProcessor(name, target as TTarget, webpackCases)
 				],
 				runner: HotRunnerFactory,
 				concurrent: true

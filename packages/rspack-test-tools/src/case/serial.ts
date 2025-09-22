@@ -1,7 +1,8 @@
-import { ConfigProcessor } from "../processor/config";
+import { MultiTaskProcessor } from "../processor";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType, type TTestConfig } from "../type";
+import { defaultOptions, findBundle, overrideOptions } from "./config";
 
 export type TSerialCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
@@ -23,11 +24,14 @@ const creator = new BasicCaseCreator({
 		};
 	},
 	steps: ({ name }) => [
-		new ConfigProcessor({
+		new MultiTaskProcessor({
 			name,
 			runable: true,
 			compilerType: ECompilerType.Rspack,
-			configFiles: ["rspack.config.js", "webpack.config.js"]
+			configFiles: ["rspack.config.js", "webpack.config.js"],
+			defaultOptions,
+			overrideOptions,
+			findBundle
 		})
 	],
 	runner: MultipleRunnerFactory

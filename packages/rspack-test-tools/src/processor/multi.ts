@@ -4,8 +4,12 @@ import { readConfigFile } from "../helper";
 import type {
 	ECompilerType,
 	ITestContext,
+	ITestEnv,
 	ITestProcessor,
-	TCompilerOptions
+	TCompiler,
+	TCompilerMultiStats,
+	TCompilerOptions,
+	TCompilerStats
 } from "../type";
 import { BasicProcessor } from "./basic";
 
@@ -28,6 +32,13 @@ export interface IMultiTaskProcessorOptions<T extends ECompilerType> {
 	name: string;
 	configFiles?: string[];
 	runable: boolean;
+	compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
+	check?: (
+		env: ITestEnv,
+		context: ITestContext,
+		compiler: TCompiler<T>,
+		stats: TCompilerStats<T> | TCompilerMultiStats<T> | null
+	) => Promise<void>;
 }
 
 export class MultiTaskProcessor<T extends ECompilerType>
@@ -82,6 +93,8 @@ export class MultiTaskProcessor<T extends ECompilerType>
 
 				return result;
 			},
+			check: _multiOptions.check,
+			compiler: _multiOptions.compiler,
 			name: _multiOptions.name
 		});
 	}

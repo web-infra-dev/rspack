@@ -259,7 +259,7 @@ export interface TRunnerFactory<T extends ECompilerType> {
 	): ITestRunner;
 }
 
-export type TUpdateOptions = {
+export type THotUpdateContext = {
 	updateIndex: number;
 	totalUpdates: number;
 	changedFiles: string[];
