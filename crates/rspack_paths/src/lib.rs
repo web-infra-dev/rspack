@@ -8,6 +8,7 @@ use std::{
 
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
 use dashmap::{DashMap, DashSet};
+use indexmap::IndexSet;
 use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
@@ -143,3 +144,7 @@ pub type ArcPathDashMap<V> = DashMap<ArcPath, V, BuildHasherDefault<IdentityHash
 /// A standard `DashSet` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type ArcPathDashSet = DashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+
+/// A standard `IndexSet` using `ArcPath` as the key type with a custom `Hasher`
+/// that just uses the precomputed hash for speed instead of calculating it.
+pub type ArcPathIndexSet = IndexSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
