@@ -282,6 +282,7 @@ pub struct JavascriptParserOptions {
   pub require_dynamic: Option<bool>,
   pub require_resolve: Option<bool>,
   pub import_dynamic: Option<bool>,
+  pub commonjs_magic_comments: Option<bool>,
   pub inline_const: Option<bool>,
 }
 
