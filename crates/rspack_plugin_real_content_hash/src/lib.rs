@@ -213,7 +213,9 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               } else {
                 let mut hasher = RspackHash::from(&compilation.options.output);
                 for asset_content in asset_contents {
-                  hasher.write(&asset_content.buffer());
+                  let mut buffer = vec![];
+                  asset_content.to_writer(&mut buffer).unwrap();
+                  hasher.write(&buffer);
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
 

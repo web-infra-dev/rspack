@@ -416,7 +416,8 @@ impl Compiler {
         )
         .await?;
 
-      let content = source.buffer();
+      let mut content = vec![];
+      source.to_writer(&mut content).unwrap();
 
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
