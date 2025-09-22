@@ -3,6 +3,7 @@ mod hot_module_replacement;
 use std::collections::hash_map;
 
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
+use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
@@ -148,7 +149,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_modules = compilation
         .chunk_graph
         .get_chunk_modules_identifier(&current_chunk.ukey())
-        .iter()
+        .par_iter()
         .filter_map(|&module| {
           let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)?;
           let Some(old_module_hashes) = old_all_modules.get(module_id) else {
