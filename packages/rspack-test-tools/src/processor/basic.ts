@@ -145,6 +145,7 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		const warnings: Array<{ message: string; stack?: string }> = [];
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
+		const options = compiler.getOptions();
 		if (stats) {
 			if (testConfig.writeStatsOuptut) {
 				fs.writeFileSync(
@@ -190,7 +191,8 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			{ errors },
 			"error",
 			"errors",
-			"Error"
+			"Error",
+			options
 		);
 
 		await checkArrayExpectation(
@@ -198,7 +200,8 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 			{ warnings },
 			"warning",
 			"warnings",
-			"Warning"
+			"Warning",
+			options
 		);
 
 		// clear error if checked

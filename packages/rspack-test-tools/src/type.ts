@@ -18,7 +18,7 @@ import type {
 	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
 
-import type { IBasicModuleScope, TRunnerRequirer } from "./runner/type";
+import type { IModuleScope, TRunnerRequirer } from "./runner/type";
 
 export interface ITestContext {
 	getSource(sub?: string): string;
@@ -210,10 +210,10 @@ export type TTestConfig<T extends ECompilerType> = {
 	beforeExecute?: (options: TCompilerOptions<T>) => void;
 	afterExecute?: (options: TCompilerOptions<T>) => void;
 	moduleScope?: (
-		ms: IBasicModuleScope,
+		ms: IModuleScope,
 		stats?: TCompilerStatsCompilation<T>,
 		options?: TCompilerOptions<T>
-	) => IBasicModuleScope;
+	) => IModuleScope;
 	checkStats?: (
 		stepName: string,
 		jsonStats: TCompilerStatsCompilation<T> | undefined,

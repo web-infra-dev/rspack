@@ -22,8 +22,7 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub exports: ExportsInfo,
-  #[cacheable(with=Skip)]
-  pub profile: Option<Box<ModuleProfile>>,
+  pub profile: Option<ModuleProfile>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,
 }
@@ -70,12 +69,12 @@ impl ModuleGraphModule {
     &self.outgoing_connections
   }
 
-  pub fn set_profile(&mut self, profile: Box<ModuleProfile>) {
+  pub fn set_profile(&mut self, profile: ModuleProfile) {
     self.profile = Some(profile);
   }
 
   pub fn profile(&self) -> Option<&ModuleProfile> {
-    self.profile.as_deref()
+    self.profile.as_ref()
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

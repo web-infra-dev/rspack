@@ -10,7 +10,7 @@ const allModules = fs
 			dirent.name !== "rspack.config.js" &&
 			dirent.name !== "test.filter.js"
 	)
-	.map(dirent => path.resolve(dirent.parentPath, dirent.name));
+	.map(dirent => path.resolve(dirent.parentPath ?? dirent.path, dirent.name));
 
 const lazyModules = new Set(
 	[

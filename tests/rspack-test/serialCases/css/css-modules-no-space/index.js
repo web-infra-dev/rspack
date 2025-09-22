@@ -4,7 +4,7 @@ it("should allow to create css modules", done => {
 	__non_webpack_require__("./use-style_js.bundle0.js");
 	import("./use-style.js").then(({ default: x }) => {
 		try {
-			expect(x).toMatchSnapshot("x");
+			expect(x).toMatchFileSnapshot(`${__SNAPSHOT__}/x.txt`);
 
 			const fs = __non_webpack_require__("fs");
 			const path = __non_webpack_require__("path");
@@ -14,7 +14,7 @@ it("should allow to create css modules", done => {
 				path.join(__dirname, cssOutputFilename),
 				"utf-8"
 			);
-			expect(cssContent).toMatchSnapshot(`cssContent`);
+			expect(cssContent).toMatchFileSnapshot(`${__SNAPSHOT__}/cssContent.txt`);
 		} catch (e) {
 			return done(e);
 		}

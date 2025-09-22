@@ -227,26 +227,3 @@ new rspack.BrowserHttpImportEsmPlugin({
 
 3. All [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) configurations must set `import: false`, meaning that consumer projects bundled online cannot bundle shared modules themselves; shared modules must be provided by pre-bundled provider projects.
 4. [ModuleFederationPlugin.implementation](/plugins/webpack/module-federation-plugin#implementation) option is not supported.
-
-## Known issues
-
-- [napi-rs#2867](https://github.com/napi-rs/napi-rs/issues/2867): Currently, in projects using `@rspack/browser`, you need to inject `process.env.NODE_DEBUG_NATIVE`.
-  If you are using Rspack to bundle your project, you can set it with [DefinePlugin](/plugins/webpack/define-plugin):
-
-  ```js title="rspack.config.mjs"
-  new rspack.DefinePlugin({
-    'process.env.NODE_DEBUG_NATIVE': JSON.stringify(false),
-  });
-  ```
-
-  if you are using Rsbuild to bundle your project, you can set it with [source.define](https://rsbuild.rs/config/source/define#sourcedefine):
-
-  ```ts title="rsbuild.config.ts"
-  export default {
-    source: {
-      define: {
-        'process.env.NODE_DEBUG_NATIVE': JSON.stringify(false),
-      },
-    },
-  };
-  ```

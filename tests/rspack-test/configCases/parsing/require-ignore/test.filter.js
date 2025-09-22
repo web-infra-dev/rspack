@@ -1,2 +1,2 @@
 
-module.exports = () => "TODO: support require magic comments webpackIgnore"
+module.exports = () => true

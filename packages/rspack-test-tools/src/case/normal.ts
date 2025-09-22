@@ -1,7 +1,7 @@
 import path from "node:path";
 import { HotModuleReplacementPlugin } from "@rspack/core";
 import { NormalProcessor } from "../processor/normal";
-import { NormalRunnerFactory } from "../runner";
+import { BasicRunnerFactory } from "../runner";
 import {
 	BasicCaseCreator,
 	type IBasicCaseCreatorOptions
@@ -30,7 +30,7 @@ const createCaseOptions = (
 				compilerType: ECompilerType.Rspack
 			})
 		],
-		runner: NormalRunnerFactory,
+		runner: BasicRunnerFactory,
 		concurrent: true
 	};
 };

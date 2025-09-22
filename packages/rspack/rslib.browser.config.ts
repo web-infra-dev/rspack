@@ -67,9 +67,6 @@ export default defineConfig({
 	},
 	plugins: [
 		pluginNodePolyfill({
-			globals: {
-				Buffer: false
-			},
 			overrides: {
 				fs: path.resolve("./src/browser/fs"),
 				buffer: path.resolve("./src/browser/buffer")

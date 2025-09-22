@@ -7,15 +7,13 @@ import {
 	type ITestEnv,
 	type ITestRunner,
 	type TCompilerOptions,
+	type TCompilerStats,
 	type TCompilerStatsCompilation,
 	type TUpdateOptions
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";
-
-declare let global: {
-	__CHANGED_FILES__: Map<string, number>;
-};
+import type { THotStepRuntimeData } from "./type";
 
 export class HotRunnerFactory<
 	T extends ECompilerType
@@ -51,20 +49,40 @@ export class HotRunnerFactory<
 				const jsonStats = stats.toJson({
 					// errorDetails: true
 				});
+				const compilerOptions = compiler.getOptions();
 
+				const checker = this.context.getValue(
+					this.name,
+					jsonStats.errors?.length
+						? "hotUpdateStepErrorChecker"
+						: "hotUpdateStepChecker"
+				) as (
+					context: { updateIndex: number },
+					stats: TCompilerStats<T>,
+					runtime: THotStepRuntimeData
+				) => void;
+				if (checker) {
+					checker(
+						hotUpdateContext,
+						stats as TCompilerStats<T>,
+						runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
+					);
+				}
 				await checkArrayExpectation(
 					source,
 					jsonStats,
 					"error",
 					`errors${hotUpdateContext.updateIndex}`,
-					"Error"
+					"Error",
+					compilerOptions
 				);
 				await checkArrayExpectation(
 					source,
 					jsonStats,
 					"warning",
 					`warnings${hotUpdateContext.updateIndex}`,
-					"Warning"
+					"Warning",
+					compilerOptions
 				);
 				if (usePromise) {
 					// old callback style hmr cases
@@ -91,7 +109,7 @@ export class HotRunnerFactory<
 			return jsonStats as StatsCompilation;
 		};
 
-		return new WebRunner({
+		const runner = new WebRunner({
 			dom:
 				this.context.getValue(this.name, "documentType") || EDocumentType.JSDOM,
 			env,
@@ -116,5 +134,7 @@ export class HotRunnerFactory<
 			dist,
 			compilerOptions
 		});
+
+		return runner;
 	}
 }

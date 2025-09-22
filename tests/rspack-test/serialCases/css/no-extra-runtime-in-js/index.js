@@ -9,7 +9,7 @@ it("should compile", () => {
 		css.push(link.sheet.css);
 	}
 
-	expect(css).toMatchSnapshot();
+	expect(css).toMatchFileSnapshot(`${__SNAPSHOT__}/css.txt`);
 	expect(Object.keys(__webpack_modules__).length).toBe(7);
 	expect(__webpack_modules__['./index.js']).toBeDefined();
 	expect(__webpack_modules__['./shared-external.png']).toBeDefined();

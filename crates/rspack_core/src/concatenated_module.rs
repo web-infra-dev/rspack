@@ -1199,11 +1199,15 @@ impl Module for ConcatenatedModule {
       )));
     }
 
-    let exports_info =
+    let root_exports_info =
       module_graph.get_prefetched_exports_info(&self.id(), PrefetchExportsInfoMode::Default);
-    let used = exports_info.other_exports_info().get_used(runtime);
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
-    if used != UsageState::Unused {
+    if root_exports_info.other_exports_info().get_used(runtime) != UsageState::Unused
+      || root_exports_info
+        .get_read_only_export_info(&"__esModule".into())
+        .get_used(runtime)
+        != UsageState::Unused
+    {
       should_add_esm_flag = true
     }
 

@@ -89,7 +89,7 @@ type TConfigCaseConfig = {
   noTests?: boolean; // 不运行测试产物并结束测试
   beforeExecute?: () => void; // 运行产物前回调
   afterExecute?: () => void; // 运行产物后回调
-  moduleScope?: (ms: IBasicModuleScope) => IBasicModuleScope; // 运行产物时的模块上下文变量
+  moduleScope?: (ms: IModuleScope) => IModuleScope; // 运行产物时的模块上下文变量
   findBundle?: (
     // 运行产物时的产物获取函数，可以更细粒度的控制产物
     index: number, // muli compiler 场景时的 compiler 序号

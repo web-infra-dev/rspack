@@ -17,5 +17,9 @@ module.exports = {
 		sideEffects: true,
 		moduleIds: "named",
 		minimize: false
+	},
+	experiments: {
+		// inlineConst will inline [a-g].js into export-imported.js, so the order check will fail
+		inlineConst: false,
 	}
 };

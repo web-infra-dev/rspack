@@ -25,7 +25,7 @@ pub struct FactorizeTask {
   pub dependencies: Vec<BoxDependency>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub from_unlazy: bool,
 }
@@ -35,8 +35,8 @@ impl Task<TaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Background
   }
-  async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
-    if let Some(current_profile) = &self.current_profile {
+  async fn background_run(mut self: Box<Self>) -> TaskResult<TaskContext> {
+    if let Some(current_profile) = &mut self.current_profile {
       current_profile.mark_factory_start();
     }
     let dependency = &self.dependencies[0];
@@ -110,7 +110,7 @@ impl Task<TaskContext> for FactorizeTask {
       }
     };
 
-    if let Some(current_profile) = &self.current_profile {
+    if let Some(current_profile) = &mut self.current_profile {
       current_profile.mark_factory_end();
     }
 
@@ -145,7 +145,7 @@ pub struct FactorizeResultTask {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<BoxDependency>,
-  pub current_profile: Option<Box<ModuleProfile>>,
+  pub current_profile: Option<ModuleProfile>,
   pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
