@@ -8,7 +8,7 @@ use std::{
 use dashmap::DashMap;
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, AssertUtf8};
+use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
 use rustc_hash::FxHasher;
 
 /// Snapshot check strategy
@@ -46,7 +46,7 @@ pub enum ValidateResult {
 
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  package_version_cache: DashMap<ArcPath, Option<String>>,
+  package_version_cache: ArcPathDashMap<Option<String>>,
   compile_time: u64,
 }
 

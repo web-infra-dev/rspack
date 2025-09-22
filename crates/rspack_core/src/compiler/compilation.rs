@@ -24,7 +24,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
-use rspack_paths::{ArcPath, ArcPathSet};
+use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_tasks::CompilerContext;
 use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
@@ -268,10 +268,10 @@ pub struct Compilation {
 
   pub hash: Option<RspackHashDigest>,
 
-  pub file_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
-  pub context_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
-  pub missing_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
-  pub build_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub file_dependencies: ArcPathIndexSet,
+  pub context_dependencies: ArcPathIndexSet,
+  pub missing_dependencies: ArcPathIndexSet,
+  pub build_dependencies: ArcPathIndexSet,
 
   pub value_cache_versions: ValueCacheVersions,
 
