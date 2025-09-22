@@ -67,8 +67,7 @@ async function check<T extends ECompilerType.Rspack>(
 		stats.toString({
 			all: false,
 			errors: true,
-			warnings: true,
-			colors: false
+			warnings: true
 		})
 	).replaceAll("\\", "/");
 

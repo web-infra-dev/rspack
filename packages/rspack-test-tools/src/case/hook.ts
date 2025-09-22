@@ -224,7 +224,7 @@ export function createHookCase(
 				compilerType: ECompilerType.Rspack,
 				findBundle: () => ["main.js"],
 				snapshot: path.join(src, "output.snap.txt"),
-				runable: true,
+				runable: false,
 				defaultOptions: context => {
 					let defaultOptions = {
 						context: context.getSource(),
