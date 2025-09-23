@@ -29,6 +29,7 @@ export interface ITestContext {
 		name: string,
 		type: T | void
 	): ITestCompilerManager<T>;
+	closeCompiler(name: string): Promise<void>;
 
 	getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
 	getRunnerFactory<T extends ECompilerType>(
@@ -126,11 +127,11 @@ export interface ITestProcessor {
 	before?(context: ITestContext): Promise<void>;
 	after?(context: ITestContext): Promise<void>;
 
-	config?(context: ITestContext): Promise<void>;
-	compiler?(context: ITestContext): Promise<void>;
-	build?(context: ITestContext): Promise<void>;
-	run?(env: ITestEnv, context: ITestContext): Promise<void>;
-	check?(env: ITestEnv, context: ITestContext): Promise<unknown>;
+	config(context: ITestContext): Promise<void>;
+	compiler(context: ITestContext): Promise<void>;
+	build(context: ITestContext): Promise<void>;
+	run(env: ITestEnv, context: ITestContext): Promise<void>;
+	check(env: ITestEnv, context: ITestContext): Promise<unknown>;
 }
 
 export interface ITestReporter<T> {

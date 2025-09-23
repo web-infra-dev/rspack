@@ -37,6 +37,7 @@ export function getSimpleProcessorRunner(
 				}
 				await processor.check?.(createEnv(), context);
 				await processor.after?.(context);
+				await context.closeCompiler(name);
 				await processor.afterAll?.(context);
 			}
 			if (context.hasError()) {

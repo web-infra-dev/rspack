@@ -2,21 +2,58 @@ import type fs from "node:fs";
 import path from "node:path";
 import type { StatsError } from "@rspack/core";
 import merge from "webpack-merge";
-import {
-	type ISimpleProcessorOptions,
-	SimpleTaskProcessor
-} from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type ITestEnv,
-	type TCompiler,
-	type TCompilerOptions,
-	type TCompilerStats
+	ITestContext,
+	ITestEnv,
+	TCompiler,
+	TCompilerOptions
 } from "../type";
+import { getCompiler } from "./common";
 
 let addedSerializer = false;
+
+export function createErrorCase(
+	name: string,
+	src: string,
+	dist: string,
+	testConfig: string
+) {
+	if (!addedSerializer) {
+		addedSerializer = true;
+	}
+	const caseConfig = require(testConfig);
+	const runner = getSimpleProcessorRunner(src, dist);
+
+	it(caseConfig.description, async () => {
+		await runner(name, {
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.setOptions(options(context, caseConfig.options));
+			},
+			compiler: async (context: ITestContext) => {
+				const compilerManager = getCompiler(context, name);
+				compilerManager.createCompiler();
+				compiler(context, compilerManager.getCompiler()!, caseConfig.compiler);
+			},
+			build: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				if (typeof caseConfig.build === "function") {
+					await caseConfig.build(context, compiler.getCompiler()!);
+				} else {
+					await compiler.build();
+				}
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check the snapshot of diagnostics
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name, caseConfig.check);
+			}
+		});
+	});
+}
 
 function options<T extends ECompilerType.Rspack>(
 	context: ITestContext,
@@ -98,10 +135,11 @@ class RspackStatsDiagnostics {
 async function check(
 	env: ITestEnv,
 	context: ITestContext,
-	_: TCompiler<ECompilerType.Rspack>,
-	stats: TCompilerStats<ECompilerType.Rspack>,
+	name: string,
 	check?: (stats: RspackStatsDiagnostics) => Promise<void>
 ) {
+	const compiler = getCompiler(context, name);
+	const stats = compiler.getStats();
 	env.expect(typeof stats).toBe("object");
 	const statsResult = stats!.toJson({ errorDetails: false });
 	env.expect(typeof statsResult).toBe("object");
@@ -114,37 +152,16 @@ async function check(
 	);
 }
 
-export type TErrorCaseConfig = Omit<
-	ISimpleProcessorOptions<ECompilerType.Rspack>,
-	"name" | "compilerType"
-> & {
+export type TErrorCaseConfig = {
 	description: string;
+	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+	compiler?: (
+		context: ITestContext,
+		compiler: TCompiler<ECompilerType.Rspack>
+	) => Promise<void>;
+	build?: (
+		context: ITestContext,
+		compiler: TCompiler<ECompilerType.Rspack>
+	) => Promise<void>;
+	check?: (stats: RspackStatsDiagnostics) => Promise<void>;
 };
-
-export function createErrorCase(
-	name: string,
-	src: string,
-	dist: string,
-	testConfig: string
-) {
-	if (!addedSerializer) {
-		addedSerializer = true;
-	}
-	const caseConfig = require(testConfig);
-	const runner = getSimpleProcessorRunner(src, dist);
-
-	it(caseConfig.description, async () => {
-		await runner(
-			name,
-			new SimpleTaskProcessor({
-				name: name,
-				compilerType: ECompilerType.Rspack,
-				options: context => options(context, caseConfig.options),
-				compiler: (context, c) => compiler(context, c, caseConfig.compiler),
-				build: caseConfig.build,
-				check: (env, context, compiler, stats) =>
-					check(env, context, compiler, stats, caseConfig.check)
-			})
-		);
-	});
-}

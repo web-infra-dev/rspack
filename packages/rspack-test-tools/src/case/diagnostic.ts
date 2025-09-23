@@ -3,15 +3,69 @@ import path from "node:path";
 import merge from "webpack-merge";
 import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
-import { SimpleTaskProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type ITestEnv,
-	type TCompilerOptions
+	ITestContext,
+	ITestEnv,
+	TCompilerOptions
 } from "../type";
+import { getCompiler } from "./common";
 
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: false,
+	steps: ({ name }) => [
+		{
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				let options = defaultOptions(context);
+				const custom = readConfigFile<ECompilerType.Rspack>(
+					["rspack.config.js", "webpack.config.js"].map(i =>
+						context.getSource(i)
+					)
+				)[0];
+				if (custom) {
+					options = merge(options, custom);
+				}
+				if (!global.printLogger) {
+					options.infrastructureLogging = {
+						level: "error"
+					};
+				}
+				compiler.setOptions(options);
+			},
+			compiler: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.createCompiler();
+			},
+			build: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				await compiler.build();
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check the snapshot of diagnostics
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name, {
+					snapshot: "./stats.err",
+					snapshotErrors: "./raw-error.err",
+					snapshotWarning: "./raw-warning.err",
+					format: (output: string) => {
+						// TODO: change to stats.errorStack
+						// TODO: add `errorStack: false`
+						return output.replace(/(│.* at ).*/g, "$1xxx");
+					}
+				});
+			}
+		}
+	],
+	concurrent: true
+});
+
+export function createDiagnosticCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
+}
 export interface IDiagnosticOptions {
 	snapshot: string;
 	snapshotErrors: string;
@@ -51,13 +105,13 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 	} as TCompilerOptions<T>;
 }
 
-async function check<T extends ECompilerType.Rspack>(
-	this: SimpleTaskProcessor<T>,
+async function check(
 	env: ITestEnv,
 	context: ITestContext,
+	name: string,
 	options: IDiagnosticOptions
 ) {
-	const compiler = this.getCompiler(context);
+	const compiler = getCompiler(context, name);
 	const stats = compiler.getStats();
 	if (!stats) {
 		throw new Error("Stats should exists");
@@ -112,55 +166,4 @@ async function check<T extends ECompilerType.Rspack>(
 	env.expect(output).toMatchFileSnapshot(errorOutputPath);
 	env.expect(errors).toMatchFileSnapshot(errorStatsOutputPath);
 	env.expect(warnings).toMatchFileSnapshot(warningStatsOutputPath);
-}
-
-const creator = new BasicCaseCreator({
-	clean: true,
-	describe: false,
-	steps: ({ name }) => [
-		new SimpleTaskProcessor({
-			name,
-			compilerType: ECompilerType.Rspack,
-			options: context => {
-				let options = defaultOptions(context);
-				const custom = readConfigFile<ECompilerType.Rspack>(
-					["rspack.config.js", "webpack.config.js"].map(i =>
-						context.getSource(i)
-					)
-				)[0];
-				if (custom) {
-					options = merge(options, custom);
-				}
-				if (!global.printLogger) {
-					options.infrastructureLogging = {
-						level: "error"
-					};
-				}
-				return options;
-			},
-			check: function (
-				this: SimpleTaskProcessor<ECompilerType.Rspack>,
-				env,
-				context,
-				compiler,
-				stats
-			) {
-				return check.call(this, env, context, {
-					snapshot: "./stats.err",
-					snapshotErrors: "./raw-error.err",
-					snapshotWarning: "./raw-warning.err",
-					format: (output: string) => {
-						// TODO: change to stats.errorStack
-						// TODO: add `errorStack: false`
-						return output.replace(/(│.* at ).*/g, "$1xxx");
-					}
-				});
-			}
-		})
-	],
-	concurrent: true
-});
-
-export function createDiagnosticCase(name: string, src: string, dist: string) {
-	creator.create(name, src, dist);
 }

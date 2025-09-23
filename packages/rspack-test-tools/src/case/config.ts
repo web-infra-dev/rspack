@@ -1,20 +1,80 @@
 import fs from "fs-extra";
 import path from "path";
 import { parseResource } from "../helper/legacy/parseResource";
-import { MultiTaskProcessor } from "../processor";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type TCompilerOptions,
-	type TTestConfig
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
+	TCompilerOptions,
+	TTestConfig
 } from "../type";
+import {
+	build,
+	check,
+	compiler,
+	configMultiCompiler,
+	findMultiCompilerBundle,
+	run
+} from "./common";
 
 export type TConfigCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
 	"validate"
 >;
+
+export function createConfigProcessor(name: string): ITestProcessor {
+	return {
+		config: async (context: ITestContext) => {
+			configMultiCompiler(
+				context,
+				name,
+				["rspack.config.cjs", "rspack.config.js", "webpack.config.js"],
+				defaultOptions,
+				overrideOptions
+			);
+		},
+		compiler: async (context: ITestContext) => {
+			await compiler(context, name);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			await run(env, context, name, (context: ITestContext) =>
+				findMultiCompilerBundle(context, name, findBundle)
+			);
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name);
+		}
+	};
+}
+
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: false,
+	testConfig: testConfig => {
+		const oldModuleScope = testConfig.moduleScope;
+		testConfig.moduleScope = (ms, stats, compilerOptions) => {
+			let res = ms;
+			// TODO: modify runner module scope based on stats here
+			if (typeof oldModuleScope === "function") {
+				res = oldModuleScope(ms, stats, compilerOptions);
+			}
+			return res;
+		};
+	},
+	steps: ({ name }) => [createConfigProcessor(name)],
+	runner: MultipleRunnerFactory,
+	concurrent: true
+});
+
+export function createConfigCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
+}
 
 export function defaultOptions(
 	index: number,
@@ -103,41 +163,4 @@ export function findBundle(
 	}
 
 	return bundlePath;
-}
-
-const creator = new BasicCaseCreator({
-	clean: true,
-	describe: false,
-	testConfig: testConfig => {
-		const oldModuleScope = testConfig.moduleScope;
-		testConfig.moduleScope = (ms, stats, compilerOptions) => {
-			let res = ms;
-			// TODO: modify runner module scope based on stats here
-			if (typeof oldModuleScope === "function") {
-				res = oldModuleScope(ms, stats, compilerOptions);
-			}
-			return res;
-		};
-	},
-	steps: ({ name }) => [
-		new MultiTaskProcessor({
-			name,
-			runable: true,
-			compilerType: ECompilerType.Rspack,
-			defaultOptions,
-			overrideOptions,
-			findBundle,
-			configFiles: [
-				"rspack.config.cjs",
-				"rspack.config.js",
-				"webpack.config.js"
-			]
-		})
-	],
-	runner: MultipleRunnerFactory,
-	concurrent: true
-});
-
-export function createConfigCase(name: string, src: string, dist: string) {
-	creator.create(name, src, dist);
 }

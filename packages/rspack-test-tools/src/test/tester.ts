@@ -80,6 +80,7 @@ export class Tester implements ITester {
 		for (const i of this.steps) {
 			if (typeof i.afterAll === "function") {
 				await i.afterAll(this.context);
+				await this.context.closeCompiler(this.config.name);
 			}
 		}
 	}
