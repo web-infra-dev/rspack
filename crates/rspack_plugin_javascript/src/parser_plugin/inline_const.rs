@@ -1,8 +1,9 @@
 use rspack_core::{
-  Dependency, DependencyId, EvaluatedInlinableValue, ExportMode, ModuleGraph,
-  ModuleGraphConnection, PrefetchExportsInfoMode, RuntimeSpec, UsageState,
+  Dependency, DependencyId, EvaluatedInlinableValue, ExportMode, ExportsInfoGetter,
+  GetUsedNameParam, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, PrefetchExportsInfoMode,
+  RuntimeSpec, UsageState, UsedName,
 };
-use rspack_util::ryu_js;
+use rspack_util::{atom::Atom, ryu_js};
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDeclarator};
 
 use super::JavascriptParserPlugin;
@@ -143,6 +144,27 @@ fn inline_value_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool 
   inline_const_enabled || inline_enum_enabled
 }
 
+pub fn is_export_inlined(
+  mg: &ModuleGraph,
+  module: &ModuleIdentifier,
+  ids: &[Atom],
+  runtime: Option<&RuntimeSpec>,
+) -> bool {
+  let used_name = if ids.is_empty() {
+    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+      &mg.get_exports_info(module),
+      &mg,
+      runtime,
+      false,
+    );
+    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithoutNames(&exports_info), runtime, ids)
+  } else {
+    let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
+    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids)
+  };
+  matches!(used_name, Some(UsedName::Inlined(_)))
+}
+
 pub fn connection_active_inline_value_for_esm_import_specifier(
   dependency: &ESMImportSpecifierDependency,
   connection: &ModuleGraphConnection,
@@ -154,14 +176,7 @@ pub fn connection_active_inline_value_for_esm_import_specifier(
   }
   let module = connection.module_identifier();
   let ids = dependency.get_ids(mg);
-  let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
-  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
-    return true;
-  }
-  let Some(export_info) = exports_info.get_read_only_export_info_recursive(ids) else {
-    return true;
-  };
-  export_info.get_inline().is_none()
+  !is_export_inlined(mg, module, ids, runtime)
 }
 
 pub fn connection_active_inline_value_for_esm_export_imported_specifier(
@@ -186,12 +201,7 @@ pub fn connection_active_inline_value_for_esm_export_imported_specifier(
     if item.hidden || item.checked {
       return true;
     }
-    let exports_info =
-      mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(&item.ids));
-    let Some(export_info) = exports_info.get_read_only_export_info_recursive(&item.ids) else {
-      return true;
-    };
-    if export_info.get_inline().is_none() {
+    if !is_export_inlined(mg, module, &item.ids, runtime) {
       return true;
     }
   }

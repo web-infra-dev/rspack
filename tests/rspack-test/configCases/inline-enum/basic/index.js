@@ -73,10 +73,14 @@ it("should not inline if enum is not only properties used", () => {
     expect(e.A).toBe(0);
     expect(e.B).toBe(1);
   })(notOnlyPropertiesUsed.E);
+  expect(notOnlyPropertiesUsed.E.A).toBe(0);
+  expect(notOnlyPropertiesUsed.E.B).toBe(1);
   // END:G
   const block = generated.match(/\/\/ START:G([\s\S]*)\/\/ END:G/)[1];
   expect(block.includes(`(e.A).toBe(0)`)).toBe(true);
   expect(block.includes(`(e.B).toBe(1)`)).toBe(true);
+  expect(block.includes(`E.A).toBe(0)`)).toBe(true);
+  expect(block.includes(`E.B).toBe(1)`)).toBe(true);
   expect(block.includes(`inlined export`)).toBe(false);
 })
 
