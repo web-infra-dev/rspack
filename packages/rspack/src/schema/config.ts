@@ -650,6 +650,7 @@ export const getRspackOptionsSchema = memoize(() => {
 	const requireAsExpression = z.boolean();
 	const requireDynamic = z.boolean();
 	const requireResolve = z.boolean();
+	const suppressCommonjsExportsInEsm = z.boolean();
 	const importDynamic = z.boolean();
 	const commonjsMagicComments = z.boolean();
 	const inlineConst = z.boolean();
@@ -682,6 +683,7 @@ export const getRspackOptionsSchema = memoize(() => {
 			requireAsExpression: requireAsExpression,
 			requireDynamic: requireDynamic,
 			requireResolve: requireResolve,
+			suppressCommonjsExportsInEsm: suppressCommonjsExportsInEsm,
 			importDynamic: importDynamic,
 			inlineConst: inlineConst,
 			typeReexportsPresence: typeReexportsPresence

@@ -317,6 +317,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "requireAsExpression", true);
 	D(parserOptions, "requireDynamic", true);
 	D(parserOptions, "requireResolve", true);
+	D(parserOptions, "suppressCommonjsExportsInEsm", false);
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);

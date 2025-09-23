@@ -1,13 +1,7 @@
-const {
-	experiments: { RslibPlugin }
-} = require("@rspack/core");
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
 	{
-		entry: {
-			index: "./index.js",
-		},
+		entry: "./module1.js",
 		target: "node",
 		node: {
 			__filename: false,
@@ -18,43 +12,56 @@ module.exports = [
 				type: "commonjs"
 			}
 		},
-		plugins: [
-			new RslibPlugin({
-				interceptApiPlugin: true
-			})
-		]
+		module: {
+			parser: {
+				javascript: {
+					suppressCommonjsExportsInEsm: true
+				}
+			}
+		},
 	},
 	{
-		entry: {
-			index: "./module.js",
-		},
+		entry: "./module2.js",
 		target: "node",
 		node: {
 			__filename: false,
 			__dirname: false
 		},
 		externals: {
-			"node:module": "module-import node:module"
+			'node:module': 'module node:module'
+		},
+		externalsPresets: {
+			node: false
 		},
 		output: {
+			iife: false,
 			module: true,
 			library: {
 				type: "modern-module"
 			}
 		},
+		optimization: {
+			avoidEntryIife: true,
+		},
 		experiments: {
 			outputModule: true
 		},
-		plugins: [
-			new RslibPlugin({
-				interceptApiPlugin: true
-			})
-		]
+		module: {
+			parser: {
+				javascript: {
+					suppressCommonjsExportsInEsm: true
+				}
+			}
+		},
 	},
 	{
 		entry: "./test.js",
 		externals: {
-			"./bundle0.js": "commonjs ./bundle0.js"
+			"./bundle0.js": "commonjs ./bundle0.js",
+			"./bundle1.mjs": "commonjs ./bundle1.mjs"
+		},
+		output: {
+			filename: 'test.js'
 		},
 		target: "node",
 		node: {

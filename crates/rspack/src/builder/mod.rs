@@ -1713,6 +1713,7 @@ impl ModuleOptionsBuilder {
           require_as_expression: Some(true),
           require_dynamic: Some(true),
           require_resolve: Some(true),
+          suppress_commonjs_exports_in_esm: Some(false),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
           inline_const: Some(false),
