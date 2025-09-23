@@ -1105,6 +1105,11 @@ export type JavascriptParserOptions = {
 	// TODO: add docs
 	requireResolve?: boolean;
 
+	/**
+	 * Skip transforming CommonJS export mutations when ESM import / export presents, preserving the original runtime behavior.
+	 */
+	suppressCommonjsExportsInEsm?: boolean;
+
 	// TODO: add docs
 	importDynamic?: boolean;
 

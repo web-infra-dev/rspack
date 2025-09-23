@@ -3383,6 +3383,7 @@ export type JavascriptParserOptions = {
     requireAsExpression?: boolean;
     requireDynamic?: boolean;
     requireResolve?: boolean;
+    suppressCommonjsExportsInEsm?: boolean;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
     inlineConst?: boolean;

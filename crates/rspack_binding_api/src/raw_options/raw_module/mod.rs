@@ -290,6 +290,9 @@ pub struct RawJavascriptParserOptions {
   pub require_resolve: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
+  pub suppress_commonjs_exports_in_esm: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub import_dynamic: Option<bool>,
   pub commonjs_magic_comments: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
@@ -344,6 +347,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,
       require_resolve: value.require_resolve,
+      suppress_commonjs_exports_in_esm: value.suppress_commonjs_exports_in_esm,
       import_dynamic: value.import_dynamic,
       commonjs_magic_comments: value.commonjs_magic_comments,
       inline_const: value.inline_const,

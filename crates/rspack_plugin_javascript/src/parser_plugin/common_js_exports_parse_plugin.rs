@@ -258,6 +258,16 @@ fn handle_access_export(
 
 pub struct CommonJsExportsParserPlugin;
 
+impl CommonJsExportsParserPlugin {
+  fn should_suppress_commonjs_exports_in_esm(parser: &JavascriptParser) -> bool {
+    parser.is_esm
+      && parser
+        .javascript_options
+        .suppress_commonjs_exports_in_esm
+        .unwrap_or_default()
+  }
+}
+
 impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn assign_member_chain(
     &self,
@@ -266,6 +276,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     remaining: &[Atom],
     for_name: &str,
   ) -> Option<bool> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     if for_name == "exports" {
       // exports.x = y;
       return handle_assign_export(parser, assign_expr, remaining, ExportsBase::Exports);
@@ -292,6 +306,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     if parser.is_esm {
       return None;
     }
@@ -352,6 +370,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     if for_name == "module" {
       let decorator = if parser.is_esm {
         RuntimeGlobals::ESM_MODULE_DECORATOR
@@ -379,6 +401,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::ThisExpr,
   ) -> Option<bool> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     if parser.is_top_level_this() {
       // this
       return handle_access_export(parser, expr.span(), &[], ExportsBase::This, None);
@@ -392,6 +418,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     if for_name == "module.exports" {
       // module.exports
       return handle_access_export(parser, expr.span(), &[], ExportsBase::ModuleExports, None);
@@ -408,6 +438,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     if for_name == "exports" {
       // exports.a.b.c
       return handle_access_export(parser, expr.span(), members, ExportsBase::Exports, None);
@@ -441,6 +475,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     if for_name == "exports" {
       // exports.a.b.c()
       return handle_access_export(
@@ -479,10 +517,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
   fn evaluate_typeof<'a>(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
+    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+      return None;
+    }
+
     (for_name == "module" || for_name == "exports").then(|| {
       eval::evaluate_to_string(
         "object".to_string(),

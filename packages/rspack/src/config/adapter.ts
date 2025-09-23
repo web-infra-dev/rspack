@@ -583,6 +583,7 @@ function getRawJavascriptParserOptions(
 		requireAsExpression: parser.requireAsExpression,
 		requireDynamic: parser.requireDynamic,
 		requireResolve: parser.requireResolve,
+		suppressCommonjsExportsInEsm: parser.suppressCommonjsExportsInEsm,
 		importDynamic: parser.importDynamic,
 		commonjsMagicComments: parser.commonjsMagicComments,
 		inlineConst: parser.inlineConst,
